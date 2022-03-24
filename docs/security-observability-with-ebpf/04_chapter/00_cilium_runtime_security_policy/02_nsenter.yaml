@@ -1,0 +1,12 @@
+# deny nsenter execution from a pod
+apiVersion: "cilium.io/runtime/v1"
+kind: CiliumRuntimeSecurityPolicy
+metadata:
+  name: "deny-nsenter"
+  namespace: "default"
+Spec:
+  policyMode: Block
+  podSelector:
+	matchLabels:
+  process:
+  	binary: "/usr/bin/nsenter"

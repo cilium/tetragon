@@ -1,0 +1,39 @@
+{
+   "process_connect":{
+      "process":{
+         "exec_id":"bWluaWt1YmU6MjA4MjU3MzM4MjgwMToyNTc0NA==",
+         "pid":25744,
+         "uid":0,
+         "cwd":"/opt/merlin-agent/",
+         "binary":"/tmp/go-build3518135900/b001/exe/main",
+         "arguments":"-v -url https://main.linux-libs.org:443 -proto h2 -psk SecurePSK!23@456",
+         "flags":"execve clone",
+         "start_time":"2022-01-19T11:27:16.516Z",
+         "auid":4294967295,
+         "docker":"a51959123c3ba99a9f50a700",
+         "parent_exec_id":"bWluaWt1YmU6MjA4MTc1MTUxNjg4NDoyNTY4Nw==",
+         "refcnt":2
+      },
+      "parent":{
+         "exec_id":"bWluaWt1YmU6MjA4MTc1MTUxNjg4NDoyNTY4Nw==",
+         "pid":25687,
+         "uid":0,
+         "cwd":"/opt/merlin-agent/",
+         "binary":"/usr/local/go/bin/go",
+         "arguments":"run main.go -v -url https://main.linux-libs.org:443 -proto h2 -psk SecurePSK!23@456",
+         "flags":"execve clone",
+         "start_time":"2022-01-19T11:27:15.694Z",
+         "auid":4294967295,
+         "docker":"a51959123c3ba99a9f50a700",
+         "parent_exec_id":"bWluaWt1YmU6MjA4MTY2ODU5MzE3OToyNTY2OA==",
+         "refcnt":3
+      },
+      "source_ip":"10.88.0.3",
+      "source_port":43374,
+      "destination_ip":"34.116.205.187",
+      "destination_port":443,
+      "protocol":"TCP"
+   },
+   "node_name":"minikube",
+   "time":"2022-01-19T11:28:30.640Z"
+}

@@ -1,0 +1,14 @@
+# deny write to /etc/kubernetes/manifests on host
+apiVersion: "cilium.io/runtime/v1"
+kind: CiliumRuntimeSecurityPolicy
+metadata:
+  name: "deny-write-to-etc-kubernetes-manifests"
+  namespace: "default"
+Spec:
+  policyMode: Block
+  podSelector:
+	matchLabels:
+  process:
+  	binary: "*"
+  file:
+	file_path: "/etc/kubernetes/manifests"

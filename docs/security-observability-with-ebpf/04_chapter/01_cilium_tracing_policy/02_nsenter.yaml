@@ -1,0 +1,35 @@
+# deny nsenter execution from a pod
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "deny-nsenter"
+spec:
+  kprobes:
+  - call: "<TBD>"
+    syscall: false
+    selectors:
+    - matchPIDs:
+      # match host processes
+      - operator: In
+        followForks: false
+        isNamespacePID: true
+        values:
+        - 0
+      # match namespace processes that are not init or its children
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 1
+    # match on mount, network, uts, pid, ipc, user host namespaces
+    - matchNamespaceChanges:
+      - operator: In
+        values:
+        - "mount"
+        - "network"
+        - "uts"
+        - "pid"
+        - "ipc"
+        - "user"
+    - matchActions:
+      - action: Sigkill

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-pod
+spec:
+  hostPID: true
+  hostNetwork: true
+  containers:
+  - name: privileged-pod
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    securityContext:
+      privileged: true

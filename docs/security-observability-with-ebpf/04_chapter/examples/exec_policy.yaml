@@ -1,0 +1,27 @@
+apiVersion: isovalent.com/v1alpha1
+kind: ExecPolicy
+metadata:
+  name: "exec-policy-example"
+spec:
+  rules:
+    selectors:
+    # match only pod pids (AND)
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0
+    # match on caps (AND)
+    - matchCapabilities:
+      - operator: In
+        isNamespaceCapability: true
+        values:
+        - "CAP_SYS_ADMIN"
+    # match on binaries (AND)
+    - matchBinarys:
+      values:
+        - "*"
+    # terminate the process
+    - matchActions:
+      - action: Sigkill

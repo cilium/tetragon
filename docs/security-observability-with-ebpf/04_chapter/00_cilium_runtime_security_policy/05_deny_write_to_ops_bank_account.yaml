@@ -1,0 +1,14 @@
+# deny write access to /opt/ops_bank_accounts on host
+apiVersion: "cilium.io/runtime/v1"
+kind: CiliumRuntimeSecurityPolicy
+metadata:
+  name: "deny-write-to-ops-bank-account"
+  namespace: "default"
+Spec:
+  policyMode: Block
+  podSelector:
+	matchLabels:
+  process:
+  	binary: "*"
+  file:
+	file_path: "/opt/ops_bank_accounts"

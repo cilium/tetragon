@@ -1,0 +1,31 @@
+# Deny a privileged pod start
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "deny-privileged-pod-start"
+spec:
+  kprobes:
+  - call: "<TBD>"
+    syscall: false
+    selectors:
+    # match all the namespace PIDs including init
+    - matchPIDs:
+      - operator: NotIn
+        followForks: false
+        isNamespacePID: true
+        values:
+        - 0
+    # match a process with CAP_SYS_ADMIN
+    - matchCapabilities:
+      - operator: In
+        isNamespaceCapability: true
+        values:
+        - "CAP_SYS_ADMIN"
+    # match on containerd-shim binary
+    - matchBinarys:
+      - operator: "In"
+        values:
+        - "/usr/bin/containerd-shim"
+    # terminate the process
+    - matchActions:
+      - action: Sigkill
