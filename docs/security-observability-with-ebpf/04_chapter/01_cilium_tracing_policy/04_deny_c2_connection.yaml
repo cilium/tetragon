@@ -1,0 +1,36 @@
+# deny connections to 34.116.205.187:443, c2 server
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "deny-c2-server-connection"
+spec:
+  kprobes:
+  - call: "__x64_connect"
+    syscall: true
+    args:
+      - index: 0
+        type: "sockfd"
+      - index: 1
+        type: "sockaddr"
+    selectors:
+    - matchPIDs:
+      # match host processes
+      - operator: In
+        followForks: false
+        isNamespacePID: true
+        values:
+        - 0
+      # match namespace processes that are not init or its children
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 1
+     matchArgs:
+     # match on 34.116.205.187:443
+     - index: 1
+       operator: "Equal"
+       values:
+       - "dip: 34.116.205.187, dport:443"
+     matchActions:
+      - action: Sigkill

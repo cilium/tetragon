@@ -1,0 +1,63 @@
+{
+   "process_listen":{
+      "process":{
+         "exec_id":"bWluaWt1YmU6ODAwNDY4NjY0ODA0OjEyNzAw",
+         "pid":12700,
+         "uid":0,
+         "cwd":"/",
+         "binary":"/usr/sbin/nginx",
+         "arguments":"-g \"daemon off;\"",
+         "flags":"execve rootcwd",
+         "start_time":"2022-01-19T11:05:54.411Z",
+         "auid":4294967295,
+         "pod":{
+            "namespace":"default",
+            "name":"privileged-pod",
+            "container":{
+               "id":"docker://85f791fd8dfa740a3b1c177e8f68e8fdb4803a7c8fa0e957a5ec38460ce047ef",
+               "name":"privileged-pod",
+               "image":{
+                  "id":"docker-pullable://nginx@sha256:0d17b565c37bcbd895e9d92315a05c1c3c9a29f762b011a10c54a66cd53c9b31",
+                  "name":"nginx:latest"
+               },
+               "start_time":"2022-01-19T11:05:54Z"
+            }
+         },
+         "docker":"85f791fd8dfa740a3b1c177e",
+         "parent_exec_id":"bWluaWt1YmU6ODAwNDM1MDM1OTY2OjEyNzAw",
+         "refcnt":3
+      },
+      "parent":{
+         "exec_id":"bWluaWt1YmU6ODAwNDM1MDM1OTY2OjEyNzAw",
+         "pid":12700,
+         "uid":0,
+         "cwd":"/",
+         "binary":"/docker-entrypoint.sh",
+         "arguments":"/docker-entrypoint.sh nginx -g \"daemon off;\"",
+         "flags":"execve rootcwd clone",
+         "start_time":"2022-01-19T11:05:54.378Z",
+         "auid":4294967295,
+         "pod":{
+            "namespace":"default",
+            "name":"privileged-pod",
+            "container":{
+               "id":"docker://85f791fd8dfa740a3b1c177e8f68e8fdb4803a7c8fa0e957a5ec38460ce047ef",
+               "name":"privileged-pod",
+               "image":{
+                  "id":"docker-pullable://nginx@sha256:0d17b565c37bcbd895e9d92315a05c1c3c9a29f762b011a10c54a66cd53c9b31",
+                  "name":"nginx:latest"
+               },
+               "start_time":"2022-01-19T11:05:54Z"
+            }
+         },
+         "docker":"85f791fd8dfa740a3b1c177e",
+         "parent_exec_id":"bWluaWt1YmU6ODAwMzM1OTQzOTQ1OjEyNjgx",
+         "refcnt":3
+      },
+      "ip":"0.0.0.0",
+      "port":80,
+      "protocol":"TCP"
+   },
+   "node_name":"minikube",
+   "time":"2022-01-19T11:05:54.415Z"
+}

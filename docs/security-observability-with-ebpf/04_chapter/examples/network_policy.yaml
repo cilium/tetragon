@@ -1,0 +1,34 @@
+apiVersion: isovalent.com/v1alpha1
+kind: NetworkPolicy
+metadata:
+  name: "network-policy-example"
+spec:
+  rules:
+  - type: "connect"
+    selectors:
+    # match only pod pids (AND)
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0
+      # match on destination IPs (AND)
+      matchArgs:
+      - egressEndpoint:
+        operator: "Equal"
+        values:
+        - "dip: 104.244.42.130"
+      # match on binarys (AND)
+      matchBinarys:
+      - operator: "In"
+        values:
+        - "/usr/bin/curl"
+      # match on binary hashes (AND)
+      matchBinaryDigs:
+      - operator: "In"
+        values:
+        - "F0DA955D46AA49E3CAC477D43E22C56CF83A7CB4B2A9805B3D995C2920DF9CFF"
+    # allow the connection
+    matchActions:
+    - action: Allow

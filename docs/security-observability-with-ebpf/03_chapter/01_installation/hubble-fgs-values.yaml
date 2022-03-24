@@ -1,0 +1,18 @@
+cilium:
+  enabled: false
+hubble-ui:
+  enabled: false
+hubble-timescape:
+  enabled: false
+hubble-enterprise:
+  enterprise:
+    exportAllowList: |-
+      {"event_set":["PROCESS_CONNECT", "PROCESS_CLOSE", "PROCESS_EXIT", "PROCESS_ACCEPT", "PROCESS_KPROBE", "PROCESS_EXEC", "PROCESS_LISTEN"]}
+    exportDenyList: ""
+    image:
+      tag: v1.6.0
+    enabled: true
+    enableCiliumAPI: false
+    exportFilename: "fgs.log"
+    extraArgs:
+      "enable-process-cred": true

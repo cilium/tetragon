@@ -1,0 +1,13 @@
+# Deny a privileged pod start
+apiVersion: "cilium.io/runtime/v1"
+kind: CiliumRuntimeSecurityPolicy
+metadata:
+  name: "deny-privileged-pod"
+  namespace: "default"
+Spec:
+  policyMode: Block
+  podSelector:
+	matchLabels:
+  process:
+  	binary: "/usr/bin/containerd-shim"
+  	capabilities: "CAP_SYS_ADMIN"
