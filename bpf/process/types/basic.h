@@ -414,11 +414,18 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 
 #define ARGM_INDEX_MASK	 ((1 << 4) - 1)
 #define ARGM_RETURN_COPY (1 << 4)
+#define ARGM_FULL_COPY	 (1 << 5)
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
 {
 	return (argm & ARGM_RETURN_COPY) != 0;
+}
+
+static inline __attribute__((always_inline)) bool
+hasFullCopy(unsigned long argm)
+{
+	return (argm & ARGM_FULL_COPY) != 0;
 }
 
 static inline __attribute__((always_inline)) unsigned long

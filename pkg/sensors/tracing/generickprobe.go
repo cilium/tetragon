@@ -259,16 +259,22 @@ var (
 
 const (
 	argReturnCopyBit = 1 << 4
+	argFullCopyBit   = 1 << 5
 )
 
 func argReturnCopy(meta int) bool {
 	return meta&argReturnCopyBit != 0
 }
 
+func argFullCopy(meta int) bool {
+	return meta&argFullCopyBit != 0
+}
+
 // meta value format:
 // bits
 //  0-3 : SizeArgIndex
 //    4 : ReturnCopy
+//    5 : FullCopy
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -280,6 +286,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
+	}
+	if arg.FullCopy {
+		meta = meta | argFullCopyBit
 	}
 	return meta, nil
 }
@@ -339,6 +348,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			}
 		}
 
+		var hasFullCopy bool
+
 		// Parse Arguments
 		for j, a := range f.Args {
 			argType := gt.GenericTypeFromString(a.Type)
@@ -348,6 +359,12 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			argMValue, err := getMetaValue(&a)
 			if err != nil {
 				return nil, err
+			}
+			if argFullCopy(argMValue) {
+				if hasFullCopy {
+					return nil, fmt.Errorf("Error only one fullCopy argument supported")
+				}
+				hasFullCopy = true
 			}
 			if argReturnCopy(argMValue) {
 				argRetprobe = &f.Args[j]
