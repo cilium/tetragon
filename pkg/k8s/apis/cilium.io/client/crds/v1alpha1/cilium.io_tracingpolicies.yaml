@@ -44,6 +44,11 @@ spec:
                         trace output.
                       items:
                         properties:
+                          fullCopy:
+                            default: false
+                            description: This field is used only for char_buf and
+                              char_iovec types.
+                            type: boolean
                           index:
                             description: Position of the argument.
                             format: int32
@@ -97,6 +102,11 @@ spec:
                     returnArg:
                       description: A return argument to include in the trace output.
                       properties:
+                        fullCopy:
+                          default: false
+                          description: This field is used only for char_buf and char_iovec
+                            types.
+                          type: boolean
                         index:
                           description: Position of the argument.
                           format: int32
@@ -429,6 +439,11 @@ spec:
                         trace output.
                       items:
                         properties:
+                          fullCopy:
+                            default: false
+                            description: This field is used only for char_buf and
+                              char_iovec types.
+                            type: boolean
                           index:
                             description: Position of the argument.
                             format: int32
