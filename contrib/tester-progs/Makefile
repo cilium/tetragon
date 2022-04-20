@@ -1,7 +1,7 @@
 
 GCC ?= gcc
 
-PROGS = sigkill-tester capabilities-tester namespace-tester
+PROGS = sigkill-tester capabilities-tester namespace-tester fork-tester
 
 all: $(PROGS)
 
@@ -12,6 +12,9 @@ capabilities-tester: capabilities-tester.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 namespace-tester: namespace-tester.c
+	$(GCC) -Wall $< -o $@
+
+fork-tester: fork-tester.c
 	$(GCC) -Wall $< -o $@
 
 .PHONY: clean
