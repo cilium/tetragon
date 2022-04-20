@@ -16,7 +16,7 @@ int _version __attribute__((section(("version")), used)) =
 __attribute__((section(("kprobe/wake_up_new_task")), used)) int
 event_wake_up_new_task(struct pt_regs *ctx)
 {
-	struct execve_map_value *value;
+	struct execve_map_value *curr;
 	struct task_struct *task;
 	u32 pid = 0;
 
@@ -25,9 +25,9 @@ event_wake_up_new_task(struct pt_regs *ctx)
 		return 0;
 
 	probe_read(&pid, sizeof(pid), _(&task->tgid));
-	value = execve_map_get(pid);
-	if (!value)
+	curr = execve_map_get(pid);
+	if (!curr)
 		return 0;
-	value->flags = EVENT_COMMON_FLAG_CLONE;
+	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	return 0;
 }
