@@ -1943,3 +1943,151 @@ spec:
 
 	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
+
+// read full size arguments
+
+func runKprobeFullCopy_char_buf(t *testing.T, configHook string,
+	checker ec.MultiEventChecker, fdw, fdr int, buffer *[]byte) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	testConfigHook := []byte(configHook)
+	err := ioutil.WriteFile(testConfigFile, testConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithWatchers(t, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	n, errno := syscall.Write(fdw, *buffer)
+	if n < 0 {
+		t.Logf("syscall.Write failed: %s\n", errno)
+		t.Fatal()
+	}
+	syscall.Fsync(fdw)
+
+	i, errno := syscall.Read(fdr, *buffer)
+	if i < 0 {
+		t.Logf("syscall.Read failed: %s\n", errno)
+		t.Fatal()
+	}
+
+	err = observer.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobe_char_buf_fullCopy(t *testing.T) {
+	fdw, fdr, _ := createTestFile(t)
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	configHook := `
+apiVersion: hubble-enterprise.io/v1
+metadata:
+  name: "sys_write_read"
+spec:
+  kprobes:
+  - call: "__x64_sys_write"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+      fullCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fmt.Sprint(fdw)
+
+	rwsize := 10 * 4096
+	buffer := make([]byte, rwsize)
+
+	for i := 0; i < rwsize; i++ {
+		buffer[i] = 'A' + byte(i%26)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdw)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(rwsize)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeFullCopy_char_buf(t, configHook, checker, fdw, fdr, &buffer)
+}
+
+func TestKprobe_char_buf_fullCopy_returnCopy(t *testing.T) {
+	fdw, fdr, _ := createTestFile(t)
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	configHook := `
+apiVersion: hubble-enterprise.io/v1
+metadata:
+  name: "sys_write_read"
+spec:
+  kprobes:
+  - call: "__x64_sys_read"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+      fullCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fmt.Sprint(fdr)
+
+	rwsize := 10 * 4096
+	buffer := make([]byte, rwsize)
+
+	for i := 0; i < rwsize; i++ {
+		buffer[i] = 'A' + byte(i%26)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdr)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(rwsize)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeFullCopy_char_buf(t, configHook, checker, fdw, fdr, &buffer)
+}
