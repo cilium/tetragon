@@ -679,32 +679,34 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 	return strVal
 }
 
-func readFullCopyArg(r *bytes.Reader) ([]byte, error) {
-	var desc api.DataEventDesc
+func readFullCopyArg(r *bytes.Reader) ([]byte, bool, error) {
+	var desc tracingapi.DataEventDesc
 
 	if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
-		return nil, fmt.Errorf("CharBufFullCopyArg: failed to desc data for buffer argument: %w", err)
+		return nil, false, fmt.Errorf("CharBufFullCopyArg: failed to desc data for buffer argument: %w", err)
 	}
 
-	logger.GetLogger().Debugf("CharBufFullCopyArg: desc (Error %v, Leftover %v, Id %v)",
-		desc.Error, desc.Leftover, desc.Id)
+	more := desc.Flags&tracingapi.DATA_EVENT_DESC_FLAGS_CONT != 0
+
+	logger.GetLogger().Debugf("CharBufFullCopyArg: desc (Error %v, Leftover %v, Id %v, More %v)",
+		desc.Error, desc.Leftover, desc.Id, more)
 
 	if desc.Error < 0 {
 		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
-		return nil, nil
+		return nil, false, nil
 	}
 
 	data, err := dataGet(desc.Id)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if desc.Leftover != 0 {
 		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
-		return data, nil
+		return data, false, nil
 	}
 
-	return data, nil
+	return data, more, nil
 }
 
 func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, error) {
@@ -722,6 +724,8 @@ func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, er
 	if bytes == CharBufFullCopyArg {
 		var err error
 		var origSize uint32
+		var data []byte
+		var more bool
 
 		if err := binary.Read(r, binary.LittleEndian, &origSize); err != nil {
 			return nil, fmt.Errorf("CharBufFullCopyArg: failed to read original size for buffer argument: %w", err)
@@ -732,7 +736,16 @@ func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, er
 		// kprobe bpf program, that can't migrate on another cpu
 
 		arg.OrigSize = uint64(origSize)
-		arg.Value, err = readFullCopyArg(r)
+
+		for {
+			if data, more, err = readFullCopyArg(r); err != nil {
+				break
+			}
+			arg.Value = append(arg.Value, data...)
+			if !more {
+				break
+			}
+		}
 		return &arg, err
 	}
 

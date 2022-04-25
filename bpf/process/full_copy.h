@@ -17,8 +17,13 @@
  *   struct data_event_desc {
  *     __s32 error;
  *     __u32 leftover;
+ *     __u32 flags;
  *     struct data_event_id id;
  *   }
+ *
+ * If the flags is set (bit 0) then there's another desc record
+ * following with data for the same argument. If it's not set
+ * it's the last desc record.
  *
  * The 'actual' argument's data is copied via data_event_bytes
  * function and delivered to user space via separate data
@@ -33,11 +38,21 @@
  *   struct data_event_desc    |
  *     error                   |       8
  *     leftover                |      12
- *     id                      |      16
- *   next argument data        |      32
+ *     flags (0|1)             |      16
+ *     id                      |      20
+ *   struct data_event_desc    |
+ *     error                   |      36
+ *     leftover                |      40
+ *     flags (0|1)             |      44
+ *     id                      |      48
+ *   ...
+ *   next argment data         |      64
  *
  * Based on the 'id' we find the 'actual' argument value
  * from data event.
+ *
+ * If there are multiple 'desc' records, the final argument
+ * value concatenated from all of them.
  *
  * All data events are store on the same cpu ring buffer
  * and *before* the kprobe event is stored. That's because
@@ -84,7 +99,8 @@ full_copy(void *ctx, struct bpf_map_def *heap_map,
 
 		data = fullcopy_data(msg, i);
 		args = args_off(msg, data->off);
-		data_event_bytes(ctx, args, data->arg, data->bytes, data_heap);
+		data_event_bytes(ctx, args, data->arg, data->bytes, data->cont,
+				 data_heap);
 	}
 
 	total = msg->common.size + generic_kprobe_common_size();

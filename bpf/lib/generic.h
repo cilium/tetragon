@@ -21,6 +21,7 @@ struct full_copy_data {
 	long off;
 	unsigned long arg;
 	size_t bytes;
+	bool cont;
 };
 
 struct msg_generic_kprobe {

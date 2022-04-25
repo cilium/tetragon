@@ -41,9 +41,15 @@ type DataEventId struct {
 	Time uint64
 }
 
+// DataEventDesc flags
+const (
+	DATA_EVENT_DESC_FLAGS_CONT = 0x1
+)
+
 type DataEventDesc struct {
 	Error    int32
 	Leftover uint32
+	Flags    uint32
 	Id       DataEventId
 }
 

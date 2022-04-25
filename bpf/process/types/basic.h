@@ -120,7 +120,7 @@ args_off(struct msg_generic_kprobe *e, long off)
 
 static inline __attribute__((always_inline)) long
 full_copy_set(struct msg_generic_kprobe *e, long off, unsigned long arg,
-	      size_t bytes)
+	      size_t bytes, bool cont)
 {
 	long size = sizeof(struct data_event_desc);
 	int fci = e->full_copy.cnt & 7;
@@ -128,12 +128,15 @@ full_copy_set(struct msg_generic_kprobe *e, long off, unsigned long arg,
 	if (e->full_copy.cnt > 7)
 		return return_error((int *)args_off(e, off), char_buf_toolarge);
 
-	e->full_copy.off = off;
-	/* we store: char_buf_fullcopy_arg | bytes | desc */
-	off += 8;
-	size += 8;
+	if (fci == 0) {
+		e->full_copy.off = off;
+		/* we store: char_buf_fullcopy_arg | bytes | desc | desc ... */
+		off += 8;
+		size += 8;
+	}
 
 	e->full_copy.bytes += bytes;
+	e->full_copy.data[fci].cont = cont;
 	e->full_copy.data[fci].off = off;
 	e->full_copy.data[fci].arg = arg;
 	e->full_copy.data[fci].bytes = bytes;
@@ -146,6 +149,14 @@ full_copy_init(struct msg_generic_kprobe *e)
 {
 	e->full_copy.cnt = 0;
 	e->full_copy.bytes = 0;
+}
+
+static inline __attribute__((always_inline)) void
+full_copy_set_last(struct msg_generic_kprobe *e)
+{
+	int fci = (e->full_copy.cnt - 1) & 7;
+
+	e->full_copy.data[fci].cont = false;
 }
 
 /* Error writer for use when pointer *s is lost to stack and can not
@@ -505,7 +516,7 @@ __copy_char_buf(long off, unsigned long arg, unsigned long bytes,
 	rd_bytes &= 0xfff;
 
 	if (bytes > rd_bytes && fullCopy)
-		return full_copy_set(e, off, arg, bytes);
+		return full_copy_set(e, off, arg, bytes, false);
 
 	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)

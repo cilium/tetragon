@@ -56,7 +56,7 @@ static long do_bytes(void *ctx, struct msg_data *msg, unsigned long arg,
 }
 
 static int data_event(void *ctx, void *out, unsigned long uptr, size_t size,
-		      struct bpf_map_def *heap,
+		      bool cont, struct bpf_map_def *heap,
 		      long (*do_data_event)(void *, struct msg_data *,
 					    unsigned long, size_t))
 {
@@ -76,6 +76,7 @@ static int data_event(void *ctx, void *out, unsigned long uptr, size_t size,
 	msg->id.pid = get_current_pid_tgid();
 	msg->id.time = ktime_get_ns();
 	desc->id = msg->id;
+	desc->flags = cont ? DATA_EVENT_DESC_FLAGS_CONT : 0;
 
 	err = do_data_event(ctx, msg, uptr, size);
 	if (err < 0) {
@@ -90,7 +91,7 @@ static int data_event(void *ctx, void *out, unsigned long uptr, size_t size,
 
 static inline __attribute__((always_inline)) size_t
 data_event_bytes(void *ctx, void *out, unsigned long uptr, size_t size,
-		 struct bpf_map_def *heap)
+		 bool cont, struct bpf_map_def *heap)
 {
-	return data_event(ctx, out, uptr, size, heap, do_bytes);
+	return data_event(ctx, out, uptr, size, cont, heap, do_bytes);
 }

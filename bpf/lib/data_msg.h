@@ -6,9 +6,12 @@ struct data_event_id {
 	__u64 time;
 } __attribute__((packed));
 
+#define DATA_EVENT_DESC_FLAGS_CONT 1 << 0
+
 struct data_event_desc {
 	__s32 error;
 	__u32 leftover;
+	__u32 flags;
 	struct data_event_id id;
 } __attribute__((packed));
 
