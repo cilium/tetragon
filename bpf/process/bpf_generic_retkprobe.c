@@ -33,12 +33,12 @@ generic_kprobe_event(struct pt_regs *ctx)
 	enum generic_func_args_enum tetragon_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct retprobe_info info;
 	bool walker = false;
 	int zero = 0;
 	__u32 ppid;
 	long total = 0;
 	long size = 0;
-	unsigned long retprobe_buffer, cnt = 0;
 	long ty_arg, do_copy;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -47,8 +47,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	retprobe_buffer = retprobe_map_get(e->thread_id, &cnt);
-	if (!retprobe_buffer)
+	if (!retprobe_map_get(e->thread_id, &info))
 		return 0;
 
 	ty_arg = bpf_core_enum_value(tetragon_args, argreturn);
@@ -58,11 +57,10 @@ generic_kprobe_event(struct pt_regs *ctx)
 				      (unsigned long)ctx->ax, 0, 0);
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(size, retprobe_buffer, ctx->ax, e);
+		size += __copy_char_buf(size, info.ptr, ctx->ax, e);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, retprobe_buffer, cnt, ctx->ax,
-					  e);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ctx->ax, e);
 	default:
 		break;
 	}

@@ -10,21 +10,18 @@ struct bpf_map_def __attribute__((section("maps"), used)) retprobe_map = {
 	.max_entries = 1024,
 };
 
-static inline __attribute__((always_inline)) unsigned long
-retprobe_map_get(__u64 tid, unsigned long *cntp)
+static inline __attribute__((always_inline)) bool
+retprobe_map_get(__u64 tid, struct retprobe_info *bufp)
 {
 	struct retprobe_info *info;
-	unsigned long ptr;
 
 	info = map_lookup_elem(&retprobe_map, &tid);
 	if (!info)
-		return 0;
-
-	ptr = info->ptr;
-	if (cntp)
-		*cntp = info->cnt;
+		return false;
+	if (bufp)
+		*bufp = *info;
 	map_delete_elem(&retprobe_map, &tid);
-	return ptr;
+	return true;
 }
 
 static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 tid)
