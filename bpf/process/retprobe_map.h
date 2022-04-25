@@ -1,7 +1,8 @@
 struct retprobe_info {
 	unsigned long ptr;
 	unsigned long cnt;
-};
+	bool fullCopy;
+} __attribute__((packed));
 
 struct bpf_map_def __attribute__((section("maps"), used)) retprobe_map = {
 	.type = BPF_MAP_TYPE_HASH,
@@ -33,22 +34,23 @@ static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 tid)
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set(__u64 tid, unsigned long ptr)
+retprobe_map_set(__u64 tid, unsigned long ptr, bool fullCopy)
 {
 	struct retprobe_info info = {
 		.ptr = ptr,
+		.fullCopy = fullCopy,
 	};
 
 	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set_iovec(__u64 tid, unsigned long ptr, unsigned long cnt)
+retprobe_map_set_iovec(__u64 tid, unsigned long ptr, unsigned long cnt,
+		       bool fullCopy)
 {
-	struct retprobe_info info = {
-		.ptr = ptr,
-		.cnt = cnt,
-	};
+	struct retprobe_info info = { .ptr = ptr,
+				      .cnt = cnt,
+				      .fullCopy = fullCopy };
 
 	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
 }

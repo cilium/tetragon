@@ -526,7 +526,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set(tid, arg);
+		retprobe_map_set(tid, arg, fullCopy);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
@@ -672,7 +672,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(tid, arg, meta);
+		retprobe_map_set_iovec(tid, arg, meta, false);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e);
