@@ -152,10 +152,12 @@ full_copy_init(struct msg_generic_kprobe *e)
 }
 
 static inline __attribute__((always_inline)) void
-full_copy_set_last(struct msg_generic_kprobe *e)
+full_copy_set_last(struct msg_generic_kprobe *e, int cnt)
 {
 	int fci = (e->full_copy.cnt - 1) & 7;
 
+	if (cnt > 7)
+		e->full_copy.bytes++;
 	e->full_copy.data[fci].cont = false;
 }
 
@@ -193,7 +195,7 @@ static inline __attribute__((always_inline)) bool has_max(unsigned long max)
  */
 static inline __attribute__((always_inline)) int
 parse_iovec_array(long off, unsigned long arg, int i, unsigned long *maxp,
-		  struct msg_generic_kprobe *e)
+		  bool fullCopy, struct msg_generic_kprobe *e)
 {
 	struct iovec
 		iov; // limit is 1024 using a hack now. For 5.4 kernel we should loop over 1024
@@ -211,6 +213,10 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long *maxp,
 			size = max;
 		*maxp -= size;
 	}
+	if (fullCopy)
+		return full_copy_set(e, off, (unsigned long)iov.iov_base, size,
+				     true);
+
 	if (size > 4094)
 		return char_buf_toolarge;
 	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size) :);
@@ -227,7 +233,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long *maxp,
 		/* embedding this in the loop counter breaks verifier */       \
 		if (i >= cnt)                                                  \
 			goto char_iovec_done;                                  \
-		c = parse_iovec_array(off, arg, i, &max, e);                   \
+		c = parse_iovec_array(off, arg, i, &max, fullCopy, e);         \
 		if (c < 0)                                                     \
 			return return_stack_error(args, 0, c);                 \
 		size += c;                                                     \
@@ -651,7 +657,8 @@ filter_file_buf(struct selector_arg_filter *filter, char *args)
 
 static inline __attribute__((always_inline)) long
 __copy_char_iovec(long off, unsigned long arg, unsigned long meta,
-		  unsigned long max, struct msg_generic_kprobe *e)
+		  unsigned long max, struct msg_generic_kprobe *e,
+		  bool fullCopy)
 {
 	char *args = args_off(e, off);
 	long size;
@@ -664,10 +671,19 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long meta,
 
 	max = max ?: (unsigned long)-1;
 	size = 0;
-	off += 8;
+	// We don't return size below for fullCopy case
+	if (!fullCopy)
+		off += 8;
 	PARSE_IOVEC_ENTRIES // may return an error directly
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
-		char_iovec_done : s[0] = size;
+
+		char_iovec_done : if (fullCopy)
+	{
+		full_copy_set_last(e, cnt);
+		return size;
+	}
+
+	s[0] = size;
 	s[1] = size;
 	return size + 8;
 }
@@ -676,6 +692,7 @@ static inline __attribute__((always_inline)) long
 copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
+	bool fullCopy = hasFullCopy(argm);
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
@@ -683,10 +700,10 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(tid, arg, meta, false);
+		retprobe_map_set_iovec(tid, arg, meta, fullCopy);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	return __copy_char_iovec(off, arg, meta, 0, e);
+	return __copy_char_iovec(off, arg, meta, 0, e, fullCopy);
 }
 
 static inline __attribute__((always_inline)) long

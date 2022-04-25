@@ -60,7 +60,8 @@ generic_kprobe_event(struct pt_regs *ctx)
 		size += __copy_char_buf(size, info.ptr, ctx->ax, e, false);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, info.ptr, info.cnt, ctx->ax, e);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ctx->ax, e,
+					  info.fullCopy);
 	default:
 		break;
 	}
