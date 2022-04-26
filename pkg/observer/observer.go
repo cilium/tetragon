@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -35,8 +36,6 @@ const (
 	// limit is required for HTTP/2 parsing to function correctly
 	// which relies on frame ordering (it does limited reordering)
 	maxEventsPerRing = 4
-
-	perCPUBufferBytes = 65535
 
 	// Use cilium/ebpf to read events from the perf ring. Since we're
 	// incrementally rolling this out we're keeping the old code functional
@@ -189,7 +188,7 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 	}
 	defer perfMap.Close()
 
-	perfReader, err := perf.NewReader(perfMap, perCPUBufferBytes)
+	perfReader, err := perf.NewReader(perfMap, k.perfConfig.NumPages*os.Getpagesize())
 	if err != nil {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
