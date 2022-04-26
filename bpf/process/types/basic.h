@@ -132,24 +132,30 @@ return_stack_error(char *args, int orig, int err)
 	return sizeof(int);
 }
 
+static inline __attribute__((always_inline)) bool has_max(unsigned long max)
+{
+	return max != (unsigned long)-1;
+}
+
 /**
  * Parse and read single struct iovec data
  *
  * @off: offset into msg_generic_kprobe::args
  * @arg: pointer to iovec data to copy from
- * @max: maximum bytes to read
+ * @maxp: pointer to maximum bytes to read
  * @e: pointer to struct msg_generic_kprobe
  *
  * Reads iovec data descriptor from @arg pointer
  * and reads its @bytes bytes into @e->args[@off].
  */
 static inline __attribute__((always_inline)) int
-parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
+parse_iovec_array(long off, unsigned long arg, int i, unsigned long *maxp,
 		  struct msg_generic_kprobe *e)
 {
 	struct iovec
 		iov; // limit is 1024 using a hack now. For 5.4 kernel we should loop over 1024
 	char index = sizeof(struct iovec) * i;
+	unsigned long max = *maxp;
 	__u64 size;
 	int err;
 
@@ -157,8 +163,11 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 	if (err < 0)
 		return char_buf_pagefault;
 	size = iov.iov_len;
-	if (max && size > max)
-		size = max;
+	if (has_max(max)) {
+		if (size > max)
+			size = max;
+		*maxp -= size;
+	}
 	if (size > 4094)
 		return char_buf_toolarge;
 	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size) :);
@@ -175,15 +184,12 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		/* embedding this in the loop counter breaks verifier */       \
 		if (i >= cnt)                                                  \
 			goto char_iovec_done;                                  \
-		c = parse_iovec_array(off, arg, i, max, e);                    \
+		c = parse_iovec_array(off, arg, i, &max, e);                   \
 		if (c < 0)                                                     \
 			return return_stack_error(args, 0, c);                 \
 		size += c;                                                     \
-		if (max) {                                                     \
-			max -= c;                                              \
-			if (!max)                                              \
-				goto char_iovec_done;                          \
-		}                                                              \
+		if (has_max(max) && !max)                                      \
+			goto char_iovec_done;                                  \
 		c &= 0x7fff;                                                   \
 		off += c;                                                      \
 		i++;                                                           \
@@ -598,6 +604,7 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long meta,
 		return return_stack_error(args, 0, char_buf_pagefault);
 	}
 
+	max = max ?: (unsigned long)-1;
 	size = 0;
 	off += 8;
 	PARSE_IOVEC_ENTRIES // may return an error directly
