@@ -519,8 +519,14 @@ int generic_kprobe_ret_loader(const int version,
 		  const char *genmapdir)
 {
 	struct bpf_object *obj;
+	char map_name[255];
+
 	obj = __loader(version, verbosity, false, btf, prog, mapdir, genmapdir, BPF_PROG_TYPE_KPROBE);
 	if (!obj)
+		return -1;
+
+	snprintf(map_name, sizeof(map_name), "%s-kp-calls", __prog);
+	if (load_tailcalls(obj, prog, __prog, "retkprobe_calls", map_name))
 		return -1;
 
 	return __kprobe_loader(obj, verbosity, false, attach, label, __prog, true);

@@ -20,6 +20,13 @@ struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
 	.max_entries = 1,
 };
 
+struct bpf_map_def __attribute__((section("maps"), used)) retkprobe_calls = {
+	.type = BPF_MAP_TYPE_PROG_ARRAY,
+	.key_size = sizeof(__u32),
+	.value_size = sizeof(__u32),
+	.max_entries = 1,
+};
+
 __attribute__((section(("kprobe/generic_retkprobe")), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
