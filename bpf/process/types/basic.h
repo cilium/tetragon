@@ -1120,7 +1120,8 @@ out:
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks)
+		struct bpf_map_def *override_tasks,
+		struct bpf_map_def *data_heap)
 {
 	struct msg_generic_kprobe *e;
 	int pass, zero = 0;
@@ -1191,6 +1192,11 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 			get_caps(&(enter->caps), task);
 	}
 #endif
+
+	if (data_heap && e->full_copy.cnt) {
+		tail_call(ctx, tailcalls, 11);
+		return 2;
+	}
 
 	total = e->common.size + generic_kprobe_common_size();
 	/* Code movement from clang forces us to inline bounds checks here */
