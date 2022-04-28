@@ -77,6 +77,7 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
+	CharBufFullCopyArg      = -5
 )
 
 var (
@@ -678,6 +679,34 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 	return strVal
 }
 
+func readFullCopyArg(r *bytes.Reader) ([]byte, error) {
+	var desc api.DataEventDesc
+
+	if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
+		return nil, fmt.Errorf("CharBufFullCopyArg: failed to desc data for buffer argument: %w", err)
+	}
+
+	logger.GetLogger().Debugf("CharBufFullCopyArg: desc (Error %v, Leftover %v, Id %v)",
+		desc.Error, desc.Leftover, desc.Id)
+
+	if desc.Error < 0 {
+		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
+		return nil, nil
+	}
+
+	data, err := dataGet(desc.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if desc.Leftover != 0 {
+		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
+		return data, nil
+	}
+
+	return data, nil
+}
+
 func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, error) {
 	var bytes, bytes_rd int32
 	var arg api.MsgGenericKprobeArgBytes
@@ -690,6 +719,23 @@ func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, er
 	if bytes == CharBufSavedForRetprobe {
 		return &arg, nil
 	}
+	if bytes == CharBufFullCopyArg {
+		var err error
+		var origSize uint32
+
+		if err := binary.Read(r, binary.LittleEndian, &origSize); err != nil {
+			return nil, fmt.Errorf("CharBufFullCopyArg: failed to read original size for buffer argument: %w", err)
+		}
+
+		// All our data should be already stored, because it's posted
+		// on same CPU ring buffer as (and before) kprobe event within
+		// kprobe bpf program, that can't migrate on another cpu
+
+		arg.OrigSize = uint64(origSize)
+		arg.Value, err = readFullCopyArg(r)
+		return &arg, err
+	}
+
 	// bpf-side returned an error
 	if bytes < 0 {
 		// NB: once we extended arguments to also pass errors, we can change

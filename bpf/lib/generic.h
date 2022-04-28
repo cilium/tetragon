@@ -17,6 +17,12 @@
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
 
+struct full_copy_data {
+	long off;
+	unsigned long arg;
+	size_t bytes;
+};
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;
@@ -38,6 +44,12 @@ struct msg_generic_kprobe {
 #ifdef __CAP_CHANGES_FILTER
 	__u64 match_cap;
 #endif
+	struct {
+		long off;
+		size_t bytes;
+		int cnt;
+		struct full_copy_data data[8];
+	} full_copy;
 };
 
 static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()

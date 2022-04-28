@@ -6,6 +6,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
+#include "data_msg.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum { filter = -2,
@@ -39,6 +40,7 @@ enum { char_buf_enomem = -1,
        char_buf_pagefault = -2,
        char_buf_toolarge = -3,
        char_buf_saved_for_retprobe = -4,
+       char_buf_fullcopy_arg = -5,
 };
 
 enum { ACTION_POST = 0,
@@ -114,6 +116,36 @@ args_off(struct msg_generic_kprobe *e, long off)
 {
 	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off) :);
 	return e->args + off;
+}
+
+static inline __attribute__((always_inline)) long
+full_copy_set(struct msg_generic_kprobe *e, long off, unsigned long arg,
+	      size_t bytes)
+{
+	long size = sizeof(struct data_event_desc);
+	int fci = e->full_copy.cnt & 7;
+
+	if (e->full_copy.cnt > 7)
+		return return_error((int *)args_off(e, off), char_buf_toolarge);
+
+	e->full_copy.off = off;
+	/* we store: char_buf_fullcopy_arg | bytes | desc */
+	off += 8;
+	size += 8;
+
+	e->full_copy.bytes += bytes;
+	e->full_copy.data[fci].off = off;
+	e->full_copy.data[fci].arg = arg;
+	e->full_copy.data[fci].bytes = bytes;
+	e->full_copy.cnt++;
+	return size;
+}
+
+static inline __attribute__((always_inline)) void
+full_copy_init(struct msg_generic_kprobe *e)
+{
+	e->full_copy.cnt = 0;
+	e->full_copy.bytes = 0;
 }
 
 /* Error writer for use when pointer *s is lost to stack and can not
