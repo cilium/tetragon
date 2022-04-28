@@ -485,13 +485,16 @@ get_arg_meta(int meta, struct msg_generic_kprobe *e)
  * @arg: pointer to char_buf data to copy from
  * @bytes: number of bytes to copy
  * @e: pointer to struct msg_generic_kprobe
+ * @fullCopy: are we doing full copy
  *
  * Reads char_buf @bytes bytes into @e->args[@off]
- * from @arg pointer.
+ * from @arg pointer or registers the full copy data
+ * and stores full copy descriptor is @fullCopy is
+ * true.
  */
 static inline __attribute__((always_inline)) long
 __copy_char_buf(long off, unsigned long arg, unsigned long bytes,
-		struct msg_generic_kprobe *e)
+		struct msg_generic_kprobe *e, bool fullCopy)
 {
 	int *s = (int *)args_off(e, off);
 	size_t rd_bytes;
@@ -500,6 +503,10 @@ __copy_char_buf(long off, unsigned long arg, unsigned long bytes,
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes;
 	rd_bytes &= 0xfff;
+
+	if (bytes > rd_bytes && fullCopy)
+		return full_copy_set(e, off, arg, bytes);
+
 	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)
 		return return_error(s, char_buf_pagefault);
@@ -512,6 +519,7 @@ static inline __attribute__((always_inline)) long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
 {
+	bool fullCopy = hasFullCopy(argm);
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 	size_t bytes = 0;
@@ -523,7 +531,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	}
 	meta = get_arg_meta(argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(off, arg, bytes, e);
+	return __copy_char_buf(off, arg, bytes, e, fullCopy);
 }
 
 static inline __attribute__((always_inline)) long

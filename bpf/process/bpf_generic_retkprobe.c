@@ -57,7 +57,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 				      (unsigned long)ctx->ax, 0, 0);
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(size, info.ptr, ctx->ax, e);
+		size += __copy_char_buf(size, info.ptr, ctx->ax, e, false);
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ctx->ax, e);
