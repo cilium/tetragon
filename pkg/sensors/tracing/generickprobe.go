@@ -565,6 +565,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			"generic_kprobe").
 			SetLoaderData(kprobeEntry.tableId)
 		load.Override = hasOverride
+		load.FullCopy = hasFullCopy
 		progs = append(progs, load)
 
 		if setRetprobe {
@@ -576,6 +577,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 				"generic_kprobe").
 				SetRetProbe(true).
 				SetLoaderData(kprobeEntry.tableId)
+			loadret.FullCopy = hasFullCopy
 			progs = append(progs, loadret)
 		}
 
@@ -593,7 +595,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 	progpath := filepath.Join(bpfDir, p.PinPath)
 	err, _ := bpf.LoadGenericKprobeProgram(
 		version, option.Config.Verbosity,
-		p.Override, btf,
+		p.Override, p.FullCopy, btf,
 		p.Name,
 		p.Attach,
 		p.Label,
@@ -623,7 +625,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 
 func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string) error {
 	err, _ := bpf.LoadGenericKprobeRetProgram(
-		version, option.Config.Verbosity, btf,
+		version, option.Config.Verbosity, p.FullCopy, btf,
 		p.Name,
 		p.Attach,
 		p.Label,
