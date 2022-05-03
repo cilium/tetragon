@@ -47,6 +47,7 @@ enum { ACTION_POST = 0,
        ACTION_SIGKILL = 2,
        ACTION_UNFOLLOWFD = 3,
        ACTION_OVERRIDE = 4,
+       ACTION_COPYFD = 5,
 };
 
 enum { FGS_SIGKILL = 9,
@@ -900,6 +901,42 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	return err;
 }
 
+static inline __attribute__((always_inline)) int
+copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
+{
+	struct fdinstall_key key = { 0 };
+	struct fdinstall_value *val;
+	int oldfdoff, newfdoff;
+	int err = 0;
+
+	asm volatile("%[oldfd] &= 0xf;\n" : [oldfd] "+r"(oldfd) :);
+	if (oldfd > 5)
+		return 0;
+	oldfdoff = e->argsoff[oldfd];
+	asm volatile("%[oldfdoff] &= 0xeff;\n" : [oldfdoff] "+r"(oldfdoff) :);
+	key.pad = 0;
+	key.fd = *(__u32 *)&e->args[oldfdoff];
+	key.tid = get_current_pid_tgid() >> 32;
+
+	val = map_lookup_elem(&fdinstall_map, &key);
+	if (val) {
+		asm volatile("%[newfd] &= 0xf;\n" : [newfd] "+r"(newfd) :);
+		if (newfd > 5)
+			return 0;
+		newfdoff = e->argsoff[newfd];
+		asm volatile("%[newfdoff] &= 0xeff;\n"
+			     : [newfdoff] "+r"(newfdoff)
+			     :);
+		key.pad = 0;
+		key.fd = *(__u32 *)&e->args[newfdoff];
+		key.tid = get_current_pid_tgid() >> 32;
+
+		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
+	}
+
+	return err;
+}
+
 static inline __attribute__((always_inline)) long
 __do_action(long i, struct msg_generic_kprobe *e,
 	    struct selector_action *actions, struct bpf_map_def *override_tasks)
@@ -908,6 +945,7 @@ __do_action(long i, struct msg_generic_kprobe *e,
 	int action = actions->act[i];
 	__s32 error, *error_p;
 	int fdi, namei;
+	int newfdi, oldfdi;
 	__u64 id;
 	int err = 0;
 
@@ -917,6 +955,11 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		fdi = actions->act[++i];
 		namei = actions->act[++i];
 		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
+		break;
+	case ACTION_COPYFD:
+		oldfdi = actions->act[++i];
+		newfdi = actions->act[++i];
+		err = copyfd(e, oldfdi, newfdi);
 		break;
 	case ACTION_SIGKILL:
 		if (bpf_core_enum_value(tetragon_args, sigkill))
