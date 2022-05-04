@@ -369,15 +369,10 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		}
 
 		if is_syscall {
-			retVal := btfobj.AddEnumValue("syscall", 1)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value 'syscall = 1' failed %d", retVal)
-			}
+			config.Syscall = 1
 		} else {
-			retVal := btfobj.AddEnumValue("syscall", 0)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value 'syscall = 0' failed %d", retVal)
-			}
+			config.Syscall = 0
+
 			if hasOverride {
 				return nil, fmt.Errorf("Error override action can be used only with syscalls")
 			}

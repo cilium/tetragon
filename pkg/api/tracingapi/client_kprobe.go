@@ -233,4 +233,5 @@ type EventConfig struct {
 	ArgM        [5]uint32
 	ArgTpCtxOff [5]uint32
 	Sigkill     uint32
+	Syscall     uint32
 }
