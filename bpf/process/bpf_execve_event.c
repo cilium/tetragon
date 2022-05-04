@@ -50,8 +50,10 @@ event_execve(struct sched_execve_args *ctx)
 	curr = execve_map_get(pid);
 	if (curr) {
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-		if (curr->key.pid == 0 &&
-		    curr->key.ktime == 0) // newly allocated execve_map_value
+		/* if this exec event preceds a clone, initialize  capabilities
+		 * and namespaces as well.
+		 */
+		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
 			init_curr = 1;
 #endif
 		curr->key.pid = execve->pid;

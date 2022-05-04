@@ -136,6 +136,16 @@ func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
+func handleClone(r *bytes.Reader) ([]observer.Event, error) {
+	m := api.MsgCloneEvent{}
+	err := binary.Read(r, binary.LittleEndian, &m)
+	if err != nil {
+		return nil, err
+	}
+	var msgUnix *api.MsgCloneEventUnix = &m
+	return []observer.Event{msgUnix}, nil
+}
+
 type execSensor struct {
 	name string
 }
@@ -175,4 +185,5 @@ func AddExec() {
 
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXECVE, handleExecve)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXIT, handleExit)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_CLONE, handleClone)
 }

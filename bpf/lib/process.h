@@ -155,6 +155,18 @@ struct msg_process {
 	char *args;
 };
 
+/* msg_clone_event holds only the necessary fields to construct a new entry from
+ * the parent after a clone() event.
+ */
+struct msg_clone_event {
+	struct msg_common common;
+	struct msg_execve_key parent;
+	__u32 pid;
+	__u32 nspid;
+	__u32 flags;
+	__u64 ktime;
+} __attribute__((packed));
+
 // NB: in some cases we want to access the capabilities via an array to simplify the BPF code, which is why we define it as a union.
 struct msg_capabilities {
 	union {
