@@ -30,7 +30,6 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 __attribute__((section(("kprobe/generic_retkprobe")), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
-	enum generic_func_args_enum tetragon_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -56,11 +55,18 @@ generic_kprobe_event(struct pt_regs *ctx)
 	if (!retprobe_buffer)
 		return 0;
 
-	ty_arg = bpf_core_enum_value(tetragon_args, argreturn);
+	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg)
 		size += read_call_arg(ctx, e, 0, ty_arg, 0,
 				      (unsigned long)ctx->ax, 0, 0);
+
+	/*
+	 * 0x1000 should be maximum argument length, so masking
+	 * with 0x1fff is safe and verifier will be happy.
+	 */
+	asm volatile("%[size] &= 0x1fff;\n" ::[size] "+r"(size) :);
+
 	switch (do_copy) {
 	case char_buf:
 		size += __copy_char_buf(&e->args[size], retprobe_buffer,

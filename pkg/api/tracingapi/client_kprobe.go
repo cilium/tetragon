@@ -235,4 +235,5 @@ type EventConfig struct {
 	Sigkill       uint32
 	Syscall       uint32
 	ArgReturnCopy int32
+	ArgReturn     int32
 }

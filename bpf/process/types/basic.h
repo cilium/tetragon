@@ -93,6 +93,7 @@ struct event_config {
 	__u32 sigkill;
 	__u32 syscall;
 	__s32 argreturncopy;
+	__s32 argreturn;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80

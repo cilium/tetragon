@@ -293,18 +293,12 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 				}
 				return nil, fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type)
 			}
-			retVal := btfobj.AddEnumValue(argreturn, argType)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value '%s'='%d' failed %d", argreturn, argType, retVal)
-			}
+			config.ArgReturn = int32(argType)
 			argsBTFSet[api.ReturnArgIndex] = true
 			argP := argPrinters{index: api.ReturnArgIndex, ty: argType}
 			argReturnPrinters = append(argReturnPrinters, argP)
 		} else {
-			retVal := btfobj.AddEnumValue(argreturn, 0)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value '%s'='0' failed %d", argreturn, retVal)
-			}
+			config.ArgReturn = int32(0)
 		}
 
 		if argRetprobe != nil {
