@@ -16,6 +16,9 @@ const (
 	MSG_OP_GENERIC_KPROBE     = 13
 	MSG_OP_GENERIC_TRACEPOINT = 14
 
+	// MSG_OP_CLONE notifies user-space that a clone() event has occurred.
+	MSG_OP_CLONE = 23
+
 	// just for testing
 	MSG_OP_TEST = 254
 )
@@ -39,6 +42,7 @@ func (op OpCode) String() string {
 		7:   "Exit",
 		13:  "GenericKprobe",
 		14:  "GenericTracepoint",
+		23:  "Clone",
 		254: "Test",
 	}[op]
 }

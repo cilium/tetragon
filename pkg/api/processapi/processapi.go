@@ -85,6 +85,17 @@ type MsgExecveEventUnix struct {
 	Process      MsgProcess
 }
 
+type MsgCloneEvent struct {
+	Common MsgCommon
+	Parent MsgExecveKey
+	PID    uint32
+	NSPID  uint32
+	Flags  uint32
+	Ktime  uint64
+}
+
+type MsgCloneEventUnix = MsgCloneEvent
+
 type MsgCapabilities struct {
 	Permitted   uint64
 	Effective   uint64

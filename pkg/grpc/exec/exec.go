@@ -93,6 +93,16 @@ func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetrago
 	return res
 }
 
+// HandleCloneMessage -- don't generate any events. Just add the process to the cache.
+func (e *Grpc) HandleCloneMessage(msg *tetragonAPI.MsgCloneEventUnix) {
+	switch msg.Common.Op {
+	case ops.MSG_OP_CLONE:
+		process.AddCloneEvent(msg)
+	default:
+		logger.GetLogger().WithField("message", msg).Warn("HandleCloneMessage: Unhandled event")
+	}
+}
+
 // GetProcessExit returns Exit protobuf message for a given process.
 func (e *Grpc) GetProcessExit(event *tetragonAPI.MsgExitEventUnix) *tetragon.ProcessExit {
 	var tetragonProcess, tetragonParent *tetragon.Process

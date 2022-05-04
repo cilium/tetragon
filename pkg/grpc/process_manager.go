@@ -30,6 +30,7 @@ import (
 type execProcess interface {
 	HandleExecveMessage(*processapi.MsgExecveEventUnix) *tetragon.GetEventsResponse
 	HandleExitMessage(*processapi.MsgExitEventUnix) *tetragon.GetEventsResponse
+	HandleCloneMessage(*processapi.MsgCloneEventUnix)
 }
 
 var (
@@ -102,6 +103,8 @@ func (pm *ProcessManager) Notify(event interface{}) error {
 		// pass
 	case *processapi.MsgExecveEventUnix:
 		processedEvent = execGrpc.HandleExecveMessage(msg)
+	case *processapi.MsgCloneEventUnix:
+		execGrpc.HandleCloneMessage(msg)
 	case *processapi.MsgExitEventUnix:
 		processedEvent = execGrpc.HandleExitMessage(msg)
 	case *tracingapi.MsgGenericKprobeUnix:

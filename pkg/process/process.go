@@ -93,6 +93,17 @@ func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	return proc
 }
 
+func (pi *ProcessInternal) GetProcessInternalCopy() *ProcessInternal {
+	pi.mu.Lock()
+	defer pi.mu.Unlock()
+	return &ProcessInternal{
+		process:      proto.Clone(pi.process).(*tetragon.Process),
+		capabilities: pi.capabilities,
+		namespaces:   pi.namespaces,
+		refcnt:       1,
+	}
+}
+
 func (pi *ProcessInternal) AddPodInfo(pod *tetragon.Pod) {
 	pi.mu.Lock()
 	pi.process.Pod = pod
@@ -248,6 +259,29 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	}
 	proc.process.ParentExecId = parent.process.ExecId
 	return proc
+}
+
+// AddCloneEvent adds a new process into the cache from a CloneEvent
+func AddCloneEvent(event *tetragonAPI.MsgCloneEventUnix) {
+	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
+	parent, err := Get(parentExecId)
+	if err != nil {
+		logger.GetLogger().WithField("parent-exec-id", parentExecId).Debug("AddCloneEvent: process not found in cache")
+		return
+	}
+	pi := parent.GetProcessInternalCopy()
+	if pi.process != nil {
+		pi.process.ParentExecId = parentExecId
+		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
+		pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
+		pi.process.Flags = strings.Join(exec.DecodeCommonFlags(event.Flags), " ")
+		pi.process.StartTime = ktime.ToProto(event.Ktime)
+		pi.process.Refcnt = 1
+		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
+			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
+		}
+	}
+	procCache.Add(pi)
 }
 
 func Get(execId string) (*ProcessInternal, error) {

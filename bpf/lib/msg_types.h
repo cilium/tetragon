@@ -21,6 +21,9 @@ enum msg_ops {
 	 * ops are clear to see in database and logs.
 	 */
 	MSG_OP_DEPRECATE_SPACE = 1000,
+
+	MSG_OP_CLONE = 23,
+
 	MSG_OP_MAX,
 };
 #endif // _MSG_TYPES_
