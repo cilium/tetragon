@@ -362,13 +362,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	}
 	defer btfObj.Close()
 
-	btfAddEnumValue := func(s string, val int) error {
-		if ret := btfObj.AddEnumValue(s, val); ret < 0 {
-			return fmt.Errorf("failed to add %s=%d BTF value (error=%d)", s, val, ret)
-		}
-		return nil
-	}
-
 	ret := btfObj.AddEnum(genericFuncArgsEnum, 4)
 	if ret < 0 {
 		return 0, fmt.Errorf("failed to add %s=%d BTF enum (ret=%d)", genericFuncArgsEnum, 4, ret)
@@ -397,11 +390,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		config.ArgTpCtxOff[i] = uint32(0)
 		config.Arg[i] = int32(gt.GenericNopType)
 		config.ArgM[i] = uint32(0)
-	}
-
-	// actions nop
-	if err := btfAddEnumValue("sigkill", 0); err != nil {
-		return 0, err
 	}
 
 	// rewrite arg index

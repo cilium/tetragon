@@ -175,35 +175,35 @@ __attribute__((section(("kprobe/6")), used)) int
 generic_kprobe_filter_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &config_map);
 }
 
 __attribute__((section(("kprobe/7")), used)) int
 generic_kprobe_filter_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &config_map);
 }
 
 __attribute__((section(("kprobe/8")), used)) int
 generic_kprobe_filter_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &config_map);
 }
 
 __attribute__((section(("kprobe/9")), used)) int
 generic_kprobe_filter_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &config_map);
 }
 
 __attribute__((section(("kprobe/10")), used)) int
 generic_kprobe_filter_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &config_map);
 }
 
 __attribute__((section(("kprobe/override")), used)) int

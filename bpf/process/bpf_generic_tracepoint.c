@@ -219,34 +219,34 @@ __attribute__((section(("kprobe/6")), used)) int
 generic_tracepoint_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0);
+			       (void *)0, &config_map);
 }
 
 __attribute__((section(("kprobe/7")), used)) int
 generic_tracepoint_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0);
+			       (void *)0, &config_map);
 }
 
 __attribute__((section(("kprobe/8")), used)) int
 generic_tracepoint_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0);
+			       (void *)0, &config_map);
 }
 
 __attribute__((section(("kprobe/9")), used)) int
 generic_tracepoint_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0);
+			       (void *)0, &config_map);
 }
 
 __attribute__((section(("kprobe/10")), used)) int
 generic_tracepoint_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0);
+			       (void *)0, &config_map);
 }
 char _license[] __attribute__((section(("license")), used)) = "GPL";
