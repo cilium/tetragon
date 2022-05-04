@@ -375,7 +375,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 				retVal = btfobj.AddEnumValue(kprobeArgMToString(j), 0)
 				if retVal < 0 {
 					return nil, fmt.Errorf("Error add enum value '%s' failed %d",
-						kprobeArgToString(j), retVal)
+						kprobeArgMToString(j), retVal)
 				}
 			}
 		}
