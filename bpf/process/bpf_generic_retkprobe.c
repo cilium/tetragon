@@ -57,7 +57,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 		return 0;
 
 	ty_arg = bpf_core_enum_value(tetragon_args, argreturn);
-	do_copy = bpf_core_enum_value(tetragon_args, argreturncopy);
+	do_copy = config->argreturncopy;
 	if (ty_arg)
 		size += read_call_arg(ctx, e, 0, ty_arg, 0,
 				      (unsigned long)ctx->ax, 0, 0);
