@@ -312,19 +312,12 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			setRetprobe = true
 
 			argType := gt.GenericTypeFromString(argRetprobe.Type)
-
-			ret = btfobj.AddEnumValue(argreturncopy, argType)
-			if ret < 0 {
-				return nil, fmt.Errorf("Error add enum value '%s'='0' failed %d", argreturncopy, argType)
-			}
+			config.ArgReturnCopy = int32(argType)
 
 			argP := argPrinters{index: int(argRetprobe.Index), ty: argType}
 			argReturnPrinters = append(argReturnPrinters, argP)
 		} else {
-			ret = btfobj.AddEnumValue(argreturncopy, 0)
-			if ret < 0 {
-				return nil, fmt.Errorf("Error add enum value '%s'='0' failed %d", argreturncopy, 0)
-			}
+			config.ArgReturnCopy = int32(0)
 		}
 
 		// Mark remaining arguments as 'nops' the kernel side will skip
