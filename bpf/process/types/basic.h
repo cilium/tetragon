@@ -80,6 +80,11 @@ struct event_config {
 	__s32 arg2;
 	__s32 arg3;
 	__s32 arg4;
+	__u32 arg0m;
+	__u32 arg1m;
+	__u32 arg2m;
+	__u32 arg3m;
+	__u32 arg4m;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
