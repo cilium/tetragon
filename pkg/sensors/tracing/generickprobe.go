@@ -88,24 +88,6 @@ func kprobeCharBufErrorToString(e int32) string {
 	return "CharBufErrorUnknown"
 }
 
-func kprobeArgMToString(a int) string {
-	switch a {
-	case 0:
-		return argm0
-	case 1:
-		return argm1
-	case 2:
-		return argm2
-	case 3:
-		return argm3
-	case 4:
-		return argm4
-	case 5:
-		return argm5
-	}
-	return ""
-}
-
 type kprobeLoadArgs struct {
 	filters  [4096]byte
 	btf      uintptr
@@ -287,10 +269,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 						a.Type, int(a.Index))
 			}
 			config.Arg[a.Index] = int32(argType)
-			retVal := btfobj.AddEnumValue(kprobeArgMToString(int(a.Index)), argMValue)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value '%s' failed %d", kprobeArgMToString(int(a.Index)), retVal)
-			}
+			config.ArgM[a.Index] = uint32(argMValue)
 
 			argsBTFSet[a.Index] = true
 			argP := argPrinters{index: j, ty: argType}
@@ -354,11 +333,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			if a == false {
 				if j != api.ReturnArgIndex {
 					config.Arg[j] = gt.GenericNopType
-				}
-				retVal := btfobj.AddEnumValue(kprobeArgMToString(j), 0)
-				if retVal < 0 {
-					return nil, fmt.Errorf("Error add enum value '%s' failed %d",
-						kprobeArgMToString(j), retVal)
+					config.ArgM[j] = 0
 				}
 			}
 		}

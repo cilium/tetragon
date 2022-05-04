@@ -393,10 +393,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		}
 
 		config.Arg[i] = int32(tpArg.genericTypeId)
-
-		if err := btfAddEnumValue(kprobeArgMToString(i), tpArg.MetaArg); err != nil {
-			return 0, err
-		}
+		config.ArgM[i] = uint32(tpArg.MetaArg)
 
 		tracepointLog.Infof("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
 	}
@@ -408,10 +405,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		}
 
 		config.Arg[i] = int32(gt.GenericNopType)
-
-		if err := btfAddEnumValue(kprobeArgMToString(i), 0); err != nil {
-			return 0, err
-		}
+		config.ArgM[i] = uint32(0)
 	}
 
 	// actions nop

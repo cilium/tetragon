@@ -5,7 +5,6 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	unsigned long a0, a1, a2, a3, a4;
@@ -53,6 +52,8 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 
 	/* If return arg is needed mark retprobe */
 #ifdef GENERIC_KPROBE
+	enum generic_func_args_enum tetragon_args;
+
 	ty = bpf_core_enum_value(tetragon_args, argreturn);
 	if (ty > 0)
 		retprobe_map_set(e->thread_id, 1);
@@ -64,7 +65,9 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		long errv;
 		int a0m;
 
-		a0m = bpf_core_enum_value(tetragon_args, arg0m);
+		a0m = config->arg0m;
+		asm volatile("%[a0m] &= 0xffff;\n" ::[a0m] "+r"(a0m) :);
+
 		errv = read_call_arg(ctx, e, 0, ty, total, a0, a0m, map);
 		if (errv > 0)
 			total += errv;
@@ -142,7 +145,6 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -178,7 +180,9 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		long errv;
 		int a1m;
 
-		a1m = bpf_core_enum_value(tetragon_args, arg1m);
+		a1m = config->arg1m;
+		asm volatile("%[a1m] &= 0xffff;\n" ::[a1m] "+r"(a1m) :);
+
 		errv = read_call_arg(ctx, e, 1, ty, total, a1, a1m, map);
 		if (errv > 0)
 			total += errv;
@@ -195,7 +199,6 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -231,7 +234,9 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		long errv;
 		int a2m;
 
-		a2m = bpf_core_enum_value(tetragon_args, arg2m);
+		a2m = config->arg2m;
+		asm volatile("%[a2m] &= 0xffff;\n" ::[a2m] "+r"(a2m) :);
+
 		errv = read_call_arg(ctx, e, 2, ty, total, a2, a2m, map);
 		if (errv > 0)
 			total += errv;
@@ -248,7 +253,6 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -285,7 +289,9 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		long errv;
 		int a3m;
 
-		a3m = bpf_core_enum_value(tetragon_args, arg3m);
+		a3m = config->arg3m;
+		asm volatile("%[a3m] &= 0xffff;\n" ::[a3m] "+r"(a3m) :);
+
 		errv = read_call_arg(ctx, e, 3, ty, total, a3, a3m, map);
 		if (errv > 0)
 			total += errv;
@@ -302,7 +308,6 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -338,7 +343,9 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		long errv;
 		int a4m;
 
-		a4m = bpf_core_enum_value(tetragon_args, arg4m);
+		a4m = config->arg4m;
+		asm volatile("%[a4m] &= 0xffff;\n" ::[a4m] "+r"(a4m) :);
+
 		errv = read_call_arg(ctx, e, 4, ty, total, a4, a4m, map);
 		if (errv > 0)
 			total += errv;
