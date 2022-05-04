@@ -98,7 +98,6 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 __attribute__((section(("tracepoint/generic_tracepoint")), used)) int
 generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 {
-	enum generic_func_args_enum tetragon_args;
 	struct msg_generic_kprobe *msg;
 	struct event_config *config;
 	int zero = 0, i;
@@ -112,37 +111,42 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 		return 0;
 
 	msg->a0 = ({
-		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg0_ctx_off);
+		unsigned long ctx_off = config->t_arg0_ctx_off;
 		int ty = config->arg0;
+		asm volatile("%[ctx_off] &= 0xffff;\n" ::[ctx_off] "+r"(ctx_off)
+			     :);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a1 = ({
-		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg1_ctx_off);
+		unsigned long ctx_off = config->t_arg1_ctx_off;
 		int ty = config->arg1;
+		asm volatile("%[ctx_off] &= 0xffff;\n" ::[ctx_off] "+r"(ctx_off)
+			     :);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a2 = ({
-		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg2_ctx_off);
+		unsigned long ctx_off = config->t_arg2_ctx_off;
 		int ty = config->arg2;
+		asm volatile("%[ctx_off] &= 0xffff;\n" ::[ctx_off] "+r"(ctx_off)
+			     :);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a3 = ({
-		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg3_ctx_off);
+		unsigned long ctx_off = config->t_arg3_ctx_off;
 		int ty = config->arg3;
+		asm volatile("%[ctx_off] &= 0xffff;\n" ::[ctx_off] "+r"(ctx_off)
+			     :);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a4 = ({
-		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg4_ctx_off);
+		unsigned long ctx_off = config->t_arg4_ctx_off;
 		int ty = config->arg4;
+		asm volatile("%[ctx_off] &= 0xffff;\n" ::[ctx_off] "+r"(ctx_off)
+			     :);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 

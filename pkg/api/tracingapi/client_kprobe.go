@@ -228,7 +228,8 @@ type KprobeArgs struct {
 }
 
 type EventConfig struct {
-	FuncId uint32
-	Arg    [5]int32
-	ArgM   [5]uint32
+	FuncId      uint32
+	Arg         [5]int32
+	ArgM        [5]uint32
+	ArgTpCtxOff [5]uint32
 }
