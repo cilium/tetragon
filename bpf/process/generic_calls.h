@@ -92,17 +92,20 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 				struct bpf_map_def *tailcals,
 				struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	struct msg_generic_kprobe *e;
-	int zero = 0, is_syscall;
+	struct event_config *config;
+	int zero = 0;
 
 	/* Pid/Ktime Passed through per cpu map in process heap. */
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	is_syscall = bpf_core_enum_value(tetragon_args, syscall);
-	if (is_syscall) {
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
+		return 0;
+
+	if (config->syscall) {
 		struct pt_regs *_ctx;
 		_ctx = (struct pt_regs *)ctx->di;
 		if (!_ctx)

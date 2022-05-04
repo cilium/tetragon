@@ -91,6 +91,7 @@ struct event_config {
 	__u32 t_arg3_ctx_off;
 	__u32 t_arg4_ctx_off;
 	__u32 sigkill;
+	__u32 syscall;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
