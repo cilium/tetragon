@@ -385,15 +385,9 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 
 		has_sigkill := selectors.MatchActionSigKill(f)
 		if has_sigkill {
-			retVal := btfobj.AddEnumValue("sigkill", 1)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value 'sigkill = 1' failed %d", retVal)
-			}
+			config.Sigkill = 1
 		} else {
-			retVal := btfobj.AddEnumValue("sigkill", 0)
-			if retVal < 0 {
-				return nil, fmt.Errorf("Error add enum value 'sigkill = 0' failed %d", retVal)
-			}
+			config.Sigkill = 0
 		}
 
 		// create a new entry on the table, and pass its id to BPF-side

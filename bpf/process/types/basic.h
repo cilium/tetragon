@@ -90,6 +90,7 @@ struct event_config {
 	__u32 t_arg2_ctx_off;
 	__u32 t_arg3_ctx_off;
 	__u32 t_arg4_ctx_off;
+	__u32 sigkill;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
@@ -956,17 +957,35 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	return err;
 }
 
+#ifdef __LARGE_BPF_PROG
+static inline __attribute__((always_inline)) void
+__do_action_sigkill(struct bpf_map_def *config_map)
+{
+	struct event_config *config;
+	int zero = 0;
+
+	config = map_lookup_elem(config_map, &zero);
+	if (config && config->sigkill)
+		send_signal(FGS_SIGKILL);
+}
+#else
+static inline __attribute__((always_inline)) void
+__do_action_sigkill(struct bpf_map_def *config_map)
+{
+}
+#endif /* __LARGE_BPF_PROG */
+
 static inline __attribute__((always_inline)) long
 __do_action(long i, struct msg_generic_kprobe *e,
-	    struct selector_action *actions, struct bpf_map_def *override_tasks)
+	    struct selector_action *actions, struct bpf_map_def *override_tasks,
+	    struct bpf_map_def *config_map)
 {
-	enum generic_func_args_enum tetragon_args;
 	int action = actions->act[i];
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
-	__u64 id;
 	int err = 0;
+	__u64 id;
 
 	switch (action) {
 	case ACTION_UNFOLLOWFD:
@@ -981,8 +1000,7 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		err = copyfd(e, oldfdi, newfdi);
 		break;
 	case ACTION_SIGKILL:
-		if (bpf_core_enum_value(tetragon_args, sigkill))
-			send_signal(FGS_SIGKILL);
+		__do_action_sigkill(config_map);
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
@@ -1013,14 +1031,14 @@ __do_action(long i, struct msg_generic_kprobe *e,
 
 static inline __attribute__((always_inline)) long
 do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
-	   struct bpf_map_def *override_tasks)
+	   struct bpf_map_def *override_tasks, struct bpf_map_def *config_map)
 {
 	/* Clang really doesn't want to unwind a loop here. */
 	long i = 0;
-	i = __do_action(i, e, actions, override_tasks);
+	i = __do_action(i, e, actions, override_tasks, config_map);
 	if (i)
 		goto out;
-	i = __do_action(i, e, actions, override_tasks);
+	i = __do_action(i, e, actions, override_tasks, config_map);
 out:
 	return i > 0 ? true : 0;
 }
@@ -1030,7 +1048,8 @@ out:
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks)
+		struct bpf_map_def *override_tasks,
+		struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;
 	int pass, zero = 0;
@@ -1071,7 +1090,8 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 				     :);
 			actions = (struct selector_action *)&f[actoff];
 
-			postit = do_actions(e, actions, override_tasks);
+			postit = do_actions(e, actions, override_tasks,
+					    config_map);
 			if (!postit)
 				return 1;
 		}
