@@ -362,11 +362,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	}
 	defer btfObj.Close()
 
-	ret := btfObj.AddEnum(genericFuncArgsEnum, 4)
-	if ret < 0 {
-		return 0, fmt.Errorf("failed to add %s=%d BTF enum (ret=%d)", genericFuncArgsEnum, 4, ret)
-	}
-
 	config.FuncId = uint32(tp.tableIdx)
 
 	// iterate over output arguments

@@ -3,37 +3,8 @@
 
 /* User configurable BTF */
 enum generic_func_args_enum {
-	func_id = 0x1,
-	/* arg{0..4}: types of arguments */
-	arg0    = 0x2,
-	arg1    = 0x3,
-	arg2    = 0x4,
-	arg3    = 0x5,
-	arg4    = 0x6,
-	syscall = 0x7,
-	/* arg{0..4}m: metadata of arguments */
-	arg0m   = 0x8,
-	arg1m   = 0x9,
-	arg2m   = 0x10,
-	arg3m   = 0x11,
-	arg4m   = 0x12,
-	/* return arguments */
-	argreturn = 0x31,
-	/* use return argument for buffer copy */
-	argreturncopy = 0x32,
-	/* actions enabled */
-	sigkill = 0x40,
 	/* tcp sock stat sample info */
 	send_check_pkt_sample = 0x50,
-	/*
-	 * Tracepoints are using the same enum as kprobes
-	 */
-	/* offset of argument fields from ctx pointer */
-	t_arg0_ctx_off = 0x100,
-	t_arg1_ctx_off = 0x101,
-	t_arg2_ctx_off = 0x102,
-	t_arg3_ctx_off = 0x103,
-	t_arg4_ctx_off = 0x104,
 };
 
 /* Kernel BTF */

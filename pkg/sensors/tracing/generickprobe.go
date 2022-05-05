@@ -50,26 +50,6 @@ func init() {
 }
 
 const (
-	genericFuncArgsEnum = "generic_func_args_enum"
-
-	kprobeGenericId = "func_id"
-	arg0            = "arg0"
-	arg1            = "arg1"
-	arg2            = "arg2"
-	arg3            = "arg3"
-	arg4            = "arg4"
-	argreturn       = "argreturn"
-	argreturncopy   = "argreturncopy"
-	is_syscall      = "syscall"
-	argm0           = "arg0m"
-	argm1           = "arg1m"
-	argm2           = "arg2m"
-	argm3           = "arg3m"
-	argm4           = "arg4m"
-	argm5           = "arg5m"
-)
-
-const (
 	CharBufErrorENOMEM      = -1
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
@@ -233,11 +213,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		btfobj, err = btf.NewBTF()
 		if err != nil {
 			return nil, err
-		}
-
-		ret := btfobj.AddEnum(genericFuncArgsEnum, 4)
-		if ret < 0 {
-			return nil, fmt.Errorf("Error add enum args (%s) failed %d", genericFuncArgsEnum, ret)
 		}
 
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
