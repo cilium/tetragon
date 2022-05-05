@@ -136,7 +136,7 @@ static inline __attribute__((always_inline)) struct execve_map_value *
 event_find_parent(void)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	__u32 pid = get_current_pid_tgid() >> 32;
+	__u32 pid;
 	struct execve_map_value *value = 0;
 	int i;
 
