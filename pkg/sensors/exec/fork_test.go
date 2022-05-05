@@ -6,15 +6,20 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
+	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestFork checks that tetragon properly handles processes that fork() but do not exec()
-// TBD: actual tetragon testing
 func TestFork(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
 	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
 	defer cancel()
 
@@ -26,6 +31,14 @@ func TestFork(t *testing.T) {
 	}
 	defer testPipes.Close()
 
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
 	fti := &forkTesterInfo{}
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
@@ -33,7 +46,7 @@ func TestFork(t *testing.T) {
 	logWG := testPipes.ParseAndLogCmdOutput(t, fti.ParseLine, nil)
 	logWG.Wait()
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
 	}
 
 	if fti.child1Pid == 0 {
@@ -42,6 +55,16 @@ func TestFork(t *testing.T) {
 	if fti.child2Pid == 0 {
 		t.Fatalf("failed to parse child1 PID")
 	}
+
+	binCheck := ec.ProcessWithBinary(ec.SuffixStringMatch("fork-tester"))
+	checker := ec.NewUnorderedMultiResponseChecker(
+		ec.NewExitEventChecker().
+			HasProcess(binCheck, ec.ProcessWithPID(fti.child2Pid)).
+			HasParent(binCheck, ec.ProcessWithPID(fti.child1Pid)).
+			End(),
+	)
+	err = observer.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
 
 type forkTesterInfo struct {
