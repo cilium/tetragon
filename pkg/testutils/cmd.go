@@ -5,9 +5,12 @@ package testutils
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
+	"sync"
+	"testing"
 )
 
 // CmdPipes maintains pipes for stdout, stderr, and stdin
@@ -71,4 +74,54 @@ func NewCmdBufferedPipes(cmd *exec.Cmd) (*CmdBufferedPipes, error) {
 		StdoutRd: bufio.NewReader(pipes.Stdout),
 		StderrRd: bufio.NewReader(pipes.Stderr),
 	}, nil
+}
+
+type LineParser = func(line string) error
+
+func parseAndLog(t *testing.T, rd *bufio.Reader, prefix string, lp LineParser) {
+	for {
+		line, err := rd.ReadString('\n')
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				t.Logf("%s: error: %s", prefix, err)
+			}
+			return
+		}
+		if lp != nil {
+			err = lp(line)
+			if err != nil {
+				t.Logf("%s: parsing error: %s", prefix, err)
+			}
+		}
+		t.Logf("%s: %s", prefix, line)
+	}
+}
+
+// startParseAndLog starts a parseAndLog goroutine
+func startParseAndLog(
+	t *testing.T,
+	wg *sync.WaitGroup,
+	rd *bufio.Reader,
+	logPrefix string,
+	lp LineParser,
+) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		parseAndLog(t, rd, logPrefix, lp)
+	}()
+}
+
+// ParseAndLogCmdOutput will log command output using t.Log, and also call the
+// lineparser functions for each line. This will happen in two goroutines. It
+// returns a waitgroup for them finishing.
+func (cbp *CmdBufferedPipes) ParseAndLogCmdOutput(
+	t *testing.T,
+	parseOut LineParser,
+	parseErr LineParser,
+) *sync.WaitGroup {
+	var wg sync.WaitGroup
+	startParseAndLog(t, &wg, cbp.StdoutRd, "stdout>", parseOut)
+	startParseAndLog(t, &wg, cbp.StderrRd, "stderr>", parseErr)
+	return &wg
 }
