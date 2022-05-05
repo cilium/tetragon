@@ -1084,6 +1084,19 @@ func ProcessWithUID(uid uint32) ProcessChecker {
 	})
 }
 
+// ProcessWithPID matches the PID field
+func ProcessWithPID(pid uint32) ProcessChecker {
+	return ProcessCheckerFn(func(p *tetragon.Process, log Logger) error {
+		if p.Pid == nil {
+			return fmt.Errorf("expected pid %d does not match nil value", pid)
+		}
+		if p.Pid.Value != pid {
+			return fmt.Errorf("expected pid %d does not match %d value", pid, p.Pid.Value)
+		}
+		return nil
+	})
+}
+
 func compareNamespace(p *tetragon.Process, ns *tetragon.Namespaces) error {
 	if p.Ns == nil {
 		return fmt.Errorf("ns %v does not match nil value", ns)
