@@ -25,7 +25,7 @@
 /* Max number of args to parse */
 #define MAXARGS 20
 /* Max length of any given arg */
-#define MAXARGLENGTH 100
+#define MAXARGLENGTH 256
 /* This is the absolute buffer size for args and filenames including some
  * extra head room so we can append last args string to buffer. The extra
  * headroom is an unfortunate result of bounds on offset/size in
