@@ -9,6 +9,7 @@ package bpf
 import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
+	"github.com/cilium/ebpf/link"
 )
 
 type Feature struct {
@@ -18,6 +19,7 @@ type Feature struct {
 
 var (
 	overrideHelper = Feature{false, false}
+	kprobeMulti    = Feature{false, false}
 )
 
 func HasOverrideHelper() bool {
@@ -43,4 +45,37 @@ func HasOverrideHelper() bool {
 	}
 	overrideHelper.detected = true
 	return overrideHelper.detected
+}
+
+func detectKprobeMulti() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_bpf_kprobe_multi_link",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachType: ebpf.AttachTraceKprobeMulti,
+		License:    "MIT",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+
+	syms := []string{"vprintk"}
+	opts := link.KprobeMultiOptions{Symbols: syms}
+
+	_, err = link.KprobeMulti(prog, opts)
+	return err == nil
+}
+
+func HasKprobeMulti() bool {
+	if kprobeMulti.initialized {
+		return kprobeMulti.detected
+	}
+
+	kprobeMulti.detected = detectKprobeMulti()
+	kprobeMulti.initialized = true
+	return kprobeMulti.detected
 }
