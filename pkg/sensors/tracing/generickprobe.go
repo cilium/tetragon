@@ -186,6 +186,13 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 	var progs []*program.Program
 	var maps []*program.Map
 
+	loadProgName := "bpf_generic_kprobe.o"
+	loadProgRetName := "bpf_generic_retkprobe.o"
+	if kernels.EnableLargeProgs() {
+		loadProgName = "bpf_generic_kprobe_v53.o"
+		loadProgRetName = "bpf_generic_retkprobe_v53.o"
+	}
+
 	for i := range kprobes {
 		f := &kprobes[i]
 		var argSigPrinters []argPrinters
@@ -355,13 +362,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		genericKprobeTable.AddEntry(&kprobeEntry)
 
 		config.FuncId = uint32(kprobeEntry.tableId.ID)
-
-		loadProgName := "bpf_generic_kprobe.o"
-		loadProgRetName := "bpf_generic_retkprobe.o"
-		if kernels.EnableLargeProgs() {
-			loadProgName = "bpf_generic_kprobe_v53.o"
-			loadProgRetName = "bpf_generic_retkprobe_v53.o"
-		}
 
 		pinFile := fmt.Sprintf("kprobe_%s", funcName)
 
