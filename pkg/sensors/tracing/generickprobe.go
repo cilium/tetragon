@@ -204,6 +204,14 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 	var maps []*program.Map
 
 	sensorPath := name
+
+	loadProgName := "bpf_generic_kprobe.o"
+	loadProgRetName := "bpf_generic_retkprobe.o"
+	if kernels.EnableLargeProgs() {
+		loadProgName = "bpf_generic_kprobe_v53.o"
+		loadProgRetName = "bpf_generic_retkprobe_v53.o"
+	}
+
 	for i := range kprobes {
 		f := &kprobes[i]
 		var argSigPrinters []argPrinters
@@ -385,13 +393,6 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		tidx := kprobeEntry.tableId.ID
 		kprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("gkp-%d", tidx))
 		config.FuncId = uint32(tidx)
-
-		loadProgName := "bpf_generic_kprobe.o"
-		loadProgRetName := "bpf_generic_retkprobe.o"
-		if kernels.EnableLargeProgs() {
-			loadProgName = "bpf_generic_kprobe_v53.o"
-			loadProgRetName = "bpf_generic_retkprobe_v53.o"
-		}
 
 		pinPath := kprobeEntry.pinPathPrefix
 		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
