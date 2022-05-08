@@ -81,6 +81,9 @@ type Program struct {
 
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
+
+	MultiSymbols []string
+	MultiCookies []uint64
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
