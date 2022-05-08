@@ -77,6 +77,9 @@ type Program struct {
 	unloaderOverride unloader.Unloader
 
 	PinMap map[string]string
+
+	MultiSymbols []string
+	MultiCookies []uint64
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
