@@ -155,6 +155,8 @@ setup_index(void *ctx, struct msg_generic_kprobe *msg,
 	msg->idx = idx;
 	msg->func_id = config->func_id;
 }
+
+#define MAX_ENTRIES_CONFIG 100 /* MaxKprobesMulti in go code */
 #else
 static inline __attribute__((always_inline)) void
 setup_index(void *ctx, struct msg_generic_kprobe *msg,
@@ -163,6 +165,8 @@ setup_index(void *ctx, struct msg_generic_kprobe *msg,
 	msg->idx = 0;
 	msg->func_id = 0;
 }
+
+#define MAX_ENTRIES_CONFIG 1
 #endif
 
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
