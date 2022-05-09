@@ -36,6 +36,22 @@ type MsgGenericKprobeArgPath struct {
 	Flags uint32
 }
 
+type DataEventId struct {
+	Pid  uint64
+	Time uint64
+}
+
+type DataEventDesc struct {
+	Error    int32
+	Leftover uint32
+	Id       DataEventId
+}
+
+type MsgData struct {
+	Common processapi.MsgCommon
+	Id     DataEventId
+}
+
 func (m MsgGenericKprobeArgPath) GetIndex() uint64 {
 	return m.Index
 }

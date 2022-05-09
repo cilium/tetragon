@@ -14,8 +14,10 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
@@ -47,6 +49,7 @@ func init() {
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	sensors.RegisterTracingSensorsAtInit(kprobe.name, kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_DATA, handleData)
 }
 
 const (
@@ -75,6 +78,59 @@ const (
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
 )
+
+var (
+	dataMap map[tracingapi.DataEventId][]byte = make(map[tracingapi.DataEventId][]byte)
+)
+
+func dataAdd(r *bytes.Reader, m *tracingapi.MsgData) error {
+	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
+	msgData := make([]byte, size)
+
+	err := binary.Read(r, binary.LittleEndian, &msgData)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Failed to read data msg payload")
+		return err
+	}
+
+	data := dataMap[m.Id]
+	if data == nil {
+		dataMap[m.Id] = msgData
+	} else {
+		data = append(data, msgData...)
+		dataMap[m.Id] = data
+	}
+
+	logger.GetLogger().Debugf("Data message received id %v, size %v, total %v", m.Id, size, len(data))
+	return nil
+}
+
+func dataGet(id tracingapi.DataEventId) ([]byte, error) {
+	data := dataMap[id]
+	if data == nil {
+		return nil, fmt.Errorf("failed to find data for id: %v", id)
+	}
+
+	delete(dataMap, id)
+	logger.GetLogger().Debugf("Data message used id %v, data len %v", id, len(data))
+	return data, nil
+}
+
+func handleData(r *bytes.Reader) ([]observer.Event, error) {
+	m := tracingapi.MsgData{}
+	err := binary.Read(r, binary.LittleEndian, &m)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read data msg")
+	}
+
+	err = dataAdd(r, &m)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to add data msg")
+	}
+
+	// we don't send the event further
+	return nil, nil
+}
 
 func kprobeCharBufErrorToString(e int32) string {
 	switch e {
