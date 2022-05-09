@@ -2608,3 +2608,226 @@ spec:
 
 	runKprobe_char_iovec_fullCopy_max(t, configHook, checker, fdw, fdr, buffer)
 }
+
+func runKprobe_char_iovec_fullCopy_cnt_max(t *testing.T, configHook string,
+	checker ec.MultiEventChecker, fdw, fdr int, buffer []byte) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	testConfigHook := []byte(configHook)
+	err := ioutil.WriteFile(testConfigFile, testConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithWatchers(t, observer.WithConfig(testConfigFile),
+		observer.WithLib(tetragonLib), observer.WithNumPages(256))
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	var iovw = make([][]byte, 10)
+	var iovr = make([][]byte, 10)
+
+	// write 1000000 bytes in 10 buffers,
+	// non of them is over the buffer maximum
+	iovw[0] = make([]byte, 100000)
+	iovw[1] = make([]byte, 100000)
+	iovw[2] = make([]byte, 100000)
+	iovw[3] = make([]byte, 100000)
+	iovw[4] = make([]byte, 100000)
+	iovw[5] = make([]byte, 100000)
+	iovw[6] = make([]byte, 100000)
+	iovw[7] = make([]byte, 100000)
+	iovw[8] = make([]byte, 100000)
+	iovw[9] = make([]byte, 100000)
+
+	copy(iovw[0], buffer)
+	copy(iovw[1], buffer[100000:])
+	copy(iovw[2], buffer[200000:])
+	copy(iovw[3], buffer[300000:])
+	copy(iovw[4], buffer[400000:])
+	copy(iovw[5], buffer[500000:])
+	copy(iovw[6], buffer[600000:])
+	copy(iovw[7], buffer[700000:])
+
+	_, err = unix.Writev(fdw, iovw)
+	assert.NoError(t, err)
+
+	syscall.Fsync(fdw)
+
+	// read 1000000 bytes in 10 buffers,
+	// non of them is over the buffer maximum
+	iovr[0] = make([]byte, 100000)
+	iovr[1] = make([]byte, 100000)
+	iovr[2] = make([]byte, 100000)
+	iovr[3] = make([]byte, 100000)
+	iovr[4] = make([]byte, 100000)
+	iovr[5] = make([]byte, 100000)
+	iovr[6] = make([]byte, 100000)
+	iovr[7] = make([]byte, 100000)
+	iovr[8] = make([]byte, 100000)
+	iovr[9] = make([]byte, 100000)
+
+	_, err = unix.Readv(fdr, iovr)
+	assert.NoError(t, err)
+
+	err = observer.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobe_char_iovec_fullCopy_cnt_max(t *testing.T) {
+	fdw, fdr, _ := createTestFile(t)
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	configHook := `
+apiVersion: hubble-enterprise.io/v1
+metadata:
+  name: "sys_write_writev"
+spec:
+  kprobes:
+  - call: "__x64_sys_writev"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_iovec"
+      sizeArgIndex: 3
+      fullCopy: true
+    - index: 2
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fmt.Sprint(fdw)
+
+	size := 900000
+	buffer := make([]byte, size)
+
+	for i := 0; i < size; i++ {
+		buffer[i] = 'A' + byte(i%26)
+	}
+
+	var checkSize int
+
+	checkSize += 100000 // full 1st iovec buffer
+	checkSize += 100000 // full 2nd
+	checkSize += 100000 // full 3rd
+	checkSize += 100000 // full 4th
+	checkSize += 100000 // full 5th
+	checkSize += 100000 // full 6th
+	checkSize += 100000 // full 7th .. final iovec count
+
+	// bpf code crossed the max iovec count, so it sets the orignal
+	// size to current size + 1, because it has no idea how much
+	// more data there is
+	origSize := checkSize + 1
+
+	check := buffer[:checkSize]
+
+	tbChecker := ec.NewKprobeTruncatedBytesChecker().
+		WithBytesArg(bc.Full(check)).
+		WithOrigSize(uint64(origSize))
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_writev")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdw)),
+				ec.NewKprobeArgumentChecker().WithTruncatedBytesArg(tbChecker),
+				ec.NewKprobeArgumentChecker().WithSizeArg(10),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobe_char_iovec_fullCopy_cnt_max(t, configHook, checker, fdw, fdr, buffer)
+}
+
+func TestKprobe_char_iovec_fullCopy_cnt_max_returnCopy(t *testing.T) {
+	fdw, fdr, _ := createTestFile(t)
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	configHook := `
+apiVersion: hubble-enterprise.io/v1
+metadata:
+  name: "sys_write_read"
+spec:
+  kprobes:
+  - call: "__x64_sys_readv"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_iovec"
+      returnCopy: true
+      sizeArgIndex: 3
+      fullCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fmt.Sprint(fdr)
+
+	size := 900000
+	buffer := make([]byte, size)
+
+	for i := 0; i < size; i++ {
+		buffer[i] = 'A' + byte(i%26)
+	}
+
+	var checkSize int
+
+	checkSize += 100000 // full 1st iovec buffer
+	checkSize += 100000 // full 2nd
+	checkSize += 100000 // full 3rd
+	checkSize += 100000 // full 4th
+	checkSize += 100000 // full 5th
+	checkSize += 100000 // full 6th
+	checkSize += 100000 // full 7th .. final iovec count
+
+	// bpf code crossed the max iovec count, so it sets the orignal
+	// size to current size + 1, because it has no idea how much
+	// more data there is
+	origSize := checkSize + 1
+
+	check := buffer[:checkSize]
+
+	tbChecker := ec.NewKprobeTruncatedBytesChecker().
+		WithBytesArg(bc.Full(check)).
+		WithOrigSize(uint64(origSize))
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_readv")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdr)),
+				ec.NewKprobeArgumentChecker().WithTruncatedBytesArg(tbChecker),
+				ec.NewKprobeArgumentChecker().WithSizeArg(10),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobe_char_iovec_fullCopy_cnt_max(t, configHook, checker, fdw, fdr, buffer)
+}
