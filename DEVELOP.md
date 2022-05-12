@@ -27,6 +27,28 @@ Note that we need to specify the `LD_LIBRARY_PATH` as shown above so that Tetrag
 the correct libbpf to use at runtime. The `--bpf-lib` flag tells Tetragon where to look
 for its compiled BPF programs (which were built in the `make` step above).
 
+Running Code Generation
+=======================
+
+Tetragon uses code generation based on protoc to generate large amounts of boilerplate
+code based on our protobuf API. We similarly use automatic generation to maintain our k8s
+CRDs. Whenever you make changes to these files, you will be required to re-run code generation
+before your PR can be accepted.
+
+To run codegen from protoc, run the following command from the root of the repository:
+```
+make codegen
+```
+
+And to run k8s CRD generation, run the following command from the root of the repository:
+```
+make generate
+```
+
+Finally, should you wish to modify any of the resulting codegen files (ending in .pb.go),
+do not modify them directly. Instead, you can edit the files in
+`cmd/protoc-gen-go-tetragon` and then re-run `make codegen`.
+
 Using Dev VM
 ============
 
