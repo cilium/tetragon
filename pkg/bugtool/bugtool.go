@@ -184,7 +184,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 			bugtoolLogger,
 		},
 	}
-	prefixDir := fmt.Sprintf("hubble-enterprise-bugtool-%s", time.Now().Format("20060102150405"))
+	prefixDir := fmt.Sprintf("tetragon-bugtool-%s", time.Now().Format("20060102150405"))
 
 	outFile, err := os.Create(outFname)
 	if err != nil {
@@ -205,7 +205,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	tarWriter := tar.NewWriter(gzWriter)
 	defer func() {
 		defer tarWriter.Close()
-		si.tarAddBuff(tarWriter, "hubble-enterprise-bugtool.log", logBuff)
+		si.tarAddBuff(tarWriter, "tetragon-bugtool.log", logBuff)
 	}()
 
 	si.addInitInfo(tarWriter)
