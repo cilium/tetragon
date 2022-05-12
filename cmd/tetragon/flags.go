@@ -13,8 +13,8 @@ package main
 import (
 	"time"
 
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/option"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/spf13/viper"
 )

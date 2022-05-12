@@ -6,9 +6,9 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/isovalent/tetragon-oss/pkg/api/ops"
-	api "github.com/isovalent/tetragon-oss/pkg/api/testapi"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	api "github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/observer"
 )
 
 func init() {

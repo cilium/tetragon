@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	ec "github.com/isovalent/tetragon-oss/pkg/eventchecker"
-	"github.com/isovalent/tetragon-oss/pkg/testutils"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 var (

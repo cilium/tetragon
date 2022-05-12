@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/config"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 )
 
 func expectError(t *testing.T, err error) error {

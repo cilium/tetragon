@@ -15,9 +15,9 @@ LIBBPF_INSTALL_DIR ?= ./lib
 CLANG_INSTALL_DIR  ?= ./bin
 VERSION=$(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
-GO_LDFLAGS="-X 'github.com/isovalent/tetragon-oss/pkg/version.Version=$(VERSION)'"
-GO_IMAGE_LDFLAGS="-X 'github.com/isovalent/tetragon-oss/pkg/version.Version=$(VERSION)' -linkmode external -extldflags -static"
-GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/isovalent/tetragon-oss/pkg/version.Version=$(VERSION)' -s -w"
+GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
+GO_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode external -extldflags -static"
+GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
 GOLANGCILINT_WANT_VERSION = 1.45.2
@@ -115,9 +115,9 @@ lint:
 	golint -set_exit_status $$(go list ./...)
 
 image:
-	$(CONTAINER_ENGINE) build -t "isovalent/tetragon-oss:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push isovalent/tetragon-oss:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 image-operator:
 	$(CONTAINER_ENGINE) build -f operator.Dockerfile -t "isovalent/tetragon-operator:${DOCKER_IMAGE_TAG}" .
@@ -125,14 +125,14 @@ image-operator:
 	$(QUIET)echo "${CONTAINER_ENGINE} push isovalent/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
 image-test:
-	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "isovalent/tetragon-oss-test:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push isovalent/tetragon-oss-test:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
 
 image-codegen:
-	$(CONTAINER_ENGINE) build -f Dockerfile.codegen -t "isovalent/tetragon-oss-codegen:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f Dockerfile.codegen -t "cilium/tetragon-codegen:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push isovalent/tetragon-oss-codegen:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: tools-install tools-clean libbpf-install clang-install
 tools-install: libbpf-install clang-install
@@ -158,8 +158,8 @@ generate:
 	./tools/controller-gen crd paths=./pkg/k8s/apis/... output:dir=pkg/k8s/apis/isovalent.com/client/crds/v1alpha1
 	export GOPATH=$$(go env GOPATH); \
 	  bash vendor/k8s.io/code-generator/generate-groups.sh all \
-	  github.com/isovalent/tetragon-oss/pkg/k8s/client \
-	  github.com/isovalent/tetragon-oss/pkg/k8s/apis \
+	  github.com/cilium/tetragon/pkg/k8s/client \
+	  github.com/cilium/tetragon/pkg/k8s/apis \
 	  isovalent.com:v1alpha1 \
 	  --go-header-file hack/custom-boilerplate.go.txt
 

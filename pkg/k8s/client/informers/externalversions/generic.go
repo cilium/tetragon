@@ -7,7 +7,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

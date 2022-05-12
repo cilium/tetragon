@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
-	loader "github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/btf"
-	"github.com/isovalent/tetragon-oss/pkg/config"
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/option"
+	loader "github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -65,7 +65,7 @@ func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile strin
 	load := mergeSensors(configSensors)
 
 	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
-		return fmt.Errorf("tetragon-oss, aborting could not load BPF programs: %w", err)
+		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 
 	return nil
@@ -79,7 +79,7 @@ func LoadDefault(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile stri
 	// loading bpf programs.
 	load := GetInitialSensor()
 	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
-		return fmt.Errorf("tetragon-oss, aborting could not load BPF programs: %w", err)
+		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 
 	logger.GetLogger().WithField("metadata", option.Config.BTF).Info("Using metadata file")
 	if _, err := observerMinReqs(stopCtx); err != nil {
-		return fmt.Errorf("tetragon-oss, aborting minimum requirements not met: %w", err)
+		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
 	createDir(bpfDir, mapDir)
@@ -112,11 +112,11 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	l.Infof("Loading kernel version %s", verStr)
 
 	if err := s.FindPrograms(stopCtx); err != nil {
-		return fmt.Errorf("tetragon-oss, aborting could not find BPF programs: %w", err)
+		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
 	if err := s.LoadMaps(stopCtx, mapDir); err != nil {
-		return fmt.Errorf("tetragon-oss, aborting could not load sensor BPF maps: %w", err)
+		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
 	for _, p := range s.Progs {
@@ -236,7 +236,7 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 			"sensor": s.Name,
 			"map":    m.Name,
 			"path":   pinPath,
-		}).Info("tetragon-oss, map loaded.")
+		}).Info("tetragon, map loaded.")
 	}
 
 	return nil

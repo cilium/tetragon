@@ -5,9 +5,9 @@
 package fake
 
 import (
-	clientset "github.com/isovalent/tetragon-oss/pkg/k8s/client/clientset/versioned"
-	isovalentv1alpha1 "github.com/isovalent/tetragon-oss/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
-	fakeisovalentv1alpha1 "github.com/isovalent/tetragon-oss/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1/fake"
+	clientset "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
+	isovalentv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
+	fakeisovalentv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

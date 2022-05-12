@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/sensors/exec/procevents"
+	api "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/stretchr/testify/assert"
 )
 

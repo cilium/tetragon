@@ -5,8 +5,8 @@ package podinfo
 import (
 	"net"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/cilium"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/cilium"
 
 	coreV1 "k8s.io/api/core/v1"
 )

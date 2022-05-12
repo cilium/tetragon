@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 )
 
 type BinaryMapKey struct {

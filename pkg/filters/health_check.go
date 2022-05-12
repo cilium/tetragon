@@ -20,7 +20,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	shell "github.com/kballard/go-shellquote"
 )
 

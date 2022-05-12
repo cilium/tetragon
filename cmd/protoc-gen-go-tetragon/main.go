@@ -14,9 +14,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/isovalent/tetragon-oss/cmd/protoc-gen-go-tetragon/eventcache"
-	"github.com/isovalent/tetragon-oss/cmd/protoc-gen-go-tetragon/filters"
-	"github.com/isovalent/tetragon-oss/cmd/protoc-gen-go-tetragon/helpers"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventcache"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/filters"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/helpers"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 

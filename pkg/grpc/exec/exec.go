@@ -5,16 +5,16 @@ package exec
 import (
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/api/ops"
-	fgsAPI "github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/eventcache"
-	"github.com/isovalent/tetragon-oss/pkg/execcache"
-	"github.com/isovalent/tetragon-oss/pkg/ktime"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/process"
-	readerexec "github.com/isovalent/tetragon-oss/pkg/reader/exec"
-	"github.com/isovalent/tetragon-oss/pkg/reader/node"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	fgsAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/execcache"
+	"github.com/cilium/tetragon/pkg/ktime"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/process"
+	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
+	"github.com/cilium/tetragon/pkg/reader/node"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 

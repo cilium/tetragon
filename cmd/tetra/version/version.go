@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/cmd/tetra/common"
-	"github.com/isovalent/tetragon-oss/pkg/version"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/cmd/tetra/common"
+	"github.com/cilium/tetragon/pkg/version"
 
 	"github.com/spf13/cobra"
 )

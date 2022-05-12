@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/option"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"golang.org/x/sys/unix"
 )

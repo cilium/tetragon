@@ -15,7 +15,7 @@ package helpers
 
 import (
 	fmt "fmt"
-	fgs "github.com/isovalent/tetragon-oss/api/v1/fgs"
+	fgs "github.com/cilium/tetragon/api/v1/fgs"
 )
 
 type event interface {

@@ -14,12 +14,12 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
-	"github.com/isovalent/tetragon-oss/pkg/api/ops"
-	"github.com/isovalent/tetragon-oss/pkg/api/readyapi"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/metrics"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/readyapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/sirupsen/logrus"
 )

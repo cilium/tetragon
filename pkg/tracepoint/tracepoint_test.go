@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/kernels"
 )
 
 func TestTracepointLoadFormat(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger"
 
 	lru "github.com/hashicorp/golang-lru"
 )

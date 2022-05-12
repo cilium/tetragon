@@ -1,4 +1,4 @@
-module github.com/isovalent/tetragon-oss
+module github.com/cilium/tetragon
 
 go 1.17
 

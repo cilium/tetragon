@@ -5,9 +5,9 @@ package alignchecker
 import (
 	"reflect"
 
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/api/testapi"
-	"github.com/isovalent/tetragon-oss/pkg/sensors/exec/execvemap"
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 
 	check "github.com/cilium/cilium/pkg/alignchecker"
 )

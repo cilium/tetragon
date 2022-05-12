@@ -18,8 +18,8 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG NOSTRIP
 
-WORKDIR /go/src/github.com/isovalent/tetragon-oss
-RUN --mount=type=bind,readwrite,target=/go/src/github.com/isovalent/tetragon-oss --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
+WORKDIR /go/src/github.com/cilium/tetragon
+RUN --mount=type=bind,readwrite,target=/go/src/github.com/cilium/tetragon --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
     make GOARCH=${TARGETARCH} tetragon-operator-image \
     && mkdir -p /out/${TARGETOS}/${TARGETARCH}/usr/bin && mv tetragon-operator /out/${TARGETOS}/${TARGETARCH}/usr/bin
 

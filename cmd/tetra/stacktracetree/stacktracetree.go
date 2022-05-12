@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/cmd/tetra/common"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 
 	"github.com/spf13/cobra"
 )

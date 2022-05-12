@@ -10,29 +10,29 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/btf"
-	"github.com/isovalent/tetragon-oss/pkg/bugtool"
-	"github.com/isovalent/tetragon-oss/pkg/cilium"
-	"github.com/isovalent/tetragon-oss/pkg/defaults"
-	"github.com/isovalent/tetragon-oss/pkg/exporter"
-	"github.com/isovalent/tetragon-oss/pkg/filters"
-	fgsGrpc "github.com/isovalent/tetragon-oss/pkg/grpc"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/metrics"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
-	"github.com/isovalent/tetragon-oss/pkg/option"
-	"github.com/isovalent/tetragon-oss/pkg/process"
-	"github.com/isovalent/tetragon-oss/pkg/ratelimit"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
-	"github.com/isovalent/tetragon-oss/pkg/server"
-	"github.com/isovalent/tetragon-oss/pkg/version"
-	"github.com/isovalent/tetragon-oss/pkg/watcher"
-	"github.com/isovalent/tetragon-oss/pkg/watcher/crd"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/cilium"
+	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/exporter"
+	"github.com/cilium/tetragon/pkg/filters"
+	fgsGrpc "github.com/cilium/tetragon/pkg/grpc"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/server"
+	"github.com/cilium/tetragon/pkg/version"
+	"github.com/cilium/tetragon/pkg/watcher"
+	"github.com/cilium/tetragon/pkg/watcher/crd"
 
 	// Imported to allow sensors to be initialized inside init().
-	_ "github.com/isovalent/tetragon-oss/pkg/sensors"
+	_ "github.com/cilium/tetragon/pkg/sensors"
 
 	ciliumopt "github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/lumberjack/v2"
@@ -182,7 +182,7 @@ func hubbleFGSExecute() error {
 
 // getObserverDir returns the path to the observer directory based on the BPF
 // map root. This function relies on the map root to be set properly via
-// github.com/isovalent/tetragon-oss/pkg/bpf.CheckOrMountFS().
+// github.com/cilium/tetragon/pkg/bpf.CheckOrMountFS().
 func getObserverDir() string {
 	const observerDir = "tcpmon"
 	return filepath.Join(bpf.GetMapRoot(), observerDir)

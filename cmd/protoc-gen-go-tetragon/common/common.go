@@ -57,12 +57,12 @@ func GoIdent(g *protogen.GeneratedFile, importPath string, name string) string {
 // FgsApiIdent is a convenience helper that calls GoIdent with the path to the FGS API
 // package.
 func FgsApiIdent(g *protogen.GeneratedFile, name string) string {
-	return GoIdent(g, "github.com/isovalent/tetragon-oss/api/v1/fgs", name)
+	return GoIdent(g, "github.com/cilium/tetragon/api/v1/fgs", name)
 }
 
 // Logger is a convenience helper that generates a call to logger.GetLogger()
 func Logger(g *protogen.GeneratedFile) string {
-	return fmt.Sprintf("%s()", GoIdent(g, "github.com/isovalent/tetragon-oss/pkg/logger", "GetLogger"))
+	return fmt.Sprintf("%s()", GoIdent(g, "github.com/cilium/tetragon/pkg/logger", "GetLogger"))
 }
 
 // FmtErrorf is a convenience helper that generates a call to fmt.Errorf

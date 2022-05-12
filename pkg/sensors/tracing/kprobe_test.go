@@ -16,16 +16,16 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	ec "github.com/isovalent/tetragon-oss/pkg/eventchecker"
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
-	"github.com/isovalent/tetragon-oss/pkg/reader/caps"
-	"github.com/isovalent/tetragon-oss/pkg/reader/namespace"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/bpf"
+	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/reader/caps"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/sensors"
 
-	_ "github.com/isovalent/tetragon-oss/pkg/sensors/exec"
+	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
@@ -34,7 +34,7 @@ import (
 var mountPath = "/tmp2"
 
 const (
-	testConfigFile = "/tmp/tetragon-oss.gotest.yaml"
+	testConfigFile = "/tmp/tetragon.gotest.yaml"
 	kprobeTestDir  = "/sys/fs/bpf/testObserver/"
 )
 
