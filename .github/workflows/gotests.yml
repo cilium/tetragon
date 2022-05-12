@@ -26,7 +26,6 @@ jobs:
       env:
         GOPATH: /home/runner/work/tetragon/tetragon/go
       run: |
-        docker login quay.io -u ${{ secrets.QUAY_USERNAME_CI }} -p ${{ secrets.QUAY_PASSWORD_CI }}
         sudo apt install libelf-dev netcat-traditional libcap-dev
         export PATH=${GOPATH}/bin:${PATH}
         sudo -E echo "copy build tools from images"
