@@ -8,7 +8,7 @@ const (
 	// and 'Common' fields will be populated. This event is positioned
 	// after exec() calls have been validated so failed syscalls will
 	// not be reported. To generate events provide the '-e' option to
-	// hubble-fgs, without the option the hook only populates the data
+	// tetragon, without the option the hook only populates the data
 	// store for later use by above events.
 	MSG_OP_EXECVE = 5
 	MSG_OP_EXIT   = 7

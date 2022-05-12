@@ -182,7 +182,7 @@ func writeExecveMap(procs []Procs) {
 	execveMap := sensors.GetExecveMap()
 
 	if execveMap.PinState.IsDisabled() {
-		logger.GetLogger().Infof("hubble-fgs, map %s is disabled, skipping.", execveMap.Name)
+		logger.GetLogger().Infof("tetragon, map %s is disabled, skipping.", execveMap.Name)
 		return
 	}
 

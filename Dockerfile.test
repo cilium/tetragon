@@ -14,12 +14,12 @@ FROM docker.io/library/golang:1.17.6@sha256:0168c352a2be96f4bcc5856fe6e03ee665b1
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev rpm2cpio cpio git flex bison autoconf libelf-dev bc netcat-traditional
 WORKDIR /go/src/github.com/cilium/tetragon
-COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/hubble-fgs/
+COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 /usr/local/lib/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 /usr/local/lib/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so /usr/local/lib/
 CMD LD_LIBRARY_PATH=/usr/local/lib/ go test ./pkg/observer/
 
-ENV FGS_BTF=/var/lib/hubble-fgs/btf
+ENV FGS_BTF=/var/lib/tetragon/btf
 ENV FGS_PROCFS=/procRoot/
 ENV LD_LIBRARY_PATH=/usr/local/lib/

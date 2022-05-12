@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	fgsCgroupPath = "/run/hubble-fgs/cgroup2"
+	fgsCgroupPath = "/run/tetragon/cgroup2"
 
 	verifierLogBufferSize = 10 * 1024 * 1024 // 10MB
 )

@@ -87,7 +87,7 @@ func InitCachedBTF(ctx context.Context, lib, btf string) error {
 	// Find BTF metdaata and populate btf opaqu object
 	btfFile, err = observerFindBTF(ctx, lib, btf)
 	if err != nil {
-		return fmt.Errorf("hubble-fgs, aborting kernel autodiscovery failed: %w", err)
+		return fmt.Errorf("tetragon, aborting kernel autodiscovery failed: %w", err)
 	}
 	btfObj, err = NewBTF()
 	return err

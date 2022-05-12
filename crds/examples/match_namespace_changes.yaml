@@ -1,5 +1,5 @@
 # This comment describes a demo of matchNamespaceChanges. We need 2 terminals
-# here. The first one will run hubble-fgs and the second will run the commands
+# here. The first one will run tetragon and the second will run the commands
 # that we want to capture. First step is to replace {{.Pid}} in this file with
 # the PID of the bash running on the second terminal.
 #
@@ -8,9 +8,9 @@
 #
 # Terminal 1:
 # $ rm -f events.json
-# $ ./hubble-fgs --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file crds/examples/match_namespace_changes.yaml
+# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file crds/examples/match_namespace_changes.yaml
 # $ # <wait for events>
-# $ # kill hubble-fgs
+# $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events
 #
 # Terminal 2:
@@ -25,9 +25,9 @@
 #
 # Terminal 1:
 # $ rm -f events.json
-# $ ./hubble-fgs --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file crds/examples/match_namespace_changes.yaml
+# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file crds/examples/match_namespace_changes.yaml
 # $ # <wait for events>
-# $ # kill hubble-fgs
+# $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events
 #
 # Terminal 2:
