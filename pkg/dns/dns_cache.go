@@ -5,7 +5,7 @@ package dns
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -36,7 +36,7 @@ func (c *Cache) GetIp(ip string) ([]string, error) {
 	return entry.([]string), nil
 }
 
-func (c *Cache) AddIp(dns *fgs.DnsInfo) {
+func (c *Cache) AddIp(dns *tetragon.DnsInfo) {
 	if !dns.Response {
 		return
 	}

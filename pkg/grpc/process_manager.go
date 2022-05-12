@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/cilium/hubble/pkg/cilium"
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
@@ -28,8 +28,8 @@ import (
 )
 
 type execProcess interface {
-	HandleExecveMessage(*processapi.MsgExecveEventUnix) *fgs.GetEventsResponse
-	HandleExitMessage(*processapi.MsgExitEventUnix) *fgs.GetEventsResponse
+	HandleExecveMessage(*processapi.MsgExecveEventUnix) *tetragon.GetEventsResponse
+	HandleExitMessage(*processapi.MsgExitEventUnix) *tetragon.GetEventsResponse
 }
 
 var (
@@ -37,7 +37,7 @@ var (
 	execGrpc    execProcess
 )
 
-// ProcessManager maintains a cache of processes from fgs exec events.
+// ProcessManager maintains a cache of processes from tetragon exec events.
 type ProcessManager struct {
 	eventCache *eventcache.Cache
 	execCache  *execcache.Cache
@@ -96,7 +96,7 @@ func NewProcessManager(
 
 // Notify implements Listener.Notify.
 func (pm *ProcessManager) Notify(event interface{}) error {
-	var processedEvent *fgs.GetEventsResponse
+	var processedEvent *tetragon.GetEventsResponse
 	switch msg := event.(type) {
 	case *readyapi.MsgFGSReady:
 		// pass
@@ -141,7 +141,7 @@ func (pm *ProcessManager) RemoveListener(listener server.Listener) {
 	delete(pm.listeners, listener)
 }
 
-func (pm *ProcessManager) NotifyListener(original interface{}, processed *fgs.GetEventsResponse) {
+func (pm *ProcessManager) NotifyListener(original interface{}, processed *tetragon.GetEventsResponse) {
 	pm.mux.Lock()
 	defer pm.mux.Unlock()
 	for l := range pm.listeners {

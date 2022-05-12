@@ -8,39 +8,39 @@ import (
 	"testing"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBinaryRegexFilterBasic(t *testing.T) {
-	f := []*fgs.Filter{{BinaryRegex: []string{"iptable", "systemd"}}}
+	f := []*tetragon.Filter{{BinaryRegex: []string{"iptable", "systemd"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
 	ev := v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{Binary: "/sbin/iptables"},
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{Binary: "/sbin/iptables"},
 				},
 			},
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{Binary: "/sbin/iptables-restore"},
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{Binary: "/sbin/iptables-restore"},
 				},
 			},
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/lib/systemd/systemd",
 					},
 				},
@@ -49,10 +49,10 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/lib/systemd/systemd-journald",
 					},
 				},
@@ -61,10 +61,10 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "kube-proxy",
 					},
 				},
@@ -75,14 +75,14 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 }
 
 func TestBinaryRegexFilterAdvanced(t *testing.T) {
-	f := []*fgs.Filter{{BinaryRegex: []string{"/usr/sbin/.*", "^/usr/lib/systemd/systemd$"}}}
+	f := []*tetragon.Filter{{BinaryRegex: []string{"/usr/sbin/.*", "^/usr/lib/systemd/systemd$"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
 	ev := v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/sbin/dnsmasq",
 					},
 				},
@@ -91,10 +91,10 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/sbin/logrotate",
 					},
 				},
@@ -103,10 +103,10 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/lib/systemd/systemd",
 					},
 				},
@@ -115,10 +115,10 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{
-					Process: &fgs.Process{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
 						Binary: "/usr/lib/systemd/systemd-logind",
 					},
 				},
@@ -129,26 +129,26 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 }
 
 func TestBinaryRegexFilterInvalidRegex(t *testing.T) {
-	f := []*fgs.Filter{{BinaryRegex: []string{"*"}}}
+	f := []*tetragon.Filter{{BinaryRegex: []string{"*"}}}
 	_, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.Error(t, err)
 }
 
 func TestBinaryRegexFilterInvalidEvent(t *testing.T) {
-	f := []*fgs.Filter{{BinaryRegex: []string{".*"}}}
+	f := []*tetragon.Filter{{BinaryRegex: []string{".*"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
 	assert.False(t, fl.MatchOne(nil))
 	assert.False(t, fl.MatchOne(&v1.Event{Event: nil}))
 	assert.False(t, fl.MatchOne(&v1.Event{Event: struct{}{}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &fgs.GetEventsResponse{Event: nil}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &fgs.GetEventsResponse{
-		Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: nil}},
+	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{Event: nil}}))
+	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &fgs.GetEventsResponse{
-		Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: nil}},
+	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &fgs.GetEventsResponse{
-		Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: nil}},
+	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
 }

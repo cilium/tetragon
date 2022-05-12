@@ -15,7 +15,7 @@ import (
 // NewGeneratedFile creates a new codegen pakage and file in the project
 func NewGeneratedFile(gen *protogen.Plugin, file *protogen.File, pkg string) *protogen.GeneratedFile {
 	importPath := filepath.Join(string(file.GoImportPath), "codegen", pkg)
-	fileName := filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, "fgs"), "codegen", pkg, fmt.Sprintf("%s.pb.go", pkg))
+	fileName := filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, "tetragon"), "codegen", pkg, fmt.Sprintf("%s.pb.go", pkg))
 
 	g := gen.NewGeneratedFile(fileName, protogen.GoImportPath(importPath))
 	g.P(`// SPDX-License-Identifier: Apache-2.0
@@ -41,7 +41,7 @@ func GoIdent(g *protogen.GeneratedFile, importPath string, name string) string {
 // FgsApiIdent is a convenience helper that calls GoIdent with the path to the FGS API
 // package.
 func FgsApiIdent(g *protogen.GeneratedFile, name string) string {
-	return GoIdent(g, "github.com/cilium/tetragon/api/v1/fgs", name)
+	return GoIdent(g, "github.com/cilium/tetragon/api/v1/tetragon", name)
 }
 
 // Logger is a convenience helper that generates a call to logger.GetLogger()

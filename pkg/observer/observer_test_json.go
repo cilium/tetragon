@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
@@ -24,7 +24,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiResponseChecker, log ec.Logger
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
-		var ev fgs.GetEventsResponse
+		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
 			return fmt.Errorf("unmarshal failed: %w", err)
 		}

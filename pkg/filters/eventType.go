@@ -9,14 +9,14 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/fgs"
-	codegen "github.com/cilium/tetragon/api/v1/fgs/codegen/filters"
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	codegen "github.com/cilium/tetragon/api/v1/tetragon/codegen/filters"
 )
 
 func filterByEventType(types []reflect.Type) hubbleFilters.FilterFunc {
 	return func(ev *v1.Event) bool {
 		switch event := ev.Event.(type) {
-		case *fgs.GetEventsResponse:
+		case *tetragon.GetEventsResponse:
 			r := reflect.TypeOf(event.Event)
 			for _, t := range types {
 				if t == r {
@@ -30,7 +30,7 @@ func filterByEventType(types []reflect.Type) hubbleFilters.FilterFunc {
 
 type EventTypeFilter struct{}
 
-func (f *EventTypeFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *EventTypeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.EventSet != nil {
 		var types []reflect.Type

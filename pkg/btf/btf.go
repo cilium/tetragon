@@ -34,12 +34,12 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 
 		// Alternative to auto-discovery and/or command line argument we
 		// can also set via environment variable.
-		fgsBtfEnv := os.Getenv("FGS_BTF")
-		if fgsBtfEnv != "" {
-			if _, err := os.Stat(fgsBtfEnv); err != nil {
+		tetragonBtfEnv := os.Getenv("FGS_BTF")
+		if tetragonBtfEnv != "" {
+			if _, err := os.Stat(tetragonBtfEnv); err != nil {
 				return btf, err
 			}
-			return fgsBtfEnv, nil
+			return tetragonBtfEnv, nil
 		}
 
 		err := unix.Uname(&uname)

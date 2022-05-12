@@ -7,80 +7,80 @@ package eventcache
 
 import (
 	fmt "fmt"
-	fgs "github.com/cilium/tetragon/api/v1/fgs"
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	metrics "github.com/cilium/tetragon/pkg/metrics"
 	process "github.com/cilium/tetragon/pkg/process"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type eventObj interface {
-	GetProcess() *fgs.Process
+	GetProcess() *tetragon.Process
 }
 
-func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []string, nodeName string, timestamp *timestamppb.Timestamp) (*fgs.GetEventsResponse, error) {
+func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []string, nodeName string, timestamp *timestamppb.Timestamp) (*tetragon.GetEventsResponse, error) {
 	switch e := event.(type) {
 
-	case *fgs.ProcessExec:
+	case *tetragon.ProcessExec:
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
 			metrics.ProcessInfoErrors.WithLabelValues("ProcessExec").Inc()
 			metrics.ErrorCount.WithLabelValues(string(metrics.EventCacheProcessInfoFailed)).Inc()
 		}
-		return &fgs.GetEventsResponse{
-			Event:    &fgs.GetEventsResponse_ProcessExec{ProcessExec: e},
+		return &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
 			NodeName: nodeName,
 			Time:     timestamp,
 		}, nil
 
-	case *fgs.ProcessExit:
+	case *tetragon.ProcessExit:
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
 			metrics.ProcessInfoErrors.WithLabelValues("ProcessExit").Inc()
 			metrics.ErrorCount.WithLabelValues(string(metrics.EventCacheProcessInfoFailed)).Inc()
 		}
-		return &fgs.GetEventsResponse{
-			Event:    &fgs.GetEventsResponse_ProcessExit{ProcessExit: e},
+		return &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
 			NodeName: nodeName,
 			Time:     timestamp,
 		}, nil
 
-	case *fgs.ProcessKprobe:
+	case *tetragon.ProcessKprobe:
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
 			metrics.ProcessInfoErrors.WithLabelValues("ProcessKprobe").Inc()
 			metrics.ErrorCount.WithLabelValues(string(metrics.EventCacheProcessInfoFailed)).Inc()
 		}
-		return &fgs.GetEventsResponse{
-			Event:    &fgs.GetEventsResponse_ProcessKprobe{ProcessKprobe: e},
+		return &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: e},
 			NodeName: nodeName,
 			Time:     timestamp,
 		}, nil
 
-	case *fgs.ProcessTracepoint:
+	case *tetragon.ProcessTracepoint:
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
 			metrics.ProcessInfoErrors.WithLabelValues("ProcessTracepoint").Inc()
 			metrics.ErrorCount.WithLabelValues(string(metrics.EventCacheProcessInfoFailed)).Inc()
 		}
-		return &fgs.GetEventsResponse{
-			Event:    &fgs.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: e},
+		return &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: e},
 			NodeName: nodeName,
 			Time:     timestamp,
 		}, nil
 
-	case *fgs.ProcessDns:
+	case *tetragon.ProcessDns:
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
 			metrics.ProcessInfoErrors.WithLabelValues("ProcessDns").Inc()
 			metrics.ErrorCount.WithLabelValues(string(metrics.EventCacheProcessInfoFailed)).Inc()
 		}
-		return &fgs.GetEventsResponse{
-			Event:    &fgs.GetEventsResponse_ProcessDns{ProcessDns: e},
+		return &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessDns{ProcessDns: e},
 			NodeName: nodeName,
 			Time:     timestamp,
 		}, nil

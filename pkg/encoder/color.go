@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/fatih/color"
 )
 
@@ -77,13 +77,13 @@ func (c *colorer) disable() {
 
 func printCap(c int) bool {
 	switch c {
-	case int(fgs.CapabilitiesType_CAP_SYS_ADMIN):
+	case int(tetragon.CapabilitiesType_CAP_SYS_ADMIN):
 		return true
 	}
 	return false
 }
 
-func processCaps(c *fgs.Capabilities) string {
+func processCaps(c *tetragon.Capabilities) string {
 	var caps []string
 
 	if c == nil {
@@ -92,7 +92,7 @@ func processCaps(c *fgs.Capabilities) string {
 
 	for e := range c.Effective {
 		if printCap(e) {
-			caps = append(caps, fgs.CapabilitiesType_name[int32(e)])
+			caps = append(caps, tetragon.CapabilitiesType_name[int32(e)])
 		}
 	}
 
@@ -103,7 +103,7 @@ func processCaps(c *fgs.Capabilities) string {
 	return capsString
 }
 
-func (c colorer) processInfo(host string, process *fgs.Process) (string, string) {
+func (c colorer) processInfo(host string, process *tetragon.Process) (string, string) {
 	source := c.green.Sprint(host)
 	if process.Pod != nil {
 		source = c.green.Sprint(process.Pod.Namespace, "/", process.Pod.Name)

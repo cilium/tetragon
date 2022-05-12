@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 
 	"github.com/spf13/cobra"
@@ -38,7 +38,7 @@ func New() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			stt := args[0]
-			common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				sttPrint(ctx, cli, stt)
 			})
 		},
@@ -48,8 +48,8 @@ func New() *cobra.Command {
 	return sttCmd
 }
 
-func sttPrint(ctx context.Context, client fgs.FineGuidanceSensorsClient, stt string) {
-	res, err := client.GetStackTraceTree(ctx, &fgs.GetStackTraceTreeRequest{Name: stt})
+func sttPrint(ctx context.Context, client tetragon.FineGuidanceSensorsClient, stt string) {
+	res, err := client.GetStackTraceTree(ctx, &tetragon.GetStackTraceTreeRequest{Name: stt})
 	if err != nil {
 		fmt.Printf("error printing stt %s: %s\n", stt, err)
 		return
@@ -68,7 +68,7 @@ func sttPrint(ctx context.Context, client fgs.FineGuidanceSensorsClient, stt str
 	sttPrintNodeTree(res.Root, 0)
 }
 
-func sttPrintNodeTree(node *fgs.StackTraceNode, level int) {
+func sttPrintNodeTree(node *tetragon.StackTraceNode, level int) {
 	indent_space := "    "
 	indent := strings.Repeat(indent_space, level)
 	fmt.Printf("%s0x%x (%s) count:%d\n", indent, node.Address.Address, node.Address.Symbol, node.Count)

@@ -19,7 +19,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 /* pidSet is the set of pids we are interested in receiving events
@@ -59,7 +59,7 @@ func filterByPidSet(pids []uint32) hubbleFilters.FilterFunc {
 
 type PidSetFilter struct{}
 
-func (f *PidSetFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *PidSetFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	pidSet = make(map[uint32]bool)
 	var fs []hubbleFilters.FilterFunc
 	if ff.PidSet != nil {

@@ -6,7 +6,7 @@ package process
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -19,14 +19,14 @@ func TestProcessCache(t *testing.T) {
 	pid := wrapperspb.UInt32Value{Value: 1234}
 	execID := "process1"
 	proc := ProcessInternal{
-		process: &fgs.Process{
+		process: &tetragon.Process{
 			ExecId: execID,
 			Pid:    &pid,
 		},
-		capabilities: &fgs.Capabilities{
-			Permitted: []fgs.CapabilitiesType{
-				fgs.CapabilitiesType_CAP_AUDIT_READ,
-				fgs.CapabilitiesType_CAP_AUDIT_WRITE,
+		capabilities: &tetragon.Capabilities{
+			Permitted: []tetragon.CapabilitiesType{
+				tetragon.CapabilitiesType_CAP_AUDIT_READ,
+				tetragon.CapabilitiesType_CAP_AUDIT_WRITE,
 			},
 		},
 	}

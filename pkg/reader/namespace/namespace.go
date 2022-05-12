@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-var hostNamespace *fgs.Namespaces
+var hostNamespace *tetragon.Namespaces
 
 func GetPidNsInode(pid uint32, nsStr string) uint32 {
 	pidStr := strconv.Itoa(int(pid))
@@ -70,7 +70,7 @@ func GetSelfNsInode(nsStr string) uint32 {
 	return GetPidNsInode(uint32(GetMyPidG()), nsStr)
 }
 
-func GetCurrentNamespace() *fgs.Namespaces {
+func GetCurrentNamespace() *tetragon.Namespaces {
 	nses := [10]string{"uts", "ipc", "mnt", "pid", "pid_for_children", "net", "time", "time_for_children", "cgroup", "user"}
 	self_ns := make(map[string]uint32)
 	is_root_ns := make(map[string]bool)
@@ -79,89 +79,89 @@ func GetCurrentNamespace() *fgs.Namespaces {
 		is_root_ns[nses[i]] = (self_ns[nses[i]] == GetHostNsInode(nses[i]))
 	}
 
-	return &fgs.Namespaces{
-		Uts: &fgs.Namespace{
+	return &tetragon.Namespaces{
+		Uts: &tetragon.Namespace{
 			Inum:   self_ns["uts"],
 			IsHost: is_root_ns["uts"],
 		},
-		Ipc: &fgs.Namespace{
+		Ipc: &tetragon.Namespace{
 			Inum:   self_ns["ipc"],
 			IsHost: is_root_ns["ipc"],
 		},
-		Mnt: &fgs.Namespace{
+		Mnt: &tetragon.Namespace{
 			Inum:   self_ns["mnt"],
 			IsHost: is_root_ns["mnt"],
 		},
-		Pid: &fgs.Namespace{
+		Pid: &tetragon.Namespace{
 			Inum:   self_ns["pid"],
 			IsHost: is_root_ns["pid"],
 		},
-		PidForChildren: &fgs.Namespace{
+		PidForChildren: &tetragon.Namespace{
 			Inum:   self_ns["pid_for_children"],
 			IsHost: is_root_ns["pid_for_children"],
 		},
-		Net: &fgs.Namespace{
+		Net: &tetragon.Namespace{
 			Inum:   self_ns["net"],
 			IsHost: is_root_ns["net"],
 		},
-		Time: &fgs.Namespace{
+		Time: &tetragon.Namespace{
 			Inum:   self_ns["time"],
 			IsHost: is_root_ns["time"],
 		},
-		TimeForChildren: &fgs.Namespace{
+		TimeForChildren: &tetragon.Namespace{
 			Inum:   self_ns["time_for_children"],
 			IsHost: is_root_ns["time_for_children"],
 		},
-		Cgroup: &fgs.Namespace{
+		Cgroup: &tetragon.Namespace{
 			Inum:   self_ns["cgroup"],
 			IsHost: is_root_ns["cgroup"],
 		},
-		User: &fgs.Namespace{
+		User: &tetragon.Namespace{
 			Inum:   self_ns["user"],
 			IsHost: is_root_ns["user"],
 		},
 	}
 }
-func GetMsgNamespaces(ns processapi.MsgNamespaces) *fgs.Namespaces {
+func GetMsgNamespaces(ns processapi.MsgNamespaces) *tetragon.Namespaces {
 	hostNs := GetHostNamespace()
-	retVal := &fgs.Namespaces{
-		Uts: &fgs.Namespace{
+	retVal := &tetragon.Namespaces{
+		Uts: &tetragon.Namespace{
 			Inum:   ns.UtsInum,
 			IsHost: hostNs.Uts.Inum == ns.UtsInum,
 		},
-		Ipc: &fgs.Namespace{
+		Ipc: &tetragon.Namespace{
 			Inum:   ns.IpcInum,
 			IsHost: hostNs.Ipc.Inum == ns.IpcInum,
 		},
-		Mnt: &fgs.Namespace{
+		Mnt: &tetragon.Namespace{
 			Inum:   ns.MntInum,
 			IsHost: hostNs.Mnt.Inum == ns.MntInum,
 		},
-		Pid: &fgs.Namespace{
+		Pid: &tetragon.Namespace{
 			Inum:   ns.PidInum,
 			IsHost: hostNs.Pid.Inum == ns.PidInum,
 		},
-		PidForChildren: &fgs.Namespace{
+		PidForChildren: &tetragon.Namespace{
 			Inum:   ns.PidChildInum,
 			IsHost: hostNs.PidForChildren.Inum == ns.PidChildInum,
 		},
-		Net: &fgs.Namespace{
+		Net: &tetragon.Namespace{
 			Inum:   ns.NetInum,
 			IsHost: hostNs.Net.Inum == ns.NetInum,
 		},
-		Time: &fgs.Namespace{
+		Time: &tetragon.Namespace{
 			Inum:   ns.TimeInum,
 			IsHost: hostNs.Time.Inum == ns.TimeInum,
 		},
-		TimeForChildren: &fgs.Namespace{
+		TimeForChildren: &tetragon.Namespace{
 			Inum:   ns.TimeChildInum,
 			IsHost: hostNs.TimeForChildren.Inum == ns.TimeChildInum,
 		},
-		Cgroup: &fgs.Namespace{
+		Cgroup: &tetragon.Namespace{
 			Inum:   ns.CgroupInum,
 			IsHost: hostNs.Cgroup.Inum == ns.CgroupInum,
 		},
-		User: &fgs.Namespace{
+		User: &tetragon.Namespace{
 			Inum:   ns.UserInum,
 			IsHost: hostNs.User.Inum == ns.UserInum,
 		},
@@ -176,9 +176,9 @@ func GetMsgNamespaces(ns processapi.MsgNamespaces) *fgs.Namespaces {
 	return retVal
 }
 
-func GetHostNamespace() *fgs.Namespaces {
+func GetHostNamespace() *tetragon.Namespaces {
 	if hostNamespace == nil {
-		hostNamespace = &fgs.Namespaces{
+		hostNamespace = &tetragon.Namespaces{
 			Uts:             createHostNs("uts"),
 			Ipc:             createHostNs("ipc"),
 			Mnt:             createHostNs("mnt"),
@@ -194,8 +194,8 @@ func GetHostNamespace() *fgs.Namespaces {
 	return hostNamespace
 }
 
-func createHostNs(ns string) *fgs.Namespace {
-	return &fgs.Namespace{
+func createHostNs(ns string) *tetragon.Namespace {
+	return &tetragon.Namespace{
 		Inum:   GetPidNsInode(1, ns),
 		IsHost: true,
 	}

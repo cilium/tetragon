@@ -16,7 +16,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -71,7 +71,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -117,7 +117,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -163,7 +163,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker()
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -381,7 +381,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiResponse
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -535,9 +535,9 @@ var (
 	// this check fails if it find a kprobe event. It is used to test filters.
 	noKprobeChecker = ec.NewAllMultiResponseChecker(
 		ec.ResponseCheckerFn(
-			func(r *fgs.GetEventsResponse, l ec.Logger) error {
+			func(r *tetragon.GetEventsResponse, l ec.Logger) error {
 				switch ev := r.Event.(type) {
-				case *fgs.GetEventsResponse_ProcessKprobe:
+				case *tetragon.GetEventsResponse_ProcessKprobe:
 					return fmt.Errorf("Unexpected event: %+v", ev)
 				default:
 					return nil
@@ -596,7 +596,7 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1034,7 +1034,7 @@ spec:
 			End(),
 	)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1302,7 +1302,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1574,7 +1574,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1627,7 +1627,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiResponseChecke
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1701,7 +1701,7 @@ spec:
 			ec.GenericArgStringCheck(file.Name()),
 			ec.GenericArgIsInt()},
 			ec.GenericArgIntCheck(-2)).
-		WithAction(fgs.KprobeAction_KPROBE_ACTION_OVERRIDE)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 
 	checker := ec.NewOrderedMultiResponseChecker(
 		ec.NewKprobeEventChecker().
@@ -1736,7 +1736,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, fgsLib, true)
+	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tetragonLib, true)
 	if err == nil {
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
@@ -1757,7 +1757,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithWatchers(t, observer.WithConfig(testConfigFile), observer.WithLib(fgsLib))
+	obs, err := observer.GetDefaultObserverWithWatchers(t, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}

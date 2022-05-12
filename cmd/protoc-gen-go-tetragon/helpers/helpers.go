@@ -46,16 +46,16 @@ func generateEventTypeString(g *protogen.GeneratedFile, f *protogen.File) error 
 }
 
 func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcess := common.FgsApiIdent(g, "Process")
-	fgsGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonProcess := common.FgsApiIdent(g, "Process")
+	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetProcess gets the process field for a response if it exists
-    func ResponseGetProcess(response response) *` + fgsProcess + ` {
+    func ResponseGetProcess(response response) *` + tetragonProcess + ` {
         if response == nil {
             return nil
         }
         switch res := response.(type) {
-             case *` + fgsGER + `:
+             case *` + tetragonGER + `:
                  return EventGetProcess(res.Event)
          }
          return nil
@@ -65,7 +65,7 @@ func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) err
 }
 
 func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.FgsApiIdent(g, "Process")
 
 	events, err := common.GetEvents(f)
 	if err != nil {
@@ -89,7 +89,7 @@ func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error 
 	}
 
 	g.P(`// EventGetProcess gets the process field for an event if it exists
-    func EventGetProcess(event event) *` + fgsProcess + ` {
+    func EventGetProcess(event event) *` + tetragonProcess + ` {
         if event == nil {
             return nil
         }
@@ -103,16 +103,16 @@ func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error 
 }
 
 func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcess := common.FgsApiIdent(g, "Process")
-	fgsGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonProcess := common.FgsApiIdent(g, "Process")
+	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetParent gets the parent field for a response if it exists
-    func ResponseGetParent(response response) *` + fgsProcess + ` {
+    func ResponseGetParent(response response) *` + tetragonProcess + ` {
         if response == nil {
             return nil
         }
         switch res := response.(type) {
-             case *` + fgsGER + `:
+             case *` + tetragonGER + `:
                  return EventGetParent(res.Event)
          }
          return nil
@@ -122,7 +122,7 @@ func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) erro
 }
 
 func generateEventGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.FgsApiIdent(g, "Process")
 
 	events, err := common.GetEvents(f)
 	if err != nil {
@@ -146,7 +146,7 @@ func generateEventGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
 	}
 
 	g.P(`// EventGetParent gets the parent field for an event if it exists
-    func EventGetParent(event event) *` + fgsProcess + ` {
+    func EventGetParent(event event) *` + tetragonProcess + ` {
         if event == nil {
             return nil
         }

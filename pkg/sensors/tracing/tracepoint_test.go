@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
@@ -29,7 +29,7 @@ import (
 
 var (
 	selfBinary   string
-	fgsLib       string
+	tetragonLib  string
 	cmdWaitTime  time.Duration
 	verboseLevel int
 
@@ -37,8 +37,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&fgsLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an FGS_LIB env variable.")
-	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for fgs to gather logs from commands")
+	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an FGS_LIB env variable.")
+	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for tetragon to gather logs from commands")
 	flag.IntVar(&verboseLevel, "verbosity-level", 0, "verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
 }
 
@@ -71,7 +71,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	}
 
 	// initialize observer
-	obs, err := observer.GetDefaultObserver(t, fgsLib)
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -129,7 +129,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, selfOp func(), checkFn func(*fgs.ProcessTracepoint) error) {
+func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
 	defer func() {
 		if t.Failed() {
 			testutils.KeepExportFile(t)
@@ -159,7 +159,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		conf.Selectors = make([]v1alpha1.KProbeSelector, 1)
 	}
 	conf.Selectors[0].MatchPIDs = append(conf.Selectors[0].MatchPIDs, pidSelector)
-	obs, err := observer.GetDefaultObserver(t, fgsLib)
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -199,9 +199,9 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	selfOp()
 
 	tpEventsNr := 0
-	nextCheck := func(event *fgs.GetEventsResponse, l ec.Logger) (bool, error) {
+	nextCheck := func(event *tetragon.GetEventsResponse, l ec.Logger) (bool, error) {
 		switch tpEvent := event.Event.(type) {
-		case *fgs.GetEventsResponse_ProcessTracepoint:
+		case *tetragon.GetEventsResponse_ProcessTracepoint:
 			if err := checkFn(tpEvent.ProcessTracepoint); err != nil {
 				return false, err
 			}
@@ -250,7 +250,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 		unix.Seek(-1, 0, 4444)
 	}
 
-	check := func(event *fgs.ProcessTracepoint) error {
+	check := func(event *tetragon.ProcessTracepoint) error {
 		return nil
 	}
 
@@ -294,11 +294,11 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		unix.Seek(fd, 0, whence+1)
 	}
 
-	check := func(event *fgs.ProcessTracepoint) error {
+	check := func(event *tetragon.ProcessTracepoint) error {
 		if len(event.Args) != 2 {
 			return fmt.Errorf("unexpected number of arguments: %d", len(event.Args))
 		}
-		arg0, ok := event.Args[0].GetArg().(*fgs.KprobeArgument_SizeArg)
+		arg0, ok := event.Args[0].GetArg().(*tetragon.KprobeArgument_SizeArg)
 		if !ok {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[0])
 		}
@@ -306,7 +306,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		if xwhence != whence_u {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
 		}
-		arg1, ok := event.Args[1].GetArg().(*fgs.KprobeArgument_SizeArg)
+		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_SizeArg)
 		if !ok {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[1])
 		}
@@ -348,7 +348,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 	}
 
 	found := false
-	check := func(event *fgs.ProcessTracepoint) error {
+	check := func(event *tetragon.ProcessTracepoint) error {
 		if event.Subsys != "syscalls" {
 			return fmt.Errorf("Unexpected subsys: %s", event.Subsys)
 		}
@@ -358,7 +358,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 		if len(event.Args) != 2 {
 			return fmt.Errorf("Expecting single argument, but got %d", len(event.Args))
 		}
-		arg1_, ok := event.Args[1].GetArg().(*fgs.KprobeArgument_BytesArg)
+		arg1_, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_BytesArg)
 		if !ok {
 			return fmt.Errorf("Unexpected arg: %v", event.Args[1].GetArg())
 		}

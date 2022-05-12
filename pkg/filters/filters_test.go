@@ -17,7 +17,7 @@ package filters
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
@@ -34,16 +34,16 @@ func TestParseFilterList(t *testing.T) {
 	filterProto, err := ParseFilterList(f)
 	assert.NoError(t, err)
 	if diff := cmp.Diff(
-		[]*fgs.Filter{
+		[]*tetragon.Filter{
 			{Namespace: []string{"kube-system", ""}},
 			{HealthCheck: &wrapperspb.BoolValue{Value: true}},
 			{BinaryRegex: []string{"kube.*", "iptables"}},
 			{BinaryRegex: []string{"/usr/sbin/.*"}, Namespace: []string{"default"}},
 			{PidSet: []uint32{1}},
-			{EventSet: []fgs.EventType{fgs.EventType_PROCESS_EXEC, fgs.EventType_PROCESS_DNS, fgs.EventType_PROCESS_EXIT, fgs.EventType_PROCESS_KPROBE, fgs.EventType_PROCESS_TRACEPOINT}},
+			{EventSet: []tetragon.EventType{tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_DNS, tetragon.EventType_PROCESS_EXIT, tetragon.EventType_PROCESS_KPROBE, tetragon.EventType_PROCESS_TRACEPOINT}},
 		},
 		filterProto,
-		cmpopts.IgnoreUnexported(fgs.Filter{}),
+		cmpopts.IgnoreUnexported(tetragon.Filter{}),
 		cmpopts.IgnoreUnexported(wrapperspb.BoolValue{}),
 	); diff != "" {
 		t.Errorf("filter mismatch (-want +got):\n%s", diff)

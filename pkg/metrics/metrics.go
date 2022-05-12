@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
-	"github.com/cilium/tetragon/api/v1/fgs"
-	"github.com/cilium/tetragon/api/v1/fgs/codegen/helpers"
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -131,7 +131,7 @@ var (
 	}, []string{"namespace", "pod", "binary", "names", "rcodes", "response"})
 )
 
-func getProcessInfo(process *fgs.Process) (binary, pod, namespace string) {
+func getProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
 	if process != nil {
 		binary = process.Binary
 		if process.Pod != nil {
@@ -153,7 +153,7 @@ func handleOriginalEvent(originalEvent interface{}) {
 	}
 }
 
-func postDnsMetric(ev *fgs.GetEventsResponse, res *fgs.ProcessDns) {
+func postDnsMetric(ev *tetragon.GetEventsResponse, res *tetragon.ProcessDns) {
 	var rr string
 
 	binary, pod, ns := getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
@@ -173,9 +173,9 @@ func postDnsMetric(ev *fgs.GetEventsResponse, res *fgs.ProcessDns) {
 
 func handleDnsEvent(processedEvent interface{}) {
 	switch ev := processedEvent.(type) {
-	case *fgs.GetEventsResponse:
+	case *tetragon.GetEventsResponse:
 		switch res := ev.Event.(type) {
-		case *fgs.GetEventsResponse_ProcessDns:
+		case *tetragon.GetEventsResponse_ProcessDns:
 			postDnsMetric(ev, res.ProcessDns)
 		}
 	}
@@ -184,7 +184,7 @@ func handleDnsEvent(processedEvent interface{}) {
 func handleProcessedEvent(processedEvent interface{}) {
 	var eventType, namespace, pod, binary string
 	switch ev := processedEvent.(type) {
-	case *fgs.GetEventsResponse:
+	case *tetragon.GetEventsResponse:
 		binary, pod, namespace = getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
 		var err error
 		eventType, err = helpers.EventTypeString(ev.Event)

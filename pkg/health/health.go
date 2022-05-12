@@ -4,17 +4,17 @@
 package health
 
 import (
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 var (
-	grpcHealth = fgs.HealthStatusResult_HEALTH_STATUS_RUNNING
+	grpcHealth = tetragon.HealthStatusResult_HEALTH_STATUS_RUNNING
 )
 
-func GetHealth() (*fgs.GetHealthStatusResponse, error) {
-	resp := &fgs.GetHealthStatusResponse{}
-	hs := &fgs.HealthStatus{
-		Event:   fgs.HealthStatusType_HEALTH_STATUS_TYPE_STATUS,
+func GetHealth() (*tetragon.GetHealthStatusResponse, error) {
+	resp := &tetragon.GetHealthStatusResponse{}
+	hs := &tetragon.HealthStatus{
+		Event:   tetragon.HealthStatusType_HEALTH_STATUS_TYPE_STATUS,
 		Status:  grpcHealth,
 		Details: "running",
 	}

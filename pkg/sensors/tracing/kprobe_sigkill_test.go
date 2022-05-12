@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -100,7 +100,7 @@ func TestKprobeSigkill(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("child pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -119,7 +119,7 @@ func TestKprobeSigkill(t *testing.T) {
 		WithArgs([]ec.GenericArgChecker{
 			ec.GenericArgIntCheck(5555),
 		}).
-		WithAction(fgs.KprobeAction_KPROBE_ACTION_SIGKILL)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
 	checker := ec.NewOrderedMultiResponseChecker(
 		ec.NewKprobeEventChecker().
 			HasKprobe(kpChecker).

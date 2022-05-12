@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	fgsCgroupPath = "/run/tetragon/cgroup2"
+	tetragonCgroupPath = "/run/tetragon/cgroup2"
 
 	verifierLogBufferSize = 10 * 1024 * 1024 // 10MB
 )
 
 var (
-	fgsCgroupFD = -1
+	tetragonCgroupFD = -1
 )
 
 type Selector struct {
@@ -143,14 +143,14 @@ func getDefaultRouteLinks() ([]netlink.Link, error) {
 func LoadCgroupProgram(
 	bpfDir, mapDir, ciliumDir string,
 	load *Program) error {
-	if fgsCgroupFD < 0 {
-		fd, err := unix.Open(fgsCgroupPath, unix.O_RDONLY, 0)
+	if tetragonCgroupFD < 0 {
+		fd, err := unix.Open(tetragonCgroupPath, unix.O_RDONLY, 0)
 		if err != nil {
-			return fmt.Errorf("failed to open '%s': %w", fgsCgroupPath, err)
+			return fmt.Errorf("failed to open '%s': %w", tetragonCgroupPath, err)
 		}
-		fgsCgroupFD = fd
+		tetragonCgroupFD = fd
 	}
-	return loadProgram(bpfDir, []string{mapDir, ciliumDir}, load, rawAttach(fgsCgroupFD))
+	return loadProgram(bpfDir, []string{mapDir, ciliumDir}, load, rawAttach(tetragonCgroupFD))
 }
 
 func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection) error {
