@@ -62,9 +62,9 @@ func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *fgs.ProcessKpr
 		}
 	} else {
 		fgsProcess = process.UnsafeGetProcess()
-	}
-	if err := process.AnnotateProcess(t.enableProcessCred, t.enableProcessNs); err != nil {
-		logger.GetLogger().WithError(err).WithField("processId", fgsProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
+		if err := process.AnnotateProcess(t.enableProcessCred, t.enableProcessNs); err != nil {
+			logger.GetLogger().WithError(err).WithField("processId", fgsProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
+		}
 	}
 
 	if parent == nil {
