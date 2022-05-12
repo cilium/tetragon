@@ -1,0 +1,56 @@
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fd_install"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: {{.NamespacePID}}
+        values:
+        - {{.MatchedPID}}
+      matchArgs:
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "strange.txt"
+      matchActions:
+      - action: FollowFD
+        argFd: 0
+        argName: 1
+  - call: "__x64_sys_write"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: {{.NamespacePID}}
+        values:
+        - {{.MatchedPID}}
+      matchNamespaceChanges:
+      - operator: In
+        values:
+        - "Mnt"
+      matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "strange.txt"

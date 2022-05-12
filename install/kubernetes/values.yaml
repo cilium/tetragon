@@ -1,0 +1,177 @@
+enabled: true
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+podAnnotations: {}
+podSecurityContext: {}
+nodeSelector: {}
+tolerations:
+- operator: Exists
+affinity: {}
+extraHostPathMounts: []
+extraConfigmapMounts: []
+daemonSetAnnotations: {}
+extraVolumes: []
+updateStrategy: {}
+daemonSetLabelsOverride: {}
+selectorLabelsOverride: {}
+podLabelsOverride: {}
+serviceLabelsOverride: {}
+
+# Set DNS policy for tetragon pods.
+#
+# Recommended DNS policy for tetragon pod depends on whether the export container
+# needs to resolve external DNS names (e.g. an S3 URL) or internal ones (e.g. a Kubernetes
+# DNS name for elasticsearch service).
+#
+# - For external DNS names, use "Default" so that the export container continues to function
+#   properly in case there is a connectivity issue between the export container and core-dns.
+# - For internal DNS names, use "ClusterFirstWithHostNet" so that the export container can
+#   resolve them.
+#
+# https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+dnsPolicy: Default
+
+# exportDirectory specifies directory to put Hubble and FGS JSON export files.
+exportDirectory: "/var/run/cilium/tetragon"
+# exportFileRotationInterval specifies file creation interval for hubble-export-s3.
+exportFileCreationInterval: "120s"
+
+#
+# Configures whether Tetragon pods run on the host network.
+#
+# IMPORTANT: Tetragon must be on the host network for the process visibility to
+# function properly.
+#
+hostNetwork: true
+
+tetragon:
+  enabled: true
+  image:
+    override: ~
+    repository: quay.io/cilium/tetragon
+    # FIXME(WPF): Replace with real version tag
+    tag: latest
+  resources: {}
+  extraArgs: {}
+  extraEnv: []
+  # extraEnv:
+  #   - name: foo
+  #     value: bar
+  extraVolumeMounts: []
+  securityContext:
+    privileged: true
+
+  # Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed
+  # processes.
+  processCacheSize: 65536
+
+  # JSON export filename. Set it to an empty string to disable JSON export altogether.
+  exportFilename: tetragon.log
+
+  # Size in megabytes at which to rotate JSON export files.
+  exportFileMaxSizeMB: 10
+
+  # Number of rotated files to retain.
+  exportFileMaxBackups: 5
+
+  # Compress rotated JSON export files.
+  exportFileCompress: false
+
+  # Rate-limit event export (events per minute), Set to -1 to export all events.
+  exportRateLimit: -1
+
+  # Allowlist for JSON export. For example, to export only process_connect events from
+  # the default namespace:
+  #
+  # exportAllowList: |
+  #   {"namespace":["default"],"event_set":["PROCESS_EXEC"]}
+  exportAllowList: |-
+    {"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE"]}
+
+  # Denylist for JSON export. For example, to exclude exec events that look similar to
+  # Kubernetes health checks and all the events from kube-system namespace and the host:
+  #
+  # exportDenyList: |
+  #   {"health_check":true}
+  #   {"namespace":["kube-system",""]}
+  #
+  exportDenyList: |-
+    {"health_check":true}
+    {"namespace":["", "cilium", "kube-system"]}
+
+  # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
+  enableK8sAPI: true
+
+  # Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache.
+  enableCiliumAPI: false
+
+  # enableProcessCred enables Capabilities visibility in exec and kprobe events.
+  enableProcessCred: false
+
+  # enableProcessNs enables Namespaces visibility in exec and kprobe events.
+  enableProcessNs: false
+
+  # Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
+  btf: ""
+
+  # Override the command. For advanced users only.
+  commandOverride: []
+
+  # Override the arguments. For advanced users only.
+  argsOverride: []
+
+  prometheus:
+    # -- Whether to enable exposing Tetragon metrics.
+    enabled: true
+    # -- The port at which to expose metrics.
+    port: 2112
+    serviceMonitor:
+      # -- Whether to create a 'ServiceMonitor' resource targeting the 'tetragon' pods.
+      enabled: false
+      # -- The set of labels to place on the 'ServiceMonitor' resource.
+      labelsOverride: {}
+
+tetragonOperator:
+  # -- Enable the tetragon-operator component (required).
+  enabled: true
+
+  # -- tetragon-operator image.
+  image:
+    override: ~
+    repository: quay.io/cilium/tetragon-operator
+    # FIXME(WPF): Replace with real version tag
+    tag: latest
+    # tetragon-operator image-digest
+    suffix: ""
+
+export:
+  # "stdout". "" to disable.
+  mode: "stdout"
+  resources: {}
+  extraArgs: {}
+  extraEnv: []
+  # extraEnv:
+  #   - name: foo
+  #     value: bar
+  extraVolumeMounts: []
+  securityContext: {}
+
+  # Override the command. For advanced users only.
+  commandOverride: [ ]
+
+  # Override the arguments. For advanced users only.
+  argsOverride: [ ]
+
+  # filenames defines list of files for fluentd to tail and export.
+  filenames:
+  - tetragon.log
+
+  stdout:
+    image:
+      override: ~
+      repository: quay.io/isovalent/hubble-export-stdout
+      tag: v1.0.0

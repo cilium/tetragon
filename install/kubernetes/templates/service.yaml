@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- with .Values.serviceLabelsOverride}}
+    {{- toYaml . | nindent 4 }}
+    {{- else }}
+    {{- include "tetragon.labels" . | nindent 4 }}
+    {{- end }}
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+    - name: metrics
+      port: 2112
+      protocol: TCP
+      targetPort: 2112
+  selector:
+    {{- with .Values.daemonSetLabelsOverride}}
+    {{- toYaml . | nindent 4 }}
+    {{- else }}
+    {{- include "tetragon.labels" . | nindent 4 }}
+    {{- end }}
+  type: ClusterIP

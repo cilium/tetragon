@@ -1,0 +1,7 @@
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "nosuchcall"
+spec:
+  kprobes:
+  - call: "thiscalldoesnotexist"

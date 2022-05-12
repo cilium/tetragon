@@ -1,0 +1,4 @@
+FROM quay.io/cilium/cilium-builder:b7a9dcdcadd77d38db87bbd06b9bc238e9dab5a0@sha256:eecc017a6ccf0c7884f1ffcf10e58462a272f5e41c0ece09adb351e8839e3157
+RUN --mount=type=bind,readwrite,target=/go/src/github.com/isovalent/tetragon-oss cd /go/src/github.com/isovalent/tetragon-oss && go install ./cmd/protoc-gen-go-tetragon
+
+#- vi:ft=dockerfile -#

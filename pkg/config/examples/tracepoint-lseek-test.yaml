@@ -1,0 +1,16 @@
+apiVersion: hubble-enterprise.io/v1
+metadata:
+  name: "tracepoint-lseek"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    args:
+    - index: 7
+    - index: 5
+    selectors:
+    - matchArgs:
+      - index: 7
+        operator: Equal
+        values:
+        - "4444"

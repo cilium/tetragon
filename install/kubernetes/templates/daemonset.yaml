@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  {{- with .Values.daemonSetAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+  {{- with .Values.daemonSetLabelsOverride}}
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
+    {{- include "tetragon.labels" . | nindent 4 }}
+  {{- end }}
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+    {{- with .Values.selectorLabelsOverride }}
+      {{- toYaml . | nindent 6 }}
+    {{- else }}
+      {{- include "tetragon.selectorLabels" . | nindent 6 }}
+    {{- end }}
+  template:
+    metadata:
+    {{- if .Values.podAnnotations }}
+      annotations:
+    {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- end }}
+      labels:
+      {{- with .Values.podLabelsOverride }}
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
+        {{- include "tetragon.labels" . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Chart.Name }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+{{- if .Values.tetragon.enabled }}
+      initContainers:
+      {{- include "container.tetragon.init-operator" . | nindent 6 -}}
+{{- end }}
+      containers:
+{{- if eq .Values.export.mode "stdout" }}
+      {{- include "container.export.stdout" . | nindent 6 -}}
+{{- end }}
+{{- if .Values.tetragon.enabled }}
+      {{- include "container.tetragon" . | nindent 6 -}}
+{{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      terminationGracePeriodSeconds: 1
+      volumes:
+      - name: cilium-run
+        hostPath:
+          path: /var/run/cilium
+          type: DirectoryOrCreate
+      - name: export-logs
+        hostPath:
+          path: {{ .Values.exportDirectory }}
+          type: DirectoryOrCreate
+{{- if .Values.tetragon.enabled }}
+      - name: tetragon-config
+        configMap:
+          name: {{ .Chart.Name }}-config
+      - name: bpf-maps
+        hostPath:
+          path: /sys/fs/bpf
+          type: DirectoryOrCreate
+      - name: host-proc
+        hostPath:
+          path: /proc
+          type: Directory
+{{- if not .Values.tetragon.btf }}
+      - emptyDir: {}
+        name: metadata-files
+{{- end }}
+{{- end }}
+      {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+{{- range .Values.extraHostPathMounts }}
+      - name: {{ .name }}
+        hostPath:
+          path: {{ .mountPath }}
+{{- end }}
+{{- with .Values.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+{{- end }}

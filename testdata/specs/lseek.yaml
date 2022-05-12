@@ -1,0 +1,13 @@
+apiVersion: isovalent.com/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lseek"
+spec:
+  kprobes:
+  - call: "ksys_lseek"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+
+
