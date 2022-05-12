@@ -287,7 +287,7 @@ message Payload {
 // DNS flow. This is basically directly mapped from Cilium's LogRecordDNS:
 //     https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264
 message DNS {
-    // DNS name that's being looked up: e.g. "cilium.io."
+    // DNS name that's being looked up: e.g. "isovalent.com."
     string query = 1;
     // List of IP addresses in the DNS response.
     repeated string ips = 2;
