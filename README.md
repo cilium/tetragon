@@ -29,9 +29,9 @@ already manipulated the critical data, stolen secrets, or otherwise compromised 
 By applying policy inline in eBPF, malicious operations are stopped before they occur.
 
 For an observability use case, applying filters directly in the kernel drastically reduces
-observation overheads. Without this expensive context switches and wakeups, especially
-for high frequency events, such as send, read, or write operations would create additional
-overhead. Instead, Tetragon provides rich filters (file, socket, binary names, namespace/capabilities,
+observation overhead. By avoiding expensive context switching and wakeups, especially
+for high frequency events, such as send, read, or write operations, eBPF reduces required
+resources. Instead, Tetragon provides rich filters (file, socket, binary names, namespace/capabilities,
 etc.) in eBPF, which allows users to specify the important and relevant events in their
 specific context, and pass only those to the user-space agent.
 
@@ -39,7 +39,7 @@ specific context, and pass only those to the user-space agent.
 
 Tetragon can hook into any function in the Linux kernel and filter on its arguments,
 return value, associated metadata that Tetragon collects about processes (e.g., executable
-names), files, and other properties. By writing a tracing policies users can solve various
+names), files, and other properties. By writing tracing policies users can solve various
 security and observability use cases. We provide a number of examples for these in the repository and
 highlight some below in the 'Getting Started Guide', but users are encouraged to create new policies that
 match their use cases. The examples are just that, jumping off points that users can
@@ -49,20 +49,20 @@ and what filters are applied are hard-coded in the engine itself.
 
 Critically, Tetragon allows hooking deep in the kernel where data structures can not be manipulated
 by user space applications avoiding common issues with syscall tracing where
-data are incorrectly read, malicious altered by attackers or missing due to page
+data is incorrectly read, malicious altered by attackers, or missing due to page
 faults and other user/kernel boundary errors.
 
-Many of the Tetragon developers are also kernel developers by leveraging this knowledge base
+Many of the Tetragon developers are also kernel developers. By leveraging this knowledge base
 Tetragon has created a set of tracing policies that can solve many common observability
 and security use cases.
 
 ### eBPF Kernel Aware ##
 
-Tetragon through eBPF has access to the Linux kernel state. Tetragon can then
+Tetragon, through eBPF, has access to the Linux kernel state. Tetragon can then
 join this kernel state with Kubernetes awareness or user policy to create rules
 enforced by the kernel in real time. This allows annotating and enforcing process
 namespace and capabilities, sockets to processes, process file descriptor to
-filenames and so on. For example when an application changes its privileges we
+filenames and so on. For example, when an application changes its privileges we
 can create a policy to trigger an alert or even kill the process before it has
 a chance to complete the syscall and potentially run additional syscalls.
 
@@ -77,7 +77,7 @@ For help getting started with local development, you can refer to [DEVELOP.md][d
 This Quickstart guide uses a Kind cluster and a helm-based installation to
 provide a simple way to get a hands on experience with Tetragon and
 the generated events. These events include monitoring process execution,
-network sockets, file access to see what binaries are executing and making
+network sockets, and file access to see what binaries are executing and making
 network connections or writing to sensitive files.
 
 In this scenario, we are going to install a demo application,
@@ -88,14 +88,14 @@ In this scenario, we are going to install a demo application,
 * detect privileged processes inside a Kubernetes workload
 
 While, we use a Kubernetes Kind cluster in this guide, users can also apply
-the same concepts in other Kubernetes platforms, bare-metal or VM environments.
+the same concepts in other Kubernetes platforms, bare-metal, or VM environments.
 
 ### Requirements
 
 The base kernel should support [BTF](#btf-requirement) or the BTF file should
 be placed where Tetragon can read it.
 
-For reference the examples below use this [Vagrantfile](#btf-requirement) and we
+For reference, the examples below use this [Vagrantfile](#btf-requirement) and we
 created our [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/) cluster using
 the defaults options.
 
@@ -108,8 +108,8 @@ kind create cluster
 
 ### Deploy Tetragon
 
-To install and deploy Tetragon run the following from the git repository. Note
-if running Vagrantfile above the repository is synced with the VM.
+To install and deploy Tetragon, run the following from the git repository. Note
+if running the Vagrantfile above, the repository is synced with the VM.
 
 ```
 helm install tetragon -n kube-system ./install/kubernetes/
@@ -154,14 +154,14 @@ The first way is to observe the raw json output from the stdout container log:
 kubectl logs -n kube-system ds/tetragon -c export-stdout -f
 ```
 
-The raw JSON events provide Kubernetes API, identity metadata and OS
+The raw JSON events provide Kubernetes API, identity metadata, and OS
 level process visibility about the executed binary, its parent and the execution
 time.
 
 #### Tetragon CLI
 
 A second way is to pretty print the events using the Tetragon CLI. The tool
-also allows filtering by process, pod and other fields.
+also allows filtering by process, pod, and other fields.
 
 You can download and install it by the following command
 
@@ -190,7 +190,7 @@ exit, including metadata such as:
 * Parent process: Helps to identify process execution anomalies (e.g., if a nodejs app forks a shell, this is suspicious)
 * Command-line argument: Defines the program runtime behavior
 * Current working directory: Helps to identify hidden malware execution from a temporary folder, which is a common pattern used in malwares
-* Kubernetes metadata: Contains pods, labels, and Kubernetes namespaces, which are critical to identify service owners, particularly in a multitenant environment
+* Kubernetes metadata: Contains pods, labels, and Kubernetes namespaces, which are critical to identify service owners, particularly in a multitenant environments
 * exec_id: A unique process identifier that correlates all recorded activity of a process
 
 As a first step, let's start monitoring the events from the `xwing` pod:
@@ -364,7 +364,7 @@ An example `process_exec` and `process_exit` events can be:
 </p>
 </details>
 
-For the rest of the use cases we will use the Tetragon CLI to give terse output.
+For the rest of the use cases we will use the Tetragon CLI to give the output.
 
 ### File Access
 
@@ -373,7 +373,7 @@ Tetragon `process_kprobe` JSON events. By using kprobe hook
 points, these events are able to observe arbitrary kernel calls and
 file descriptors in the Linux kernel, giving you the ability to monitor
 every file a process opens, reads, writes, and closes throughout its
-lifecycle. To be able to observe arbitrary kernel calls Tetragon
+lifecycle. To be able to observe arbitrary kernel calls, Tetragon
 can be extended with TracingPolicies.
 
 TracingPolicy is a user-configurable Kubernetes custom resource definition (CRD)
@@ -381,7 +381,7 @@ that allows users to trace arbitrary events in the kernel and define actions
 to take on a match. For bare metal or VM use cases without Kubernetes a YAML
 configuration file may be used.
 
-In this example we can monitor if a process inside a Kubernetes workload perform
+In this example, we can monitor if a process inside a Kubernetes workload performs
 an open, close, read or write in the `/etc/` directory. The policy may further
 specify additional dirs or specific files if needed.
 
@@ -422,7 +422,7 @@ pod init process to filter init noise from pod start.
 
 Similar to the previous example, reviewing the JSON events provides
 additional data on the event. In addition to the Kubernetes identity
-and process metadata from exec events `process_kprobe` events contain
+and process metadata from exec events, `process_kprobe` events contain
 the arguments of the observed system call. In the above case they are
 
 * `path`: the observed file path
@@ -449,7 +449,7 @@ To start monitoring events in the xwing pod run the observer,
 kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe --namespace default --pod xwing
 ```
 
-In another terminal, start generate a TCP connection here we use
+In another terminal, start generate a TCP connection. Here we use
 curl.
 ```bash
 kubectl exec -it xwing -- curl http://cilium.io
@@ -507,8 +507,8 @@ If you observe the output in the first terminal, you can see the container start
 
 Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
 be use to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
-work as well also many common Linux distributions ship with BTF now and do not require any
-extra work at all. To check if BTF is enabled on your Linux system check for the BTF file
+work as well and many common Linux distributions now ship with BTF and do not require any
+extra work. To check if BTF is enabled on your Linux system check for the BTF file
 in the standard location,
 
 ```
@@ -523,11 +523,11 @@ we provide a standard VagrantFile with the required components enabled. Simply r
  $ vagrant ssh
  ```
 
-This should be sufficient to create a kind cluster and run Tetragon.
+This should be sufficient to create a Kind cluster and run Tetragon.
 
 # Community
 
 ## Slack
 
-Join the Tetragon [Slack channel](https://cilium.herokuapp.com/) to chat with developers, maintainers and other users. This
+Join the Tetragon [Slack channel](https://cilium.herokuapp.com/) to chat with developers, maintainers, and other users. This
 is a good first stop to ask questions and share your experiences.
