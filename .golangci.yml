@@ -1,0 +1,31 @@
+# See https://golangci-lint.run/usage/configuration/ for available options.
+# Also https://github.com/cilium/cilium/blob/master/.golangci.yaml as a reference.
+run:
+  timeout: 5m
+
+output:
+  format: tab
+
+linters:
+  disable-all: true
+  enable:
+    - goerr113
+    - goimports
+    - govet
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - unused
+    - varcheck
+
+issues:
+  exclude-rules:
+      # Disallows any kind of `fmt.Errorf("%s is too high", bar)`, too opinionated.
+    - linters: [goerr113]
+      text: "do not define dynamic errors, use wrapped static errors instead"
+      # Most exported consts are self-descriptive.
+    - linters: [revive]
+      text: "exported const"
+    - linters: [revive]
+      text: "var-naming"

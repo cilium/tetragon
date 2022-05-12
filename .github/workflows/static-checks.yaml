@@ -1,0 +1,61 @@
+name: Run static checks
+on:
+  push:
+    branches:
+      - master
+      - v*
+  pull_request:
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17.8'
+      - name: Install required libs
+        run: |
+          sudo apt-get -y install libelf-dev libz-dev
+          sudo make tools-install
+          id=$(docker create quay.io/isovalent/hubble-libbpf:v0.2.3 sleep infinity)
+          docker start ${id}
+          docker exec ${id} bash -c 'mkdir -p /extract'
+          docker exec ${id} bash -c 'cp /go/src/github.com/covalentio/hubble-fgs/src/*.h /extract'
+          sudo docker cp ${id}:/extract/. /usr/include
+          docker stop ${id}
+          docker rm ${id}
+      - name: Run static checks
+        uses: golangci/golangci-lint-action@5c56cd6c9dc07901af25baab6f2b0d9f3b7c3018
+        with:
+          version: v1.44.0
+          args: --config=.golangci.yml --verbose
+          only-new-issues: false
+          skip-go-installation: true
+          skip-pkg-cache: true
+          skip-build-cache: true
+      - name: Check gofmt formatting
+        run: |
+          go fmt ./...
+          git diff --exit-code || (echo "gofmt checks failed. Please run 'go -w fmt ./...', and submit your changes"; exit 1)
+      - name: Check module vendoring
+        run: |
+          go mod tidy
+          go mod vendor
+          go mod verify
+          test -z "$(git status --porcelain)" || (echo "Module vendoring checks failed. Please run 'go mod tidy && go mod vendor && go mod verify', and submit your changes"; exit 1)
+      - name: Build clang-format Docker image
+        run: |
+          docker build -f Dockerfile.clang-format -t "isovalent/clang-format:latest" .
+      - name: Verify clang-format on BPF code
+        id: clang_format
+        run: |
+          set -o pipefail
+          find bpf -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' \
+            -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*' | xargs -n 1000 \
+            docker run -v $(realpath .):/fgs "isovalent/clang-format:latest" --Werror -n -style=file
+          if [ $? != 0 ]; then
+            echo "clang-format checks failed. Please run 'make format' and submit your changes."; exit 1
+          fi
+
