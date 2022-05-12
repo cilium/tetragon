@@ -2,7 +2,7 @@ name: Run static checks
 on:
   push:
     branches:
-      - master
+      - main
       - v*
   pull_request:
 

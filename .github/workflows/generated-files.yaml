@@ -2,7 +2,7 @@ name: Validate that generated files are up to date
 on:
   push:
     branches:
-      - master
+      - main
       - v*
   pull_request:
 
