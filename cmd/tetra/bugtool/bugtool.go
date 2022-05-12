@@ -34,6 +34,6 @@ func New() *cobra.Command {
 	}
 
 	flags := bugtoolCmd.Flags()
-	flags.StringVarP(&outFile, "out", "o", "hubble-enterprise-bugtool.tar.gz", "Output filename")
+	flags.StringVarP(&outFile, "out", "o", "tetragon-bugtool.tar.gz", "Output filename")
 	return bugtoolCmd
 }
