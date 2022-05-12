@@ -52,7 +52,7 @@ tetragon:
   enabled: true
   image:
     override: ~
-    repository: quay.io/cilium/tetragon
+    repository: quay.io/cilium/tetragon-ci
     # FIXME(WPF): Replace with real version tag
     tag: latest
   resources: {}
@@ -142,7 +142,7 @@ tetragonOperator:
   # -- tetragon-operator image.
   image:
     override: ~
-    repository: quay.io/cilium/tetragon-operator
+    repository: quay.io/cilium/tetragon-operator-ci
     # FIXME(WPF): Replace with real version tag
     tag: latest
     # tetragon-operator image-digest
