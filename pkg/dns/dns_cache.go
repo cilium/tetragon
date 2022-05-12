@@ -5,8 +5,8 @@ package dns
 import (
 	"fmt"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/cilium/tetragon/api/v1/fgs"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (

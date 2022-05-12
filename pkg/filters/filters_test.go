@@ -17,9 +17,9 @@ package filters
 import (
 	"testing"
 
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
