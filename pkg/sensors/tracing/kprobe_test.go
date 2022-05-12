@@ -1514,7 +1514,7 @@ func TestMultipleMountPathFiltered(t *testing.T) {
 func TestKprobeArgValues(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: isovalent.com/v1alpha1
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "sys_linkat_args"

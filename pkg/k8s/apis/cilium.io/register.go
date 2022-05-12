@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package isovalentcom
+package ciliumio
 
 const (
-	GroupName = "isovalent.com"
+	GroupName = "cilium.io"
 )

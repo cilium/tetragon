@@ -15,7 +15,7 @@ rules:
       - list
       - watch
   - apiGroups:
-      - isovalent.com
+      - cilium.io
     resources:
       - '*'
     verbs:

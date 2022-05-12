@@ -120,9 +120,9 @@ image:
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 image-operator:
-	$(CONTAINER_ENGINE) build -f operator.Dockerfile -t "isovalent/tetragon-operator:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f operator.Dockerfile -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push isovalent/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
 image-test:
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
@@ -155,12 +155,12 @@ clang-install:
 	docker stop ${id}
 
 generate:
-	./tools/controller-gen crd paths=./pkg/k8s/apis/... output:dir=pkg/k8s/apis/isovalent.com/client/crds/v1alpha1
+	./tools/controller-gen crd paths=./pkg/k8s/apis/... output:dir=pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 	export GOPATH=$$(go env GOPATH); \
 	  bash vendor/k8s.io/code-generator/generate-groups.sh all \
 	  github.com/cilium/tetragon/pkg/k8s/client \
 	  github.com/cilium/tetragon/pkg/k8s/apis \
-	  isovalent.com:v1alpha1 \
+	  cilium.io:v1alpha1 \
 	  --go-header-file hack/custom-boilerplate.go.txt
 
 codegen: image-codegen
@@ -181,9 +181,9 @@ clang-format:
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 clang-format -i -style=file
 else
 clang-format:
-	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "isovalent/clang-format:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "cilium/clang-format:${DOCKER_IMAGE_TAG}" .
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 \
-		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "isovalent/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
+		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "cilium/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
 endif
 
 .PHONY: go-format

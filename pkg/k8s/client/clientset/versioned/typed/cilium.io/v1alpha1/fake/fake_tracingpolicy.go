@@ -8,7 +8,7 @@ package fake
 import (
 	"context"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,12 +19,12 @@ import (
 
 // FakeTracingPolicies implements TracingPolicyInterface
 type FakeTracingPolicies struct {
-	Fake *FakeIsovalentV1alpha1
+	Fake *FakeCiliumV1alpha1
 }
 
-var tracingpoliciesResource = schema.GroupVersionResource{Group: "isovalent.com", Version: "v1alpha1", Resource: "tracingpolicies"}
+var tracingpoliciesResource = schema.GroupVersionResource{Group: "cilium.io", Version: "v1alpha1", Resource: "tracingpolicies"}
 
-var tracingpoliciesKind = schema.GroupVersionKind{Group: "isovalent.com", Version: "v1alpha1", Kind: "TracingPolicy"}
+var tracingpoliciesKind = schema.GroupVersionKind{Group: "cilium.io", Version: "v1alpha1", Kind: "TracingPolicy"}
 
 // Get takes name of the tracingPolicy, and returns the corresponding tracingPolicy object, and an error if there is any.
 func (c *FakeTracingPolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.TracingPolicy, err error) {

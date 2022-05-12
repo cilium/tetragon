@@ -1,5 +1,5 @@
 # deny nsenter execution from a pod
-apiVersion: isovalent.com/v1alpha1
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "deny-nsenter"
