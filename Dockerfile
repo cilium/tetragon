@@ -3,7 +3,7 @@ WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev
 COPY . ./
-RUN make hubble-bpf
+RUN make tetragon-bpf
 
 FROM quay.io/isovalent/hubble-libbpf:v0.2.3 as hubble-libbpf
 WORKDIR /go/src/github.com/cilium/tetragon

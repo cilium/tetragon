@@ -23,29 +23,29 @@ GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(
 GOLANGCILINT_WANT_VERSION = 1.45.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
-all: hubble-bpf tetragon tetra tetragon-alignchecker test-compile contrib-progs
+all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile contrib-progs
 
-.PHONY: hubble-bpf hubble-bpf-local hubble-bpf-container
+.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container
 
 -include Makefile.docker
 
 ifeq (1,$(LOCAL_CLANG))
-hubble-bpf: hubble-bpf-local
+tetragon-bpf: tetragon-bpf-local
 else
-hubble-bpf: hubble-bpf-container
+tetragon-bpf: tetragon-bpf-container
 endif
 
 ifeq (1,$(NOOPT))
 GO_GCFLAGS = "all=-N -l"
 endif
 
-hubble-bpf-local:
+tetragon-bpf-local:
 	$(MAKE) -C ./bpf
 
-hubble-bpf-verify: hubble-bpf
+tetragon-bpf-verify: tetragon-bpf
 	sudo contrib/vmtest/tetragon-verify-programs bpf/objs
 
-hubble-bpf-container:
+tetragon-bpf-container:
 	docker rm hubble-llvm || true
 	docker run -v $(CURDIR):/tetragon -u $$(id -u)  --name hubble-llvm $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
 	docker rm hubble-llvm
