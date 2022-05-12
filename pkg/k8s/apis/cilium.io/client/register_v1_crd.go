@@ -15,8 +15,8 @@ import (
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/versioncheck"
-	isovalentcom "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com"
-	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -33,7 +33,7 @@ const (
 	subsysK8s = "k8s"
 
 	// CustomResourceDefinitionSchemaVersionKey is key to label which holds the CRD schema version
-	CustomResourceDefinitionSchemaVersionKey = isovalentcom.GroupName + ".k8s.crd.schema.version"
+	CustomResourceDefinitionSchemaVersionKey = ciliumio.GroupName + ".k8s.crd.schema.version"
 )
 
 var (
@@ -56,7 +56,7 @@ func CreateCustomResourceDefinitions(clientset apiextensionsclient.Interface) er
 }
 
 var (
-	//go:embed crds/v1alpha1/isovalent.com_tracingpolicies.yaml
+	//go:embed crds/v1alpha1/cilium.io_tracingpolicies.yaml
 	crdsv1Alpha1TracingPolicies []byte
 )
 
@@ -171,7 +171,7 @@ func constructV1CRD(
 			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: isovalentcom.GroupName,
+			Group: ciliumio.GroupName,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:       template.Spec.Names.Kind,
 				Plural:     template.Spec.Names.Plural,

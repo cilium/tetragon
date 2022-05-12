@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	isovalentcom "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com"
+	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -21,7 +21,7 @@ const (
 	TPKindDefinition = "TracingPolicy"
 
 	// TPName is the full name of Cilium Egress NAT Policy
-	TPName = TPPluralName + "." + isovalentcom.GroupName
+	TPName = TPPluralName + "." + ciliumio.GroupName
 )
 
 // +genclient

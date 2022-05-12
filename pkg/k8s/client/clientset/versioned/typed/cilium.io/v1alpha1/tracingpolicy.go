@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	scheme "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -42,7 +42,7 @@ type tracingPolicies struct {
 }
 
 // newTracingPolicies returns a TracingPolicies
-func newTracingPolicies(c *IsovalentV1alpha1Client) *tracingPolicies {
+func newTracingPolicies(c *CiliumV1alpha1Client) *tracingPolicies {
 	return &tracingPolicies{
 		client: c.RESTClient(),
 	}

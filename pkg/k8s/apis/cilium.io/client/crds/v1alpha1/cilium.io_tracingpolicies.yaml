@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: tracingpolicies.isovalent.com
+  name: tracingpolicies.cilium.io
 spec:
-  group: isovalent.com
+  group: cilium.io
   names:
     kind: TracingPolicy
     listKind: TracingPolicyList

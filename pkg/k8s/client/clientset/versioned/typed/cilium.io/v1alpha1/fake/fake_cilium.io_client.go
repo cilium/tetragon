@@ -6,22 +6,22 @@
 package fake
 
 import (
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeIsovalentV1alpha1 struct {
+type FakeCiliumV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeIsovalentV1alpha1) TracingPolicies() v1alpha1.TracingPolicyInterface {
+func (c *FakeCiliumV1alpha1) TracingPolicies() v1alpha1.TracingPolicyInterface {
 	return &FakeTracingPolicies{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeIsovalentV1alpha1) RESTClient() rest.Interface {
+func (c *FakeCiliumV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

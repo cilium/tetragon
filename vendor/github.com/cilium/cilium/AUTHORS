@@ -27,7 +27,7 @@ Arvind Soni                             arvind@covalent.io
 Ashray Jain                             ashrayj@palantir.com
 Ashwin Paranjpe                         ashwin@covalent.io
 Assiya Khuzyakhmetova                   assiya.khuzyakhmetova@nu.edu.kz
-Beatriz Martínez                        beatriz@isovalent.com
+Beatriz Martínez                        beatriz@cilium.io
 Benjamin Pineau                         benjamin.pineau@datadoghq.com
 Bingshen Wang                           bingshen.wbs@alibaba-inc.com
 Bingwu Yang                             detailyang@gmail.com
@@ -38,7 +38,7 @@ Bruno Miguel Custódio                   brunomcustodio@gmail.com
 Camilo Schoeningh                       camilo.schoeningh@dunnhumby.com
 Charles-Henri Guérin                    charles-henri.guerin@zenika.com
 Chen Yaqi                               chenyaqi01@baidu.com
-Chris Tarazi                            chris@isovalent.com
+Chris Tarazi                            chris@cilium.io
 Christian Hörtnagl                      christian2@univie.ac.at
 Christian Hüning                        christian.huening@finleap.com
 Christine Chen                          christine.chen@datadoghq.com
@@ -84,7 +84,7 @@ Gaurav Yadav                            gaurav.dev.iiitm@gmail.com
 George Gaál                             gb12335@gmail.com
 George Kontridze                        gkontridze@plaid.com
 Gianluca Arbezzano                      gianarb92@gmail.com
-Gilberto Bertin                         gilberto@isovalent.com
+Gilberto Bertin                         gilberto@cilium.io
 Glib Smaga                              code@gsmaga.com
 Gowtham Sundara                         gowtham.sundara@rapyuta-robotics.com
 Guilherme Oki                           guilherme.oki@wildlifestudios.com
@@ -101,9 +101,9 @@ Ivar Lazzaro                            ivarlazzaro@gmail.com
 Jaff Cheng                              jaff.cheng.sh@gmail.com
 Jaime Caamaño Ruiz                      jcaamano@suse.com
 Jan-Erik Rediger                        janerik@fnordig.de
-Jarno Rajahalme                         jarno@isovalent.com
+Jarno Rajahalme                         jarno@cilium.io
 Jean Raby                               jean@raby.sh
-Jed Salazar                             jed@isovalent.com
+Jed Salazar                             jed@cilium.io
 Jerry J. Muzsik                         jerrymuzsik@icloud.com
 Jess Frazelle                           acidburn@microsoft.com
 Jianlin Lv                              Jianlin.Lv@arm.com
@@ -128,21 +128,21 @@ Juan Jimenez-Anca                       cortopy@users.noreply.github.com
 Julien Balestra                         julien.balestra@datadoghq.com
 Julien Kassar                           github@kassisol.com
 Junli Ou                                oujunli306@gmail.com
-Jussi Maki                              jussi@isovalent.com
+Jussi Maki                              jussi@cilium.io
 Karl Heins                              karlheins@northwesternmutual.com
 Katarzyna Borkmann                      kasia@iogearbox.net
 Kevin Burke                             kevin@burke.dev
 Kiran Bondalapati                       kiran@bondalapati.com
 Kir Kolyshkin                           kolyshkin@gmail.com
 Koichiro Den                            den@klaipeden.com
-Kornilios Kourtis                       kornilios@isovalent.com
+Kornilios Kourtis                       kornilios@cilium.io
 Laurent Bernaille                       laurent.bernaille@datadoghq.com
 Lehner Florian                          dev@der-flo.net
 Liu Qun                                 qunliu@zyhx-group.com
 Livingstone S E                         livingstone.s.e@gmail.com
 Li Yi                                   denverdino@gmail.com
 Maciej Fijalkowski                      maciej.fijalkowski@intel.com
-Maciej Kwiek                            maciej@isovalent.com
+Maciej Kwiek                            maciej@cilium.io
 Maciej Skrocki                          maciejskrocki@google.com
 Madhu Challa                            madhu@cilium.io
 MaiReo                                  sawako.saki@gmail.com
@@ -169,7 +169,7 @@ Michael Fornaro                         20387402+xUnholy@users.noreply.github.co
 Michael Schubert                        michael@kinvolk.io
 Michael Vorburger                       vorburger@redhat.com
 Michal Rostecki                         mrostecki@opensuse.org
-Michi Mutsuzaki                         michi@isovalent.com
+Michi Mutsuzaki                         michi@cilium.io
 Moh Ahmed                               moh.ahmed@cengn.ca
 Moritz Johner                           beller.moritz@googlemail.com
 Moshe Immerman                          moshe.immerman@vitalitygroup.com
@@ -181,7 +181,7 @@ Neelajacques                            68304471+Neelajacques@users.noreply.gith
 Neil Wilson                             neil@aldur.co.uk
 networkop                               mmkashin@gmail.com
 Nick M                                  4718+rkage@users.noreply.github.com
-Nicolas Busseneau                       nicolas@isovalent.com
+Nicolas Busseneau                       nicolas@cilium.io
 Nirmoy Das                              ndas@suse.de
 Ole Markus With                         o.with@sportradar.com
 Oliver Wang                             oliver@g.ncu.edu.tw
@@ -197,10 +197,10 @@ Philipp Gniewosz                        philipp.gniewosz@cegeka.de
 Pierre-Yves Aillet                      pyaillet@gmail.com
 Pranavi Roy                             pranvyr@gmail.com
 Qasim Sarfraz                           qasim.sarfraz@esailors.de
-Quentin Monnet                          quentin@isovalent.com
+Quentin Monnet                          quentin@cilium.io
 Raghu Gyambavantha                      raghug@bld-ml-loan4.olympus.f5net.com
 Rajat Jindal                            rajatjindal83@gmail.com
-Ray Bejjani                             ray@isovalent.com
+Ray Bejjani                             ray@cilium.io
 Renat Tuktarov                          yandzeek@gmail.com
 Rene Zbinden                            rene.zbinden@postfinance.ch
 Robin Hahling                           robin.hahling@gw-computing.net
@@ -215,9 +215,9 @@ Ryan McNamara                           rmcnamara@palantir.com
 Salvatore Mazzarino                     salvatore@accuknox.com
 Sander Timmerman                        stimmerman@schubergphilis.com
 Scott Albertson                         ascottalbertson@gmail.com
-Sean Winn                               sean@isovalent.com
-Sebastian Wicki                         sebastian@isovalent.com
-Sergey Generalov                        sergey@isovalent.com
+Sean Winn                               sean@cilium.io
+Sebastian Wicki                         sebastian@cilium.io
+Sergey Generalov                        sergey@cilium.io
 Shantanu Deshpande                      shantanud106@gmail.com
 Simon Pasquier                          spasquier@mirantis.com
 Stephen Martin                          lockwood@opperline.com
@@ -234,13 +234,13 @@ Thi Van Le                              vannnyle@gmail.com
 Thomas Bachman                          tbachman@yahoo.com
 Thomas Gosteli                          thomas.gosteli@protonmail.ch
 Thomas Graf                             thomas@cilium.io
-Timo Beckers                            timo@isovalent.com
+Timo Beckers                            timo@cilium.io
 Timo Reimann                            ttr314@googlemail.com
 Tobias Klauser                          tobias@cilium.io
 Tobias Kohlbau                          tobias@kohlbau.de
 Tom Hadlaw                              thomas.hadlaw@hootsuite.com
 Tomoki Sugiura                          cheztomo513@gmail.com
-Tom Payne                               tom@isovalent.com
+Tom Payne                               tom@cilium.io
 Tony Lambiris                           tony@criticalstack.com
 Tony Lu                                 tonylu@linux.alibaba.com
 Travis Glenn Hansen                     travisghansen@yahoo.com
