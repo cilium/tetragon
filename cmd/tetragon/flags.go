@@ -22,7 +22,7 @@ import (
 const (
 	keyConfigDir        = "config-dir"
 	keyDebug            = "debug"
-	keyHubbleLib        = "hubble-lib"
+	keyHubbleLib        = "bpf-lib"
 	keyBTF              = "btf"
 	keyProcFS           = "procfs"
 	keyKernelVersion    = "kernel"

@@ -20,11 +20,11 @@ LD_LIBRARY_PATH=$(realpath ./lib) make LOCAL_CLANG=0
 You should now have a `./tetragon` binary, which can be run as follows:
 
 ```
-sudo LD_LIBRARY_PATH=$(realpath ./lib) ./tetragon --hubble-lib bpf/objs
+sudo LD_LIBRARY_PATH=$(realpath ./lib) ./tetragon --bpf-lib bpf/objs
 ```
 
 Note that we need to specify the `LD_LIBRARY_PATH` as shown above so that Tetragon can find
-the correct libbpf to use at runtime. The `--hubble-lib` flag tells Tetragon where to look
+the correct libbpf to use at runtime. The `--bpf-lib` flag tells Tetragon where to look
 for its compiled BPF programs (which were built in the `make` step above).
 
 Using Dev VM
