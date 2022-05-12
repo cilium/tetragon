@@ -18,9 +18,9 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-package fgs;
+package tetragon;
 
-option go_package = "github.com/cilium/tetragon/api/v1/fgs";
+option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
 
 message Image {
     string id = 1;

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -64,7 +64,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -85,7 +85,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	kpChecker := ec.NewKprobeChecker().
 		WithFunctionName("__x64_sys_write").
 		WithArgs([]ec.GenericArgChecker{writeArg0, writeArg1, writeArg2}).
-		WithAction(fgs.KprobeAction_KPROBE_ACTION_POST)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
 	checker := ec.NewOrderedMultiResponseChecker(
 		ec.NewKprobeEventChecker().
 			HasKprobe(kpChecker).
@@ -139,7 +139,7 @@ func TestKprobeCapChanges(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, fgsLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -160,7 +160,7 @@ func TestKprobeCapChanges(t *testing.T) {
 	kpChecker := ec.NewKprobeChecker().
 		WithFunctionName("__x64_sys_write").
 		WithArgs([]ec.GenericArgChecker{writeArg0, writeArg1, writeArg2}).
-		WithAction(fgs.KprobeAction_KPROBE_ACTION_POST)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
 	checker := ec.NewOrderedMultiResponseChecker(
 		ec.NewKprobeEventChecker().
 			HasKprobe(kpChecker).

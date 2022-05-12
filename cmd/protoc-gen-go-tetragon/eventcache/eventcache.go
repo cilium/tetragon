@@ -12,10 +12,10 @@ import (
 
 // getEventsResponse generates a new GetEventsResponse_<EVENT_TYPE>
 func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
-	fgsGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
 	subtype := common.FgsApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", eventType))
 
-	return fgsGER + `{
+	return tetragonGER + `{
         Event: &` + subtype + `{` + eventType + `: e},
         NodeName: nodeName,
         Time: timestamp,
@@ -23,15 +23,15 @@ func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
 }
 
 func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcessInternal := common.GoIdent(g, "github.com/cilium/tetragon/pkg/process", "ProcessInternal")
-	fgsGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonProcessInternal := common.GoIdent(g, "github.com/cilium/tetragon/pkg/process", "ProcessInternal")
+	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
 	timestamp := common.GoIdent(g, "google.golang.org/protobuf/types/known/timestamppb", "Timestamp")
 
 	mErrorCount := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ErrorCount")
 	mInfoFailed := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "EventCacheProcessInfoFailed")
 	mProcessInfoErrors := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ProcessInfoErrors")
 
-	g.P(`func DoHandleEvent(event eventObj, internal *` + fgsProcessInternal + `, labels []string, nodeName string, timestamp *` + timestamp + `) (*` + fgsGER + `, error) {
+	g.P(`func DoHandleEvent(event eventObj, internal *` + tetragonProcessInternal + `, labels []string, nodeName string, timestamp *` + timestamp + `) (*` + tetragonGER + `, error) {
         switch e := event.(type) {`)
 	for _, msg := range f.Messages {
 		if !common.IsProcessEvent(msg) {
@@ -58,11 +58,11 @@ func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
 	g := common.NewGeneratedFile(gen, f, "eventcache")
 
-	fgsProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.FgsApiIdent(g, "Process")
 
 	g.P(`
         type eventObj interface {
-            GetProcess() *` + fgsProcess + `
+            GetProcess() *` + tetragonProcess + `
         }
     `)
 

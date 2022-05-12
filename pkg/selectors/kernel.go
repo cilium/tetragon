@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -494,7 +494,7 @@ func parseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	caps := uint64(0)
 	for _, v := range action.Values {
 		valstr := strings.ToUpper(v)
-		c, ok := fgs.CapabilitiesType_value[valstr]
+		c, ok := tetragon.CapabilitiesType_value[valstr]
 		if !ok {
 			return fmt.Errorf("parseMatchCapability: value %s unknown", valstr)
 		}

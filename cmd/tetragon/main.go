@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
@@ -20,7 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
-	fgsGrpc "github.com/cilium/tetragon/pkg/grpc"
+	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -52,7 +52,7 @@ var (
 	log = logger.GetLogger()
 )
 
-func getExportFilters() ([]*fgs.Filter, []*fgs.Filter, error) {
+func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 	allowList, err := filters.ParseFilterList(viper.GetString(keyExportAllowlist))
 	if err != nil {
 		return nil, nil, err
@@ -154,7 +154,7 @@ func hubbleFGSExecute() error {
 		return err
 	}
 
-	pm, err := fgsGrpc.NewProcessManager(
+	pm, err := tetragonGrpc.NewProcessManager(
 		ciliumState,
 		observer.SensorManager,
 		enableProcessCred,
@@ -224,14 +224,14 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	if exportRateLimit >= 0 {
 		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, exportRateLimit, encoder)
 	}
-	var aggregationOptions *fgs.AggregationOptions
+	var aggregationOptions *tetragon.AggregationOptions
 	if enableExportAggregation {
-		aggregationOptions = &fgs.AggregationOptions{
+		aggregationOptions = &tetragon.AggregationOptions{
 			WindowSize:        durationpb.New(exportAggregationWindowSize),
 			ChannelBufferSize: exportAggregationBufferSize,
 		}
 	}
-	req := fgs.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions}
+	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions}
 	log.WithFields(logrus.Fields{"logger": &writer, "request": &req}).Info("Starting JSON exporter")
 	exporter := exporter.NewExporter(ctx, &req, server, encoder, rateLimiter)
 	exporter.Start()
@@ -240,7 +240,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 
 func Serve(ctx context.Context, address string, server *server.Server) error {
 	grpcServer := grpc.NewServer()
-	fgs.RegisterFineGuidanceSensorsServer(grpcServer, server)
+	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, server)
 	go func(address string) {
 		listener, err := net.Listen("tcp", address)
 		if err != nil {
@@ -288,7 +288,7 @@ func execute() error {
 	}
 
 	cobra.OnInitialize(func() {
-		viper.SetEnvPrefix("fgs")
+		viper.SetEnvPrefix("tetragon")
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath(".") // look for a config file in cwd first, useful during development

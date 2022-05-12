@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +44,7 @@ func New() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			sensor := args[0]
-			common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				enableSensor(ctx, cli, sensor)
 			})
 		},
@@ -57,7 +57,7 @@ func New() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			sensor := args[0]
-			common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				disableSensor(ctx, cli, sensor)
 			})
 		},
@@ -72,15 +72,15 @@ func New() *cobra.Command {
 			sensor := args[0]
 			switch len(args) {
 			case 1:
-				common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+				common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 					sensorGetConfig(ctx, cli, sensor, "")
 				})
 			case 2:
-				common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+				common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 					sensorGetConfig(ctx, cli, sensor, args[1])
 				})
 			case 3:
-				common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+				common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 					sensorSetConfig(ctx, cli, sensor, args[1], args[2])
 				})
 			}
@@ -93,7 +93,7 @@ func New() *cobra.Command {
 		Short: "remove a sensor",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				removeSensor(ctx, cli, args[0])
 			})
 		},
@@ -103,8 +103,8 @@ func New() *cobra.Command {
 	return sensorsCmd
 }
 
-func listSensors(ctx context.Context, client fgs.FineGuidanceSensorsClient) {
-	sensors, err := client.ListSensors(ctx, &fgs.ListSensorsRequest{})
+func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
+	sensors, err := client.ListSensors(ctx, &tetragon.ListSensorsRequest{})
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		return
@@ -124,8 +124,8 @@ func listSensors(ctx context.Context, client fgs.FineGuidanceSensorsClient) {
 	}
 }
 
-func removeSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, sensor string) {
-	_, err := client.RemoveSensor(ctx, &fgs.RemoveSensorRequest{
+func removeSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	_, err := client.RemoveSensor(ctx, &tetragon.RemoveSensorRequest{
 		Name: sensor,
 	})
 	if err != nil {
@@ -133,8 +133,8 @@ func removeSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, sen
 	}
 }
 
-func enableSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, sensor string) {
-	_, err := client.EnableSensor(ctx, &fgs.EnableSensorRequest{Name: sensor})
+func enableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	_, err := client.EnableSensor(ctx, &tetragon.EnableSensorRequest{Name: sensor})
 	if err == nil {
 		fmt.Printf("sensor %s enabled\n", sensor)
 	} else {
@@ -142,8 +142,8 @@ func enableSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, sen
 	}
 }
 
-func disableSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, sensor string) {
-	_, err := client.DisableSensor(ctx, &fgs.DisableSensorRequest{Name: sensor})
+func disableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	_, err := client.DisableSensor(ctx, &tetragon.DisableSensorRequest{Name: sensor})
 	if err == nil {
 		fmt.Printf("sensor %s disabled\n", sensor)
 	} else {
@@ -151,8 +151,8 @@ func disableSensor(ctx context.Context, client fgs.FineGuidanceSensorsClient, se
 	}
 }
 
-func sensorGetConfig(ctx context.Context, client fgs.FineGuidanceSensorsClient, sensor string, cfgkey string) {
-	req := fgs.GetSensorConfigRequest{Name: sensor, Cfgkey: cfgkey}
+func sensorGetConfig(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string, cfgkey string) {
+	req := tetragon.GetSensorConfigRequest{Name: sensor, Cfgkey: cfgkey}
 	res, err := client.GetSensorConfig(ctx, &req)
 	if err == nil {
 		fmt.Printf("%s\n", res.Cfgval)
@@ -161,8 +161,8 @@ func sensorGetConfig(ctx context.Context, client fgs.FineGuidanceSensorsClient, 
 	}
 }
 
-func sensorSetConfig(ctx context.Context, client fgs.FineGuidanceSensorsClient, sensor string, cfgkey string, cfgval string) {
-	req := fgs.SetSensorConfigRequest{Name: sensor, Cfgkey: cfgkey, Cfgval: cfgval}
+func sensorSetConfig(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string, cfgkey string, cfgval string) {
+	req := tetragon.SetSensorConfigRequest{Name: sensor, Cfgkey: cfgkey, Cfgval: cfgval}
 	_, err := client.SetSensorConfig(ctx, &req)
 	if err != nil {
 		fmt.Printf("error setting %s=%s config for %s: %s\n", cfgkey, cfgval, sensor, err)

@@ -21,7 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,58 +30,58 @@ func Test_handleProcessedEvent(t *testing.T) {
 	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
 	handleProcessedEvent(nil)
 	// empty process
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessKprobe{ProcessKprobe: &fgs.ProcessKprobe{}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &fgs.ProcessTracepoint{}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessDns{ProcessDns: &fgs.ProcessDns{}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExit{ProcessExit: &fgs.ProcessExit{}}})
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}})
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{}}})
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{}}})
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{}}})
 
 	// empty pod
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessKprobe{ProcessKprobe: &fgs.ProcessKprobe{
-		Process: &fgs.Process{Binary: "binary_a"},
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
+		Process: &tetragon.Process{Binary: "binary_a"},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{
-		Process: &fgs.Process{Binary: "binary_b"},
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
+		Process: &tetragon.Process{Binary: "binary_b"},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &fgs.ProcessTracepoint{
-		Process: &fgs.Process{Binary: "binary_c"},
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
+		Process: &tetragon.Process{Binary: "binary_c"},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessDns{ProcessDns: &fgs.ProcessDns{
-		Process: &fgs.Process{Binary: "binary_d"},
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{
+		Process: &tetragon.Process{Binary: "binary_d"},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExit{ProcessExit: &fgs.ProcessExit{
-		Process: &fgs.Process{Binary: "binary_e"},
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
+		Process: &tetragon.Process{Binary: "binary_e"},
 	}}})
 
 	// with pod
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessKprobe{ProcessKprobe: &fgs.ProcessKprobe{
-		Process: &fgs.Process{
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
+		Process: &tetragon.Process{
 			Binary: "binary_a",
-			Pod:    &fgs.Pod{Namespace: "namespace_a", Name: "pod_a"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_a", Name: "pod_a"},
 		},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{
-		Process: &fgs.Process{
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
+		Process: &tetragon.Process{
 			Binary: "binary_b",
-			Pod:    &fgs.Pod{Namespace: "namespace_b", Name: "pod_b"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_b", Name: "pod_b"},
 		},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &fgs.ProcessTracepoint{
-		Process: &fgs.Process{
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
+		Process: &tetragon.Process{
 			Binary: "binary_c",
-			Pod:    &fgs.Pod{Namespace: "namespace_c", Name: "pod_c"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_c", Name: "pod_c"},
 		},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessDns{ProcessDns: &fgs.ProcessDns{
-		Process: &fgs.Process{
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{
+		Process: &tetragon.Process{
 			Binary: "binary_d",
-			Pod:    &fgs.Pod{Namespace: "namespace_d", Name: "pod_d"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_d", Name: "pod_d"},
 		},
 	}}})
-	handleProcessedEvent(&fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExit{ProcessExit: &fgs.ProcessExit{
-		Process: &fgs.Process{
+	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
+		Process: &tetragon.Process{
 			Binary: "binary_e",
-			Pod:    &fgs.Pod{Namespace: "namespace_e", Name: "pod_e"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_e", Name: "pod_e"},
 		},
 	}}})
 

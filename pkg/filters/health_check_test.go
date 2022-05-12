@@ -8,34 +8,34 @@ import (
 	"testing"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func Test_canBeHealthCheck(t *testing.T) {
 	assert.False(t, canBeHealthCheck(nil))
-	assert.False(t, canBeHealthCheck(&fgs.Process{
+	assert.False(t, canBeHealthCheck(&tetragon.Process{
 		Binary:    "myprogram",
 		Arguments: "arg-a arg-b argc",
 	}))
-	assert.False(t, canBeHealthCheck(&fgs.Process{
+	assert.False(t, canBeHealthCheck(&tetragon.Process{
 		Binary:    "myprogram",
 		Arguments: "arg-a arg-b argc",
-		Pod:       &fgs.Pod{},
+		Pod:       &tetragon.Pod{},
 	}))
-	assert.False(t, canBeHealthCheck(&fgs.Process{
+	assert.False(t, canBeHealthCheck(&tetragon.Process{
 		Binary:    "myprogram",
 		Arguments: "arg-a arg-b argc",
-		Pod: &fgs.Pod{
-			Container: &fgs.Container{},
+		Pod: &tetragon.Pod{
+			Container: &tetragon.Container{},
 		},
 	}))
-	assert.True(t, canBeHealthCheck(&fgs.Process{
+	assert.True(t, canBeHealthCheck(&tetragon.Process{
 		Binary:    "myprogram",
 		Arguments: "arg-a arg-b argc",
-		Pod: &fgs.Pod{
-			Container: &fgs.Container{
+		Pod: &tetragon.Pod{
+			Container: &tetragon.Container{
 				MaybeExecProbe: true,
 			},
 		},
@@ -58,36 +58,36 @@ func Test_maybeExecProbe(t *testing.T) {
 
 func Test_healthCheckFilter(t *testing.T) {
 	maybeHealthCheck, err := BuildFilterList(context.Background(),
-		[]*fgs.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: true}}},
+		[]*tetragon.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: true}}},
 		[]OnBuildFilter{&HealthCheckFilter{}})
 	assert.NoError(t, err)
 	notHealthCheck, err := BuildFilterList(context.Background(),
-		[]*fgs.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: false}}},
+		[]*tetragon.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: false}}},
 		[]OnBuildFilter{&HealthCheckFilter{}})
 	assert.NoError(t, err)
 
 	process := v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Container: &fgs.Container{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{
 					MaybeExecProbe: true,
 				}}}},
 			},
 		},
 	}
 	parent := v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{Parent: &fgs.Process{Pod: &fgs.Pod{Container: &fgs.Container{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Parent: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{
 					MaybeExecProbe: true,
 				}}}},
 			},
 		},
 	}
 	neither := v1.Event{
-		Event: &fgs.GetEventsResponse{
-			Event: &fgs.GetEventsResponse_ProcessExec{
-				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Container: &fgs.Container{}}}},
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{}}}},
 			},
 		},
 	}

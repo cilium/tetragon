@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -41,7 +41,7 @@ type K8sResourceWatcher interface {
 	FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
 
 	// Get PodInfo and Endpoint ID for a containerId.
-	GetPodInfo(containerID, binary, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint)
+	GetPodInfo(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
@@ -137,7 +137,7 @@ func (watcher *K8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.Con
 	return findContainer(containerID, objs)
 }
 
-func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint) {
+func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	if containerID == "" {
 		return nil, nil
 	}
@@ -168,15 +168,15 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 			Value: nspid,
 		}
 	}
-	return &fgs.Pod{
+	return &tetragon.Pod{
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
 		Labels:    labels,
-		Container: &fgs.Container{
+		Container: &tetragon.Container{
 			Id:   container.ContainerID,
 			Pid:  containerPID,
 			Name: container.Name,
-			Image: &fgs.Image{
+			Image: &tetragon.Image{
 				Id:   container.ImageID,
 				Name: container.Image,
 			},
@@ -201,7 +201,7 @@ func (watcher *FakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1
 	return findContainer(containerID, watcher.pods)
 }
 
-func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint) {
+func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	pod, container, ok := watcher.FindPod(containerID)
 	if !ok {
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
@@ -226,15 +226,15 @@ func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, arg
 		}
 	}
 
-	return &fgs.Pod{
+	return &tetragon.Pod{
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
 		Labels:    emptyLabels,
-		Container: &fgs.Container{
+		Container: &tetragon.Container{
 			Id:   container.ContainerID,
 			Pid:  containerPID,
 			Name: container.Name,
-			Image: &fgs.Image{
+			Image: &tetragon.Image{
 				Id:   container.ImageID,
 				Name: container.Image,
 			},

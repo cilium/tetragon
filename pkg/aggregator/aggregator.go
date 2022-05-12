@@ -19,20 +19,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type Aggregator struct {
-	server fgs.FineGuidanceSensors_GetEventsServer
+	server tetragon.FineGuidanceSensors_GetEventsServer
 	window time.Duration
-	events chan *fgs.GetEventsResponse
-	cache  map[string]*fgs.GetEventsResponse
+	events chan *tetragon.GetEventsResponse
+	cache  map[string]*tetragon.GetEventsResponse
 }
 
 func NewAggregator(
-	server fgs.FineGuidanceSensors_GetEventsServer,
-	options *fgs.AggregationOptions,
+	server tetragon.FineGuidanceSensors_GetEventsServer,
+	options *tetragon.AggregationOptions,
 ) (*Aggregator, error) {
 	if options == nil {
 		return nil, nil
@@ -44,8 +44,8 @@ func NewAggregator(
 	return &Aggregator{
 		server,
 		window,
-		make(chan *fgs.GetEventsResponse, options.ChannelBufferSize),
-		make(map[string]*fgs.GetEventsResponse),
+		make(chan *tetragon.GetEventsResponse, options.ChannelBufferSize),
+		make(map[string]*tetragon.GetEventsResponse),
 	}, nil
 }
 
@@ -70,10 +70,10 @@ func (a *Aggregator) flush() {
 		}
 	}
 	// clear the cache.
-	a.cache = make(map[string]*fgs.GetEventsResponse)
+	a.cache = make(map[string]*tetragon.GetEventsResponse)
 }
 
-func (a *Aggregator) handleEvent(event *fgs.GetEventsResponse) {
+func (a *Aggregator) handleEvent(event *tetragon.GetEventsResponse) {
 	switch event.Event.(type) {
 	default:
 		if err := a.server.Send(event); err != nil {
@@ -90,6 +90,6 @@ func getNameOrIp(ip string, names []string) string {
 	return ip
 }
 
-func (a *Aggregator) GetEventChannel() chan *fgs.GetEventsResponse {
+func (a *Aggregator) GetEventChannel() chan *tetragon.GetEventsResponse {
 	return a.events
 }

@@ -31,7 +31,7 @@ import (
 const (
 	// initInfoFile is the file location for the info file.
 	// After initialization, initInfoFname will contain a json representation of InitInfo
-	initInfoFname = defaults.DefaultRunDir + "fgs-info.json"
+	initInfoFname = defaults.DefaultRunDir + "tetragon-info.json"
 )
 
 // InitInfo contains information about how FGS was initialized.
@@ -226,7 +226,7 @@ func (s *bugtoolInfo) addInitInfo(tarWriter *tar.Writer) error {
 		s.multiLog.Warn("failed to serialze init info")
 		return err
 	}
-	return s.tarAddBuff(tarWriter, "fgs-info.json", buff)
+	return s.tarAddBuff(tarWriter, "tetragon-info.json", buff)
 }
 
 // addLibFiles adds all files under the hubble lib directory to the archive.
@@ -304,7 +304,7 @@ func (s *bugtoolInfo) addBtfFile(tarWriter *tar.Writer) error {
 	}
 
 	if s.info.BtfFname == "" {
-		s.multiLog.Warnf("no btf filename in fgs config, attempting to fall back to /sys/kernel/btf/vmlinux")
+		s.multiLog.Warnf("no btf filename in tetragon config, attempting to fall back to /sys/kernel/btf/vmlinux")
 		btfFname = "/sys/kernel/btf/vmlinux"
 	}
 
@@ -320,7 +320,7 @@ func (s *bugtoolInfo) addBtfFile(tarWriter *tar.Writer) error {
 	return err
 }
 
-// addFgsLog adds the fgs log file to the archive
+// addFgsLog adds the tetragon log file to the archive
 func (s *bugtoolInfo) addFgsLog(tarWriter *tar.Writer) error {
 	if s.info.ExportFname == "" {
 		s.multiLog.Info("no export file specified")
@@ -329,7 +329,7 @@ func (s *bugtoolInfo) addFgsLog(tarWriter *tar.Writer) error {
 
 	err := s.tarAddFile(tarWriter, s.info.ExportFname, "tetragon.log")
 	if err == nil {
-		s.multiLog.WithField("exportFname", s.info.ExportFname).Info("fgs log file added")
+		s.multiLog.WithField("exportFname", s.info.ExportFname).Info("tetragon log file added")
 	}
 	return err
 }
@@ -429,7 +429,7 @@ func (s *bugtoolInfo) addTcInfo(tarWriter *tar.Writer) error {
 		return err
 	}
 
-	// NB: We could save the interfaces that fgs installed programs and
+	// NB: We could save the interfaces that tetragon installed programs and
 	// query only those by saving the interfaces to the info file. Instead,
 	// we perform the command for all links in the system. This is simpler
 	// and also provides additional information that may be useful.

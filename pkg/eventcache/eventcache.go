@@ -6,8 +6,8 @@ package eventcache
 import (
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/fgs"
-	codegen "github.com/cilium/tetragon/api/v1/fgs/codegen/eventcache"
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	codegen "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventcache"
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -28,7 +28,7 @@ const (
 )
 
 type eventObj interface {
-	GetProcess() *fgs.Process
+	GetProcess() *tetragon.Process
 }
 
 var (
@@ -115,7 +115,7 @@ func (ec *Cache) loop() {
 //  podInfo event and populates the local cache. If we expect podInfo,
 //  indicated by having a nonZero dockerID we cache the event until the
 //  podInfo arrives.
-func (ec *Cache) Needed(proc *fgs.Process) bool {
+func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	if proc == nil {
 		return true
 	}

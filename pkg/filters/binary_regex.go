@@ -21,7 +21,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 func filterByBinaryRegex(binaryPatterns []string) (hubbleFilters.FilterFunc, error) {
@@ -49,7 +49,7 @@ func filterByBinaryRegex(binaryPatterns []string) (hubbleFilters.FilterFunc, err
 
 type BinaryRegexFilter struct{}
 
-func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.BinaryRegex != nil {
 		dnsFilters, err := filterByBinaryRegex(ff.BinaryRegex)

@@ -17,7 +17,7 @@ import (
 func generateOpCodeForEventType(g *protogen.GeneratedFile, f *protogen.File) error {
 	reflectType := common.GoIdent(g, "reflect", "Type")
 	reflectTypeOf := common.GoIdent(g, "reflect", "TypeOf")
-	fgsEventType := common.FgsApiIdent(g, "EventType")
+	tetragonEventType := common.FgsApiIdent(g, "EventType")
 
 	enumIndex := -1
 	for i, enum := range f.Enums {
@@ -30,14 +30,14 @@ func generateOpCodeForEventType(g *protogen.GeneratedFile, f *protogen.File) err
 	}
 	enum := f.Enums[enumIndex]
 
-	g.P(`func OpCodeForEventType(eventType ` + fgsEventType + `) (` + reflectType + `, error) {
+	g.P(`func OpCodeForEventType(eventType ` + tetragonEventType + `) (` + reflectType + `, error) {
         var opCode ` + reflectType + `
         switch eventType {`)
 
 	for _, value := range enum.Values {
 		valueIdent := g.QualifiedGoIdent(value.GoIdent)
 		// skip over the UNDEF variant
-		if valueIdent == "fgs.EventType_UNDEF" {
+		if valueIdent == "tetragon.EventType_UNDEF" {
 			continue
 		}
 
