@@ -16,8 +16,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
+	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )

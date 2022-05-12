@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
 )
 

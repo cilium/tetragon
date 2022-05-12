@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/fatih/color"
 )
 
 type colorer struct {
