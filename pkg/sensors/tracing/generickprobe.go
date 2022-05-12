@@ -271,8 +271,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
 			if warn, ok := err.(*btf.ValidationWarn); ok {
 				logger.GetLogger().Warnf("kprobe spec validation: %s", warn)
-			} else if err, ok := err.(*btf.ValidationFailed); ok {
-				return nil, fmt.Errorf("kprobe spec validation failed: %w", err)
+			} else if e, ok := err.(*btf.ValidationFailed); ok {
+				return nil, fmt.Errorf("kprobe spec validation failed: %w", e)
 			} else {
 				logger.GetLogger().Warnf("invalid or old kprobe spec: %s", err)
 			}
