@@ -21,7 +21,7 @@ import (
 )
 
 var writev = `
-apiVersion: hubble-enterprise.io/v1
+apiVersion: cilium.io/v1alpha1
 metadata:
   name: "sys_write"
 spec:
@@ -88,7 +88,7 @@ spec:
 `
 
 var expectedWrite = GenericTracingConf{
-	ApiVersion: "hubble-enterprise.io/v1",
+	ApiVersion: "cilium.io/v1alpha1",
 	Metadata:   Metadata{Name: "sys_write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
@@ -176,7 +176,7 @@ var expectedWrite = GenericTracingConf{
 }
 
 var data = `
-apiVersion: hubble-enterprise.io/v1
+apiVersion: cilium.io/v1alpha1
 metadata:
   name: "sys_write"
 spec:
@@ -250,7 +250,7 @@ spec:
 `
 
 var expectedData = GenericTracingConf{
-	ApiVersion: "hubble-enterprise.io/v1",
+	ApiVersion: "cilium.io/v1alpha1",
 	Metadata:   Metadata{Name: "sys_write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
@@ -387,7 +387,7 @@ var lseekExample string
 func TestYamlLseek(t *testing.T) {
 
 	expected := GenericTracingConf{
-		ApiVersion: "hubble-enterprise.io/v1",
+		ApiVersion: "cilium.io/v1alpha1",
 		Metadata:   Metadata{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
