@@ -217,7 +217,9 @@ type LogRecordHTTP struct {
 	// Protocol is the HTTP protocol in use
 	Protocol string
 
-	// Headers are all HTTP headers present in the request
+	// Headers are all HTTP headers present in the request and response. Request records
+	// contain request headers, while response headers contain both request and response
+	// headers.
 	Headers http.Header
 
 	// MissingHeaders are HTTP request headers that were deemed missing from the request
@@ -257,10 +259,6 @@ type LogRecordKafka struct {
 type DNSDataSource string
 
 const (
-	// DNSSourceAgentPoller indicates that the DNS record was created by a poll
-	// from cilium-agent.
-	DNSSourceAgentPoller DNSDataSource = "agent-poller"
-
 	// DNSSourceProxy indicates that the DNS record was created by a proxy
 	// intercepting a DNS request/response.
 	DNSSourceProxy DNSDataSource = "proxy"

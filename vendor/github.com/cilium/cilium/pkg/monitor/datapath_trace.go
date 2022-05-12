@@ -22,18 +22,18 @@ import (
 	"net"
 	"unsafe"
 
-	"github.com/cilium/cilium/common/types"
 	"github.com/cilium/cilium/pkg/byteorder"
 	"github.com/cilium/cilium/pkg/monitor/api"
+	"github.com/cilium/cilium/pkg/types"
 )
 
 const (
 	// traceNotifyCommonLen is the minimum length required to determine the version of the TN event.
 	traceNotifyCommonLen = 16
-	// traceNotifyV1Len is the amount of packet data provided in a trace notification v1
-	traceNotifyV1Len = 32
-	// traceNotifyV2Len is the amount of packet data provided in a trace notification v2
-	traceNotifyV2Len = 48
+	// traceNotifyV0Len is the amount of packet data provided in a trace notification v0.
+	traceNotifyV0Len = 32
+	// traceNotifyV1Len is the amount of packet data provided in a trace notification v1.
+	traceNotifyV1Len = 48
 	// TraceReasonEncryptMask is the bit used to indicate encryption or not
 	TraceReasonEncryptMask uint8 = 0x80
 )
@@ -79,8 +79,8 @@ type TraceNotify TraceNotifyV1
 
 var (
 	traceNotifyLength = map[uint16]uint{
-		TraceNotifyVersion0: 32, // unsafe.Sizeof(&TraceNotifyV0{})
-		TraceNotifyVersion1: 48, // unsafe.Sizeof(&TraceNotifyV1{})
+		TraceNotifyVersion0: traceNotifyV0Len,
+		TraceNotifyVersion1: traceNotifyV1Len,
 	}
 )
 
@@ -90,6 +90,7 @@ const (
 	TraceReasonCtEstablished
 	TraceReasonCtReply
 	TraceReasonCtRelated
+	TraceReasonCtReopened
 )
 
 var traceReasons = map[uint8]string{
@@ -97,6 +98,7 @@ var traceReasons = map[uint8]string{
 	TraceReasonCtEstablished: "established",
 	TraceReasonCtReply:       "reply",
 	TraceReasonCtRelated:     "related",
+	TraceReasonCtReopened:    "reopened",
 }
 
 func connState(reason uint8) string {
@@ -138,7 +140,7 @@ func DecodeTraceNotify(data []byte, tn *TraceNotify) error {
 
 func (n *TraceNotify) encryptReason() string {
 	if (n.Reason & TraceReasonEncryptMask) != 0 {
-		return fmt.Sprintf("encrypted ")
+		return "encrypted "
 	}
 	return ""
 }
@@ -159,6 +161,8 @@ func (n *TraceNotify) traceSummary() string {
 		return "-> stack"
 	case api.TraceToOverlay:
 		return "-> overlay"
+	case api.TraceToNetwork:
+		return "-> network"
 	case api.TraceFromLxc:
 		return fmt.Sprintf("<- endpoint %d", n.Source)
 	case api.TraceFromProxy:

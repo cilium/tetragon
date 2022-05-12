@@ -4,7 +4,10 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
+# github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
+## explicit
+github.com/StackExchange/wmi
+# github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 ## explicit; go 1.12
 github.com/asaskevich/govalidator
 # github.com/beorn7/perks v1.0.1
@@ -16,8 +19,8 @@ github.com/blang/semver
 # github.com/cespare/xxhash/v2 v2.1.2
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.7.0-rc2.0.20200311180626-711b37ed100c
-## explicit; go 1.14
+# github.com/cilium/cilium v1.9.15
+## explicit; go 1.15
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/daemon
 github.com/cilium/cilium/api/v1/client/endpoint
@@ -31,21 +34,22 @@ github.com/cilium/cilium/api/v1/health/client/connectivity
 github.com/cilium/cilium/api/v1/health/client/restapi
 github.com/cilium/cilium/api/v1/health/models
 github.com/cilium/cilium/api/v1/models
-github.com/cilium/cilium/common
-github.com/cilium/cilium/common/types
 github.com/cilium/cilium/pkg/alignchecker
 github.com/cilium/cilium/pkg/api
 github.com/cilium/cilium/pkg/byteorder
 github.com/cilium/cilium/pkg/cidr
 github.com/cilium/cilium/pkg/client
+github.com/cilium/cilium/pkg/clustermesh/types
+github.com/cilium/cilium/pkg/common
 github.com/cilium/cilium/pkg/components
+github.com/cilium/cilium/pkg/datapath/option
 github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/endpoint/id
 github.com/cilium/cilium/pkg/health/client
 github.com/cilium/cilium/pkg/health/defaults
 github.com/cilium/cilium/pkg/identity
-github.com/cilium/cilium/pkg/idpool
 github.com/cilium/cilium/pkg/ip
+github.com/cilium/cilium/pkg/ipam/option
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io
 github.com/cilium/cilium/pkg/labels
 github.com/cilium/cilium/pkg/lock
@@ -60,6 +64,7 @@ github.com/cilium/cilium/pkg/option
 github.com/cilium/cilium/pkg/proxy/accesslog
 github.com/cilium/cilium/pkg/safetime
 github.com/cilium/cilium/pkg/spanstat
+github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
 # github.com/cilium/ebpf v0.8.1-0.20220125132352-732bf912e846 => github.com/joamaki/ebpf v0.8.1-0.20220207152208-4d3a175d59f8
@@ -106,18 +111,22 @@ github.com/evanphx/json-patch
 # github.com/fatih/color v1.7.0
 ## explicit
 github.com/fatih/color
-# github.com/fsnotify/fsnotify v1.4.9
+# github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
 # github.com/go-logr/logr v1.2.2
 ## explicit; go 1.16
 github.com/go-logr/logr
+# github.com/go-ole/go-ole v1.2.4
+## explicit; go 1.12
+github.com/go-ole/go-ole
+github.com/go-ole/go-ole/oleutil
 # github.com/go-openapi/analysis v0.19.10
 ## explicit; go 1.13
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal
-# github.com/go-openapi/errors v0.19.3
-## explicit
+# github.com/go-openapi/errors v0.19.7
+## explicit; go 1.14
 github.com/go-openapi/errors
 # github.com/go-openapi/jsonpointer v0.19.5
 ## explicit; go 1.13
@@ -125,11 +134,11 @@ github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.19.5
 ## explicit; go 1.13
 github.com/go-openapi/jsonreference
-# github.com/go-openapi/loads v0.19.5
+# github.com/go-openapi/loads v0.19.6
 ## explicit; go 1.13
 github.com/go-openapi/loads
-# github.com/go-openapi/runtime v0.19.4
-## explicit
+# github.com/go-openapi/runtime v0.19.20
+## explicit; go 1.13
 github.com/go-openapi/runtime
 github.com/go-openapi/runtime/client
 github.com/go-openapi/runtime/logger
@@ -138,17 +147,17 @@ github.com/go-openapi/runtime/middleware/denco
 github.com/go-openapi/runtime/middleware/header
 github.com/go-openapi/runtime/middleware/untyped
 github.com/go-openapi/runtime/security
-# github.com/go-openapi/spec v0.19.6
+# github.com/go-openapi/spec v0.19.9
 ## explicit; go 1.13
 github.com/go-openapi/spec
-# github.com/go-openapi/strfmt v0.19.4
+# github.com/go-openapi/strfmt v0.19.6
 ## explicit; go 1.13
 github.com/go-openapi/strfmt
 # github.com/go-openapi/swag v0.19.14
 ## explicit; go 1.11
 github.com/go-openapi/swag
-# github.com/go-openapi/validate v0.19.5
-## explicit; go 1.13
+# github.com/go-openapi/validate v0.19.12
+## explicit; go 1.14
 github.com/go-openapi/validate
 # github.com/go-stack/stack v1.8.0
 ## explicit
@@ -249,8 +258,8 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/miekg/dns v1.0.14 => github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3
 ## explicit
 github.com/miekg/dns
-# github.com/mitchellh/mapstructure v1.1.2
-## explicit
+# github.com/mitchellh/mapstructure v1.3.2
+## explicit; go 1.14
 github.com/mitchellh/mapstructure
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
@@ -282,7 +291,7 @@ github.com/prometheus/client_golang/prometheus/promauto
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/testutil
 github.com/prometheus/client_golang/prometheus/testutil/promlint
-# github.com/prometheus/client_model v0.2.0
+# github.com/prometheus/client_model v0.2.1-0.20200623203004-60555c9708c7
 ## explicit; go 1.9
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.30.0
@@ -301,6 +310,10 @@ github.com/russross/blackfriday/v2
 # github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa
 ## explicit
 github.com/sasha-s/go-deadlock
+# github.com/shirou/gopsutil v2.20.4+incompatible
+## explicit
+github.com/shirou/gopsutil/internal/common
+github.com/shirou/gopsutil/mem
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 ## explicit
 github.com/shurcooL/sanitized_anchor_name
@@ -308,8 +321,8 @@ github.com/shurcooL/sanitized_anchor_name
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/spf13/afero v1.2.2
-## explicit
+# github.com/spf13/afero v1.3.4
+## explicit; go 1.13
 github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/spf13/cast v1.3.0
@@ -345,8 +358,8 @@ github.com/vishvananda/netns
 # github.com/yalue/native_endian v1.0.1
 ## explicit; go 1.15
 github.com/yalue/native_endian
-# go.mongodb.org/mongo-driver v1.3.0
-## explicit
+# go.mongodb.org/mongo-driver v1.5.1
+## explicit; go 1.10
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions

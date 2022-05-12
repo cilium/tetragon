@@ -1,4 +1,4 @@
-// Copyright 2016-2019 Authors of Cilium
+// Copyright 2016-2020 Authors of Cilium
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,18 @@ import (
 )
 
 const (
+	// AgentHealthPort is the default value for option.AgentHealthPort
+	AgentHealthPort = 9876
+
+	// GopsPortAgent is the default value for option.GopsPort in the agent
+	GopsPortAgent = 9890
+
+	// GopsPortOperator is the default value for option.GopsPort in the operator
+	GopsPortOperator = 9891
+
+	// GopsPortApiserver is the default value for option.GopsPort in the apiserver
+	GopsPortApiserver = 9892
+
 	// IPv6ClusterAllocCIDR is the default value for option.IPv6ClusterAllocCIDR
 	IPv6ClusterAllocCIDR = IPv6ClusterAllocCIDRBase + "/64"
 
@@ -55,6 +67,14 @@ const (
 	// SockPathEnv is the environment variable to overwrite SockPath
 	SockPathEnv = "CILIUM_SOCK"
 
+	// HubbleSockPath is the path to the UNIX domain socket exposing the Hubble
+	// API to clients locally.
+	HubbleSockPath = RuntimePath + "/hubble.sock"
+
+	// HubbleSockPathEnv is the environment variable to overwrite
+	// HubbleSockPath.
+	HubbleSockPathEnv = "HUBBLE_SOCK"
+
 	// MonitorSockPath1_2 is the path to the UNIX domain socket used to
 	// distribute BPF and agent events to listeners.
 	// This is the 1.2 protocol version.
@@ -71,7 +91,7 @@ const (
 	DefaultMapRoot = "/sys/fs/bpf"
 
 	// DefaultCgroupRoot is the default path where cilium cgroup2 should be mounted
-	DefaultCgroupRoot = "/var/run/cilium/cgroupv2"
+	DefaultCgroupRoot = "/run/cilium/cgroupv2"
 
 	// SockopsEnable controsl whether sockmap should be used
 	SockopsEnable = false
@@ -83,14 +103,13 @@ const (
 	// DefaultMapPrefix is the default prefix for all BPF maps.
 	DefaultMapPrefix = "tc/globals"
 
-	// ToFQDNsMinTTL is the default lower bound for TTLs used with ToFQDNs rules.
-	// This or ToFQDNsMinTTLPoller is used in DaemonConfig.Populate
-	ToFQDNsMinTTL = 3600 // 1 hour in seconds
+	// DNSMaxIPsPerRestoredRule defines the maximum number of IPs to maintain
+	// for each FQDN selector in endpoint's restored DNS rules.
+	DNSMaxIPsPerRestoredRule = 1000
 
-	// ToFQDNsMinTTLPoller is the default lower bound for TTLs used with ToFQDNs
-	// rules when the poller is enabled.
-	// This or ToFQDNsMinTTL is used in DaemonConfig.Populate
-	ToFQDNsMinTTLPoller = 600 // 10 minutes in seconds
+	// ToFQDNsMinTTL is the default lower bound for TTLs used with ToFQDNs rules.
+	// This is used in DaemonConfig.Populate
+	ToFQDNsMinTTL = 3600 // 1 hour in seconds
 
 	// ToFQDNsMaxIPsPerHost defines the maximum number of IPs to maintain
 	// for each FQDN name in an endpoint's FQDN cache
@@ -99,6 +118,11 @@ const (
 	// ToFQDNsMaxDeferredConnectionDeletes Maximum number of IPs to retain for
 	// expired DNS lookups with still-active connections
 	ToFQDNsMaxDeferredConnectionDeletes = 10000
+
+	// ToFQDNsIdleConnectionGracePeriod Time during which idle but
+	// previously active connections with expired DNS lookups are
+	// still considered alive
+	ToFQDNsIdleConnectionGracePeriod = 0 * time.Second
 
 	// ToFQDNsPreCache is a path to a file with DNS cache data to insert into the
 	// global cache on startup.
@@ -133,8 +157,14 @@ const (
 	// EnableIPv6 is the default value for IPv6 enablement
 	EnableIPv6 = true
 
+	// EnableIPv6NDP is the default value for IPv6 NDP support enablement
+	EnableIPv6NDP = false
+
 	// EnableL7Proxy is the default value for L7 proxy enablement
 	EnableL7Proxy = true
+
+	// EnableHostLegacyRouting is the default value for using the old routing path via stack.
+	EnableHostLegacyRouting = false
 
 	// EnableExternalIPs is the default value for k8s service with externalIPs feature.
 	EnableExternalIPs = true
@@ -171,6 +201,9 @@ const (
 	// DatapathMode is the default value for the datapath mode.
 	DatapathMode = "veth"
 
+	// EnableBPFTProxy is the default value for EnableBPFTProxy
+	EnableBPFTProxy = false
+
 	// EnableXTSocketFallback is the default value for EnableXTSocketFallback
 	EnableXTSocketFallback = true
 
@@ -186,6 +219,10 @@ const (
 	// EnableEndpointHealthChecking is the default value for
 	// EnableEndpointHealthChecking
 	EnableEndpointHealthChecking = true
+
+	// EnableHealthCheckNodePort is the default value for
+	// EnableHealthCheckNodePort
+	EnableHealthCheckNodePort = true
 
 	// AlignCheckerName is the BPF object name for the alignchecker.
 	AlignCheckerName = "bpf_alignchecker.o"
@@ -216,6 +253,10 @@ const (
 	// invoked only for endpoints which are selected by policy changes.
 	SelectiveRegeneration = true
 
+	// K8sSyncTimeout specifies the standard time to allow for synchronizing
+	// local caches with Kubernetes state before exiting.
+	K8sSyncTimeout = 3 * time.Minute
+
 	// K8sWatcherEndpointSelector specifies the k8s endpoints that Cilium
 	// should watch for.
 	K8sWatcherEndpointSelector = "metadata.name!=kube-scheduler,metadata.name!=kube-controller-manager,metadata.name!=etcd-operator,metadata.name!=gcp-controller-manager"
@@ -233,11 +274,6 @@ const (
 	// connection tracking garbage collection
 	ConntrackGCStartingInterval = 5 * time.Minute
 
-	// PolicyMapEntries is the default number of entries allowed in an
-	// endpoint's policymap, ie the maximum number of peer identities that
-	// the endpoint could send/receive traffic to/from.
-	PolicyMapEntries = 16384 // Cilium 1.5 and earlier value
-
 	// K8sEventHandover enables use of the kvstore to optimize Kubernetes
 	// event handling by listening for k8s events in the operator and
 	// mirroring it into the kvstore for reduced overhead in large
@@ -250,10 +286,6 @@ const (
 	// EndpointInterfaceNamePrefix is the default prefix name of the
 	// interface names shared by all endpoints
 	EndpointInterfaceNamePrefix = "lxc+"
-
-	// BlacklistConflictingRoutes removes all IPs from the IPAM block if a
-	// local route not owned by Cilium conflicts with it
-	BlacklistConflictingRoutes = true
 
 	// ForceLocalPolicyEvalAtSource is the default value for
 	// option.ForceLocalPolicyEvalAtSource. It is enabled by default to
@@ -292,9 +324,9 @@ const (
 	// It is calculated as Min(int64 positive max, etcd MaxLeaseTTL, consul MaxLeaseTTL)
 	KVstoreLeaseMaxTTL = 86400 * time.Second
 
-	// ENIPreAllocation is the default value for
-	// CiliumNode.Spec.ENI.PreAllocate if no value is set
-	ENIPreAllocation = 8
+	// IPAMPreAllocation is the default value for
+	// CiliumNode.Spec.IPAM.PreAllocate if no value is set
+	IPAMPreAllocation = 8
 
 	// ENIFirstInterfaceIndex is the default value for
 	// CiliumNode.Spec.ENI.FirstInterfaceIndex if no value is set
@@ -353,5 +385,29 @@ const (
 
 	// IPAMExpiration is the timeout after which an IP subject to expiratio
 	// is being released again if no endpoint is being created in time.
-	IPAMExpiration = 3 * time.Minute
+	IPAMExpiration = 10 * time.Minute
+
+	// EnableIPv4FragmentsTracking enables IPv4 fragments tracking for
+	// L4-based lookups
+	EnableIPv4FragmentsTracking = true
+
+	// FragmentsMapEntries is the default number of entries allowed in an
+	// the map used to track datagram fragments.
+	FragmentsMapEntries = 8192
+
+	// K8sEnableAPIDiscovery defines whether Kuberntes API groups and
+	// resources should be probed using the discovery API
+	K8sEnableAPIDiscovery = false
+
+	// EnableIdentityMark enables setting identity in mark field of packet
+	// for local traffic
+	EnableIdentityMark = true
+
+	// K8sEnableLeasesFallbackDiscovery enables k8s to fallback to API probing to check
+	// for the support of Leases in Kubernetes when there is an error in discovering
+	// API groups using Discovery API.
+	K8sEnableLeasesFallbackDiscovery = false
+
+	// KubeProxyReplacementHealthzBindAddr is the default kubeproxyReplacement healthz server bind addr
+	KubeProxyReplacementHealthzBindAddr = ""
 )
