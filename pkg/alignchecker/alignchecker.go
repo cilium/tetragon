@@ -30,5 +30,5 @@ func CheckStructAlignments(path string) error {
 		"msg_test":         {reflect.TypeOf(testapi.MsgTestEvent{})},
 		"execve_map_value": {reflect.TypeOf(execvemap.ExecveValue{})},
 	}
-	return check.CheckStructAlignments(path, toCheck)
+	return check.CheckStructAlignments(path, toCheck, true)
 }
