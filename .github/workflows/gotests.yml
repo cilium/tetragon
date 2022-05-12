@@ -39,7 +39,7 @@ jobs:
         echo `which llc`
         echo `clang --version`
         make check-copyright
-        sudo make hubble-bpf
+        sudo make tetragon-bpf
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
