@@ -1,4 +1,4 @@
-// Copyright 2016-2019 Authors of Cilium
+// Copyright 2016-2020 Authors of Cilium
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	// NOTE: syscall is deprecated, but it is replaced by golang.org/x/sys
+	//       which reuses syscall.Errno similarly to how we do below.
+	"syscall"
 
 	"github.com/cilium/cilium/pkg/byteorder"
 	"github.com/cilium/cilium/pkg/monitor/api"
@@ -65,24 +68,24 @@ const (
 	DbgPktHash
 	DbgLb6LookupMaster
 	DbgLb6LookupMasterFail
-	DbgLb6LookupSlave
-	DbgLb6LookupSlaveSuccess
-	DbgLb6LookupSlaveV2Fail
+	DbgLb6LookupBackendSlot
+	DbgLb6LookupBackendSlotSuccess
+	DbgLb6LookupBackendSlotV2Fail
 	DbgLb6LookupBackendFail
 	DbgLb6ReverseNatLookup
 	DbgLb6ReverseNat
 	DbgLb4LookupMaster
 	DbgLb4LookupMasterFail
-	DbgLb4LookupSlave
-	DbgLb4LookupSlaveSuccess
-	DbgLb4LookupSlaveV2Fail
+	DbgLb4LookupBackendSlot
+	DbgLb4LookupBackendSlotSuccess
+	DbgLb4LookupBackendSlotV2Fail
 	DbgLb4LookupBackendFail
 	DbgLb4ReverseNatLookup
 	DbgLb4ReverseNat
 	DbgLb4LoopbackSnat
 	DbgLb4LoopbackSnatRev
 	DbgCtLookup4
-	DbgRRSlaveSel
+	DbgRRBackendSlotSel
 	DbgRevProxyLookup
 	DbgRevProxyFound
 	DbgRevProxyUpdate
@@ -103,6 +106,9 @@ const (
 	DbgIPIDMapSucceed6
 	DbgLbStaleCT
 	DbgInheritIdentity
+	DbgSkLookup4
+	DbgSkLookup6
+	DbgSkAssign
 )
 
 // must be in sync with <bpf/lib/conntrack.h>
@@ -186,6 +192,13 @@ func ctLookup6Info1(n *DebugMsg) string {
 func ctCreate6Info(n *DebugMsg) string {
 	return fmt.Sprintf("proxy-port=%d revnat=%d src-identity=%d",
 		n.Arg1>>16, byteorder.NetworkToHost(uint16(n.Arg1&0xFFFF)), n.Arg2)
+}
+
+func skAssignInfo(n *DebugMsg) string {
+	if n.Arg1 == 0 {
+		return "Success"
+	}
+	return syscall.Errno(n.Arg1).Error()
 }
 
 func verdictInfo(arg uint32) string {
@@ -275,7 +288,7 @@ func (n *DebugMsg) subTypeString() string {
 	case DbgIcmp6Ns:
 		return fmt.Sprintf("ICMPv6 neighbour soliciation for address %x:%x", n.Arg1, n.Arg2)
 	case DbgIcmp6TimeExceeded:
-		return fmt.Sprintf("Sending ICMPv6 time exceeded")
+		return "Sending ICMPv6 time exceeded"
 	case DbgDecap:
 		return fmt.Sprintf("Tunnel decap: id=%d flowlabel=%x", n.Arg1, n.Arg2)
 	case DbgPortMap:
@@ -288,20 +301,20 @@ func (n *DebugMsg) subTypeString() string {
 		return fmt.Sprintf("Going to the stack, policy-skip=%d", n.Arg1)
 	case DbgPktHash:
 		return fmt.Sprintf("Packet hash=%d (%#x), selected_service=%d", n.Arg1, n.Arg1, n.Arg2)
-	case DbgRRSlaveSel:
-		return fmt.Sprintf("RR slave selection hash=%d (%#x), selected_service=%d", n.Arg1, n.Arg1, n.Arg2)
+	case DbgRRBackendSlotSel:
+		return fmt.Sprintf("RR backend slot selection hash=%d (%#x), selected_service=%d", n.Arg1, n.Arg1, n.Arg2)
 	case DbgLb6LookupMaster:
 		return fmt.Sprintf("Master service lookup, addr.p4=%x key.dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb6LookupMasterFail:
 		return fmt.Sprintf("Master service lookup failed, addr.p2=%x addr.p3=%x", n.Arg1, n.Arg2)
-	case DbgLb6LookupSlave, DbgLb4LookupSlave:
-		return fmt.Sprintf("Slave service lookup: slave=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
-	case DbgLb6LookupSlaveV2Fail, DbgLb4LookupSlaveV2Fail:
-		return fmt.Sprintf("Slave service lookup failed: slave=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+	case DbgLb6LookupBackendSlot, DbgLb4LookupBackendSlot:
+		return fmt.Sprintf("Service backend slot lookup: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+	case DbgLb6LookupBackendSlotV2Fail, DbgLb4LookupBackendSlotV2Fail:
+		return fmt.Sprintf("Service backend slot lookup failed: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb6LookupBackendFail, DbgLb4LookupBackendFail:
 		return fmt.Sprintf("Backend service lookup failed: backend_id=%d", n.Arg1)
-	case DbgLb6LookupSlaveSuccess:
-		return fmt.Sprintf("Slave service lookup result: target.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+	case DbgLb6LookupBackendSlotSuccess:
+		return fmt.Sprintf("Service backend slot lookup result: target.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb6ReverseNatLookup, DbgLb4ReverseNatLookup:
 		return fmt.Sprintf("Reverse NAT lookup, index=%d", byteorder.NetworkToHost(uint16(n.Arg1)))
 	case DbgLb6ReverseNat:
@@ -309,9 +322,9 @@ func (n *DebugMsg) subTypeString() string {
 	case DbgLb4LookupMaster:
 		return fmt.Sprintf("Master service lookup, addr=%s key.dport=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb4LookupMasterFail:
-		return fmt.Sprintf("Master service lookup failed")
-	case DbgLb4LookupSlaveSuccess:
-		return fmt.Sprintf("Slave service lookup result: target=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
+		return "Master service lookup failed"
+	case DbgLb4LookupBackendSlotSuccess:
+		return fmt.Sprintf("Service backend slot lookup result: target=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb4ReverseNat:
 		return fmt.Sprintf("Performing reverse NAT, address=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
 	case DbgLb4LoopbackSnat:
@@ -350,17 +363,23 @@ func (n *DebugMsg) subTypeString() string {
 	case DbgL4Create:
 		return fmt.Sprintf("Matched L4 policy; creating conntrack %s", l4CreateInfo(n))
 	case DbgIPIDMapFailed4:
-		return fmt.Sprintf("Failed to map daddr=%s to identity", ip4Str(n.Arg1))
+		return fmt.Sprintf("Failed to map addr=%s to identity", ip4Str(n.Arg1))
 	case DbgIPIDMapFailed6:
-		return fmt.Sprintf("Failed to map daddr.p4=[::%s] to identity", ip6Str(n.Arg1))
+		return fmt.Sprintf("Failed to map addr.p4=[::%s] to identity", ip6Str(n.Arg1))
 	case DbgIPIDMapSucceed4:
-		return fmt.Sprintf("Successfully mapped daddr=%s to identity=%d", ip4Str(n.Arg1), n.Arg2)
+		return fmt.Sprintf("Successfully mapped addr=%s to identity=%d", ip4Str(n.Arg1), n.Arg2)
 	case DbgIPIDMapSucceed6:
-		return fmt.Sprintf("Successfully mapped daddr.p4=[::%s] to identity=%d", ip6Str(n.Arg1), n.Arg2)
+		return fmt.Sprintf("Successfully mapped addr.p4=[::%s] to identity=%d", ip6Str(n.Arg1), n.Arg2)
 	case DbgLbStaleCT:
 		return fmt.Sprintf("Stale CT entry found stale_ct.rev_nat_id=%d, svc.rev_nat_id=%d", n.Arg2, n.Arg1)
 	case DbgInheritIdentity:
 		return fmt.Sprintf("Inheriting identity=%d from stack", n.Arg1)
+	case DbgSkLookup4:
+		return fmt.Sprintf("Socket lookup: %s", ctLookup4Info1(n))
+	case DbgSkLookup6:
+		return fmt.Sprintf("Socket lookup: %s", ctLookup6Info1(n))
+	case DbgSkAssign:
+		return fmt.Sprintf("Socket assign: %s", skAssignInfo(n))
 	default:
 		return fmt.Sprintf("Unknown message type=%d arg1=%d arg2=%d", n.SubType, n.Arg1, n.Arg2)
 	}

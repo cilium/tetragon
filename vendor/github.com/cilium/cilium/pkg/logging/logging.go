@@ -17,35 +17,46 @@ package logging
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"log/syslog"
 	"os"
 	"regexp"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/cilium/cilium/pkg/logging/logfields"
 
 	"github.com/sirupsen/logrus"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"k8s.io/klog/v2"
 )
 
+type LogFormat string
+
 const (
-	SLevel   = "syslog.level"
-	Syslog   = "syslog"
-	LevelOpt = "level"
+	SLevel    = "syslog.level"
+	Syslog    = "syslog"
+	LevelOpt  = "level"
+	FormatOpt = "format"
+
+	LogFormatText LogFormat = "text"
+	LogFormatJSON LogFormat = "json"
+
+	// DefaultLogLevelStr is the string representation of DefaultLogLevel. It
+	// is used to allow for injection of the logging level via go's ldflags in
+	// unit tests, as only injection with strings via ldflags is allowed.
+	DefaultLogLevelStr string = "info"
+
+	// DefaultLogFormat is the string representation of the default logrus.Formatter
+	// we want to use (possible values: text or json)
+	DefaultLogFormat LogFormat = LogFormatText
 )
 
 var (
 	// DefaultLogger is the base logrus logger. It is different from the logrus
 	// default to avoid external dependencies from writing out unexpectedly
 	DefaultLogger = InitializeDefaultLogger()
-
-	// DefaultLogLevelStr is the string representation of DefaultLogLevel. It
-	// is used to allow for injection of the logging level via go's ldflags in
-	// unit tests, as only injection with strings via ldflags is allowed.
-	DefaultLogLevelStr = "info"
 
 	// syslogOpts is the set of supported options for syslog configuration.
 	syslogOpts = map[string]bool{
@@ -75,13 +86,37 @@ var (
 	logOptions = LogOptions{}
 )
 
+func init() {
+	log := DefaultLogger.WithField(logfields.LogSubsys, "klog")
+
+	//Create a new flag set and set error handler
+	klogFlags := flag.NewFlagSet("cilium", flag.ExitOnError)
+
+	// Make sure that klog logging variables are initialized so that we can
+	// update them from this file.
+	klog.InitFlags(klogFlags)
+
+	// Make sure klog does not log to stderr as we want it to control the output
+	// of klog so we want klog to log the errors to each writer of each level.
+	klogFlags.Set("logtostderr", "false")
+
+	// We don't need all headers because logrus will already print them if
+	// necessary.
+	klogFlags.Set("skip_headers", "true")
+
+	klog.SetOutputBySeverity("INFO", log.WriterLevel(logrus.InfoLevel))
+	klog.SetOutputBySeverity("WARNING", log.WriterLevel(logrus.WarnLevel))
+	klog.SetOutputBySeverity("ERROR", log.WriterLevel(logrus.ErrorLevel))
+	klog.SetOutputBySeverity("FATAL", log.WriterLevel(logrus.FatalLevel))
+}
+
 // LogOptions maps configuration key-value pairs related to logging.
 type LogOptions map[string]string
 
 // InitializeDefaultLogger returns a logrus Logger with a custom text formatter.
 func InitializeDefaultLogger() *logrus.Logger {
 	logger := logrus.New()
-	logger.Formatter = setupFormatter()
+	logger.Formatter = GetFormatter(DefaultLogFormat)
 	logger.SetLevel(LevelStringToLogrusLevel[DefaultLogLevelStr])
 	return logger
 }
@@ -94,9 +129,26 @@ func GetLogLevelFromConfig() (logrus.Level, bool) {
 
 // GetLogLevel returns the log level specified in the provided LogOptions. If
 // it is not set in the options, ok will be false.
-func (o LogOptions) GetLogLevel() (logrus.Level, bool) {
-	lvl, ok := LevelStringToLogrusLevel[strings.ToLower(o[LevelOpt])]
-	return lvl, ok
+func (o LogOptions) GetLogLevel() (level logrus.Level, ok bool) {
+	level, ok = LevelStringToLogrusLevel[strings.ToLower(o[LevelOpt])]
+	return
+}
+
+// GetLogFormat returns the log format specified in the provided LogOptions. If
+// it is not set in the options or is invalid, ok will be false.
+func (o LogOptions) GetLogFormat() LogFormat {
+	formatOpt, ok := o[FormatOpt]
+	if !ok {
+		return DefaultLogFormat
+	}
+
+	re := regexp.MustCompile(`^(text|json)$`)
+	if !re.MatchString(formatOpt) {
+		logrus.Errorf("incorrect log format configured '%s', expected 'text' or 'json', defaulting to '%s'", formatOpt, DefaultLogFormat)
+		return DefaultLogFormat
+	}
+
+	return LogFormat(formatOpt)
 }
 
 // configureLogLevelFromOptions returns the log level based off of the value of
@@ -130,8 +182,10 @@ func setLogLevelFromOptions(logOpts LogOptions) {
 
 // SetupLogging sets up each logging service provided in loggers and configures
 // each logger with the provided logOpts.
-func SetupLogging(loggers []string, logOpts map[string]string, tag string, debug bool) error {
-	logOptions = logOpts
+func SetupLogging(loggers []string, logOpts LogOptions, tag string, debug bool) error {
+	if logFormat := logOpts.GetLogFormat(); logFormat != DefaultLogFormat {
+		DefaultLogger.Formatter = GetFormatter(logFormat)
+	}
 
 	// Set default logger to output to stdout if no loggers are provided.
 	if len(loggers) == 0 {
@@ -149,12 +203,11 @@ func SetupLogging(loggers []string, logOpts map[string]string, tag string, debug
 	for _, logger := range loggers {
 		switch logger {
 		case Syslog:
-			valuesToValidate := getLogDriverConfig(Syslog, logOptions)
-			err := validateOpts(Syslog, valuesToValidate, syslogOpts)
-			if err != nil {
+			opts := getLogDriverConfig(Syslog, logOpts)
+			if err := opts.validateOpts(Syslog, syslogOpts); err != nil {
 				return err
 			}
-			setupSyslog(valuesToValidate, tag, debug)
+			setupSyslog(opts, tag, debug)
 		default:
 			return fmt.Errorf("provided log driver %q is not a supported log driver", logger)
 		}
@@ -187,7 +240,7 @@ func ConfigureLogLevel(debug bool) {
 
 // setupSyslog sets up and configures syslog with the provided options in
 // logOpts. If some options are not provided, sensible defaults are used.
-func setupSyslog(logOpts map[string]string, tag string, debug bool) {
+func setupSyslog(logOpts LogOptions, tag string, debug bool) {
 	logLevel, ok := logOpts[SLevel]
 	if !ok {
 		if debug {
@@ -211,28 +264,31 @@ func setupSyslog(logOpts map[string]string, tag string, debug bool) {
 	}
 	// TODO: switch to a per-logger version when we upgrade to logrus >1.0.3
 	logrus.AddHook(h)
+	DefaultLogger.AddHook(h)
 }
 
-// setupFormatter sets up the text formatting for logs output by logrus.
-func setupFormatter() logrus.Formatter {
-	fileFormat := new(logrus.TextFormatter)
-	fileFormat.DisableTimestamp = true
-	fileFormat.DisableColors = true
-	switch os.Getenv("INITSYSTEM") {
-	case "SYSTEMD":
-		fileFormat.FullTimestamp = true
-	default:
-		fileFormat.TimestampFormat = time.RFC3339
+// GetFormatter returns a configured logrus.Formatter with some specific values
+// we want to have
+func GetFormatter(format LogFormat) logrus.Formatter {
+	switch format {
+	case LogFormatText:
+		return &logrus.TextFormatter{
+			DisableTimestamp: true,
+			DisableColors:    true,
+		}
+	case LogFormatJSON:
+		return &logrus.JSONFormatter{
+			DisableTimestamp: true,
+		}
 	}
 
-	// TODO: switch to a per-logger version when we upgrade to logrus >1.0.3
-	return fileFormat
+	return nil
 }
 
 // validateOpts iterates through all of the keys in logOpts, and errors out if
 // the key in logOpts is not a key in supportedOpts.
-func validateOpts(logDriver string, logOpts map[string]string, supportedOpts map[string]bool) error {
-	for k := range logOpts {
+func (o LogOptions) validateOpts(logDriver string, supportedOpts map[string]bool) error {
+	for k := range o {
 		if !supportedOpts[k] {
 			return fmt.Errorf("provided configuration value %q is not supported as a logging option for log driver %s", k, logDriver)
 		}
@@ -242,8 +298,8 @@ func validateOpts(logDriver string, logOpts map[string]string, supportedOpts map
 
 // getLogDriverConfig returns a map containing the key-value pairs that start
 // with string logDriver from map logOpts.
-func getLogDriverConfig(logDriver string, logOpts map[string]string) map[string]string {
-	keysToValidate := make(map[string]string)
+func getLogDriverConfig(logDriver string, logOpts LogOptions) LogOptions {
+	keysToValidate := make(LogOptions)
 	for k, v := range logOpts {
 		ok, err := regexp.MatchString(logDriver+".*", k)
 		if err != nil {

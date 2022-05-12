@@ -65,6 +65,9 @@ const (
 var (
 	// LabelHealth is the label used for health.
 	LabelHealth = Labels{IDNameHealth: NewLabel(IDNameHealth, "", LabelSourceReserved)}
+
+	// LabelHost is the label used for the host endpoint.
+	LabelHost = Labels{IDNameHost: NewLabel(IDNameHost, "", LabelSourceReserved)}
 )
 
 const (
@@ -107,11 +110,13 @@ const (
 	LabelSourceCiliumGenerated = "cilium-generated"
 )
 
-// Label is the cilium's representation of a container label.
+// Label is the Cilium's representation of a container label.
 type Label struct {
 	Key   string `json:"key"`
 	Value string `json:"value,omitempty"`
-	// Source can be one of the values present in const.go (e.g.: LabelSourceContainer)
+	// Source can be one of the above values (e.g.: LabelSourceContainer).
+	//
+	// +kubebuilder:validation:Optional
 	Source string `json:"source"`
 }
 
@@ -363,6 +368,19 @@ func (l Labels) StringMap() map[string]string {
 	return o
 }
 
+// StringMap converts Labels into map[string]string
+func (l Labels) K8sStringMap() map[string]string {
+	o := map[string]string{}
+	for _, v := range l {
+		if v.Source == LabelSourceK8s || v.Source == LabelSourceAny || v.Source == LabelSourceUnspec {
+			o[v.Key] = v.Value
+		} else {
+			o[v.Source+"."+v.Key] = v.Value
+		}
+	}
+	return o
+}
+
 // NewLabelsFromModel creates labels from string array.
 func NewLabelsFromModel(base []string) Labels {
 	lbls := make(Labels, len(base))
@@ -442,7 +460,7 @@ func (l Label) FormatForKVStore() string {
 // DO NOT BREAK THE FORMAT OF THIS. THE RETURNED STRING IS USED AS KEY IN
 // THE KEY-VALUE STORE.
 func (l Labels) SortedList() []byte {
-	var keys []string
+	keys := make([]string, 0, len(l))
 	for k := range l {
 		keys = append(keys, k)
 	}

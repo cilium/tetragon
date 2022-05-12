@@ -17,7 +17,15 @@ package version
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"regexp"
+	"runtime"
 	"strings"
+
+	"github.com/cilium/cilium/pkg/versioncheck"
+
+	go_version "github.com/blang/semver"
+	"golang.org/x/sys/unix"
 )
 
 // CiliumVersion provides a minimal structure to the version string
@@ -34,8 +42,18 @@ type CiliumVersion struct {
 	AuthorDate string
 }
 
-// Version is set during build
+// ciliumVersion is set to Cilium's version, revision and git author time reference during build.
+var ciliumVersion string
+
+// Version is the complete Cilium version string including Go version.
 var Version string
+
+func init() {
+	// Mimic the output of `go version` and append it to ciliumVersion.
+	// Report GOOS/GOARCH of the actual binary, not the system it was built on, in case it was
+	// cross-compiled. See #13122
+	Version = fmt.Sprintf("%s go version %s %s/%s", ciliumVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+}
 
 // FromString converts a version string into struct
 func FromString(versionString string) CiliumVersion {
@@ -67,4 +85,35 @@ func Base64() (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(jsonBytes), nil
+}
+
+func parseKernelVersion(ver string) (go_version.Version, error) {
+	verStrs := strings.Split(ver, ".")
+	switch {
+	case len(verStrs) < 2:
+		return go_version.Version{}, fmt.Errorf("unable to get kernel version from %q", ver)
+	case len(verStrs) < 3:
+		verStrs = append(verStrs, "0")
+	}
+	// We are assuming the kernel version will be something as:
+	// 4.9.17-040917-generic
+
+	// If verStrs is []string{ "4", "9", "17-040917-generic" }
+	// then we need to retrieve patch number.
+	patch := regexp.MustCompilePOSIX(`^[0-9]+`).FindString(verStrs[2])
+	if patch == "" {
+		verStrs[2] = "0"
+	} else {
+		verStrs[2] = patch
+	}
+	return versioncheck.Version(strings.Join(verStrs[:3], "."))
+}
+
+// GetKernelVersion returns the version of the Linux kernel running on this host.
+func GetKernelVersion() (go_version.Version, error) {
+	var unameBuf unix.Utsname
+	if err := unix.Uname(&unameBuf); err != nil {
+		return go_version.Version{}, err
+	}
+	return parseKernelVersion(string(unameBuf.Release[:]))
 }
