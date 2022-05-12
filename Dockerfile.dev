@@ -34,7 +34,7 @@ RUN apt-get update -y &&    \
 	strace              \
 	jq                  \
 	less
-COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/hubble-fgs/
+COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 /usr/local/lib/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 /usr/local/lib/
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so /usr/local/lib/
@@ -43,10 +43,10 @@ COPY --from=bpftool  /bin/bpftool /usr/bin/
 RUN ldconfig /usr/local/; export LD_LIBRARY_PATH=/usr/local/lib/
 WORKDIR /go/src/github.com/cilium/tetragon
 COPY . ./
-RUN make hubble-fgs hubble-enterprise test-compile contrib-progs
+RUN make tetragon tetra test-compile contrib-progs
 
 
 ENV FGS_PROCFS=/procRoot/
 ENV LD_LIBRARY_PATH=/usr/local/lib/
-# CMD ["sh", "-c", "/go/src/github.com/cilium/tetragon/hubble-fgs --procfs=/procRoot/ --export-filename=/tmp/hubble-fgs.log --metrics-server :2112 --verbose 4"]
-CMD ["sh", "-c", "/go/src/github.com/cilium/tetragon/hubble-fgs --procfs=/procRoot/"]
+# CMD ["sh", "-c", "/go/src/github.com/cilium/tetragon/tetragon --procfs=/procRoot/ --export-filename=/tmp/tetragon.log --metrics-server :2112 --verbose 4"]
+CMD ["sh", "-c", "/go/src/github.com/cilium/tetragon/tetragon --procfs=/procRoot/"]

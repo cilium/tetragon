@@ -283,7 +283,7 @@ func (k *Observer) Start(ctx context.Context) error {
 		err = k.runEvents(ctx)
 	}
 	if err != nil {
-		return fmt.Errorf("hubble-fgs, aborting runtime error: %w", err)
+		return fmt.Errorf("tetragon, aborting runtime error: %w", err)
 	}
 	return nil
 }

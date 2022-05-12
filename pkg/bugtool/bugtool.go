@@ -327,7 +327,7 @@ func (s *bugtoolInfo) addFgsLog(tarWriter *tar.Writer) error {
 		return nil
 	}
 
-	err := s.tarAddFile(tarWriter, s.info.ExportFname, "hubble-fgs.log")
+	err := s.tarAddFile(tarWriter, s.info.ExportFname, "tetragon.log")
 	if err == nil {
 		s.multiLog.WithField("exportFname", s.info.ExportFname).Info("fgs log file added")
 	}

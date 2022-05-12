@@ -26,9 +26,9 @@
 # code. First thing is replace {{.Pid}} in this CRD with the PID of terminal 2.
 #
 # In terminal 1:
-# $ sudo ./hubble-fgs --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --config-file crds/examples/match_capability_changes.yaml --enable-process-cred
+# $ sudo ./tetragon --btf /sys/kernel/btf/vmlinux  --hubble-lib ./bpf/objs/ --export-filename events.json --config-file crds/examples/match_capability_changes.yaml --enable-process-cred
 # $ # <wait for events> (i.e. run the commands in terminal 2)
-# $ # kill hubble-fgs
+# $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events
 #
 # In terminal 2:

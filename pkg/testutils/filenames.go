@@ -31,7 +31,7 @@ func CreateExportFile(t *testing.T) *os.File {
 		t.Fatalf("unexpected error: t.Name() %s is not unique", testName)
 	}
 
-	fname := fmt.Sprintf("hubble-fgs.gotest.%s.*.json", testName)
+	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
 	f, err := os.CreateTemp("/tmp", fname)
 	if err != nil {
 		t.Fatalf("failed to create export file for test %s: %s", t.Name(), err)

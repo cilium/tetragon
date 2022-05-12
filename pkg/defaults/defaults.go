@@ -32,7 +32,7 @@ const (
 	DefaultMapPrefix = "tcpmon"
 
 	// DefaultRunDir is the default run directory for runtime
-	DefaultRunDir = "/var/run/hubble-fgs/"
+	DefaultRunDir = "/var/run/tetragon/"
 
 	// DedfaultNetnsDir is the default network namespace directory for runtime
 	DefaultNetnsDir = "/var/run/docker/netns/"
