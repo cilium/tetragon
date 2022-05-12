@@ -20,7 +20,7 @@
  * the child PID, and then wait for a single character in its stdin. Once it
  * receives the character, it will wake up the child which will do an exec and
  * execute the child() function. Child will do a bogus lseek (one that we can
- * use as a trigger for the kill action in the fgs kprobe spec), and then wait
+ * use as a trigger for the kill action in the tetragon kprobe spec), and then wait
  * until it gets killed.
  *
  * If the child is kild with a 9 signal (SIGKILL), process returns 0. Otherwise
@@ -28,7 +28,7 @@
  *
  * TODO:
  *  - add a switch to specify what signal to expect (once we support signals
- *  other than SIGKILL in fgs).
+ *  other than SIGKILL in tetragon).
  *
  * FAQ:
  *  - Why did you write this in C?
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 {
 	pid_t pid;
 	int pipe[2][2];
-	int expected_sig = 9; // NB: fgs only supports sigkill for now
+	int expected_sig = 9; // NB: tetragon only supports sigkill for now
 
 	// this is what will the child will exec.
 	if (!strcmp(argv[0], "child")) {
