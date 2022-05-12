@@ -3,12 +3,12 @@
 package test
 
 import (
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/api/ops"
-	"github.com/isovalent/tetragon-oss/pkg/api/testapi"
-	"github.com/isovalent/tetragon-oss/pkg/ktime"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/reader/node"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/ktime"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/reader/node"
 )
 
 var (

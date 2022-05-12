@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	ec "github.com/isovalent/tetragon-oss/pkg/eventchecker"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
-	_ "github.com/isovalent/tetragon-oss/pkg/sensors/exec"
+	"github.com/cilium/tetragon/pkg/bpf"
+	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
+	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )

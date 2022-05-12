@@ -15,9 +15,9 @@ package eventcache
 
 import (
 	fmt "fmt"
-	fgs "github.com/isovalent/tetragon-oss/api/v1/fgs"
-	metrics "github.com/isovalent/tetragon-oss/pkg/metrics"
-	process "github.com/isovalent/tetragon-oss/pkg/process"
+	fgs "github.com/cilium/tetragon/api/v1/fgs"
+	metrics "github.com/cilium/tetragon/pkg/metrics"
+	process "github.com/cilium/tetragon/pkg/process"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 

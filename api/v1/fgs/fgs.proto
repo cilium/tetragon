@@ -20,7 +20,7 @@ import "google/protobuf/wrappers.proto";
 
 package fgs;
 
-option go_package = "github.com/isovalent/tetragon-oss/api/v1/fgs";
+option go_package = "github.com/cilium/tetragon/api/v1/fgs";
 
 message Image {
     string id = 1;

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 )
 
 type ExecveKey struct {

@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/option"
-	"github.com/isovalent/tetragon-oss/pkg/reader/namespace"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 )
 
 func GetCapabilities(capInt uint64) string {

@@ -3,7 +3,7 @@
 
 package sensors
 
-import "github.com/isovalent/tetragon-oss/pkg/kernels"
+import "github.com/cilium/tetragon/pkg/kernels"
 
 var (
 	Execve = ProgramBuilder(

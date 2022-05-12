@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	checker "github.com/isovalent/tetragon-oss/pkg/alignchecker"
+	checker "github.com/cilium/tetragon/pkg/alignchecker"
 )
 
 func main() {

@@ -6,14 +6,14 @@ package eventcache
 import (
 	"time"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	codegen "github.com/isovalent/tetragon-oss/api/v1/fgs/codegen/eventcache"
-	"github.com/isovalent/tetragon-oss/pkg/dns"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/metrics"
-	"github.com/isovalent/tetragon-oss/pkg/process"
-	"github.com/isovalent/tetragon-oss/pkg/reader/node"
-	"github.com/isovalent/tetragon-oss/pkg/server"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	codegen "github.com/cilium/tetragon/api/v1/fgs/codegen/eventcache"
+	"github.com/cilium/tetragon/pkg/dns"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/server"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

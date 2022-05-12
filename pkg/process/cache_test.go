@@ -6,7 +6,7 @@ package process
 import (
 	"testing"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"

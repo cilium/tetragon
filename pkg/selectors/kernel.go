@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
-	"github.com/isovalent/tetragon-oss/pkg/reader/namespace"
-	"github.com/isovalent/tetragon-oss/pkg/reader/path"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/path"
 )
 
 const (

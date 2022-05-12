@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 // ValidationWarn is used to mark that validation was not successful but it's not

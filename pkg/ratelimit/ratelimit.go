@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	"github.com/isovalent/tetragon-oss/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/reader/node"
 	"golang.org/x/time/rate"
 )
 

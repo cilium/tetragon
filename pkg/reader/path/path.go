@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/api"
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 )
 
 func GetBinaryAbsolutePath(binary string, cwd string) string {

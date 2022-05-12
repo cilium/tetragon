@@ -57,8 +57,8 @@ bool detect_override_return_helper(bool verbose, int version)
 import "C"
 
 import (
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
-	"github.com/isovalent/tetragon-oss/pkg/option"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 type Feature struct {

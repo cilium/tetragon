@@ -15,7 +15,7 @@
 package bugtool
 
 import (
-	"github.com/isovalent/tetragon-oss/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/bugtool"
 
 	"github.com/spf13/cobra"
 )

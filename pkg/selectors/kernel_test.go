@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
-	"github.com/isovalent/tetragon-oss/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 )
 
 func TestWriteSelectorUint32(t *testing.T) {

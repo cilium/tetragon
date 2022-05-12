@@ -6,9 +6,9 @@ package sttManager
 import (
 	"fmt"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
-	stt "github.com/isovalent/tetragon-oss/pkg/stacktracetree"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/logger"
+	stt "github.com/cilium/tetragon/pkg/stacktracetree"
 )
 
 // StackTrace Tree Manager

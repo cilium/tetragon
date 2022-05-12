@@ -8,8 +8,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/api/calltraceapi"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/api/calltraceapi"
 )
 
 // Addr is an Address on the stacktrace tree

@@ -18,10 +18,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/isovalent/tetragon-oss/pkg/api"
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )

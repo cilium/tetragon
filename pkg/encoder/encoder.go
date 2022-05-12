@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 // EventEncoder is an interface for encoding fgs.GetEventsResponse.

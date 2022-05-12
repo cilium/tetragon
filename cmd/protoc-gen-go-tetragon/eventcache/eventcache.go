@@ -14,7 +14,7 @@ package eventcache
 import (
 	"fmt"
 
-	"github.com/isovalent/tetragon-oss/cmd/protoc-gen-go-tetragon/common"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
@@ -31,13 +31,13 @@ func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
 }
 
 func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
-	fgsProcessInternal := common.GoIdent(g, "github.com/isovalent/tetragon-oss/pkg/process", "ProcessInternal")
+	fgsProcessInternal := common.GoIdent(g, "github.com/cilium/tetragon/pkg/process", "ProcessInternal")
 	fgsGER := common.FgsApiIdent(g, "GetEventsResponse")
 	timestamp := common.GoIdent(g, "google.golang.org/protobuf/types/known/timestamppb", "Timestamp")
 
-	mErrorCount := common.GoIdent(g, "github.com/isovalent/tetragon-oss/pkg/metrics", "ErrorCount")
-	mInfoFailed := common.GoIdent(g, "github.com/isovalent/tetragon-oss/pkg/metrics", "EventCacheProcessInfoFailed")
-	mProcessInfoErrors := common.GoIdent(g, "github.com/isovalent/tetragon-oss/pkg/metrics", "ProcessInfoErrors")
+	mErrorCount := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ErrorCount")
+	mInfoFailed := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "EventCacheProcessInfoFailed")
+	mProcessInfoErrors := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ProcessInfoErrors")
 
 	g.P(`func DoHandleEvent(event eventObj, internal *` + fgsProcessInternal + `, labels []string, nodeName string, timestamp *` + timestamp + `) (*` + fgsGER + `, error) {
         switch e := event.(type) {`)

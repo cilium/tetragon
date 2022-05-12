@@ -14,17 +14,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	ec "github.com/isovalent/tetragon-oss/pkg/eventchecker"
-	"github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
-	"github.com/isovalent/tetragon-oss/pkg/testutils"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/bpf"
+	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 
-	_ "github.com/isovalent/tetragon-oss/pkg/sensors/exec"
+	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
 
 var (

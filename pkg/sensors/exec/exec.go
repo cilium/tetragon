@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/isovalent/tetragon-oss/pkg/api/ops"
-	api "github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/btf"
-	"github.com/isovalent/tetragon-oss/pkg/k8s/apis/isovalent.com/v1alpha1"
-	"github.com/isovalent/tetragon-oss/pkg/observer"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
-	"github.com/isovalent/tetragon-oss/pkg/sensors/exec/procevents"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	api "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 )
 
 func fromCString(cstr []byte) string {

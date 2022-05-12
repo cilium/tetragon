@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/api/processapi"
-	"github.com/isovalent/tetragon-oss/pkg/option"
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (

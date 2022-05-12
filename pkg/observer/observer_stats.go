@@ -11,9 +11,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/metrics"
-	"github.com/isovalent/tetragon-oss/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/sensors"
 )
 
 type statKey struct {

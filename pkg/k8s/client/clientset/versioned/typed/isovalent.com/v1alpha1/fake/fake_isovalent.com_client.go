@@ -5,7 +5,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/isovalent/tetragon-oss/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

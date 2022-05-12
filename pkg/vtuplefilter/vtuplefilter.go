@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/isovalent/tetragon-oss/pkg/vtuple"
+	"github.com/cilium/tetragon/pkg/vtuple"
 )
 
 type Port = uint16

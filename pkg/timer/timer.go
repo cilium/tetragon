@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type PeriodicTimer struct {

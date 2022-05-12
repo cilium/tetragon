@@ -26,7 +26,7 @@ import (
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/monitor/payload"
 	"github.com/cilium/hubble/pkg/cilium"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 // HandleMonitorSocket connects to the monitor socket and consumes monitor events.

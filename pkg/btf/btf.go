@@ -10,8 +10,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/isovalent/tetragon-oss/pkg/bpf"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/logger"
 
 	"golang.org/x/sys/unix"
 )

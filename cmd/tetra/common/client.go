@@ -15,8 +15,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/isovalent/tetragon-oss/api/v1/fgs"
-	"github.com/isovalent/tetragon-oss/pkg/logger"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/viper"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
