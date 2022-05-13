@@ -49,6 +49,29 @@ Finally, should you wish to modify any of the resulting codegen files (ending in
 do not modify them directly. Instead, you can edit the files in
 `cmd/protoc-gen-go-tetragon` and then re-run `make codegen`.
 
+Running Tetragon in kind
+========================
+
+The scripts in contrib/localdev will help you run Tetragon locally in a kind cluster.
+First, ensure that docker, kind, kubectl, and helm are installed on your system.
+Then, run the following commands:
+
+```
+# Build Tetragon agent and operator images
+LD_LIBRARY_PATH=$(realpath ./lib) make LOCAL_CLANG=0 image image-operator
+
+# Bootstrap the cluster
+contrib/localdev/bootstrap-kind-cluster.sh
+
+# Install Tetragon
+contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
+```
+
+Verify that Tetragon is installed by running:
+```
+kubectl get pods -n kube-system
+```
+
 Using Dev VM
 ============
 
