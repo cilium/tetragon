@@ -904,7 +904,7 @@ static inline __attribute__((always_inline)) long
 __do_action(long i, struct msg_generic_kprobe *e,
 	    struct selector_action *actions, struct bpf_map_def *override_tasks)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	int action = actions->act[i];
 	__s32 error, *error_p;
 	int fdi, namei;
@@ -919,7 +919,7 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
 		break;
 	case ACTION_SIGKILL:
-		if (bpf_core_enum_value(tetragon_args, sigkill))
+		if (bpf_core_enum_value(fgs_args, sigkill))
 			send_signal(FGS_SIGKILL);
 		break;
 	case ACTION_OVERRIDE:

@@ -4,7 +4,7 @@ static inline __attribute__((always_inline)) int
 generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	unsigned long a0, a1, a2, a3, a4;
@@ -42,23 +42,23 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	e->current.pad[2] = 0;
 	e->current.pad[3] = 0;
 
-	e->id = bpf_core_enum_value(tetragon_args, func_id);
+	e->id = bpf_core_enum_value(fgs_args, func_id);
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	/* If return arg is needed mark retprobe */
 #ifdef GENERIC_KPROBE
-	ty = bpf_core_enum_value(tetragon_args, argreturn);
+	ty = bpf_core_enum_value(fgs_args, argreturn);
 	if (ty > 0)
 		retprobe_map_set(e->thread_id, 1);
 #endif
 
 	/* Read out args1-5 */
-	ty = bpf_core_enum_value(tetragon_args, arg0);
+	ty = bpf_core_enum_value(fgs_args, arg0);
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a0m;
 
-		a0m = bpf_core_enum_value(tetragon_args, arg0m);
+		a0m = bpf_core_enum_value(fgs_args, arg0m);
 		errv = read_call_arg(ctx, e, 0, ty, total, a0, a0m, map);
 		if (errv > 0)
 			total += errv;
@@ -82,7 +82,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 				struct bpf_map_def *map,
 				struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	struct msg_generic_kprobe *e;
 	int zero = 0, is_syscall;
 
@@ -91,7 +91,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (!e)
 		return 0;
 
-	is_syscall = bpf_core_enum_value(tetragon_args, syscall);
+	is_syscall = bpf_core_enum_value(fgs_args, syscall);
 	if (is_syscall) {
 		struct pt_regs *_ctx;
 		_ctx = (struct pt_regs *)ctx->di;
@@ -134,7 +134,7 @@ static inline __attribute__((always_inline)) int
 generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -160,12 +160,12 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg1);
+	ty = bpf_core_enum_value(fgs_args, arg1);
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a1m;
 
-		a1m = bpf_core_enum_value(tetragon_args, arg1m);
+		a1m = bpf_core_enum_value(fgs_args, arg1m);
 		errv = read_call_arg(ctx, e, 1, ty, total, a1, a1m, map);
 		if (errv > 0)
 			total += errv;
@@ -181,7 +181,7 @@ static inline __attribute__((always_inline)) int
 generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -207,12 +207,12 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg2);
+	ty = bpf_core_enum_value(fgs_args, arg2);
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a2m;
 
-		a2m = bpf_core_enum_value(tetragon_args, arg2m);
+		a2m = bpf_core_enum_value(fgs_args, arg2m);
 		errv = read_call_arg(ctx, e, 2, ty, total, a2, a2m, map);
 		if (errv > 0)
 			total += errv;
@@ -228,7 +228,7 @@ static inline __attribute__((always_inline)) int
 generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -255,12 +255,12 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	a4 = e->a4;
 
 	/* Arg filter and copy logic */
-	ty = bpf_core_enum_value(tetragon_args, arg3);
+	ty = bpf_core_enum_value(fgs_args, arg3);
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a3m;
 
-		a3m = bpf_core_enum_value(tetragon_args, arg3m);
+		a3m = bpf_core_enum_value(fgs_args, arg3m);
 		errv = read_call_arg(ctx, e, 3, ty, total, a3, a3m, map);
 		if (errv > 0)
 			total += errv;
@@ -276,7 +276,7 @@ static inline __attribute__((always_inline)) int
 generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -302,12 +302,12 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg4);
+	ty = bpf_core_enum_value(fgs_args, arg4);
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a4m;
 
-		a4m = bpf_core_enum_value(tetragon_args, arg4m);
+		a4m = bpf_core_enum_value(fgs_args, arg4m);
 		errv = read_call_arg(ctx, e, 4, ty, total, a4, a4m, map);
 		if (errv > 0)
 			total += errv;

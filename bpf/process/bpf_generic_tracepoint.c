@@ -91,7 +91,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 __attribute__((section(("tracepoint/generic_tracepoint")), used)) int
 generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 {
-	enum generic_func_args_enum tetragon_args;
+	enum generic_func_args_enum fgs_args;
 	struct msg_generic_kprobe *msg;
 	int zero = 0, i;
 
@@ -101,36 +101,36 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a0 = ({
 		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg0_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg0);
+			bpf_core_enum_value(fgs_args, t_arg0_ctx_off);
+		int ty = bpf_core_enum_value(fgs_args, arg0);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a1 = ({
 		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg1_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg1);
+			bpf_core_enum_value(fgs_args, t_arg1_ctx_off);
+		int ty = bpf_core_enum_value(fgs_args, arg1);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a2 = ({
 		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg2_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg2);
+			bpf_core_enum_value(fgs_args, t_arg2_ctx_off);
+		int ty = bpf_core_enum_value(fgs_args, arg2);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a3 = ({
 		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg3_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg3);
+			bpf_core_enum_value(fgs_args, t_arg3_ctx_off);
+		int ty = bpf_core_enum_value(fgs_args, arg3);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a4 = ({
 		unsigned long ctx_off =
-			bpf_core_enum_value(tetragon_args, t_arg4_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg4);
+			bpf_core_enum_value(fgs_args, t_arg4_ctx_off);
+		int ty = bpf_core_enum_value(fgs_args, arg4);
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
