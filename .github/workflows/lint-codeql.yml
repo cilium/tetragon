@@ -1,0 +1,58 @@
+name: codeql
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "45 6 * * 3"
+
+permissions: read-all
+
+jobs:
+  check_changes:
+    name: Deduce required tests from code changes
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-18.04
+    outputs:
+      go-changes: ${{ steps.go-changes.outputs.src }}
+    steps:
+      - name: Checkout code
+        if: ${{ !github.event.pull_request }}
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+        with:
+          persist-credentials: false
+      - name: Check code changes
+        uses: dorny/paths-filter@b2feaf19c27470162a626bd6fa8438ae5b263721
+        id: go-changes
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          filters: |
+            src:
+              - .github/workflows/lint-codeql.yaml
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+
+  analyze:
+    needs: check_changes
+    if: ${{ needs.check_changes.outputs.go-changes == 'true' || github.event_name != 'pull_request' }}
+    runs-on: ubuntu-18.04
+    permissions:
+      security-events: write
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      with:
+        persist-credentials: false
+        fetch-depth: 1
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@7502d6e991ca767d2db617bfd823a1ed925a0d59
+      with:
+        languages: go
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@7502d6e991ca767d2db617bfd823a1ed925a0d59
