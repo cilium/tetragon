@@ -5,7 +5,7 @@ RUN apt-get -y install clang-format-10
 RUN ln -s /bin/clang-format-10 /bin/clang-format
 
 USER 1000
-WORKDIR /tetragon
+WORKDIR /fgs
 
 ENTRYPOINT ["clang-format"]
 CMD ["--help"]

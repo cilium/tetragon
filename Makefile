@@ -171,8 +171,8 @@ check:
 	golangci-lint run
 else
 check:
-	docker build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
-	docker run --rm -v `pwd`:/app -w /app golangci-lint:tetragon golangci-lint run
+	docker build -t golangci-lint:fgs . -f Dockerfile.golangci-lint
+	docker run --rm -v `pwd`:/app -w /app golangci-lint:fgs golangci-lint run
 endif
 
 .PHONY: clang-format
@@ -183,7 +183,7 @@ else
 clang-format:
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "isovalent/clang-format:${DOCKER_IMAGE_TAG}" .
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 \
-		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "isovalent/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
+		$(CONTAINER_ENGINE) run -v $(shell realpath .):/fgs "isovalent/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
 endif
 
 .PHONY: go-format
