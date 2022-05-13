@@ -139,7 +139,7 @@ func (k *Observer) __loopEvents(stopCtx context.Context, e *bpf.PerCpuEvents) er
 	pollTimeoutMsec := int(pollTimeout / time.Millisecond)
 
 	k.log.Info("Listening for events...")
-	k.observerListeners(&readyapi.MsgFGSReady{})
+	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 
 	for !isCtxDone(stopCtx) {
 		_, err := e.Poll(pollTimeoutMsec)
@@ -192,7 +192,7 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 	}
 
 	// Inform caller that we're about to start processing events.
-	k.observerListeners(&readyapi.MsgFGSReady{})
+	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 	ready()
 
 	// Listeners are ready and about to start reading from perf reader, tell

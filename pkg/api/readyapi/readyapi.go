@@ -2,4 +2,4 @@
 // Copyright Authors of Tetragon
 package readyapi
 
-type MsgFGSReady struct{}
+type MsgTETRAGONReady struct{}

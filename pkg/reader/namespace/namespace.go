@@ -40,7 +40,7 @@ func GetPidNsInode(pid uint32, nsStr string) uint32 {
 
 func GetMyPidG() uint32 {
 	selfBinary := filepath.Base(os.Args[0])
-	if procfs := os.Getenv("FGS_PROCFS"); procfs != "" {
+	if procfs := os.Getenv("TETRAGON_PROCFS"); procfs != "" {
 		procFS, _ := ioutil.ReadDir(procfs)
 		for _, d := range procFS {
 			if d.IsDir() == false {

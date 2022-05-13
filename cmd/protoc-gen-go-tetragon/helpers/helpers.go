@@ -20,9 +20,9 @@ func generateEventTypeString(g *protogen.GeneratedFile, f *protogen.File) error 
 	doCases := func() string {
 		var ret string
 		for _, msg := range events {
-			resGoIdent := common.FgsApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			resGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
 			typeName := strcase.ToScreamingSnake(msg.GoIdent.GoName)
-			typeGoIdent := common.FgsApiIdent(g, fmt.Sprintf("EventType_%s", typeName))
+			typeGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("EventType_%s", typeName))
 
 			ret += `case *` + resGoIdent + `:
                 return ` + typeGoIdent + `.String(), nil
@@ -46,8 +46,8 @@ func generateEventTypeString(g *protogen.GeneratedFile, f *protogen.File) error 
 }
 
 func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.FgsApiIdent(g, "Process")
-	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetProcess gets the process field for a response if it exists
     func ResponseGetProcess(response response) *` + tetragonProcess + ` {
@@ -65,7 +65,7 @@ func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) err
 }
 
 func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.TetragonApiIdent(g, "Process")
 
 	events, err := common.GetEvents(f)
 	if err != nil {
@@ -79,7 +79,7 @@ func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error 
 				continue
 			}
 
-			goIdent := common.FgsApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Process
@@ -103,8 +103,8 @@ func generateEventGetProcess(g *protogen.GeneratedFile, f *protogen.File) error 
 }
 
 func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.FgsApiIdent(g, "Process")
-	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetParent gets the parent field for a response if it exists
     func ResponseGetParent(response response) *` + tetragonProcess + ` {
@@ -122,7 +122,7 @@ func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) erro
 }
 
 func generateEventGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.TetragonApiIdent(g, "Process")
 
 	events, err := common.GetEvents(f)
 	if err != nil {
@@ -136,7 +136,7 @@ func generateEventGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
 				continue
 			}
 
-			goIdent := common.FgsApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Parent

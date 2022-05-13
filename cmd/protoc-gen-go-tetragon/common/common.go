@@ -38,9 +38,9 @@ func GoIdent(g *protogen.GeneratedFile, importPath string, name string) string {
 	})
 }
 
-// FgsApiIdent is a convenience helper that calls GoIdent with the path to the FGS API
+// TetragonApiIdent is a convenience helper that calls GoIdent with the path to the TETRAGON API
 // package.
-func FgsApiIdent(g *protogen.GeneratedFile, name string) string {
+func TetragonApiIdent(g *protogen.GeneratedFile, name string) string {
 	return GoIdent(g, "github.com/cilium/tetragon/api/v1/tetragon", name)
 }
 
@@ -104,12 +104,12 @@ func EventFieldCheck(msg *protogen.Message, field string) bool {
 	return false
 }
 
-// IsProcessEvent returns true if the message is an FGS event that has a process field
+// IsProcessEvent returns true if the message is an TETRAGON event that has a process field
 func IsProcessEvent(msg *protogen.Message) bool {
 	return EventFieldCheck(msg, "process")
 }
 
-// IsParentEvent returns true if the message is an FGS event that has a parent field
+// IsParentEvent returns true if the message is an TETRAGON event that has a parent field
 func IsParentEvent(msg *protogen.Message) bool {
 	return EventFieldCheck(msg, "parent")
 }

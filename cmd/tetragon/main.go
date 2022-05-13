@@ -75,7 +75,7 @@ func saveInitInfo() error {
 	return bugtool.SaveInitInfo(&info)
 }
 
-func hubbleFGSExecute() error {
+func hubbleTETRAGONExecute() error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -281,7 +281,7 @@ func execute() error {
 			if err := gops.Listen(gops.Options{}); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
 			}
-			if err := hubbleFGSExecute(); err != nil {
+			if err := hubbleTETRAGONExecute(); err != nil {
 				log.WithError(err).Fatal("Failed to start tetragon")
 			}
 		},
@@ -329,8 +329,8 @@ func execute() error {
 	flags.Int(keyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
 	flags.String(keyLogLevel, "info", "Set log level")
 	flags.String(keyLogFormat, "text", "Set log format")
-	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate FGS events with Kubernetes pods")
-	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate FGS events with Cilium endpoints and DNS cache")
+	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate TETRAGON events with Kubernetes pods")
+	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate TETRAGON events with Cilium endpoints and DNS cache")
 	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
 	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Set it to an empty string to disable.")
 	flags.String(keyServerAddress, "localhost:54321", "gRPC server address")

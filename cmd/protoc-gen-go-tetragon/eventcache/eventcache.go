@@ -12,8 +12,8 @@ import (
 
 // getEventsResponse generates a new GetEventsResponse_<EVENT_TYPE>
 func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
-	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
-	subtype := common.FgsApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", eventType))
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	subtype := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", eventType))
 
 	return tetragonGER + `{
         Event: &` + subtype + `{` + eventType + `: e},
@@ -24,7 +24,7 @@ func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
 
 func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 	tetragonProcessInternal := common.GoIdent(g, "github.com/cilium/tetragon/pkg/process", "ProcessInternal")
-	tetragonGER := common.FgsApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	timestamp := common.GoIdent(g, "google.golang.org/protobuf/types/known/timestamppb", "Timestamp")
 
 	mErrorCount := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ErrorCount")
@@ -58,7 +58,7 @@ func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
 	g := common.NewGeneratedFile(gen, f, "eventcache")
 
-	tetragonProcess := common.FgsApiIdent(g, "Process")
+	tetragonProcess := common.TetragonApiIdent(g, "Process")
 
 	g.P(`
         type eventObj interface {

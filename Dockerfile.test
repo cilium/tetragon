@@ -20,6 +20,6 @@ COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so
 COPY --from=hubble-libbpf /go/src/github.com/covalentio/hubble-fgs/src/libbpf.so /usr/local/lib/
 CMD LD_LIBRARY_PATH=/usr/local/lib/ go test ./pkg/observer/
 
-ENV FGS_BTF=/var/lib/tetragon/btf
-ENV FGS_PROCFS=/procRoot/
+ENV TETRAGON_BTF=/var/lib/tetragon/btf
+ENV TETRAGON_PROCFS=/procRoot/
 ENV LD_LIBRARY_PATH=/usr/local/lib/

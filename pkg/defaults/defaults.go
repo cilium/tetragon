@@ -18,7 +18,7 @@ const (
 	// DefaultMapRoot is the default path where BPFFS should be mounted
 	DefaultMapRoot = "/sys/fs/bpf"
 
-	// DefaultMapDir is the default path where FGS maps should be pinneded
+	// DefaultMapDir is the default path where TETRAGON maps should be pinneded
 	DefaultMapDir = "/sys/fs/bpf/tcpmon"
 
 	// DefaultEventMap is the default name of the Event map

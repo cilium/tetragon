@@ -215,7 +215,7 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	return process, parent
 }
 
-// Add converts an FGS exec event to protobuf format and adds the protobuf message to the cache.
+// Add converts an TETRAGON exec event to protobuf format and adds the protobuf message to the cache.
 func Add(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	proc, _ := GetProcess(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
 	procCache.Add(proc)

@@ -3,7 +3,7 @@
 
 package option
 
-// Config contains all the configuration used by FGS.
+// Config contains all the configuration used by TETRAGON.
 var Config = config{
 	// Initialize global defaults below.
 

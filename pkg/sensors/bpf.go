@@ -33,7 +33,7 @@ type Program struct {
 	// Label is the program section name to load from program.
 	Label string
 	// PinPath is the pinned path to this program. Note this is a relative path
-	// based on the BPF directory FGS is running under.
+	// based on the BPF directory TETRAGON is running under.
 	PinPath string
 
 	// RetProbe indicates whether a kprobe is a kretprobe.

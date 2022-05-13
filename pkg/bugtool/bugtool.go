@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-// FGS bugtool code
+// TETRAGON bugtool code
 
 package bugtool
 
@@ -34,7 +34,7 @@ const (
 	initInfoFname = defaults.DefaultRunDir + "tetragon-info.json"
 )
 
-// InitInfo contains information about how FGS was initialized.
+// InitInfo contains information about how TETRAGON was initialized.
 type InitInfo struct {
 	ExportFname string `json:"export_fname"`
 	LibDir      string `json:"lib_dir"`
@@ -211,7 +211,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addInitInfo(tarWriter)
 	si.addLibFiles(tarWriter)
 	si.addBtfFile(tarWriter)
-	si.addFgsLog(tarWriter)
+	si.addTetragonLog(tarWriter)
 	si.addMetrics(tarWriter)
 	si.execCmd(tarWriter, "dmesg.out", "dmesg")
 	si.addTcInfo(tarWriter)
@@ -320,8 +320,8 @@ func (s *bugtoolInfo) addBtfFile(tarWriter *tar.Writer) error {
 	return err
 }
 
-// addFgsLog adds the tetragon log file to the archive
-func (s *bugtoolInfo) addFgsLog(tarWriter *tar.Writer) error {
+// addTetragonLog adds the tetragon log file to the archive
+func (s *bugtoolInfo) addTetragonLog(tarWriter *tar.Writer) error {
 	if s.info.ExportFname == "" {
 		s.multiLog.Info("no export file specified")
 		return nil

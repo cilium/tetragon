@@ -17,7 +17,7 @@ import (
 func generateOpCodeForEventType(g *protogen.GeneratedFile, f *protogen.File) error {
 	reflectType := common.GoIdent(g, "reflect", "Type")
 	reflectTypeOf := common.GoIdent(g, "reflect", "TypeOf")
-	tetragonEventType := common.FgsApiIdent(g, "EventType")
+	tetragonEventType := common.TetragonApiIdent(g, "EventType")
 
 	enumIndex := -1
 	for i, enum := range f.Enums {
@@ -81,7 +81,7 @@ func eventTypeToResponse(g *protogen.GeneratedFile, f *protogen.File, eventType 
 		return "", nil
 	}
 
-	return common.FgsApiIdent(g, name), nil
+	return common.TetragonApiIdent(g, name), nil
 }
 
 // Generate generates boilerplate code for the filters

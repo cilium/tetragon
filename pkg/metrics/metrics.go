@@ -66,7 +66,7 @@ const (
 	MetricNamePrefix string = "isovalent_"
 )
 
-// FGS debugging and core info metrics
+// TETRAGON debugging and core info metrics
 var (
 	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        MetricNamePrefix + "msg_op_total",
@@ -75,17 +75,17 @@ var (
 	}, []string{"msg_op"})
 	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        MetricNamePrefix + "events_total",
-		Help:        "The total number of FGS events",
+		Help:        "The total number of TETRAGON events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
 	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        MetricNamePrefix + "flags_total",
-		Help:        "The total number of FGS flags. For internal use only.",
+		Help:        "The total number of TETRAGON flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	ErrorCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        MetricNamePrefix + "errors_total",
-		Help:        "The total number of FGS errors. For internal use only.",
+		Help:        "The total number of TETRAGON errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	ExecveMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -100,22 +100,22 @@ var (
 	}, []string{"map", "total"})
 	EventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        MetricNamePrefix + "event_cache",
-		Help:        "The total number of FGS event cache access/errors. For internal use only.",
+		Help:        "The total number of TETRAGON event cache access/errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	RingBufPerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        MetricNamePrefix + "ringbuf_perf_event_received",
-		Help:        "The total number of FGS ringbuf perf events received.",
+		Help:        "The total number of TETRAGON ringbuf perf events received.",
 		ConstLabels: nil,
 	}, nil)
 	RingBufPerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        MetricNamePrefix + "ringbuf_perf_event_lost",
-		Help:        "The total number of FGS ringbuf perf events lost.",
+		Help:        "The total number of TETRAGON ringbuf perf events lost.",
 		ConstLabels: nil,
 	}, nil)
 	RingBufPerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        MetricNamePrefix + "ringbuf_perf_event_errors",
-		Help:        "The total number of FGS ringbuf perf event error count.",
+		Help:        "The total number of TETRAGON ringbuf perf event error count.",
 		ConstLabels: nil,
 	}, nil)
 	ProcessInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{

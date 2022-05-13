@@ -85,7 +85,7 @@ func Test_handleProcessedEvent(t *testing.T) {
 		},
 	}}})
 
-	expected := strings.NewReader(`# HELP isovalent_events_total The total number of FGS events
+	expected := strings.NewReader(`# HELP isovalent_events_total The total number of TETRAGON events
 # TYPE isovalent_events_total counter
 isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE"} 1
 isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC"} 1
@@ -116,7 +116,7 @@ func Test_handleOriginalEvent(t *testing.T) {
 			Flags: api.EventClone | api.EventExecve,
 		},
 	})
-	expected := strings.NewReader(`# HELP isovalent_flags_total The total number of FGS flags. For internal use only.
+	expected := strings.NewReader(`# HELP isovalent_flags_total The total number of TETRAGON flags. For internal use only.
 # TYPE isovalent_flags_total counter
 isovalent_flags_total{type="clone"} 1
 isovalent_flags_total{type="execve"} 1

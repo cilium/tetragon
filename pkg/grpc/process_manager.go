@@ -98,7 +98,7 @@ func NewProcessManager(
 func (pm *ProcessManager) Notify(event interface{}) error {
 	var processedEvent *tetragon.GetEventsResponse
 	switch msg := event.(type) {
-	case *readyapi.MsgFGSReady:
+	case *readyapi.MsgTETRAGONReady:
 		// pass
 	case *processapi.MsgExecveEventUnix:
 		processedEvent = execGrpc.HandleExecveMessage(msg)

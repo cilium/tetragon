@@ -104,11 +104,11 @@ func (ec *Cache) loop() {
 }
 
 // We handle two race conditions here one where the event races with
-// an FGS execve event and the other -- much more common -- where we
+// an TETRAGON execve event and the other -- much more common -- where we
 // race with K8s watcher
 // case 1 (execve race):
-//  Its possible to receive this FGS event before the process event cache
-//  has been populated with a FGS execve event. In this case we need to
+//  Its possible to receive this TETRAGON event before the process event cache
+//  has been populated with a TETRAGON execve event. In this case we need to
 //  cache the event until the process cache is populated.
 // case 2 (k8s watcher race):
 //  Its possible to receive an event before the k8s watcher receives the

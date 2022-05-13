@@ -262,7 +262,7 @@ func (c *UnorderedMultiResponseChecker) Append(checkers ...ResponseChecker) {
 }
 
 type tetragonEvent interface {
-	// used for FGS events such as:
+	// used for TETRAGON events such as:
 	// tetragon.ProcessExec
 	// tetragon.ProcessClose
 	// etc.

@@ -236,11 +236,11 @@ func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
 func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
 	o := newDefaultTestOptions(t, opts...)
 
-	option.Config.HubbleLib = os.Getenv("FGS_LIB")
+	option.Config.HubbleLib = os.Getenv("TETRAGON_LIB")
 	if option.Config.HubbleLib == "" {
 		option.Config.HubbleLib = o.observer.lib
 	}
-	procfs := os.Getenv("FGS_PROCFS")
+	procfs := os.Getenv("TETRAGON_PROCFS")
 	if procfs != "" {
 		option.Config.ProcFS = procfs
 	}
@@ -259,7 +259,7 @@ func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
 
 	// There doesn't appear to be a better way to enable the metrics server once and only
 	// once at the beginning of the observer tests. My initial thought was to use the init
-	// function in this file, however that actually ends up interfering with the FGS agent
+	// function in this file, however that actually ends up interfering with the TETRAGON agent
 	// since it get compiled into the observer package.
 	//
 	// This is horrifically ugly, so we may want to figure out a better way to do this
@@ -459,7 +459,7 @@ func WaitForProcess(process string) error {
 	var b []byte
 	b = append(b, 0x00)
 
-	procfs := os.Getenv("FGS_PROCFS")
+	procfs := os.Getenv("TETRAGON_PROCFS")
 	if procfs == "" {
 		procfs = "/proc/"
 	}
