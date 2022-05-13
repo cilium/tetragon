@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
-// EventEncoder is an interface for encoding tetragon.GetEventsResponse.
+// EventEncoder is an interface for encoding fgs.GetEventsResponse.
 type EventEncoder interface {
 	Encode(v interface{}) error
 }
@@ -25,7 +25,7 @@ const (
 	Auto   ColorMode = "auto"   // automatically enable / disable colored output based on terminal settings.
 )
 
-// CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
+// CompactEncoder encodes fgs.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {
 	writer  io.Writer
 	colorer *colorer
@@ -41,7 +41,7 @@ func NewCompactEncoder(w io.Writer, colorMode ColorMode) *CompactEncoder {
 
 // Encode implements EventEncoder.Encode.
 func (p *CompactEncoder) Encode(v interface{}) error {
-	event, ok := v.(*tetragon.GetEventsResponse)
+	event, ok := v.(*fgs.GetEventsResponse)
 	if !ok {
 		return fmt.Errorf("invalid event")
 	}
@@ -96,9 +96,9 @@ func printNS(ns int32) string {
 	return nsId[ns]
 }
 
-func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (string, error) {
+func (p *CompactEncoder) eventToString(response *fgs.GetEventsResponse) (string, error) {
 	switch response.Event.(type) {
-	case *tetragon.GetEventsResponse_ProcessExec:
+	case *fgs.GetEventsResponse_ProcessExec:
 		exec := response.GetProcessExec()
 		if exec.Process == nil {
 			return "", fmt.Errorf("process field is not set")
@@ -107,7 +107,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 		processInfo, caps := p.colorer.processInfo(response.NodeName, exec.Process)
 		args := p.colorer.cyan.Sprint(exec.Process.Arguments)
 		return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
-	case *tetragon.GetEventsResponse_ProcessExit:
+	case *fgs.GetEventsResponse_ProcessExit:
 		exit := response.GetProcessExit()
 		if exit.Process == nil {
 			return "", fmt.Errorf("process field is not set")
@@ -122,7 +122,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 			status = p.colorer.red.Sprint(exit.Status)
 		}
 		return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
-	case *tetragon.GetEventsResponse_ProcessKprobe:
+	case *fgs.GetEventsResponse_ProcessKprobe:
 		kprobe := response.GetProcessKprobe()
 		if kprobe.Process == nil {
 			return "", fmt.Errorf("process field is not set")
@@ -240,7 +240,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 			event := p.colorer.blue.Sprintf("⁉️ %-7s", "syscall")
 			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
-	case *tetragon.GetEventsResponse_ProcessDns:
+	case *fgs.GetEventsResponse_ProcessDns:
 		dns := response.GetProcessDns()
 		if dns.Process == nil {
 			return "", fmt.Errorf("process field is not set")

@@ -27,7 +27,7 @@ func init() {
 	runtime.ErrorHandlers = []func(error){k8sErrorHandler}
 }
 
-// k8sErrorHandler logs errors from k8s API to the tetragon logger for consistent log format.
+// k8sErrorHandler logs errors from k8s API to the fgs logger for consistent log format.
 func k8sErrorHandler(e error) {
 	if e == nil {
 		return

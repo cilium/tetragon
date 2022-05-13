@@ -19,7 +19,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 )
 
 func filterByPid(pids []uint32) hubbleFilters.FilterFunc {
@@ -39,7 +39,7 @@ func filterByPid(pids []uint32) hubbleFilters.FilterFunc {
 
 type PidFilter struct{}
 
-func (f *PidFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *PidFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.Pid != nil {
 		fs = append(fs, filterByPid(ff.Pid))

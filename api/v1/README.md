@@ -3,82 +3,82 @@
 
 ## Table of Contents
 
-- [tetragon.proto](#tetragon.proto)
-    - [AddTracingPolicyRequest](#tetragon.AddTracingPolicyRequest)
-    - [AddTracingPolicyResponse](#tetragon.AddTracingPolicyResponse)
-    - [AggregationInfo](#tetragon.AggregationInfo)
-    - [AggregationOptions](#tetragon.AggregationOptions)
-    - [Capabilities](#tetragon.Capabilities)
-    - [Container](#tetragon.Container)
-    - [DeleteTracingPolicyRequest](#tetragon.DeleteTracingPolicyRequest)
-    - [DeleteTracingPolicyResponse](#tetragon.DeleteTracingPolicyResponse)
-    - [DisableSensorRequest](#tetragon.DisableSensorRequest)
-    - [DisableSensorResponse](#tetragon.DisableSensorResponse)
-    - [DnsInfo](#tetragon.DnsInfo)
-    - [EnableSensorRequest](#tetragon.EnableSensorRequest)
-    - [EnableSensorResponse](#tetragon.EnableSensorResponse)
-    - [Filter](#tetragon.Filter)
-    - [GetEventsRequest](#tetragon.GetEventsRequest)
-    - [GetEventsResponse](#tetragon.GetEventsResponse)
-    - [GetHealthStatusRequest](#tetragon.GetHealthStatusRequest)
-    - [GetHealthStatusResponse](#tetragon.GetHealthStatusResponse)
-    - [GetSensorConfigRequest](#tetragon.GetSensorConfigRequest)
-    - [GetSensorConfigResponse](#tetragon.GetSensorConfigResponse)
-    - [GetStackTraceTreeRequest](#tetragon.GetStackTraceTreeRequest)
-    - [GetStackTraceTreeResponse](#tetragon.GetStackTraceTreeResponse)
-    - [GetVersionRequest](#tetragon.GetVersionRequest)
-    - [GetVersionResponse](#tetragon.GetVersionResponse)
-    - [HealthStatus](#tetragon.HealthStatus)
-    - [Image](#tetragon.Image)
-    - [KprobeArgument](#tetragon.KprobeArgument)
-    - [KprobeCred](#tetragon.KprobeCred)
-    - [KprobeFile](#tetragon.KprobeFile)
-    - [KprobePath](#tetragon.KprobePath)
-    - [KprobeSkb](#tetragon.KprobeSkb)
-    - [KprobeSock](#tetragon.KprobeSock)
-    - [KprobeTruncatedBytes](#tetragon.KprobeTruncatedBytes)
-    - [ListSensorsRequest](#tetragon.ListSensorsRequest)
-    - [ListSensorsResponse](#tetragon.ListSensorsResponse)
-    - [Namespace](#tetragon.Namespace)
-    - [Namespaces](#tetragon.Namespaces)
-    - [Pod](#tetragon.Pod)
-    - [Process](#tetragon.Process)
-    - [ProcessDns](#tetragon.ProcessDns)
-    - [ProcessExec](#tetragon.ProcessExec)
-    - [ProcessExit](#tetragon.ProcessExit)
-    - [ProcessKprobe](#tetragon.ProcessKprobe)
-    - [ProcessTracepoint](#tetragon.ProcessTracepoint)
-    - [RemoveSensorRequest](#tetragon.RemoveSensorRequest)
-    - [RemoveSensorResponse](#tetragon.RemoveSensorResponse)
-    - [SensorStatus](#tetragon.SensorStatus)
-    - [SetSensorConfigRequest](#tetragon.SetSensorConfigRequest)
-    - [SetSensorConfigResponse](#tetragon.SetSensorConfigResponse)
-    - [StackAddress](#tetragon.StackAddress)
-    - [StackTrace](#tetragon.StackTrace)
-    - [StackTraceLabel](#tetragon.StackTraceLabel)
-    - [StackTraceNode](#tetragon.StackTraceNode)
-    - [Test](#tetragon.Test)
+- [fgs.proto](#fgs.proto)
+    - [AddTracingPolicyRequest](#fgs.AddTracingPolicyRequest)
+    - [AddTracingPolicyResponse](#fgs.AddTracingPolicyResponse)
+    - [AggregationInfo](#fgs.AggregationInfo)
+    - [AggregationOptions](#fgs.AggregationOptions)
+    - [Capabilities](#fgs.Capabilities)
+    - [Container](#fgs.Container)
+    - [DeleteTracingPolicyRequest](#fgs.DeleteTracingPolicyRequest)
+    - [DeleteTracingPolicyResponse](#fgs.DeleteTracingPolicyResponse)
+    - [DisableSensorRequest](#fgs.DisableSensorRequest)
+    - [DisableSensorResponse](#fgs.DisableSensorResponse)
+    - [DnsInfo](#fgs.DnsInfo)
+    - [EnableSensorRequest](#fgs.EnableSensorRequest)
+    - [EnableSensorResponse](#fgs.EnableSensorResponse)
+    - [Filter](#fgs.Filter)
+    - [GetEventsRequest](#fgs.GetEventsRequest)
+    - [GetEventsResponse](#fgs.GetEventsResponse)
+    - [GetHealthStatusRequest](#fgs.GetHealthStatusRequest)
+    - [GetHealthStatusResponse](#fgs.GetHealthStatusResponse)
+    - [GetSensorConfigRequest](#fgs.GetSensorConfigRequest)
+    - [GetSensorConfigResponse](#fgs.GetSensorConfigResponse)
+    - [GetStackTraceTreeRequest](#fgs.GetStackTraceTreeRequest)
+    - [GetStackTraceTreeResponse](#fgs.GetStackTraceTreeResponse)
+    - [GetVersionRequest](#fgs.GetVersionRequest)
+    - [GetVersionResponse](#fgs.GetVersionResponse)
+    - [HealthStatus](#fgs.HealthStatus)
+    - [Image](#fgs.Image)
+    - [KprobeArgument](#fgs.KprobeArgument)
+    - [KprobeCred](#fgs.KprobeCred)
+    - [KprobeFile](#fgs.KprobeFile)
+    - [KprobePath](#fgs.KprobePath)
+    - [KprobeSkb](#fgs.KprobeSkb)
+    - [KprobeSock](#fgs.KprobeSock)
+    - [KprobeTruncatedBytes](#fgs.KprobeTruncatedBytes)
+    - [ListSensorsRequest](#fgs.ListSensorsRequest)
+    - [ListSensorsResponse](#fgs.ListSensorsResponse)
+    - [Namespace](#fgs.Namespace)
+    - [Namespaces](#fgs.Namespaces)
+    - [Pod](#fgs.Pod)
+    - [Process](#fgs.Process)
+    - [ProcessDns](#fgs.ProcessDns)
+    - [ProcessExec](#fgs.ProcessExec)
+    - [ProcessExit](#fgs.ProcessExit)
+    - [ProcessKprobe](#fgs.ProcessKprobe)
+    - [ProcessTracepoint](#fgs.ProcessTracepoint)
+    - [RemoveSensorRequest](#fgs.RemoveSensorRequest)
+    - [RemoveSensorResponse](#fgs.RemoveSensorResponse)
+    - [SensorStatus](#fgs.SensorStatus)
+    - [SetSensorConfigRequest](#fgs.SetSensorConfigRequest)
+    - [SetSensorConfigResponse](#fgs.SetSensorConfigResponse)
+    - [StackAddress](#fgs.StackAddress)
+    - [StackTrace](#fgs.StackTrace)
+    - [StackTraceLabel](#fgs.StackTraceLabel)
+    - [StackTraceNode](#fgs.StackTraceNode)
+    - [Test](#fgs.Test)
   
-    - [CapabilitiesType](#tetragon.CapabilitiesType)
-    - [EventType](#tetragon.EventType)
-    - [HealthStatusResult](#tetragon.HealthStatusResult)
-    - [HealthStatusType](#tetragon.HealthStatusType)
-    - [KprobeAction](#tetragon.KprobeAction)
+    - [CapabilitiesType](#fgs.CapabilitiesType)
+    - [EventType](#fgs.EventType)
+    - [HealthStatusResult](#fgs.HealthStatusResult)
+    - [HealthStatusType](#fgs.HealthStatusType)
+    - [KprobeAction](#fgs.KprobeAction)
   
-    - [FineGuidanceSensors](#tetragon.FineGuidanceSensors)
+    - [FineGuidanceSensors](#fgs.FineGuidanceSensors)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="tetragon.proto"></a>
+<a name="fgs.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## tetragon.proto
+## fgs.proto
 
 
 
-<a name="tetragon.AddTracingPolicyRequest"></a>
+<a name="fgs.AddTracingPolicyRequest"></a>
 
 ### AddTracingPolicyRequest
 
@@ -93,7 +93,7 @@
 
 
 
-<a name="tetragon.AddTracingPolicyResponse"></a>
+<a name="fgs.AddTracingPolicyResponse"></a>
 
 ### AddTracingPolicyResponse
 
@@ -103,7 +103,7 @@
 
 
 
-<a name="tetragon.AggregationInfo"></a>
+<a name="fgs.AggregationInfo"></a>
 
 ### AggregationInfo
 AggregationInfo contains information about aggregation results.
@@ -118,7 +118,7 @@ AggregationInfo contains information about aggregation results.
 
 
 
-<a name="tetragon.AggregationOptions"></a>
+<a name="fgs.AggregationOptions"></a>
 
 ### AggregationOptions
 AggregationOptions defines configuration options for aggregating events.
@@ -134,7 +134,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.Capabilities"></a>
+<a name="fgs.Capabilities"></a>
 
 ### Capabilities
 
@@ -142,16 +142,16 @@ AggregationOptions defines configuration options for aggregating events.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| permitted | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
-| effective | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
-| inheritable | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
+| permitted | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
+| effective | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
+| inheritable | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.Container"></a>
+<a name="fgs.Container"></a>
 
 ### Container
 
@@ -161,7 +161,7 @@ AggregationOptions defines configuration options for aggregating events.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  |  |
 | name | [string](#string) |  |  |
-| image | [Image](#tetragon.Image) |  |  |
+| image | [Image](#fgs.Image) |  |  |
 | start_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | Start time of the container. |
 | pid | [google.protobuf.UInt32Value](#google.protobuf.UInt32Value) |  | PID in the container namespace. |
 | maybe_exec_probe | [bool](#bool) |  | If this is set true, it means that the process might have been originated from a Kubernetes exec probe. For this field to be true, the following must be true:
@@ -173,7 +173,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.DeleteTracingPolicyRequest"></a>
+<a name="fgs.DeleteTracingPolicyRequest"></a>
 
 ### DeleteTracingPolicyRequest
 
@@ -188,7 +188,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.DeleteTracingPolicyResponse"></a>
+<a name="fgs.DeleteTracingPolicyResponse"></a>
 
 ### DeleteTracingPolicyResponse
 
@@ -198,7 +198,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.DisableSensorRequest"></a>
+<a name="fgs.DisableSensorRequest"></a>
 
 ### DisableSensorRequest
 
@@ -213,7 +213,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.DisableSensorResponse"></a>
+<a name="fgs.DisableSensorResponse"></a>
 
 ### DisableSensorResponse
 
@@ -223,7 +223,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.DnsInfo"></a>
+<a name="fgs.DnsInfo"></a>
 
 ### DnsInfo
 
@@ -244,7 +244,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.EnableSensorRequest"></a>
+<a name="fgs.EnableSensorRequest"></a>
 
 ### EnableSensorRequest
 
@@ -259,7 +259,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.EnableSensorResponse"></a>
+<a name="fgs.EnableSensorResponse"></a>
 
 ### EnableSensorResponse
 
@@ -269,7 +269,7 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon.Filter"></a>
+<a name="fgs.Filter"></a>
 
 ### Filter
 
@@ -282,14 +282,14 @@ AggregationOptions defines configuration options for aggregating events.
 | health_check | [google.protobuf.BoolValue](#google.protobuf.BoolValue) |  |  |
 | pid | [uint32](#uint32) | repeated |  |
 | pid_set | [uint32](#uint32) | repeated |  |
-| event_set | [EventType](#tetragon.EventType) | repeated |  |
+| event_set | [EventType](#fgs.EventType) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.GetEventsRequest"></a>
+<a name="fgs.GetEventsRequest"></a>
 
 ### GetEventsRequest
 
@@ -297,11 +297,11 @@ AggregationOptions defines configuration options for aggregating events.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| allow_list | [Filter](#tetragon.Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
-| deny_list | [Filter](#tetragon.Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded.
+| allow_list | [Filter](#fgs.Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
+| deny_list | [Filter](#fgs.Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded.
 
 If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
-| aggregation_options | [AggregationOptions](#tetragon.AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated.
+| aggregation_options | [AggregationOptions](#fgs.AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated.
 
 Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
 
@@ -310,7 +310,7 @@ Note that currently only process_accept and process_connect events are aggregate
 
 
 
-<a name="tetragon.GetEventsResponse"></a>
+<a name="fgs.GetEventsResponse"></a>
 
 ### GetEventsResponse
 
@@ -318,24 +318,24 @@ Note that currently only process_accept and process_connect events are aggregate
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process_exec | [ProcessExec](#tetragon.ProcessExec) |  |  |
-| process_exit | [ProcessExit](#tetragon.ProcessExit) |  |  |
-| process_kprobe | [ProcessKprobe](#tetragon.ProcessKprobe) |  |  |
-| process_tracepoint | [ProcessTracepoint](#tetragon.ProcessTracepoint) |  |  |
-| process_dns | [ProcessDns](#tetragon.ProcessDns) |  |  |
-| test | [Test](#tetragon.Test) |  |  |
+| process_exec | [ProcessExec](#fgs.ProcessExec) |  |  |
+| process_exit | [ProcessExit](#fgs.ProcessExit) |  |  |
+| process_kprobe | [ProcessKprobe](#fgs.ProcessKprobe) |  |  |
+| process_tracepoint | [ProcessTracepoint](#fgs.ProcessTracepoint) |  |  |
+| process_dns | [ProcessDns](#fgs.ProcessDns) |  |  |
+| test | [Test](#fgs.Test) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
 | time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | Timestamp at which this event was observed.
 
 For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
-| aggregation_info | [AggregationInfo](#tetragon.AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+| aggregation_info | [AggregationInfo](#fgs.AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
 
 
 
 
 
 
-<a name="tetragon.GetHealthStatusRequest"></a>
+<a name="fgs.GetHealthStatusRequest"></a>
 
 ### GetHealthStatusRequest
 
@@ -343,14 +343,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| event_set | [HealthStatusType](#tetragon.HealthStatusType) | repeated |  |
+| event_set | [HealthStatusType](#fgs.HealthStatusType) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.GetHealthStatusResponse"></a>
+<a name="fgs.GetHealthStatusResponse"></a>
 
 ### GetHealthStatusResponse
 
@@ -358,14 +358,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| health_status | [HealthStatus](#tetragon.HealthStatus) | repeated |  |
+| health_status | [HealthStatus](#fgs.HealthStatus) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.GetSensorConfigRequest"></a>
+<a name="fgs.GetSensorConfigRequest"></a>
 
 ### GetSensorConfigRequest
 
@@ -381,7 +381,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.GetSensorConfigResponse"></a>
+<a name="fgs.GetSensorConfigResponse"></a>
 
 ### GetSensorConfigResponse
 
@@ -396,7 +396,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.GetStackTraceTreeRequest"></a>
+<a name="fgs.GetStackTraceTreeRequest"></a>
 
 ### GetStackTraceTreeRequest
 
@@ -411,7 +411,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.GetStackTraceTreeResponse"></a>
+<a name="fgs.GetStackTraceTreeResponse"></a>
 
 ### GetStackTraceTreeResponse
 
@@ -419,14 +419,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| root | [StackTraceNode](#tetragon.StackTraceNode) |  |  |
+| root | [StackTraceNode](#fgs.StackTraceNode) |  |  |
 
 
 
 
 
 
-<a name="tetragon.GetVersionRequest"></a>
+<a name="fgs.GetVersionRequest"></a>
 
 ### GetVersionRequest
 
@@ -436,7 +436,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.GetVersionResponse"></a>
+<a name="fgs.GetVersionResponse"></a>
 
 ### GetVersionResponse
 
@@ -451,7 +451,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.HealthStatus"></a>
+<a name="fgs.HealthStatus"></a>
 
 ### HealthStatus
 
@@ -459,8 +459,8 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| event | [HealthStatusType](#tetragon.HealthStatusType) |  |  |
-| status | [HealthStatusResult](#tetragon.HealthStatusResult) |  |  |
+| event | [HealthStatusType](#fgs.HealthStatusType) |  |  |
+| status | [HealthStatusResult](#fgs.HealthStatusResult) |  |  |
 | details | [string](#string) |  |  |
 
 
@@ -468,7 +468,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.Image"></a>
+<a name="fgs.Image"></a>
 
 ### Image
 
@@ -484,7 +484,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.KprobeArgument"></a>
+<a name="fgs.KprobeArgument"></a>
 
 ### KprobeArgument
 
@@ -494,21 +494,21 @@ For an aggregated response, this field to set to the timestamp at which the even
 | ----- | ---- | ----- | ----------- |
 | string_arg | [string](#string) |  |  |
 | int_arg | [int32](#int32) |  |  |
-| skb_arg | [KprobeSkb](#tetragon.KprobeSkb) |  |  |
+| skb_arg | [KprobeSkb](#fgs.KprobeSkb) |  |  |
 | size_arg | [uint64](#uint64) |  |  |
 | bytes_arg | [bytes](#bytes) |  |  |
-| path_arg | [KprobePath](#tetragon.KprobePath) |  |  |
-| file_arg | [KprobeFile](#tetragon.KprobeFile) |  |  |
-| truncated_bytes_arg | [KprobeTruncatedBytes](#tetragon.KprobeTruncatedBytes) |  |  |
-| sock_arg | [KprobeSock](#tetragon.KprobeSock) |  |  |
-| cred_arg | [KprobeCred](#tetragon.KprobeCred) |  |  |
+| path_arg | [KprobePath](#fgs.KprobePath) |  |  |
+| file_arg | [KprobeFile](#fgs.KprobeFile) |  |  |
+| truncated_bytes_arg | [KprobeTruncatedBytes](#fgs.KprobeTruncatedBytes) |  |  |
+| sock_arg | [KprobeSock](#fgs.KprobeSock) |  |  |
+| cred_arg | [KprobeCred](#fgs.KprobeCred) |  |  |
 
 
 
 
 
 
-<a name="tetragon.KprobeCred"></a>
+<a name="fgs.KprobeCred"></a>
 
 ### KprobeCred
 
@@ -516,16 +516,16 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| permitted | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
-| effective | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
-| inheritable | [CapabilitiesType](#tetragon.CapabilitiesType) | repeated |  |
+| permitted | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
+| effective | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
+| inheritable | [CapabilitiesType](#fgs.CapabilitiesType) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.KprobeFile"></a>
+<a name="fgs.KprobeFile"></a>
 
 ### KprobeFile
 
@@ -542,7 +542,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.KprobePath"></a>
+<a name="fgs.KprobePath"></a>
 
 ### KprobePath
 
@@ -559,7 +559,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.KprobeSkb"></a>
+<a name="fgs.KprobeSkb"></a>
 
 ### KprobeSkb
 
@@ -584,7 +584,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.KprobeSock"></a>
+<a name="fgs.KprobeSock"></a>
 
 ### KprobeSock
 
@@ -607,7 +607,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.KprobeTruncatedBytes"></a>
+<a name="fgs.KprobeTruncatedBytes"></a>
 
 ### KprobeTruncatedBytes
 
@@ -623,7 +623,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.ListSensorsRequest"></a>
+<a name="fgs.ListSensorsRequest"></a>
 
 ### ListSensorsRequest
 
@@ -633,7 +633,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.ListSensorsResponse"></a>
+<a name="fgs.ListSensorsResponse"></a>
 
 ### ListSensorsResponse
 
@@ -641,14 +641,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| sensors | [SensorStatus](#tetragon.SensorStatus) | repeated |  |
+| sensors | [SensorStatus](#fgs.SensorStatus) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.Namespace"></a>
+<a name="fgs.Namespace"></a>
 
 ### Namespace
 
@@ -664,7 +664,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.Namespaces"></a>
+<a name="fgs.Namespaces"></a>
 
 ### Namespaces
 
@@ -672,23 +672,23 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| uts | [Namespace](#tetragon.Namespace) |  |  |
-| ipc | [Namespace](#tetragon.Namespace) |  |  |
-| mnt | [Namespace](#tetragon.Namespace) |  |  |
-| pid | [Namespace](#tetragon.Namespace) |  |  |
-| pid_for_children | [Namespace](#tetragon.Namespace) |  |  |
-| net | [Namespace](#tetragon.Namespace) |  |  |
-| time | [Namespace](#tetragon.Namespace) |  |  |
-| time_for_children | [Namespace](#tetragon.Namespace) |  |  |
-| cgroup | [Namespace](#tetragon.Namespace) |  |  |
-| user | [Namespace](#tetragon.Namespace) |  |  |
+| uts | [Namespace](#fgs.Namespace) |  |  |
+| ipc | [Namespace](#fgs.Namespace) |  |  |
+| mnt | [Namespace](#fgs.Namespace) |  |  |
+| pid | [Namespace](#fgs.Namespace) |  |  |
+| pid_for_children | [Namespace](#fgs.Namespace) |  |  |
+| net | [Namespace](#fgs.Namespace) |  |  |
+| time | [Namespace](#fgs.Namespace) |  |  |
+| time_for_children | [Namespace](#fgs.Namespace) |  |  |
+| cgroup | [Namespace](#fgs.Namespace) |  |  |
+| user | [Namespace](#fgs.Namespace) |  |  |
 
 
 
 
 
 
-<a name="tetragon.Pod"></a>
+<a name="fgs.Pod"></a>
 
 ### Pod
 
@@ -699,14 +699,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 | namespace | [string](#string) |  |  |
 | name | [string](#string) |  |  |
 | labels | [string](#string) | repeated |  |
-| container | [Container](#tetragon.Container) |  |  |
+| container | [Container](#fgs.Container) |  |  |
 
 
 
 
 
 
-<a name="tetragon.Process"></a>
+<a name="fgs.Process"></a>
 
 ### Process
 
@@ -723,19 +723,19 @@ For an aggregated response, this field to set to the timestamp at which the even
 | flags | [string](#string) |  |  |
 | start_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 | auid | [google.protobuf.UInt32Value](#google.protobuf.UInt32Value) |  |  |
-| pod | [Pod](#tetragon.Pod) |  |  |
+| pod | [Pod](#fgs.Pod) |  |  |
 | docker | [string](#string) |  |  |
 | parent_exec_id | [string](#string) |  |  |
 | refcnt | [uint32](#uint32) |  |  |
-| cap | [Capabilities](#tetragon.Capabilities) |  |  |
-| ns | [Namespaces](#tetragon.Namespaces) |  |  |
+| cap | [Capabilities](#fgs.Capabilities) |  |  |
+| ns | [Namespaces](#fgs.Namespaces) |  |  |
 
 
 
 
 
 
-<a name="tetragon.ProcessDns"></a>
+<a name="fgs.ProcessDns"></a>
 
 ### ProcessDns
 
@@ -743,17 +743,17 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon.Process) |  |  |
-| dns | [DnsInfo](#tetragon.DnsInfo) |  |  |
+| process | [Process](#fgs.Process) |  |  |
+| dns | [DnsInfo](#fgs.DnsInfo) |  |  |
 | destination_names | [string](#string) | repeated | **Deprecated.** deprecated in favor of socket.destination_names. |
-| destination_pod | [Pod](#tetragon.Pod) |  |  |
+| destination_pod | [Pod](#fgs.Pod) |  |  |
 
 
 
 
 
 
-<a name="tetragon.ProcessExec"></a>
+<a name="fgs.ProcessExec"></a>
 
 ### ProcessExec
 
@@ -761,16 +761,16 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon.Process) |  |  |
-| parent | [Process](#tetragon.Process) |  |  |
-| ancestors | [Process](#tetragon.Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| process | [Process](#fgs.Process) |  |  |
+| parent | [Process](#fgs.Process) |  |  |
+| ancestors | [Process](#fgs.Process) | repeated | Ancestors of the process beyond the immediate parent. |
 
 
 
 
 
 
-<a name="tetragon.ProcessExit"></a>
+<a name="fgs.ProcessExit"></a>
 
 ### ProcessExit
 
@@ -778,8 +778,8 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon.Process) |  |  |
-| parent | [Process](#tetragon.Process) |  |  |
+| process | [Process](#fgs.Process) |  |  |
+| parent | [Process](#fgs.Process) |  |  |
 | signal | [string](#string) |  |  |
 | status | [uint32](#uint32) |  |  |
 
@@ -788,7 +788,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.ProcessKprobe"></a>
+<a name="fgs.ProcessKprobe"></a>
 
 ### ProcessKprobe
 
@@ -796,19 +796,19 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon.Process) |  |  |
-| parent | [Process](#tetragon.Process) |  |  |
+| process | [Process](#fgs.Process) |  |  |
+| parent | [Process](#fgs.Process) |  |  |
 | function_name | [string](#string) |  |  |
-| args | [KprobeArgument](#tetragon.KprobeArgument) | repeated |  |
-| return | [KprobeArgument](#tetragon.KprobeArgument) |  |  |
-| action | [KprobeAction](#tetragon.KprobeAction) |  |  |
+| args | [KprobeArgument](#fgs.KprobeArgument) | repeated |  |
+| return | [KprobeArgument](#fgs.KprobeArgument) |  |  |
+| action | [KprobeAction](#fgs.KprobeAction) |  |  |
 
 
 
 
 
 
-<a name="tetragon.ProcessTracepoint"></a>
+<a name="fgs.ProcessTracepoint"></a>
 
 ### ProcessTracepoint
 
@@ -816,18 +816,18 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon.Process) |  |  |
-| parent | [Process](#tetragon.Process) |  |  |
+| process | [Process](#fgs.Process) |  |  |
+| parent | [Process](#fgs.Process) |  |  |
 | subsys | [string](#string) |  |  |
 | event | [string](#string) |  |  |
-| args | [KprobeArgument](#tetragon.KprobeArgument) | repeated | TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
+| args | [KprobeArgument](#fgs.KprobeArgument) | repeated | TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
 
 
 
 
 
 
-<a name="tetragon.RemoveSensorRequest"></a>
+<a name="fgs.RemoveSensorRequest"></a>
 
 ### RemoveSensorRequest
 
@@ -842,7 +842,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.RemoveSensorResponse"></a>
+<a name="fgs.RemoveSensorResponse"></a>
 
 ### RemoveSensorResponse
 
@@ -852,7 +852,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.SensorStatus"></a>
+<a name="fgs.SensorStatus"></a>
 
 ### SensorStatus
 
@@ -868,7 +868,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.SetSensorConfigRequest"></a>
+<a name="fgs.SetSensorConfigRequest"></a>
 
 ### SetSensorConfigRequest
 
@@ -885,7 +885,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.SetSensorConfigResponse"></a>
+<a name="fgs.SetSensorConfigResponse"></a>
 
 ### SetSensorConfigResponse
 
@@ -895,7 +895,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.StackAddress"></a>
+<a name="fgs.StackAddress"></a>
 
 ### StackAddress
 
@@ -911,7 +911,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.StackTrace"></a>
+<a name="fgs.StackTrace"></a>
 
 ### StackTrace
 
@@ -919,14 +919,14 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| addresses | [StackAddress](#tetragon.StackAddress) | repeated |  |
+| addresses | [StackAddress](#fgs.StackAddress) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.StackTraceLabel"></a>
+<a name="fgs.StackTraceLabel"></a>
 
 ### StackTraceLabel
 
@@ -942,7 +942,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 
 
-<a name="tetragon.StackTraceNode"></a>
+<a name="fgs.StackTraceNode"></a>
 
 ### StackTraceNode
 
@@ -950,17 +950,17 @@ For an aggregated response, this field to set to the timestamp at which the even
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| address | [StackAddress](#tetragon.StackAddress) |  |  |
+| address | [StackAddress](#fgs.StackAddress) |  |  |
 | count | [uint64](#uint64) |  |  |
-| labels | [StackTraceLabel](#tetragon.StackTraceLabel) | repeated |  |
-| children | [StackTraceNode](#tetragon.StackTraceNode) | repeated |  |
+| labels | [StackTraceLabel](#fgs.StackTraceLabel) | repeated |  |
+| children | [StackTraceNode](#fgs.StackTraceNode) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon.Test"></a>
+<a name="fgs.Test"></a>
 
 ### Test
 
@@ -980,7 +980,7 @@ For an aggregated response, this field to set to the timestamp at which the even
  
 
 
-<a name="tetragon.CapabilitiesType"></a>
+<a name="fgs.CapabilitiesType"></a>
 
 ### CapabilitiesType
 
@@ -1041,7 +1041,7 @@ CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and
 
 
 
-<a name="tetragon.EventType"></a>
+<a name="fgs.EventType"></a>
 
 ### EventType
 EventType constants are based on the ones from pkg/api/client
@@ -1058,7 +1058,7 @@ EventType constants are based on the ones from pkg/api/client
 
 
 
-<a name="tetragon.HealthStatusResult"></a>
+<a name="fgs.HealthStatusResult"></a>
 
 ### HealthStatusResult
 
@@ -1072,7 +1072,7 @@ EventType constants are based on the ones from pkg/api/client
 
 
 
-<a name="tetragon.HealthStatusType"></a>
+<a name="fgs.HealthStatusType"></a>
 
 ### HealthStatusType
 
@@ -1084,7 +1084,7 @@ EventType constants are based on the ones from pkg/api/client
 
 
 
-<a name="tetragon.KprobeAction"></a>
+<a name="fgs.KprobeAction"></a>
 
 ### KprobeAction
 
@@ -1104,24 +1104,24 @@ EventType constants are based on the ones from pkg/api/client
  
 
 
-<a name="tetragon.FineGuidanceSensors"></a>
+<a name="fgs.FineGuidanceSensors"></a>
 
 ### FineGuidanceSensors
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetEvents | [GetEventsRequest](#tetragon.GetEventsRequest) | [GetEventsResponse](#tetragon.GetEventsResponse) stream |  |
-| GetHealth | [GetHealthStatusRequest](#tetragon.GetHealthStatusRequest) | [GetHealthStatusResponse](#tetragon.GetHealthStatusResponse) |  |
-| AddTracingPolicy | [AddTracingPolicyRequest](#tetragon.AddTracingPolicyRequest) | [AddTracingPolicyResponse](#tetragon.AddTracingPolicyResponse) |  |
-| RemoveSensor | [RemoveSensorRequest](#tetragon.RemoveSensorRequest) | [RemoveSensorResponse](#tetragon.RemoveSensorResponse) |  |
-| ListSensors | [ListSensorsRequest](#tetragon.ListSensorsRequest) | [ListSensorsResponse](#tetragon.ListSensorsResponse) |  |
-| EnableSensor | [EnableSensorRequest](#tetragon.EnableSensorRequest) | [EnableSensorResponse](#tetragon.EnableSensorResponse) |  |
-| DisableSensor | [DisableSensorRequest](#tetragon.DisableSensorRequest) | [DisableSensorResponse](#tetragon.DisableSensorResponse) |  |
-| SetSensorConfig | [SetSensorConfigRequest](#tetragon.SetSensorConfigRequest) | [SetSensorConfigResponse](#tetragon.SetSensorConfigResponse) |  |
-| GetSensorConfig | [GetSensorConfigRequest](#tetragon.GetSensorConfigRequest) | [GetSensorConfigResponse](#tetragon.GetSensorConfigResponse) |  |
-| GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon.GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon.GetStackTraceTreeResponse) |  |
-| GetVersion | [GetVersionRequest](#tetragon.GetVersionRequest) | [GetVersionResponse](#tetragon.GetVersionResponse) |  |
+| GetEvents | [GetEventsRequest](#fgs.GetEventsRequest) | [GetEventsResponse](#fgs.GetEventsResponse) stream |  |
+| GetHealth | [GetHealthStatusRequest](#fgs.GetHealthStatusRequest) | [GetHealthStatusResponse](#fgs.GetHealthStatusResponse) |  |
+| AddTracingPolicy | [AddTracingPolicyRequest](#fgs.AddTracingPolicyRequest) | [AddTracingPolicyResponse](#fgs.AddTracingPolicyResponse) |  |
+| RemoveSensor | [RemoveSensorRequest](#fgs.RemoveSensorRequest) | [RemoveSensorResponse](#fgs.RemoveSensorResponse) |  |
+| ListSensors | [ListSensorsRequest](#fgs.ListSensorsRequest) | [ListSensorsResponse](#fgs.ListSensorsResponse) |  |
+| EnableSensor | [EnableSensorRequest](#fgs.EnableSensorRequest) | [EnableSensorResponse](#fgs.EnableSensorResponse) |  |
+| DisableSensor | [DisableSensorRequest](#fgs.DisableSensorRequest) | [DisableSensorResponse](#fgs.DisableSensorResponse) |  |
+| SetSensorConfig | [SetSensorConfigRequest](#fgs.SetSensorConfigRequest) | [SetSensorConfigResponse](#fgs.SetSensorConfigResponse) |  |
+| GetSensorConfig | [GetSensorConfigRequest](#fgs.GetSensorConfigRequest) | [GetSensorConfigResponse](#fgs.GetSensorConfigResponse) |  |
+| GetStackTraceTree | [GetStackTraceTreeRequest](#fgs.GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#fgs.GetStackTraceTreeResponse) |  |
+| GetVersion | [GetVersionRequest](#fgs.GetVersionRequest) | [GetVersionResponse](#fgs.GetVersionResponse) |  |
 
  
 

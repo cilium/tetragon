@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -386,31 +386,31 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 	return pid, permitted, effective, inheritable
 }
 
-func GetCapabilitiesTypes(capInt uint64) []tetragon.CapabilitiesType {
-	var caps []tetragon.CapabilitiesType
+func GetCapabilitiesTypes(capInt uint64) []fgs.CapabilitiesType {
+	var caps []fgs.CapabilitiesType
 	for i := uint64(0); i < 64; i++ {
 		if (1<<i)&capInt != 0 {
-			e := tetragon.CapabilitiesType(i)
+			e := fgs.CapabilitiesType(i)
 			caps = append(caps, e)
 		}
 	}
 	return caps
 }
 
-func GetMsgCapabilities(caps processapi.MsgCapabilities) *tetragon.Capabilities {
-	return &tetragon.Capabilities{
+func GetMsgCapabilities(caps processapi.MsgCapabilities) *fgs.Capabilities {
+	return &fgs.Capabilities{
 		Permitted:   GetCapabilitiesTypes(caps.Permitted),
 		Effective:   GetCapabilitiesTypes(caps.Effective),
 		Inheritable: GetCapabilitiesTypes(caps.Inheritable),
 	}
 }
 
-func GetCurrentCapabilities() *tetragon.Capabilities {
+func GetCurrentCapabilities() *fgs.Capabilities {
 	pidStr := strconv.Itoa(int(namespace.GetMyPidG()))
 	procCaps := filepath.Join(option.Config.ProcFS, pidStr, "status")
 	_, permitted, effective, inheritable := GetPIDCaps(procCaps)
 
-	return &tetragon.Capabilities{
+	return &fgs.Capabilities{
 		Permitted:   GetCapabilitiesTypes(permitted),
 		Effective:   GetCapabilitiesTypes(effective),
 		Inheritable: GetCapabilitiesTypes(inheritable),

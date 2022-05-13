@@ -4,7 +4,7 @@ package tracing
 
 import (
 	"github.com/cilium/hubble/pkg/cilium"
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/dns"
@@ -32,58 +32,58 @@ type Grpc struct {
 	enableProcessNs   bool
 }
 
-func kprobeAction(act uint64) tetragon.KprobeAction {
+func kprobeAction(act uint64) fgs.KprobeAction {
 	switch act {
 	case tracingapi.ActionPost:
-		return tetragon.KprobeAction_KPROBE_ACTION_POST
+		return fgs.KprobeAction_KPROBE_ACTION_POST
 	case tracingapi.ActionFollowFd:
-		return tetragon.KprobeAction_KPROBE_ACTION_FOLLOWFD
+		return fgs.KprobeAction_KPROBE_ACTION_FOLLOWFD
 	case tracingapi.ActionSigKill:
-		return tetragon.KprobeAction_KPROBE_ACTION_SIGKILL
+		return fgs.KprobeAction_KPROBE_ACTION_SIGKILL
 	case tracingapi.ActionUnfollowFd:
-		return tetragon.KprobeAction_KPROBE_ACTION_UNFOLLOWFD
+		return fgs.KprobeAction_KPROBE_ACTION_UNFOLLOWFD
 	case tracingapi.ActionOverride:
-		return tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE
+		return fgs.KprobeAction_KPROBE_ACTION_OVERRIDE
 	default:
-		return tetragon.KprobeAction_KPROBE_ACTION_UNKNOWN
+		return fgs.KprobeAction_KPROBE_ACTION_UNKNOWN
 	}
 }
 
-func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
-	var tetragonParent, tetragonProcess *tetragon.Process
-	var tetragonArgs []*tetragon.KprobeArgument
-	var tetragonReturnArg *tetragon.KprobeArgument
+func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *fgs.ProcessKprobe {
+	var fgsParent, fgsProcess *fgs.Process
+	var fgsArgs []*fgs.KprobeArgument
+	var fgsReturnArg *fgs.KprobeArgument
 
 	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if process == nil {
-		tetragonProcess = &tetragon.Process{
+		fgsProcess = &fgs.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
+		fgsProcess = process.UnsafeGetProcess()
 		if err := process.AnnotateProcess(t.enableProcessCred, t.enableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
+			logger.GetLogger().WithError(err).WithField("processId", fgsProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
 
 	if parent == nil {
-		tetragonParent = &tetragon.Process{}
+		fgsParent = &fgs.Process{}
 	} else {
-		tetragonParent = parent.GetProcessCopy()
+		fgsParent = parent.GetProcessCopy()
 	}
 
 	for _, arg := range event.Args {
-		a := &tetragon.KprobeArgument{}
+		a := &fgs.KprobeArgument{}
 		switch e := arg.(type) {
 		case api.MsgGenericKprobeArgInt:
-			a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
+			a.Arg = &fgs.KprobeArgument_IntArg{IntArg: e.Value}
 		case api.MsgGenericKprobeArgSize:
-			a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
+			a.Arg = &fgs.KprobeArgument_SizeArg{SizeArg: e.Value}
 		case api.MsgGenericKprobeArgString:
-			a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
+			a.Arg = &fgs.KprobeArgument_StringArg{StringArg: e.Value}
 		case api.MsgGenericKprobeArgSock:
-			sockArg := &tetragon.KprobeSock{
+			sockArg := &fgs.KprobeSock{
 				Family:   network.InetFamily(e.Family),
 				Type:     network.InetType(e.Type),
 				Protocol: network.InetProtocol(e.Protocol),
@@ -94,9 +94,9 @@ func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *tetragon.Proce
 				Sport:    e.Sport,
 				Dport:    e.Dport,
 			}
-			a.Arg = &tetragon.KprobeArgument_SockArg{SockArg: sockArg}
+			a.Arg = &fgs.KprobeArgument_SockArg{SockArg: sockArg}
 		case api.MsgGenericKprobeArgSkb:
-			skbArg := &tetragon.KprobeSkb{
+			skbArg := &fgs.KprobeSkb{
 				Hash:        e.Hash,
 				Len:         e.Len,
 				Priority:    e.Priority,
@@ -109,111 +109,111 @@ func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *tetragon.Proce
 				SecPathLen:  e.SecPathLen,
 				SecPathOlen: e.SecPathOLen,
 			}
-			a.Arg = &tetragon.KprobeArgument_SkbArg{SkbArg: skbArg}
+			a.Arg = &fgs.KprobeArgument_SkbArg{SkbArg: skbArg}
 		case api.MsgGenericKprobeArgCred:
-			capsArg := &tetragon.KprobeCred{
+			capsArg := &fgs.KprobeCred{
 				Permitted:   caps.GetCapabilitiesTypes(e.Permitted),
 				Effective:   caps.GetCapabilitiesTypes(e.Effective),
 				Inheritable: caps.GetCapabilitiesTypes(e.Inheritable),
 			}
-			a.Arg = &tetragon.KprobeArgument_CredArg{CredArg: capsArg}
+			a.Arg = &fgs.KprobeArgument_CredArg{CredArg: capsArg}
 		case api.MsgGenericKprobeArgBytes:
 			if e.OrigSize > uint64(len(e.Value)) {
-				a.Arg = &tetragon.KprobeArgument_TruncatedBytesArg{
-					TruncatedBytesArg: &tetragon.KprobeTruncatedBytes{
+				a.Arg = &fgs.KprobeArgument_TruncatedBytesArg{
+					TruncatedBytesArg: &fgs.KprobeTruncatedBytes{
 						OrigSize: e.OrigSize,
 						BytesArg: e.Value,
 					},
 				}
 			} else {
-				a.Arg = &tetragon.KprobeArgument_BytesArg{BytesArg: e.Value}
+				a.Arg = &fgs.KprobeArgument_BytesArg{BytesArg: e.Value}
 			}
 		case api.MsgGenericKprobeArgFile:
-			fileArg := &tetragon.KprobeFile{
+			fileArg := &fgs.KprobeFile{
 				Path:  path.MarkUnresolvedPathComponents(path.GenPath(e.Value), e.Flags),
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
-			a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
+			a.Arg = &fgs.KprobeArgument_FileArg{FileArg: fileArg}
 		case api.MsgGenericKprobeArgPath:
-			pathArg := &tetragon.KprobePath{
+			pathArg := &fgs.KprobePath{
 				Path:  path.MarkUnresolvedPathComponents(path.GenPath(e.Value), e.Flags),
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
-			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
+			a.Arg = &fgs.KprobeArgument_PathArg{PathArg: pathArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}
 		if arg.IsReturnArg() {
-			tetragonReturnArg = a
+			fgsReturnArg = a
 		} else {
-			tetragonArgs = append(tetragonArgs, a)
+			fgsArgs = append(fgsArgs, a)
 		}
 	}
 
-	tetragonEvent := &tetragon.ProcessKprobe{
-		Process:      tetragonProcess,
-		Parent:       tetragonParent,
+	fgsEvent := &fgs.ProcessKprobe{
+		Process:      fgsProcess,
+		Parent:       fgsParent,
 		FunctionName: event.FuncName,
-		Args:         tetragonArgs,
-		Return:       tetragonReturnArg,
+		Args:         fgsArgs,
+		Return:       fgsReturnArg,
 		Action:       kprobeAction(event.Action),
 	}
 
-	if t.eventCache.Needed(tetragonProcess) {
-		t.eventCache.Add(process, tetragonEvent, ktime.ToProto(event.Common.Ktime), event)
+	if t.eventCache.Needed(fgsProcess) {
+		t.eventCache.Add(process, fgsEvent, ktime.ToProto(event.Common.Ktime), event)
 		return nil
 	}
 
 	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+		fgsEvent.Process = process.GetProcessCopy()
 	}
-	return tetragonEvent
+	return fgsEvent
 }
 
-func (t *Grpc) HandleGenericKprobeMessage(msg *api.MsgGenericKprobeUnix) *tetragon.GetEventsResponse {
+func (t *Grpc) HandleGenericKprobeMessage(msg *api.MsgGenericKprobeUnix) *fgs.GetEventsResponse {
 	k := t.GetProcessKprobe(msg)
 	if k == nil {
 		return nil
 	}
-	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: k},
+	return &fgs.GetEventsResponse{
+		Event:    &fgs.GetEventsResponse_ProcessKprobe{ProcessKprobe: k},
 		NodeName: nodeName,
 		Time:     ktime.ToProto(msg.Common.Ktime),
 	}
 }
 
-func (t *Grpc) HandleGenericTracepointMessage(msg *api.MsgGenericTracepointUnix) *tetragon.GetEventsResponse {
-	var tetragonParent, tetragonProcess *tetragon.Process
+func (t *Grpc) HandleGenericTracepointMessage(msg *api.MsgGenericTracepointUnix) *fgs.GetEventsResponse {
+	var fgsParent, fgsProcess *fgs.Process
 
 	process, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
 	if process == nil {
-		tetragonProcess = &tetragon.Process{
+		fgsProcess = &fgs.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
+		fgsProcess = process.UnsafeGetProcess()
 	}
 	if parent == nil {
-		tetragonParent = &tetragon.Process{}
+		fgsParent = &fgs.Process{}
 	} else {
-		tetragonParent = parent.GetProcessCopy()
+		fgsParent = parent.GetProcessCopy()
 	}
 
-	var tetragonArgs []*tetragon.KprobeArgument
+	var fgsArgs []*fgs.KprobeArgument
 	for _, arg := range msg.Args {
 		switch v := arg.(type) {
 		case uint64:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SizeArg{
+			fgsArgs = append(fgsArgs, &fgs.KprobeArgument{Arg: &fgs.KprobeArgument_SizeArg{
 				SizeArg: v,
 			}})
 		case string:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_StringArg{
+			fgsArgs = append(fgsArgs, &fgs.KprobeArgument{Arg: &fgs.KprobeArgument_StringArg{
 				StringArg: v,
 			}})
 
 		case []byte:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_BytesArg{
+			fgsArgs = append(fgsArgs, &fgs.KprobeArgument{Arg: &fgs.KprobeArgument_BytesArg{
 				BytesArg: v,
 			}})
 
@@ -222,24 +222,24 @@ func (t *Grpc) HandleGenericTracepointMessage(msg *api.MsgGenericTracepointUnix)
 		}
 	}
 
-	tetragonEvent := &tetragon.ProcessTracepoint{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
+	fgsEvent := &fgs.ProcessTracepoint{
+		Process: fgsProcess,
+		Parent:  fgsParent,
 		Subsys:  msg.Subsys,
 		Event:   msg.Event,
-		Args:    tetragonArgs,
+		Args:    fgsArgs,
 	}
 
-	if t.eventCache.Needed(tetragonProcess) {
-		t.eventCache.Add(process, tetragonEvent, ktime.ToProto(msg.Common.Ktime), msg)
+	if t.eventCache.Needed(fgsProcess) {
+		t.eventCache.Add(process, fgsEvent, ktime.ToProto(msg.Common.Ktime), msg)
 		return nil
 	}
 	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+		fgsEvent.Process = process.GetProcessCopy()
 	}
 
-	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: tetragonEvent},
+	return &fgs.GetEventsResponse{
+		Event:    &fgs.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: fgsEvent},
 		NodeName: nodeName,
 		Time:     ktime.ToProto(msg.Common.Ktime),
 	}

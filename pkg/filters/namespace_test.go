@@ -8,59 +8,59 @@ import (
 	"testing"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNamespace(t *testing.T) {
-	f := []*tetragon.Filter{{Namespace: []string{"kube-system", ""}}}
+	f := []*fgs.Filter{{Namespace: []string{"kube-system", ""}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&NamespaceFilter{}})
 	assert.NoError(t, err)
 	ev := v1.Event{
-		Event: &tetragon.GetEventsResponse{
-			Event: &tetragon.GetEventsResponse_ProcessExec{
-				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "kube-system"}}},
+		Event: &fgs.GetEventsResponse{
+			Event: &fgs.GetEventsResponse_ProcessExec{
+				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Namespace: "kube-system"}}},
 			},
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &tetragon.GetEventsResponse{
-			Event: &tetragon.GetEventsResponse_ProcessExec{
-				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "kube-system"}}},
+		Event: &fgs.GetEventsResponse{
+			Event: &fgs.GetEventsResponse_ProcessExec{
+				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Namespace: "kube-system"}}},
 			},
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &tetragon.GetEventsResponse{
-			Event: &tetragon.GetEventsResponse_ProcessExec{
-				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "kube-system"}}},
+		Event: &fgs.GetEventsResponse{
+			Event: &fgs.GetEventsResponse_ProcessExec{
+				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Namespace: "kube-system"}}},
 			},
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
 	ev = v1.Event{
-		Event: &tetragon.GetEventsResponse{
-			Event: &tetragon.GetEventsResponse_ProcessExec{
-				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "default"}}},
+		Event: &fgs.GetEventsResponse{
+			Event: &fgs.GetEventsResponse_ProcessExec{
+				ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{Pod: &fgs.Pod{Namespace: "default"}}},
 			},
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
 
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{}}}}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{}}}}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{}}}}
 	assert.False(t, fl.MatchOne(&ev))
 
 	// Empty namespace matches process without pod info.
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{}}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{}}}}}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{}}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{}}}}}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{Event: &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{}}}}}
+	ev = v1.Event{Event: &fgs.GetEventsResponse{Event: &fgs.GetEventsResponse_ProcessExec{ProcessExec: &fgs.ProcessExec{Process: &fgs.Process{}}}}}
 	assert.True(t, fl.MatchOne(&ev))
 }

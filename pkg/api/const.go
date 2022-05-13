@@ -5,5 +5,5 @@ package api
 
 const (
 	// FgsServiceName is the name of the Fgs grpc health check
-	FgsServiceName = "tetragon.server.health"
+	FgsServiceName = "fgs.server.health"
 )

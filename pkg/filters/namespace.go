@@ -19,7 +19,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 )
 
 func filterByNamespace(namespaces []string) hubbleFilters.FilterFunc {
@@ -43,7 +43,7 @@ func filterByNamespace(namespaces []string) hubbleFilters.FilterFunc {
 
 type NamespaceFilter struct{}
 
-func (f *NamespaceFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *NamespaceFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.Namespace != nil {
 		fs = append(fs, filterByNamespace(ff.Namespace))

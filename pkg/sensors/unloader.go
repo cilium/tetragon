@@ -109,10 +109,10 @@ func detachTC(linkName string, ingress bool) error {
 
 	if ingress {
 		parent = netlink.HANDLE_MIN_INGRESS
-		name = "tetragon-ingress"
+		name = "fgs-ingress"
 	} else {
 		parent = netlink.HANDLE_MIN_EGRESS
-		name = "tetragon-egress"
+		name = "fgs-egress"
 	}
 
 	filterAttrs := netlink.FilterAttrs{

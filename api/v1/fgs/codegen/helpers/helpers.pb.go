@@ -7,7 +7,7 @@ package helpers
 
 import (
 	fmt "fmt"
-	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
+	fgs "github.com/cilium/tetragon/api/v1/fgs"
 )
 
 type event interface {
@@ -23,38 +23,38 @@ func EventTypeString(event event) (string, error) {
 		return "", fmt.Errorf("Event is nil")
 	}
 	switch event.(type) {
-	case *tetragon.GetEventsResponse_ProcessExec:
-		return tetragon.EventType_PROCESS_EXEC.String(), nil
-	case *tetragon.GetEventsResponse_ProcessExit:
-		return tetragon.EventType_PROCESS_EXIT.String(), nil
-	case *tetragon.GetEventsResponse_ProcessKprobe:
-		return tetragon.EventType_PROCESS_KPROBE.String(), nil
-	case *tetragon.GetEventsResponse_ProcessTracepoint:
-		return tetragon.EventType_PROCESS_TRACEPOINT.String(), nil
-	case *tetragon.GetEventsResponse_Test:
-		return tetragon.EventType_TEST.String(), nil
-	case *tetragon.GetEventsResponse_ProcessDns:
-		return tetragon.EventType_PROCESS_DNS.String(), nil
+	case *fgs.GetEventsResponse_ProcessExec:
+		return fgs.EventType_PROCESS_EXEC.String(), nil
+	case *fgs.GetEventsResponse_ProcessExit:
+		return fgs.EventType_PROCESS_EXIT.String(), nil
+	case *fgs.GetEventsResponse_ProcessKprobe:
+		return fgs.EventType_PROCESS_KPROBE.String(), nil
+	case *fgs.GetEventsResponse_ProcessTracepoint:
+		return fgs.EventType_PROCESS_TRACEPOINT.String(), nil
+	case *fgs.GetEventsResponse_Test:
+		return fgs.EventType_TEST.String(), nil
+	case *fgs.GetEventsResponse_ProcessDns:
+		return fgs.EventType_PROCESS_DNS.String(), nil
 
 	}
 	return "", fmt.Errorf("Unhandled event type %T", event)
 }
 
 // EventGetProcess gets the process field for an event if it exists
-func EventGetProcess(event event) *tetragon.Process {
+func EventGetProcess(event event) *fgs.Process {
 	if event == nil {
 		return nil
 	}
 	switch ev := event.(type) {
-	case *tetragon.GetEventsResponse_ProcessExec:
+	case *fgs.GetEventsResponse_ProcessExec:
 		return ev.ProcessExec.Process
-	case *tetragon.GetEventsResponse_ProcessExit:
+	case *fgs.GetEventsResponse_ProcessExit:
 		return ev.ProcessExit.Process
-	case *tetragon.GetEventsResponse_ProcessKprobe:
+	case *fgs.GetEventsResponse_ProcessKprobe:
 		return ev.ProcessKprobe.Process
-	case *tetragon.GetEventsResponse_ProcessTracepoint:
+	case *fgs.GetEventsResponse_ProcessTracepoint:
 		return ev.ProcessTracepoint.Process
-	case *tetragon.GetEventsResponse_ProcessDns:
+	case *fgs.GetEventsResponse_ProcessDns:
 		return ev.ProcessDns.Process
 
 	}
@@ -62,30 +62,30 @@ func EventGetProcess(event event) *tetragon.Process {
 }
 
 // ResponseGetProcess gets the process field for a response if it exists
-func ResponseGetProcess(response response) *tetragon.Process {
+func ResponseGetProcess(response response) *fgs.Process {
 	if response == nil {
 		return nil
 	}
 	switch res := response.(type) {
-	case *tetragon.GetEventsResponse:
+	case *fgs.GetEventsResponse:
 		return EventGetProcess(res.Event)
 	}
 	return nil
 }
 
 // EventGetParent gets the parent field for an event if it exists
-func EventGetParent(event event) *tetragon.Process {
+func EventGetParent(event event) *fgs.Process {
 	if event == nil {
 		return nil
 	}
 	switch ev := event.(type) {
-	case *tetragon.GetEventsResponse_ProcessExec:
+	case *fgs.GetEventsResponse_ProcessExec:
 		return ev.ProcessExec.Parent
-	case *tetragon.GetEventsResponse_ProcessExit:
+	case *fgs.GetEventsResponse_ProcessExit:
 		return ev.ProcessExit.Parent
-	case *tetragon.GetEventsResponse_ProcessKprobe:
+	case *fgs.GetEventsResponse_ProcessKprobe:
 		return ev.ProcessKprobe.Parent
-	case *tetragon.GetEventsResponse_ProcessTracepoint:
+	case *fgs.GetEventsResponse_ProcessTracepoint:
 		return ev.ProcessTracepoint.Parent
 
 	}
@@ -93,12 +93,12 @@ func EventGetParent(event event) *tetragon.Process {
 }
 
 // ResponseGetParent gets the parent field for a response if it exists
-func ResponseGetParent(response response) *tetragon.Process {
+func ResponseGetParent(response response) *fgs.Process {
 	if response == nil {
 		return nil
 	}
 	switch res := response.(type) {
-	case *tetragon.GetEventsResponse:
+	case *fgs.GetEventsResponse:
 		return EventGetParent(res.Event)
 	}
 	return nil

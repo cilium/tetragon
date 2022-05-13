@@ -5,9 +5,9 @@ package exec
 import (
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/ops"
-	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	fgsAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/ktime"
@@ -32,13 +32,13 @@ type Grpc struct {
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
 func (e *Grpc) GetProcessExec(
 	proc *process.ProcessInternal,
-) *tetragon.ProcessExec {
-	var tetragonParent *tetragon.Process
+) *fgs.ProcessExec {
+	var fgsParent *fgs.Process
 
-	tetragonProcess := proc.UnsafeGetProcess()
+	fgsProcess := proc.UnsafeGetProcess()
 
-	parentId := tetragonProcess.ParentExecId
-	processId := tetragonProcess.ExecId
+	parentId := fgsProcess.ParentExecId
+	processId := fgsProcess.ExecId
 
 	parent, err := process.Get(parentId)
 	if err != nil {
@@ -50,26 +50,26 @@ func (e *Grpc) GetProcessExec(
 		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
 	}
 	if parent != nil {
-		tetragonParent = parent.GetProcessCopy()
+		fgsParent = parent.GetProcessCopy()
 	}
 
 	// If this is not a clone we need to decrement parent refcnt because
 	// the parent has been replaced and will not get its own exit event.
 	// The new process will hold needed refcnts until it is destroyed.
-	if strings.Contains(tetragonProcess.Flags, "clone") == false &&
-		strings.Contains(tetragonProcess.Flags, "procFS") == false &&
+	if strings.Contains(fgsProcess.Flags, "clone") == false &&
+		strings.Contains(fgsProcess.Flags, "procFS") == false &&
 		parent != nil {
 		parent.RefDec()
 	}
 
-	return &tetragon.ProcessExec{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
+	return &fgs.ProcessExec{
+		Process: fgsProcess,
+		Parent:  fgsParent,
 	}
 }
 
-func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetragon.GetEventsResponse {
-	var res *tetragon.GetEventsResponse
+func (e *Grpc) HandleExecveMessage(msg *fgsAPI.MsgExecveEventUnix) *fgs.GetEventsResponse {
+	var res *fgs.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXECVE:
 		proc := process.Add(msg)
@@ -78,8 +78,8 @@ func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetrago
 			e.execCache.Add(proc, procEvent, ktime.ToProto(msg.Common.Ktime), msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
-			res = &tetragon.GetEventsResponse{
-				Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: procEvent},
+			res = &fgs.GetEventsResponse{
+				Event:    &fgs.GetEventsResponse_ProcessExec{ProcessExec: procEvent},
 				NodeName: nodeName,
 				Time:     ktime.ToProto(msg.Common.Ktime),
 			}
@@ -91,51 +91,51 @@ func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetrago
 }
 
 // GetProcessExit returns Exit protobuf message for a given process.
-func (e *Grpc) GetProcessExit(event *tetragonAPI.MsgExitEventUnix) *tetragon.ProcessExit {
-	var tetragonProcess, tetragonParent *tetragon.Process
+func (e *Grpc) GetProcessExit(event *fgsAPI.MsgExitEventUnix) *fgs.ProcessExit {
+	var fgsProcess, fgsParent *fgs.Process
 
 	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if process != nil {
 		process.RefDec()
-		tetragonProcess = process.UnsafeGetProcess()
+		fgsProcess = process.UnsafeGetProcess()
 	} else {
-		tetragonProcess = &tetragon.Process{
+		fgsProcess = &fgs.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	}
 	if parent != nil {
 		parent.RefDec()
-		tetragonParent = parent.GetProcessCopy()
+		fgsParent = parent.GetProcessCopy()
 	}
 
 	code := event.Info.Code >> 8
 	signal := readerexec.Signal(event.Info.Code & 0xFF)
 
-	tetragonEvent := &tetragon.ProcessExit{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
+	fgsEvent := &fgs.ProcessExit{
+		Process: fgsProcess,
+		Parent:  fgsParent,
 		Signal:  signal,
 		Status:  code,
 	}
-	if e.eventCache.Needed(tetragonProcess) {
-		e.eventCache.Add(process, tetragonEvent, ktime.ToProto(event.Common.Ktime), event)
+	if e.eventCache.Needed(fgsProcess) {
+		e.eventCache.Add(process, fgsEvent, ktime.ToProto(event.Common.Ktime), event)
 		return nil
 	}
 	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+		fgsEvent.Process = process.GetProcessCopy()
 	}
-	return tetragonEvent
+	return fgsEvent
 }
 
-func (e *Grpc) HandleExitMessage(msg *tetragonAPI.MsgExitEventUnix) *tetragon.GetEventsResponse {
-	var res *tetragon.GetEventsResponse
+func (e *Grpc) HandleExitMessage(msg *fgsAPI.MsgExitEventUnix) *fgs.GetEventsResponse {
+	var res *fgs.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXIT:
 		e := e.GetProcessExit(msg)
 		if e != nil {
-			res = &tetragon.GetEventsResponse{
-				Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
+			res = &fgs.GetEventsResponse{
+				Event:    &fgs.GetEventsResponse_ProcessExit{ProcessExit: e},
 				NodeName: nodeName,
 				Time:     ktime.ToProto(msg.Common.Ktime),
 			}

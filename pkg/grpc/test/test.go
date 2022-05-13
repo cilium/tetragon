@@ -3,7 +3,7 @@
 package test
 
 import (
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/ktime"
@@ -15,12 +15,12 @@ var (
 	nodeName = node.GetNodeNameForExport()
 )
 
-func HandleTestMessage(msg *testapi.MsgTestEventUnix) *tetragon.GetEventsResponse {
-	var res *tetragon.GetEventsResponse
+func HandleTestMessage(msg *testapi.MsgTestEventUnix) *fgs.GetEventsResponse {
+	var res *fgs.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_TEST:
-		res = &tetragon.GetEventsResponse{
-			Event: &tetragon.GetEventsResponse_Test{Test: &tetragon.Test{
+		res = &fgs.GetEventsResponse{
+			Event: &fgs.GetEventsResponse_Test{Test: &fgs.Test{
 				Arg0: msg.Arg0,
 				Arg1: msg.Arg1,
 				Arg2: msg.Arg2,

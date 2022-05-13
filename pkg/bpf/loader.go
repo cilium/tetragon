@@ -415,7 +415,7 @@ void *generic_loader_args(
 	}
 
 	map_fd = bpf_map__fd(map_bpf);
-	printf("bpf tetragon_kprobe_calls map and progs %s mapfd %d\n", __prog, map_fd);
+	printf("bpf fgs_kprobe_calls map and progs %s mapfd %d\n", __prog, map_fd);
 	if (map_fd >= 0) {
 		for (i = 0; i < 11; i++) {
 			struct bpf_program *prog;
@@ -717,10 +717,10 @@ func AttachTCIngress(progFd int, linkName string, ingress bool) error {
 
 	if ingress {
 		parent = netlink.HANDLE_MIN_INGRESS
-		name = "tetragon-ingress"
+		name = "fgs-ingress"
 	} else {
 		parent = netlink.HANDLE_MIN_EGRESS
-		name = "tetragon-egress"
+		name = "fgs-egress"
 	}
 
 	filterAttrs := netlink.FilterAttrs{

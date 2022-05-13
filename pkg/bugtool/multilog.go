@@ -4,7 +4,7 @@
 package bugtool
 
 // For bugtool we want to log things into two different logs: the one used by
-// tetragon, but also another one that will be saved within the bugtool tar archive. The
+// fgs, but also another one that will be saved within the bugtool tar archive. The
 // log levels of these two are not always the same, so we need two different
 // loggers.
 //

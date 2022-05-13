@@ -20,7 +20,7 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	shell "github.com/kballard/go-shellquote"
 )
 
@@ -56,7 +56,7 @@ func MaybeExecProbe(binary string, args string, execProbe []string) bool {
 	return true
 }
 
-func canBeHealthCheck(process *tetragon.Process) bool {
+func canBeHealthCheck(process *fgs.Process) bool {
 	return process != nil && process.Pod != nil && process.Pod.Container != nil && process.Pod.Container.MaybeExecProbe
 }
 
@@ -73,7 +73,7 @@ func filterByHealthCheck(healthCheck bool) hubbleFilters.FilterFunc {
 
 type HealthCheckFilter struct{}
 
-func (f *HealthCheckFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f *HealthCheckFilter) OnBuildFilter(_ context.Context, ff *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.HealthCheck != nil {
 		fs = append(fs, filterByHealthCheck(ff.HealthCheck.Value))

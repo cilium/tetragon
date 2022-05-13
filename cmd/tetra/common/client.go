@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/viper"
 	"golang.org/x/sys/unix"
@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
+func CliRunErr(fn func(ctx context.Context, cli fgs.FineGuidanceSensorsClient), fnErr func(err error)) {
 	ctx, cancel := signal.NotifyContext(context.Background(), unix.SIGINT, unix.SIGTERM)
 	defer cancel()
 
@@ -28,10 +28,10 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 		logger.GetLogger().WithError(err).Fatal("Failed to connect")
 	}
 	defer conn.Close()
-	client := tetragon.NewFineGuidanceSensorsClient(conn)
+	client := fgs.NewFineGuidanceSensorsClient(conn)
 	fn(ctx, client)
 }
 
-func CliRun(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient)) {
+func CliRun(fn func(ctx context.Context, cli fgs.FineGuidanceSensorsClient)) {
 	CliRunErr(fn, func(_ error) {})
 }

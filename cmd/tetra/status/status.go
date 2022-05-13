@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/spf13/cobra"
 )
 
-func getStatus(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
-	response, err := client.GetHealth(ctx, &tetragon.GetHealthStatusRequest{})
+func getStatus(ctx context.Context, client fgs.FineGuidanceSensorsClient) {
+	response, err := client.GetHealth(ctx, &fgs.GetHealthStatusRequest{})
 	if err != nil {
 		fmt.Printf("status error: %s\n", err)
 		return

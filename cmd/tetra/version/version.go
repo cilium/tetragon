@@ -18,14 +18,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/version"
 
 	"github.com/spf13/cobra"
 )
 
-func printVersion(res *tetragon.GetVersionResponse, err error) {
+func printVersion(res *fgs.GetVersionResponse, err error) {
 	if err == nil {
 		fmt.Printf("server version: %s cli version: %s\n", res.Version, version.Version)
 	} else {
@@ -41,8 +41,8 @@ func New() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CliRunErr(
-				func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-					res, err := cli.GetVersion(ctx, &tetragon.GetVersionRequest{})
+				func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
+					res, err := cli.GetVersion(ctx, &fgs.GetVersionRequest{})
 					printVersion(res, err)
 				},
 				func(err error) {

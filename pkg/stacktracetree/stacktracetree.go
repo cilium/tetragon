@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/calltraceapi"
 )
 
@@ -153,14 +153,14 @@ func (t *Sttree) Print() {
 	t.Root.printNode(0)
 }
 
-func (n *SttNode) ToProtoNode() *tetragon.StackTraceNode {
-	protoNode := tetragon.StackTraceNode{
-		Address: &tetragon.StackAddress{Address: n.Addr, Symbol: n.Symbol},
+func (n *SttNode) ToProtoNode() *fgs.StackTraceNode {
+	protoNode := fgs.StackTraceNode{
+		Address: &fgs.StackAddress{Address: n.Addr, Symbol: n.Symbol},
 		Count:   uint64(n.Count),
 	}
 
 	for lblKey, lblCount := range n.Labels {
-		protoLabel := tetragon.StackTraceLabel{Key: lblKey, Count: uint64(lblCount)}
+		protoLabel := fgs.StackTraceLabel{Key: lblKey, Count: uint64(lblCount)}
 		protoNode.Labels = append(protoNode.Labels, &protoLabel)
 	}
 

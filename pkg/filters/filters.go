@@ -22,19 +22,19 @@ import (
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/api/v1/fgs"
+	"github.com/cilium/tetragon/api/v1/fgs/codegen/helpers"
 )
 
 // ParseFilterList parses a list of process filters in JSON format into protobuf messages.
-func ParseFilterList(filters string) ([]*tetragon.Filter, error) {
+func ParseFilterList(filters string) ([]*fgs.Filter, error) {
 	if filters == "" {
 		return nil, nil
 	}
 	dec := json.NewDecoder(strings.NewReader(filters))
-	var results []*tetragon.Filter
+	var results []*fgs.Filter
 	for {
-		var result tetragon.Filter
+		var result fgs.Filter
 		if err := dec.Decode(&result); err != nil {
 			if err == io.EOF {
 				break
@@ -48,18 +48,18 @@ func ParseFilterList(filters string) ([]*tetragon.Filter, error) {
 
 // OnBuildFilter is invoked while building a flow filter
 type OnBuildFilter interface {
-	OnBuildFilter(context.Context, *tetragon.Filter) ([]hubbleFilters.FilterFunc, error)
+	OnBuildFilter(context.Context, *fgs.Filter) ([]hubbleFilters.FilterFunc, error)
 }
 
 // OnBuildFilterFunc implements OnBuildFilter for a single function
-type OnBuildFilterFunc func(context.Context, *tetragon.Filter) ([]hubbleFilters.FilterFunc, error)
+type OnBuildFilterFunc func(context.Context, *fgs.Filter) ([]hubbleFilters.FilterFunc, error)
 
 // OnBuildFilter is invoked while building a flow filter
-func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, tetragonFilter *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	return f(ctx, tetragonFilter)
+func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, fgsFilter *fgs.Filter) ([]hubbleFilters.FilterFunc, error) {
+	return f(ctx, fgsFilter)
 }
 
-func BuildFilter(ctx context.Context, ff *tetragon.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
+func BuildFilter(ctx context.Context, ff *fgs.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
 	var fs []hubbleFilters.FilterFunc
 	for _, f := range filterFuncs {
 		fl, err := f.OnBuildFilter(ctx, ff)
@@ -73,7 +73,7 @@ func BuildFilter(ctx context.Context, ff *tetragon.Filter, filterFuncs []OnBuild
 	return fs, nil
 }
 
-func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
+func BuildFilterList(ctx context.Context, ff []*fgs.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
 	filterList := make([]hubbleFilters.FilterFunc, 0, len(ff))
 	for _, flowFilter := range ff {
 		tf, err := BuildFilter(ctx, flowFilter, filterFuncs)
@@ -98,14 +98,14 @@ var Filters = []OnBuildFilter{
 	&EventTypeFilter{},
 }
 
-func GetProcess(event *v1.Event) *tetragon.Process {
+func GetProcess(event *v1.Event) *fgs.Process {
 	if event == nil {
 		return nil
 	}
 	return helpers.ResponseGetProcess(event.Event)
 }
 
-func GetParent(event *v1.Event) *tetragon.Process {
+func GetParent(event *v1.Event) *fgs.Process {
 	if event == nil {
 		return nil
 	}

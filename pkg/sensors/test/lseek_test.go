@@ -34,7 +34,7 @@ var (
 	)
 
 	selfBinary  string
-	tetragonLib string
+	fgsLib      string
 	cmdWaitTime time.Duration
 )
 
@@ -43,8 +43,8 @@ const (
 )
 
 func init() {
-	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an FGS_LIB env variable.")
-	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for tetragon to gather logs from commands")
+	flag.StringVar(&fgsLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an FGS_LIB env variable.")
+	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for fgs to gather logs from commands")
 
 	bpf.SetMapPrefix(testMapDir)
 }
@@ -74,7 +74,7 @@ func TestSensorLseekLoad(t *testing.T) {
 		ec.NewTestEventChecker().End(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, fgsLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -113,7 +113,7 @@ func TestSensorLseekEnable(t *testing.T) {
 		ec.NewTestEventChecker().End(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, fgsLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}

@@ -9,7 +9,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -19,8 +19,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
-	stream, err := client.GetEvents(ctx, &tetragon.GetEventsRequest{})
+func getEvents(ctx context.Context, client fgs.FineGuidanceSensorsClient) {
+	stream, err := client.GetEvents(ctx, &fgs.GetEventsRequest{})
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
 	}

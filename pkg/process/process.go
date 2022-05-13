@@ -13,9 +13,9 @@ import (
 
 	hubble "github.com/cilium/hubble/pkg/cilium"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api"
-	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	fgsAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -41,10 +41,10 @@ type ProcessInternal struct {
 	// mu protects the modifications to process.
 	mu sync.Mutex
 	// externally visible process struct.
-	process *tetragon.Process
+	process *fgs.Process
 	// additional internal fields below
-	capabilities *tetragon.Capabilities
-	namespaces   *tetragon.Namespaces
+	capabilities *fgs.Capabilities
+	namespaces   *fgs.Namespaces
 	// garbage collector metadata
 	color  int
 	refcnt uint32
@@ -82,24 +82,24 @@ func FreeCache() {
 	procCache = nil
 }
 
-func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
+func (pi *ProcessInternal) GetProcessCopy() *fgs.Process {
 	if pi.process == nil {
 		return nil
 	}
 	pi.mu.Lock()
-	proc := proto.Clone(pi.process).(*tetragon.Process)
+	proc := proto.Clone(pi.process).(*fgs.Process)
 	pi.mu.Unlock()
 	proc.Refcnt = atomic.LoadUint32(&pi.refcnt)
 	return proc
 }
 
-func (pi *ProcessInternal) AddPodInfo(pod *tetragon.Pod) {
+func (pi *ProcessInternal) AddPodInfo(pod *fgs.Pod) {
 	pi.mu.Lock()
 	pi.process.Pod = pod
 	pi.mu.Unlock()
 }
 
-func (pi *ProcessInternal) GetProcess() *tetragon.Process {
+func (pi *ProcessInternal) GetProcess() *fgs.Process {
 	pi.mu.Lock()
 	return pi.process
 }
@@ -108,7 +108,7 @@ func (pi *ProcessInternal) PutProcess() {
 	pi.mu.Unlock()
 }
 
-func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
+func (pi *ProcessInternal) UnsafeGetProcess() *fgs.Process {
 	return pi.process
 }
 
@@ -127,7 +127,7 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	return nil
 }
 
-func (pi *ProcessInternal) UnsafeGetProcessCap() *tetragon.Capabilities {
+func (pi *ProcessInternal) UnsafeGetProcessCap() *fgs.Capabilities {
 	return pi.capabilities
 }
 
@@ -143,20 +143,20 @@ func GetProcessID(pid uint32, ktime uint64) string {
 	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", nodeName, ktime, pid)))
 }
 
-func GetExecID(proc *tetragonAPI.MsgProcess) string {
+func GetExecID(proc *fgsAPI.MsgProcess) string {
 	return GetProcessID(proc.PID, proc.Ktime)
 }
 
-func GetExecIDFromKey(key *tetragonAPI.MsgExecveKey) string {
+func GetExecIDFromKey(key *fgsAPI.MsgExecveKey) string {
 	return GetProcessID(key.Pid, key.Ktime)
 }
 
 func GetProcess(
-	process tetragonAPI.MsgProcess,
+	process fgsAPI.MsgProcess,
 	containerID string,
-	parent tetragonAPI.MsgExecveKey,
-	capabilities tetragonAPI.MsgCapabilities,
-	namespaces tetragonAPI.MsgNamespaces,
+	parent fgsAPI.MsgExecveKey,
+	capabilities fgsAPI.MsgCapabilities,
+	namespaces fgsAPI.MsgNamespaces,
 ) (*ProcessInternal, *hubblev1.Endpoint) {
 	args, cwd := ArgsDecoder(process.Args, process.Flags)
 	var parentExecID string
@@ -168,7 +168,7 @@ func GetProcess(
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
 	return &ProcessInternal{
-		process: &tetragon.Process{
+		process: &fgs.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          path.MarkUnresolvedPathComponentsCwd(cwd, process.Flags),
@@ -193,7 +193,7 @@ func FindPod(containerId string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return k8s.FindPod(containerId)
 }
 
-func GetPodInfo(cid, bin, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
+func GetPodInfo(cid, bin, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint) {
 	return k8s.GetPodInfo(cid, bin, args, nspid)
 }
 
@@ -216,7 +216,7 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 }
 
 // Add converts an FGS exec event to protobuf format and adds the protobuf message to the cache.
-func Add(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
+func Add(event *fgsAPI.MsgExecveEventUnix) *ProcessInternal {
 	proc, _ := GetProcess(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
 	procCache.Add(proc)
 
@@ -254,7 +254,7 @@ func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
 
-func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
+func GetProcessEndpoint(p *fgs.Process) *hubblev1.Endpoint {
 	if p == nil {
 		return nil
 	}

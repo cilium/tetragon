@@ -23,7 +23,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/grpc/exec"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/process"
@@ -72,13 +72,13 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 	assert.Nil(t, endpoint)
 	pod, endpoint = process.GetPodInfo("aaaaaaa", "", "", 1234)
 	assert.Equal(t,
-		&tetragon.Pod{
+		&fgs.Pod{
 			Namespace: podA.Namespace,
 			Name:      podA.Name,
-			Container: &tetragon.Container{
+			Container: &fgs.Container{
 				Id:   podA.Status.ContainerStatuses[0].ContainerID,
 				Name: podA.Status.ContainerStatuses[0].Name,
-				Image: &tetragon.Image{
+				Image: &fgs.Image{
 					Id:   podA.Status.ContainerStatuses[0].ImageID,
 					Name: podA.Status.ContainerStatuses[0].Image,
 				},
@@ -127,13 +127,13 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	defer process.FreeCache()
 	pod, endpoint := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
 	assert.Equal(t,
-		&tetragon.Pod{
+		&fgs.Pod{
 			Namespace: podA.Namespace,
 			Name:      podA.Name,
-			Container: &tetragon.Container{
+			Container: &fgs.Container{
 				Id:             podA.Status.ContainerStatuses[0].ContainerID,
 				Name:           podA.Status.ContainerStatuses[0].Name,
-				Image:          &tetragon.Image{},
+				Image:          &fgs.Image{},
 				Pid:            &wrapperspb.UInt32Value{Value: 1234},
 				MaybeExecProbe: true,
 			},
@@ -171,10 +171,10 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 	pm.enableProcessCred = true
 	execGrpc = exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
 	assert.Equal(t,
-		&tetragon.Capabilities{
-			Permitted:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
-			Effective:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
-			Inheritable: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
+		&fgs.Capabilities{
+			Permitted:   []fgs.CapabilitiesType{fgs.CapabilitiesType_CAP_CHOWN},
+			Effective:   []fgs.CapabilitiesType{fgs.CapabilitiesType_CAP_CHOWN},
+			Inheritable: []fgs.CapabilitiesType{fgs.CapabilitiesType_CAP_CHOWN},
 		},
 		execGrpc.GetProcessExec(procInternal).Process.Cap)
 }

@@ -5,7 +5,7 @@ package podinfo
 import (
 	"net"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/cilium"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -18,13 +18,13 @@ func getExecCommand(probe *coreV1.Probe) []string {
 	return nil
 }
 
-func GetPodInfoOfIp(ip net.IP) *tetragon.Pod {
+func GetPodInfoOfIp(ip net.IP) *fgs.Pod {
 	ciliumState := cilium.GetCiliumState()
 	ipcacheEntry, ok := ciliumState.GetIPCache().GetIPIdentity(ip)
 	if !ok {
 		return nil
 	}
-	return &tetragon.Pod{
+	return &fgs.Pod{
 		Namespace: ipcacheEntry.Namespace,
 		Name:      ipcacheEntry.PodName,
 		Labels:    nil,

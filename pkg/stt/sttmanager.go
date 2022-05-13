@@ -6,7 +6,7 @@ package sttManager
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/logger"
 	stt "github.com/cilium/tetragon/pkg/stacktracetree"
 )
@@ -35,7 +35,7 @@ type SttMgTreeInsert struct {
 type SttMgTreeToProto struct {
 	TreeName string
 	RetChan  chan error
-	RootNode *tetragon.StackTraceNode
+	RootNode *fgs.StackTraceNode
 }
 
 type SttMgStop struct {

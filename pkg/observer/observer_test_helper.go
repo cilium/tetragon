@@ -20,14 +20,14 @@ import (
 	hubbleV1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
-	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
+	fgsGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -112,7 +112,7 @@ func withNotestfail(notestfail bool) TestOption {
 
 func testDone(t *testing.T, obs *Observer) {
 	if t.Failed() {
-		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
+		bugtoolFname := "/tmp/fgs-bugtool.tar.gz"
 		if err := bugtool.Bugtool(bugtoolFname); err == nil {
 			logger.GetLogger().WithField("test", t.Name()).
 				WithField("file", bugtoolFname).Info("Dumped bugtool info")
@@ -197,7 +197,7 @@ func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
 
 			return &pod, &container, true
 		},
-		OnGetPodInfo: func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
+		OnGetPodInfo: func(containerID, binary, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint) {
 			return nil, nil
 		},
 	}
@@ -327,7 +327,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	// to bounce events through the cache waiting for Cilium to reply with endpoints
 	// and K8s cache data to be completed. We currently only stub them enough to
 	// report nil or a pre-defined value. So no cache needed.
-	processManager, err := tetragonGrpc.NewProcessManager(ciliumState, SensorManager, true, true, true, false)
+	processManager, err := fgsGrpc.NewProcessManager(ciliumState, SensorManager, true, true, true, false)
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 		t.Fatalf("observerLoadExporter: %s\n", err)
 	}
 	denyList, _ := filters.ParseFilterList("")
-	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList}
+	req := fgs.GetEventsRequest{AllowList: allowList, DenyList: denyList}
 	exporter := exporter.NewExporter(context.Background(), &req, processManager.Server, encoder, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
 	exporter.Start()
@@ -436,7 +436,7 @@ func DockerRun(t *testing.T, args ...string) (containerId string) {
 
 type fakeK8sWatcher struct {
 	OnFindPod    func(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
-	OnGetPodInfo func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
+	OnGetPodInfo func(containerID, binary, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint)
 }
 
 func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
@@ -446,7 +446,7 @@ func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.Conta
 	return f.OnFindPod(containerID)
 }
 
-func (f *fakeK8sWatcher) GetPodInfo(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
+func (f *fakeK8sWatcher) GetPodInfo(containerID, binary, args string, nspid uint32) (*fgs.Pod, *hubblev1.Endpoint) {
 	if f.OnGetPodInfo == nil {
 		panic("GetPodInfo not implemented")
 	}

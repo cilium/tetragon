@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/fgs"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +35,7 @@ func New() *cobra.Command {
 		Short: "Add a new sennsor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+			common.CliRun(func(ctx context.Context, cli fgs.FineGuidanceSensorsClient) {
 				addTracingPolicy(ctx, cli, args[0])
 			})
 		},
@@ -44,14 +44,14 @@ func New() *cobra.Command {
 	return tpCmd
 }
 
-func addTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, yamlFname string) {
+func addTracingPolicy(ctx context.Context, client fgs.FineGuidanceSensorsClient, yamlFname string) {
 	yamlb, err := os.ReadFile(yamlFname)
 	if err != nil {
 		fmt.Printf("failed to read yaml file %s: %s\n", yamlFname, err)
 		return
 	}
 
-	_, err = client.AddTracingPolicy(ctx, &tetragon.AddTracingPolicyRequest{
+	_, err = client.AddTracingPolicy(ctx, &fgs.AddTracingPolicyRequest{
 		Yaml: string(yamlb),
 	})
 	if err != nil {

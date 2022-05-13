@@ -12,7 +12,7 @@ import (
 
 func TestSaveAndLoad(t *testing.T) {
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "tetragon-bugtool-test-")
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "fgs-bugtool-test-")
 	if err != nil {
 		t.Error("failed to create temporary file")
 	}
