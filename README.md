@@ -49,7 +49,7 @@ and what filters are applied are hard-coded in the engine itself.
 
 Critically, Tetragon allows hooking deep in the kernel where data structures can not be manipulated
 by user space applications avoiding common issues with syscall tracing where
-data is incorrectly read, malicious altered by attackers, or missing due to page
+data is incorrectly read, maliciously altered by attackers, or missing due to page
 faults and other user/kernel boundary errors.
 
 Many of the Tetragon developers are also kernel developers. By leveraging this knowledge base
@@ -204,15 +204,15 @@ some example commands:
 
 ```bash
 kubectl exec -it xwing -- /bin/bash
-whoami --version
+whoami
 ```
 
 If you observe, the output in the first terminal should be:
 
 ```bash
 🚀 process default/xwing /bin/bash
-🚀 process default/xwing /usr/bin/whoami --version
-💥 exit    default/xwing /usr/bin/whoami --version 0
+🚀 process default/xwing /usr/bin/whoami
+💥 exit    default/xwing /usr/bin/whoami 0
 ```
 
 Here you can see the binary names along with its arguments, the pod info, and
@@ -225,7 +225,7 @@ the Tetragon CLI by `Crl-C` and parse the `tetragon.log` file by executing:
 kubectl logs -n kube-system ds/tetragon -c export-stdout -f | jq 'select(.process_exec.process.pod.name=="xwing" or .process_exit.process.pod.name=="xwing")'
 ```
 
-An example `process_exec` and `process_exit` events can be:
+Example `process_exec` and `process_exit` events can be:
 <details><summary> Process Exec Event </summary>
 <p>
 
@@ -426,7 +426,7 @@ and process metadata from exec events, `process_kprobe` events contain
 the arguments of the observed system call. In the above case they are
 
 * `path`: the observed file path
-* `bytes_arg`: content of the observed file encoded in base64 
+* `bytes_arg`: content of the observed file encoded in base64
 * `size_arg`: size of the observed file in bytes
 
 To disable the TracingPolicy run:
