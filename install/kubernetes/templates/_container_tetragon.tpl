@@ -81,5 +81,6 @@
   command:
   - tetragon-operator
   image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
+  imagePullPolicy: {{ .Values.imagePullPolicy }}
 {{- end }}
 {{- end -}}
