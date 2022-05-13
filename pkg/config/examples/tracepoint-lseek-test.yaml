@@ -1,4 +1,4 @@
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "tracepoint-lseek"
 spec:

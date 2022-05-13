@@ -40,7 +40,7 @@ const (
 
 func TestKprobeObjectLoad(t *testing.T) {
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -92,7 +92,7 @@ func TestKprobeLseek(t *testing.T) {
 	fmt.Printf("pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -185,7 +185,7 @@ func TestKprobeObjectWriteReadHostNs(t *testing.T) {
 	myPid := observer.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -231,7 +231,7 @@ func TestKprobeObjectWriteRead(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -278,7 +278,7 @@ func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
 	myPid := observer.GetMyPid()
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -318,7 +318,7 @@ spec:
 func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write"
 spec:
@@ -409,7 +409,7 @@ func TestKprobeObjectRead(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -456,7 +456,7 @@ func TestKprobeObjectReadReturn(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -618,7 +618,7 @@ func testKprobeObjectFiltered(t *testing.T,
 
 func testKprobeObjectOpenHook(pidStr string, path string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -661,7 +661,7 @@ func TestKprobeObjectOpenMount(t *testing.T) {
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -706,7 +706,7 @@ func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
 func TestKprobeObjectFilterOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -739,7 +739,7 @@ spec:
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -772,7 +772,7 @@ spec:
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -815,7 +815,7 @@ func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -858,7 +858,7 @@ func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -902,7 +902,7 @@ func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -935,7 +935,7 @@ spec:
 func TestKprobeObjectPostfixOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -988,7 +988,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
 	writeReadHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "__x64_sys_writev"
 spec:
@@ -1062,7 +1062,7 @@ var (
 func TestKprobeObjectFilenameOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -1088,7 +1088,7 @@ spec:
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_read"
 spec:
@@ -1115,7 +1115,7 @@ spec:
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -1158,7 +1158,7 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
 
 func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
 	return `
-  apiVersion: cilium.io/v1alpha1
+  apiVersion: hubble-enterprise.io/v1
   metadata:
     name: "sys_read"
   spec:
@@ -1661,7 +1661,7 @@ func TestKprobeOverride(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	openAtHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "__x64_sys_openat override"
 spec:
@@ -1714,7 +1714,7 @@ spec:
 
 func TestKprobeOverrideNonSyscall(t *testing.T) {
 	closeFdHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "close_fd override"
 spec:
@@ -1797,7 +1797,7 @@ func TestKprobe_char_iovec(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
 	configHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write_writev"
 spec:
@@ -1852,7 +1852,7 @@ func TestKprobe_char_iovec_overflow(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
 	configHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write_writev"
 spec:
@@ -1907,7 +1907,7 @@ func TestKprobe_char_iovec_returnCopy(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
 	configHook := `
-apiVersion: cilium.io/v1alpha1
+apiVersion: hubble-enterprise.io/v1
 metadata:
   name: "sys_write_read"
 spec:

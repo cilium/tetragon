@@ -55,14 +55,14 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 					Arguments: "cilium.io",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 			},
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io", result)
+	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl cilium.io", result)
 }
 
 func TestCompactEncoder_DnsEventToString(t *testing.T) {
@@ -128,7 +128,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 					Arguments: "cilium.io",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				Status: 1,
@@ -136,7 +136,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "💥 exit    kube-system/tetragon /usr/bin/curl cilium.io 1", result)
+	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl cilium.io 1", result)
 
 	// with signal
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -147,7 +147,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 					Arguments: "cilium.io",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				Signal: "SIGKILL",
@@ -155,7 +155,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "💥 exit    kube-system/tetragon /usr/bin/curl cilium.io SIGKILL", result)
+	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl cilium.io SIGKILL", result)
 }
 
 func TestCompactEncoder_KprobeEventToString(t *testing.T) {
@@ -179,7 +179,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "unhandled_function",
@@ -187,7 +187,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "⁉️ syscall kube-system/tetragon /usr/bin/curl unhandled_function", result)
+	assert.Equal(t, "⁉️ syscall kube-system/hubble-enterprise /usr/bin/curl unhandled_function", result)
 }
 
 func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
@@ -201,7 +201,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "fd_install",
@@ -209,7 +209,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📬 open    kube-system/tetragon /usr/bin/curl ", result)
+	assert.Equal(t, "📬 open    kube-system/hubble-enterprise /usr/bin/curl ", result)
 
 	// open with args
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -219,7 +219,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "fd_install",
@@ -231,7 +231,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📬 open    kube-system/tetragon /usr/bin/curl /etc/password", result)
+	assert.Equal(t, "📬 open    kube-system/hubble-enterprise /usr/bin/curl /etc/password", result)
 }
 
 func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
@@ -245,7 +245,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "__x64_sys_write",
@@ -253,7 +253,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📝 write   kube-system/tetragon /usr/bin/curl  ", result)
+	assert.Equal(t, "📝 write   kube-system/hubble-enterprise /usr/bin/curl  ", result)
 
 	// write with args
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -263,7 +263,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "__x64_sys_write",
@@ -276,7 +276,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📝 write   kube-system/tetragon /usr/bin/curl /etc/password 1234 bytes", result)
+	assert.Equal(t, "📝 write   kube-system/hubble-enterprise /usr/bin/curl /etc/password 1234 bytes", result)
 }
 
 func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
@@ -290,7 +290,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "__x64_sys_close",
@@ -298,7 +298,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl ", result)
+	assert.Equal(t, "📪 close   kube-system/hubble-enterprise /usr/bin/curl ", result)
 
 	// open with args
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -308,7 +308,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 				FunctionName: "__x64_sys_close",
@@ -319,7 +319,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl /etc/password", result)
+	assert.Equal(t, "📪 close   kube-system/hubble-enterprise /usr/bin/curl /etc/password", result)
 }
 
 func TestCompactEncoder_Encode(t *testing.T) {
@@ -343,12 +343,12 @@ func TestCompactEncoder_Encode(t *testing.T) {
 					Arguments: "cilium.io",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
-						Name:      "tetragon",
+						Name:      "hubble-enterprise",
 					},
 				},
 			},
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
+	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl cilium.io\n", b.String())
 }

@@ -12,6 +12,16 @@ description: Helm chart for Tetragon
 # pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
 
+# IMPORTANT
+#
+# Currently we override version and appVersion during Helm chart release process in:
+#
+# https://github.com/isovalent/helm-repo/blob/master/generate.sh
+#
+# This script sets version and appVersion based on git tag / branch names. Don't bother updating
+# version and appVersion fields below unless we have made a conscious decision to maintain these
+# fields using some other convention.
+
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)

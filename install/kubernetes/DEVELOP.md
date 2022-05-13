@@ -24,7 +24,7 @@ with the latest `tetragon` Helm chart on minikube:
 
 1. Install `tetragon`, specifying the image tag you are using:
 
-       helm install -n kube-system tetragon install/kubernetes \
+       helm install -n kube-system tetragon isovalent/tetragon --version 9999.9999.9999-dev \
          --set enterprise.image.tag=latest --set imagePullPolicy=Always
 
    Alternatively, if you want to use the local chart to test your change, run:
