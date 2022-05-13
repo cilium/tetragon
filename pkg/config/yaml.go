@@ -6,7 +6,7 @@ package config
 import (
 	"io/ioutil"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
 	"sigs.k8s.io/yaml"
 )
 

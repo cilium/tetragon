@@ -11,8 +11,8 @@ import (
 	time "time"
 
 	versioned "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
-	ciliumio "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io"
 	internalinterfaces "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces"
+	isovalentcom "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/isovalent.com"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -159,9 +159,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Cilium() ciliumio.Interface
+	Isovalent() isovalentcom.Interface
 }
 
-func (f *sharedInformerFactory) Cilium() ciliumio.Interface {
-	return ciliumio.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Isovalent() isovalentcom.Interface {
+	return isovalentcom.New(f, f.namespace, f.tweakListOptions)
 }

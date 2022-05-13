@@ -8,7 +8,7 @@ package versioned
 import (
 	"fmt"
 
-	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1"
+	isovalentv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -16,19 +16,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	CiliumV1alpha1() ciliumv1alpha1.CiliumV1alpha1Interface
+	IsovalentV1alpha1() isovalentv1alpha1.IsovalentV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	ciliumV1alpha1 *ciliumv1alpha1.CiliumV1alpha1Client
+	isovalentV1alpha1 *isovalentv1alpha1.IsovalentV1alpha1Client
 }
 
-// CiliumV1alpha1 retrieves the CiliumV1alpha1Client
-func (c *Clientset) CiliumV1alpha1() ciliumv1alpha1.CiliumV1alpha1Interface {
-	return c.ciliumV1alpha1
+// IsovalentV1alpha1 retrieves the IsovalentV1alpha1Client
+func (c *Clientset) IsovalentV1alpha1() isovalentv1alpha1.IsovalentV1alpha1Interface {
+	return c.isovalentV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -52,7 +52,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.ciliumV1alpha1, err = ciliumv1alpha1.NewForConfig(&configShallowCopy)
+	cs.isovalentV1alpha1, err = isovalentv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.ciliumV1alpha1 = ciliumv1alpha1.NewForConfigOrDie(c)
+	cs.isovalentV1alpha1 = isovalentv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -77,7 +77,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.ciliumV1alpha1 = ciliumv1alpha1.New(c)
+	cs.isovalentV1alpha1 = isovalentv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

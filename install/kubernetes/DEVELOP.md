@@ -10,13 +10,13 @@ with the latest `tetragon` Helm chart on minikube:
          --iso-url=https://github.com/kubernetes/minikube/releases/download/v1.15.0/minikube-v1.15.0.iso
        minikube ssh -- sudo mount bpffs -t bpf /sys/fs/bpf
 
-   Check https://docs.cilium.io/quick-start/connectivity_visibility.html#start-minikube for the up-to-date
+   Check https://docs.isovalent.com/quick-start/connectivity_visibility.html#start-minikube for the up-to-date
    instructions on how to start minikube.
 
 <!--
 1. Install `cilium-enterprise`, but with `tetragon.enabled=false`:
 
-       helm repo add isovalent https://helm.cilium.io
+       helm repo add isovalent https://helm.isovalent.com
        helm repo update
        helm install -n kube-system cilium-enterprise isovalent/cilium-enterprise --version 1.9.7+4 \
          --set tetragon.enabled=false

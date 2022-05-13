@@ -2,5 +2,5 @@
 // Copyright Authors of Tetragon
 
 // +k8s:deepcopy-gen=package,register
-// +groupName=cilium.io
+// +groupName=isovalent.com
 package v1alpha1

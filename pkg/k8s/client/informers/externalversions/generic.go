@@ -8,7 +8,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -39,9 +39,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=cilium.io, Version=v1alpha1
+	// Group=isovalent.com, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("tracingpolicies"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cilium().V1alpha1().TracingPolicies().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Isovalent().V1alpha1().TracingPolicies().Informer()}, nil
 
 	}
 

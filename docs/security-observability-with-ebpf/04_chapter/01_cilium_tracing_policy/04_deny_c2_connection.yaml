@@ -1,5 +1,5 @@
 # deny connections to 34.116.205.187:443, c2 server
-apiVersion: cilium.io/v1alpha1
+apiVersion: isovalent.com/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "deny-c2-server-connection"

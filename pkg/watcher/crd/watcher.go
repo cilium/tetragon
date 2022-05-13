@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/v1alpha1"
 	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -33,7 +33,7 @@ func k8sErrorHandler(e error) {
 		return
 	}
 	switch {
-	case strings.Contains(e.Error(), "Failed to list *v1alpha1.TracingPolicy: the server could not find the requested resource (get tracingpolicies.cilium.io)"):
+	case strings.Contains(e.Error(), "Failed to list *v1alpha1.TracingPolicy: the server could not find the requested resource (get tracingpolicies.isovalent.com)"):
 		// TODO: For now log an info message once if TracingPolicy is not defined.
 		//       In the long term we should automate the CRD creation process.
 		logOnce.Do(func() {
@@ -52,7 +52,7 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	}
 	client := versioned.NewForConfigOrDie(conf)
 	factory := externalversions.NewSharedInformerFactory(client, 0)
-	informer := factory.Cilium().V1alpha1().TracingPolicies()
+	informer := factory.Isovalent().V1alpha1().TracingPolicies()
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			policy, ok := obj.(*v1alpha1.TracingPolicy)

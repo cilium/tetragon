@@ -49,7 +49,7 @@
 #
 # This CRD will also capture the changes when we enable a capability.
 #
-apiVersion: cilium.io/v1alpha1
+apiVersion: isovalent.com/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "fd_install"

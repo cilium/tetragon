@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
+	"github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com/client"
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/version"
 	"k8s.io/client-go/kubernetes"

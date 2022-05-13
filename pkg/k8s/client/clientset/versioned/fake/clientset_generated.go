@@ -7,8 +7,8 @@ package fake
 
 import (
 	clientset "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
-	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1"
-	fakeciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1/fake"
+	isovalentv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1"
+	fakeisovalentv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/isovalent.com/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -66,7 +66,7 @@ var (
 	_ testing.FakeClient  = &Clientset{}
 )
 
-// CiliumV1alpha1 retrieves the CiliumV1alpha1Client
-func (c *Clientset) CiliumV1alpha1() ciliumv1alpha1.CiliumV1alpha1Interface {
-	return &fakeciliumv1alpha1.FakeCiliumV1alpha1{Fake: &c.Fake}
+// IsovalentV1alpha1 retrieves the IsovalentV1alpha1Client
+func (c *Clientset) IsovalentV1alpha1() isovalentv1alpha1.IsovalentV1alpha1Interface {
+	return &fakeisovalentv1alpha1.FakeIsovalentV1alpha1{Fake: &c.Fake}
 }

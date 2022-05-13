@@ -37,14 +37,14 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
 					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Arguments: "isovalent.com",
 				},
 			},
 		},
 		NodeName: "my-node",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "🚀 process my-node /usr/bin/curl cilium.io", result)
+	assert.Equal(t, "🚀 process my-node /usr/bin/curl isovalent.com", result)
 
 	// with pod info
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -52,7 +52,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
 					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Arguments: "isovalent.com",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "hubble-enterprise",
@@ -62,7 +62,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl cilium.io", result)
+	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl isovalent.com", result)
 }
 
 func TestCompactEncoder_DnsEventToString(t *testing.T) {
@@ -97,7 +97,7 @@ func TestCompactEncoder_DnsEventToString(t *testing.T) {
 					Binary: "/usr/bin/curl",
 				},
 				Dns: &tetragon.DnsInfo{
-					Names: []string{"cilium.io"},
+					Names: []string{"isovalent.com"},
 					Ips:   []string{"1.2.3.4"},
 				},
 			},
@@ -105,7 +105,7 @@ func TestCompactEncoder_DnsEventToString(t *testing.T) {
 		NodeName: "my-node",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "📖 dns     my-node /usr/bin/curl [cilium.io] => [1.2.3.4]", result)
+	assert.Equal(t, "📖 dns     my-node /usr/bin/curl [isovalent.com] => [1.2.3.4]", result)
 }
 
 func TestCompactEncoder_ExitEventToString(t *testing.T) {
@@ -125,7 +125,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
 					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Arguments: "isovalent.com",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "hubble-enterprise",
@@ -136,7 +136,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl cilium.io 1", result)
+	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl isovalent.com 1", result)
 
 	// with signal
 	result, err = p.eventToString(&tetragon.GetEventsResponse{
@@ -144,7 +144,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
 					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Arguments: "isovalent.com",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "hubble-enterprise",
@@ -155,7 +155,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl cilium.io SIGKILL", result)
+	assert.Equal(t, "💥 exit    kube-system/hubble-enterprise /usr/bin/curl isovalent.com SIGKILL", result)
 }
 
 func TestCompactEncoder_KprobeEventToString(t *testing.T) {
@@ -340,7 +340,7 @@ func TestCompactEncoder_Encode(t *testing.T) {
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
 					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Arguments: "isovalent.com",
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "hubble-enterprise",
@@ -350,5 +350,5 @@ func TestCompactEncoder_Encode(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl cilium.io\n", b.String())
+	assert.Equal(t, "🚀 process kube-system/hubble-enterprise /usr/bin/curl isovalent.com\n", b.String())
 }

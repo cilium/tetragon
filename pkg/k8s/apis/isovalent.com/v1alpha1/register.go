@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
+	isovalentcom "github.com/cilium/tetragon/pkg/k8s/apis/isovalent.com"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,7 +24,7 @@ const (
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: ciliumio.GroupName, Version: CRDVersion}
+var SchemeGroupVersion = schema.GroupVersion{Group: isovalentcom.GroupName, Version: CRDVersion}
 
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {

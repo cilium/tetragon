@@ -1,5 +1,5 @@
 # deny write access to /opt/ops_bank_accounts on host
-apiVersion: cilium.io/v1alpha1
+apiVersion: isovalent.com/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "deny-write-to-ops-bank-account"
