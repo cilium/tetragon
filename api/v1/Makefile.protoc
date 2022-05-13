@@ -1,0 +1,29 @@
+PROTOC ?= protoc
+
+TETRAGON_PROTO_SOURCES := \
+	./tetragon/tetragon.proto \
+
+TETRAGON_GO_TARGETS := \
+	$(TETRAGON_PROTO_SOURCES:.proto=.pb.go) \
+	$(TETRAGON_PROTO_SOURCES:.proto=.pb.json.go) \
+
+TETRAGON_PROTO_PATH := .
+
+TETRAGON_PROTOC_PLUGINS := \
+	--plugin=$(GOPATH)/bin/protoc-gen-go \
+	--plugin=$(GOPATH)/bin/protoc-gen-go-grpc \
+	--plugin=$(GOPATH)/bin/protoc-gen-go-json \
+    --plugin=$(GOPATH)/bin/protoc-gen-go-tetragon \
+
+.PHONY: all
+all:
+	$(QUIET)set -e; \
+	for proto in $(TETRAGON_PROTO_SOURCES) ; do \
+		echo Generating $${proto} && \
+		$(PROTOC) $(TETRAGON_PROTOC_PLUGINS) -I $(TETRAGON_PROTO_PATH) \
+		--go_out=paths=source_relative:. \
+		--go-grpc_out=require_unimplemented_servers=false,paths=source_relative:. \
+		--go-json_out=orig_name=true,paths=source_relative:. \
+		--go-tetragon_out=orig_name=true,paths=source_relative:. \
+		$${proto}; \
+	done

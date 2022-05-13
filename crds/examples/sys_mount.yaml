@@ -1,0 +1,14 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syscalls"
+spec:
+  kprobes:
+  # int mount(const char *source, const char *target, const char *filesystemtype, unsigned long mountflags, const void *data);
+  - call: "__x64_sys_mount"
+    syscall: true
+    args:
+    - index: 0
+      type:  "string"
+    - index: 1
+      type:  "string"

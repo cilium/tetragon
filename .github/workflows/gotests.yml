@@ -1,0 +1,64 @@
+name: Tetragon Go Test
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        os: [ ubuntu-20.04 ]
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.17.8'
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        path: go/src/github.com/cilium/tetragon/
+    - name: Increase open file descriptors limit
+      run: echo fs.file-max=1048576 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+    - name: Run go tests
+      env:
+        GOPATH: /home/runner/work/tetragon/tetragon/go
+      run: |
+        sudo apt install libelf-dev netcat-traditional libcap-dev
+        export PATH=${GOPATH}/bin:${PATH}
+        sudo -E echo "copy build tools from images"
+        cd go/src/github.com/cilium/tetragon/
+        sudo -E make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib CLANG_INSTALL_DIR=/usr/bin
+        sudo -E ldconfig /usr/local/
+        sudo sed -i '/secure_path/d' /etc/sudoers
+        sudo sed -i '/env_reset/d' /etc/sudoers
+        echo `which clang`
+        echo `which llc`
+        echo `clang --version`
+        make check-copyright
+        sudo make tetragon-bpf
+        sudo -E echo "run go tests: " `uname -a`
+        sudo -E go mod verify
+        sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
+        export FGS_LIB=$(realpath "bpf/objs/")
+        sudo apt install gcc # needed for contrib-progs
+        sudo -E make contrib-progs
+        sudo -E make test
+
+    - name: Upload Tetragon logs
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: tetragon-json
+        path: /tmp/tetragon.gotest*
+        retention-days: 5
+
+    - name: Upload bugtool dumps
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: tetragon-bugtool
+        path: /tmp/tetragon-bugtool-*
+        retention-days: 5

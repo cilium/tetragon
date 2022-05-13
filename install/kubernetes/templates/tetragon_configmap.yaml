@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "tetragon.labels" . | nindent 4 }}
+data:
+{{- if .Values.tetragon.btf }}
+  btf: {{ .Values.tetragon.btf }}
+{{- end }}
+  procfs: /procRoot
+  enable-process-cred: {{ .Values.tetragon.enableProcessCred | quote }}
+  enable-process-ns: {{ .Values.tetragon.enableProcessNs | quote }}
+  process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
+{{- if .Values.tetragon.exportFilename }}
+  export-filename: {{ .Values.exportDirectory}}/{{ .Values.tetragon.exportFilename }}
+  export-file-max-size-mb: {{ .Values.tetragon.exportFileMaxSizeMB | quote }}
+  export-file-max-backups: {{ .Values.tetragon.exportFileMaxBackups | quote }}
+  export-file-compress: {{ .Values.tetragon.exportFileCompress | quote }}
+  export-allowlist: |-
+{{- .Values.tetragon.exportAllowList | trim | nindent 4 }}
+  export-denylist: |-
+{{- .Values.tetragon.exportDenyList | trim | nindent 4 }}
+  export-rate-limit: {{ .Values.tetragon.exportRateLimit | quote }}
+{{- end }}
+{{- if .Values.tetragon.enableK8sAPI }}
+  enable-k8s-api: "true"
+{{- end }}
+{{- if .Values.tetragon.enableCiliumAPI }}
+  enable-cilium-api: "true"
+  cilium-bpf: /sys/fs/bpf/tc/globals/
+{{- end }}
+{{- if .Values.tetragon.prometheus.enabled }}
+  metrics-server: :{{ .Values.tetragon.prometheus.port }}
+{{- end }}
+{{- if .Values.tetragon.tcpStatsSampleSegs }}
+  tcp-stats-sample-segs: {{ .Values.tetragon.tcpStatsSampleSegs | quote }}
+{{- end }}

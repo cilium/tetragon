@@ -1,0 +1,24 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-clock-settime"
+spec:
+  kprobes:
+  # __x64_sys_clock_settime(clockid_t which_clock, const struct kernel_timespec __user *tp)
+  - call: "__x64_sys_clock_settime"
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 1
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0

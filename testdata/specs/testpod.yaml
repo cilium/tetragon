@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  hostPID: true
+  hostNetwork: true
+  containers:
+  - name: test-pod
+    image: docker.io/cilium/starwars:latest
+    command: [ "sleep", "365d" ]
+    securityContext:
+      privileged: true

@@ -1,0 +1,22 @@
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "tracepoint-lseek"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    args:
+    - index: 7
+    - index: 5
+    selectors:
+    - matchPIDs:
+        - operator: eq
+          values:
+          - 1111
+          followForks: true
+          isNamespacePID: false
+      matchArgs:
+      - index: 7
+        operator: eq
+        values:
+        - "4444"

@@ -1,0 +1,26 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fd_install"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: In
+        values:
+        - "4026531836"
+        - "4026531835"
+      - namespace: Mnt
+        operator: In
+        values:
+        - "4026531836"
+        - "4026531835"
+        - "4026531834"

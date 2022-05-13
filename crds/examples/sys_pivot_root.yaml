@@ -1,0 +1,26 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-pivot-root"
+spec:
+  kprobes:
+  # __x64_sys_pivot_root(const char new root, const char put_old)
+  - call: "__x64_sys_pivot_root"
+    syscall: true
+    args:
+      - index: 0
+        type: "string"
+      - index: 1
+        type: "string"
+    selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 1
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0

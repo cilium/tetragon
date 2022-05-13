@@ -1,0 +1,12 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syscalls"
+spec:
+  kprobes:
+  # int setuid(uid_t uid);
+  - call: "__x64_sys_setuid"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"

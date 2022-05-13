@@ -1,0 +1,21 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fd_install"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchCapabilityChanges:
+      - type: Effective
+        operator: In
+        isNamespaceCapability: true
+        values:
+        - "CAP_SYS_ADMIN"
+        - "CAP_NET_RAW"

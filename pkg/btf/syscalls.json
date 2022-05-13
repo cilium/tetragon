@@ -1,0 +1,4366 @@
+{
+   "accept": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "upeer_sockaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "upeer_addrlen",
+         "Type": "int *"
+      }
+   ],
+   "accept4": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "upeer_sockaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "upeer_addrlen",
+         "Type": "int *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "access": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "int"
+      }
+   ],
+   "adjtimex": [
+      {
+         "Name": "txc_p",
+         "Type": "struct __kernel_timex *"
+      }
+   ],
+   "alarm": [
+      {
+         "Name": "seconds",
+         "Type": "unsigned int"
+      }
+   ],
+   "arch_prctl": [
+      {
+         "Name": "option",
+         "Type": "int"
+      },
+      {
+         "Name": "arg2",
+         "Type": "unsigned long"
+      }
+   ],
+   "bdflush": [
+      {
+         "Name": "func",
+         "Type": "int"
+      },
+      {
+         "Name": "data",
+         "Type": "long"
+      }
+   ],
+   "bind": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "umyaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "addrlen",
+         "Type": "int"
+      }
+   ],
+   "bpf": [
+      {
+         "Name": "cmd",
+         "Type": "int"
+      },
+      {
+         "Name": "uattr",
+         "Type": "union bpf_attr *"
+      },
+      {
+         "Name": "size",
+         "Type": "unsigned int"
+      }
+   ],
+   "brk": [
+      {
+         "Name": "brk",
+         "Type": "unsigned long"
+      }
+   ],
+   "capget": [
+      {
+         "Name": "header",
+         "Type": "cap_user_header_t"
+      },
+      {
+         "Name": "dataptr",
+         "Type": "cap_user_data_t"
+      }
+   ],
+   "capset": [
+      {
+         "Name": "header",
+         "Type": "cap_user_header_t"
+      },
+      {
+         "Name": "data",
+         "Type": "const cap_user_data_t"
+      }
+   ],
+   "chdir": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      }
+   ],
+   "chmod": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "chown": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "user",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "gid_t"
+      }
+   ],
+   "chroot": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      }
+   ],
+   "clock_adjtime": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "utx",
+         "Type": "struct __kernel_timex *"
+      }
+   ],
+   "clock_getres": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "clock_gettime": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "clock_nanosleep": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "rqtp",
+         "Type": "const struct __kernel_timespec *"
+      },
+      {
+         "Name": "rmtp",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "clock_settime": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "const struct __kernel_timespec *"
+      }
+   ],
+   "clone": [
+      {
+         "Name": "clone_flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "newsp",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "parent_tidptr",
+         "Type": "int *"
+      },
+      {
+         "Name": "child_tidptr",
+         "Type": "int *"
+      },
+      {
+         "Name": "tls",
+         "Type": "unsigned long"
+      }
+   ],
+   "clone3": [
+      {
+         "Name": "uargs",
+         "Type": "struct clone_args *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "close": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      }
+   ],
+   "close_range": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "max_fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "connect": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "uservaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "addrlen",
+         "Type": "int"
+      }
+   ],
+   "copy_file_range": [
+      {
+         "Name": "fd_in",
+         "Type": "int"
+      },
+      {
+         "Name": "off_in",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "fd_out",
+         "Type": "int"
+      },
+      {
+         "Name": "off_out",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "creat": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "delete_module": [
+      {
+         "Name": "name_user",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "dup": [
+      {
+         "Name": "fildes",
+         "Type": "unsigned int"
+      }
+   ],
+   "dup2": [
+      {
+         "Name": "oldfd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "newfd",
+         "Type": "unsigned int"
+      }
+   ],
+   "dup3": [
+      {
+         "Name": "oldfd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "newfd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "epoll_create": [
+      {
+         "Name": "size",
+         "Type": "int"
+      }
+   ],
+   "epoll_create1": [
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "epoll_ctl": [
+      {
+         "Name": "epfd",
+         "Type": "int"
+      },
+      {
+         "Name": "op",
+         "Type": "int"
+      },
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "event",
+         "Type": "struct epoll_event *"
+      }
+   ],
+   "epoll_pwait": [
+      {
+         "Name": "epfd",
+         "Type": "int"
+      },
+      {
+         "Name": "events",
+         "Type": "struct epoll_event *"
+      },
+      {
+         "Name": "maxevents",
+         "Type": "int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "int"
+      },
+      {
+         "Name": "sigmask",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "epoll_wait": [
+      {
+         "Name": "epfd",
+         "Type": "int"
+      },
+      {
+         "Name": "events",
+         "Type": "struct epoll_event *"
+      },
+      {
+         "Name": "maxevents",
+         "Type": "int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "int"
+      }
+   ],
+   "eventfd": [
+      {
+         "Name": "count",
+         "Type": "unsigned int"
+      }
+   ],
+   "eventfd2": [
+      {
+         "Name": "count",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "execve": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "argv",
+         "Type": "const char *const *"
+      },
+      {
+         "Name": "envp",
+         "Type": "const char *const *"
+      }
+   ],
+   "execveat": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "argv",
+         "Type": "const char *const *"
+      },
+      {
+         "Name": "envp",
+         "Type": "const char *const *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "exit": [
+      {
+         "Name": "error_code",
+         "Type": "int"
+      }
+   ],
+   "exit_group": [
+      {
+         "Name": "error_code",
+         "Type": "int"
+      }
+   ],
+   "faccessat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "int"
+      }
+   ],
+   "faccessat2": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "fadvise64": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "advice",
+         "Type": "int"
+      }
+   ],
+   "fadvise64_64": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "len",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "advice",
+         "Type": "int"
+      }
+   ],
+   "fallocate": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "mode",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "len",
+         "Type": "loff_t"
+      }
+   ],
+   "fanotify_init": [
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "event_f_flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "fanotify_mark": [
+      {
+         "Name": "fanotify_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "mask",
+         "Type": "__u64"
+      },
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      }
+   ],
+   "fchdir": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      }
+   ],
+   "fchmod": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "fchmodat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "fchown": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "user",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "gid_t"
+      }
+   ],
+   "fchownat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "user",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "gid_t"
+      },
+      {
+         "Name": "flag",
+         "Type": "int"
+      }
+   ],
+   "fcntl": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "arg",
+         "Type": "unsigned long"
+      }
+   ],
+   "fdatasync": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      }
+   ],
+   "fgetxattr": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "finit_module": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "uargs",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "flistxattr": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "list",
+         "Type": "char *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "flock": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      }
+   ],
+   "fremovexattr": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      }
+   ],
+   "fsconfig": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "_key",
+         "Type": "const char *"
+      },
+      {
+         "Name": "_value",
+         "Type": "const void *"
+      },
+      {
+         "Name": "aux",
+         "Type": "int"
+      }
+   ],
+   "fsetxattr": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "const void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "fsmount": [
+      {
+         "Name": "fs_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "attr_flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "fsopen": [
+      {
+         "Name": "_fs_name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "fspick": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "path",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "fstat": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct __old_kernel_stat *"
+      }
+   ],
+   "fstatfs": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct statfs *"
+      }
+   ],
+   "fstatfs64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "sz",
+         "Type": "size_t"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct statfs64 *"
+      }
+   ],
+   "fsync": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      }
+   ],
+   "ftruncate": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "length",
+         "Type": "unsigned long"
+      }
+   ],
+   "futex": [
+      {
+         "Name": "uaddr",
+         "Type": "u32 *"
+      },
+      {
+         "Name": "op",
+         "Type": "int"
+      },
+      {
+         "Name": "val",
+         "Type": "u32"
+      },
+      {
+         "Name": "utime",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "uaddr2",
+         "Type": "u32 *"
+      },
+      {
+         "Name": "val3",
+         "Type": "u32"
+      }
+   ],
+   "futimesat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "utimes",
+         "Type": "struct __kernel_old_timeval *"
+      }
+   ],
+   "get_robust_list": [
+      {
+         "Name": "pid",
+         "Type": "int"
+      },
+      {
+         "Name": "head_ptr",
+         "Type": "struct robust_list_head * *"
+      },
+      {
+         "Name": "len_ptr",
+         "Type": "size_t *"
+      }
+   ],
+   "getcpu": [
+      {
+         "Name": "cpup",
+         "Type": "unsigned *"
+      },
+      {
+         "Name": "nodep",
+         "Type": "unsigned *"
+      },
+      {
+         "Name": "unused",
+         "Type": "struct getcpu_cache *"
+      }
+   ],
+   "getcwd": [
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "size",
+         "Type": "unsigned long"
+      }
+   ],
+   "getdents": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "dirent",
+         "Type": "struct linux_dirent *"
+      },
+      {
+         "Name": "count",
+         "Type": "unsigned int"
+      }
+   ],
+   "getdents64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "dirent",
+         "Type": "struct linux_dirent64 *"
+      },
+      {
+         "Name": "count",
+         "Type": "unsigned int"
+      }
+   ],
+   "getgroups": [
+      {
+         "Name": "gidsetsize",
+         "Type": "int"
+      },
+      {
+         "Name": "grouplist",
+         "Type": "gid_t *"
+      }
+   ],
+   "gethostname": [
+      {
+         "Name": "name",
+         "Type": "char *"
+      },
+      {
+         "Name": "len",
+         "Type": "int"
+      }
+   ],
+   "getitimer": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "value",
+         "Type": "struct __kernel_old_itimerval *"
+      }
+   ],
+   "getpeername": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "usockaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "usockaddr_len",
+         "Type": "int *"
+      }
+   ],
+   "getpgid": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      }
+   ],
+   "getpriority": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "who",
+         "Type": "int"
+      }
+   ],
+   "getrandom": [
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "getresgid": [
+      {
+         "Name": "rgidp",
+         "Type": "gid_t *"
+      },
+      {
+         "Name": "egidp",
+         "Type": "gid_t *"
+      },
+      {
+         "Name": "sgidp",
+         "Type": "gid_t *"
+      }
+   ],
+   "getresuid": [
+      {
+         "Name": "ruidp",
+         "Type": "uid_t *"
+      },
+      {
+         "Name": "euidp",
+         "Type": "uid_t *"
+      },
+      {
+         "Name": "suidp",
+         "Type": "uid_t *"
+      }
+   ],
+   "getrlimit": [
+      {
+         "Name": "resource",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "rlim",
+         "Type": "struct rlimit *"
+      }
+   ],
+   "getrusage": [
+      {
+         "Name": "who",
+         "Type": "int"
+      },
+      {
+         "Name": "ru",
+         "Type": "struct rusage *"
+      }
+   ],
+   "getsid": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      }
+   ],
+   "getsockname": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "usockaddr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "usockaddr_len",
+         "Type": "int *"
+      }
+   ],
+   "getsockopt": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "level",
+         "Type": "int"
+      },
+      {
+         "Name": "optname",
+         "Type": "int"
+      },
+      {
+         "Name": "optval",
+         "Type": "char *"
+      },
+      {
+         "Name": "optlen",
+         "Type": "int *"
+      }
+   ],
+   "gettimeofday": [
+      {
+         "Name": "tv",
+         "Type": "struct __kernel_old_timeval *"
+      },
+      {
+         "Name": "tz",
+         "Type": "struct timezone *"
+      }
+   ],
+   "getxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "init_module": [
+      {
+         "Name": "umod",
+         "Type": "void *"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "uargs",
+         "Type": "const char *"
+      }
+   ],
+   "inotify_add_watch": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mask",
+         "Type": "u32"
+      }
+   ],
+   "inotify_init1": [
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "inotify_rm_watch": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "wd",
+         "Type": "__s32"
+      }
+   ],
+   "io_cancel": [
+      {
+         "Name": "ctx_id",
+         "Type": "aio_context_t"
+      },
+      {
+         "Name": "iocb",
+         "Type": "struct iocb *"
+      },
+      {
+         "Name": "result",
+         "Type": "struct io_event *"
+      }
+   ],
+   "io_destroy": [
+      {
+         "Name": "ctx",
+         "Type": "aio_context_t"
+      }
+   ],
+   "io_getevents": [
+      {
+         "Name": "ctx_id",
+         "Type": "aio_context_t"
+      },
+      {
+         "Name": "min_nr",
+         "Type": "long"
+      },
+      {
+         "Name": "nr",
+         "Type": "long"
+      },
+      {
+         "Name": "events",
+         "Type": "struct io_event *"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "io_pgetevents": [
+      {
+         "Name": "ctx_id",
+         "Type": "aio_context_t"
+      },
+      {
+         "Name": "min_nr",
+         "Type": "long"
+      },
+      {
+         "Name": "nr",
+         "Type": "long"
+      },
+      {
+         "Name": "events",
+         "Type": "struct io_event *"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "usig",
+         "Type": "const struct __aio_sigset *"
+      }
+   ],
+   "io_setup": [
+      {
+         "Name": "nr_events",
+         "Type": "unsigned"
+      },
+      {
+         "Name": "ctxp",
+         "Type": "aio_context_t *"
+      }
+   ],
+   "io_submit": [
+      {
+         "Name": "ctx_id",
+         "Type": "aio_context_t"
+      },
+      {
+         "Name": "nr",
+         "Type": "long"
+      },
+      {
+         "Name": "iocbpp",
+         "Type": "struct iocb * *"
+      }
+   ],
+   "io_uring_enter": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "to_submit",
+         "Type": "u32"
+      },
+      {
+         "Name": "min_complete",
+         "Type": "u32"
+      },
+      {
+         "Name": "flags",
+         "Type": "u32"
+      },
+      {
+         "Name": "sig",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "sigsz",
+         "Type": "size_t"
+      }
+   ],
+   "io_uring_register": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "opcode",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "arg",
+         "Type": "void *"
+      },
+      {
+         "Name": "nr_args",
+         "Type": "unsigned int"
+      }
+   ],
+   "io_uring_setup": [
+      {
+         "Name": "entries",
+         "Type": "u32"
+      },
+      {
+         "Name": "params",
+         "Type": "struct io_uring_params *"
+      }
+   ],
+   "ioctl": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "arg",
+         "Type": "unsigned long"
+      }
+   ],
+   "ioperm": [
+      {
+         "Name": "from",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "num",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "turn_on",
+         "Type": "int"
+      }
+   ],
+   "iopl": [
+      {
+         "Name": "level",
+         "Type": "unsigned int"
+      }
+   ],
+   "ioprio_get": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "who",
+         "Type": "int"
+      }
+   ],
+   "ioprio_set": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "who",
+         "Type": "int"
+      },
+      {
+         "Name": "ioprio",
+         "Type": "int"
+      }
+   ],
+   "kill": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      }
+   ],
+   "lchown": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "user",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "gid_t"
+      }
+   ],
+   "lgetxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "link": [
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      }
+   ],
+   "linkat": [
+      {
+         "Name": "olddfd",
+         "Type": "int"
+      },
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newdfd",
+         "Type": "int"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "listen": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "backlog",
+         "Type": "int"
+      }
+   ],
+   "listxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "list",
+         "Type": "char *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "llistxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "list",
+         "Type": "char *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      }
+   ],
+   "lookup_dcookie": [
+      {
+         "Name": "cookie64",
+         "Type": "u64"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      }
+   ],
+   "lremovexattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      }
+   ],
+   "lseek": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset",
+         "Type": "off_t"
+      },
+      {
+         "Name": "whence",
+         "Type": "unsigned int"
+      }
+   ],
+   "lsetxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "const void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "lstat": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct __old_kernel_stat *"
+      }
+   ],
+   "madvise": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len_in",
+         "Type": "size_t"
+      },
+      {
+         "Name": "behavior",
+         "Type": "int"
+      }
+   ],
+   "membarrier": [
+      {
+         "Name": "cmd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cpu_id",
+         "Type": "int"
+      }
+   ],
+   "memfd_create": [
+      {
+         "Name": "uname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "mincore": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "vec",
+         "Type": "unsigned char *"
+      }
+   ],
+   "mkdir": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "mkdirat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "mknod": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      },
+      {
+         "Name": "dev",
+         "Type": "unsigned"
+      }
+   ],
+   "mknodat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      },
+      {
+         "Name": "dev",
+         "Type": "unsigned int"
+      }
+   ],
+   "mlock": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      }
+   ],
+   "mlock2": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "mlockall": [
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "mmap": [
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "prot",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "off",
+         "Type": "unsigned long"
+      }
+   ],
+   "mmap_pgoff": [
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "prot",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pgoff",
+         "Type": "unsigned long"
+      }
+   ],
+   "modify_ldt": [
+      {
+         "Name": "func",
+         "Type": "int"
+      },
+      {
+         "Name": "ptr",
+         "Type": "void *"
+      },
+      {
+         "Name": "bytecount",
+         "Type": "unsigned long"
+      }
+   ],
+   "mount": [
+      {
+         "Name": "dev_name",
+         "Type": "char *"
+      },
+      {
+         "Name": "dir_name",
+         "Type": "char *"
+      },
+      {
+         "Name": "type",
+         "Type": "char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "data",
+         "Type": "void *"
+      }
+   ],
+   "move_mount": [
+      {
+         "Name": "from_dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "from_pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "to_dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "to_pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "mprotect": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "prot",
+         "Type": "unsigned long"
+      }
+   ],
+   "mq_getsetattr": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_mqstat",
+         "Type": "const struct mq_attr *"
+      },
+      {
+         "Name": "u_omqstat",
+         "Type": "struct mq_attr *"
+      }
+   ],
+   "mq_notify": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_notification",
+         "Type": "const struct sigevent *"
+      }
+   ],
+   "mq_open": [
+      {
+         "Name": "u_name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "oflag",
+         "Type": "int"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      },
+      {
+         "Name": "u_attr",
+         "Type": "struct mq_attr *"
+      }
+   ],
+   "mq_timedreceive": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_msg_ptr",
+         "Type": "char *"
+      },
+      {
+         "Name": "msg_len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "u_msg_prio",
+         "Type": "unsigned int *"
+      },
+      {
+         "Name": "u_abs_timeout",
+         "Type": "const struct __kernel_timespec *"
+      }
+   ],
+   "mq_timedsend": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_msg_ptr",
+         "Type": "const char *"
+      },
+      {
+         "Name": "msg_len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "msg_prio",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "u_abs_timeout",
+         "Type": "const struct __kernel_timespec *"
+      }
+   ],
+   "mq_unlink": [
+      {
+         "Name": "u_name",
+         "Type": "const char *"
+      }
+   ],
+   "mremap": [
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "old_len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "new_len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "new_addr",
+         "Type": "unsigned long"
+      }
+   ],
+   "msgctl": [
+      {
+         "Name": "msqid",
+         "Type": "int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "int"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct msqid_ds *"
+      }
+   ],
+   "msgget": [
+      {
+         "Name": "key",
+         "Type": "key_t"
+      },
+      {
+         "Name": "msgflg",
+         "Type": "int"
+      }
+   ],
+   "msgrcv": [
+      {
+         "Name": "msqid",
+         "Type": "int"
+      },
+      {
+         "Name": "msgp",
+         "Type": "struct msgbuf *"
+      },
+      {
+         "Name": "msgsz",
+         "Type": "size_t"
+      },
+      {
+         "Name": "msgtyp",
+         "Type": "long"
+      },
+      {
+         "Name": "msgflg",
+         "Type": "int"
+      }
+   ],
+   "msgsnd": [
+      {
+         "Name": "msqid",
+         "Type": "int"
+      },
+      {
+         "Name": "msgp",
+         "Type": "struct msgbuf *"
+      },
+      {
+         "Name": "msgsz",
+         "Type": "size_t"
+      },
+      {
+         "Name": "msgflg",
+         "Type": "int"
+      }
+   ],
+   "msync": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "munlock": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      }
+   ],
+   "munmap": [
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      }
+   ],
+   "name_to_handle_at": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "handle",
+         "Type": "struct file_handle *"
+      },
+      {
+         "Name": "mnt_id",
+         "Type": "int *"
+      },
+      {
+         "Name": "flag",
+         "Type": "int"
+      }
+   ],
+   "nanosleep": [
+      {
+         "Name": "rqtp",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "rmtp",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "newfstat": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct stat *"
+      }
+   ],
+   "newfstatat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct stat *"
+      },
+      {
+         "Name": "flag",
+         "Type": "int"
+      }
+   ],
+   "newlstat": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct stat *"
+      }
+   ],
+   "newstat": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct stat *"
+      }
+   ],
+   "newuname": [
+      {
+         "Name": "name",
+         "Type": "struct new_utsname *"
+      }
+   ],
+   "nice": [
+      {
+         "Name": "increment",
+         "Type": "int"
+      }
+   ],
+   "old_getrlimit": [
+      {
+         "Name": "resource",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "rlim",
+         "Type": "struct rlimit *"
+      }
+   ],
+   "old_readdir": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "dirent",
+         "Type": "struct old_linux_dirent *"
+      },
+      {
+         "Name": "count",
+         "Type": "unsigned int"
+      }
+   ],
+   "oldumount": [
+      {
+         "Name": "name",
+         "Type": "char *"
+      }
+   ],
+   "olduname": [
+      {
+         "Name": "name",
+         "Type": "struct oldold_utsname *"
+      }
+   ],
+   "open": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "open_by_handle_at": [
+      {
+         "Name": "mountdirfd",
+         "Type": "int"
+      },
+      {
+         "Name": "handle",
+         "Type": "struct file_handle *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "open_tree": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned"
+      }
+   ],
+   "openat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      }
+   ],
+   "openat2": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "how",
+         "Type": "struct open_how *"
+      },
+      {
+         "Name": "usize",
+         "Type": "size_t"
+      }
+   ],
+   "perf_event_open": [
+      {
+         "Name": "attr_uptr",
+         "Type": "struct perf_event_attr *"
+      },
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "cpu",
+         "Type": "int"
+      },
+      {
+         "Name": "group_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      }
+   ],
+   "personality": [
+      {
+         "Name": "personality",
+         "Type": "unsigned int"
+      }
+   ],
+   "pidfd_getfd": [
+      {
+         "Name": "pidfd",
+         "Type": "int"
+      },
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "pidfd_open": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "pidfd_send_signal": [
+      {
+         "Name": "pidfd",
+         "Type": "int"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      },
+      {
+         "Name": "info",
+         "Type": "siginfo_t *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "pipe": [
+      {
+         "Name": "fildes",
+         "Type": "int *"
+      }
+   ],
+   "pipe2": [
+      {
+         "Name": "fildes",
+         "Type": "int *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "pivot_root": [
+      {
+         "Name": "new_root",
+         "Type": "const char *"
+      },
+      {
+         "Name": "put_old",
+         "Type": "const char *"
+      }
+   ],
+   "poll": [
+      {
+         "Name": "ufds",
+         "Type": "struct pollfd *"
+      },
+      {
+         "Name": "nfds",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout_msecs",
+         "Type": "int"
+      }
+   ],
+   "ppoll": [
+      {
+         "Name": "ufds",
+         "Type": "struct pollfd *"
+      },
+      {
+         "Name": "nfds",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "tsp",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "sigmask",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "prctl": [
+      {
+         "Name": "option",
+         "Type": "int"
+      },
+      {
+         "Name": "arg2",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg3",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg4",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg5",
+         "Type": "unsigned long"
+      }
+   ],
+   "pread64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      },
+      {
+         "Name": "pos",
+         "Type": "loff_t"
+      }
+   ],
+   "preadv": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_l",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_h",
+         "Type": "unsigned long"
+      }
+   ],
+   "preadv2": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_l",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_h",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "rwf_t"
+      }
+   ],
+   "prlimit64": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "resource",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "new_rlim",
+         "Type": "const struct rlimit64 *"
+      },
+      {
+         "Name": "old_rlim",
+         "Type": "struct rlimit64 *"
+      }
+   ],
+   "process_madvise": [
+      {
+         "Name": "pidfd",
+         "Type": "int"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "size_t"
+      },
+      {
+         "Name": "behavior",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "pselect6": [
+      {
+         "Name": "n",
+         "Type": "int"
+      },
+      {
+         "Name": "inp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "outp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "exp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "tsp",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "sig",
+         "Type": "void *"
+      }
+   ],
+   "ptrace": [
+      {
+         "Name": "request",
+         "Type": "long"
+      },
+      {
+         "Name": "pid",
+         "Type": "long"
+      },
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "data",
+         "Type": "unsigned long"
+      }
+   ],
+   "pwrite64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buf",
+         "Type": "const char *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      },
+      {
+         "Name": "pos",
+         "Type": "loff_t"
+      }
+   ],
+   "pwritev": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_l",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_h",
+         "Type": "unsigned long"
+      }
+   ],
+   "pwritev2": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_l",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pos_h",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "rwf_t"
+      }
+   ],
+   "read": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "readahead": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "readlink": [
+      {
+         "Name": "path",
+         "Type": "const char *"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "bufsiz",
+         "Type": "int"
+      }
+   ],
+   "readlinkat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "bufsiz",
+         "Type": "int"
+      }
+   ],
+   "readv": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      }
+   ],
+   "reboot": [
+      {
+         "Name": "magic1",
+         "Type": "int"
+      },
+      {
+         "Name": "magic2",
+         "Type": "int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "arg",
+         "Type": "void *"
+      }
+   ],
+   "recv": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "ubuf",
+         "Type": "void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "recvfrom": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "ubuf",
+         "Type": "void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "addr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "addr_len",
+         "Type": "int *"
+      }
+   ],
+   "recvmmsg": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "mmsg",
+         "Type": "struct mmsghdr *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "recvmsg": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "msg",
+         "Type": "struct user_msghdr *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "remap_file_pages": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "size",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "prot",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pgoff",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      }
+   ],
+   "removexattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      }
+   ],
+   "rename": [
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      }
+   ],
+   "renameat": [
+      {
+         "Name": "olddfd",
+         "Type": "int"
+      },
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newdfd",
+         "Type": "int"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      }
+   ],
+   "renameat2": [
+      {
+         "Name": "olddfd",
+         "Type": "int"
+      },
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newdfd",
+         "Type": "int"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "rmdir": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      }
+   ],
+   "rseq": [
+      {
+         "Name": "rseq",
+         "Type": "struct rseq *"
+      },
+      {
+         "Name": "rseq_len",
+         "Type": "u32"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "sig",
+         "Type": "u32"
+      }
+   ],
+   "rt_sigaction": [
+      {
+         "Name": "sig",
+         "Type": "int"
+      },
+      {
+         "Name": "act",
+         "Type": "const struct sigaction *"
+      },
+      {
+         "Name": "oact",
+         "Type": "struct sigaction *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "rt_sigpending": [
+      {
+         "Name": "uset",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "rt_sigprocmask": [
+      {
+         "Name": "how",
+         "Type": "int"
+      },
+      {
+         "Name": "nset",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "oset",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "rt_sigqueueinfo": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      },
+      {
+         "Name": "uinfo",
+         "Type": "siginfo_t *"
+      }
+   ],
+   "rt_sigsuspend": [
+      {
+         "Name": "unewset",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "rt_sigtimedwait": [
+      {
+         "Name": "uthese",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "uinfo",
+         "Type": "siginfo_t *"
+      },
+      {
+         "Name": "uts",
+         "Type": "const struct __kernel_timespec *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
+   "rt_tgsigqueueinfo": [
+      {
+         "Name": "tgid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      },
+      {
+         "Name": "uinfo",
+         "Type": "siginfo_t *"
+      }
+   ],
+   "sched_get_priority_max": [
+      {
+         "Name": "policy",
+         "Type": "int"
+      }
+   ],
+   "sched_get_priority_min": [
+      {
+         "Name": "policy",
+         "Type": "int"
+      }
+   ],
+   "sched_getaffinity": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "user_mask_ptr",
+         "Type": "unsigned long *"
+      }
+   ],
+   "sched_getattr": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "uattr",
+         "Type": "struct sched_attr *"
+      },
+      {
+         "Name": "usize",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sched_getparam": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "param",
+         "Type": "struct sched_param *"
+      }
+   ],
+   "sched_getscheduler": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      }
+   ],
+   "sched_rr_get_interval": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "interval",
+         "Type": "struct __kernel_timespec *"
+      }
+   ],
+   "sched_setaffinity": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "user_mask_ptr",
+         "Type": "unsigned long *"
+      }
+   ],
+   "sched_setattr": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "uattr",
+         "Type": "struct sched_attr *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sched_setparam": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "param",
+         "Type": "struct sched_param *"
+      }
+   ],
+   "sched_setscheduler": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "policy",
+         "Type": "int"
+      },
+      {
+         "Name": "param",
+         "Type": "struct sched_param *"
+      }
+   ],
+   "seccomp": [
+      {
+         "Name": "op",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "uargs",
+         "Type": "void *"
+      }
+   ],
+   "select": [
+      {
+         "Name": "n",
+         "Type": "int"
+      },
+      {
+         "Name": "inp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "outp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "exp",
+         "Type": "fd_set *"
+      },
+      {
+         "Name": "tvp",
+         "Type": "struct __kernel_old_timeval *"
+      }
+   ],
+   "semctl": [
+      {
+         "Name": "semid",
+         "Type": "int"
+      },
+      {
+         "Name": "semnum",
+         "Type": "int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "int"
+      },
+      {
+         "Name": "arg",
+         "Type": "unsigned long"
+      }
+   ],
+   "semget": [
+      {
+         "Name": "key",
+         "Type": "key_t"
+      },
+      {
+         "Name": "nsems",
+         "Type": "int"
+      },
+      {
+         "Name": "semflg",
+         "Type": "int"
+      }
+   ],
+   "semop": [
+      {
+         "Name": "semid",
+         "Type": "int"
+      },
+      {
+         "Name": "tsops",
+         "Type": "struct sembuf *"
+      },
+      {
+         "Name": "nsops",
+         "Type": "unsigned"
+      }
+   ],
+   "semtimedop": [
+      {
+         "Name": "semid",
+         "Type": "int"
+      },
+      {
+         "Name": "tsops",
+         "Type": "struct sembuf *"
+      },
+      {
+         "Name": "nsops",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "const struct __kernel_timespec *"
+      }
+   ],
+   "send": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "buff",
+         "Type": "void *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sendfile": [
+      {
+         "Name": "out_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "in_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "off_t *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "sendfile64": [
+      {
+         "Name": "out_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "in_fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "sendmmsg": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "mmsg",
+         "Type": "struct mmsghdr *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sendmsg": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "msg",
+         "Type": "struct user_msghdr *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sendto": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "buff",
+         "Type": "void *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "addr",
+         "Type": "struct sockaddr *"
+      },
+      {
+         "Name": "addr_len",
+         "Type": "int"
+      }
+   ],
+   "set_robust_list": [
+      {
+         "Name": "head",
+         "Type": "struct robust_list_head *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      }
+   ],
+   "set_tid_address": [
+      {
+         "Name": "tidptr",
+         "Type": "int *"
+      }
+   ],
+   "setdomainname": [
+      {
+         "Name": "name",
+         "Type": "char *"
+      },
+      {
+         "Name": "len",
+         "Type": "int"
+      }
+   ],
+   "setfsgid": [
+      {
+         "Name": "gid",
+         "Type": "gid_t"
+      }
+   ],
+   "setfsuid": [
+      {
+         "Name": "uid",
+         "Type": "uid_t"
+      }
+   ],
+   "setgid": [
+      {
+         "Name": "gid",
+         "Type": "gid_t"
+      }
+   ],
+   "setgroups": [
+      {
+         "Name": "gidsetsize",
+         "Type": "int"
+      },
+      {
+         "Name": "grouplist",
+         "Type": "gid_t *"
+      }
+   ],
+   "sethostname": [
+      {
+         "Name": "name",
+         "Type": "char *"
+      },
+      {
+         "Name": "len",
+         "Type": "int"
+      }
+   ],
+   "setitimer": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "value",
+         "Type": "struct __kernel_old_itimerval *"
+      },
+      {
+         "Name": "ovalue",
+         "Type": "struct __kernel_old_itimerval *"
+      }
+   ],
+   "setns": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "setpgid": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "pgid",
+         "Type": "pid_t"
+      }
+   ],
+   "setpriority": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "who",
+         "Type": "int"
+      },
+      {
+         "Name": "niceval",
+         "Type": "int"
+      }
+   ],
+   "setregid": [
+      {
+         "Name": "rgid",
+         "Type": "gid_t"
+      },
+      {
+         "Name": "egid",
+         "Type": "gid_t"
+      }
+   ],
+   "setresgid": [
+      {
+         "Name": "rgid",
+         "Type": "gid_t"
+      },
+      {
+         "Name": "egid",
+         "Type": "gid_t"
+      },
+      {
+         "Name": "sgid",
+         "Type": "gid_t"
+      }
+   ],
+   "setresuid": [
+      {
+         "Name": "ruid",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "euid",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "suid",
+         "Type": "uid_t"
+      }
+   ],
+   "setreuid": [
+      {
+         "Name": "ruid",
+         "Type": "uid_t"
+      },
+      {
+         "Name": "euid",
+         "Type": "uid_t"
+      }
+   ],
+   "setrlimit": [
+      {
+         "Name": "resource",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "rlim",
+         "Type": "struct rlimit *"
+      }
+   ],
+   "setsockopt": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "level",
+         "Type": "int"
+      },
+      {
+         "Name": "optname",
+         "Type": "int"
+      },
+      {
+         "Name": "optval",
+         "Type": "char *"
+      },
+      {
+         "Name": "optlen",
+         "Type": "int"
+      }
+   ],
+   "settimeofday": [
+      {
+         "Name": "tv",
+         "Type": "struct __kernel_old_timeval *"
+      },
+      {
+         "Name": "tz",
+         "Type": "struct timezone *"
+      }
+   ],
+   "setuid": [
+      {
+         "Name": "uid",
+         "Type": "uid_t"
+      }
+   ],
+   "setxattr": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "name",
+         "Type": "const char *"
+      },
+      {
+         "Name": "value",
+         "Type": "const void *"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "shmat": [
+      {
+         "Name": "shmid",
+         "Type": "int"
+      },
+      {
+         "Name": "shmaddr",
+         "Type": "char *"
+      },
+      {
+         "Name": "shmflg",
+         "Type": "int"
+      }
+   ],
+   "shmctl": [
+      {
+         "Name": "shmid",
+         "Type": "int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "int"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct shmid_ds *"
+      }
+   ],
+   "shmdt": [
+      {
+         "Name": "shmaddr",
+         "Type": "char *"
+      }
+   ],
+   "shmget": [
+      {
+         "Name": "key",
+         "Type": "key_t"
+      },
+      {
+         "Name": "size",
+         "Type": "size_t"
+      },
+      {
+         "Name": "shmflg",
+         "Type": "int"
+      }
+   ],
+   "shutdown": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "how",
+         "Type": "int"
+      }
+   ],
+   "sigaltstack": [
+      {
+         "Name": "uss",
+         "Type": "const stack_t *"
+      },
+      {
+         "Name": "uoss",
+         "Type": "stack_t *"
+      }
+   ],
+   "signal": [
+      {
+         "Name": "sig",
+         "Type": "int"
+      },
+      {
+         "Name": "handler",
+         "Type": "__sighandler_t"
+      }
+   ],
+   "signalfd": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "user_mask",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "sizemask",
+         "Type": "size_t"
+      }
+   ],
+   "signalfd4": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "user_mask",
+         "Type": "sigset_t *"
+      },
+      {
+         "Name": "sizemask",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "sigpending": [
+      {
+         "Name": "uset",
+         "Type": "old_sigset_t *"
+      }
+   ],
+   "sigprocmask": [
+      {
+         "Name": "how",
+         "Type": "int"
+      },
+      {
+         "Name": "nset",
+         "Type": "old_sigset_t *"
+      },
+      {
+         "Name": "oset",
+         "Type": "old_sigset_t *"
+      }
+   ],
+   "socket": [
+      {
+         "Name": "family",
+         "Type": "int"
+      },
+      {
+         "Name": "type",
+         "Type": "int"
+      },
+      {
+         "Name": "protocol",
+         "Type": "int"
+      }
+   ],
+   "socketcall": [
+      {
+         "Name": "call",
+         "Type": "int"
+      },
+      {
+         "Name": "args",
+         "Type": "unsigned long *"
+      }
+   ],
+   "socketpair": [
+      {
+         "Name": "family",
+         "Type": "int"
+      },
+      {
+         "Name": "type",
+         "Type": "int"
+      },
+      {
+         "Name": "protocol",
+         "Type": "int"
+      },
+      {
+         "Name": "usockvec",
+         "Type": "int *"
+      }
+   ],
+   "splice": [
+      {
+         "Name": "fd_in",
+         "Type": "int"
+      },
+      {
+         "Name": "off_in",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "fd_out",
+         "Type": "int"
+      },
+      {
+         "Name": "off_out",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "ssetmask": [
+      {
+         "Name": "newmask",
+         "Type": "int"
+      }
+   ],
+   "stat": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "statbuf",
+         "Type": "struct __old_kernel_stat *"
+      }
+   ],
+   "statfs": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct statfs *"
+      }
+   ],
+   "statfs64": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "sz",
+         "Type": "size_t"
+      },
+      {
+         "Name": "buf",
+         "Type": "struct statfs64 *"
+      }
+   ],
+   "statx": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned"
+      },
+      {
+         "Name": "mask",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buffer",
+         "Type": "struct statx *"
+      }
+   ],
+   "stime": [
+      {
+         "Name": "tptr",
+         "Type": "__kernel_old_time_t *"
+      }
+   ],
+   "swapoff": [
+      {
+         "Name": "specialfile",
+         "Type": "const char *"
+      }
+   ],
+   "swapon": [
+      {
+         "Name": "specialfile",
+         "Type": "const char *"
+      },
+      {
+         "Name": "swap_flags",
+         "Type": "int"
+      }
+   ],
+   "symlink": [
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      }
+   ],
+   "symlinkat": [
+      {
+         "Name": "oldname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "newdfd",
+         "Type": "int"
+      },
+      {
+         "Name": "newname",
+         "Type": "const char *"
+      }
+   ],
+   "sync_file_range": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "nbytes",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "sync_file_range2": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset",
+         "Type": "loff_t"
+      },
+      {
+         "Name": "nbytes",
+         "Type": "loff_t"
+      }
+   ],
+   "syncfs": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      }
+   ],
+   "sysfs": [
+      {
+         "Name": "option",
+         "Type": "int"
+      },
+      {
+         "Name": "arg1",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg2",
+         "Type": "unsigned long"
+      }
+   ],
+   "sysinfo": [
+      {
+         "Name": "info",
+         "Type": "struct sysinfo *"
+      }
+   ],
+   "syslog": [
+      {
+         "Name": "type",
+         "Type": "int"
+      },
+      {
+         "Name": "buf",
+         "Type": "char *"
+      },
+      {
+         "Name": "len",
+         "Type": "int"
+      }
+   ],
+   "tee": [
+      {
+         "Name": "fdin",
+         "Type": "int"
+      },
+      {
+         "Name": "fdout",
+         "Type": "int"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "tgkill": [
+      {
+         "Name": "tgid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      }
+   ],
+   "time": [
+      {
+         "Name": "tloc",
+         "Type": "__kernel_old_time_t *"
+      }
+   ],
+   "timer_create": [
+      {
+         "Name": "which_clock",
+         "Type": "const clockid_t"
+      },
+      {
+         "Name": "timer_event_spec",
+         "Type": "struct sigevent *"
+      },
+      {
+         "Name": "created_timer_id",
+         "Type": "timer_t *"
+      }
+   ],
+   "timer_delete": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      }
+   ],
+   "timer_getoverrun": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      }
+   ],
+   "timer_gettime": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      },
+      {
+         "Name": "setting",
+         "Type": "struct __kernel_itimerspec *"
+      }
+   ],
+   "timer_settime": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "new_setting",
+         "Type": "const struct __kernel_itimerspec *"
+      },
+      {
+         "Name": "old_setting",
+         "Type": "struct __kernel_itimerspec *"
+      }
+   ],
+   "timerfd_create": [
+      {
+         "Name": "clockid",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "timerfd_gettime": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "otmr",
+         "Type": "struct __kernel_itimerspec *"
+      }
+   ],
+   "timerfd_settime": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "utmr",
+         "Type": "const struct __kernel_itimerspec *"
+      },
+      {
+         "Name": "otmr",
+         "Type": "struct __kernel_itimerspec *"
+      }
+   ],
+   "times": [
+      {
+         "Name": "tbuf",
+         "Type": "struct tms *"
+      }
+   ],
+   "tkill": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "sig",
+         "Type": "int"
+      }
+   ],
+   "truncate": [
+      {
+         "Name": "path",
+         "Type": "const char *"
+      },
+      {
+         "Name": "length",
+         "Type": "long"
+      }
+   ],
+   "umask": [
+      {
+         "Name": "mask",
+         "Type": "int"
+      }
+   ],
+   "umount": [
+      {
+         "Name": "name",
+         "Type": "char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "uname": [
+      {
+         "Name": "name",
+         "Type": "struct old_utsname *"
+      }
+   ],
+   "unlink": [
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      }
+   ],
+   "unlinkat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "pathname",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flag",
+         "Type": "int"
+      }
+   ],
+   "unshare": [
+      {
+         "Name": "unshare_flags",
+         "Type": "unsigned long"
+      }
+   ],
+   "ustat": [
+      {
+         "Name": "dev",
+         "Type": "unsigned"
+      },
+      {
+         "Name": "ubuf",
+         "Type": "struct ustat *"
+      }
+   ],
+   "utime": [
+      {
+         "Name": "filename",
+         "Type": "char *"
+      },
+      {
+         "Name": "times",
+         "Type": "struct utimbuf *"
+      }
+   ],
+   "utimensat": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "utimes",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "utimes": [
+      {
+         "Name": "filename",
+         "Type": "char *"
+      },
+      {
+         "Name": "utimes",
+         "Type": "struct __kernel_old_timeval *"
+      }
+   ],
+   "vmsplice": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "uiov",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "nr_segs",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
+   "wait4": [
+      {
+         "Name": "upid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "stat_addr",
+         "Type": "int *"
+      },
+      {
+         "Name": "options",
+         "Type": "int"
+      },
+      {
+         "Name": "ru",
+         "Type": "struct rusage *"
+      }
+   ],
+   "waitid": [
+      {
+         "Name": "which",
+         "Type": "int"
+      },
+      {
+         "Name": "upid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "infop",
+         "Type": "struct siginfo *"
+      },
+      {
+         "Name": "options",
+         "Type": "int"
+      },
+      {
+         "Name": "ru",
+         "Type": "struct rusage *"
+      }
+   ],
+   "waitpid": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "stat_addr",
+         "Type": "int *"
+      },
+      {
+         "Name": "options",
+         "Type": "int"
+      }
+   ],
+   "write": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "buf",
+         "Type": "const char *"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "writev": [
+      {
+         "Name": "fd",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "vec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned long"
+      }
+   ]
+}

@@ -1,0 +1,751 @@
+// Copyright 2020 Authors of Hubble
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package tetragon;
+
+option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
+
+message Image {
+    string id = 1;
+    string name = 2;
+}
+
+message Container {
+    string id = 1;
+    string name = 2;
+    Image image = 3;
+    // Start time of the container.
+    google.protobuf.Timestamp start_time = 4;
+    // PID in the container namespace.
+    google.protobuf.UInt32Value pid = 5;
+
+    // If this is set true, it means that the process might have been originated from
+    // a Kubernetes exec probe. For this field to be true, the following must be true:
+    //
+    // 1. The binary field matches the first element of the exec command list for either
+    //    liveness or readiness probe excluding the basename. For example, "/bin/ls"
+    //    and "ls" are considered a match.
+    // 2. The arguments field exactly matches the rest of the exec command list.
+    bool maybe_exec_probe = 13;
+}
+
+message Pod {
+    string namespace = 1;
+    string name = 2;
+    repeated string labels = 3;
+    Container container = 4;
+}
+
+message Capabilities {
+    repeated CapabilitiesType permitted = 1;
+    repeated CapabilitiesType effective = 2;
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message Namespace {
+    uint32 inum = 1;
+    bool is_host = 2;
+}
+
+message Namespaces {
+    Namespace uts = 1;
+    Namespace ipc = 2;
+    Namespace mnt = 3;
+    Namespace pid = 4;
+    Namespace pid_for_children = 5;
+    Namespace net = 6;
+    Namespace time = 7;
+    Namespace time_for_children = 8;
+    Namespace cgroup = 9;
+    Namespace user = 10;
+}
+
+message Process {
+    // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
+    string exec_id = 1;
+    google.protobuf.UInt32Value pid = 2;
+    google.protobuf.UInt32Value uid = 3;
+    string cwd = 4;
+    string binary = 5;
+    string arguments = 6;
+    string flags = 7;
+    google.protobuf.Timestamp start_time = 8;
+    google.protobuf.UInt32Value auid = 9;
+    Pod pod = 10;
+    string docker = 11;
+    string parent_exec_id = 12;
+    uint32 refcnt = 13;
+    Capabilities cap = 14;
+    Namespaces ns = 15;
+}
+
+message ProcessExec {
+    Process process = 1;
+    Process parent = 2;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 3;
+}
+
+message ProcessExit {
+    Process process = 1;
+    Process parent  = 2;
+    string  signal  = 3;
+    uint32  status  = 4;
+}
+
+message KprobeSock {
+    string family = 1;
+    string type = 2;
+    string protocol = 3;
+    uint32 mark = 4;
+    uint32 priority = 5;
+    string saddr = 6;
+    string daddr = 7;
+    uint32 sport = 8;
+    uint32 dport = 9;
+}
+
+message KprobeSkb {
+    uint32 hash = 1;
+    uint32 len = 2;
+    uint32 priority = 3;
+    uint32 mark = 4;
+    string saddr = 5;
+    string daddr = 6;
+    uint32 sport = 7;
+    uint32 dport = 8;
+    uint32 proto = 9;
+    uint32 sec_path_len = 10;
+    uint32 sec_path_olen = 11;
+}
+
+message KprobePath {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeFile {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeTruncatedBytes {
+	bytes bytes_arg = 1;
+	uint64 orig_size = 2;
+}
+
+message KprobeCred {
+    repeated CapabilitiesType permitted = 1;
+    repeated CapabilitiesType effective = 2;
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message KprobeArgument {
+    oneof arg {
+	string    string_arg = 1;
+	int32     int_arg = 2;
+	KprobeSkb skb_arg = 3;
+	uint64    size_arg = 4;
+	bytes     bytes_arg = 5;
+	KprobePath path_arg = 6;
+	KprobeFile file_arg = 7;
+	KprobeTruncatedBytes truncated_bytes_arg = 8;
+	KprobeSock sock_arg = 9;
+	KprobeCred cred_arg = 10;
+    }
+}
+
+enum KprobeAction {
+	KPROBE_ACTION_UNKNOWN    = 0;
+	KPROBE_ACTION_POST	 = 1;
+	KPROBE_ACTION_FOLLOWFD   = 2;
+	KPROBE_ACTION_SIGKILL    = 3;
+	KPROBE_ACTION_UNFOLLOWFD = 4;
+	KPROBE_ACTION_OVERRIDE   = 5;
+}
+
+message ProcessKprobe {
+    Process process = 1;
+    Process parent = 2;
+    string function_name = 3;
+    repeated KprobeArgument args = 4;
+    KprobeArgument return = 5;
+    KprobeAction action = 6;
+}
+
+message ProcessTracepoint {
+    Process process = 1;
+    Process parent = 2;
+    string subsys = 4;
+    string event = 5;
+    // TODO: once we implement all we want, rename KprobeArgument to GenericArgument
+    repeated KprobeArgument args = 6;
+}
+
+message Test {
+	uint64 arg0 = 1;
+	uint64 arg1 = 2;
+	uint64 arg2 = 3;
+	uint64 arg3 = 4;
+}
+
+message DnsInfo {
+    repeated uint32 question_types = 1;
+    repeated uint32 answer_types = 2;
+    int32 rcode = 3;
+    repeated string names = 4;
+    repeated string ips = 5;
+    string query = 6;
+    bool response = 7;
+}
+
+message ProcessDns {
+    Process process = 1;
+    reserved 2;
+    DnsInfo dns   = 3;
+    repeated string destination_names = 4 [deprecated=true]; // deprecated in favor of socket.destination_names.
+    Pod destination_pod = 5;
+}
+
+/**
+ * Stack traces
+ */
+
+message StackAddress {
+	uint64 address = 1;
+	string symbol = 2;
+}
+
+message StackTrace {
+	repeated StackAddress addresses = 1;
+}
+
+message StackTraceLabel {
+	string key = 1;
+	uint64 count = 2;
+}
+
+message StackTraceNode {
+	StackAddress address = 1;
+	uint64 count = 2;
+	repeated StackTraceLabel labels = 3;
+	repeated StackTraceNode children = 4;
+}
+
+/**
+ * Sensors
+ */
+
+message ListSensorsRequest { }
+
+message SensorStatus {
+	string name = 1;
+	bool enabled = 2;
+}
+message ListSensorsResponse {
+	repeated SensorStatus sensors = 1;
+}
+
+message AddTracingPolicyRequest {
+	string yaml = 1;
+}
+message AddTracingPolicyResponse {}
+
+message DeleteTracingPolicyRequest {
+	string yaml = 1;
+}
+message DeleteTracingPolicyResponse {}
+
+message RemoveSensorRequest {
+	string name = 1;
+}
+message RemoveSensorResponse {}
+
+
+message EnableSensorRequest {
+	string name = 1;
+}
+
+message EnableSensorResponse {}
+
+message DisableSensorRequest {
+	string name = 1;
+}
+
+message SetSensorConfigRequest {
+	string name = 1;
+	string cfgkey = 2;
+	string cfgval = 3;
+}
+
+message SetSensorConfigResponse {}
+
+message GetSensorConfigRequest {
+	string name = 1;
+	string cfgkey = 2;
+}
+
+message GetSensorConfigResponse {
+	string cfgval = 1;
+}
+
+message DisableSensorResponse { }
+
+message GetStackTraceTreeRequest {
+	string name = 1;
+}
+
+message GetStackTraceTreeResponse {
+	StackTraceNode root = 1;
+}
+
+message GetVersionRequest{}
+message GetVersionResponse{
+	string version = 1;
+}
+
+service FineGuidanceSensors {
+    rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
+    rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
+
+    rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
+    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
+
+    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {}
+    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {}
+    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {}
+    rpc SetSensorConfig(SetSensorConfigRequest) returns (SetSensorConfigResponse) {}
+    rpc GetSensorConfig(GetSensorConfigRequest) returns (GetSensorConfigResponse) {}
+
+    rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
+
+    rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+}
+
+enum HealthStatusType {
+ HEALTH_STATUS_TYPE_UNDEF  = 0;
+ HEALTH_STATUS_TYPE_STATUS = 1;
+}
+
+enum HealthStatusResult {
+ HEALTH_STATUS_UNDEF    = 0;
+ HEALTH_STATUS_RUNNING  = 1;
+ HEALTH_STATUS_STOPPED  = 2;
+ HEALTH_STATUS_ERROR    = 3;
+}
+
+message GetHealthStatusRequest {
+    repeated HealthStatusType event_set = 1;
+}
+
+message HealthStatus {
+	HealthStatusType event = 1;
+	HealthStatusResult status = 2;
+	string details = 3;
+}
+
+message GetHealthStatusResponse {
+	repeated HealthStatus health_status = 1;
+}
+
+// AggregationOptions defines configuration options for aggregating events.
+message AggregationOptions {
+    // Aggregation window size. Defaults to 15 seconds if this field is not set.
+    google.protobuf.Duration window_size = 1;
+    // Size of the buffer for the aggregator to receive incoming events. If the
+    // buffer becomes full, the aggregator will log a warning and start dropping
+    // incoming events.
+    uint64 channel_buffer_size = 2;
+}
+
+message GetEventsRequest {
+    // allow_list specifies a list of filters to apply to only return certain
+    // events. If multiple filters are specified, at least one of them has to
+    // match for an event to be included in the results.
+    repeated Filter allow_list = 1;
+    // deny_list specifies a list of filters to apply to exclude certain events
+    // from the results. If multiple filters are specified, at least one of
+    // them has to match for an event to be excluded.
+    //
+    // If both allow_list and deny_list are specified, the results contain the
+    // set difference allow_list - deny_list.
+    repeated Filter deny_list = 2;
+    // aggregation_options configures aggregation options for this request.
+    // If this field is not set, responses will not be aggregated.
+    //
+    // Note that currently only process_accept and process_connect events are
+    // aggregated. Other events remain unaggregated.
+    AggregationOptions aggregation_options = 3;
+}
+
+// AggregationInfo contains information about aggregation results.
+message AggregationInfo {
+    // Total count of events in this aggregation time window.
+    uint64 count = 1;
+}
+
+message GetEventsResponse {
+    oneof event {
+        ProcessExec process_exec = 1;
+        ProcessExit process_exit = 5;
+        ProcessKprobe process_kprobe = 9;
+        ProcessTracepoint process_tracepoint = 10;
+        ProcessDns process_dns = 14;
+
+        Test test = 40000;
+    }
+    // Name of the node where this event was observed.
+    string node_name = 1000;
+    // Timestamp at which this event was observed.
+    //
+    // For an aggregated response, this field to set to the timestamp at which
+    // the event was observed for the first time in a given aggregation time window.
+    google.protobuf.Timestamp time = 1001;
+
+    // aggregation_info contains information about aggregation results. This field
+    // is set only for aggregated responses.
+    AggregationInfo aggregation_info = 1002;
+}
+
+// EventType constants are based on the ones from pkg/api/client
+enum EventType {
+	UNDEF = 0;
+	PROCESS_EXEC = 5;
+	PROCESS_EXIT = 7;
+	PROCESS_KPROBE = 13;
+	PROCESS_TRACEPOINT = 14;
+	PROCESS_DNS = 18;
+
+	TEST = 254;
+}
+
+message Filter {
+    repeated string binary_regex = 1;
+    repeated string namespace = 2;
+    google.protobuf.BoolValue health_check = 3;
+    repeated uint32 pid = 4;
+    repeated uint32 pid_set = 5;
+    repeated EventType event_set = 6;
+}
+
+enum CapabilitiesType {
+	/* In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
+	   overrides the restriction of changing file ownership and group
+	   ownership. */
+ CAP_CHOWN = 0;
+	/* Override all DAC access, including ACL execute access if
+	   [_POSIX_ACL] is defined. Excluding DAC access covered by
+	   CAP_LINUX_IMMUTABLE. */
+
+ DAC_OVERRIDE = 1;
+
+	/* Overrides all DAC restrictions regarding read and search on files
+	   and directories, including ACL restrictions if [_POSIX_ACL] is
+	   defined. Excluding DAC access covered by "$1"_LINUX_IMMUTABLE. */
+ CAP_DAC_READ_SEARCH = 2;
+
+	/* Overrides all restrictions about allowed operations on files, where
+	   file owner ID must be equal to the user ID, except where CAP_FSETID
+	   is applicable. It doesn't override MAC and DAC restrictions. */
+
+ CAP_FOWNER = 3;
+
+	/* Overrides the following restrictions that the effective user ID
+	   shall match the file owner ID when setting the S_ISUID and S_ISGID
+	   bits on that file; that the effective group ID (or one of the
+	   supplementary group IDs) shall match the file owner ID when setting
+	   the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are
+	   cleared on successful return from chown(2) (not implemented). */
+
+ CAP_FSETID = 4;
+
+	/* Overrides the restriction that the real or effective user ID of a
+	   process sending a signal must match the real or effective user ID
+	   of the process receiving the signal. */
+
+ CAP_KILL = 5;
+
+	/* Allows setgid(2) manipulation */
+	/* Allows setgroups(2) */
+	/* Allows forged gids on socket credentials passing. */
+
+ CAP_SETGID = 6;
+
+	/* Allows set*uid(2) manipulation (including fsuid). */
+	/* Allows forged pids on socket credentials passing. */
+
+ CAP_SETUID = 7;
+
+	/**
+	 ** Linux-specific capabilities
+	 **/
+
+	/* Without VFS support for capabilities:
+	 *   Transfer any capability in your permitted set to any pid,
+	 *   remove any capability in your permitted set from any pid
+	 * With VFS support for capabilities (neither of above, but)
+	 *   Add any capability from current's capability bounding set
+	 *       to the current process' inheritable set
+	 *   Allow taking bits out of capability bounding set
+	 *   Allow modification of the securebits for a process
+	 */
+
+ CAP_SETPCAP = 8;
+
+	/* Allow modification of S_IMMUTABLE and S_APPEND file attributes */
+
+ CAP_LINUX_IMMUTABLE = 9;
+
+	/* Allows binding to TCP/UDP sockets below 1024 */
+	/* Allows binding to ATM VCIs below 32 */
+
+ CAP_NET_BIND_SERVICE = 10;
+
+	/* Allow broadcasting, listen to multicast */
+
+ CAP_NET_BROADCAST = 11;
+
+	/* Allow interface configuration */
+	/* Allow administration of IP firewall, masquerading and accounting */
+	/* Allow setting debug option on sockets */
+	/* Allow modification of routing tables */
+	/* Allow setting arbitrary process / process group ownership on
+	   sockets */
+	/* Allow binding to any address for transparent proxying (also via NET_RAW) */
+	/* Allow setting TOS (type of service) */
+	/* Allow setting promiscuous mode */
+	/* Allow clearing driver statistics */
+	/* Allow multicasting */
+	/* Allow read/write of device-specific registers */
+	/* Allow activation of ATM control sockets */
+
+ CAP_NET_ADMIN = 12;
+
+	/* Allow use of RAW sockets */
+	/* Allow use of PACKET sockets */
+	/* Allow binding to any address for transparent proxying (also via NET_ADMIN) */
+
+ CAP_NET_RAW = 13;
+
+	/* Allow locking of shared memory segments */
+	/* Allow mlock and mlockall (which doesn't really have anything to do
+	   with IPC) */
+
+ CAP_IPC_LOCK = 14;
+
+	/* Override IPC ownership checks */
+
+ CAP_IPC_OWNER = 15;
+
+	/* Insert and remove kernel modules - modify kernel without limit */
+ CAP_SYS_MODULE = 16;
+
+	/* Allow ioperm/iopl access */
+	/* Allow sending USB messages to any device via /dev/bus/usb */
+
+ CAP_SYS_RAWIO = 17;
+
+	/* Allow use of chroot() */
+
+ CAP_SYS_CHROOT = 18;
+
+	/* Allow ptrace() of any process */
+
+ CAP_SYS_PTRACE = 19;
+	/* Allow configuration of process accounting */
+
+ CAP_SYS_PACCT = 20;
+
+	/* Allow configuration of the secure attention key */
+	/* Allow administration of the random device */
+	/* Allow examination and configuration of disk quotas */
+	/* Allow setting the domainname */
+	/* Allow setting the hostname */
+	/* Allow calling bdflush() */
+	/* Allow mount() and umount(), setting up new smb connection */
+	/* Allow some autofs root ioctls */
+	/* Allow nfsservctl */
+	/* Allow VM86_REQUEST_IRQ */
+	/* Allow to read/write pci config on alpha */
+	/* Allow irix_prctl on mips (setstacksize) */
+	/* Allow flushing all cache on m68k (sys_cacheflush) */
+	/* Allow removing semaphores */
+	/* Used instead of CAP_CHOWN to "chown" IPC message queues, semaphores and shared memory */
+	/* Allow locking/unlocking of shared memory segment */
+	/* Allow turning swap on/off */
+	/* Allow forged pids on socket credentials passing */
+	/* Allow setting readahead and flushing buffers on block devices */
+	/* Allow setting geometry in floppy driver */
+	/* Allow turning DMA on/off in xd driver */
+	/* Allow administration of md devices (mostly the above, but some extra ioctls) */
+	/* Allow tuning the ide driver */
+	/* Allow access to the nvram device */
+	/* Allow administration of apm_bios, serial and bttv (TV) device */
+	/* Allow manufacturer commands in isdn CAPI support driver */
+	/* Allow reading non-standardized portions of pci configuration space */
+	/* Allow DDI debug ioctl on sbpcd driver */
+	/* Allow setting up serial ports */
+	/* Allow sending raw qic-117 commands */
+	/* Allow enabling/disabling tagged queuing on SCSI controllers and sending
+	   arbitrary SCSI commands */
+	/* Allow setting encryption key on loopback filesystem */
+	/* Allow setting zone reclaim policy */
+	/* Allow everything under CAP_BPF and CAP_PERFMON for backward compatibility */
+
+ CAP_SYS_ADMIN = 21;
+
+	/* Allow use of reboot() */
+
+ CAP_SYS_BOOT = 22;
+
+	/* Allow raising priority and setting priority on other (different
+	   UID) processes */
+	/* Allow use of FIFO and round-robin (realtime) scheduling on own
+	   processes and setting the scheduling algorithm used by another
+	   process. */
+	/* Allow setting cpu affinity on other processes */
+
+ CAP_SYS_NICE = 23;
+
+	/* Override resource limits. Set resource limits. */
+	/* Override quota limits. */
+	/* Override reserved space on ext2 filesystem */
+	/* Modify data journaling mode on ext3 filesystem (uses journaling
+	   resources) */
+	/* ext2 honors fsuid when checking for resource overrides, so
+	   you can override using fsuid too */
+	/* Override size restrictions on IPC message queues */
+	/* Allow more than 64hz interrupts from the real-time clock */
+	/* Override max number of consoles on console allocation */
+	/* Override max number of keymaps */
+	/* Control memory reclaim behavior */
+
+ CAP_SYS_RESOURCE = 24;
+
+	/* Allow manipulation of system clock */
+	/* Allow irix_stime on mips */
+	/* Allow setting the real-time clock */
+
+ CAP_SYS_TIME = 25;
+
+	/* Allow configuration of tty devices */
+	/* Allow vhangup() of tty */
+
+ CAP_SYS_TTY_CONFIG = 26;
+
+	/* Allow the privileged aspects of mknod() */
+
+ CAP_MKNOD = 27;
+
+	/* Allow taking of leases on files */
+
+ CAP_LEASE = 28;
+
+	/* Allow writing the audit log via unicast netlink socket */
+
+ CAP_AUDIT_WRITE = 29;
+
+	/* Allow configuration of audit via unicast netlink socket */
+
+ CAP_AUDIT_CONTROL = 30;
+
+	/* Set or remove capabilities on files */
+
+ CAP_SETFCAP = 31;
+
+	/* Override MAC access.
+	   The base kernel enforces no MAC policy.
+	   An LSM may enforce a MAC policy, and if it does and it chooses
+	   to implement capability based overrides of that policy, this is
+	   the capability it should use to do so. */
+
+ CAP_MAC_OVERRIDE = 32;
+
+	/* Allow MAC configuration or state changes.
+	   The base kernel requires no MAC configuration.
+	   An LSM may enforce a MAC policy, and if it does and it chooses
+	   to implement capability based checks on modifications to that
+	   policy or the data required to maintain it, this is the
+	   capability it should use to do so. */
+
+ CAP_MAC_ADMIN = 33;
+
+	/* Allow configuring the kernel's syslog (printk behaviour) */
+
+ CAP_SYSLOG = 34;
+
+	/* Allow triggering something that will wake the system */
+
+ CAP_WAKE_ALARM = 35;
+
+	/* Allow preventing system suspends */
+
+ CAP_BLOCK_SUSPEND = 36;
+
+	/* Allow reading the audit log via multicast netlink socket */
+
+ CAP_AUDIT_READ = 37;
+
+	/*
+	 * Allow system performance and observability privileged operations
+	 * using perf_events, i915_perf and other kernel subsystems
+	 */
+
+ CAP_PERFMON = 38;
+
+	/*
+	 * CAP_BPF allows the following BPF operations:
+	 * - Creating all types of BPF maps
+	 * - Advanced verifier features
+	 *   - Indirect variable access
+	 *   - Bounded loops
+	 *   - BPF to BPF function calls
+	 *   - Scalar precision tracking
+	 *   - Larger complexity limits
+	 *   - Dead code elimination
+	 *   - And potentially other features
+	 * - Loading BPF Type Format (BTF) data
+	 * - Retrieve xlated and JITed code of BPF programs
+	 * - Use bpf_spin_lock() helper
+	 *
+	 * CAP_PERFMON relaxes the verifier checks further:
+	 * - BPF progs can use of pointer-to-integer conversions
+	 * - speculation attack hardening measures are bypassed
+	 * - bpf_probe_read to read arbitrary kernel memory is allowed
+	 * - bpf_trace_printk to print kernel memory is allowed
+	 *
+	 * CAP_SYS_ADMIN is required to use bpf_probe_write_user.
+	 *
+	 * CAP_SYS_ADMIN is required to iterate system wide loaded
+	 * programs, maps, links, BTFs and convert their IDs to file descriptors.
+	 *
+	 * CAP_PERFMON and CAP_BPF are required to load tracing programs.
+	 * CAP_NET_ADMIN and CAP_BPF are required to load networking programs.
+	 */
+ CAP_BPF = 39;
+
+	/* Allow checkpoint/restore related operations */
+	/* Allow PID selection during clone3() */
+	/* Allow writing to ns_last_pid */
+
+ CAP_CHECKPOINT_RESTORE = 40;
+}
