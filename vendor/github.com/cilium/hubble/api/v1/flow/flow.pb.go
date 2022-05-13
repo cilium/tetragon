@@ -1494,7 +1494,7 @@ func (m *Payload) GetHostName() string {
 // DNS flow. This is basically directly mapped from Cilium's LogRecordDNS:
 //     https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264
 type DNS struct {
-	// DNS name that's being looked up: e.g. "isovalent.com."
+	// DNS name that's being looked up: e.g. "cilium.io."
 	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	// List of IP addresses in the DNS response.
 	Ips []string `protobuf:"bytes,2,rep,name=ips,proto3" json:"ips,omitempty"`
