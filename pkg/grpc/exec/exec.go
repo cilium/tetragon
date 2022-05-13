@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -42,7 +43,8 @@ func (e *Grpc) GetProcessExec(
 
 	parent, err := process.Get(parentId)
 	if err != nil {
-		logger.GetLogger().WithField("processId", processId).WithField("parentId", parentId).Infof("Process missing parent")
+		metrics.ErrorCount.WithLabelValues(string(metrics.ExecMissingParent)).Inc()
+		logger.GetLogger().WithField("processId", processId).WithField("parentId", parentId).Debug("Process missing parent")
 	}
 
 	// Set the cap field only if --enable-process-cred flag is set.

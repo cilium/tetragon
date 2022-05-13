@@ -60,6 +60,8 @@ const (
 	PidMapEvicted ErrorType = "pid_map_evicted"
 	// PID not found in the pid map on remove() call.
 	PidMapMissOnRemove ErrorType = "pid_map_miss_on_remove"
+	// An exec event without parent info.
+	ExecMissingParent ErrorType = "exec_missing_parent"
 	// MetricNamePrefix defines the prefix for Prometheus metrics.
 	MetricNamePrefix string = "isovalent_"
 )
