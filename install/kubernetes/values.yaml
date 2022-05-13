@@ -171,5 +171,5 @@ export:
   stdout:
     image:
       override: ~
-      repository: quay.io/isovalent/hubble-export-stdout
-      tag: v1.0.0
+      repository: quay.io/cilium/hubble-export-stdout
+      tag: v1.0.2
