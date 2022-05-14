@@ -265,14 +265,26 @@ func parseMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
-		case argTypeU32, argTypeS32, argTypeInt, argTypeSizet:
-			i, err := strconv.ParseInt(v, 10, 64)
+		case argTypeS32, argTypeInt, argTypeSizet:
+			i, err := strconv.ParseInt(v, 10, 32)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+			}
+			WriteSelectorInt32(k, int32(i))
+		case argTypeU32:
+			i, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			WriteSelectorUint32(k, uint32(i))
-		case argTypeU64, argTypeS64:
+		case argTypeS64:
 			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+			}
+			WriteSelectorInt64(k, int64(i))
+		case argTypeU64:
+			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}

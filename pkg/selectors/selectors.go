@@ -26,6 +26,11 @@ func WriteSelectorUint32(k *KernelSelectorState, v uint32) {
 	k.off += 4
 }
 
+func WriteSelectorInt64(k *KernelSelectorState, v int64) {
+	binary.LittleEndian.PutUint64(k.e[k.off:], uint64(v))
+	k.off += 4
+}
+
 func WriteSelectorUint64(k *KernelSelectorState, v uint64) {
 	binary.LittleEndian.PutUint64(k.e[k.off:], v)
 	k.off += 8
