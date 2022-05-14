@@ -209,27 +209,27 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, netns), caps), nil
 		case "tcp_connect":
-			event := p.colorer.blue.Sprintf("🔧 %-7s", "tcp_connect")
+			event := p.colorer.blue.Sprintf("🔌 %-7s", "connect")
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.colorer.cyan.Sprintf("%s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				sock = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
 			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_close":
-			event := p.colorer.blue.Sprintf("🔧 %-7s", "tcp_close")
+			event := p.colorer.blue.Sprintf("\U0001F9F9 %-7s", "close")
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.colorer.cyan.Sprintf("%s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				sock = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
 			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_sendmsg":
-			event := p.colorer.blue.Sprintf("🔧 %-7s", "tcp_sendmsg")
+			event := p.colorer.blue.Sprintf("📤 %-7s", "sendmsg")
 			args := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				args = p.colorer.cyan.Sprintf("%s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				args = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
 			bytes := int32(0)
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {

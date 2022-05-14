@@ -456,11 +456,11 @@ kubectl exec -it xwing -- curl http://cilium.io
 ```
 The output in the first terminal will capture the new connect and write,
 ```bash
-🚀 process      default/xwing /usr/bin/curl http://cilium.io
-🔧 tcp_connect  default/xwing /usr/bin/curl 192.168.86.200:55513 -> 104.198.14.52:80
-🔧 tcp_sendmsg  default/xwing /usr/bin/curl 192.168.86.200:55513 -> 104.198.14.52:80 bytes 73
-🔧 tcp_close    default/xwing /usr/bin/curl 192.168.86.200:55513 -> 104.198.14.52:80
-💥 exit         default/xwing /usr/bin/curl http://cilium.io 0
+🚀 process default/xwing /usr/bin/curl http://cilium.io
+🔌 connect default/xwing /usr/bin/curl tcp 10.244.0.6:34965 -> 104.198.14.52:80
+📤 sendmsg default/xwing /usr/bin/curl tcp 10.244.0.6:34965 -> 104.198.14.52:80 bytes 73
+🧹 close   default/xwing /usr/bin/curl tcp 10.244.0.6:34965 -> 104.198.14.52:80
+💥 exit    default/xwing /usr/bin/curl http://cilium.io 0
 ```
 
 To disable the TracingPolicy run:
