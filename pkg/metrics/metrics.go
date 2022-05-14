@@ -123,6 +123,11 @@ var (
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
+	ExecMissingParentErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        MetricNamePrefix + "exec_missing_parent_errors",
+		Help:        "The total of times a given parent exec id could not be found in an exec event.",
+		ConstLabels: nil,
+	}, []string{"parent_exec_id"})
 )
 
 // DNS metrics

@@ -44,6 +44,7 @@ func (e *Grpc) GetProcessExec(
 	parent, err := process.Get(parentId)
 	if err != nil {
 		metrics.ErrorCount.WithLabelValues(string(metrics.ExecMissingParent)).Inc()
+		metrics.ExecMissingParentErrors.WithLabelValues(parentId).Inc()
 		logger.GetLogger().WithField("processId", processId).WithField("parentId", parentId).Debug("Process missing parent")
 	}
 
