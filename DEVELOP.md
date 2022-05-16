@@ -3,6 +3,13 @@ Building and Running Tetragon
 
 For local development, you will likely want to build and run bare-metal Tetragon.
 
+Requirements:
+  * go 1.17
+  * GNU make
+  * A running docker service
+  * `libcap` and `libelf` (in Debian systems, e.g., install `libelf-dev` and
+    `libcap-dev`)
+
 Tetragon relies on a permanent fork of libbpf and a fork of clang with some custom patches in order
 to build and load its BPF programs correctly. We first need to get a local copy of both, which can be done
 with:
