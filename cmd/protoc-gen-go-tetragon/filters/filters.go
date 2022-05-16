@@ -37,7 +37,7 @@ func generateOpCodeForEventType(g *protogen.GeneratedFile, f *protogen.File) err
 	for _, value := range enum.Values {
 		valueIdent := g.QualifiedGoIdent(value.GoIdent)
 		// skip over the UNDEF variant
-		if valueIdent == "tetragon.EventType_UNDEF" {
+		if value.GoIdent.GoName == "EventType_UNDEF" {
 			continue
 		}
 
