@@ -23,13 +23,13 @@ func doGetEventsResponse(g *protogen.GeneratedFile, eventType string) string {
 }
 
 func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcessInternal := common.GoIdent(g, "github.com/cilium/tetragon/pkg/process", "ProcessInternal")
+	tetragonProcessInternal := common.TetragonIdent(g, "pkg/process", "ProcessInternal")
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	timestamp := common.GoIdent(g, "google.golang.org/protobuf/types/known/timestamppb", "Timestamp")
 
-	mErrorCount := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ErrorCount")
-	mInfoFailed := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "EventCacheProcessInfoFailed")
-	mProcessInfoErrors := common.GoIdent(g, "github.com/cilium/tetragon/pkg/metrics", "ProcessInfoErrors")
+	mErrorCount := common.TetragonIdent(g, "pkg/metrics", "ErrorCount")
+	mInfoFailed := common.TetragonIdent(g, "pkg/metrics", "EventCacheProcessInfoFailed")
+	mProcessInfoErrors := common.TetragonIdent(g, "pkg/metrics", "ProcessInfoErrors")
 
 	g.P(`func DoHandleEvent(event eventObj, internal *` + tetragonProcessInternal + `, labels []string, nodeName string, timestamp *` + timestamp + `) (*` + tetragonGER + `, error) {
         switch e := event.(type) {`)
