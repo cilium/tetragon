@@ -101,9 +101,25 @@ the defaults options.
 
 ### Create a cluster
 
+Create a Kubernetes cluster using Kind or GKE.
+
+#### Kind
+
 Run the following command to create the Kubernetes cluster:
 ```
 kind create cluster
+```
+
+#### GKE
+
+Run the following command to create a GKE cluster:
+
+```
+export NAME="$(whoami)-$RANDOM"
+gcloud container clusters create "${NAME}" \
+  --zone us-west2-a \
+  --release-channel rapid \
+  --num-nodes 1 \
 ```
 
 ### Deploy Tetragon
@@ -160,8 +176,9 @@ time.
 
 #### Tetragon CLI
 
-A second way is to pretty print the events using the Tetragon CLI. The tool
-also allows filtering by process, pod, and other fields.
+A second way is to pretty print the events using the
+[Tetragon CLI](https://github.com/cilium/tetragon/releases/tag/tetragon-cli).
+The tool also allows filtering by process, pod, and other fields.
 
 You can download and install it by the following command
 
