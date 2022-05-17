@@ -466,7 +466,7 @@ The output in the first terminal will capture the new connect and write,
 To disable the TracingPolicy run:
 
 ```bash
-kubectl delete -f ./crds/examples/sys_write_follow_fd_prefix.yaml
+kubectl delete -f ./crds/examples/tcp-connect.yaml
 ```
 
 ### Privileged Execution
