@@ -68,9 +68,9 @@ a chance to complete the syscall and potentially run additional syscalls.
 
 ## Local Development
 
-For help getting started with local development, you can refer to [DEVELOP.md][develop].
+For getting started with local development, you can refer to the [Development Guide][dev-guide].
 
-[develop]: ./DEVELOP.md
+[dev-guide]: ./docs/contributing/development/README.md
 
 ## Quickstart Guide
 
