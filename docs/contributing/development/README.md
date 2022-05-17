@@ -34,6 +34,8 @@ Docs](https://docs.github.com/en/repositories/managing-your-repositorys-settings
 6. Check the GitHub issues for [good tasks to get
 started](https://github.com/cilium/tetragon/issues?q=is%3Aopen+is%3Aissue+label%3Agood-first-issue)
 
+7. Follow the steps in [Making Changes](#making-changes) to start contributing :)
+
 ### Submitting a pull request
 
 Contributions must be submitted in the form of pull requests against the upstream GitHub repository at https://github.com/cilium/tetragon.
@@ -76,6 +78,8 @@ Before hitting the submit button, please make sure that the following requiremen
    Note: Make sure to include a blank line in between commit title and commit description.
 
 5. All commits are signed off. See the section [Developer’s Certificate of Origin][dev-coo].
+
+6. All important steps in [Making Changes](#making-changes) have been followed.
 
 [dev-coo](#developers-certificate-of-origin)
 
@@ -177,3 +181,39 @@ If you are on a Mac, use Vagrant to create a dev VM:
     vagrant up
     vagrant ssh
     make
+
+### Making Changes
+
+1. Make sure the main branch of your fork is up-to-date:
+
+   ```
+   git fetch upstream
+   git checkout main
+   git merge upstream/main
+   ```
+
+   For further reference read [github syncing a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork) documentation.
+
+2. Create a PR branch with a descriptive name, branching from main:
+
+   ```
+   git switch -c pr/${GITHUB_USERNAME_OR_ORG}/changes-to-something main
+   ```
+
+3. Make the changes you want.
+
+4. Separate the changes into logical commits.
+
+   - Describe the changes in the commit messages. Focus on answering the question why the change is required and document anything that might be unexpected.
+   - If any description is required to understand your code changes, then those instructions should be code comments instead of statements in the commit description.
+   - For submitting PRs, all commits need be to signed off `(git commit -s)`. See the section [Developer's Cetificate of Origin](#developers-certificate-of-origin)
+
+5. Make sure your changes meet the following criteria:
+
+   - New code is covered by Integration Testing.
+   - End to end integration / runtime tests have been extended or added. If not required, mention in the commit message what existing test covers the new code.
+   - Follow-up commits are squashed together nicely. Commits should separate logical chunks of code and not represent a chronological list of changes.
+
+6. Run `git diff --check` to catch obvious white space violations
+
+7. Build Tetragon with your changes included.
