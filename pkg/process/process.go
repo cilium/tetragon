@@ -241,9 +241,9 @@ func Add(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	}
 	if parent.process.ExecId == proc.process.ExecId {
 		logger.GetLogger().WithFields(logrus.Fields{
-			"parent":  parent,
-			"current": proc,
-		}).Warn("parent and current process has the same exec ID")
+			"exec_id": parent.process.ExecId,
+		}).Debug("Parent and current process have the same exec ID")
+		metrics.SameExecIdErrors.WithLabelValues(parent.process.ExecId).Inc()
 		return proc
 	}
 	proc.process.ParentExecId = parent.process.ExecId
