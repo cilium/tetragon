@@ -126,6 +126,8 @@ tetragon:
   prometheus:
     # -- Whether to enable exposing Tetragon metrics.
     enabled: true
+    # -- The address at which to expose metrics. Set it to "" to expose on all available interfaces.
+    address: ""
     # -- The port at which to expose metrics.
     port: 2112
     serviceMonitor:
@@ -133,6 +135,14 @@ tetragon:
       enabled: false
       # -- The set of labels to place on the 'ServiceMonitor' resource.
       labelsOverride: {}
+
+  grpc:
+    # -- Whether to enable exposing Tetragon gRPC.
+    enabled: true
+    # -- The address at which to expose gRPC. Set it to "" to listen on all available interfaces.
+    address: "localhost"
+    # -- The port at which to expose gRPC.
+    port: 54321
 
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).

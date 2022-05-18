@@ -32,7 +32,13 @@ data:
   cilium-bpf: /sys/fs/bpf/tc/globals/
 {{- end }}
 {{- if .Values.tetragon.prometheus.enabled }}
-  metrics-server: :{{ .Values.tetragon.prometheus.port }}
+  metrics-server: {{ .Values.tetragon.prometheus.address }}:{{ .Values.tetragon.prometheus.port }}
+{{- else }}
+  metrics-server: ""
+{{- end }}
+{{- if .Values.tetragon.grpc.enabled }}
+  server-address: {{ .Values.tetragon.grpc.address }}:{{ .Values.tetragon.grpc.port }}
+{{- else }}
 {{- end }}
 {{- if .Values.tetragon.tcpStatsSampleSegs }}
   tcp-stats-sample-segs: {{ .Values.tetragon.tcpStatsSampleSegs | quote }}
