@@ -54,7 +54,7 @@ func TestKprobeSigkill(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
 	defer cancel()
 
-	testBin := testContribPath("sigkill-tester/sigkill-tester")
+	testBin := testContribPath("tester-progs/sigkill-tester")
 	testCmd := exec.CommandContext(ctx, testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {

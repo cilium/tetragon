@@ -10,6 +10,7 @@ NOOPT ?= 0
 LIBBPF_IMAGE = quay.io/isovalent/hubble-libbpf:v0.2.3
 CLANG_IMAGE  = quay.io/isovalent/hubble-llvm:2020-12-29-45f6aa2
 METADATA_IMAGE = quay.io/isovalent/tetragon-metadata
+TESTER_PROGS_DIR = "contrib/tester-progs"
 
 LIBBPF_INSTALL_DIR ?= ./lib
 CLANG_INSTALL_DIR  ?= ./bin
@@ -23,9 +24,10 @@ GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(
 GOLANGCILINT_WANT_VERSION = 1.45.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
-all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile contrib-progs
 
-.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container
+all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs
+
+.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container tester-progs
 
 -include Makefile.docker
 
@@ -82,6 +84,7 @@ clean:
 	$(MAKE) -C ./bpf clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
+	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
 test:
 	ulimit -n 1048576 && $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./...
@@ -202,8 +205,6 @@ cscope:
 	cscope -b -q -k
 .PHONY: cscope
 
-contrib-progs:
-	$(MAKE) -C contrib/sigkill-tester
-	$(MAKE) -C contrib/namespace-tester
-	$(MAKE) -C contrib/capabilities-tester
-.PHONY: contrib-progs
+tester-progs:
+	$(MAKE) -C $(TESTER_PROGS_DIR)
+.PHONY: tester-progs
