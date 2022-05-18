@@ -43,8 +43,8 @@ jobs:
         sudo -E go mod verify
         sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
         export FGS_LIB=$(realpath "bpf/objs/")
-        sudo apt install gcc # needed for contrib-progs
-        sudo -E make contrib-progs
+        sudo apt install gcc # needed for tester-progs
+        sudo -E make tester-progs
         sudo -E make test
 
     - name: Upload Tetragon logs
