@@ -22,11 +22,13 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/sirupsen/logrus"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
@@ -909,6 +911,34 @@ func filterReturnArg(userReturnFilters []v1alpha1.ArgSelector, retArg *api.MsgGe
 	return true
 }
 
+func reportMergeError(curr pendingEvent, prev pendingEvent) {
+	currFn := "UNKNOWN"
+	if curr.ev != nil {
+		currFn = curr.ev.FuncName
+	}
+	currType := "enter"
+	if curr.returnEvent {
+		currType = "exit"
+	}
+
+	prevFn := "UNKNOWN"
+	if prev.ev != nil {
+		prevFn = prev.ev.FuncName
+	}
+	prevType := "enter"
+	if prev.returnEvent {
+		prevType = "exit"
+	}
+
+	metrics.GenericKprobeMergeErrors.WithLabelValues(currFn, currType, prevFn, prevType).Inc()
+	logger.GetLogger().WithFields(logrus.Fields{
+		"currFn":   currFn,
+		"currType": currType,
+		"prevFn":   prevFn,
+		"prevType": prevType,
+	}).Debugf("failed to merge events")
+}
+
 // retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
 func retprobeMerge(prev pendingEvent, curr pendingEvent) (*api.MsgGenericKprobeUnix, *api.MsgGenericKprobeArg) {
 	var retEv, enterEv *api.MsgGenericKprobeUnix
@@ -920,11 +950,8 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*api.MsgGenericKprobeU
 	} else if !prev.returnEvent && curr.returnEvent {
 		retEv = curr.ev
 		enterEv = prev.ev
-	} else if prev.returnEvent && curr.returnEvent {
-		logger.GetLogger().Warnf("cannot merge two return events: prev:%+v curr:%+v", prev, curr)
-		return nil, nil
 	} else {
-		logger.GetLogger().Warnf("cannot merge two enter events: prev:%+v curr:%+v", prev, curr)
+		reportMergeError(curr, prev)
 		return nil, nil
 	}
 
