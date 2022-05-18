@@ -46,9 +46,9 @@ tetragon-bpf-verify: tetragon-bpf
 	sudo contrib/vmtest/tetragon-verify-programs bpf/objs
 
 tetragon-bpf-container:
-	docker rm hubble-llvm || true
-	docker run -v $(CURDIR):/tetragon -u $$(id -u)  --name hubble-llvm $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
-	docker rm hubble-llvm
+	$(CONTAINER_ENGINE) rm hubble-llvm || true
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon -u $$(id -u)  --name hubble-llvm $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
+	$(CONTAINER_ENGINE) rm hubble-llvm
 
 tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon/
@@ -140,19 +140,19 @@ tools-clean:
 	rm -rf $(LIBBPF_INSTALL_DIR)
 	rm -rf $(CLANG_INSTALL_DIR)
 libbpf-install:
-	$(eval id=$(shell docker create $(LIBBPF_IMAGE)))
+	$(eval id=$(shell $(CONTAINER_ENGINE) create $(LIBBPF_IMAGE)))
 	mkdir -p $(LIBBPF_INSTALL_DIR)
-	docker cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so $(LIBBPF_INSTALL_DIR)
-	docker cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 $(LIBBPF_INSTALL_DIR)
-	docker cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)
-	docker stop ${id}
+	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so $(LIBBPF_INSTALL_DIR)
+	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 $(LIBBPF_INSTALL_DIR)
+	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)
+	$(CONTAINER_ENGINE) stop ${id}
 
 clang-install:
-	$(eval id=$(shell docker create $(CLANG_IMAGE)))
+	$(eval id=$(shell $(CONTAINER_ENGINE) create $(CLANG_IMAGE)))
 	mkdir -p $(CLANG_INSTALL_DIR)
-	docker cp ${id}:/usr/local/bin/clang-11 $(CLANG_INSTALL_DIR)/clang
-	docker cp ${id}:/usr/local/bin/llc $(CLANG_INSTALL_DIR)/llc
-	docker stop ${id}
+	$(CONTAINER_ENGINE) cp ${id}:/usr/local/bin/clang-11 $(CLANG_INSTALL_DIR)/clang
+	$(CONTAINER_ENGINE) cp ${id}:/usr/local/bin/llc $(CLANG_INSTALL_DIR)/llc
+	$(CONTAINER_ENGINE) stop ${id}
 
 generate:
 	./tools/controller-gen crd paths=./pkg/k8s/apis/... output:dir=pkg/k8s/apis/cilium.io/client/crds/v1alpha1
@@ -171,8 +171,8 @@ check:
 	golangci-lint run
 else
 check:
-	docker build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
-	docker run --rm -v `pwd`:/app -w /app golangci-lint:tetragon golangci-lint run
+	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
+	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app -w /app golangci-lint:tetragon golangci-lint run
 endif
 
 .PHONY: clang-format
