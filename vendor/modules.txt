@@ -86,7 +86,6 @@ github.com/cilium/ebpf/rlimit
 github.com/cilium/hubble/api/v1/flow
 github.com/cilium/hubble/pkg/api/v1
 github.com/cilium/hubble/pkg/filters
-github.com/cilium/hubble/pkg/fqdncache
 github.com/cilium/hubble/pkg/ipcache
 github.com/cilium/hubble/pkg/k8s
 github.com/cilium/hubble/pkg/logger
