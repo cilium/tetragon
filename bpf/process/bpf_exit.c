@@ -38,7 +38,7 @@ event_exit(struct sched_execve_args *ctx)
 
 	/* It is safe to do a map_lookup_event() here because
 	 * we must have captured the execve case in order for an
-	 * exit to happen. Or in the FGS startup case we pre
+	 * exit to happen. Or in the Tetragon startup case we pre
 	 * populated it before loading BPF programs. At any rate
 	 * if the entry is _not_ in the execve_map the lookup
 	 * will create an empty entry, the ktime check below will

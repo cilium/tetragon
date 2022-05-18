@@ -35,7 +35,7 @@ serviceLabelsOverride: {}
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: Default
 
-# exportDirectory specifies directory to put Hubble and FGS JSON export files.
+# exportDirectory specifies directory to put Hubble and Tetragon JSON export files.
 exportDirectory: "/var/run/cilium/tetragon"
 # exportFileRotationInterval specifies file creation interval for hubble-export-s3.
 exportFileCreationInterval: "120s"

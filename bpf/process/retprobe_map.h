@@ -57,7 +57,7 @@ retprobe_map_set_iovec(__u64 tid, unsigned long ptr, unsigned long cnt)
 }
 
 /**
- * Some FGS generic kprobes include an (entry) kprobe as well as a retprobe,
+ * Some Tetragon generic kprobes include an (entry) kprobe as well as a retprobe,
  * where we need a way to match data collected at the kprobe (at function entry)
  * with the corressponding retprobe (at function return). The typical example of
  * this is a read system call, where we want to copy the data read. The buffer

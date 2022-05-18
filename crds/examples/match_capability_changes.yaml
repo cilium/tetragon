@@ -1,4 +1,4 @@
-# In this demo we will show hot to capture a change in capabilities with FGS.
+# In this demo we will show hot to capture a change in capabilities with Tetragon.
 # A change in capabilities can be done in 2 ways: (1) The normal path in Linux
 # kernel using the approriate system calls and (2) via an exploit.
 #
@@ -22,7 +22,7 @@
 # $ sudo apt-get install -y python3-prctl # we will need this packet to change the caps from python3
 #
 # ** Execution **
-# We will use 2 terminals. Terminal 1 will run FGS and terminal 2 the demo
+# We will use 2 terminals. Terminal 1 will run Tetragon and terminal 2 the demo
 # code. First thing is replace {{.Pid}} in this CRD with the PID of terminal 2.
 #
 # In terminal 1:
