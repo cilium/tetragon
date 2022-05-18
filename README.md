@@ -170,6 +170,11 @@ The first way is to observe the raw json output from the stdout container log:
 kubectl logs -n kube-system ds/tetragon -c export-stdout -f
 ```
 
+**NOTE**: If you're running more than one `tetragon` pod then the command above will only print the logs from one of those pods. To print out the logs on all `tetragon` pods, you will need to use a filter/selector such as `-l app.kubernetes.io/name=tetragon`:
+```
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f 
+```
+
 The raw JSON events provide Kubernetes API, identity metadata, and OS
 level process visibility about the executed binary, its parent and the execution
 time.
