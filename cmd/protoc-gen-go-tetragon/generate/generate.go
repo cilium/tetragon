@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventcache"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventchecker"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/filters"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/helpers"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -18,6 +19,7 @@ var Generators = []GeneratorFunc{
 	eventcache.Generate,
 	filters.Generate,
 	helpers.Generate,
+	eventchecker.Generate,
 }
 
 func Generate() {
