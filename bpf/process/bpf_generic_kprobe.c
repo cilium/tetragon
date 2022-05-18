@@ -42,14 +42,14 @@ struct bpf_map_def __attribute__((section("maps"), used)) filter_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(int),
 	.value_size = FILTER_SIZE,
-	.max_entries = 1,
+	.max_entries = 100,
 };
 
 struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(int),
 	.value_size = sizeof(struct event_config),
-	.max_entries = 1,
+	.max_entries = 100,
 };
 
 static inline __attribute__((always_inline)) int
