@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
@@ -62,7 +63,7 @@ func execParse(reader *bytes.Reader) (api.MsgProcess, bool, error) {
 	exec := api.MsgExec{}
 
 	if err := binary.Read(reader, binary.LittleEndian, &exec); err != nil {
-		fmt.Printf("read error!\n")
+		logger.GetLogger().WithError(err).Debug("Failed to read exec event")
 		return proc, true, err
 	}
 
