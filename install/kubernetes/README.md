@@ -60,10 +60,14 @@ Helm chart for Tetragon
 | tetragon.extraArgs | object | `{}` |  |
 | tetragon.extraEnv | list | `[]` |  |
 | tetragon.extraVolumeMounts | list | `[]` |  |
+| tetragon.grpc.address | string | `"localhost"` | The address at which to expose gRPC. Set it to "" to listen on all available interfaces. |
+| tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
+| tetragon.grpc.port | int | `54321` | The port at which to expose gRPC. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
 | tetragon.image.tag | string | `"v0.8.0"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
+| tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
 | tetragon.prometheus.port | int | `2112` | The port at which to expose metrics. |
 | tetragon.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the 'tetragon' pods. |
