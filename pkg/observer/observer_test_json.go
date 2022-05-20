@@ -12,15 +12,19 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/sirupsen/logrus"
 )
 
 var (
 	retryDelay = 2 * time.Second
 )
 
-func JsonCheck(jsonFile *os.File, checker ec.MultiResponseChecker, log ec.Logger) error {
+// JsonCheck checks a JSON string using the new eventchecker library.
+func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logger) error {
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
@@ -30,21 +34,23 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiResponseChecker, log ec.Logger
 		}
 		count++
 		prefix := fmt.Sprintf("jsonTestCheck/line:%04d ", count)
-		done, err := checker.NextCheck(&ev, &ec.PrefixLogger{Prefix: prefix, Logger: log})
-		prefix = fmt.Sprintf("%sevent:%s", prefix, ec.EventTypeString(ev.Event))
+		eType, err := helpers.EventTypeString(ev.Event)
+		if err != nil {
+			eType = "<UNKNOWN>"
+		}
+		matchPrefix := fmt.Sprintf("%sevent:%s", prefix, eType)
+		done, err := checker.NextResponseCheck(&ev, log)
 		if done && err == nil {
-			log.Logf("%s =>  FINAL MATCH ", prefix)
-			log.Logf("jsonTestCheck: DONE!")
+			log.Infof("%s =>  FINAL MATCH ", matchPrefix)
+			log.Infof("jsonTestCheck: DONE!")
 			return nil
 		} else if err == nil {
-			log.Logf("%s => MATCH, continuing", prefix)
+			log.Infof("%s => MATCH, continuing", matchPrefix)
 		} else if done && err != nil {
-			log.Logf("%s => terminating error: %s", prefix, err)
+			log.Errorf("%s => terminating error: %s", matchPrefix, err)
 			return err
 		} else {
-			if _, ok := err.(ec.EventTypeError); !ok {
-				log.Logf("%s => no match: %s, continuing", prefix, err)
-			}
+			log.Infof("%s => no match: %s, continuing", matchPrefix, err)
 		}
 	}
 
@@ -54,7 +60,8 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiResponseChecker, log ec.Logger
 	return nil
 }
 
-func JsonTestCheck(t *testing.T, c ec.MultiResponseChecker) error {
+// JsonTestCheck checks a JSON file using the new eventchecker library.
+func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	var err error
 
 	jsonFname := testutils.GetExportFilename(t)
@@ -68,16 +75,25 @@ func JsonTestCheck(t *testing.T, c ec.MultiResponseChecker) error {
 	}()
 
 	// attempt to open the export file
-	t.Logf("jsonTestCheck: openning: %s\n", jsonFname)
+	t.Logf("jsonTestCheck: opening: %s\n", jsonFname)
 	jsonFile, err := os.Open(jsonFname)
 	if err != nil {
 		return fmt.Errorf("opening json file failed: %w", err)
 	}
 	t.Cleanup(func() { jsonFile.Close() })
 
+	fieldLogger := logger.GetLogger()
+	log, ok := fieldLogger.(*logrus.Logger)
+	if !ok {
+		return fmt.Errorf("failed to convert logger")
+	}
+	capturer := captureLog(t)
+	log.SetOutput(capturer)
+	defer capturer.Release()
+
 	cnt := 0
 	for {
-		err = JsonCheck(jsonFile, c, t)
+		err = JsonCheck(jsonFile, checker, log)
 		if err == nil {
 			break
 		}
@@ -90,8 +106,30 @@ func JsonTestCheck(t *testing.T, c ec.MultiResponseChecker) error {
 		t.Logf("JsonCheck (retry=%d) failed: %s. Retrying after %s", cnt, err, retryDelay)
 		jsonFile.Seek(0, io.SeekStart)
 		time.Sleep(retryDelay)
-		c.Reset()
 	}
 
 	return err
+}
+
+type logCapturer struct {
+	*testing.T
+	origOut io.Writer
+}
+
+func (tl logCapturer) Write(p []byte) (n int, err error) {
+	tl.Logf((string)(p))
+	return len(p), nil
+}
+
+func (tl logCapturer) Release() {
+	logrus.SetOutput(tl.origOut)
+}
+
+// CaptureLog redirects logrus output to testing.Log
+func captureLog(t *testing.T) *logCapturer {
+	lc := logCapturer{T: t, origOut: logrus.StandardLogger().Out}
+	if !testing.Verbose() {
+		logrus.SetOutput(lc)
+	}
+	return &lc
 }

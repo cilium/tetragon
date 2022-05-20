@@ -20,7 +20,10 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	bc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/bytesmatcher"
+	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -90,21 +93,23 @@ func TestCopyFd(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	readArg0 := ec.GenericArgFileChecker(ec.StringMatchAlways(), ec.SuffixStringMatch("strange.txt"), ec.FullStringMatch(""))
-	readArg1 := ec.GenericArgBytesCheck([]byte("testdata\x00"))
-	readArg2 := ec.GenericArgSizeCheck(9)
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_read").
-		WithArgs([]ec.GenericArgChecker{readArg0, readArg1, readArg2}).
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Suffix("strange.txt")),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(9),
+			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			HasKprobe(kpChecker).
-			HasKprobe(kpChecker).
-			HasKprobe(kpChecker).
-			End(),
+	checker := ec.NewUnorderedEventChecker(
+		kpChecker,
+		kpChecker,
+		kpChecker,
+		kpChecker,
 	)
-	err = observer.JsonTestCheck(t, &checker)
+
+	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }

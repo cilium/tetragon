@@ -14,7 +14,9 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -107,17 +109,16 @@ func TestKprobeSigkill(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_lseek").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(5555),
-		}).
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
-	err = observer.JsonTestCheck(t, &checker)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }

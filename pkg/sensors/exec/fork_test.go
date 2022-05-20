@@ -9,7 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -56,13 +57,14 @@ func TestFork(t *testing.T) {
 		t.Fatalf("failed to parse child1 PID")
 	}
 
-	binCheck := ec.ProcessWithBinary(ec.SuffixStringMatch("fork-tester"))
-	checker := ec.NewUnorderedMultiResponseChecker(
-		ec.NewExitEventChecker().
-			HasProcess(binCheck, ec.ProcessWithPID(fti.child2Pid)).
-			HasParent(binCheck, ec.ProcessWithPID(fti.child1Pid)).
-			End(),
-	)
+	binCheck := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("fork-tester")).
+		WithPid(fti.child2Pid)
+	exitCheck := ec.NewProcessExitChecker().
+		WithProcess(binCheck).
+		WithParent(ec.NewProcessChecker().WithPid(fti.child1Pid))
+	checker := ec.NewUnorderedEventChecker(exitCheck)
+
 	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
