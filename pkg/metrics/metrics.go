@@ -23,11 +23,6 @@ import (
 
 // Tetragon debugging and core info metrics
 var (
-	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "msg_op_total",
-		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"msg_op"})
 	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "events_total",
 		Help:        "The total number of Tetragon events",
@@ -48,11 +43,6 @@ var (
 		Help:        "The total number of LRU in-use entries.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
-	EventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache",
-		Help:        "The total number of Tetragon event cache access/errors. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"type"})
 	RingBufPerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_received",
 		Help:        "The total number of Tetragon ringbuf perf events received.",
