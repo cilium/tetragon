@@ -1,16 +1,5 @@
-// Copyright 2020 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
 
 package metrics
 
@@ -24,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/consts"
 	readerdns "github.com/cilium/tetragon/pkg/reader/dns"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,110 +21,70 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type ErrorType string
-
-const (
-	// Parent process was not found in the pid map for a process without the clone flag.
-	NoParentNoClone ErrorType = "no_parent_no_clone"
-	// Process not found on get() call.
-	ProcessCacheMissOnGet ErrorType = "process_cache_miss_on_get"
-	// Process evicted from the cache.
-	ProcessCacheEvicted ErrorType = "process_cache_evicted"
-	// Process not found on remove() call.
-	ProcessCacheMissOnRemove ErrorType = "process_cache_miss_on_remove"
-	// Missing event handler.
-	UnhandledEvent ErrorType = "unhandled_event"
-	// Event cache add network entry to cache.
-	EventCacheNetworkCount ErrorType = "event_cache_network_count"
-	// Event cache add process entry to cache.
-	EventCacheProcessCount ErrorType = "event_cache_process_count"
-	// Event cache podInfo retries failed.
-	EventCachePodInfoRetryFailed ErrorType = "event_cache_podinfo_retry_failed"
-	// Event cache endpoint retries failed.
-	EventCacheEndpointRetryFailed ErrorType = "event_cache_endpoint_retry_failed"
-	// Event cache failed to set process information for an event.
-	EventCacheProcessInfoFailed ErrorType = "event_cache_process_info_failed"
-	// There was an invalid entry in the pid map.
-	PidMapInvalidEntry ErrorType = "pid_map_invalid_entry"
-	// An entry was evicted from the pid map because the map was full.
-	PidMapEvicted ErrorType = "pid_map_evicted"
-	// PID not found in the pid map on remove() call.
-	PidMapMissOnRemove ErrorType = "pid_map_miss_on_remove"
-	// An exec event without parent info.
-	ExecMissingParent ErrorType = "exec_missing_parent"
-	// MetricNamePrefix defines the prefix for Prometheus metrics.
-	MetricNamePrefix string = "isovalent_"
-)
-
 // Tetragon debugging and core info metrics
 var (
 	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "msg_op_total",
+		Name:        consts.MetricNamePrefix + "msg_op_total",
 		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"msg_op"})
 	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "events_total",
+		Name:        consts.MetricNamePrefix + "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
 	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "flags_total",
+		Name:        consts.MetricNamePrefix + "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	ErrorCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "errors_total",
-		Help:        "The total number of Tetragon errors. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"type"})
 	ExecveMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "map_in_use_gauge",
+		Name:        consts.MetricNamePrefix + "map_in_use_gauge",
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
 	LruMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "lru_in_use_gauge",
+		Name:        consts.MetricNamePrefix + "lru_in_use_gauge",
 		Help:        "The total number of LRU in-use entries.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
 	EventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "event_cache",
+		Name:        consts.MetricNamePrefix + "event_cache",
 		Help:        "The total number of Tetragon event cache access/errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	RingBufPerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "ringbuf_perf_event_received",
+		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_received",
 		Help:        "The total number of Tetragon ringbuf perf events received.",
 		ConstLabels: nil,
 	}, nil)
 	RingBufPerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "ringbuf_perf_event_lost",
+		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_lost",
 		Help:        "The total number of Tetragon ringbuf perf events lost.",
 		ConstLabels: nil,
 	}, nil)
 	RingBufPerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "ringbuf_perf_event_errors",
+		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_errors",
 		Help:        "The total number of Tetragon ringbuf perf event error count.",
 		ConstLabels: nil,
 	}, nil)
 	ProcessInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "process_info_errors",
+		Name:        consts.MetricNamePrefix + "process_info_errors",
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	ExecMissingParentErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "exec_missing_parent_errors",
+		Name:        consts.MetricNamePrefix + "exec_missing_parent_errors",
 		Help:        "The total of times a given parent exec id could not be found in an exec event.",
 		ConstLabels: nil,
 	}, []string{"parent_exec_id"})
 	SameExecIdErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        MetricNamePrefix + "exec_parent_child_same_id_errors",
+		Name:        consts.MetricNamePrefix + "exec_parent_child_same_id_errors",
 		Help:        "The total of times an error occurs due to a parent and child process have the same exec id.",
 		ConstLabels: nil,
 	}, []string{"exec_id"})
 	GenericKprobeMergeErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        MetricNamePrefix + "generic_kprobe_merge_errors",
+		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_errors",
 		Help:        "The total number of failed attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
 	}, []string{"curr_fn", "curr_type", "prev_fn", "prev_type"})
@@ -143,7 +93,7 @@ var (
 // DNS metrics
 var (
 	DnsRequestTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: MetricNamePrefix + "dns_total",
+		Name: consts.MetricNamePrefix + "dns_total",
 		Help: "Dns request/response statistics",
 	}, []string{"namespace", "pod", "binary", "names", "rcodes", "response"})
 )

@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
@@ -116,7 +117,7 @@ func (pm *ProcessManager) Notify(event interface{}) error {
 
 	default:
 		logger.GetLogger().WithField("event", event).Warnf("unhandled event of type %T", msg)
-		metrics.ErrorCount.WithLabelValues(string(metrics.UnhandledEvent)).Inc()
+		errormetrics.ErrorTotalInc(errormetrics.UnhandledEvent)
 		return nil
 	}
 	if processedEvent != nil {
