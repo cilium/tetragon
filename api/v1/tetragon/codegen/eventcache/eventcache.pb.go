@@ -8,8 +8,8 @@ package eventcache
 import (
 	fmt "fmt"
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
-	metrics "github.com/cilium/tetragon/pkg/metrics"
 	errormetrics "github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	eventcachemetrics "github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	process "github.com/cilium/tetragon/pkg/process"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,7 +25,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			metrics.ProcessInfoErrors.WithLabelValues("ProcessExec").Inc()
+			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessExec")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -38,7 +38,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			metrics.ProcessInfoErrors.WithLabelValues("ProcessExit").Inc()
+			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessExit")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -51,7 +51,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			metrics.ProcessInfoErrors.WithLabelValues("ProcessKprobe").Inc()
+			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessKprobe")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -64,7 +64,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			metrics.ProcessInfoErrors.WithLabelValues("ProcessTracepoint").Inc()
+			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessTracepoint")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -77,7 +77,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			metrics.ProcessInfoErrors.WithLabelValues("ProcessDns").Inc()
+			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessDns")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
