@@ -15,11 +15,6 @@ import (
 
 // Tetragon debugging and core info metrics
 var (
-	ExecveMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "map_in_use_gauge",
-		Help:        "The total number of in-use entries per map.",
-		ConstLabels: nil,
-	}, []string{"map", "total"})
 	LruMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        consts.MetricNamePrefix + "lru_in_use_gauge",
 		Help:        "The total number of LRU in-use entries.",

@@ -9,8 +9,8 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/dns"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/server"
@@ -93,7 +93,7 @@ func (ec *Cache) loop() {
 			 * event anyways.
 			 */
 			ec.handleExecEvents()
-			metrics.ExecveMapSize.WithLabelValues("cache", "0").Set(float64(len(ec.cache)))
+			mapmetrics.MapSizeSet("cache", 0, float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
 			errormetrics.EventCacheInc(errormetrics.EventCacheProcessCount)
