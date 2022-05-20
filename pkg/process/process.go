@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -243,7 +244,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	// and use that as the parent.
 	parent, err := procCache.get(parentExecID)
 	if err != nil {
-		metrics.ErrorCount.WithLabelValues(string(metrics.NoParentNoClone)).Inc()
+		errormetrics.ErrorTotalInc(errormetrics.NoParentNoClone)
 		logger.GetLogger().WithFields(logrus.Fields{
 			"parent exec id": parentExecID,
 			"process":        proc,

@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/server"
@@ -60,7 +61,7 @@ func (ec *Cache) handleExecEvents() {
 				tmp = append(tmp, e)
 				continue
 			}
-			metrics.EventCacheCount.WithLabelValues(string(metrics.EventCachePodInfoRetryFailed)).Inc()
+			errormetrics.EventCacheInc(errormetrics.EventCachePodInfoRetryFailed)
 		}
 
 		if e.internal != nil {
@@ -95,7 +96,7 @@ func (ec *Cache) loop() {
 			metrics.ExecveMapSize.WithLabelValues("cache", "0").Set(float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
-			metrics.EventCacheCount.WithLabelValues(string(metrics.EventCacheProcessCount)).Inc()
+			errormetrics.EventCacheInc(errormetrics.EventCacheProcessCount)
 			ec.cache = append(ec.cache, event)
 		}
 	}

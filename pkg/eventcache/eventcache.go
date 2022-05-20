@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/server"
@@ -68,7 +69,7 @@ func (ec *Cache) handleNetEvents() {
 					tmp = append(tmp, e)
 					continue
 				}
-				metrics.EventCacheCount.WithLabelValues(string(metrics.EventCacheEndpointRetryFailed)).Inc()
+				errormetrics.EventCacheInc(errormetrics.EventCacheEndpointRetryFailed)
 			}
 		}
 
@@ -97,7 +98,7 @@ func (ec *Cache) loop() {
 			metrics.ExecveMapSize.WithLabelValues("netCache", "0").Set(float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
-			metrics.EventCacheCount.WithLabelValues(string(metrics.EventCacheNetworkCount)).Inc()
+			errormetrics.EventCacheInc(errormetrics.EventCacheNetworkCount)
 			ec.cache = append(ec.cache, event)
 		}
 	}
