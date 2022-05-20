@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -70,8 +70,8 @@ func TestSensorLseekLoad(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
 	defer cancel()
 
-	checker := ec.NewSingleMultiResponseChecker(
-		ec.NewTestEventChecker().End(),
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewTestChecker(),
 	)
 
 	obs, err := observer.GetDefaultObserver(t, tetragonLib)
@@ -109,8 +109,8 @@ func TestSensorLseekEnable(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
 	defer cancel()
 
-	checker := ec.NewSingleMultiResponseChecker(
-		ec.NewTestEventChecker().End(),
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewTestChecker(),
 	)
 
 	obs, err := observer.GetDefaultObserver(t, tetragonLib)

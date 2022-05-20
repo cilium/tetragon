@@ -15,12 +15,15 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
+	smatcher "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 
@@ -107,19 +110,16 @@ func TestGenericTracepointSimple(t *testing.T) {
 		sm.DisableSensor(ctx, sensorName)
 	}()
 
-	tpChecker := ec.NewTracepointChecker().
-		WithSubsys("syscalls").
-		WithEvent("sys_enter_lseek").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgSizeCheck(4444),
-			ec.GenericArgSizeCheck(18446744073709551615), // -1
-		})
-
-	checker := ec.NewSingleMultiResponseChecker(
-		ec.NewTracepointEventChecker().
-			HasTracepoint(tpChecker).
-			End(),
-	)
+	tpChecker := ec.NewProcessTracepointChecker().
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(4444),
+				ec.NewKprobeArgumentChecker().WithSizeArg(18446744073709551615),
+			))
+	checker := ec.NewUnorderedEventChecker(tpChecker)
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
@@ -199,13 +199,13 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	selfOp()
 
 	tpEventsNr := 0
-	nextCheck := func(event *tetragon.GetEventsResponse, l ec.Logger) (bool, error) {
-		switch tpEvent := event.Event.(type) {
-		case *tetragon.GetEventsResponse_ProcessTracepoint:
-			if err := checkFn(tpEvent.ProcessTracepoint); err != nil {
+	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+		switch tpEvent := event.(type) {
+		case *tetragon.ProcessTracepoint:
+			if err := checkFn(tpEvent); err != nil {
 				return false, err
 			}
-			eventPid := tpEvent.ProcessTracepoint.Process.Pid.Value
+			eventPid := tpEvent.Process.Pid.Value
 			if int(eventPid) != pid {
 				return false, fmt.Errorf("Unexpected pid=%d (filter is for pid %d)", eventPid, pid)
 			}
@@ -216,7 +216,8 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 
 		}
 	}
-	finalCheck := func(l ec.Logger) error {
+	finalCheck := func(l *logrus.Logger) error {
+		defer func() { tpEventsNr = 0 }()
 		// NB: in some cases we get more than one events. I think this
 		// might be due to -EINTR or similar return values.
 		if tpEventsNr < 1 {
@@ -224,13 +225,10 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		}
 		return nil
 	}
-	Reset := func() {
-		tpEventsNr = 0
-	}
-	checker := ec.MultiResponseCheckerFns{
+
+	checker := ec.FnEventChecker{
 		NextCheckFn:  nextCheck,
 		FinalCheckFn: finalCheck,
-		ResetFn:      Reset,
 	}
 
 	if err := observer.JsonTestCheck(t, &checker); err != nil {
@@ -268,10 +266,10 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
-			v1alpha1.KProbeArg{
+			{
 				Index: 7, /* whence */
 			},
-			v1alpha1.KProbeArg{
+			{
 				Index: 5, /* fd */
 			},
 		},
@@ -321,14 +319,20 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 }
 
 func TestGenericTracepointMeta(t *testing.T) {
+	// We want to write to a file so we can filter by non-stdout fd and thus avoid
+	// catching all the writes to test logs
+	fd, err := syscall.Open("/tmp/testificate", syscall.O_CREAT|syscall.O_WRONLY, 0o644)
+	assert.NoError(t, err)
+	defer func() { syscall.Unlink("/tmp/testificate") }()
+
 	tracepointConf := GenericTracepointConf{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_write",
 		Args: []v1alpha1.KProbeArg{
-			v1alpha1.KProbeArg{
+			{
 				Index: 5, /* fd */
 			},
-			v1alpha1.KProbeArg{
+			{
 				Index:        6,     /* char *buf */
 				SizeArgIndex: 7 + 1, /* count */
 
@@ -338,16 +342,15 @@ func TestGenericTracepointMeta(t *testing.T) {
 			MatchArgs: []v1alpha1.ArgSelector{{
 				Index:    5,
 				Operator: "eq",
-				Values:   []string{"1"},
+				Values:   []string{fmt.Sprint(fd)},
 			}},
 		}},
 	}
 
 	op := func() {
-		syscall.Write(1, []byte("hello world"))
+		syscall.Write(fd, []byte("hello world"))
 	}
 
-	found := false
 	check := func(event *tetragon.ProcessTracepoint) error {
 		if event.Subsys != "syscalls" {
 			return fmt.Errorf("Unexpected subsys: %s", event.Subsys)
@@ -363,15 +366,11 @@ func TestGenericTracepointMeta(t *testing.T) {
 			return fmt.Errorf("Unexpected arg: %v", event.Args[1].GetArg())
 		}
 		arg1 := string(arg1_.BytesArg)
-		if arg1 == "hello world" {
-			found = true
+		if arg1 != "hello world" {
+			return fmt.Errorf("Arg does not match \"hello world\"")
 		}
 		return nil
 	}
 
 	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
-	if !found {
-		t.Logf("expected string not found")
-		t.Fail()
-	}
 }

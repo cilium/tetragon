@@ -17,8 +17,11 @@ import (
 	"unsafe"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	bc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/bytesmatcher"
+	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
-	ec "github.com/cilium/tetragon/pkg/eventchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
@@ -127,25 +130,23 @@ spec:
 	unix.Seek(-1, 0, 4444)
 }
 
-func getTestKprobeObjectWRChecker() ec.MultiResponseChecker {
-	myNs := namespace.GetCurrentNamespace()
-	myCaps := caps.GetCurrentCapabilities()
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_write").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(1),
-			ec.GenericArgBytesCheck([]byte("hello world")),
-			ec.GenericArgSizeCheck(11),
-		}).
-		WithNs(myNs).
-		WithCaps(myCaps, ec.CapsInheritable).
-		WithCaps(myCaps, ec.CapsEffective).
-		WithCaps(myCaps, ec.CapsPermitted)
-	return ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+func getTestKprobeObjectWRChecker() ec.MultiEventChecker {
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
+	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(1),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(11),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithCap(myCaps).
+			WithNs(myNs))
+	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
 func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
@@ -401,7 +402,7 @@ func createTestFile(t *testing.T) (int, int, string) {
 	return fd, fd2, fmt.Sprint(fd2)
 }
 
-func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiResponseChecker, fd, fd2 int) {
+func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -469,20 +470,18 @@ spec:
         values:
         - ` + fdString
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_read").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(int32(fd2)),
-			ec.GenericArgBytesCheck([]byte("hello world")),
-			ec.GenericArgSizeCheck(100),
-		})
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, &checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2)
 }
 
 func TestKprobeObjectReadReturn(t *testing.T) {
@@ -519,71 +518,61 @@ spec:
         values:
         - ` + fdString
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_read").
-		WithArgsReturn([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(int32(fd2)),
-			ec.GenericArgBytesCheck([]byte("hello world")),
-			ec.GenericArgSizeCheck(100)},
-			ec.GenericArgSizeCheck(11),
-		)
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithSizeArg(11))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, &checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2)
 }
 
 // __x64_sys_openat trace
-var (
-	openArg0Check    = ec.GenericArgIntCheck(-100)
-	openArg1Check    = ec.GenericArgStringCheck("/tmp/testfile")
-	openArg1CheckMnt = ec.GenericArgStringCheck(mountPath + "/testfile")
-	openArg2Check    = ec.GenericArgIsInt()
+func getOpenatChecker() ec.MultiEventChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_openat")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(-100),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("/tmp/testfile")),
+				ec.NewKprobeArgumentChecker(),
+			))
 
-	openKprobeCheck = ec.NewKprobeChecker().
-			WithFunctionName("__x64_sys_openat").
-			WithArgs([]ec.GenericArgChecker{openArg0Check, openArg1Check, openArg2Check})
+	return ec.NewUnorderedEventChecker(kpChecker)
+}
 
-	openKprobeCheckMnt = ec.NewKprobeChecker().
-				WithFunctionName("__x64_sys_openat").
-				WithArgs([]ec.GenericArgChecker{openArg0Check, openArg1CheckMnt, openArg2Check})
+// __x64_sys_openat trace
+func getOpenatMntChecker() ec.MultiEventChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_openat")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(-100),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(mountPath+"/testfile")),
+				ec.NewKprobeArgumentChecker(),
+			))
 
-	openChecker = ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(openKprobeCheck).
-			End(),
-	)
+	return ec.NewUnorderedEventChecker(kpChecker)
+}
 
-	openCheckerMnt = ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(openKprobeCheckMnt).
-			End(),
-	)
-
-	// this check fails if it find a kprobe event. It is used to test filters.
-	noKprobeChecker = ec.NewAllMultiResponseChecker(
-		ec.ResponseCheckerFn(
-			func(r *tetragon.GetEventsResponse, l ec.Logger) error {
-				switch ev := r.Event.(type) {
-				case *tetragon.GetEventsResponse_ProcessKprobe:
-					return fmt.Errorf("Unexpected event: %+v", ev)
-				default:
-					return nil
-				}
-			},
-		),
-	)
-)
+// matches any kprobe event, used to test filters
+func getAnyChecker() ec.MultiEventChecker {
+	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker())
+}
 
 func testKprobeObjectFiltered(t *testing.T,
 	readHook string,
-	checker ec.MultiResponseChecker,
-	useMount bool) {
+	checker ec.MultiEventChecker,
+	useMount bool,
+	expectFailure bool) {
 
 	mntPath := "/tmp"
 	if useMount == true {
@@ -646,7 +635,11 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.Equal(t, len(data), n)
 	assert.NoError(t, err)
 	err = observer.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	if expectFailure {
+		assert.Error(t, err)
+	} else {
+		assert.NoError(t, err)
+	}
 }
 
 func testKprobeObjectOpenHook(pidStr string, path string) string {
@@ -683,13 +676,13 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
 func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, openCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
 }
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
@@ -727,13 +720,13 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 func TestKprobeObjectMultiValueOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, openCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
 }
 
 func TestKprobeObjectFilterOpen(t *testing.T) {
@@ -766,7 +759,7 @@ spec:
         values:
         - "/tmp/foofile\0"
 `
-	testKprobeObjectFiltered(t, readHook, &noKprobeChecker, false)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
 }
 
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
@@ -800,7 +793,7 @@ spec:
         - "/tmp/foo\0"
         - "/tmp/bar\0"
 `
-	testKprobeObjectFiltered(t, readHook, &noKprobeChecker, false)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
 }
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
@@ -837,13 +830,13 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, openCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
 }
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
@@ -880,13 +873,13 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, openCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
 }
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
@@ -923,13 +916,13 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, openCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
 }
 
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
@@ -962,7 +955,7 @@ spec:
         values:
         - "/foo/"
 `
-	testKprobeObjectFiltered(t, readHook, &noKprobeChecker, false)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
@@ -995,7 +988,7 @@ spec:
         values:
         - "testfile\0"
 `
-	testKprobeObjectFiltered(t, readHook, &openChecker, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
 }
 
 func helloIovecWorldWritev() (err error) {
@@ -1053,19 +1046,17 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_writev").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(1),
-			ec.GenericArgBytesCheck([]byte("hello iovec world")),
-		})
-
-	checker := ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(selfBinary))).
+		WithFunctionName(sm.Full("__x64_sys_writev")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(1),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello iovec world"))),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
 	if err != nil {
@@ -1080,17 +1071,18 @@ spec:
 	assert.NoError(t, err)
 }
 
-var (
-	doOpenKprobeCheck = ec.NewKprobeChecker().
-				WithFunctionName("do_filp_open").
-				WithArgs([]ec.GenericArgChecker{openArg0Check, openArg1Check})
+func getFilpOpenChecker() ec.MultiEventChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("do_filp_open")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(-100),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("/tmp/testfile")),
+			))
 
-	doOpenChecker = ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(doOpenKprobeCheck).
-			End(),
-	)
-)
+	return ec.NewUnorderedEventChecker(kpChecker)
+}
 
 func TestKprobeObjectFilenameOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
@@ -1115,7 +1107,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, doOpenChecker, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
@@ -1143,7 +1135,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, doOpenChecker, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
@@ -1242,79 +1234,50 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
   `
 }
 
-var (
-	writeArg0    = ec.GenericArgFileChecker(ec.StringMatchAlways(), ec.SuffixStringMatch("/tmp/testfile"), ec.FullStringMatch(""))
-	writeArg0Mnt = ec.GenericArgFileChecker(ec.StringMatchAlways(), ec.SuffixStringMatch(mountPath+"/testfile"), ec.FullStringMatch(""))
-	writeArg1    = ec.GenericArgBytesCheck([]byte("hello world"))
-	writeArg2    = ec.GenericArgSizeCheck(11)
+func getWriteChecker(path, flags string) ec.MultiEventChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Suffix(path)).
+					WithFlags(sm.Full(flags)),
+				),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(11),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(selfBinary)))
 
-	writeFileKpChecker = ec.NewKprobeChecker().
-				WithFunctionName("__x64_sys_write").
-				WithArgs([]ec.GenericArgChecker{writeArg0, writeArg1, writeArg2})
-
-	writeChecker = ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(writeFileKpChecker).
-			End(),
-	)
-
-	writeFileKpCheckerMnt = ec.NewKprobeChecker().
-				WithFunctionName("__x64_sys_write").
-				WithArgs([]ec.GenericArgChecker{writeArg0Mnt, writeArg1, writeArg2})
-
-	writeCheckerMnt = ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(writeFileKpCheckerMnt).
-			End(),
-	)
-)
+	return ec.NewUnorderedEventChecker(kpChecker)
+}
 
 func TestKprobeObjectFileWrite(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, writeChecker, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, writeChecker, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, writeCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, writeCheckerMnt, true)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
 }
 
-func createWriteChecker(path string, flags string) ec.MultiResponseChecker {
-	writeArg0 = ec.GenericArgFileChecker(ec.StringMatchAlways(), ec.SuffixStringMatch(path), ec.FullStringMatch(flags))
-	writeArg1 = ec.GenericArgBytesCheck([]byte("hello world"))
-	writeArg2 = ec.GenericArgSizeCheck(11)
-
-	writeFileKpChecker = ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_write").
-		WithArgs([]ec.GenericArgChecker{writeArg0, writeArg1, writeArg2})
-
-	writeChecker = ec.NewSingleMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasProcess(ec.ProcessWithBinary(ec.SuffixStringMatch(selfBinary))).
-			HasKprobe(writeFileKpChecker).
-			End(),
-	)
-
-	return writeChecker
-}
-
-func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiResponseChecker) {
+func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -1390,9 +1353,9 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 
-	writeChecker = createWriteChecker("/tmp4/tmp5/testfile", "unresolvedMountPoints")
+	writeChecker := getWriteChecker("/tmp4/tmp5/testfile", "unresolvedMountPoints")
 	if kernels.EnableLargeProgs() {
-		writeChecker = createWriteChecker("/tmp2/tmp3/tmp4/tmp5/testfile", "")
+		writeChecker = getWriteChecker("/tmp2/tmp3/tmp4/tmp5/testfile", "")
 	}
 
 	// the full path name is "/tmp2/tmp3/tmp4/tmp5/testfile"
@@ -1431,9 +1394,9 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker = createWriteChecker("/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
+	writeChecker := getWriteChecker("/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
 	if kernels.EnableLargeProgs() {
-		writeChecker = createWriteChecker("/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
+		writeChecker = getWriteChecker("/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
 
 	// the full path name is "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16"
@@ -1500,9 +1463,9 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker = createWriteChecker("/[M]/tmp4/tmp5/[P]/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedMountPoints unresolvedPathComponents")
+	writeChecker := getWriteChecker("/[M]/tmp4/tmp5/[P]/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedMountPoints unresolvedPathComponents")
 	if kernels.EnableLargeProgs() {
-		writeChecker = createWriteChecker("/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
+		writeChecker = getWriteChecker("/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
 
 	// the full path name is "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile"
@@ -1580,20 +1543,18 @@ spec:
 	var newFd int32 = -321
 	var flags int32 = 12345
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_linkat").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(oldFd),
-			ec.GenericArgStringCheck(oldFile),
-			ec.GenericArgIntCheck(newFd),
-			ec.GenericArgStringCheck(newFile),
-			ec.GenericArgIntCheck(flags),
-		})
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_linkat")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(oldFd),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(oldFile)),
+				ec.NewKprobeArgumentChecker().WithIntArg(newFd),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(newFile)),
+				ec.NewKprobeArgumentChecker().WithIntArg(flags),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -1636,13 +1597,13 @@ spec:
 		uintptr(newFd), uintptr(unsafe.Pointer(newBytes)),
 		uintptr(flags), 0)
 
-	err = observer.JsonTestCheck(t, &checker)
+	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
 // override
 
-func runKprobeOverride(t *testing.T, hook string, checker ec.MultiResponseChecker,
+func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 	testFile string, testErr error) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -1727,22 +1688,20 @@ spec:
         argError: -2
 `
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_openat").
-		WithArgsReturn([]ec.GenericArgChecker{
-			ec.GenericArgIsInt(),
-			ec.GenericArgStringCheck(file.Name()),
-			ec.GenericArgIsInt()},
-			ec.GenericArgIntCheck(-2)).
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_openat")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
-
-	runKprobeOverride(t, openAtHook, &checker, file.Name(), syscall.ENOENT)
+	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT)
 }
 
 func TestKprobeOverrideNonSyscall(t *testing.T) {
@@ -1777,7 +1736,7 @@ spec:
 }
 
 func runKprobe_char_iovec(t *testing.T, configHook string,
-	checker *ec.OrderedMultiResponseChecker, fdw, fdr int, buffer []byte) {
+	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -1864,20 +1823,18 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_writev").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(int32(fdw)),
-			ec.GenericArgBytesCheck(buffer),
-			ec.GenericArgIntCheck(1),
-		})
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_writev")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdw)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
+				ec.NewKprobeArgumentChecker().WithIntArg(1),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, &checker, fdw, fdr, buffer)
+	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_overflow(t *testing.T) {
@@ -1919,20 +1876,18 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_writev").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(int32(fdw)),
-			ec.GenericArgBytesCheck([]byte("CharBufErrorBufTooLarge")),
-			ec.GenericArgIntCheck(1),
-		})
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_writev")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdw)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("CharBufErrorBufTooLarge"))),
+				ec.NewKprobeArgumentChecker().WithIntArg(1),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, &checker, fdw, fdr, buffer)
+	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_returnCopy(t *testing.T) {
@@ -1975,18 +1930,16 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewKprobeChecker().
-		WithFunctionName("__x64_sys_readv").
-		WithArgs([]ec.GenericArgChecker{
-			ec.GenericArgIntCheck(int32(fdr)),
-			ec.GenericArgBytesCheck(buffer),
-			ec.GenericArgSizeCheck(8),
-		})
-	checker := ec.NewOrderedMultiResponseChecker(
-		ec.NewKprobeEventChecker().
-			HasKprobe(kpChecker).
-			End(),
-	)
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_readv")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdr)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
+				ec.NewKprobeArgumentChecker().WithIntArg(8),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, &checker, fdw, fdr, buffer)
+	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
