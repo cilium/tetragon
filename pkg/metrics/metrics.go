@@ -15,26 +15,6 @@ import (
 
 // Tetragon debugging and core info metrics
 var (
-	LruMapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "lru_in_use_gauge",
-		Help:        "The total number of LRU in-use entries.",
-		ConstLabels: nil,
-	}, []string{"map", "total"})
-	RingBufPerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_received",
-		Help:        "The total number of Tetragon ringbuf perf events received.",
-		ConstLabels: nil,
-	}, nil)
-	RingBufPerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_lost",
-		Help:        "The total number of Tetragon ringbuf perf events lost.",
-		ConstLabels: nil,
-	}, nil)
-	RingBufPerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_errors",
-		Help:        "The total number of Tetragon ringbuf perf event error count.",
-		ConstLabels: nil,
-	}, nil)
 	ExecMissingParentErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "exec_missing_parent_errors",
 		Help:        "The total of times a given parent exec id could not be found in an exec event.",
