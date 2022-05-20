@@ -20,8 +20,8 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
@@ -151,5 +151,5 @@ func (pm *ProcessManager) NotifyListener(original interface{}, processed *tetrag
 	for l := range pm.listeners {
 		l.Notify(processed)
 	}
-	metrics.ProcessEvent(original, processed)
+	eventmetrics.ProcessEvent(original, processed)
 }

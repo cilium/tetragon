@@ -1,33 +1,21 @@
-// Copyright 2020 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
 
-package metrics
+package eventmetrics
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
-
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_handleProcessedEvent(t *testing.T) {
-	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
+func TestHandleProcessedEvent(t *testing.T) {
+	assert.NoError(t, testutil.CollectAndCompare(eventsProcessed, strings.NewReader("")))
 	handleProcessedEvent(nil)
 	// empty process
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
@@ -85,41 +73,41 @@ func Test_handleProcessedEvent(t *testing.T) {
 		},
 	}}})
 
-	expected := strings.NewReader(`# HELP isovalent_events_total The total number of Tetragon events
-# TYPE isovalent_events_total counter
-isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE"} 1
-isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC"} 1
-isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_EXIT"} 1
-isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
-isovalent_events_total{binary="",namespace="",pod="",type="PROCESS_DNS"} 1
-isovalent_events_total{binary="",namespace="",pod="",type="unknown"} 1
-isovalent_events_total{binary="binary_a",namespace="",pod="",type="PROCESS_KPROBE"} 1
-isovalent_events_total{binary="binary_a",namespace="namespace_a",pod="pod_a",type="PROCESS_KPROBE"} 1
-isovalent_events_total{binary="binary_b",namespace="",pod="",type="PROCESS_EXEC"} 1
-isovalent_events_total{binary="binary_b",namespace="namespace_b",pod="pod_b",type="PROCESS_EXEC"} 1
-isovalent_events_total{binary="binary_c",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
-isovalent_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type="PROCESS_TRACEPOINT"} 1
-isovalent_events_total{binary="binary_d",namespace="",pod="",type="PROCESS_DNS"} 1
-isovalent_events_total{binary="binary_d",namespace="namespace_d",pod="pod_d",type="PROCESS_DNS"} 1
-isovalent_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT"} 1
-isovalent_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT"} 1
+	expected := strings.NewReader(`# HELP tetragon_events_total The total number of Tetragon events
+# TYPE tetragon_events_total counter
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXIT"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_DNS"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="unknown"} 1
+tetragon_events_total{binary="binary_a",namespace="",pod="",type="PROCESS_KPROBE"} 1
+tetragon_events_total{binary="binary_a",namespace="namespace_a",pod="pod_a",type="PROCESS_KPROBE"} 1
+tetragon_events_total{binary="binary_b",namespace="",pod="",type="PROCESS_EXEC"} 1
+tetragon_events_total{binary="binary_b",namespace="namespace_b",pod="pod_b",type="PROCESS_EXEC"} 1
+tetragon_events_total{binary="binary_c",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
+tetragon_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type="PROCESS_TRACEPOINT"} 1
+tetragon_events_total{binary="binary_d",namespace="",pod="",type="PROCESS_DNS"} 1
+tetragon_events_total{binary="binary_d",namespace="namespace_d",pod="pod_d",type="PROCESS_DNS"} 1
+tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT"} 1
+tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
+	assert.NoError(t, testutil.CollectAndCompare(eventsProcessed, expected))
 }
 
-func Test_handleOriginalEvent(t *testing.T) {
+func TestHandleOriginalEvent(t *testing.T) {
 	handleOriginalEvent(nil)
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{})
-	assert.NoError(t, testutil.CollectAndCompare(FlagCount, strings.NewReader("")))
+	assert.NoError(t, testutil.CollectAndCompare(flagCount, strings.NewReader("")))
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{
 		Process: processapi.MsgProcess{
 			Flags: api.EventClone | api.EventExecve,
 		},
 	})
-	expected := strings.NewReader(`# HELP isovalent_flags_total The total number of Tetragon flags. For internal use only.
-# TYPE isovalent_flags_total counter
-isovalent_flags_total{type="clone"} 1
-isovalent_flags_total{type="execve"} 1
+	expected := strings.NewReader(`# HELP tetragon_flags_total The total number of Tetragon flags. For internal use only.
+# TYPE tetragon_flags_total counter
+tetragon_flags_total{type="clone"} 1
+tetragon_flags_total{type="execve"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
+	assert.NoError(t, testutil.CollectAndCompare(flagCount, expected))
 }
