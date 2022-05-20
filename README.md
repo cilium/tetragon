@@ -172,7 +172,7 @@ kubectl logs -n kube-system ds/tetragon -c export-stdout -f
 
 **NOTE**: If you're running more than one `tetragon` pod then the command above will only print the logs from one of those pods. To print out the logs on all `tetragon` pods, you will need to use a filter/selector such as `-l app.kubernetes.io/name=tetragon`:
 ```
-kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f 
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f
 ```
 
 The raw JSON events provide Kubernetes API, identity metadata, and OS
@@ -185,12 +185,18 @@ A second way is to pretty print the events using the
 [Tetragon CLI](https://github.com/cilium/tetragon/releases/tag/tetragon-cli).
 The tool also allows filtering by process, pod, and other fields.
 
-You can download and install it by the following command
+You can download and install it by the following command:
 
 ```
-wget https://github.com/cilium/tetragon/releases/download/tetragon-cli/tetragon-linux-386.tar.gz
-tar -zxvf tetragon-linux-386.tar.gz -C /usr/local/bin/
+GOOS=$(go env GOOS)
+GOARCH=$(go env GOARCH)
+curl -L --remote-name-all https://github.com/cilium/tetragon/releases/latest/download/tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
+sha256sum --check tetragon-${GOOS}-${GOARCH}.tar.gz.sha256sum
+sudo tar -C /usr/local/bin -xzvf tetragon-${GOOS}-${GOARCH}.tar.gz
+rm tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
 ```
+
+(see https://github.com/cilium/tetragon/releases/tag/tetragon-cli for supported `GOOS`/`GOARCH` binary releases)
 
 To start printing events run:
 
