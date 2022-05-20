@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/sirupsen/logrus"
@@ -93,7 +94,7 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 	r := bytes.NewReader(data)
 
 	// Increment the counter for the msg opcode
-	metrics.MsgOpsCount.WithLabelValues(ops.OpCode(op).String()).Add(1)
+	opcodemetrics.OpTotalInc(ops.OpCode(op))
 
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	if h, ok := eventHandler[op]; ok {
