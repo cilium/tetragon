@@ -40,11 +40,6 @@ var (
 		Help:        "The total number of Tetragon ringbuf perf event error count.",
 		ConstLabels: nil,
 	}, nil)
-	ProcessInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "process_info_errors",
-		Help:        "The total of times we failed to fetch cached process info for a given event type.",
-		ConstLabels: nil,
-	}, []string{"event_type"})
 	ExecMissingParentErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "exec_missing_parent_errors",
 		Help:        "The total of times a given parent exec id could not be found in an exec event.",
