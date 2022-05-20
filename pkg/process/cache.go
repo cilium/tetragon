@@ -5,14 +5,13 @@ package process
 
 import (
 	"fmt"
-	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
 )
@@ -147,8 +146,8 @@ func NewCache(
 		pidMap: pidMap,
 	}
 	update := func() {
-		metrics.ExecveMapSize.WithLabelValues("processLru", strconv.Itoa(processCacheSize)).Set(float64(pm.cache.Len()))
-		metrics.ExecveMapSize.WithLabelValues("pidMap", strconv.Itoa(processCacheSize)).Set(float64(pm.pidMap.Len()))
+		mapmetrics.MapSizeSet("processLru", processCacheSize, float64(pm.cache.Len()))
+		mapmetrics.MapSizeSet("pidMap", processCacheSize, float64(pm.pidMap.Len()))
 	}
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {

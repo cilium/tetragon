@@ -10,8 +10,8 @@ import (
 	codegen "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventcache"
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/server"
@@ -95,7 +95,7 @@ func (ec *Cache) loop() {
 			 * event anyways.
 			 */
 			ec.handleNetEvents()
-			metrics.ExecveMapSize.WithLabelValues("netCache", "0").Set(float64(len(ec.cache)))
+			mapmetrics.MapSizeSet("netCache", 0, float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
 			errormetrics.EventCacheInc(errormetrics.EventCacheNetworkCount)

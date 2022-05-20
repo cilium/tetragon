@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"time"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
@@ -76,7 +75,7 @@ func (k *Observer) startUpdateMapMetrics() {
 			for cpu := int(0); cpu < runtime.NumCPU(); cpu++ {
 				sum += v.Value[cpu]
 			}
-			metrics.ExecveMapSize.WithLabelValues(m.Name, strconv.Itoa(int(mapLink.MapInfo.MaxEntries))).Set(float64(sum))
+			mapmetrics.MapSizeSet(m.Name, int(mapLink.MapInfo.MaxEntries), float64(sum))
 			mapLink.Close()
 			mapLinkStats.Close()
 		}
