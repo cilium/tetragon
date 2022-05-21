@@ -22,7 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/network"
@@ -930,7 +930,7 @@ func reportMergeError(curr pendingEvent, prev pendingEvent) {
 		prevType = "exit"
 	}
 
-	metrics.GenericKprobeMergeErrors.WithLabelValues(currFn, currType, prevFn, prevType).Inc()
+	kprobemetrics.MergeErrorsInc(currFn, currType, prevFn, prevType)
 	logger.GetLogger().WithFields(logrus.Fields{
 		"currFn":   currFn,
 		"currType": currType,
