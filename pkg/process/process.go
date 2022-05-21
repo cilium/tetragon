@@ -19,8 +19,8 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -255,7 +255,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"exec_id": parent.process.ExecId,
 		}).Debug("Parent and current process have the same exec ID")
-		metrics.SameExecIdErrors.WithLabelValues(parent.process.ExecId).Inc()
+		processexecmetrics.SameExecIdInc(parent.process.ExecId)
 		return proc
 	}
 	proc.process.ParentExecId = parent.process.ExecId

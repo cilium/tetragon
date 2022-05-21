@@ -12,8 +12,8 @@ import (
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -45,7 +45,7 @@ func (e *Grpc) GetProcessExec(
 	parent, err := process.Get(parentId)
 	if err != nil {
 		errormetrics.ErrorTotalInc(errormetrics.ExecMissingParent)
-		metrics.ExecMissingParentErrors.WithLabelValues(parentId).Inc()
+		processexecmetrics.MissingParentInc(parentId)
 		logger.GetLogger().WithField("processId", processId).WithField("parentId", parentId).Debug("Process missing parent")
 	}
 
