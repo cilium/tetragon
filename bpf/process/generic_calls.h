@@ -59,7 +59,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 #endif
 
 	/* Read out args1-5 */
-	ty = bpf_core_enum_value(tetragon_args, arg0);
+	ty = config->arg0;
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a0m;
@@ -139,12 +139,14 @@ generic_filter_submit(void *ctx, struct msg_generic_kprobe *e, long total)
 
 static inline __attribute__((always_inline)) int
 generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
+		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
+		       struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -159,6 +161,10 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
+		return 0;
+
 	total = e->common.size;
 
 	a0 = e->a0;
@@ -167,7 +173,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg1);
+	ty = config->arg1;
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a1m;
@@ -186,12 +192,14 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 
 static inline __attribute__((always_inline)) int
 generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
+		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
+		       struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -206,6 +214,10 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
+		return 0;
+
 	total = e->common.size;
 
 	a0 = e->a0;
@@ -214,7 +226,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg2);
+	ty = config->arg2;
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a2m;
@@ -233,12 +245,14 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 
 static inline __attribute__((always_inline)) int
 generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
+		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
+		       struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -253,6 +267,10 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
+		return 0;
+
 	total = e->common.size;
 
 	a0 = e->a0;
@@ -262,7 +280,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	a4 = e->a4;
 
 	/* Arg filter and copy logic */
-	ty = bpf_core_enum_value(tetragon_args, arg3);
+	ty = config->arg3;
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a3m;
@@ -281,12 +299,14 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 
 static inline __attribute__((always_inline)) int
 generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
+		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
+		       struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -301,6 +321,10 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
+		return 0;
+
 	total = e->common.size;
 
 	a0 = e->a0;
@@ -309,7 +333,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	a3 = e->a3;
 	a4 = e->a4;
 
-	ty = bpf_core_enum_value(tetragon_args, arg4);
+	ty = config->arg4;
 	if (total < MAX_TOTAL) {
 		long errv;
 		int a4m;

@@ -106,24 +106,6 @@ func kprobeArgMToString(a int) string {
 	return ""
 }
 
-func kprobeArgToString(a int) string {
-	switch a {
-	case 0:
-		return arg0
-	case 1:
-		return arg1
-	case 2:
-		return arg2
-	case 3:
-		return arg3
-	case 4:
-		return arg4
-	case 5:
-		return argreturn
-	}
-	return ""
-}
-
 type kprobeLoadArgs struct {
 	filters  [4096]byte
 	btf      uintptr
@@ -299,13 +281,13 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			if argReturnCopy(argMValue) {
 				argRetprobe = &f.Args[j]
 			}
-			retVal := btfobj.AddEnumValue(kprobeArgToString(int(a.Index)), argType)
-			if retVal < 0 {
+			if a.Index > 4 {
 				return nil,
-					fmt.Errorf("Error add arg: ArgType %s Index %d failed %d",
-						a.Type, int(a.Index), retVal)
+					fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+						a.Type, int(a.Index))
 			}
-			retVal = btfobj.AddEnumValue(kprobeArgMToString(int(a.Index)), argMValue)
+			config.Arg[a.Index] = int32(argType)
+			retVal := btfobj.AddEnumValue(kprobeArgMToString(int(a.Index)), argMValue)
 			if retVal < 0 {
 				return nil, fmt.Errorf("Error add enum value '%s' failed %d", kprobeArgMToString(int(a.Index)), retVal)
 			}
@@ -370,12 +352,10 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		// copying 'nop' args.
 		for j, a := range argsBTFSet {
 			if a == false {
-				retVal := btfobj.AddEnumValue(kprobeArgToString(j), gt.GenericNopType)
-				if retVal < 0 {
-					return nil, fmt.Errorf("Error add enum value '%s' failed %d",
-						kprobeArgToString(j), retVal)
+				if j != api.ReturnArgIndex {
+					config.Arg[j] = gt.GenericNopType
 				}
-				retVal = btfobj.AddEnumValue(kprobeArgMToString(j), 0)
+				retVal := btfobj.AddEnumValue(kprobeArgMToString(j), 0)
 				if retVal < 0 {
 					return nil, fmt.Errorf("Error add enum value '%s' failed %d",
 						kprobeArgMToString(j), retVal)
