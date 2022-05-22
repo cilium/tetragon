@@ -20,12 +20,20 @@ struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
 	.max_entries = 1,
 };
 
+struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(int),
+	.value_size = sizeof(struct event_config),
+	.max_entries = 1,
+};
+
 __attribute__((section(("kprobe/generic_retkprobe")), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	enum generic_func_args_enum tetragon_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	bool walker = false;
 	int zero = 0;
 	__u32 ppid;
@@ -36,6 +44,10 @@ generic_kprobe_event(struct pt_regs *ctx)
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
+		return 0;
+
+	config = map_lookup_elem(&config_map, &zero);
+	if (!config)
 		return 0;
 
 	e->thread_id = retprobe_map_get_key(ctx);
@@ -80,7 +92,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 	e->current.pad[2] = 0;
 	e->current.pad[3] = 0;
 
-	e->id = bpf_core_enum_value(tetragon_args, func_id);
+	e->id = config->func_id;
 
 	total = size;
 	total += generic_kprobe_common_size();

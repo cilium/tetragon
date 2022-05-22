@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -341,6 +342,8 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 }
 
 func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) (int, error) {
+	config := &api.EventConfig{}
+
 	tracepointLog = logger.GetLogger()
 
 	btfCtxOffsetFn := func(i int) string {
@@ -375,9 +378,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		return 0, fmt.Errorf("failed to add %s=%d BTF enum (ret=%d)", genericFuncArgsEnum, 4, ret)
 	}
 
-	if err := btfAddEnumValue(kprobeGenericId, tp.tableIdx); err != nil {
-		return 0, err
-	}
+	config.FuncId = uint32(tp.tableIdx)
 
 	// iterate over output arguments
 	for i := range tp.args {
@@ -466,6 +467,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		mapDir,
 		load.RetProbe,
 		kernelSelectors,
+		config,
 	)
 }
 

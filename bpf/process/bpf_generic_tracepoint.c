@@ -34,6 +34,13 @@ struct bpf_map_def __attribute__((section("maps"), used)) filter_map = {
 	.max_entries = 1,
 };
 
+struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(int),
+	.value_size = sizeof(struct event_config),
+	.max_entries = 1,
+};
+
 struct generic_tracepoint_event_arg {
 	/* common header */
 	__u16 common_type;
@@ -147,7 +154,8 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section(("kprobe/0")), used)) int
 generic_tracepoint_event0(void *ctx)
 {
-	return generic_process_event0(ctx, &tp_heap, &filter_map, &tp_calls);
+	return generic_process_event0(ctx, &tp_heap, &filter_map, &tp_calls,
+				      &config_map);
 }
 __attribute__((section(("kprobe/1")), used)) int
 generic_tracepoint_event1(void *ctx)
