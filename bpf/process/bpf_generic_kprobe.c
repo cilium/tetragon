@@ -126,28 +126,28 @@ __attribute__((section(("kprobe/1")), used)) int
 generic_kprobe_process_event1(void *ctx)
 {
 	return generic_process_event1(ctx, &process_call_heap, &filter_map,
-				      &kprobe_calls);
+				      &kprobe_calls, &config_map);
 }
 
 __attribute__((section(("kprobe/2")), used)) int
 generic_kprobe_process_event2(void *ctx)
 {
 	return generic_process_event2(ctx, &process_call_heap, &filter_map,
-				      &kprobe_calls);
+				      &kprobe_calls, &config_map);
 }
 
 __attribute__((section(("kprobe/3")), used)) int
 generic_kprobe_process_event3(void *ctx)
 {
 	return generic_process_event3(ctx, &process_call_heap, &filter_map,
-				      &kprobe_calls);
+				      &kprobe_calls, &config_map);
 }
 
 __attribute__((section(("kprobe/4")), used)) int
 generic_kprobe_process_event4(void *ctx)
 {
 	return generic_process_event4(ctx, &process_call_heap, &filter_map,
-				      &kprobe_calls);
+				      &kprobe_calls, &config_map);
 }
 
 __attribute__((section(("kprobe/5")), used)) int

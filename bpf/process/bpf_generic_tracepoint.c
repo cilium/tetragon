@@ -100,44 +100,49 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 {
 	enum generic_func_args_enum tetragon_args;
 	struct msg_generic_kprobe *msg;
+	struct event_config *config;
 	int zero = 0, i;
 
 	msg = map_lookup_elem(&tp_heap, &zero);
 	if (!msg)
 		return 0;
 
+	config = map_lookup_elem(&config_map, &zero);
+	if (!config)
+		return 0;
+
 	msg->a0 = ({
 		unsigned long ctx_off =
 			bpf_core_enum_value(tetragon_args, t_arg0_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg0);
+		int ty = config->arg0;
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a1 = ({
 		unsigned long ctx_off =
 			bpf_core_enum_value(tetragon_args, t_arg1_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg1);
+		int ty = config->arg1;
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a2 = ({
 		unsigned long ctx_off =
 			bpf_core_enum_value(tetragon_args, t_arg2_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg2);
+		int ty = config->arg2;
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a3 = ({
 		unsigned long ctx_off =
 			bpf_core_enum_value(tetragon_args, t_arg3_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg3);
+		int ty = config->arg3;
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
 	msg->a4 = ({
 		unsigned long ctx_off =
 			bpf_core_enum_value(tetragon_args, t_arg4_ctx_off);
-		int ty = bpf_core_enum_value(tetragon_args, arg4);
+		int ty = config->arg4;
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
@@ -160,25 +165,29 @@ generic_tracepoint_event0(void *ctx)
 __attribute__((section(("kprobe/1")), used)) int
 generic_tracepoint_event1(void *ctx)
 {
-	return generic_process_event1(ctx, &tp_heap, &filter_map, &tp_calls);
+	return generic_process_event1(ctx, &tp_heap, &filter_map, &tp_calls,
+				      &config_map);
 }
 
 __attribute__((section(("kprobe/2")), used)) int
 generic_tracepoint_event2(void *ctx)
 {
-	return generic_process_event2(ctx, &tp_heap, &filter_map, &tp_calls);
+	return generic_process_event2(ctx, &tp_heap, &filter_map, &tp_calls,
+				      &config_map);
 }
 
 __attribute__((section(("kprobe/3")), used)) int
 generic_tracepoint_event3(void *ctx)
 {
-	return generic_process_event3(ctx, &tp_heap, &filter_map, &tp_calls);
+	return generic_process_event3(ctx, &tp_heap, &filter_map, &tp_calls,
+				      &config_map);
 }
 
 __attribute__((section(("kprobe/4")), used)) int
 generic_tracepoint_event4(void *ctx)
 {
-	return generic_process_event4(ctx, &tp_heap, &filter_map, &tp_calls);
+	return generic_process_event4(ctx, &tp_heap, &filter_map, &tp_calls,
+				      &config_map);
 }
 
 __attribute__((section(("kprobe/5")), used)) int

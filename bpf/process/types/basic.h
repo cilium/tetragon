@@ -75,6 +75,11 @@ struct selector_arg_filter {
 
 struct event_config {
 	__u32 func_id;
+	__s32 arg0;
+	__s32 arg1;
+	__s32 arg2;
+	__s32 arg3;
+	__s32 arg4;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
