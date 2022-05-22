@@ -190,7 +190,7 @@ You can download and install it by the following command:
 ```
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
-curl -L --remote-name-all https://github.com/cilium/tetragon/releases/latest/download/tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
+curl -L --remote-name-all https://github.com/cilium/tetragon/releases/download/tetragon-cli/tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
 sha256sum --check tetragon-${GOOS}-${GOARCH}.tar.gz.sha256sum
 sudo tar -C /usr/local/bin -xzvf tetragon-${GOOS}-${GOARCH}.tar.gz
 rm tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
