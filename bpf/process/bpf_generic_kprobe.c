@@ -45,6 +45,13 @@ struct bpf_map_def __attribute__((section("maps"), used)) filter_map = {
 	.max_entries = 1,
 };
 
+struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(int),
+	.value_size = sizeof(struct event_config),
+	.max_entries = 1,
+};
+
 static inline __attribute__((always_inline)) int
 generic_kprobe_start_process_filter(void *ctx)
 {
@@ -111,7 +118,8 @@ __attribute__((section(("kprobe/0")), used)) int
 generic_kprobe_process_event0(void *ctx)
 {
 	return generic_process_event_and_setup(ctx, &process_call_heap,
-					       &filter_map, &kprobe_calls);
+					       &filter_map, &kprobe_calls,
+					       &config_map);
 }
 
 __attribute__((section(("kprobe/1")), used)) int

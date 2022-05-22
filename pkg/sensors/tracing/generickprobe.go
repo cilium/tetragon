@@ -129,6 +129,7 @@ type kprobeLoadArgs struct {
 	btf      uintptr
 	retprobe bool
 	syscall  bool
+	config   *api.EventConfig
 }
 
 type argPrinters struct {
@@ -257,6 +258,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		var setRetprobe, is_syscall bool
 		var argRetprobe *v1alpha1.KProbeArg
 		var argsBTFSet [api.MaxArgsSupported]bool
+
+		config := &api.EventConfig{}
 
 		argRetprobe = nil // holds pointer to arg for return handler
 		funcName := f.Call
@@ -446,6 +449,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 				btf:      uintptr(btfobj),
 				retprobe: setRetprobe,
 				syscall:  is_syscall,
+				config:   config,
 			},
 			argSigPrinters:    argSigPrinters,
 			argReturnPrinters: argReturnPrinters,
@@ -455,11 +459,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			tableId:           idtable.UninitializedEntryID,
 		}
 		genericKprobeTable.AddEntry(&kprobeEntry)
-		ret = btfobj.AddEnumValue(kprobeGenericId, kprobeEntry.tableId.ID)
-		if ret < 0 {
-			genericKprobeTable.RemoveEntry(kprobeEntry.tableId)
-			return nil, fmt.Errorf("Error add enum value failed %d", ret)
-		}
+
+		config.FuncId = uint32(kprobeEntry.tableId.ID)
 
 		loadProgName := "bpf_generic_kprobe.o"
 		loadProgRetName := "bpf_generic_retkprobe.o"
@@ -515,7 +516,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 	}, nil
 }
 
-func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string, filters [4096]byte) error {
+func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string, filters [4096]byte, config *api.EventConfig) error {
 	progpath := filepath.Join(bpfDir, p.PinPath)
 	err, _ := bpf.LoadGenericKprobeProgram(
 		version, option.Config.Verbosity,
@@ -527,6 +528,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 		mapDir,
 		genmapDir,
 		filters,
+		config,
 	)
 	if err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", p.Name, p.Attach)
@@ -547,7 +549,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 	return err
 }
 
-func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string) error {
+func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string, config *api.EventConfig) error {
 	err, _ := bpf.LoadGenericKprobeRetProgram(
 		version, option.Config.Verbosity, btf,
 		p.Name,
@@ -556,6 +558,7 @@ func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program
 		path.Join(bpfDir, p.PinPath),
 		mapDir,
 		genmapDir,
+		config,
 	)
 	return err
 }
@@ -572,10 +575,10 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 	retprobe := strings.Contains(load.Name, "ret")
 	if retprobe {
-		return 0, loadGenericKprobeRet(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir)
+		return 0, loadGenericKprobeRet(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.config)
 	}
 
-	return 0, loadGenericKprobe(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.filters)
+	return 0, loadGenericKprobe(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.filters, gk.loadArgs.config)
 }
 
 func handleGenericKprobeString(r *bytes.Reader) string {

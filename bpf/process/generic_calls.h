@@ -2,12 +2,14 @@
 
 static inline __attribute__((always_inline)) int
 generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *map, struct bpf_map_def *tailcals)
+		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
+		       struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	unsigned long a0, a1, a2, a3, a4;
+	struct event_config *config;
 	bool walker = 0;
 	__u32 ppid;
 	int zero = 0;
@@ -23,6 +25,10 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	// get e again to help verifier
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
+		return 0;
+
+	config = map_lookup_elem(config_map, &zero);
+	if (!config)
 		return 0;
 
 	a0 = e->a0;
@@ -42,7 +48,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	e->current.pad[2] = 0;
 	e->current.pad[3] = 0;
 
-	e->id = bpf_core_enum_value(tetragon_args, func_id);
+	e->id = config->func_id;
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	/* If return arg is needed mark retprobe */
@@ -80,7 +86,8 @@ static inline __attribute__((always_inline)) int
 generic_process_event_and_setup(struct pt_regs *ctx,
 				struct bpf_map_def *heap_map,
 				struct bpf_map_def *map,
-				struct bpf_map_def *tailcals)
+				struct bpf_map_def *tailcals,
+				struct bpf_map_def *config_map)
 {
 	enum generic_func_args_enum tetragon_args;
 	struct msg_generic_kprobe *e;
@@ -111,7 +118,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	}
 	e->common.op = MSG_OP_GENERIC_KPROBE;
 	e->common.flags = 0;
-	return generic_process_event0(ctx, heap_map, map, tailcals);
+	return generic_process_event0(ctx, heap_map, map, tailcals, config_map);
 }
 
 static inline __attribute__((always_inline)) int

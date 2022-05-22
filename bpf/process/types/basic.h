@@ -73,6 +73,10 @@ struct selector_arg_filter {
 	__u8 value;
 } __attribute__((packed));
 
+struct event_config {
+	__u32 func_id;
+} __attribute__((packed));
+
 #define MAX_ARGS_SIZE	 80
 #define MAX_ARGS_ENTRIES 8
 #define MAX_MATCH_VALUES 4

@@ -226,3 +226,7 @@ type KprobeArgs struct {
 	Args3 []byte
 	Args4 []byte
 }
+
+type EventConfig struct {
+	FuncId uint32
+}
