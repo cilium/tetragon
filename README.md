@@ -10,10 +10,10 @@
 Cilium’s new Tetragon component enables powerful realtime, eBPF-based Security Observability and
 Runtime Enforcement.
 
-Tetragon detects and is able to respond in real time to security-significant events, such as
+Tetragon detects and is able to react to security-significant events, such as
 
 * Process execution events
-* Changes to privileges and capabilities
+* System call activity
 * I/O activity including network & file access
 
 When used in a Kubernetes environment, Tetragon is Kubernetes-aware - that is, it understands
@@ -24,12 +24,10 @@ can be configured in relation to individual workloads.
 
 ### eBPF Real-Time ##
 
-Tetragon is a real-time security and observability tool. What this means is Tetragon applies
-policy and filtering directly in eBPF. In the security context, this  enables
-stopping an operation from occurring, instead of observing an operation and reacting to it
-(e.g., detected malicious behavior) after the fact. In the react case, an attacker may have
-already manipulated the critical data, stolen secrets, or otherwise compromised the machine.
-By applying policy inline in eBPF, malicious operations are stopped before they occur.
+Tetragon is a runtime security enforcement and observability tool. What this means is Tetragon applies
+policy and filtering directly in eBPF in the kernel. It performs the filtering,
+blocking, and reacting to events directly in the kernel instead of sending
+events to a user space agent.
 
 For an observability use case, applying filters directly in the kernel drastically reduces
 observation overhead. By avoiding expensive context switching and wakeups, especially
