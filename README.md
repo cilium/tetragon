@@ -1,4 +1,7 @@
-<img src="https://github.com/cilium/tetragon/releases/download/tetragon-cli/logo.png" width="400">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/cilium/tetragon/releases/download/tetragon-cli/logo.png" width="400">
+  <img src="https://github.com/cilium/tetragon/releases/download/tetragon-cli/logo-dark.png" width="400">
+</picture>
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
