@@ -502,6 +502,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 | truncated_bytes_arg | [KprobeTruncatedBytes](#tetragon-KprobeTruncatedBytes) |  |  |
 | sock_arg | [KprobeSock](#tetragon-KprobeSock) |  |  |
 | cred_arg | [KprobeCred](#tetragon-KprobeCred) |  |  |
+| long_arg | [int64](#int64) |  |  |
 
 
 

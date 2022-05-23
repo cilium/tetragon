@@ -171,6 +171,7 @@ message KprobeArgument {
 	KprobeTruncatedBytes truncated_bytes_arg = 8;
 	KprobeSock sock_arg = 9;
 	KprobeCred cred_arg = 10;
+	int64 long_arg = 11;
     }
 }
 

@@ -2881,6 +2881,7 @@ type KprobeArgumentChecker struct {
 	TruncatedBytesArg *KprobeTruncatedBytesChecker `json:"truncatedBytesArg,omitempty"`
 	SockArg           *KprobeSockChecker           `json:"sockArg,omitempty"`
 	CredArg           *KprobeCredChecker           `json:"credArg,omitempty"`
+	LongArg           *int64                       `json:"longArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -2974,6 +2975,14 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			}
 		}
 	}
+	if checker.LongArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_LongArg:
+			if *checker.LongArg != event.LongArg {
+				return fmt.Errorf("KprobeArgumentChecker: LongArg has value %d which does not match expected value %d", event.LongArg, *checker.LongArg)
+			}
+		}
+	}
 	return nil
 }
 
@@ -3034,6 +3043,12 @@ func (checker *KprobeArgumentChecker) WithSockArg(check *KprobeSockChecker) *Kpr
 // WithCredArg adds a CredArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithCredArg(check *KprobeCredChecker) *KprobeArgumentChecker {
 	checker.CredArg = check
+	return checker
+}
+
+// WithLongArg adds a LongArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithLongArg(check int64) *KprobeArgumentChecker {
+	checker.LongArg = &check
 	return checker
 }
 
@@ -3098,6 +3113,13 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_CredArg:
 		if event.CredArg != nil {
 			checker.CredArg = NewKprobeCredChecker().FromKprobeCred(event.CredArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_LongArg:
+		{
+			val := event.LongArg
+			checker.LongArg = &val
 		}
 	}
 	return checker
