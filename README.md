@@ -122,7 +122,7 @@ export NAME="$(whoami)-$RANDOM"
 gcloud container clusters create "${NAME}" \
   --zone us-west2-a \
   --release-channel rapid \
-  --num-nodes 1 \
+  --num-nodes 1 
 ```
 
 ### Deploy Tetragon
