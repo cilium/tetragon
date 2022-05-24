@@ -95,6 +95,11 @@ func LoadSpecFromReader(rd io.ReaderAt) (*Spec, error) {
 
 // variableOffsets extracts all symbols offsets from an ELF and indexes them by
 // section and variable name.
+//
+// References to variables in BTF data sections carry unsigned 32-bit offsets.
+// Some ELF symbols (e.g. in vmlinux) may point to virtual memory that is well
+// beyond this range. Since these symbols cannot be described by BTF info,
+// ignore them here.
 func variableOffsets(file *internal.SafeELFFile) (map[variable]uint32, error) {
 	symbols, err := file.Symbols()
 	if err != nil {
@@ -109,10 +114,7 @@ func variableOffsets(file *internal.SafeELFFile) (map[variable]uint32, error) {
 		}
 
 		if symbol.Value > math.MaxUint32 {
-			// References to variables in BTF Datasecs carry 32-bit offsets
-			// and some symbols (e.g. in vmlinux) may refer to virtual memory that
-			// is well above this range. Since these symbols cannot be referred to,
-			// skip collecting them here.
+			// VarSecinfo offset is u32, cannot reference symbols in higher regions.
 			continue
 		}
 
