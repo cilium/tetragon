@@ -86,7 +86,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	defer func() {
 		err := sm.StopSensorManager(ctx)
 		if err != nil {
-			fmt.Printf("stopSensorController failed: %s\n", err)
+			t.Logf("stopSensorController failed: %s\n", err)
 		}
 	}()
 
@@ -128,6 +128,9 @@ func TestGenericTracepointSimple(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// doTestGenericTracepointPidFilter is a utility function for doing generic
+// tracepoint tests. It filters events based on the test program's pid, so that
+// we get more predictable results.
 func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
 	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
@@ -164,7 +167,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	defer func() {
 		err := sm.StopSensorManager(ctx)
 		if err != nil {
-			fmt.Printf("stopSensorController failed: %s\n", err)
+			t.Logf("stopSensorController failed: %s\n", err)
 		}
 	}()
 
@@ -237,7 +240,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 	}
 
 	op := func() {
-		fmt.Printf("Calling lseek...\n")
+		t.Logf("Calling lseek...\n")
 		unix.Seek(-1, 0, 4444)
 	}
 
@@ -280,7 +283,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 	}
 
 	op := func() {
-		fmt.Printf("Calling lseek...\n")
+		t.Logf("Calling lseek...\n")
 		unix.Seek(fd, 0, whence)
 		unix.Seek(fd, 0, whence+1)
 	}
