@@ -160,6 +160,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->active[i] = 0;
 	msg->pass = 0;
+	msg->idx = 0;
 	tail_call(ctx, &tp_calls, 5);
 	return 0;
 }

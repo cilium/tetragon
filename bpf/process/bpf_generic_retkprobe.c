@@ -49,6 +49,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 	if (!config)
 		return 0;
 
+	e->idx = 0;
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	retprobe_buffer = retprobe_map_get(e->thread_id, &cnt);
