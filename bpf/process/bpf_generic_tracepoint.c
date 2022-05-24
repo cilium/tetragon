@@ -177,6 +177,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	msg->sel.match_cap = 0;
 #endif
 	/* Tail call into filters. */
+	msg->idx = 0;
 	tail_call(ctx, &tp_calls, 5);
 	return 0;
 }
@@ -237,7 +238,7 @@ generic_tracepoint_filter(void *ctx)
 		return 0;
 
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
-				     &msg->caps, &filter_map);
+				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &tp_calls, 5);
 	else if (ret == PFILTER_ACCEPT)

@@ -50,6 +50,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!config)
 		return 0;
 
+	e->idx = 0;
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	if (!retprobe_map_get(e->thread_id, &info))

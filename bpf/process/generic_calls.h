@@ -23,7 +23,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -92,7 +92,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -133,7 +133,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -175,7 +175,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -217,7 +217,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -260,7 +260,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
