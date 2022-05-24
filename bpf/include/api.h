@@ -229,6 +229,8 @@ static int BPF_FUNC(send_signal, uint32_t sig);
 
 static int BPF_FUNC(override_return, void *regs, uint64_t rc);
 
+static __u64 BPF_FUNC(get_attach_cookie, void *ctx);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef lock_xadd
