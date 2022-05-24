@@ -25,7 +25,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessExec")
+			eventcachemetrics.ProcessInfoErrorInc("ProcessExec")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -38,7 +38,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessExit")
+			eventcachemetrics.ProcessInfoErrorInc("ProcessExit")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -51,7 +51,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessKprobe")
+			eventcachemetrics.ProcessInfoErrorInc("ProcessKprobe")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -64,7 +64,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessTracepoint")
+			eventcachemetrics.ProcessInfoErrorInc("ProcessTracepoint")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{
@@ -77,7 +77,7 @@ func DoHandleEvent(event eventObj, internal *process.ProcessInternal, labels []s
 		if internal != nil {
 			e.Process = internal.GetProcessCopy()
 		} else {
-			eventcachemetrics.ProcessInfoErrorTotalInc("ProcessDns")
+			eventcachemetrics.ProcessInfoErrorInc("ProcessDns")
 			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		}
 		return &tetragon.GetEventsResponse{

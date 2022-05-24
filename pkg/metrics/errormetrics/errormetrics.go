@@ -42,35 +42,35 @@ var (
 	ExecMissingParent ErrorType = "exec_missing_parent"
 )
 
-// Get a new handle on an errorsTotal metric for an ErrorType
-func ErrorTotal(t ErrorType) prometheus.Counter {
-	return errorsTotal.WithLabelValues(string(t))
-}
-
-// Increment an errorsTotal for an ErrorType
-func ErrorTotalInc(t ErrorType) {
-	ErrorTotal(t).Inc()
-}
-
-// Get a new handle on an eventCacheCount metric for an ErrorType
-func EventCache(t ErrorType) prometheus.Counter {
-	return eventCacheCount.WithLabelValues(string(t))
-}
-
-// Increment an eventCacheCount for an ErrorType
-func EventCacheInc(t ErrorType) {
-	ErrorTotal(t).Inc()
-}
-
 var (
-	errorsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	ErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "errors_total",
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	eventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	EventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "event_cache",
 		Help:        "The total number of Tetragon event cache access/errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 )
+
+// Get a new handle on an errorsTotal metric for an ErrorType
+func GetErrorTotal(t ErrorType) prometheus.Counter {
+	return ErrorTotal.WithLabelValues(string(t))
+}
+
+// Increment an errorsTotal for an ErrorType
+func ErrorTotalInc(t ErrorType) {
+	GetErrorTotal(t).Inc()
+}
+
+// Get a new handle on an eventCacheCount metric for an ErrorType
+func EventCache(t ErrorType) prometheus.Counter {
+	return EventCacheCount.WithLabelValues(string(t))
+}
+
+// Increment an eventCacheCount for an ErrorType
+func EventCacheInc(t ErrorType) {
+	EventCache(t).Inc()
+}

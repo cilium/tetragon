@@ -20,17 +20,17 @@ import (
 )
 
 var (
-	eventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
+	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
-	flagCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	dnsRequestTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	DnsRequestTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: consts.MetricNamePrefix + "dns_total",
 		Help: "Dns request/response statistics",
 	}, []string{"namespace", "pod", "binary", "names", "rcodes", "response"})
@@ -54,7 +54,7 @@ func handleOriginalEvent(originalEvent interface{}) {
 		flags = msg.Process.Flags
 	}
 	for _, flag := range exec.DecodeCommonFlags(flags) {
-		flagCount.WithLabelValues(flag).Inc()
+		FlagCount.WithLabelValues(flag).Inc()
 	}
 }
 
@@ -73,7 +73,7 @@ func postDnsMetric(ev *tetragon.GetEventsResponse, res *tetragon.ProcessDns) {
 		rr = "Request"
 	}
 
-	dnsRequestTotal.WithLabelValues(ns, pod, binary, names, codes, rr).Inc()
+	DnsRequestTotal.WithLabelValues(ns, pod, binary, names, codes, rr).Inc()
 }
 
 func handleDnsEvent(processedEvent interface{}) {
@@ -100,7 +100,7 @@ func handleProcessedEvent(processedEvent interface{}) {
 	default:
 		eventType = "unknown"
 	}
-	eventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
+	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
 }
 
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {

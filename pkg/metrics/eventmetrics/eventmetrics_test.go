@@ -15,7 +15,7 @@ import (
 )
 
 func TestHandleProcessedEvent(t *testing.T) {
-	assert.NoError(t, testutil.CollectAndCompare(eventsProcessed, strings.NewReader("")))
+	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
 	handleProcessedEvent(nil)
 	// empty process
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
@@ -92,13 +92,13 @@ tetragon_events_total{binary="binary_d",namespace="namespace_d",pod="pod_d",type
 tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT"} 1
 tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(eventsProcessed, expected))
+	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
 }
 
 func TestHandleOriginalEvent(t *testing.T) {
 	handleOriginalEvent(nil)
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{})
-	assert.NoError(t, testutil.CollectAndCompare(flagCount, strings.NewReader("")))
+	assert.NoError(t, testutil.CollectAndCompare(FlagCount, strings.NewReader("")))
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{
 		Process: processapi.MsgProcess{
 			Flags: api.EventClone | api.EventExecve,
@@ -109,5 +109,5 @@ func TestHandleOriginalEvent(t *testing.T) {
 tetragon_flags_total{type="clone"} 1
 tetragon_flags_total{type="execve"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(flagCount, expected))
+	assert.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
 }
