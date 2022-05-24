@@ -125,11 +125,12 @@ gcloud container clusters create "${NAME}" \
 
 ### Deploy Tetragon
 
-To install and deploy Tetragon, run the following from the git repository. Note
-if running the Vagrantfile above, the repository is synced with the VM.
+To install and deploy Tetragon, run the following commands:
 
 ```
-helm install tetragon -n kube-system ./install/kubernetes/
+helm repo add cilium https://helm.cilium.io
+helm repo update
+helm install tetragon cilium/tetragon -n kube-system
 kubectl rollout status -n kube-system ds/tetragon -w
 ```
 
