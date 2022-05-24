@@ -1022,11 +1022,10 @@ static inline __attribute__((always_inline)) int filter_args_reject(void)
 static inline __attribute__((always_inline)) int
 filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 {
-	int zero = 0;
 	__u8 *f;
 
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(filter_map, &zero);
+	f = map_lookup_elem(filter_map, &e->idx);
 	if (!f) {
 		return 1;
 	}
@@ -1149,18 +1148,17 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) void
-__do_action_sigkill(struct bpf_map_def *config_map)
+__do_action_sigkill(struct bpf_map_def *config_map, int idx)
 {
 	struct event_config *config;
-	int zero = 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &idx);
 	if (config && config->sigkill)
 		send_signal(FGS_SIGKILL);
 }
 #else
 static inline __attribute__((always_inline)) void
-__do_action_sigkill(struct bpf_map_def *config_map)
+__do_action_sigkill(struct bpf_map_def *config_map, int idx)
 {
 }
 #endif /* __LARGE_BPF_PROG */
@@ -1190,7 +1188,7 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		err = copyfd(e, oldfdi, newfdi);
 		break;
 	case ACTION_SIGKILL:
-		__do_action_sigkill(config_map);
+		__do_action_sigkill(config_map, e->idx);
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
@@ -1269,7 +1267,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		int actoff;
 		__u8 *f;
 
-		f = map_lookup_elem(filter, &zero);
+		f = map_lookup_elem(filter, &e->idx);
 		if (f) {
 			bool postit;
 
