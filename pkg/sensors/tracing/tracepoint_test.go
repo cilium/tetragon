@@ -40,6 +40,7 @@ var (
 	testMapPrefix = "testObserver"
 
 	whenceBogusValue = 4444
+	fdBogusValue     = uint64(18446744073709551615) // -1
 )
 
 func init() {
@@ -100,7 +101,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(18446744073709551615), // -1
+				ec.NewKprobeArgumentChecker().WithSizeArg(fdBogusValue), // -1
 			))
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -158,6 +159,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	readyWG.Wait()
 	selfOp()
 	testsensor.TestCheckerMarkEnd(t)
+	t.Log("Marked test end")
 
 	tpEventsNr := 0
 	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
@@ -332,6 +334,80 @@ func TestGenericTracepointMeta(t *testing.T) {
 			return fmt.Errorf("Arg does not match \"hello world\"")
 		}
 		return nil
+	}
+
+	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+}
+
+// TestRawSyscall checks raw_syscall tracepoints
+//name: sys_enter
+//ID: 346
+//format:
+//        field:unsigned short common_type;       offset:0;       size:2; signed:0;
+//        field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+//        field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+//        field:int common_pid;   offset:4;   n    size:4; signed:1;
+//
+//        field:long id;  offset:8;       size:8; signed:1;
+//        field:unsigned long args[6]
+//
+//print fmt: "NR %ld (%lx, %lx, %lx, %lx, %lx, %lx)", REC->id, REC->args[0], REC->args[1], REC->args[2], REC->args[3], REC->args[4], REC->args[5]
+func TestGenericTracepointRawSyscall(t *testing.T) {
+	tracepointConf := GenericTracepointConf{
+		Subsystem: "raw_syscalls",
+		Event:     "sys_enter",
+		Args: []v1alpha1.KProbeArg{
+			v1alpha1.KProbeArg{
+				Index: 4, /* id */
+			},
+			v1alpha1.KProbeArg{
+				Index: 5, /* args */
+			},
+		},
+	}
+	op := func() {
+		t.Logf("Calling lseek...\n")
+		unix.Seek(-1, 0, whenceBogusValue)
+	}
+
+	check := func(event *tetragon.ProcessTracepoint) error {
+		getSizeArg := func(i int) (uint64, error) {
+			if len(event.Args) <= i {
+				return 0, fmt.Errorf("args length is %d. Cannot retreieve args[%d]", len(event.Args), i)
+			}
+
+			arg := event.Args[i].GetArg()
+			ret, ok := arg.(*tetragon.KprobeArgument_SizeArg)
+			if !ok {
+				return 0, fmt.Errorf("unexpected type of args[%d]: %T (%v) (expecting: SizeArg)", i, arg, arg)
+			}
+
+			return ret.SizeArg, nil
+		}
+
+		arg0, ok := event.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg)
+		if !ok {
+			return fmt.Errorf("unexpected system call id: got:%d expecting:%d", arg0, unix.SYS_LSEEK)
+		}
+		sysID := arg0.LongArg
+		if sysID != unix.SYS_LSEEK {
+			return jsonchecker.NewDebugError(fmt.Errorf("unexpected arg val: got:%d expecting:%d", sysID, unix.SYS_LSEEK))
+		}
+
+		var err error
+		args := make([]uint64, 3)
+		for i := 0; i < 3; i++ {
+			args[i], err = getSizeArg(i + 1)
+			if err != nil {
+				return err
+			}
+		}
+
+		if args[0] == fdBogusValue && args[1] == 0 && args[2] == uint64(whenceBogusValue) {
+			return nil
+		}
+
+		return fmt.Errorf("unexpected lseek args: %+v", args)
 	}
 
 	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
