@@ -1,0 +1,8 @@
+# Request a review from the Tetragon team on any PR
+* @cilium/tetragon
+
+# Request a review from William when codegen is edited
+cmd/protoc-gen-go-tetragon/ @willfindlay
+
+# Request a review from William when CI is edited
+.github/workflows/ @willfindlay
