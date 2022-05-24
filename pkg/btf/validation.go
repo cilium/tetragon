@@ -4,8 +4,6 @@
 package btf
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
 // ValidationWarn is used to mark that validation was not successful but it's not
@@ -201,36 +200,6 @@ func typesCompatible(specTy string, kernelTy string) bool {
 	return false
 }
 
-// SyscallArgInfo is the name and the type (as string) of a syscall argument
-type SyscallArgInfo struct {
-	Name string
-	Type string
-}
-
-type SyscallArgs []SyscallArgInfo
-
-//go:embed syscalls.json
-var syscalls_ []byte
-
-// syscall table: name -> []SyscallArgs
-var sysargsInfo map[string]SyscallArgs
-
-func (sai SyscallArgs) Proto(name string) string {
-	args := make([]string, 0, len(sai))
-	for i := range sai {
-		args = append(args, fmt.Sprintf("%s %s", sai[i].Type, sai[i].Name))
-	}
-	return fmt.Sprintf("long %s(%s)", name, strings.Join(args, ", "))
-}
-
-func init() {
-	// parse syscall table
-	err := json.Unmarshal(syscalls_, &sysargsInfo)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 	if kspec.Return {
 		if !typesCompatible(kspec.ReturnArg.Type, "long") {
@@ -238,7 +207,7 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 		}
 	}
 
-	argsInfo, ok := sysargsInfo[name]
+	argsInfo, ok := syscallinfo.GetSyscallArgs(name)
 	if !ok {
 		return &ValidationWarn{s: fmt.Sprintf("missing information for syscall %s: arguments will not be verified", name)}
 	}
