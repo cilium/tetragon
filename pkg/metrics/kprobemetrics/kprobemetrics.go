@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	mergeErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+	MergeErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_errors",
 		Help:        "The total number of failed attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
@@ -19,12 +19,12 @@ var (
 
 // Get a new handle on the mergeErrors metric for a current and previous function
 // name and probe type
-func MergeErrors(currFn, currType, prevFn, prevType string) prometheus.Counter {
-	return mergeErrors.WithLabelValues(currFn, currType, prevFn, prevType)
+func GetMergeErrors(currFn, currType, prevFn, prevType string) prometheus.Counter {
+	return MergeErrors.WithLabelValues(currFn, currType, prevFn, prevType)
 }
 
 // Increment the mergeErrors metric for a current and previous function
 // name and probe type
 func MergeErrorsInc(currFn, currType, prevFn, prevType string) {
-	MergeErrors(currFn, currType, prevFn, prevType).Inc()
+	GetMergeErrors(currFn, currType, prevFn, prevType).Inc()
 }

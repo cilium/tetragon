@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	mapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	MapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name:        consts.MetricNamePrefix + "map_in_use_gauge",
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
@@ -20,16 +20,16 @@ var (
 )
 
 // Get a new handle on a mapSize metric for a mapName and totalCapacity
-func MapSize(mapName string, totalCapacity int) prometheus.Gauge {
-	return mapSize.WithLabelValues(mapName, fmt.Sprint(totalCapacity))
+func GetMapSize(mapName string, totalCapacity int) prometheus.Gauge {
+	return MapSize.WithLabelValues(mapName, fmt.Sprint(totalCapacity))
 }
 
 // Increment a mapSize metric for a mapName and totalCapacity
 func MapSizeInc(mapName string, totalCapacity int) {
-	MapSize(mapName, totalCapacity).Inc()
+	GetMapSize(mapName, totalCapacity).Inc()
 }
 
 // Set a mapSize metric to size for a mapName and totalCapacity
 func MapSizeSet(mapName string, totalCapacity int, size float64) {
-	MapSize(mapName, totalCapacity).Set(size)
+	GetMapSize(mapName, totalCapacity).Set(size)
 }

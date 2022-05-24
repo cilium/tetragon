@@ -29,7 +29,7 @@ func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 
 	incErrorCount := common.TetragonIdent(g, "pkg/metrics/errormetrics", "ErrorTotalInc")
 	mInfoFailed := common.TetragonIdent(g, "pkg/metrics/errormetrics", "EventCacheProcessInfoFailed")
-	incProcessInfoErrors := common.TetragonIdent(g, "pkg/metrics/eventcachemetrics", "ProcessInfoErrorTotalInc")
+	incProcessInfoErrors := common.TetragonIdent(g, "pkg/metrics/eventcachemetrics", "ProcessInfoErrorInc")
 
 	g.P(`func DoHandleEvent(event eventObj, internal *` + tetragonProcessInternal + `, labels []string, nodeName string, timestamp *` + timestamp + `) (*` + tetragonGER + `, error) {
         switch e := event.(type) {`)

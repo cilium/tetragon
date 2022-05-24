@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	msgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "msg_op_total",
 		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
 		ConstLabels: nil,
@@ -19,11 +19,11 @@ var (
 )
 
 // Get a new handle on a msgOpsCount metric for an OpCode
-func OpTotal(op ops.OpCode) prometheus.Counter {
-	return msgOpsCount.WithLabelValues(op.String())
+func GetOpTotal(op ops.OpCode) prometheus.Counter {
+	return MsgOpsCount.WithLabelValues(op.String())
 }
 
 // Increment an msgOpsCount for an OpCode
 func OpTotalInc(op ops.OpCode) {
-	OpTotal(op).Inc()
+	GetOpTotal(op).Inc()
 }
