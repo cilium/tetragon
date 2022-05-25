@@ -24,7 +24,6 @@ import (
 
 const (
 	serviceCacheInitRetryInterval = 5 * time.Second
-	serviceCacheRefreshInterval   = 5 * time.Minute
 )
 
 // fetchServiceCache fetches the service cache from cilium and initializes the

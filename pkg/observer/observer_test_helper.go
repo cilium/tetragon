@@ -18,7 +18,6 @@ import (
 	"time"
 
 	hubbleV1 "github.com/cilium/hubble/pkg/api/v1"
-	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -64,7 +63,7 @@ type testObserverOptions struct {
 
 type testExporterOptions struct {
 	watcher     watcher.K8sResourceWatcher
-	ciliumState *hubbleCilium.State
+	ciliumState *cilium.State
 }
 
 type TestOptions struct {
@@ -92,7 +91,7 @@ func withK8sWatcher(w watcher.K8sResourceWatcher) TestOption {
 	}
 }
 
-func withCiliumState(s *hubbleCilium.State) TestOption {
+func withCiliumState(s *cilium.State) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.ciliumState = s
 	}
@@ -152,7 +151,7 @@ func saveInitInfo(o *TestOptions, exportFile string) error {
 }
 
 // Create a fake Cilium state to avoid the events getting delayed due to missing pod info
-func createFakeCiliumState(testPod, testNamespace string) *hubbleCilium.State {
+func createFakeCiliumState(testPod, testNamespace string) *cilium.State {
 	s := cilium.GetFakeCiliumState()
 	s.GetEndpointsHandler().UpdateEndpoint(&hubbleV1.Endpoint{
 		ID:           1234,

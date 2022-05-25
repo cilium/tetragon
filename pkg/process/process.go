@@ -11,8 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	hubble "github.com/cilium/hubble/pkg/cilium"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
@@ -54,7 +52,7 @@ type ProcessInternal struct {
 var (
 	nodeName    string
 	procCache   *Cache
-	ciliumState *hubble.State
+	ciliumState *cilium.State
 	k8s         watcher.K8sResourceWatcher
 )
 
