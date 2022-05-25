@@ -258,11 +258,10 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val, void *heap)
 
 	caps = msg->caps.c[ty];
 
-	/* if op == op_filter_in we care for all bits in vals that are set */
-	if (op == op_filter_notin)
-		val = ~val; /* for op_filter_notin we care for all the rest bits */
-
-	return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
+	if (op == op_filter_in)
+		return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
+	return (caps & val) ? PFILTER_REJECT :
+			      PFILTER_ACCEPT; /* op_filter_notin */
 }
 
 #ifdef __CAP_CHANGES_FILTER
