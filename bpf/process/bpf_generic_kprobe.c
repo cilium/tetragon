@@ -84,8 +84,7 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	msg->idx = 0;
-	msg->func_id = 0;
+	setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;
