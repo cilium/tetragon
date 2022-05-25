@@ -21,10 +21,10 @@ import (
 	"github.com/cilium/cilium/api/v1/models"
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	"github.com/cilium/hubble/pkg/cilium"
-	"github.com/cilium/hubble/pkg/cilium/client"
 	"github.com/cilium/hubble/pkg/fqdncache"
 	"github.com/cilium/hubble/pkg/ipcache"
 	"github.com/cilium/hubble/pkg/servicecache"
+	"github.com/cilium/tetragon/pkg/cilium/client"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
