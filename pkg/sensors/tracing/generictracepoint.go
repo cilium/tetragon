@@ -377,7 +377,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
 
-		tracepointLog.Infof("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
 	}
 
 	// nop args
@@ -400,8 +400,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 			tp.Selectors.Args[i].Type = selectors.ArgTypeToString(uint32(ty))
 		}
 
-		// could we rewrite and then catch it again :/
-		fmt.Printf("tpArg: TpIdx %d, ArgIdx %d\n", tpArg.TpIdx, tpArg.ArgIdx)
 		for j, arg := range tp.Selectors.Args {
 			if arg.Index == uint32(tpArg.TpIdx) {
 				tp.Selectors.Args[j].Index = tpArg.ArgIdx
