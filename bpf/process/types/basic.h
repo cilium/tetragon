@@ -512,7 +512,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set(tid, e->common.ktime, arg);
+		retprobe_map_set(e->func_id, tid, e->common.ktime, arg);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
@@ -660,7 +660,8 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(tid, e->common.ktime, arg, meta);
+		retprobe_map_set_iovec(e->func_id, tid, e->common.ktime, arg,
+				       meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e);
@@ -1012,10 +1013,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(void)
+static inline __attribute__((always_inline)) int filter_args_reject(int idx)
 {
 	u64 tid = get_current_pid_tgid();
-	retprobe_map_clear(tid);
+	retprobe_map_clear(idx, tid);
 	return 0;
 }
 
@@ -1039,7 +1040,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 	 * have their arg filters run.
 	 */
 	if (index > SELECTORS_ACTIVE)
-		return filter_args_reject();
+		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[index]) {
 		int pass = selector_arg_offset(f, e, index);
@@ -1256,7 +1257,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		if (index <= MAX_SELECTORS && e->sel.active[index])
 			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL + index);
 		// reject if we did not attempt to tailcall, or if tailcall failed.
-		return filter_args_reject();
+		return filter_args_reject(e->func_id);
 	}
 
 	// If pass >1 then we need to consult the selector actions
