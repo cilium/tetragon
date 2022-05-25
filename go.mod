@@ -9,6 +9,7 @@ require (
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
 	github.com/cilium/lumberjack/v2 v2.2.2
 	github.com/fatih/color v1.7.0
+	github.com/go-openapi/strfmt v0.19.6
 	github.com/google/go-cmp v0.5.6
 	github.com/google/gops v0.3.14
 	github.com/hashicorp/golang-lru v0.5.4
@@ -56,7 +57,6 @@ require (
 	github.com/go-openapi/loads v0.19.6 // indirect
 	github.com/go-openapi/runtime v0.19.20 // indirect
 	github.com/go-openapi/spec v0.19.9 // indirect
-	github.com/go-openapi/strfmt v0.19.6 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-openapi/validate v0.19.12 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
