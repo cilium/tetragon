@@ -272,6 +272,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 	struct execve_map_value *init;
 	struct msg_generic_kprobe *curr;
 	int zero = 0;
+	bool match = false;
 	__u64 icaps, ccaps;
 	__u32 pid;
 
@@ -296,15 +297,17 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 	icaps = init->caps.c[ty];
 	ccaps = curr->caps.c[ty];
 
-	/* if op == op_filter_in we care for all bits in vals that are set */
-	if (op == op_filter_notin)
-		val = ~val; /* for op_filter_notin we care for all the rest bits */
+	/* we have a change in the capabilities that we care */
+	if ((icaps & val) != (ccaps & val))
+		match = (op == op_filter_in);
+	else if (icaps != ccaps) /* we have a change in other capabilities */
+		match = (op == op_filter_notin);
 
-	if ((icaps & val) != (ccaps & val)) {
+	if (match) {
+		/* this will update our internal metadata of the processe's caps */
 		curr->match_cap = 1;
-		return PFILTER_ACCEPT;
 	}
-	return PFILTER_REJECT;
+	return match ? PFILTER_ACCEPT : PFILTER_REJECT;
 }
 #endif
 
