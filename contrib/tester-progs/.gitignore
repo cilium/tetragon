@@ -2,3 +2,4 @@ capabilities-tester
 fork-tester
 namespace-tester
 sigkill-tester
+dup-tester
