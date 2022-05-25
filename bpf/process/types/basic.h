@@ -141,6 +141,30 @@ struct event_config {
  */
 #define MAX_STRING 1024
 
+#ifdef __MULTI_KPROBE
+static inline __attribute__((always_inline)) void
+setup_index(void *ctx, struct msg_generic_kprobe *msg,
+	    struct bpf_map_def *config_map)
+{
+	int idx = (int)get_attach_cookie(ctx);
+	struct event_config *config;
+
+	config = map_lookup_elem(config_map, &idx);
+	if (!config)
+		return;
+	msg->idx = idx;
+	msg->func_id = config->func_id;
+}
+#else
+static inline __attribute__((always_inline)) void
+setup_index(void *ctx, struct msg_generic_kprobe *msg,
+	    struct bpf_map_def *config_map)
+{
+	msg->idx = 0;
+	msg->func_id = 0;
+}
+#endif
+
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
 	switch (ty) {

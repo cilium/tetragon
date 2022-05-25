@@ -46,12 +46,12 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &zero);
+	setup_index(ctx, e, (struct bpf_map_def *)&config_map);
+
+	config = map_lookup_elem(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
-	e->idx = 0;
-	e->func_id = 0;
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	if (!retprobe_map_get(e->func_id, e->thread_id, &info))
