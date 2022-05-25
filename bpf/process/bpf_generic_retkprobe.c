@@ -45,12 +45,12 @@ generic_kprobe_event(struct pt_regs *ctx)
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &zero);
+	setup_index(ctx, e, &config_map);
+
+	config = map_lookup_elem(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
-	e->idx = 0;
-	e->func_id = 0;
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	retprobe_buffer = retprobe_map_get(e->func_id, e->thread_id, &cnt);
