@@ -96,7 +96,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestKprobeCapChanges(t *testing.T) {
+func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("matchCapabilityChanges requires at least 5.3.0 version")
 	}
@@ -125,10 +125,12 @@ func TestKprobeCapChanges(t *testing.T) {
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
 		data := map[string]string{
-			"MatchedPID":   pid,
-			"NamespacePID": "false",
+			"MatchedPID":    pid,
+			"NamespacePID":  "false",
+			"ChangesOp":     op,
+			"ChangesValues": value,
 		}
-		specName, err := testutils.GetSpecFromTemplate("capchanges.yaml.tmpl", data)
+		specName, err := testutils.GetSpecFromTemplate(spec, data)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,4 +171,12 @@ func TestKprobeCapChanges(t *testing.T) {
 	)
 	err = observer.JsonTestCheck(t, &checker)
 	assert.NoError(t, err)
+}
+
+func TestKprobeCapChangesIn(t *testing.T) {
+	testKprobeCapChanges(t, "capchanges.yaml.tmpl", "In", "CAP_MKNOD")
+}
+
+func TestKprobeCapChangesNotIn(t *testing.T) {
+	testKprobeCapChanges(t, "capchanges.yaml.tmpl", "NotIn", "CAP_SYS_ADMIN")
 }
