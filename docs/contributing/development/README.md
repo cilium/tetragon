@@ -66,7 +66,7 @@ Before hitting the submit button, please make sure that the following requiremen
 
    1. CONTRIBUTING.md file in the root directory as suggested by github documentation: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors
 
-   2. Development guide under docs directory with a section on how to submit pull requests. 
+   2. Development guide under docs directory with a section on how to submit pull requests.
 
    3. Moves the DEVELOP.md file from root directory to the `docs/contributing/development/` one.
 
@@ -86,7 +86,7 @@ Before hitting the submit button, please make sure that the following requiremen
 ### Developer’s Certificate of Origin
 
 To improve tracking of who did what, we’ve introduced a “sign-off” procedure,
-make sure to read and apply the 
+make sure to read and apply the
 [Developer’s Certificate of
 Origin](https://docs.cilium.io/en/stable/contributing/development/contributing_guide/#developer-s-certificate-of-origin).
 
@@ -118,7 +118,7 @@ make tools-install
 After running the above command, you are ready to build Tetragon as follows:
 
 ```
-LD_LIBRARY_PATH=$(realpath ./lib) make LOCAL_CLANG=0
+LD_LIBRARY_PATH=$(realpath ./lib) make
 ```
 
 You should now have a `./tetragon` binary, which can be run as follows:
