@@ -26,7 +26,7 @@ import (
 	"github.com/cilium/hubble/pkg/ipcache"
 	"github.com/cilium/hubble/pkg/logger"
 	"github.com/cilium/hubble/pkg/parser/getters"
-	"github.com/cilium/hubble/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

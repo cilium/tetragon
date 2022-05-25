@@ -10,6 +10,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.2.2
 	github.com/fatih/color v1.7.0
 	github.com/go-openapi/strfmt v0.19.6
+	github.com/gogo/protobuf v1.3.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/gops v0.3.14
 	github.com/hashicorp/golang-lru v0.5.4
@@ -61,7 +62,6 @@ require (
 	github.com/go-openapi/validate v0.19.12 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gobuffalo/flect v0.2.0 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/gopacket v1.1.17 // indirect

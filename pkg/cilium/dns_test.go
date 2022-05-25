@@ -24,7 +24,7 @@ import (
 	"github.com/cilium/cilium/pkg/proxy/accesslog"
 	"github.com/cilium/cilium/pkg/u8proto"
 	"github.com/cilium/hubble/pkg/logger"
-	"github.com/cilium/hubble/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 )
 

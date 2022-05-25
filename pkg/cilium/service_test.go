@@ -22,8 +22,8 @@ import (
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	pb "github.com/cilium/hubble/api/v1/flow"
 	"github.com/cilium/hubble/pkg/logger"
-	"github.com/cilium/hubble/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/cilium/servicecache"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

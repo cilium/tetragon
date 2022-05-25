@@ -92,7 +92,6 @@ github.com/cilium/hubble/pkg/k8s
 github.com/cilium/hubble/pkg/logger
 github.com/cilium/hubble/pkg/parser/endpoint
 github.com/cilium/hubble/pkg/parser/getters
-github.com/cilium/hubble/pkg/testutils
 # github.com/cilium/lumberjack/v2 v2.2.2
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
