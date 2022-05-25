@@ -472,6 +472,14 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 			}
 			unix.Args = append(unix.Args, val)
 
+		case gt.GenericS64Type:
+			var val int64
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+			}
+			unix.Args = append(unix.Args, val)
+
 		case gt.GenericSizeType:
 			var val uint64
 
