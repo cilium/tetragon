@@ -209,6 +209,10 @@ func (t *Grpc) HandleGenericTracepointMessage(msg *api.MsgGenericTracepointUnix)
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SizeArg{
 				SizeArg: v,
 			}})
+		case int64:
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LongArg{
+				LongArg: v,
+			}})
 		case string:
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_StringArg{
 				StringArg: v,
