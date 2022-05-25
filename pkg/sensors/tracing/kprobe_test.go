@@ -274,6 +274,39 @@ spec:
 	runKprobeObjectWriteRead(t, writeReadHook)
 }
 
+func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
+	writeReadHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys_write"
+spec:
+  kprobes:
+  - call: "__x64_sys_write"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchCapabilities:
+      - type: Inheritable # these are 0x00 for root
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "1"
+`
+	runKprobeObjectWriteRead(t, writeReadHook)
+}
+
 func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
 	myPid := observer.GetMyPid()
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
