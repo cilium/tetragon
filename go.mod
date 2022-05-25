@@ -8,13 +8,13 @@ require (
 	github.com/cilium/ebpf v0.8.1
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
 	github.com/cilium/lumberjack/v2 v2.2.2
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.13.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/gops v0.3.14
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.12.2
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.0
@@ -22,7 +22,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	github.com/yalue/native_endian v1.0.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.28.0
@@ -73,8 +73,8 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/miekg/dns v1.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
@@ -87,7 +87,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.1-0.20200623203004-60555c9708c7 // indirect
-	github.com/prometheus/common v0.30.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa // indirect
