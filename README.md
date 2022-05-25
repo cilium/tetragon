@@ -533,7 +533,7 @@ If you observe the output in the first terminal, you can see the container start
 🚀 process default/test-pod /usr/bin/cp /kind/product_name /kind/product_uuid /run/containerd/io.containerd.runtime.v2.task/k8s.io/7c7e513cd4d506417bc9d97dd9af670d94d9e84161c8c8 fdc9fa3a678289a59/rootfs/ 🛑 CAP_SYS_ADMIN
 ```
 
-## BTF Requirement ##
+## BTF Requirement 
 
 Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
 be use to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
@@ -554,6 +554,30 @@ we provide a standard VagrantFile with the required components enabled. Simply r
  ```
 
 This should be sufficient to create a Kind cluster and run Tetragon.
+
+# Additional Resources
+
+### Conference talks
+
+[Uncovering a Sophisticated Kubernetes Attack in Real-Time](https://www.youtube.com/watch?v=bohnofE_dvw) - Jed Salazar & Natália Réka Ivánkó, KubeCon EU, 2020 
+
+[Uncovering a Sophisticated Kubernetes Attack in Real Time Part II.](https://www.oreilly.com/library/view/infrastructure-ops/0636920625377/video335775.html) - Jed Salazar & Natália Réka Ivánkó, O'Reilly Superstream Series, Infrastructure & Ops, 2021
+
+[Keeping your cluster safe from attacks with eBPF](https://www.youtube.com/watch?v=agN68U8x1go) - Jed Salazar & Natália Réka Ivánkó, eBPF Summit, 2021
+
+### Book
+
+[Security Observability with eBPF](https://isovalent.com/ebpf-security/) - Jed Salazar & Natália Réka Ivánkó, OReilly, 2022
+
+### Blog posts
+
+[Detecting a Container Escape with Cilium and eBPF](https://isovalent.com/blog/post/2021-11-container-escape) - Natália Réka Ivánkó, 2021
+
+[Detecting and Blocking log4shell with Isovalent Cilium Enterprise](https://isovalent.com/blog/post/2021-12-log4shell) - Jed Salazar, 2021
+
+### Hands-on lab
+
+[Security Observability with eBPF and Tetragon](https://isovalent.com/labs/) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
 
 # Community
 
