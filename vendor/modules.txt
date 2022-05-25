@@ -63,6 +63,7 @@ github.com/cilium/cilium/pkg/monitor/payload
 github.com/cilium/cilium/pkg/option
 github.com/cilium/cilium/pkg/proxy/accesslog
 github.com/cilium/cilium/pkg/safetime
+github.com/cilium/cilium/pkg/source
 github.com/cilium/cilium/pkg/spanstat
 github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/version
