@@ -85,6 +85,7 @@ generic_kprobe_start_process_filter(void *ctx)
 	msg->sel.match_cap = 0;
 #endif
 	msg->idx = 0;
+	msg->func_id = 0;
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;

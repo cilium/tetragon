@@ -51,9 +51,10 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 		return 0;
 
 	e->idx = 0;
+	e->func_id = 0;
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	if (!retprobe_map_get(e->thread_id, &info))
+	if (!retprobe_map_get(e->func_id, e->thread_id, &info))
 		return 0;
 
 	*(unsigned long *)e->args = info.ktime_enter;
