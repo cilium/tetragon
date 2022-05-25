@@ -47,9 +47,9 @@ spec:
         - {{.MatchedPID}}
       matchCapabilityChanges:
       - type: Effective
-        operator: In
+        operator: {{.ChangesOp}}
         values:
-          - "CAP_MKNOD"
+          - {{.ChangesValues}}
       matchArgs:
       - index: 0
         operator: "Postfix"
