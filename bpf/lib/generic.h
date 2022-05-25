@@ -39,6 +39,7 @@ struct msg_generic_kprobe {
 	__u64 match_cap;
 #endif
 	int idx;
+	int func_id;
 };
 
 static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()
