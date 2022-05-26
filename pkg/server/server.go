@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
@@ -38,7 +39,6 @@ type observer interface {
 	GetSensorConfig(ctx context.Context, name string, cfgkey string) (string, error)
 	SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error
 	RemoveSensor(ctx context.Context, sensorName string) error
-	GetTreeProto(ctx context.Context, tname string) (*tetragon.StackTraceNode, error)
 }
 
 type Server struct {
@@ -238,12 +238,7 @@ func (s *Server) SetSensorConfig(ctx context.Context, req *tetragon.SetSensorCon
 }
 func (s *Server) GetStackTraceTree(ctx context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTreee request")
-	root, err := s.observer.GetTreeProto(ctx, req.GetName())
-	if err != nil {
-		return nil, err
-	}
-
-	return &tetragon.GetStackTraceTreeResponse{Root: root}, nil
+	return nil, fmt.Errorf("Unsupported GetStackTraceTree")
 }
 
 func (s *Server) GetVersion(ctx context.Context, req *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {

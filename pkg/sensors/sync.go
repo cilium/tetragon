@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	sttManager "github.com/cilium/tetragon/pkg/stt"
@@ -448,26 +447,6 @@ func (h *Manager) StopSensorManager(ctx context.Context) error {
 
 	h.sensorCtl <- op
 	return <-retc
-}
-
-func (h *Manager) GetTreeProto(ctx context.Context, tname string) (*tetragon.StackTraceNode, error) {
-	m := h.STTManager
-	if m == nil {
-		return nil, fmt.Errorf("GetTreeProto failed, sttManagerHandle is nil")
-	}
-
-	retc := make(chan error)
-	op := &sttManager.SttMgTreeToProto{
-		TreeName: tname,
-		RetChan:  retc,
-	}
-	m <- op
-	err := <-retc
-	if err != nil {
-		return nil, err
-	}
-
-	return op.RootNode, nil
 }
 
 // Manager handles dynamic sensor management, such as adding / removing sensors
