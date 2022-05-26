@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/unix"
 
 	"github.com/vishvananda/netlink"
@@ -43,10 +44,10 @@ func LoadSockOpt(
 
 // AttachFunc is the type for the various attachment functions. The function is
 // given the program and it's up to it to close it.
-type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (Unloader, error)
+type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
 func rawAttach(targetFD int) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (Unloader, error) {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
 			Target:  targetFD,
 			Program: prog,
@@ -56,13 +57,13 @@ func rawAttach(targetFD int) AttachFunc {
 			prog.Close()
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
-		return chainUnloader{
-			pinUnloader{prog},
-			&rawDetachUnloader{
-				targetFD:   targetFD,
-				name:       spec.Name,
-				prog:       prog,
-				attachType: spec.AttachType,
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{prog},
+			&unloader.RawDetachUnloader{
+				TargetFD:   targetFD,
+				Name:       spec.Name,
+				Prog:       prog,
+				AttachType: spec.AttachType,
 			},
 		}, nil
 	}
@@ -87,12 +88,12 @@ func LoadTC(
 	version, verbose int,
 	selectors [128]byte,
 ) error {
-	attach := func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (Unloader, error) {
+	attach := func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		attachLinks, err := getDefaultRouteLinks()
 		if err != nil {
 			return nil, err
 		}
-		var unloader tcUnloader
+		var un unloader.TcUnloader
 		for _, link := range attachLinks {
 			// NOTE: Set outer 'err' and break on error to rewind.
 			logger.GetLogger().Infof("Attaching %s to device %s", load.Type, link.Attrs().Name)
@@ -103,15 +104,15 @@ func LoadTC(
 			if err = bpf.AttachTCIngress(prog.FD(), link.Attrs().Name, isIngress); err != nil {
 				break
 			}
-			unloader.attachments = append(unloader.attachments, tcAttachment{link.Attrs().Name, isIngress})
+			un.Attachments = append(un.Attachments, unloader.TcAttachment{link.Attrs().Name, isIngress})
 		}
 		if err != nil {
-			if unloadErr := unloader.Unload(); unloadErr != nil {
+			if unloadErr := un.Unload(); unloadErr != nil {
 				logger.GetLogger().Warnf("Failed to unload on TC program rewind: %s", unloadErr)
 			}
 			return nil, err
 		}
-		return unloader, nil
+		return un, nil
 	}
 	return loadProgram(bpfDir, []string{mapDir, ciliumDir}, load, attach)
 }
