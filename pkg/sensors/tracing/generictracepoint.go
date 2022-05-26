@@ -22,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 	"github.com/sirupsen/logrus"
 
@@ -315,11 +316,11 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 
-	maps := []*sensors.Map{}
-	progs := make([]*sensors.Program, 0, len(tracepoints))
+	maps := []*program.Map{}
+	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
-		prog0 := sensors.ProgramBuilder(
+		prog0 := program.ProgramBuilder(
 			path.Join(option.Config.HubbleLib, progName),
 			attach,
 			"tracepoint/generic_tracepoint",
@@ -338,7 +339,7 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 	}, nil
 }
 
-func LoadGenericTracepointSensor(bpfDir, mapDir string, load *sensors.Program, version, verbose int) (int, error) {
+func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) (int, error) {
 	tracepointLog = logger.GetLogger()
 
 	btfCtxOffsetFn := func(i int) string {

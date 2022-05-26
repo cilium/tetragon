@@ -18,6 +18,8 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/program/cgroup"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -142,7 +144,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	return nil
 }
 
-func (s *Sensor) findProgram(p *Program) error {
+func (s *Sensor) findProgram(p *program.Program) error {
 	logger.GetLogger().WithField("file", p.Name).Debug("Checking for bpf file")
 	if _, err := os.Stat(p.Name); err == nil {
 		logger.GetLogger().WithField("file", p.Name).Debug("Found bpf file")
@@ -207,8 +209,7 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 		// pinned map otherwise pin the map and next user will find
 		// it here.
 		if _, err := os.Stat(pinPath); err == nil {
-			m.mapHandle, err = ebpf.LoadPinnedMap(pinPath, nil)
-			if err != nil {
+			if err = m.LoadPinnedMap(pinPath); err != nil {
 				return fmt.Errorf("loading pinned map failed: %w", err)
 			}
 		} else {
@@ -221,12 +222,11 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 				return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
 			}
 
-			m.mapHandle, err = ebpf.NewMap(mapSpec)
-			if err != nil {
+			if err := m.New(mapSpec); err != nil {
 				return fmt.Errorf("failed to open map '%s': %w", m.Name, err)
 			}
-			if err := m.mapHandle.Pin(pinPath); err != nil {
-				m.mapHandle.Close()
+			if err := m.Pin(pinPath); err != nil {
+				m.Close()
 				return fmt.Errorf("failed to pin to %s: %w", pinPath, err)
 			}
 		}
@@ -260,8 +260,8 @@ func createConfigSensors(configFile string) ([]*Sensor, error) {
 }
 
 func mergeSensors(sensors []*Sensor) *Sensor {
-	var progs []*Program
-	var maps []*Map
+	var progs []*program.Program
+	var maps []*program.Map
 
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
@@ -274,7 +274,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir string, load *Program) error {
+func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir string, load *program.Program) error {
 	var fd int
 
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
@@ -293,7 +293,7 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Tracepoint exists: removing and retrying")
-			removeTracepoint(load.traceFD)
+			removeTracepoint(load.TraceFD)
 			fd, err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
@@ -307,11 +307,11 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 				load.Name, version, err)
 		}
 	}
-	load.traceFD = fd
+	load.TraceFD = fd
 	return nil
 }
 
-func loadInstance(bpfDir, mapDir, ciliumDir string, load *Program, version, verbose int) (int, error) {
+func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) (int, error) {
 	version = kernels.FixKernelVersion(version)
 	btfObj := uintptr(btf.GetCachedBTF())
 	if load.Type == "tracepoint" {
@@ -324,7 +324,7 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *Program, version, verb
 			filepath.Join(bpfDir, load.PinPath),
 			mapDir)
 	} else if load.Type == "cgrp_socket" {
-		err := LoadCgroupProgram(
+		err := cgroup.LoadCgroupProgram(
 			bpfDir,
 			mapDir,
 			ciliumDir,
@@ -367,7 +367,7 @@ func createDir(bpfDir, mapDir string) {
 	os.Mkdir(mapDir, os.ModeDir)
 }
 
-func disableBpfLoad(prog *Program) {
+func disableBpfLoad(prog *program.Program) {
 	prog.LoadState.SetDisabled()
 	for _, om := range AllMaps {
 		if om.Prog == prog {
@@ -399,6 +399,6 @@ func UnloadAll(bpfDir string) {
 		}
 	}
 
-	AllPrograms = []*Program{}
-	AllMaps = []*Map{}
+	AllPrograms = []*program.Program{}
+	AllMaps = []*program.Map{}
 }
