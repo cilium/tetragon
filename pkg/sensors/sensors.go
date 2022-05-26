@@ -9,19 +9,20 @@ import (
 
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 var (
 	// AllPrograms are all the loaded programs. For use with Unload().
-	AllPrograms = []*Program{}
+	AllPrograms = []*program.Program{}
 	// AllMaps are all the loaded programs. For use with Unload().
-	AllMaps = []*Map{}
+	AllMaps = []*program.Map{}
 )
 
-func GetDefaultPrograms() []*Program {
-	progs := []*Program{
+func GetDefaultPrograms() []*program.Program {
+	progs := []*program.Program{
 		Exit,
 		Fork,
 	}
@@ -33,8 +34,8 @@ func GetDefaultPrograms() []*Program {
 	return progs
 }
 
-func GetDefaultMaps() []*Map {
-	maps := []*Map{}
+func GetDefaultMaps() []*program.Map {
+	maps := []*program.Map{}
 
 	if kernels.EnableLargeProgs() {
 		maps = append(maps,
@@ -83,9 +84,9 @@ type Sensor struct {
 	// Name is a human-readbale description.
 	Name string
 	// Progs are all the BPF programs that exist on the filesystem.
-	Progs []*Program
+	Progs []*program.Program
 	// Maps are all the BPF Maps that the progs use.
-	Maps []*Map
+	Maps []*program.Map
 	// Loaded indicates whether the sensor has been Loaded.
 	Loaded bool
 	// Ops contains an implementation to perform on this sensor.
@@ -102,8 +103,8 @@ type Operations interface {
 }
 
 func SensorCombine(name string, sensors ...*Sensor) *Sensor {
-	progs := []*Program{}
-	maps := []*Map{}
+	progs := []*program.Program{}
+	maps := []*program.Map{}
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
 		maps = append(maps, s.Maps...)
@@ -111,7 +112,7 @@ func SensorCombine(name string, sensors ...*Sensor) *Sensor {
 	return SensorBuilder(name, progs, maps)
 }
 
-func SensorBuilder(name string, p []*Program, m []*Map) *Sensor {
+func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor {
 	return &Sensor{
 		Name:  name,
 		Progs: p,
@@ -184,7 +185,7 @@ type tracingSensor interface {
 // LoadProbeArgs are the args to the LoadProbe function.
 type LoadProbeArgs struct {
 	BPFDir, MapDir, CiliumDir string
-	Load                      *Program
+	Load                      *program.Program
 	Version, Verbose          int
 }
 
