@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	sttManager "github.com/cilium/tetragon/pkg/stt"
@@ -396,7 +395,7 @@ func (h *Manager) SetSensorConfig(ctx context.Context, name string, cfgkey strin
 }
 
 // AddTracingPolicy adds a new sensor based on a tracing policy
-func (h *Manager) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
+func (h *Manager) AddTracingPolicy(ctx context.Context, sensorName string, spec interface{}) error {
 	retc := make(chan error)
 	op := &tracingPolicyAdd{
 		ctx:        ctx,
@@ -491,7 +490,7 @@ type Manager struct {
 type tracingPolicyAdd struct {
 	ctx        context.Context
 	sensorName string
-	spec       *v1alpha1.TracingPolicySpec
+	spec       interface{}
 	retChan    chan error
 }
 

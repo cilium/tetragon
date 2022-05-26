@@ -9,8 +9,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 var (
@@ -132,7 +130,7 @@ func LogRegisteredSensorsAndProbes() {
 }
 
 type tracingSensor interface {
-	SpecHandler(spec *v1alpha1.TracingPolicySpec) (*Sensor, error)
+	SpecHandler(interface{}) (*Sensor, error)
 	LoadProbe(args LoadProbeArgs) (int, error)
 }
 
@@ -157,7 +155,7 @@ func RegisterSensorAtInit(s *Sensor) {
 	availableSensors[s.Name] = []*Sensor{s}
 }
 
-func GetSensorsFromParserPolicy(spec *v1alpha1.TracingPolicySpec) ([]*Sensor, error) {
+func GetSensorsFromParserPolicy(spec interface{}) ([]*Sensor, error) {
 	var sensors []*Sensor
 	for _, s := range registeredTracingSensors {
 		sensor, err := s.SpecHandler(spec)
