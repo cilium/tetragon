@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
@@ -101,7 +100,7 @@ func (f *fakeObserver) GetTreeProto(ctx context.Context, tname string) (*tetrago
 	return nil, nil
 }
 
-func (f *fakeObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
+func (f *fakeObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec interface{}) error {
 	return nil
 }
 

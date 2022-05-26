@@ -12,7 +12,6 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -169,7 +168,7 @@ func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) (int, error) {
 	return i, err
 }
 
-func (e *execSensor) SpecHandler(spec *v1alpha1.TracingPolicySpec) (*sensors.Sensor, error) {
+func (e *execSensor) SpecHandler(spec interface{}) (*sensors.Sensor, error) {
 	return nil, nil
 }
 
