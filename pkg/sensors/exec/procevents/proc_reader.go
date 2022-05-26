@@ -24,7 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
-	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
 
@@ -179,7 +179,7 @@ func pushExecveEvents(p Procs, pushExecve, writeMaps bool) {
 func writeExecveMap(procs []Procs) {
 	mapDir := bpf.MapPrefixPath()
 
-	execveMap := sensors.GetExecveMap()
+	execveMap := base.GetExecveMap()
 
 	if execveMap.PinState.IsDisabled() {
 		logger.GetLogger().Infof("tetragon, map %s is disabled, skipping.", execveMap.Name)
