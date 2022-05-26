@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
+	yaml "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
@@ -33,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/config"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -234,7 +236,26 @@ func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
 		oo.config)
 }
 
+func readConfig(file string) (*yaml.GenericTracingConf, error) {
+	if file == "" {
+		return nil, nil
+	}
+
+	yamlData, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read yaml file %s: %w", file, err)
+	}
+	cnf, err := yaml.ReadConfigYaml(string(yamlData))
+	if err != nil {
+		return nil, err
+	}
+
+	return cnf, nil
+}
+
 func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
+	var sens []*sensors.Sensor
+
 	o := newDefaultTestOptions(t, opts...)
 
 	option.Config.HubbleLib = os.Getenv("TETRAGON_LIB")
@@ -252,7 +273,17 @@ func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
 	}
 
 	loadExporter(t, obs, &o.exporter, &o.observer)
-	if err := loadObserver(t, obs, o.observer.notestfail); err != nil {
+
+	cnf, _ := readConfig(o.observer.config)
+	if cnf != nil {
+		var err error
+		sens, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loadObserver(t, obs, sens, o.observer.notestfail); err != nil {
 		return nil, err
 	}
 
@@ -354,13 +385,12 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	return nil
 }
 
-func loadObserver(t *testing.T, obs *Observer, notestfail bool) error {
+func loadObserver(t *testing.T, obs *Observer, sens []*sensors.Sensor, notestfail bool) error {
 	if err := base.LoadDefault(
 		context.TODO(),
 		obs.bpfDir,
 		obs.mapDir,
 		obs.ciliumDir,
-		obs.configFile,
 	); err != nil {
 		if notestfail {
 			return err
@@ -373,7 +403,7 @@ func loadObserver(t *testing.T, obs *Observer, notestfail bool) error {
 		obs.bpfDir,
 		obs.mapDir,
 		obs.ciliumDir,
-		obs.configFile,
+		sens,
 	); err != nil {
 		if notestfail {
 			return err
