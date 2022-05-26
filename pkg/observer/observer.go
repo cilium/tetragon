@@ -260,15 +260,17 @@ type Observer struct {
 	configFile string
 }
 
-func (k *Observer) Start(ctx context.Context) error {
-	if err := base.LoadDefault(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
+func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
+	if err := base.LoadDefault(ctx, k.bpfDir, k.mapDir, k.ciliumDir); err != nil {
 		return err
 	}
 
 	k.startUpdateMapMetrics()
 
-	if err := config.LoadConfig(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
-		return err
+	if sens != nil {
+		if err := config.LoadConfig(ctx, k.bpfDir, k.mapDir, k.ciliumDir, sens); err != nil {
+			return err
+		}
 	}
 
 	if SensorManager == nil {

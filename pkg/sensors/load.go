@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/ebpf"
 	loader "github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -59,17 +58,11 @@ const (
 )
 
 // LoadConfig loads the default sensor, including any from the configuration file.
-func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile string) error {
-	configSensors, err := createConfigSensors(configFile)
-	if err != nil {
-		return err
-	}
-	load := mergeSensors(configSensors)
-
+func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir string, sens []*Sensor) error {
+	load := mergeSensors(sens)
 	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
-
 	return nil
 }
 
@@ -227,23 +220,6 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 	}
 
 	return nil
-}
-
-func createConfigSensors(configFile string) ([]*Sensor, error) {
-	if configFile == "" {
-		return nil, nil
-	}
-
-	yamlData, err := os.ReadFile(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read yaml file %s: %w", configFile, err)
-	}
-	cnf, err := config.ReadConfigYaml(string(yamlData))
-	if err != nil {
-		return nil, err
-	}
-
-	return GetSensorsFromParserPolicy(&cnf.Spec)
 }
 
 func mergeSensors(sensors []*Sensor) *Sensor {

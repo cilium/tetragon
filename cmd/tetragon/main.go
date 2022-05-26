@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -17,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
@@ -73,6 +75,23 @@ func saveInitInfo() error {
 		ServerAddr:  serverAddress,
 	}
 	return bugtool.SaveInitInfo(&info)
+}
+
+func readConfig(file string) (*config.GenericTracingConf, error) {
+	if file == "" {
+		return nil, nil
+	}
+
+	yamlData, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read yaml file %s: %w", configFile, err)
+	}
+	cnf, err := config.ReadConfigYaml(string(yamlData))
+	if err != nil {
+		return nil, err
+	}
+
+	return cnf, nil
 }
 
 func hubbleTETRAGONExecute() error {
@@ -179,7 +198,15 @@ func hubbleTETRAGONExecute() error {
 	if enableK8sAPI {
 		go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
-	return obs.Start(ctx)
+	cnf, err := readConfig(configFile)
+	if err != nil {
+		return err
+	}
+	startSensors, err := sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+	if err != nil {
+		return err
+	}
+	return obs.Start(ctx, startSensors)
 }
 
 // getObserverDir returns the path to the observer directory based on the BPF

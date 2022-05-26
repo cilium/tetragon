@@ -116,7 +116,7 @@ func GetInitialSensor() *sensors.Sensor {
 
 // LoadDefault loads the default sensor, including any from the configuration
 // file.
-func LoadDefault(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile string) error {
+func LoadDefault(ctx context.Context, bpfDir, mapDir, ciliumDir string) error {
 	// This is technically not a sensor since we are loading this
 	// statically when we start, but it allows us to have a single path for
 	// loading bpf programs.
