@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -20,16 +19,6 @@ var (
 	// AllMaps are all the loaded programs. For use with Unload().
 	AllMaps = []*program.Map{}
 )
-
-// GetInitialSensor returns the collection of Sensor that is loaded at
-// initialization time.
-func GetInitialSensor() *Sensor {
-	return &Sensor{
-		Name:  "__main__",
-		Progs: base.GetDefaultPrograms(),
-		Maps:  base.GetDefaultMaps(),
-	}
-}
 
 // Sensors
 //

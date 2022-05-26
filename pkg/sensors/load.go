@@ -73,19 +73,6 @@ func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile strin
 	return nil
 }
 
-// LoadDefault loads the default sensor, including any from the configuration
-// file.
-func LoadDefault(ctx context.Context, bpfDir, mapDir, ciliumDir, configFile string) error {
-	// This is technically not a sensor since we are loading this
-	// statically when we start, but it allows us to have a single path for
-	// loading bpf programs.
-	load := GetInitialSensor()
-	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
-		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
-	}
-	return nil
-}
-
 // Load loads the sensor, by loading all the BPF programs and maps.
 func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string) error {
 	if s == nil {

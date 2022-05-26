@@ -21,6 +21,8 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/config"
 
 	"github.com/sirupsen/logrus"
 )
@@ -259,13 +261,13 @@ type Observer struct {
 }
 
 func (k *Observer) Start(ctx context.Context) error {
-	if err := sensors.LoadDefault(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
+	if err := base.LoadDefault(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
 		return err
 	}
 
 	k.startUpdateMapMetrics()
 
-	if err := sensors.LoadConfig(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
+	if err := config.LoadConfig(ctx, k.bpfDir, k.mapDir, k.ciliumDir, k.configFile); err != nil {
 		return err
 	}
 
