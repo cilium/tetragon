@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -970,7 +971,15 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*api.MsgGenericKprobeU
 }
 
 func (k *observerKprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
-	spec := raw.(*v1alpha1.TracingPolicySpec)
+	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
+	if !ok {
+		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
+		if !ok {
+			return nil, nil
+		}
+		spec = &s
+	}
+
 	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
 		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
 	}
