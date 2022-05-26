@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -21,48 +21,13 @@ var (
 	AllMaps = []*program.Map{}
 )
 
-func GetDefaultPrograms() []*program.Program {
-	progs := []*program.Program{
-		Exit,
-		Fork,
-	}
-	if kernels.EnableLargeProgs() {
-		progs = append(progs, ExecveV53)
-	} else {
-		progs = append(progs, Execve)
-	}
-	return progs
-}
-
-func GetDefaultMaps() []*program.Map {
-	maps := []*program.Map{}
-
-	if kernels.EnableLargeProgs() {
-		maps = append(maps,
-			ExecveMapV53,
-			ExecveStatsV53,
-			NamesMapV53,
-			TCPMonMapV53,
-		)
-	} else {
-		maps = append(maps,
-			ExecveMap,
-			ExecveStats,
-			NamesMap,
-			TCPMonMap,
-		)
-	}
-	return maps
-
-}
-
 // GetInitialSensor returns the collection of Sensor that is loaded at
 // initialization time.
 func GetInitialSensor() *Sensor {
 	return &Sensor{
 		Name:  "__main__",
-		Progs: GetDefaultPrograms(),
-		Maps:  GetDefaultMaps(),
+		Progs: base.GetDefaultPrograms(),
+		Maps:  base.GetDefaultMaps(),
 	}
 }
 

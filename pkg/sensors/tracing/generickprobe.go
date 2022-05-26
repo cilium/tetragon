@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
 
@@ -532,7 +533,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 		return err
 	}
 
-	m, err := bpf.OpenMap(filepath.Join(mapDir, sensors.NamesMap.Name))
+	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
 	if err != nil {
 		return err
 	}
