@@ -33,7 +33,8 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/config"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crd"
@@ -354,7 +355,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 }
 
 func loadObserver(t *testing.T, obs *Observer, notestfail bool) error {
-	if err := sensors.LoadDefault(
+	if err := base.LoadDefault(
 		context.TODO(),
 		obs.bpfDir,
 		obs.mapDir,
@@ -367,7 +368,7 @@ func loadObserver(t *testing.T, obs *Observer, notestfail bool) error {
 		t.Fatalf("LoadDefaultSensor error: %s\n", err)
 	}
 
-	if err := sensors.LoadConfig(
+	if err := config.LoadConfig(
 		context.TODO(),
 		obs.bpfDir,
 		obs.mapDir,

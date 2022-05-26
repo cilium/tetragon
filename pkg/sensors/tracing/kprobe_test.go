@@ -23,8 +23,8 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/cilium/tetragon/pkg/sensors"
 
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
 	"github.com/stretchr/testify/assert"
@@ -75,7 +75,7 @@ spec:
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	initialSensor := sensors.GetInitialSensor()
+	initialSensor := base.GetInitialSensor()
 	initialSensor.Load(context.TODO(), kprobeTestDir, kprobeTestDir, "")
 }
 
