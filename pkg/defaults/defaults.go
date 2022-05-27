@@ -18,8 +18,8 @@ const (
 	// DefaultMapRoot is the default path where BPFFS should be mounted
 	DefaultMapRoot = "/sys/fs/bpf"
 
-	// DefaultMapDir is the default path where TETRAGON maps should be pinneded
-	DefaultMapDir = "/sys/fs/bpf/tcpmon"
+	// DefaultMapPrefix is the default path prefix where TETRAGON maps should be pinned
+	DefaultMapPrefix = "tetragon"
 
 	// DefaultEventMap is the default name of the Event map
 	DefaultEventMap = "tcpmon"
@@ -27,9 +27,6 @@ const (
 	// DefaultMapRootFallback is the path which is used when /sys/fs/bpf has
 	// a mount, but with the other filesystem than BPFFS.
 	DefaultMapRootFallback = "/run/cilium/bpffs"
-
-	// DefaultMapPrefix is the default prefix for all BPF maps.
-	DefaultMapPrefix = "tcpmon"
 
 	// DefaultRunDir is the default run directory for runtime
 	DefaultRunDir = "/var/run/tetragon/"

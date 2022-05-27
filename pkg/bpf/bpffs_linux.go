@@ -32,7 +32,7 @@ import (
 
 var (
 	// Path to where bpffs is mounted
-	mapRoot = "/sys/fs/bpf"
+	mapRoot = defaults.DefaultMapRoot
 
 	// Path to where debugfs is mounted
 	debugFSRoot = "/sys/kernel/debug"
@@ -41,7 +41,7 @@ var (
 	cgroup2Root = "/run/tetragon/cgroup2"
 
 	// Prefix for all maps (default: tc/globals)
-	mapPrefix = "tcpmon"
+	mapPrefix = defaults.DefaultMapPrefix
 
 	// Set to true on first get request to detect misorder
 	lockedDown      = false
