@@ -141,9 +141,14 @@ func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) 
 
 	// Codegen the SpecFromMultiEventChecker method
 	g.P(`// SpecFromMultiEventChecker coerces an event checker from this spec
-    func SpecFromMultiEventChecker(checker ` + multiEventCheckerInterface + `) (*MultiEventCheckerSpec, error) {
+    func SpecFromMultiEventChecker(checker_ ` + multiEventCheckerInterface + `) (*MultiEventCheckerSpec, error) {
         var spec MultiEventCheckerSpec
         var specs []EventCheckerSpec
+
+	checker, ok := checker_.(interface{ GetChecks() []` + eventCheckerInterface + `})
+	if !ok {
+            return nil, ` + common.FmtErrorf(g, "Unhandled checker type %T", "checker_") + `
+	}
 
         for _, check := range checker.GetChecks() {
             spec, err := SpecFromEventChecker(check)
