@@ -25,12 +25,11 @@ import (
 	"github.com/cilium/cilium/pkg/monitor"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/monitor/payload"
-	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
 // HandleMonitorSocket connects to the monitor socket and consumes monitor events.
-func HandleMonitorSocket(ctx context.Context, ciliumState *cilium.State) {
+func HandleMonitorSocket(ctx context.Context, ciliumState *State) {
 	for {
 		conn, err := net.Dial("unix", defaults.MonitorSockPath1_2)
 		if err != nil {
@@ -50,7 +49,7 @@ func HandleMonitorSocket(ctx context.Context, ciliumState *cilium.State) {
 	}
 }
 
-func consumeMonitorEvents(ctx context.Context, conn net.Conn, ciliumState *cilium.State) error {
+func consumeMonitorEvents(ctx context.Context, conn net.Conn, ciliumState *State) error {
 	defer conn.Close()
 	var pl payload.Payload
 	dec := gob.NewDecoder(conn)

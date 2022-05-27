@@ -35,7 +35,7 @@ type FqdnCache interface {
 	AddDNSLookup(epID uint64, lookupTime time.Time, domainName string, ips []net.IP, ttl uint32)
 }
 
-// syncFQDNCache regularily syncs DNS lookups from Cilium into our local FQDN
+// syncFQDNCache regularly syncs DNS lookups from Cilium into our local FQDN
 // cache
 func (s *State) syncFQDNCache() {
 	for {
