@@ -43,8 +43,11 @@ type MultiEventChecker interface {
 	// (true,  !nil): checker failed, no need to check more events
 	NextEventCheck(Event, *logrus.Logger) (bool, error)
 
-	// FinalCheck indicates that the sequence of events has ended, and asks
-	// the checker to make a final decision.
+	// FinalCheck indicates that the sequence of events has ended, and
+	// asks the checker to make a final decision. Once this function is
+	// called, the checker is expected to return to its initial state so
+	// that it can be reused. Hence, this function should only be called
+	// once for each stream of events.
 	FinalCheck(*logrus.Logger) error
 }
 
