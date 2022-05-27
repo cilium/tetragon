@@ -4,10 +4,7 @@
 package tracing
 
 import (
-	"bufio"
 	"context"
-	"errors"
-	"io"
 	"os/exec"
 	"strings"
 	"sync"
@@ -24,19 +21,6 @@ import (
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
-
-func logOut(t *testing.T, prefix string, rd *bufio.Reader) {
-	for {
-		line, err := rd.ReadString('\n')
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				t.Logf("error reading %s: %s", prefix, err)
-			}
-			return
-		}
-		t.Logf("%s: %s", prefix, line)
-	}
-}
 
 func TestKprobeSigkill(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
@@ -55,6 +39,7 @@ func TestKprobeSigkill(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testPipes.Close()
 
 	// The first thing sigkil-tester will do is print the child PID.  So we
 	// make sure to get that to use it in the spec. Next, it will print
@@ -64,12 +49,6 @@ func TestKprobeSigkill(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		go func() {
-			logOut(t, "stdout> ", testPipes.StdoutRd)
-		}()
-		go func() {
-			logOut(t, "stderr> ", testPipes.StderrRd)
-		}()
 		return pidStr
 	}
 
@@ -104,6 +83,9 @@ func TestKprobeSigkill(t *testing.T) {
 
 	t.Logf("waking up test program")
 	testPipes.P.Stdin.Write([]byte("x"))
+
+	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
+	logWG.Wait()
 
 	if err := testCmd.Wait(); err != nil {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
