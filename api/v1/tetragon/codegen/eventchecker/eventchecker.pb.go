@@ -21,17 +21,6 @@ import (
 
 // MultiEventChecker is an interface for checking multiple Tetragon events
 type MultiEventChecker interface {
-	// NextResponseCheck checks an response and returns a boolean value indicating
-	// whether the checker has concluded, and an error indicating whether the
-	// check was successful. The boolean value allows short-circuiting checks.
-	//
-	// Specifically:
-	// (false,  nil): this response check was successful, but need to check more responses
-	// (false, !nil): this response check not was successful, but need to check more responses
-	// (true,   nil): checker was successful, no need to check more responses
-	// (true,  !nil): checker failed, no need to check more responses
-	NextResponseCheck(*tetragon.GetEventsResponse, *logrus.Logger) (bool, error)
-
 	// NextEventCheck checks an event and returns a boolean value indicating
 	// whether the checker has concluded, and an error indicating whether the
 	// check was successful. The boolean value allows short-circuiting checks.
@@ -49,6 +38,15 @@ type MultiEventChecker interface {
 	// that it can be reused. Hence, this function should only be called
 	// once for each stream of events.
 	FinalCheck(*logrus.Logger) error
+}
+
+// NextResponseCheck checks the next response
+func NextResponseCheck(c MultiEventChecker, res *tetragon.GetEventsResponse, l *logrus.Logger) (bool, error) {
+	event, err := EventFromResponse(res)
+	if err != nil {
+		return false, err
+	}
+	return c.NextEventCheck(event, l)
 }
 
 // OrderedEventChecker checks a series of events in order
@@ -88,15 +86,6 @@ func (checker *OrderedEventChecker) NextEventCheck(event Event, logger *logrus.L
 		logger.Infof("OrderedEventChecker: %d/%d matched", checker.idx, len(checker.checks))
 	}
 	return false, nil
-}
-
-// NextResponseCheck implements the MultiEventChecker interface
-func (checker *OrderedEventChecker) NextResponseCheck(response *tetragon.GetEventsResponse, logger *logrus.Logger) (bool, error) {
-	event, err := EventFromResponse(response)
-	if err != nil {
-		return false, err
-	}
-	return checker.NextEventCheck(event, logger)
 }
 
 // FinalCheck implements the MultiEventChecker interface
@@ -183,15 +172,6 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 	return false, fmt.Errorf("UnorderedEventChecker: all %d checks failed", pending)
 }
 
-// NextResponseCheck implements the MultiEventChecker interface
-func (checker *UnorderedEventChecker) NextResponseCheck(response *tetragon.GetEventsResponse, logger *logrus.Logger) (bool, error) {
-	event, err := EventFromResponse(response)
-	if err != nil {
-		return false, err
-	}
-	return checker.NextEventCheck(event, logger)
-}
-
 // FinalCheck implements the MultiEventChecker interface
 func (checker *UnorderedEventChecker) FinalCheck(logger *logrus.Logger) error {
 	pending := checker.pendingChecks.Len()
@@ -251,15 +231,6 @@ type FnEventChecker struct {
 // NextEventCheck implements the MultiEventChecker interface
 func (checker *FnEventChecker) NextEventCheck(event Event, logger *logrus.Logger) (bool, error) {
 	return checker.NextCheckFn(event, logger)
-}
-
-// NextResponseCheck implements the MultiEventChecker interface
-func (checker *FnEventChecker) NextResponseCheck(response *tetragon.GetEventsResponse, logger *logrus.Logger) (bool, error) {
-	event, err := EventFromResponse(response)
-	if err != nil {
-		return false, err
-	}
-	return checker.NextEventCheck(event, logger)
 }
 
 // FinalCheck implements the MultiEventChecker interface

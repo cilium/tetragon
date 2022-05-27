@@ -14,6 +14,10 @@ func generateMultiEventCheckers(g *protogen.GeneratedFile, f *protogen.File) err
 		return err
 	}
 
+	if err := generateMultiEventCheckerHelpers(g, f); err != nil {
+		return err
+	}
+
 	if err := generateOrderedEventChecker(g, f); err != nil {
 		return err
 	}
@@ -31,7 +35,6 @@ func generateMultiEventCheckers(g *protogen.GeneratedFile, f *protogen.File) err
 
 // generateOrderedEventChecker generates boilerplate for the ordered MultiEventChecker
 func generateOrderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// OrderedEventChecker checks a series of events in order
@@ -73,15 +76,6 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) er
         return false, nil
     }`)
 
-	g.P(`// NextResponseCheck implements the MultiEventChecker interface
-    func (checker *OrderedEventChecker) NextResponseCheck(response *` + tetragonGER + `, logger  *` + logger + `) (bool, error) {
-        event, err := EventFromResponse(response)
-        if err != nil {
-            return false, err
-        }
-        return checker.NextEventCheck(event, logger)
-    }`)
-
 	g.P(`// FinalCheck implements the MultiEventChecker interface
     func (checker *OrderedEventChecker) FinalCheck(logger *` + logger + `) error {
         idx := checker.idx
@@ -111,7 +105,6 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) er
 
 // generateUnorderedEventChecker generates boilerplate for the unordered MultiEventChecker
 func generateUnorderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	listList := common.GoIdent(g, "container/list", "List")
@@ -176,15 +169,6 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) 
         return false, ` + common.FmtErrorf(g, "UnorderedEventChecker: all %d checks failed", "pending") + `
     }`)
 
-	g.P(`// NextResponseCheck implements the MultiEventChecker interface
-    func (checker *UnorderedEventChecker) NextResponseCheck(response *` + tetragonGER + `, logger *` + logger + `) (bool, error) {
-        event, err := EventFromResponse(response)
-        if err != nil {
-            return false, err
-        }
-        return checker.NextEventCheck(event, logger)
-    }`)
-
 	g.P(`// FinalCheck implements the MultiEventChecker interface
     func (checker *UnorderedEventChecker) FinalCheck(logger *` + logger + `) error {
         pending := checker.pendingChecks.Len()
@@ -228,7 +212,6 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) 
 
 // generateFnEventChecker generates boilerplate for the unordered MultiEventChecker
 func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// FnEventChecker checks a series of events using custom-defined functions for
@@ -254,15 +237,6 @@ func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
         return checker.NextCheckFn(event, logger)
     }`)
 
-	g.P(`// NextResponseCheck implements the MultiEventChecker interface
-    func (checker *FnEventChecker) NextResponseCheck(response *` + tetragonGER + `, logger *` + logger + `) (bool, error) {
-        event, err := EventFromResponse(response)
-        if err != nil {
-            return false, err
-        }
-        return checker.NextEventCheck(event, logger)
-    }`)
-
 	g.P(`// FinalCheck implements the MultiEventChecker interface
     func (checker *FnEventChecker) FinalCheck(logger *` + logger + `) error {
         return checker.FinalCheckFn(logger)
@@ -273,22 +247,10 @@ func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 
 // generateMultiEventCheckerInterface generates the MultiEventChecker interface
 func generateMultiEventCheckerInterface(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// MultiEventChecker is an interface for checking multiple Tetragon events
         type MultiEventChecker interface {
-            // NextResponseCheck checks an response and returns a boolean value indicating
-            // whether the checker has concluded, and an error indicating whether the
-            // check was successful. The boolean value allows short-circuiting checks.
-            //
-            // Specifically:
-            // (false,  nil): this response check was successful, but need to check more responses
-            // (false, !nil): this response check not was successful, but need to check more responses
-            // (true,   nil): checker was successful, no need to check more responses
-            // (true,  !nil): checker failed, no need to check more responses
-            NextResponseCheck(*` + tetragonGER + `, *` + logger + `) (bool, error)
-
             // NextEventCheck checks an event and returns a boolean value indicating
             // whether the checker has concluded, and an error indicating whether the
             // check was successful. The boolean value allows short-circuiting checks.
@@ -307,6 +269,23 @@ func generateMultiEventCheckerInterface(g *protogen.GeneratedFile, f *protogen.F
             // that it can be reused. Hence, this function should only be called
             // once for each stream of events.
             FinalCheck(*` + logger + `) error
+        }`)
+
+	return nil
+}
+
+// generateMultiEventCheckerHelpers generates the MultiEventChecker helper functions
+func generateMultiEventCheckerHelpers(g *protogen.GeneratedFile, f *protogen.File) error {
+	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+
+	g.P(`// NextResponseCheck checks the next response
+        func NextResponseCheck(c MultiEventChecker , res *` + tetragonGER + `, l *` + logger + `) (bool, error) {
+            event, err := EventFromResponse(res)
+            if err != nil {
+                return false, err
+            }
+            return c.NextEventCheck(event, l)
         }`)
 
 	return nil
