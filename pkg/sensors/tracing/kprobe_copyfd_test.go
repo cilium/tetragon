@@ -12,7 +12,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -32,12 +31,6 @@ import (
 )
 
 func TestCopyFd(t *testing.T) {
-	kataRun := false
-	if os.Getenv("FGS_KATA_RUNNER") == "1" {
-		t.Log("running inside kata...")
-		kataRun = true
-	}
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -62,10 +55,8 @@ func TestCopyFd(t *testing.T) {
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
 		data := map[string]string{
-			"MatchedPID": pid,
-			// NB: if this is a kata run, the pid that the ns-tester will print,
-			// will be inside the namespace.
-			"NamespacePID": fmt.Sprintf("%t", kataRun),
+			"MatchedPID":   pid,
+			"NamespacePID": "false",
 		}
 		specName, err := testutils.GetSpecFromTemplate("copyfd.yaml.tmpl", data)
 		if err != nil {
