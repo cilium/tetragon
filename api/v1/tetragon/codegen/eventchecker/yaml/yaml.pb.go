@@ -294,9 +294,16 @@ func (spec *MultiEventCheckerSpec) IntoMultiEventChecker() (eventchecker.MultiEv
 }
 
 // SpecFromMultiEventChecker coerces an event checker from this spec
-func SpecFromMultiEventChecker(checker eventchecker.MultiEventChecker) (*MultiEventCheckerSpec, error) {
+func SpecFromMultiEventChecker(checker_ eventchecker.MultiEventChecker) (*MultiEventCheckerSpec, error) {
 	var spec MultiEventCheckerSpec
 	var specs []EventCheckerSpec
+
+	checker, ok := checker_.(interface {
+		GetChecks() []eventchecker.EventChecker
+	})
+	if !ok {
+		return nil, fmt.Errorf("Unhandled checker type %T", checker_)
+	}
 
 	for _, check := range checker.GetChecks() {
 		spec, err := SpecFromEventChecker(check)

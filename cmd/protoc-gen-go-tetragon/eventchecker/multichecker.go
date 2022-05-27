@@ -268,11 +268,6 @@ func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
         return checker.FinalCheckFn(logger)
     }`)
 
-	g.P(`// GetChecks is a nop for a FnEventChecker and always returns an empty list
-    func (checker *FnEventChecker) GetChecks() []EventChecker {
-        return []EventChecker{}
-    }`)
-
 	return nil
 }
 
@@ -308,9 +303,6 @@ func generateMultiEventCheckerInterface(g *protogen.GeneratedFile, f *protogen.F
             // FinalCheck indicates that the sequence of events has ended, and asks
             // the checker to make a final decision.
             FinalCheck(*` + logger + `) error
-
-            // GetChecks returns an ordered list of checks in this event checker.
-            GetChecks() []EventChecker
         }`)
 
 	return nil

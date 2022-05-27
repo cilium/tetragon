@@ -46,9 +46,6 @@ type MultiEventChecker interface {
 	// FinalCheck indicates that the sequence of events has ended, and asks
 	// the checker to make a final decision.
 	FinalCheck(*logrus.Logger) error
-
-	// GetChecks returns an ordered list of checks in this event checker.
-	GetChecks() []EventChecker
 }
 
 // OrderedEventChecker checks a series of events in order
@@ -265,11 +262,6 @@ func (checker *FnEventChecker) NextResponseCheck(response *tetragon.GetEventsRes
 // FinalCheck implements the MultiEventChecker interface
 func (checker *FnEventChecker) FinalCheck(logger *logrus.Logger) error {
 	return checker.FinalCheckFn(logger)
-}
-
-// GetChecks is a nop for a FnEventChecker and always returns an empty list
-func (checker *FnEventChecker) GetChecks() []EventChecker {
-	return []EventChecker{}
 }
 
 // CheckerFromEvent converts an event into an EventChecker
