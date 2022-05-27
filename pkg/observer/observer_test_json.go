@@ -5,6 +5,7 @@ package observer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,6 +23,28 @@ import (
 var (
 	retryDelay = 2 * time.Second
 )
+
+// JsonEOF is a type of error where we went over all the events and there was no match.
+//
+// The reason to have a special error is that there are cases where the events
+// we are looking for might not have been processed yet. In these cases, we
+// need to retry.
+type JsonEOF struct {
+	// err is what FinalCheck() returned
+	err error
+	// count is the number of events we checked
+	count int
+}
+
+// Error returns the error message
+func (e *JsonEOF) Error() string {
+	return fmt.Sprintf("JsonEOF: failed to match after %d events: err:%v", e.count, e.err)
+}
+
+// Unwrap returns the original error
+func (e *JsonEOF) Unwrap() error {
+	return e.err
+}
 
 // JsonCheck checks a JSON string using the new eventchecker library.
 func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logger) error {
@@ -55,7 +78,10 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 	}
 
 	if err := checker.FinalCheck(log); err != nil {
-		return fmt.Errorf("jsonTestCheck: failed to match after %d events: %w", count, err)
+		return &JsonEOF{
+			count: count,
+			err:   err,
+		}
 	}
 	return nil
 }
@@ -95,6 +121,13 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	for {
 		err = JsonCheck(jsonFile, checker, log)
 		if err == nil {
+			break
+		}
+
+		// if this is not a JsonEOF error, it means that the checker
+		// concluded that there was a falure. Dont retry.
+		var errEOF *JsonEOF
+		if !errors.As(err, &errEOF) {
 			break
 		}
 
