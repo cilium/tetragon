@@ -8,7 +8,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
-func ProgramBuilder(
+func Builder(
 	objFile, attach, label, pinFile string,
 	ty string,
 ) *Program {

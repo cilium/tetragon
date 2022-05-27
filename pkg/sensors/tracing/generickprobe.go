@@ -483,7 +483,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		// tracepoints case) and release it there, which seems like a simpler option.
 		btfobj = bpf.BTFNil
 
-		load := program.ProgramBuilder(
+		load := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgName),
 			funcName,
 			"kprobe/generic_kprobe",
@@ -494,7 +494,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		progs = append(progs, load)
 
 		if setRetprobe {
-			loadret := program.ProgramBuilder(
+			loadret := program.Builder(
 				path.Join(option.Config.HubbleLib, loadProgRetName),
 				funcName,
 				"kprobe/generic_retkprobe",
