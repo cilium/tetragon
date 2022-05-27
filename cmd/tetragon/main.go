@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -219,8 +218,7 @@ func hubbleTETRAGONExecute() error {
 // map root. This function relies on the map root to be set properly via
 // github.com/cilium/tetragon/pkg/bpf.CheckOrMountFS().
 func getObserverDir() string {
-	const observerDir = "tcpmon"
-	return filepath.Join(bpf.GetMapRoot(), observerDir)
+	return bpf.MapPrefixPath()
 }
 
 func startExporter(ctx context.Context, server *server.Server) error {
