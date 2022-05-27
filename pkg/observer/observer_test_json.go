@@ -132,7 +132,7 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 		}
 
 		cnt++
-		if cnt == jsonRetries {
+		if cnt > jsonRetries {
 			err = fmt.Errorf("JsonTestCheck failed after %d retries: %w", jsonRetries, err)
 			break
 		}
