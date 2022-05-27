@@ -41,14 +41,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	go func() {
-		logOut(t, "stdout> ", testPipes.StdoutRd)
-	}()
-
-	go func() {
-		logOut(t, "stderr> ", testPipes.StderrRd)
-	}()
+	defer testPipes.Close()
 
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
@@ -77,6 +70,9 @@ func TestKprobeNSChanges(t *testing.T) {
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+
+	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
+	logWG.Wait()
 
 	if err := testCmd.Wait(); err != nil {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
@@ -124,14 +120,7 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	go func() {
-		logOut(t, "stdout> ", testPipes.StdoutRd)
-	}()
-
-	go func() {
-		logOut(t, "stderr> ", testPipes.StderrRd)
-	}()
+	defer testPipes.Close()
 
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
@@ -162,6 +151,9 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+
+	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
+	logWG.Wait()
 
 	if err := testCmd.Wait(); err != nil {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
