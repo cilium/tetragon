@@ -198,14 +198,20 @@ func hubbleTETRAGONExecute() error {
 	if enableK8sAPI {
 		go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
-	cnf, err := readConfig(configFile)
-	if err != nil {
-		return err
+
+	var startSensors []*sensors.Sensor
+	if len(configFile) > 0 {
+		cnf, err := readConfig(configFile)
+		if err != nil {
+			return err
+		}
+
+		startSensors, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+		if err != nil {
+			return err
+		}
 	}
-	startSensors, err := sensors.GetSensorsFromParserPolicy(&cnf.Spec)
-	if err != nil {
-		return err
-	}
+
 	return obs.Start(ctx, startSensors)
 }
 
