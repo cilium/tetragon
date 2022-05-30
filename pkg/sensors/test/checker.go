@@ -4,9 +4,12 @@
 package test
 
 import (
+	"os/exec"
 	"runtime"
+	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -43,6 +46,16 @@ type TestChecker struct {
 	checker       ec.MultiEventChecker
 	testDone      map[uint64]bool
 	testDoneCount int
+}
+
+// TestCheckerMarkEnd executes the proper code to mark the end of event stream on all CPUs
+func TestCheckerMarkEnd(t *testing.T) {
+	testBin := testutils.ContribPath("tester-progs/trigger-test-events")
+	testCmd := exec.Command(testBin)
+	err := testCmd.Run()
+	if err != nil {
+		t.Fatalf("error executing command: %v", err)
+	}
 }
 
 //revive:enable
