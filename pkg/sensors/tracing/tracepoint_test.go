@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -20,10 +19,9 @@ import (
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/observer"
-	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
@@ -37,8 +35,7 @@ var (
 	cmdWaitTime  time.Duration
 	verboseLevel int
 
-	testMapPrefix     = "testObserver"
-	tracepointTestDir = path.Join(defaults.DefaultMapRoot, testMapPrefix)
+	testMapPrefix = "testObserver"
 
 	whenceBogusValue = 4444
 )
@@ -86,36 +83,13 @@ func TestGenericTracepointSimple(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	// We do not call observer.Start(), so we need to start the sensor controller
-	sm, err := sensors.StartSensorManager(tracepointTestDir, tracepointTestDir, "")
-	if err != nil {
-		t.Fatalf("startSensorController failed: %s", err)
-	}
-	defer func() {
-		err := sm.StopSensorManager(ctx)
-		if err != nil {
-			t.Logf("stopSensorController failed: %s\n", err)
-		}
-	}()
-
+	sm := testutils.StartTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor([]GenericTracepointConf{lseekConf})
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
-	sensorName := "GtpLseekTest"
-	if err := sm.AddSensor(ctx, sensorName, sensor); err != nil {
-		t.Fatalf("failed to add generic tracepoint sensor: %s", err)
-	}
-	defer func() {
-		sm.RemoveSensor(ctx, sensorName)
-	}()
-	if err := sm.EnableSensor(ctx, sensorName); err != nil {
-		t.Fatalf("EnableSensor error: %s", err)
-	}
-	defer func() {
-		sm.DisableSensor(ctx, sensorName)
-	}()
+	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
 
 	tpChecker := ec.NewProcessTracepointChecker().
 		WithSubsys(smatcher.Full("syscalls")).
@@ -167,36 +141,14 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
-	// We do not call observer.Start(), so we need to start the sensor controller
-	sm, err := sensors.StartSensorManager(tracepointTestDir, tracepointTestDir, "")
-	if err != nil {
-		t.Fatalf("startSensorController failed: %s", err)
-	}
-	defer func() {
-		err := sm.StopSensorManager(ctx)
-		if err != nil {
-			t.Logf("stopSensorController failed: %s\n", err)
-		}
-	}()
 
+	sm := testutils.StartTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor([]GenericTracepointConf{conf})
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
-	sensorName := "GtpLseekTest"
-	if err := sm.AddSensor(ctx, sensorName, sensor); err != nil {
-		t.Fatalf("failed to add generic tracepoint sensor: %s", err)
-	}
-	defer func() {
-		sm.RemoveSensor(ctx, sensorName)
-	}()
-	if err := sm.EnableSensor(ctx, sensorName); err != nil {
-		t.Fatalf("EnableSensor error: %s", err)
-	}
-	defer func() {
-		sm.DisableSensor(ctx, sensorName)
-	}()
+	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()

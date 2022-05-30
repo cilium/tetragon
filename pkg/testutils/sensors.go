@@ -26,3 +26,50 @@ func LoadSensor(ctx context.Context, t *testing.T, sensor *sensors.Sensor) {
 		sensors.UnloadSensor(ctx, mapDir, mapDir, sensor)
 	})
 }
+
+// TestSensorManager sensor manager used in tests
+type TestSensorManager struct {
+	Manager *sensors.Manager
+}
+
+// StartTestSensorManager starts a new sensor mananger.
+// It will use the test name to create a unqique directory for maps/etc, and
+// will also register the necessary cleanup functions using t.Cleanup()
+func StartTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
+	path := bpf.MapPrefixPath()
+	mgr, err := sensors.StartSensorManager(path, path, "")
+	if err != nil {
+		t.Fatalf("startSensorController failed: %s", err)
+	}
+	t.Cleanup(func() {
+		err := mgr.StopSensorManager(ctx)
+		if err != nil {
+			t.Logf("stopSensorController failed: %s\n", err)
+		}
+	})
+
+	return &TestSensorManager{
+		Manager: mgr,
+	}
+}
+
+// AddAndEnableSensor is a helper function that adds and enables a new sensor
+func (tsm *TestSensorManager) AddAndEnableSensor(
+	ctx context.Context,
+	t *testing.T,
+	sensor *sensors.Sensor,
+	sensorName string,
+) {
+	if err := tsm.Manager.AddSensor(ctx, sensorName, sensor); err != nil {
+		t.Fatalf("failed to add generic tracepoint sensor: %s", err)
+	}
+	t.Cleanup(func() {
+		tsm.Manager.RemoveSensor(ctx, sensorName)
+	})
+	if err := tsm.Manager.EnableSensor(ctx, sensorName); err != nil {
+		t.Fatalf("EnableSensor error: %s", err)
+	}
+	t.Cleanup(func() {
+		tsm.Manager.DisableSensor(ctx, sensorName)
+	})
+}
