@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
@@ -71,21 +72,13 @@ func TestSensorLseekLoad(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
-	if err := sensor.FindPrograms(ctx); err != nil {
-		t.Fatalf("ObserverFindProgs error: %s", err)
-	}
-	mapDir := bpf.MapPrefixPath()
-	if err := sensor.Load(ctx, mapDir, mapDir, ""); err != nil {
-		t.Fatalf("observerLoadSensor error: %s", err)
-	}
+	testutils.LoadSensor(ctx, t, sensor)
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
 	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
-
-	sensors.UnloadSensor(ctx, mapDir, mapDir, sensor)
 }
 
 func TestSensorLseekEnable(t *testing.T) {

@@ -11,9 +11,7 @@ import (
 	"testing"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
 )
@@ -46,14 +44,7 @@ func TestTestChecker(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
-	if err := sensor.FindPrograms(ctx); err != nil {
-		t.Fatalf("ObserverFindProgs error: %s", err)
-	}
-	mapDir := bpf.MapPrefixPath()
-	if err := sensor.Load(ctx, mapDir, mapDir, ""); err != nil {
-		t.Fatalf("observerLoadSensor error: %s", err)
-	}
-	defer sensors.UnloadSensor(ctx, mapDir, mapDir, sensor)
+	testutils.LoadSensor(ctx, t, sensor)
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
