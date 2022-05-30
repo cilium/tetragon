@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/observer"
+	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -149,10 +150,13 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
 	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
+	testSensor := testsensor.GetTestSensor()
+	sm.AddAndEnableSensor(ctx, t, testSensor, "testSensor")
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	selfOp()
+	testsensor.TestCheckerMarkEnd(t)
 
 	tpEventsNr := 0
 	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
@@ -182,12 +186,13 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		return nil
 	}
 
-	checker := ec.FnEventChecker{
+	checker_ := ec.FnEventChecker{
 		NextCheckFn:  nextCheck,
 		FinalCheckFn: finalCheck,
 	}
+	checker := testsensor.NewTestChecker(&checker_)
 
-	if err := observer.JsonTestCheck(t, &checker); err != nil {
+	if err := observer.JsonTestCheck(t, checker); err != nil {
 		t.Logf("error: %s", err)
 		t.Fail()
 	}
