@@ -18,7 +18,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
-	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
@@ -26,14 +25,6 @@ import (
 // This bpf_lseek is a simple BPF program used for tests
 
 var (
-	ObserverLseekTest = program.Builder(
-		"bpf_lseek.o",
-		"syscalls/sys_enter_lseek",
-		"tracepoint/sys_enter_lseek",
-		"test_lseek",
-		"tracepoint",
-	)
-
 	selfBinary  string
 	tetragonLib string
 	cmdWaitTime time.Duration
@@ -79,9 +70,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
-	progs := []*program.Program{ObserverLseekTest}
-	maps := []*program.Map{}
-	sensor := &sensors.Sensor{Name: "lseekTest", Progs: progs, Maps: maps}
+	sensor := GetTestSensor()
 	if err := sensor.FindPrograms(ctx); err != nil {
 		t.Fatalf("ObserverFindProgs error: %s", err)
 	}
@@ -91,7 +80,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	}
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	unix.Seek(-1, 0, 4444)
+	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
 	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
@@ -119,10 +108,7 @@ func TestSensorLseekEnable(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sensorName := "lseekTest"
-	progs := []*program.Program{ObserverLseekTest}
-	maps := []*program.Map{}
-	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
+	sensor := GetTestSensor()
 	sensors.RegisterSensorAtInit(sensor)
 
 	mapDir := bpf.MapPrefixPath()
@@ -138,12 +124,12 @@ func TestSensorLseekEnable(t *testing.T) {
 		}
 	}()
 
-	if err := smanager.EnableSensor(ctx, sensorName); err != nil {
+	if err := smanager.EnableSensor(ctx, sensor.Name); err != nil {
 		t.Fatalf("EnableSensor error: %s", err)
 	}
 
 	defer func() {
-		err := smanager.DisableSensor(ctx, sensorName)
+		err := smanager.DisableSensor(ctx, sensor.Name)
 		if err != nil {
 			fmt.Printf("DisableSensor failed: %s\n", err)
 		}
@@ -151,7 +137,7 @@ func TestSensorLseekEnable(t *testing.T) {
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	unix.Seek(-1, 0, 4444)
+	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
 	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)

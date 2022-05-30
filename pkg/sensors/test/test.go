@@ -2,6 +2,9 @@
 // Copyright Authors of Tetragon
 package test
 
+// Test sensor that uses an lseek hook that generates TEST events when BogusFd
+// and BogusWhenceVal are used.
+
 import (
 	"bytes"
 	"encoding/binary"
@@ -9,6 +12,23 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
+)
+
+var (
+	ObserverLseekTest = program.Builder(
+		"bpf_lseek.o",
+		"syscalls/sys_enter_lseek",
+		"tracepoint/sys_enter_lseek",
+		"test_lseek",
+		"tracepoint",
+	)
+
+	// BogusFd is the fd value required to trigger the lseek test probe
+	BogusFd = -1
+	// BogusWhenceVal is the whence value required to trigger the lseek test probe
+	BogusWhenceVal = 4444
 )
 
 func init() {
@@ -29,4 +49,13 @@ func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 	}
 	msgUnix := msgToTestUnix(&m)
 	return []observer.Event{msgUnix}, nil
+}
+
+// GetTestSensor creates a new test sensor.
+func GetTestSensor() *sensors.Sensor {
+	sensorName := "lseekTest"
+	progs := []*program.Program{ObserverLseekTest}
+	maps := []*program.Map{}
+	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
+	return sensor
 }
