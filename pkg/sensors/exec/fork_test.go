@@ -11,6 +11,7 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestFork(t *testing.T) {
 		WithParent(ec.NewProcessChecker().WithPid(fti.child1Pid))
 	checker := ec.NewUnorderedEventChecker(exitCheck)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 

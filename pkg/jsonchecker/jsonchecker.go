@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package observer
+package jsonchecker
 
 import (
 	"encoding/json"
@@ -21,7 +21,8 @@ import (
 )
 
 var (
-	retryDelay = 2 * time.Second
+	Retries    = 20
+	RetryDelay = 2 * time.Second
 )
 
 // JsonEOF is a type of error where we went over all the events and there was no match.
@@ -113,9 +114,7 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	if !ok {
 		return fmt.Errorf("failed to convert logger")
 	}
-	capturer := captureLog(t)
-	log.SetOutput(capturer)
-	defer capturer.Release()
+	defer captureLog(t).Release()
 
 	cnt := 0
 	for {
@@ -132,37 +131,14 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 		}
 
 		cnt++
-		if cnt > jsonRetries {
-			err = fmt.Errorf("JsonTestCheck failed after %d retries: %w", jsonRetries, err)
+		if cnt > Retries {
+			err = fmt.Errorf("JsonTestCheck failed after %d retries: %w", Retries, err)
 			break
 		}
-		t.Logf("JsonCheck (retry=%d) failed: %s. Retrying after %s", cnt, err, retryDelay)
+		t.Logf("JsonCheck (retry=%d) failed: %s. Retrying after %s", cnt, err, RetryDelay)
 		jsonFile.Seek(0, io.SeekStart)
-		time.Sleep(retryDelay)
+		time.Sleep(RetryDelay)
 	}
 
 	return err
-}
-
-type logCapturer struct {
-	*testing.T
-	origOut io.Writer
-}
-
-func (tl logCapturer) Write(p []byte) (n int, err error) {
-	tl.Logf((string)(p))
-	return len(p), nil
-}
-
-func (tl logCapturer) Release() {
-	logrus.SetOutput(tl.origOut)
-}
-
-// CaptureLog redirects logrus output to testing.Log
-func captureLog(t *testing.T) *logCapturer {
-	lc := logCapturer{T: t, origOut: logrus.StandardLogger().Out}
-	if !testing.Verbose() {
-		logrus.SetOutput(lc)
-	}
-	return &lc
 }

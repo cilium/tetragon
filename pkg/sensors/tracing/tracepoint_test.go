@@ -19,6 +19,7 @@ import (
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/observer"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
@@ -107,7 +108,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -192,7 +193,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	}
 	checker := testsensor.NewTestChecker(&checker_)
 
-	if err := observer.JsonTestCheck(t, checker); err != nil {
+	if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
 		t.Logf("error: %s", err)
 		t.Fail()
 	}

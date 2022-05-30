@@ -15,6 +15,7 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -77,7 +78,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -132,6 +133,6 @@ func TestSensorLseekEnable(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
