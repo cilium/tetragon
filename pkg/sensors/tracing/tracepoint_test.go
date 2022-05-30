@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -19,6 +20,7 @@ import (
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -35,7 +37,8 @@ var (
 	cmdWaitTime  time.Duration
 	verboseLevel int
 
-	tracepointTestDir = "/sys/fs/bpf/testObserver/"
+	testMapPrefix     = "testObserver"
+	tracepointTestDir = path.Join(defaults.DefaultMapRoot, testMapPrefix)
 
 	whenceBogusValue = 4444
 )
@@ -51,9 +54,12 @@ func TestMain(m *testing.M) {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.ConfigureResourceLimits()
-	bpf.SetMapPrefix("testObserver")
+	bpf.SetMapPrefix(testMapPrefix)
 	selfBinary = filepath.Base(os.Args[0])
 	exitCode := m.Run()
+	// NB: we currently seem to fail to remove the /sys/fs/bpf/testObserver
+	// dir. Do so here, until we figure out a way to do it properly.
+	os.RemoveAll(bpf.MapPrefixPath())
 	os.Exit(exitCode)
 }
 
