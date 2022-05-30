@@ -1,4 +1,4 @@
-GO := go
+GO ?= go
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
 CONTAINER_ENGINE ?= docker
