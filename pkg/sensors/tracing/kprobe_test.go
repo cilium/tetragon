@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -564,16 +565,30 @@ func getOpenatMntChecker() ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-// matches any kprobe event, used to test filters
-func getAnyChecker() ec.MultiEventChecker {
-	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker())
+// Get a checker that asserts no checks ever match
+func getNoMatchChecker(checks ...ec.EventChecker) ec.MultiEventChecker {
+	checker := &ec.FnEventChecker{
+		NextCheckFn: func(event ec.Event, log *logrus.Logger) (bool, error) {
+			for _, check := range checks {
+				if check.CheckEvent(event) == nil {
+					return true, fmt.Errorf("Got an unexpected event match on a %T checker", check)
+				}
+			}
+
+			return false, nil
+		},
+		FinalCheckFn: func(*logrus.Logger) error {
+			return nil
+		},
+	}
+
+	return checker
 }
 
 func testKprobeObjectFiltered(t *testing.T,
 	readHook string,
 	checker ec.MultiEventChecker,
-	useMount bool,
-	expectFailure bool) {
+	useMount bool) {
 
 	mntPath := "/tmp"
 	if useMount == true {
@@ -636,11 +651,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.Equal(t, len(data), n)
 	assert.NoError(t, err)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	if expectFailure {
-		assert.Error(t, err)
-	} else {
-		assert.NoError(t, err)
-	}
+	assert.NoError(t, err)
 }
 
 func testKprobeObjectOpenHook(pidStr string, path string) string {
@@ -677,13 +688,13 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
 func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true)
 }
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
@@ -721,13 +732,13 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 func TestKprobeObjectMultiValueOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true)
 }
 
 func TestKprobeObjectFilterOpen(t *testing.T) {
@@ -760,7 +771,7 @@ spec:
         values:
         - "/tmp/foofile\0"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getNoMatchChecker(ec.NewProcessKprobeChecker()), false)
 }
 
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
@@ -794,7 +805,7 @@ spec:
         - "/tmp/foo\0"
         - "/tmp/bar\0"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getNoMatchChecker(ec.NewProcessKprobeChecker()), false)
 }
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
@@ -831,13 +842,13 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true)
 }
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
@@ -874,13 +885,13 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true)
 }
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
@@ -917,13 +928,13 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true)
 }
 
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
@@ -956,7 +967,7 @@ spec:
         values:
         - "/foo/"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getNoMatchChecker(ec.NewProcessKprobeChecker()), false)
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
@@ -989,7 +1000,7 @@ spec:
         values:
         - "testfile\0"
 `
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false)
 }
 
 func helloIovecWorldWritev() (err error) {
@@ -1108,7 +1119,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false)
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
@@ -1136,7 +1147,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
@@ -1257,25 +1268,25 @@ func getWriteChecker(path, flags string) ec.MultiEventChecker {
 func TestKprobeObjectFileWrite(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false)
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true)
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true)
 }
 
 func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
