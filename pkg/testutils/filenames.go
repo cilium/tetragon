@@ -90,3 +90,17 @@ func KeepExportFile(t *testing.T) {
 	ef.keep = true
 	exportFiles[testName] = ef
 }
+
+// DontKeepExportFile: unmarks export file to be kept. This is meant for tests
+// that are expected to fail.
+func DontKeepExportFile(t *testing.T) {
+	exportFilesLock.Lock()
+	defer exportFilesLock.Unlock()
+	testName := t.Name()
+	ef, ok := exportFiles[testName]
+	if !ok {
+		t.Fatalf("file for test %s does not exist", testName)
+	}
+	ef.keep = false
+	exportFiles[testName] = ef
+}
