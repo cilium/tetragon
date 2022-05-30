@@ -73,11 +73,6 @@ func SetMapPrefix(path string) {
 	mapPrefix = path
 }
 
-func GetMapPrefix() string {
-	once.Do(lockDown)
-	return mapPrefix
-}
-
 func MapPrefixPath() string {
 	once.Do(lockDown)
 	return filepath.Join(mapRoot, mapPrefix)
