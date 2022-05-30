@@ -36,6 +36,8 @@ var (
 	verboseLevel int
 
 	tracepointTestDir = "/sys/fs/bpf/testObserver/"
+
+	whenceBogusValue = 4444
 )
 
 func init() {
@@ -115,14 +117,14 @@ func TestGenericTracepointSimple(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(4444),
-				ec.NewKprobeArgumentChecker().WithSizeArg(18446744073709551615),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(18446744073709551615), // -1
 			))
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	unix.Seek(-1, 0, 4444)
+	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
 	err = observer.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
@@ -241,7 +243,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 
 	op := func() {
 		t.Logf("Calling lseek...\n")
-		unix.Seek(-1, 0, 4444)
+		unix.Seek(-1, 0, whenceBogusValue)
 	}
 
 	check := func(event *tetragon.ProcessTracepoint) error {
@@ -254,9 +256,9 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
 	fd_u := uint64(100)
 	fd := 100
-	whence_u := uint64(4444)
-	whenceStr := "4444"
-	whence := 4444
+	whence_u := uint64(whenceBogusValue)
+	whenceStr := fmt.Sprintf("%d", whenceBogusValue)
+	whence := whenceBogusValue
 
 	tracepointConf := GenericTracepointConf{
 		Subsystem: "syscalls",
