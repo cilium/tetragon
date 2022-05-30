@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,4 +65,6 @@ func TestTestChecker(t *testing.T) {
 	if !errors.Is(err, dummyErr) {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	// NB: we expect a failure, so mark the file to be removed.
+	testutils.DontKeepExportFile(t)
 }
