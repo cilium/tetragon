@@ -3,3 +3,4 @@ fork-tester
 namespace-tester
 sigkill-tester
 dup-tester
+trigger-test-events

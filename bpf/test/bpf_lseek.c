@@ -48,6 +48,7 @@ test_lseek(struct sys_enter_lseek_args *ctx)
 		msg.common.op = MSG_OP_TEST;
 		msg.common.ktime = ktime_get_ns();
 		msg.common.size = size;
+		msg.arg0 = get_smp_processor_id();
 		perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, &msg,
 				  size);
 	}
