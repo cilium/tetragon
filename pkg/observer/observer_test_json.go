@@ -64,7 +64,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		matchPrefix := fmt.Sprintf("%sevent:%s", prefix, eType)
 		done, err := ec.NextResponseCheck(checker, &ev, log)
 		if done && err == nil {
-			log.Infof("%s =>  FINAL MATCH ", matchPrefix)
+			log.Infof("%s =>  FINAL MATCH", matchPrefix)
 			log.Infof("jsonTestCheck: DONE!")
 			return nil
 		} else if err == nil {
