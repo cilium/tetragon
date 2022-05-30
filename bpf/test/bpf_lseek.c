@@ -40,6 +40,8 @@ char _license[] __attribute__((section(("license")), used)) = "GPL";
 __attribute__((section(("tracepoint/sys_enter_lseek")), used)) int
 test_lseek(struct sys_enter_lseek_args *ctx)
 {
+	// NB: this values should match BogusFd and  BogusWhenceVal in
+	// pkg/sensrors/test
 	if (ctx->fd == -1 && ctx->whence == 4444) {
 		struct msg_test msg = { 0 };
 		size_t size = sizeof(msg);
