@@ -38,7 +38,6 @@ import (
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
-	ciliumopt "github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/lumberjack/v2"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
@@ -336,7 +335,7 @@ func execute() error {
 		}
 		if viper.IsSet(keyConfigDir) {
 			configDir := viper.GetString(keyConfigDir)
-			cm, err := ciliumopt.ReadDirConfig(configDir)
+			cm, err := option.ReadDirConfig(configDir)
 			if err != nil {
 				log.WithField(keyConfigDir, configDir).WithError(err).Fatal("Failed to read config from directory")
 			}
