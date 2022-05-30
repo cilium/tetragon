@@ -107,7 +107,6 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 				err = nil
 				for _, s := range sensors {
 					if s.Loaded {
-						fmt.Printf("s.Loaded failed: %s\n", op.name)
 						err = fmt.Errorf("sensor %s enabled, please disable it before removing", op.name)
 						break
 					}
