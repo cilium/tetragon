@@ -14,6 +14,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -101,6 +102,6 @@ func TestKprobeSigkill(t *testing.T) {
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }

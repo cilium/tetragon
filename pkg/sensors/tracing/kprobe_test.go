@@ -22,6 +22,7 @@ import (
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
@@ -173,7 +174,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	_, err = syscall.Write(1, []byte("hello world"))
 	assert.NoError(t, err)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -435,7 +436,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatal()
 	}
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -634,7 +635,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	assert.NoError(t, err)
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	if expectFailure {
 		assert.Error(t, err)
 	} else {
@@ -1067,7 +1068,7 @@ spec:
 	err = helloIovecWorldWritev()
 	assert.NoError(t, err)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -1315,7 +1316,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	assert.NoError(t, err)
-	err = observer.JsonTestCheck(t, writeChecker)
+	err = jsonchecker.JsonTestCheck(t, writeChecker)
 	assert.NoError(t, err)
 }
 
@@ -1597,7 +1598,7 @@ spec:
 		uintptr(newFd), uintptr(unsafe.Pointer(newBytes)),
 		uintptr(flags), 0)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -1641,7 +1642,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatal()
 	}
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 
@@ -1780,7 +1781,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	_, err = unix.Readv(fdr, iovr)
 	assert.NoError(t, err)
 
-	err = observer.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
 

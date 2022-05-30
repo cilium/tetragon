@@ -50,7 +50,6 @@ var (
 	observerTestDir = "/sys/fs/bpf/testObserver/"
 	metricsAddr     = "localhost:2112"
 	metricsEnabled  = false
-	jsonRetries     = 20
 )
 
 const (

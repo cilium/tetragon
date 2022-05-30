@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/sirupsen/logrus"
@@ -51,7 +52,7 @@ func TestTestChecker(t *testing.T) {
 
 	TestCheckerMarkEnd(t)
 
-	err = observer.JsonTestCheck(t, errorChecker)
+	err = jsonchecker.JsonTestCheck(t, errorChecker)
 	t.Logf("got error: %v", err)
 	if !errors.Is(err, dummyErr) {
 		t.Fatalf("unexpected error: %v", err)
