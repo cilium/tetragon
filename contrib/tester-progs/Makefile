@@ -6,7 +6,8 @@ PROGS = sigkill-tester \
 	namespace-tester \
 	fork-tester \
 	dup-tester \
-	trigger-test-events
+	trigger-test-events \
+	nop
 
 all: $(PROGS)
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -20,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,6 +45,7 @@ func TestMain(m *testing.M) {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.ConfigureResourceLimits()
+	bpf.SetMapPrefix("testObserver")
 	selfBinary = filepath.Base(os.Args[0])
 	exitCode := m.Run()
 	os.Exit(exitCode)
@@ -151,6 +154,37 @@ func TestNamespaces(t *testing.T) {
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestEventExecve(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.ContribPath("tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithArguments(sm.Full("arg1 arg2 arg3"))
+
+	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
