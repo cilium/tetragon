@@ -10,6 +10,7 @@ TETRAGON_GO_TARGETS := \
 TETRAGON_PROTO_PATH := .
 
 TETRAGON_PROTOC_PLUGINS := \
+	--plugin=$(GOPATH)/bin/protoc-gen-doc \
 	--plugin=$(GOPATH)/bin/protoc-gen-go \
 	--plugin=$(GOPATH)/bin/protoc-gen-go-grpc \
 	--plugin=$(GOPATH)/bin/protoc-gen-go-json \
@@ -21,6 +22,8 @@ all:
 	for proto in $(TETRAGON_PROTO_SOURCES) ; do \
 		echo Generating $${proto} && \
 		$(PROTOC) $(TETRAGON_PROTOC_PLUGINS) -I $(TETRAGON_PROTO_PATH) \
+		--doc_out=./ \
+		--doc_opt=markdown,README.md \
 		--go_out=paths=source_relative:. \
 		--go-grpc_out=require_unimplemented_servers=false,paths=source_relative:. \
 		--go-json_out=orig_name=true,paths=source_relative:. \
