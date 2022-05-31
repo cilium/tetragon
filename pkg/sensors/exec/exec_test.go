@@ -5,6 +5,7 @@ package exec
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
@@ -182,6 +184,92 @@ func TestEventExecve(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
 	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestEventExecveLongPath(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	testNop := testutils.ContribPath("tester-progs/nop")
+
+	// create dir portion of path
+	baseDir := "/tmp/tetragon-execvetest/"
+	testDir := baseDir
+
+	dirNum := 14
+
+	// kernels < v.5.15 won't trigger tracepoints for data bigger
+	// than 2048 bytes, so making the path smaller for them
+	if kernels.IsKernelVersionLessThan("5.15.0") {
+		dirNum = 6
+	}
+
+	for d := 0; d < dirNum; d++ {
+		for i := 0; i < 254; i++ {
+			testDir = fmt.Sprintf("%s%c", testDir, 'a'+d)
+		}
+		testDir = testDir + "/"
+	}
+
+	// and add the file
+	testBin := testDir
+	for i := 0; i < 254; i++ {
+		testBin = fmt.Sprintf("%s%c", testBin, 'a')
+	}
+
+	fmt.Printf("Path size: %d\n", len(testBin))
+	fmt.Printf("Test dir: " + testDir + "\n")
+
+	// create directory
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		if err := os.RemoveAll(baseDir); err != nil {
+			t.Fatalf("Failed to remove test dir: %s", err)
+		}
+		if err := os.MkdirAll(testDir, 0755); err != nil {
+			t.Logf("Failed to create test directory: %s\n", err)
+		}
+	}
+
+	t.Cleanup(func() {
+		if err := os.RemoveAll(baseDir); err != nil {
+			t.Fatalf("Failed to remove test dir: %s", err)
+		}
+	})
+
+	// and copy nop binary into the testBin
+	fmt.Printf("Copy: /usr/bin/cp -f " + testNop + " " + testBin + "\n")
+
+	if err := exec.Command("/usr/bin/cp", "-f", testNop, testBin).Run(); err != nil {
+		t.Fatalf("Failed to copy binary: %s", err)
+	}
+
+	// Currently we support maximum path size of 254
+	checkBin := testBin[:254]
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(checkBin)).
+		WithArguments(sm.Full("arg1 arg2 arg3"))
+
+	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fmt.Printf("Exec: '%s arg1 arg2 arg3'\n", testBin)
+
+	if err := exec.Command(testBin, "arg1", "arg2", "arg3").Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
