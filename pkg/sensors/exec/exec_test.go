@@ -3,15 +3,22 @@
 package exec
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	api "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/stretchr/testify/assert"
 )
@@ -115,4 +122,35 @@ func Test_msgToExecveUnix(t *testing.T) {
 	copy(event.Kube.Docker[:], id)
 	result = msgToExecveUnix(&event)
 	assert.Empty(t, result.Kube.Docker)
+}
+
+func TestNamespaces(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	rootNs := namespace.GetCurrentNamespace()
+	nsChecker := ec.NewNamespacesChecker().FromNamespaces(rootNs)
+
+	selfChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix(selfBinary)).
+		WithNs(nsChecker)
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker().
+			WithProcess(selfChecker).
+			WithParent(ec.NewProcessChecker()),
+	)
+
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
