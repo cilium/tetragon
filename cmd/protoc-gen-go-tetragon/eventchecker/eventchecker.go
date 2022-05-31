@@ -5,8 +5,6 @@ package eventchecker
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventchecker/matchers"
@@ -107,26 +105,8 @@ func generateEventToChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 func generateInterfaces(g *protogen.GeneratedFile, f *protogen.File) error {
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
-	var eventTypes string
-	if strings.Contains(runtime.Version(), "1.18") {
-		events, err := getEvents(f)
-		if err != nil {
-			return err
-		}
-
-		types := make([]string, 0, len(events))
-		for _, event := range events {
-			types = append(types, g.QualifiedGoIdent(event.GoIdent))
-		}
-		eventTypes = strings.Join(types, " | ")
-	} else {
-		eventTypes = ""
-	}
-
 	g.P(`// Event is an empty interface used for events like ProcessExec, etc.
-    type Event interface {
-        ` + eventTypes + `
-    }`)
+    type Event interface {}`)
 
 	g.P(`// EventChecker is an interface for checking a Tetragon event
     type EventChecker interface {
