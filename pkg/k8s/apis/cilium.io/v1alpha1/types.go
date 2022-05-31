@@ -129,7 +129,7 @@ type NamespaceChangesSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// Namespace selector operator.
 	Operator string `json:"operator"`
-	// Process IDs to match.
+	// Namespace types (e.g., Mnt, Pid) to match.
 	Values []string `json:"values"`
 }
 
@@ -140,7 +140,7 @@ type NamespaceSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// Namespace selector operator.
 	Operator string `json:"operator"`
-	// Process IDs to match.
+	// Namespace IDs (or host_ns for host namespace) of namespaces to match.
 	Values []string `json:"values"`
 }
 
