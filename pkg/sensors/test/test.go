@@ -28,7 +28,7 @@ var (
 	// BogusFd is the fd value required to trigger the lseek test probe
 	BogusFd = -1
 	// BogusWhenceVal is the whence value required to trigger the lseek test probe
-	BogusWhenceVal = 4444
+	BogusWhenceVal = 4729
 )
 
 func init() {

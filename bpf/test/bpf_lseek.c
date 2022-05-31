@@ -42,7 +42,7 @@ test_lseek(struct sys_enter_lseek_args *ctx)
 {
 	// NB: this values should match BogusFd and  BogusWhenceVal in
 	// pkg/sensrors/test
-	if (ctx->fd == -1 && ctx->whence == 4444) {
+	if (ctx->fd == -1 && ctx->whence == 4729) {
 		struct msg_test msg = { 0 };
 		size_t size = sizeof(msg);
 		msg.common.op = MSG_OP_TEST;

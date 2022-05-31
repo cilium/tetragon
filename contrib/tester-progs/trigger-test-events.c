@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 			if (CPU_ISSET(c, &mask)) {
 				printf("cpu:%d\n", c);
 				setaffinity_oncpu(c);
-				syscall(SYS_lseek, (uintptr_t)-1, 0, 4444);
+				syscall(SYS_lseek, (uintptr_t)-1, 0, 4729);
 				break;
 			}
 		}
