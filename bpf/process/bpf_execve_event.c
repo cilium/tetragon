@@ -10,6 +10,42 @@
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 
+/* event_args_builder: copies args into char *buffer
+ * event: pointer to event storage
+ * pargs: kernel address of args structure
+ *
+ * returns: void, because we are using asm_goto here we can't easily
+ * also provide return values. To avoid having to try and introspect
+ * what happened here this routine should always return with a good
+ * event msg that could be passed to userspace.
+ */
+static inline __attribute__((always_inline)) void
+event_args_builder(struct msg_execve_event *event)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct msg_process *p, *c;
+	struct mm_struct *mm;
+
+	/* Calculate absolute offset into buffer */
+	c = &event->process;
+	c->auid = get_auid();
+	p = c;
+
+	/* We use flags in asm to indicate overflow */
+	compiler_barrier();
+	probe_read(&mm, sizeof(mm), _(&task->mm));
+	if (mm) {
+		unsigned long start_stack, end_stack;
+
+		probe_read(&start_stack, sizeof(start_stack),
+			   _(&mm->arg_start));
+		probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
+		if (start_stack && end_stack)
+			probe_arg_read(c, (char *)p, (char *)start_stack,
+				       (char *)end_stack);
+	}
+}
+
 __attribute__((section(("tracepoint/sys_execve")), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
