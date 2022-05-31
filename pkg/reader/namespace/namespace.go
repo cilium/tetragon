@@ -79,7 +79,7 @@ func GetCurrentNamespace() *tetragon.Namespaces {
 		is_root_ns[nses[i]] = (self_ns[nses[i]] == GetHostNsInode(nses[i]))
 	}
 
-	return &tetragon.Namespaces{
+	retVal := &tetragon.Namespaces{
 		Uts: &tetragon.Namespace{
 			Inum:   self_ns["uts"],
 			IsHost: is_root_ns["uts"],
@@ -121,6 +121,14 @@ func GetCurrentNamespace() *tetragon.Namespaces {
 			IsHost: is_root_ns["user"],
 		},
 	}
+
+	// this kernel does not support time namespace
+	if retVal.Time.Inum == 0 {
+		retVal.Time = nil
+		retVal.TimeForChildren = nil
+	}
+
+	return retVal
 }
 func GetMsgNamespaces(ns processapi.MsgNamespaces) *tetragon.Namespaces {
 	hostNs := GetHostNamespace()
