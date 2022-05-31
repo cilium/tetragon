@@ -335,48 +335,6 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	return upid.nr;
 }
 
-static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(struct msg_process *curr, __u32 curr_pid, __u32 flags,
-		       __u32 bin, void *filename)
-{
-	int64_t size = 0;
-	uint32_t *value;
-	char *earg;
-
-	/* For now we set pathname on stack with zero initializer because its
-	 * easy. We should push this into a map or do string compare directly
-	 * to make it work for longer pathnames. For now lets get the mechanics
-	 * working with short names.
-	 */
-	char pathname[256] = { 0 };
-
-	/* This is a bit parnoid but was previously having trouble on
-	 * 4.14 kernels tracking offset of curr through filename_builder
-	 * resulting in a a verifier error. We can optimize this a bit
-	 * later perhaps and push as an argument.
-	 */
-	earg = (void *)curr + offsetof(struct msg_process, args);
-
-	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
-	if (size < 0) {
-		flags |= EVENT_ERROR_FILENAME;
-		size = 0;
-	} else if (size == MAXARGLENGTH - 1) {
-		flags |= EVENT_TRUNC_FILENAME;
-	}
-	curr->flags = flags;
-	curr->pid = curr_pid;
-	curr->nspid = get_task_pid_vnr();
-	curr->ktime = ktime_get_ns();
-	curr->size = size + offsetof(struct msg_process, args);
-
-	probe_read_str(pathname, 255, filename);
-	value = map_lookup_elem(&names_map, pathname);
-	if (value)
-		return *value;
-	return bin;
-}
-
 #define PROBE_ARG_HEADER "%[index] = 0;"
 
 #define PROBE_ARG_READ5                                                        \
