@@ -304,7 +304,8 @@ spec:
                                   - NotIn
                                   type: string
                                 values:
-                                  description: Process IDs to match.
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
                                   items:
                                     type: string
                                   type: array
@@ -338,7 +339,8 @@ spec:
                                   - NotIn
                                   type: string
                                 values:
-                                  description: Process IDs to match.
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
                                   items:
                                     type: string
                                   type: array
@@ -640,7 +642,8 @@ spec:
                                   - NotIn
                                   type: string
                                 values:
-                                  description: Process IDs to match.
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
                                   items:
                                     type: string
                                   type: array
@@ -674,7 +677,8 @@ spec:
                                   - NotIn
                                   type: string
                                 values:
-                                  description: Process IDs to match.
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
                                   items:
                                     type: string
                                   type: array
