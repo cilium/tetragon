@@ -1354,14 +1354,7 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 
-	writeChecker := getWriteChecker("/tmp4/tmp5/testfile", "unresolvedMountPoints")
-	if kernels.EnableLargeProgs() {
-		writeChecker = getWriteChecker("/tmp2/tmp3/tmp4/tmp5/testfile", "")
-	}
-
-	// the full path name is "/tmp2/tmp3/tmp4/tmp5/testfile"
-	// but in the current implementation we support up to 2 mount points
-	// so we will see "/tmp4/tmp5/testfile" and "unresolvedMountPoints" flag
+	writeChecker := getWriteChecker("/tmp2/tmp3/tmp4/tmp5/testfile", "")
 
 	corePathTest(t, filePath, readHook, writeChecker)
 }
@@ -1399,11 +1392,6 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	if kernels.EnableLargeProgs() {
 		writeChecker = getWriteChecker("/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
-
-	// the full path name is "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16"
-	// but in the current implementation we support up to 13 path components
-	// so we will see "/5/6/7/8/9/10/11/12/13/14/15/16/testfile"
-	// and "unresolvedPathComponents" flag
 
 	corePathTest(t, filePath, readHook, writeChecker)
 }
@@ -1464,25 +1452,17 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker("/[M]/tmp4/tmp5/[P]/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedMountPoints unresolvedPathComponents")
+	writeChecker := getWriteChecker("/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
 	if kernels.EnableLargeProgs() {
 		writeChecker = getWriteChecker("/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
-
-	// the full path name is "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile"
-	// but in the current implementation we support up to 13 path components and 2 mount points
-	// so we will see "/tmp4/tmp5/5/6/7/8/9/10/11/12/13/14/15/16/testfile"
-	// and "unresolvedMountPoints unresolvedPathComponents"
 
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
 func TestMultipleMountsFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp4/tmp5")
-	if kernels.EnableLargeProgs() {
-		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
-	}
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
 	testMultipleMountsFiltered(t, readHook)
 }
 
@@ -1500,11 +1480,7 @@ func TestMultipleMountPath(t *testing.T) {
 
 func TestMultipleMountPathFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	// Kernel adds a & in the case of unresolved path. In the userspace we change that to [P]
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp4/tmp5/&/7/8/9/10/11/12/13/14/15/16")
-	if kernels.EnableLargeProgs() {
-		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
-	}
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
 	testMultipleMountPathFiltered(t, readHook)
 }
 
