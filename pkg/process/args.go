@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/api"
-	"github.com/cilium/tetragon/pkg/reader/path"
 )
 
 func argsDecoderTrim(r rune) bool {
@@ -43,7 +42,7 @@ func ArgsDecoder(s string, flags uint32) (string, string) {
 	} else if (flags & api.EventProcFS) != 0 {
 		cwd = strings.TrimSpace(string(argTokens[len(argTokens)-1]))
 	} else {
-		cwd = "/" + path.SwapPath(string(argTokens[len(argTokens)-1]))
+		cwd = string(argTokens[len(argTokens)-1])
 	}
 
 	if len(argTokens) > hasCWD {
