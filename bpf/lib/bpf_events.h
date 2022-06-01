@@ -19,35 +19,6 @@
 #define PROBE_CWD_READ_ITERATIONS 11
 #endif
 
-/* Not sure if the following is more clear compared to
- * the previous approach but it will be more same as now
- * we use PROBE_CWD_READ_ITERATIONS in more than one places.
- */
-#define M_REPEAT_1(X)  X
-#define M_REPEAT_2(X)  M_REPEAT_1(X) X
-#define M_REPEAT_3(X)  M_REPEAT_2(X) X
-#define M_REPEAT_4(X)  M_REPEAT_3(X) X
-#define M_REPEAT_5(X)  M_REPEAT_4(X) X
-#define M_REPEAT_6(X)  M_REPEAT_5(X) X
-#define M_REPEAT_7(X)  M_REPEAT_6(X) X
-#define M_REPEAT_8(X)  M_REPEAT_7(X) X
-#define M_REPEAT_9(X)  M_REPEAT_8(X) X
-#define M_REPEAT_10(X) M_REPEAT_9(X) X
-#define M_REPEAT_11(X) M_REPEAT_10(X) X
-#define M_REPEAT_12(X) M_REPEAT_11(X) X
-#define M_REPEAT_13(X) M_REPEAT_12(X) X
-#define M_REPEAT_14(X) M_REPEAT_13(X) X
-#define M_REPEAT_15(X) M_REPEAT_14(X) X
-#define M_REPEAT_16(X) M_REPEAT_15(X) X
-/* 16 should be enough in the case where we have program size limitations */
-#define M_REPEAT_32(X) M_REPEAT_16(X) M_REPEAT_16(X)
-
-#define M_EXPAND(...) __VA_ARGS__
-
-#define M_REPEAT__(N, X) M_EXPAND(M_REPEAT_##N)(X)
-#define M_REPEAT_(N, X)	 M_REPEAT__(N, X)
-#define M_REPEAT(N, X)	 M_REPEAT_(M_EXPAND(N), X)
-
 static inline __attribute__((always_inline)) int64_t
 validate_arg_size(int64_t size)
 {
