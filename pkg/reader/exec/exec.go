@@ -69,9 +69,6 @@ func DecodeCommonFlags(flags uint32) []string {
 	if (flags & api.EventDockerCgroupsErr) != 0 {
 		s = append(s, "errorDockerCgroups")
 	}
-	if (flags & api.EventErrorMountPoints) != 0 {
-		s = append(s, "errorMountsResolutionCwd")
-	}
 	if (flags & api.EventErrorPathComponents) != 0 {
 		s = append(s, "errorPathResolutionCwd")
 	}
