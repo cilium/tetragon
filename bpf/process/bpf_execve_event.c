@@ -36,13 +36,30 @@ event_args_builder(struct msg_execve_event *event)
 	probe_read(&mm, sizeof(mm), _(&task->mm));
 	if (mm) {
 		unsigned long start_stack, end_stack;
+		struct execve_heap *heap;
+		__u32 zero = 0;
+		long off;
 
 		probe_read(&start_stack, sizeof(start_stack),
 			   _(&mm->arg_start));
 		probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
-		if (start_stack && end_stack)
-			probe_arg_read(c, (char *)p, (char *)start_stack,
-				       (char *)end_stack);
+
+		if (!start_stack || !end_stack)
+			return;
+
+		/* skip first argument - binary path */
+		heap = map_lookup_elem(&execve_heap, &zero);
+		if (!heap)
+			return;
+
+		/* poor man's strlen */
+		off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
+		if (off < 0)
+			return;
+
+		start_stack += off;
+		probe_arg_read(c, (char *)p, (char *)start_stack,
+			       (char *)end_stack);
 	}
 }
 
