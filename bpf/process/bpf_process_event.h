@@ -355,26 +355,6 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	PROBE_ARG_READ10                                                       \
 	PROBE_ARG_READ10
 
-/* The first argument is the command from cmdline but we already report the
- * filename so its redundant lets walk past it. Do we still need end check?
- * Left for now until we analyze a bit.
- */
-#define PROBE_PAST_CMD                                                         \
-	"r3 = *(u64 *)%[args];"                                                \
-	"r3 += %[offset];"                                                     \
-	"r4 = *(u64 *)%[end];"                                                 \
-	"if r4 <= r3 goto %l[c];"                                              \
-	"r4 = *(u32 *)(%[curr] + 0);"                                          \
-	"if r4 s< 0 goto %l[a];"                                               \
-	"if r4 s> " XSTR(                                                      \
-		BUFFER) " goto %l[b];"                                         \
-			"r1 = *(u64 *)%[earg];"                                \
-			"r1 += r4;"                                            \
-			"r2 = " XSTR(MAXARGLENGTH) ";"                         \
-						   "call 45;"                  \
-						   "if r0 s< 0 goto %l[a];"    \
-						   "%[offset] += r0;"
-
 #define PROBE_ARG_READ                                                         \
 	"r3 = *(u64 *)%[args];"                                                \
 	"r3 += %[offset];"                                                     \
@@ -405,9 +385,9 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 static inline __attribute__((always_inline)) void
 probe_arg_read(struct msg_process *c, char *earg, char *args, char *end_args)
 {
-	int off = 0;
+	long off = 0;
 
-	asm volatile goto(PROBE_PAST_CMD PROBE_ARG_READ50
+	asm volatile goto(PROBE_ARG_READ50
 			  :
 			  : [earg] "m"(earg), [args] "m"(args),
 			    [end] "m"(end_args), [curr] "ri"(c),

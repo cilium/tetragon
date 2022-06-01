@@ -293,6 +293,17 @@ struct bpf_map_def __attribute__((section("maps"), used)) execve_val = {
 	.max_entries = 1,
 };
 
+struct execve_heap {
+	char maxpath[4096];
+};
+
+struct bpf_map_def __attribute__((section("maps"), used)) execve_heap = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(__s32),
+	.value_size = sizeof(struct execve_heap),
+	.max_entries = 1,
+};
+
 static inline __attribute__((always_inline)) int64_t
 validate_msg_execve_size(int64_t size)
 {
