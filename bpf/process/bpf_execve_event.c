@@ -67,16 +67,11 @@ static inline __attribute__((always_inline)) uint32_t
 event_filename_builder(struct msg_process *curr, __u32 curr_pid, __u32 flags,
 		       __u32 bin, void *filename)
 {
+	struct execve_heap *heap;
 	int64_t size = 0;
+	__u32 zero = 0;
 	uint32_t *value;
 	char *earg;
-
-	/* For now we set pathname on stack with zero initializer because its
-	 * easy. We should push this into a map or do string compare directly
-	 * to make it work for longer pathnames. For now lets get the mechanics
-	 * working with short names.
-	 */
-	char pathname[256] = { 0 };
 
 	/* This is a bit parnoid but was previously having trouble on
 	 * 4.14 kernels tracking offset of curr through filename_builder
@@ -98,8 +93,12 @@ event_filename_builder(struct msg_process *curr, __u32 curr_pid, __u32 flags,
 	curr->ktime = ktime_get_ns();
 	curr->size = size + offsetof(struct msg_process, args);
 
-	probe_read_str(pathname, 255, filename);
-	value = map_lookup_elem(&names_map, pathname);
+	heap = map_lookup_elem(&execve_heap, &zero);
+	if (!heap)
+		return bin;
+
+	probe_read_str(heap->pathname, 255, filename);
+	value = map_lookup_elem(&names_map, heap->pathname);
 	if (value)
 		return *value;
 	return bin;

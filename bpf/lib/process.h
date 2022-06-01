@@ -294,7 +294,10 @@ struct bpf_map_def __attribute__((section("maps"), used)) execve_val = {
 };
 
 struct execve_heap {
-	char maxpath[4096];
+	union {
+		char pathname[256];
+		char maxpath[4096];
+	};
 };
 
 struct bpf_map_def __attribute__((section("maps"), used)) execve_heap = {
