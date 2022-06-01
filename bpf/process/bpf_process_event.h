@@ -4,6 +4,16 @@
 #ifndef _BPF_PROCESS_EVENT__
 #define _BPF_PROCESS_EVENT__
 
+#define ENAMETOOLONG  36 /* File name too long */
+#define PATH_MAP_SIZE 4096
+
+struct bpf_map_def __attribute__((section("maps"), used)) buffer_heap_map = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(int),
+	.value_size = PATH_MAP_SIZE * sizeof(char),
+	.max_entries = 1,
+};
+
 static inline __attribute__((always_inline)) __u64
 __get_auid(struct task_struct *task)
 {
@@ -275,6 +285,182 @@ get_full_path(struct path *path, void *argp, u32 offset, u32 *flags)
 		*flags |= UNRESOLVED_MOUNT_POINTS;
 
 	return offset;
+}
+
+static inline __attribute__((always_inline)) bool IS_ROOT(struct dentry *dentry)
+{
+	struct dentry *d_parent;
+
+	probe_read(&d_parent, sizeof(d_parent), _(&dentry->d_parent));
+	return (dentry == d_parent);
+}
+
+static inline __attribute__((always_inline)) bool
+hlist_bl_unhashed(const struct hlist_bl_node *h)
+{
+	struct hlist_bl_node **pprev;
+
+	probe_read(&pprev, sizeof(pprev), _(&h->pprev));
+	return !pprev;
+}
+
+static inline __attribute__((always_inline)) int
+d_unhashed(struct dentry *dentry)
+{
+	return hlist_bl_unhashed(_(&dentry->d_hash));
+}
+
+static inline __attribute__((always_inline)) int
+d_unlinked(struct dentry *dentry)
+{
+	return d_unhashed(dentry) && !IS_ROOT(dentry);
+}
+
+static inline __attribute__((always_inline)) int
+prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
+{
+	char slash = '/';
+	u64 buffer_offset;
+
+	if (buffer == 0)
+		return -ENAMETOOLONG;
+
+	buffer_offset = (u64)(*buffer) - (u64)bf;
+
+	*buflen -= (dlen + 1);
+	if (*buflen < 0)
+		return -ENAMETOOLONG;
+
+	buffer_offset -= (dlen + 1);
+
+	if (dlen > 255)
+		return -ENAMETOOLONG;
+	if (buffer_offset > PATH_MAP_SIZE - 256)
+		return -ENAMETOOLONG;
+
+	probe_read(bf + buffer_offset, sizeof(char), &slash);
+	asm volatile("%[dlen] &= 0xff;\n" ::[dlen] "+r"(dlen) :);
+	probe_read(bf + buffer_offset + 1, dlen * sizeof(char), name);
+
+	*buffer = bf + buffer_offset;
+	return 0;
+}
+
+static inline __attribute__((always_inline)) int
+prepend(char **buffer, int *buflen, const char *str, int namelen)
+{
+	*buflen -= namelen;
+	if (*buflen < 0)
+		return -ENAMETOOLONG;
+	*buffer -= namelen;
+	memcpy(*buffer, str, namelen);
+	return 0;
+}
+
+static inline __attribute__((always_inline)) int
+prepend_path(const struct path *path, const struct path *root, char *bf,
+	     char **buffer, int *buflen)
+{
+	struct dentry *dentry;
+	struct vfsmount *vfsmnt;
+	struct mount *mnt;
+	struct qstr d_name;
+	int error = 0;
+	char *bptr;
+	int i, blen;
+	bool resolved = false;
+
+	bptr = *buffer;
+	blen = *buflen;
+	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+	probe_read(&vfsmnt, sizeof(vfsmnt), _(&path->mnt));
+	mnt = real_mount(vfsmnt);
+
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	for (i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
+		struct dentry *parent;
+		struct dentry *vfsmnt_mnt_root;
+		struct vfsmount *root_mnt;
+		struct dentry *root_dentry;
+
+		probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
+		probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
+		if (!(dentry != root_dentry || vfsmnt != root_mnt)) {
+			resolved = true;
+			break;
+		}
+
+		probe_read(&vfsmnt_mnt_root, sizeof(vfsmnt_mnt_root),
+			   _(&vfsmnt->mnt_root));
+		if (dentry == vfsmnt_mnt_root || IS_ROOT(dentry)) {
+			struct mount *parent;
+
+			probe_read(&parent, sizeof(parent),
+				   _(&mnt->mnt_parent));
+
+			/* Global root? */
+			if (mnt != parent) {
+				probe_read(&dentry, sizeof(dentry),
+					   _(&mnt->mnt_mountpoint));
+				mnt = parent;
+				probe_read(&vfsmnt, sizeof(vfsmnt),
+					   _(&mnt->mnt));
+				continue;
+			}
+
+			resolved = true;
+			break;
+		}
+		probe_read(&parent, sizeof(parent), _(&dentry->d_parent));
+		probe_read(&d_name, sizeof(d_name), _(&dentry->d_name));
+		error = prepend_name(bf, &bptr, &blen,
+				     (const char *)d_name.name, d_name.len);
+		if (error)
+			break;
+
+		dentry = parent;
+	}
+	if (bptr == *buffer) {
+		*buflen = 0;
+		return 0;
+	}
+	if (!resolved)
+		error = UNRESOLVED_PATH_COMPONENTS;
+	*buffer = bptr;
+	*buflen = blen;
+	return error;
+}
+
+static inline __attribute__((always_inline)) int
+path_with_deleted(const struct path *path, const struct path *root, char *bf,
+		  char **buf, int *buflen)
+{
+	struct dentry *dentry;
+
+	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+	if (d_unlinked(dentry)) {
+		int error = prepend(buf, buflen, " (deleted)", 10);
+
+		if (error)
+			return error;
+	}
+	return prepend_path(path, root, bf, buf, buflen);
+}
+
+/* the 'buf' argument should be always the value of 'buffer_heap_map' map */
+static inline __attribute__((always_inline)) char *
+__d_path_local(const struct path *path, char *buf, int *buflen, int *error)
+{
+	char *res = buf + *buflen;
+	struct task_struct *task;
+	struct fs_struct *fs;
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&fs, sizeof(fs), _(&task->fs));
+	*error = path_with_deleted(path, _(&fs->root), buf, &res, buflen);
+	return res;
 }
 
 static inline __attribute__((always_inline)) int64_t
