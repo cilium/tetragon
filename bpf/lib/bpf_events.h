@@ -8,13 +8,12 @@
 #include "bpf_helpers.h"
 #include "generic.h"
 
-/* get_full_path flags */
+/* __d_path_local flags */
 #define UNRESOLVED_MOUNT_POINTS	   0x01
 #define UNRESOLVED_PATH_COMPONENTS 0x02
 
 #ifdef __LARGE_BPF_PROG
-#define PROBE_CWD_READ_ITERATIONS 32
-#define MAX_MOUNT_POINTS	  32
+#define PROBE_CWD_READ_ITERATIONS 128
 #else
 #define PROBE_CWD_READ_ITERATIONS 11
 #endif
