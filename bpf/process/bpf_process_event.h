@@ -469,7 +469,9 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 	struct task_struct *task = get_task_from_pid(proc_pid);
 	__u32 orig_size = curr->size, orig_offset = offset;
 	struct fs_struct *fs;
-	u32 flags = 0;
+	int flags = 0;
+	char *buffer;
+	int zero = 0, size = 0;
 
 	probe_read(&fs, sizeof(fs), _(&task->fs));
 	if (!fs) {
@@ -477,7 +479,22 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 		return 0;
 	}
 
-	offset = get_full_path(_(&fs->pwd), curr, offset, &flags);
+	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
+		return 0;
+
+	size = 256;
+	buffer = __d_path_local(_(&fs->pwd), buffer, &size, &flags);
+	if (!buffer)
+		return 0;
+	if (size > 0)
+		size = 256 - size;
+
+	asm volatile("%[offset] &= 0x3ff;\n" ::[offset] "+r"(offset) :);
+	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
+	probe_read((char *)curr + offset, size, buffer);
+
+	offset += size;
 	curr->size = offset;
 	// Unfortunate special case for '/' where nothing was added we need
 	// to truncate with '\n' for parser.
