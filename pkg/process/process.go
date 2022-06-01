@@ -183,7 +183,7 @@ func GetProcess(
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
-			Cwd:          path.MarkUnresolvedPathComponentsCwd(cwd, process.Flags),
+			Cwd:          cwd,
 			Binary:       path.GetBinaryAbsolutePath(process.Filename, cwd),
 			Arguments:    args,
 			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),

@@ -84,6 +84,6 @@ const (
 	EventDockerCgroupsErr    = 0x100000
 
 	// Errors in path resolution because we have limits due to program size
-	EventErrorMountPoints    = 0x200000
+	// EventErrorMountPoints    = 0x200000 // (deprecated)
 	EventErrorPathComponents = 0x400000
 )

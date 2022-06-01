@@ -3,7 +3,7 @@
 package processapi
 
 const (
-	UnresolvedMountPoints    = 0x1
+	// UnresolvedMountPoints    = 0x1 // (deprecated)
 	UnresolvedPathComponents = 0x2
 )
 

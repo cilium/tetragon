@@ -283,8 +283,6 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 	// to truncate with '\n' for parser.
 	if (curr->size == orig_offset)
 		curr->flags |= EVENT_ROOT_CWD;
-	if (flags & UNRESOLVED_MOUNT_POINTS)
-		curr->flags |= EVENT_ERROR_MOUNT_POINTS;
 	if (flags & UNRESOLVED_PATH_COMPONENTS)
 		curr->flags |= EVENT_ERROR_PATH_COMPONENTS;
 

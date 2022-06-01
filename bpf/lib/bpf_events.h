@@ -9,7 +9,7 @@
 #include "generic.h"
 
 /* __d_path_local flags */
-#define UNRESOLVED_MOUNT_POINTS	   0x01
+// #define UNRESOLVED_MOUNT_POINTS	   0x01 // (deprecated)
 #define UNRESOLVED_PATH_COMPONENTS 0x02
 
 #ifdef __LARGE_BPF_PROG

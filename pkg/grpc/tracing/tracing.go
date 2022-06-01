@@ -132,13 +132,13 @@ func (t *Grpc) GetProcessKprobe(event *api.MsgGenericKprobeUnix) *tetragon.Proce
 			}
 		case api.MsgGenericKprobeArgFile:
 			fileArg := &tetragon.KprobeFile{
-				Path:  path.MarkUnresolvedPathComponents(e.Value, e.Flags),
+				Path:  e.Value,
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
 			a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
 		case api.MsgGenericKprobeArgPath:
 			pathArg := &tetragon.KprobePath{
-				Path:  path.MarkUnresolvedPathComponents(e.Value, e.Flags),
+				Path:  e.Value,
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
 			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
