@@ -607,7 +607,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r) + "/"
+			arg.Value = handleGenericKprobeString(r)
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)
@@ -622,7 +622,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			var flags uint32
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r) + "/"
+			arg.Value = handleGenericKprobeString(r)
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)

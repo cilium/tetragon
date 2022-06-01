@@ -62,11 +62,3 @@ func SwapPath(path string) string {
 	}
 	return strings.Join(dirs, "/")
 }
-
-func GenPath(path string) string {
-	filePath := strings.TrimSuffix(SwapPath(path), "/")
-	if len(filePath) > 0 && filePath[0] != '/' {
-		filePath = "/" + filePath
-	}
-	return filePath
-}
