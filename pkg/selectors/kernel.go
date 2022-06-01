@@ -13,7 +13,6 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/cilium/tetragon/pkg/reader/path"
 )
 
 const (
@@ -256,12 +255,7 @@ func parseMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 	for _, v := range values {
 		switch ty {
 		case argTypeFd, argTypeFile:
-			mnt := "/"
-			if strings.HasPrefix(v, "/") {
-				v = v[1:]
-			}
-			swapV := mnt + path.SwapPath(v)
-			value, size := ArgSelectorValue(swapV)
+			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
 		case argTypeString, argTypeCharBuf:

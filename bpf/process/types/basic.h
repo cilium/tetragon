@@ -293,18 +293,29 @@ cmpbytes_small(char *s1, char *s2, size_t n)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long copy_path(char *args,
-							    unsigned long arg)
+static inline __attribute__((always_inline)) long
+copy_path(char *args, const struct path *arg)
 {
 	int *s = (int *)args;
-	u32 size = 0, flags = 0;
+	int size = 0, flags = 0;
+	char *buffer;
+	int zero = 0;
+	void *curr = &args[4];
 
-	size = get_full_path((void *)arg, &args[4], size, &flags);
-	*s = size;
-	if (size < 0)
-		return filter;
-	else if (size == 0)
+	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
 		return 0;
+
+	size = 256;
+	buffer = __d_path_local(arg, buffer, &size, &flags);
+	if (!buffer)
+		return 0;
+	if (size > 0)
+		size = 256 - size;
+
+	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
+	probe_read(curr, size, buffer);
+	*s = size;
 	size += 4;
 
 	/*
@@ -1115,6 +1126,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	size_t min_size = type_to_min_size(type);
 	char *args = e->args;
 	long size = -1;
+	const struct path *path_arg = 0;
 
 	if (orig_off >= 16383 - min_size) {
 		return 0;
@@ -1129,11 +1141,11 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);
-		arg = (unsigned long)&file->f_path;
+		path_arg = _(&file->f_path);
 	}
 		// fallthrough to copy_path
 	case path_ty:
-		size = copy_path(args, arg);
+		size = copy_path(args, path_arg);
 		break;
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
