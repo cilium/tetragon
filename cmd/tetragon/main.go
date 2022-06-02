@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -152,6 +153,9 @@ func hubbleTETRAGONExecute() error {
 	}
 
 	if runStandalone {
+		if err := base.LoadDefault(ctx, observerDir, observerDir, ciliumBPF); err != nil {
+			return err
+		}
 		return obs.StartStandalone(ctx)
 	}
 
@@ -209,6 +213,10 @@ func hubbleTETRAGONExecute() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if err := base.LoadDefault(ctx, observerDir, observerDir, ciliumBPF); err != nil {
+		return err
 	}
 
 	return obs.Start(ctx, startSensors)
