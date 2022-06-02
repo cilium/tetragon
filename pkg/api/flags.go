@@ -89,4 +89,6 @@ const (
 
 	// EventDataFilename indicates filename is received with data event
 	EventDataFilename = 0x800000
+	// EventDataArgs indicates args are received with data event
+	EventDataArgs = 0x1000000
 )

@@ -29,7 +29,7 @@ struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
  * event msg that could be passed to userspace.
  */
 static inline __attribute__((always_inline)) void
-event_args_builder(struct msg_execve_event *event)
+event_args_builder(void *ctx, struct msg_execve_event *event)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_process *p, *c;
@@ -67,8 +67,27 @@ event_args_builder(struct msg_execve_event *event)
 			return;
 
 		start_stack += off;
-		probe_arg_read(c, (char *)p, (char *)start_stack,
-			       (char *)end_stack);
+
+		if ((end_stack - start_stack) < BUFFER) {
+			probe_arg_read(c, (char *)p, (char *)start_stack,
+				       (char *)end_stack);
+		} else {
+			char *args = (char *)p + p->size;
+			__u32 size;
+
+			if (args >= (char *)&event->process + BUFFER)
+				return;
+
+			size = data_event_bytes(ctx,
+						(struct data_event_desc *)args,
+						(unsigned long)start_stack,
+						end_stack - start_stack,
+						&data_heap);
+			if (size < 0)
+				return;
+			p->size += size;
+			p->flags |= EVENT_DATA_ARGS;
+		}
 	}
 }
 
@@ -148,7 +167,7 @@ event_execve(struct sched_execve_args *ctx)
 	fileoff = ctx->filename & 0xFFFF;
 	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
 					(char *)ctx + fileoff);
-	event_args_builder(event);
+	event_args_builder(ctx, event);
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
 

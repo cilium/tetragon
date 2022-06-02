@@ -118,9 +118,34 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		args = args[n+1:]
 	}
 
-	cmdArgs := bytes.Split(args, []byte{0x00})
-	proc.Args = string(bytes.Join(cmdArgs[0:], []byte{0x00}))
+	var cmdArgs [][]byte
 
+	if exec.Flags&api.EventDataArgs != 0 {
+		var desc dataapi.DataEventDesc
+
+		dr := bytes.NewReader(args)
+
+		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
+			proc.Size = processapi.MSG_SIZEOF_EXECVE
+			proc.Args = "enomem enomem"
+			proc.Filename = "enomem"
+			return proc, false, err
+		}
+		data, err := data.Get(desc.Id)
+		if err != nil {
+			return proc, false, err
+		}
+		// cut the zero byte
+		n := len(data) - 1
+		cmdArgs = bytes.Split(data[:n], []byte{0x00})
+
+		cwd := args[unsafe.Sizeof(desc):]
+		cmdArgs = append(cmdArgs, cwd)
+	} else {
+		cmdArgs = bytes.Split(args, []byte{0x00})
+	}
+
+	proc.Args = string(bytes.Join(cmdArgs[0:], []byte{0x00}))
 	return proc, false, nil
 }
 
