@@ -8,7 +8,16 @@
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 
+#include "data_event.h"
+
 char _license[] __attribute__((section(("license")), used)) = "GPL";
+
+struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(__u32),
+	.value_size = sizeof(struct msg_data),
+	.max_entries = 1,
+};
 
 /* event_args_builder: copies args into char *buffer
  * event: pointer to event storage
@@ -64,8 +73,8 @@ event_args_builder(struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(struct msg_process *curr, __u32 curr_pid, __u32 flags,
-		       __u32 bin, void *filename)
+event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
+		       __u32 flags, __u32 bin, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
@@ -85,7 +94,9 @@ event_filename_builder(struct msg_process *curr, __u32 curr_pid, __u32 flags,
 		flags |= EVENT_ERROR_FILENAME;
 		size = 0;
 	} else if (size == MAXARGLENGTH - 1) {
-		flags |= EVENT_TRUNC_FILENAME;
+		flags |= EVENT_DATA_FILENAME;
+		size = data_event_str(ctx, (struct data_event_desc *)earg,
+				      (unsigned long)filename, &data_heap);
 	}
 	curr->flags = flags;
 	curr->pid = curr_pid;
@@ -135,7 +146,7 @@ event_execve(struct sched_execve_args *ctx)
 
 	execve = &event->process;
 	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(execve, pid, EVENT_EXECVE, binary,
+	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
 					(char *)ctx + fileoff);
 	event_args_builder(event);
 	compiler_barrier();

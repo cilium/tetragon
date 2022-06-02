@@ -248,10 +248,8 @@ func TestEventExecveLongPath(t *testing.T) {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
-	// Currently we support maximum path size of 254
-	checkBin := testBin[:254]
 	procChecker := ec.NewProcessChecker().
-		WithBinary(sm.Full(checkBin)).
+		WithBinary(sm.Full(testBin)).
 		WithArguments(sm.Full("arg1 arg2 arg3"))
 
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
