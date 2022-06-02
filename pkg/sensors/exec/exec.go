@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
-	api "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -27,8 +27,8 @@ func fromCString(cstr []byte) string {
 	return string(cstr)
 }
 
-func msgToExecveUnix(m *api.MsgExecveEvent) *api.MsgExecveEventUnix {
-	unix := &api.MsgExecveEventUnix{}
+func msgToExecveUnix(m *processapi.MsgExecveEvent) *processapi.MsgExecveEventUnix {
+	unix := &processapi.MsgExecveEventUnix{}
 
 	unix.Common = m.Common
 	unix.Kube.NetNS = m.Kube.NetNS
@@ -37,7 +37,7 @@ func msgToExecveUnix(m *api.MsgExecveEvent) *api.MsgExecveEventUnix {
 	// The first byte is set to zero if there is no docker ID for this event.
 	if m.Kube.Docker[0] != 0x00 {
 		// We always get a null terminated buffer from bpf
-		cgroup := fromCString(m.Kube.Docker[:api.DOCKER_ID_LENGTH])
+		cgroup := fromCString(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
 		unix.Kube.Docker, _ = procevents.LookupContainerId(cgroup, true, false)
 	}
 	unix.Parent = m.Parent
@@ -57,9 +57,9 @@ func msgToExecveUnix(m *api.MsgExecveEvent) *api.MsgExecveEventUnix {
 	return unix
 }
 
-func execParse(reader *bytes.Reader) (api.MsgProcess, bool, error) {
-	proc := api.MsgProcess{}
-	exec := api.MsgExec{}
+func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
+	proc := processapi.MsgProcess{}
+	exec := processapi.MsgExec{}
 
 	if err := binary.Read(reader, binary.LittleEndian, &exec); err != nil {
 		logger.GetLogger().WithError(err).Debug("Failed to read exec event")
@@ -74,10 +74,10 @@ func execParse(reader *bytes.Reader) (api.MsgProcess, bool, error) {
 	proc.Ktime = exec.Ktime
 	proc.AUID = exec.AUID
 
-	size := exec.Size - api.MSG_SIZEOF_EXECVE
-	if size > api.MSG_SIZEOF_BUFFER-api.MSG_SIZEOF_EXECVE {
+	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
+	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
 		err := fmt.Errorf("msg exec size larger than argsbuffer")
-		exec.Size = api.MSG_SIZEOF_EXECVE
+		exec.Size = processapi.MSG_SIZEOF_EXECVE
 		proc.Args = "enomem enomem"
 		proc.Filename = "enomem"
 		return proc, false, err
@@ -85,7 +85,7 @@ func execParse(reader *bytes.Reader) (api.MsgProcess, bool, error) {
 
 	args := make([]byte, size) //+2)
 	if err := binary.Read(reader, binary.LittleEndian, &args); err != nil {
-		proc.Size = api.MSG_SIZEOF_EXECVE
+		proc.Size = processapi.MSG_SIZEOF_EXECVE
 		proc.Args = "enomem enomem"
 		proc.Filename = "enomem"
 		return proc, false, err
@@ -98,8 +98,8 @@ func execParse(reader *bytes.Reader) (api.MsgProcess, bool, error) {
 	return proc, false, nil
 }
 
-func nopMsgProcess() api.MsgProcess {
-	return api.MsgProcess{
+func nopMsgProcess() processapi.MsgProcess {
+	return processapi.MsgProcess{
 		Filename: "<enomem>",
 		Args:     "<enomem>",
 	}
@@ -108,7 +108,7 @@ func nopMsgProcess() api.MsgProcess {
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	var empty bool
 
-	m := api.MsgExecveEvent{}
+	m := processapi.MsgExecveEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
@@ -121,12 +121,12 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func msgToExitUnix(m *api.MsgExitEvent) *api.MsgExitEventUnix {
+func msgToExitUnix(m *processapi.MsgExitEvent) *processapi.MsgExitEventUnix {
 	return m
 }
 
 func handleExit(r *bytes.Reader) ([]observer.Event, error) {
-	m := api.MsgExitEvent{}
+	m := processapi.MsgExitEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
@@ -136,12 +136,12 @@ func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 }
 
 func handleClone(r *bytes.Reader) ([]observer.Event, error) {
-	m := api.MsgCloneEvent{}
+	m := processapi.MsgCloneEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
 	}
-	var msgUnix *api.MsgCloneEventUnix = &m
+	var msgUnix *processapi.MsgCloneEventUnix = &m
 	return []observer.Event{msgUnix}, nil
 }
 
