@@ -276,3 +276,50 @@ func TestEventExecveLongPath(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestEventExecveLongArgs(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.ContribPath("tester-progs/nop")
+
+	// prepare args
+	testArg1 := "arg1_"
+	for i := 0; i < 512; i++ {
+		testArg1 = fmt.Sprintf("%s%c", testArg1, 'a')
+	}
+
+	testArg2 := "arg2_"
+	for i := 0; i < 512; i++ {
+		testArg2 = fmt.Sprintf("%s%c", testArg2, 'b')
+	}
+
+	testArg3 := "arg3_"
+	for i := 0; i < 512; i++ {
+		testArg3 = fmt.Sprintf("%s%c", testArg3, 'c')
+	}
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithArguments(sm.Full(testArg1 + " " + testArg2 + " " + testArg3))
+
+	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	if err := exec.Command(testNop, testArg1, testArg2, testArg3).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
