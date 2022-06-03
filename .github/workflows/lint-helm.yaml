@@ -1,0 +1,33 @@
+name: Lint helm chart
+on:
+  push:
+    branches:
+      - main
+      - v*
+    paths:
+    - 'install/kubernetes/**'
+  pull_request:
+    paths:
+    - 'install/kubernetes/**'
+
+jobs:
+  generated-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - name: Install kubeval
+        run: |
+          cd /tmp
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo cp kubeval /usr/local/bin
+      - name: Run install/kubernetes/test.sh
+        run: |
+          cd install/kubernetes && ./test.sh
+      - name: Validate generated files
+        run: |
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status --porcelain
+            echo "Please run 'cd install/kubernetes && ./test.sh' and submit your changes."; exit 1
+          fi
