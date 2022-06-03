@@ -8,10 +8,18 @@
   resources:
     {{- toYaml .Values.export.resources | nindent 4 }}
   command:
+{{- with .Values.export.commandOverride }}
+  {{- toYaml . | nindent 2 }}
+{{- else }}
     - hubble-export-stdout
+{{- end }}
   args:
+{{- with .Values.export.argsOverride }}
+  {{- toYaml . | nindent 2 }}
+{{- else }}
 {{- range .Values.export.filenames }}
     - {{ $.Values.exportDirectory }}/{{ . }}
+{{- end }}
 {{- end }}
   volumeMounts:
     - name: export-logs
