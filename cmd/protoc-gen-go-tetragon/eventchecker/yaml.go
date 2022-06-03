@@ -19,86 +19,56 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error
 		return err
 	}
 
-	// Codegen the spec
-	g.P(`// EventCheckerSpec is a YAML spec to define an event checker
-    type EventCheckerSpec struct {`)
+	eventCheckerInterface := common.GeneratedIdent(g, "eventchecker", "EventChecker")
+	unmarshalStrict := common.GoIdent(g, "sigs.k8s.io/yaml", "UnmarshalStrict")
+	jsonMarshal := common.GoIdent(g, "encoding/json", "Marshal")
 
+	g.P(`type eventCheckerHelper struct {`)
 	for _, event := range events {
 		jsonName := strcase.ToLowerCamel(strings.TrimPrefix(event.GoIdent.GoName, "Process"))
 		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName())
 		g.P(event.GoIdent.GoName + `*` + checkerIdent +
 			common.StructTag(fmt.Sprintf("json:\"%s,omitempty\"", jsonName)))
 	}
-
 	g.P(`}`)
 
-	eventCheckerInterface := common.GeneratedIdent(g, "eventchecker", "EventChecker")
-
-	// Codegen the IntoEventChecker method
-	g.P(`// IntoEventChecker coerces an event checker from this spec
-    func (spec *EventCheckerSpec) IntoEventChecker() (` + eventCheckerInterface + `, error) {
-        var eventChecker ` + eventCheckerInterface)
-
-	for _, event := range events {
-		g.P(`if spec.` + event.GoIdent.GoName + ` != nil {
-            if eventChecker != nil {
-                return nil, ` + common.FmtErrorf(g, "EventCheckerSpec cannot define more than one checker, got %T but already had %T", "spec."+event.GoIdent.GoName, "eventChecker") + `
-            }
-            eventChecker = spec.` + event.GoIdent.GoName + `
-        }`)
-	}
-
-	g.P(`if eventChecker == nil {
-            return nil, ` + common.FmtErrorf(g, "EventCheckerSpec didn't define any event checker") + `
-        }
-        return eventChecker, nil
+	g.P(`// EventChecker is a wrapper around the EventChecker interface to help unmarshaling
+    type EventChecker struct {
+        ` + eventCheckerInterface + `
     }`)
 
-	// Codegen SpecFromEventChecker
-	g.P(`// SpecFromEventChecker creates a new EventCheckerSpec from an EventChecker
-    func SpecFromEventChecker(checker ` + eventCheckerInterface + `) (*EventCheckerSpec, error) {
-        var spec EventCheckerSpec
-        switch c := checker.(type) {`)
+	g.P(`// UnmarshalJSON implements the json.Unmarshaler interface
+    func (checker *EventChecker) UnmarshalJSON(b []byte) error {
+        var eventChecker ` + eventCheckerInterface + `
+        var helper eventCheckerHelper
+        if err := ` + unmarshalStrict + `(b, &helper); err != nil {
+            return err
+        }`)
+	for _, event := range events {
+		g.P(`if helper.` + event.GoIdent.GoName + ` != nil {
+            if eventChecker != nil {
+                return ` + common.FmtErrorf(g, "EventChecker: cannot define more than one checker, got %T but already had %T", "helper."+event.GoIdent.GoName, "eventChecker") + `
+            }
+            eventChecker = helper.` + event.GoIdent.GoName + `
+        }`)
+	}
+	g.P(`checker.EventChecker = eventChecker
+        return nil
+    }`)
 
+	g.P(`// MarshalJSON implements the json.Marshaler interface
+    func (checker EventChecker) MarshalJSON() ([]byte, error) {
+        var helper eventCheckerHelper
+        switch c := checker.EventChecker.(type) {`)
 	for _, event := range events {
 		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName())
 		g.P(`case *` + checkerIdent + `:
-            spec.` + event.GoIdent.GoName + ` = c`)
+            helper.` + event.GoIdent.GoName + ` = c`)
 	}
-
-	g.P(`
-        default:
-            return nil, ` + common.FmtErrorf(g, "Unhandled checker type %T", "c") + `
+	g.P(`default:
+            return nil, ` + common.FmtErrorf(g, "EventChecker: unknown checker type %T", "c") + `
         }
-        return &spec, nil
-    }`)
-
-	// Codegen UnarshalJSON implementation
-	unmarshalStrict := common.GoIdent(g, "sigs.k8s.io/yaml", "UnmarshalStrict")
-	g.P(`// UnmarshalJSON implements json.Unmarshaler interface
-    func (spec *EventCheckerSpec) UnmarshalJSON(b []byte) (error) {
-        type alias EventCheckerSpec
-        var spec2 alias
-        if err := ` + unmarshalStrict + `(b, &spec2); err != nil {
-            return err
-        }
-        *spec = EventCheckerSpec(spec2)
-
-        var eventChecker ` + eventCheckerInterface)
-
-	for _, event := range events {
-		g.P(`if spec.` + event.GoIdent.GoName + ` != nil {
-            if eventChecker != nil {
-                return ` + common.FmtErrorf(g, "EventCheckerSpec cannot define more than one checker, got %T but already had %T", "spec."+event.GoIdent.GoName, "eventChecker") + `
-            }
-            eventChecker = spec.` + event.GoIdent.GoName + `
-        }`)
-	}
-
-	g.P(`if eventChecker == nil {
-        return ` + common.FmtErrorf(g, "EventCheckerSpec didn't define any event checker") + `
-    }
-    return nil
+        return ` + jsonMarshal + `(helper)
     }`)
 
 	return nil
@@ -108,8 +78,8 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error
 func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error {
 	g.P(`// MultiEventCheckerSpec is a YAML spec to define a MultiEventChecker
     type MultiEventCheckerSpec struct {
-        Ordered bool               ` + common.StructTag("json:\"ordered\"") + `
-        Checks  []EventCheckerSpec ` + common.StructTag("json:\"checks\"") + `
+        Ordered bool           ` + common.StructTag("json:\"ordered\"") + `
+        Checks  []EventChecker ` + common.StructTag("json:\"checks\"") + `
 	}`)
 
 	eventCheckerInterface := common.GeneratedIdent(g, "eventchecker", "EventChecker")
@@ -125,11 +95,7 @@ func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) 
         var checkers []` + eventCheckerInterface + `
 
         for _, check := range spec.Checks {
-            checker, err := check.IntoEventChecker()
-            if err != nil {
-                return nil, err
-            }
-            checkers = append(checkers, checker)
+            checkers = append(checkers, check.EventChecker)
         }
 
         if spec.Ordered {
@@ -140,25 +106,18 @@ func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) 
     }`)
 
 	// Codegen the SpecFromMultiEventChecker method
-	g.P(`// SpecFromMultiEventChecker coerces an event checker from this spec
+	g.P(`// SpecFromMultiEventChecker coerces a spec from a MultiEventChecker
     func SpecFromMultiEventChecker(checker_ ` + multiEventCheckerInterface + `) (*MultiEventCheckerSpec, error) {
         var spec MultiEventCheckerSpec
-        var specs []EventCheckerSpec
 
-	checker, ok := checker_.(interface{ GetChecks() []` + eventCheckerInterface + `})
-	if !ok {
-            return nil, ` + common.FmtErrorf(g, "Unhandled checker type %T", "checker_") + `
-	}
-
-        for _, check := range checker.GetChecks() {
-            spec, err := SpecFromEventChecker(check)
-            if err != nil {
-                return nil, err
-            }
-            specs = append(specs, *spec)
+        checker, ok := checker_.(interface{ GetChecks() []` + eventCheckerInterface + `})
+        if !ok {
+                return nil, ` + common.FmtErrorf(g, "Unhandled checker type %T", "checker_") + `
         }
 
-        spec.Checks = specs
+        for _, check := range checker.GetChecks() {
+            spec.Checks = append(spec.Checks, EventChecker{check})
+        }
 
         switch checker.(type) {
         case *` + orderedEventChecker + `:

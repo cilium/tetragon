@@ -7,6 +7,7 @@ package yaml
 
 import (
 	bytes "bytes"
+	json "encoding/json"
 	fmt "fmt"
 	eventchecker "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	os "os"
@@ -138,8 +139,7 @@ func (conf *EventCheckerConf) WriteYamlFile(file string) error {
 	return os.WriteFile(file, []byte(data), 0o644)
 }
 
-// EventCheckerSpec is a YAML spec to define an event checker
-type EventCheckerSpec struct {
+type eventCheckerHelper struct {
 	ProcessExec       *eventchecker.ProcessExecChecker       `json:"exec,omitempty"`
 	ProcessExit       *eventchecker.ProcessExitChecker       `json:"exit,omitempty"`
 	ProcessKprobe     *eventchecker.ProcessKprobeChecker     `json:"kprobe,omitempty"`
@@ -148,130 +148,84 @@ type EventCheckerSpec struct {
 	ProcessDns        *eventchecker.ProcessDnsChecker        `json:"dns,omitempty"`
 }
 
-// IntoEventChecker coerces an event checker from this spec
-func (spec *EventCheckerSpec) IntoEventChecker() (eventchecker.EventChecker, error) {
+// EventChecker is a wrapper around the EventChecker interface to help unmarshaling
+type EventChecker struct {
+	eventchecker.EventChecker
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (checker *EventChecker) UnmarshalJSON(b []byte) error {
 	var eventChecker eventchecker.EventChecker
-	if spec.ProcessExec != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessExec, eventChecker)
-		}
-		eventChecker = spec.ProcessExec
-	}
-	if spec.ProcessExit != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessExit, eventChecker)
-		}
-		eventChecker = spec.ProcessExit
-	}
-	if spec.ProcessKprobe != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessKprobe, eventChecker)
-		}
-		eventChecker = spec.ProcessKprobe
-	}
-	if spec.ProcessTracepoint != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessTracepoint, eventChecker)
-		}
-		eventChecker = spec.ProcessTracepoint
-	}
-	if spec.Test != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.Test, eventChecker)
-		}
-		eventChecker = spec.Test
-	}
-	if spec.ProcessDns != nil {
-		if eventChecker != nil {
-			return nil, fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessDns, eventChecker)
-		}
-		eventChecker = spec.ProcessDns
-	}
-	if eventChecker == nil {
-		return nil, fmt.Errorf("EventCheckerSpec didn't define any event checker")
-	}
-	return eventChecker, nil
-}
-
-// SpecFromEventChecker creates a new EventCheckerSpec from an EventChecker
-func SpecFromEventChecker(checker eventchecker.EventChecker) (*EventCheckerSpec, error) {
-	var spec EventCheckerSpec
-	switch c := checker.(type) {
-	case *eventchecker.ProcessExecChecker:
-		spec.ProcessExec = c
-	case *eventchecker.ProcessExitChecker:
-		spec.ProcessExit = c
-	case *eventchecker.ProcessKprobeChecker:
-		spec.ProcessKprobe = c
-	case *eventchecker.ProcessTracepointChecker:
-		spec.ProcessTracepoint = c
-	case *eventchecker.TestChecker:
-		spec.Test = c
-	case *eventchecker.ProcessDnsChecker:
-		spec.ProcessDns = c
-
-	default:
-		return nil, fmt.Errorf("Unhandled checker type %T", c)
-	}
-	return &spec, nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler interface
-func (spec *EventCheckerSpec) UnmarshalJSON(b []byte) error {
-	type alias EventCheckerSpec
-	var spec2 alias
-	if err := yaml.UnmarshalStrict(b, &spec2); err != nil {
+	var helper eventCheckerHelper
+	if err := yaml.UnmarshalStrict(b, &helper); err != nil {
 		return err
 	}
-	*spec = EventCheckerSpec(spec2)
-
-	var eventChecker eventchecker.EventChecker
-	if spec.ProcessExec != nil {
+	if helper.ProcessExec != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessExec, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessExec, eventChecker)
 		}
-		eventChecker = spec.ProcessExec
+		eventChecker = helper.ProcessExec
 	}
-	if spec.ProcessExit != nil {
+	if helper.ProcessExit != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessExit, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessExit, eventChecker)
 		}
-		eventChecker = spec.ProcessExit
+		eventChecker = helper.ProcessExit
 	}
-	if spec.ProcessKprobe != nil {
+	if helper.ProcessKprobe != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessKprobe, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessKprobe, eventChecker)
 		}
-		eventChecker = spec.ProcessKprobe
+		eventChecker = helper.ProcessKprobe
 	}
-	if spec.ProcessTracepoint != nil {
+	if helper.ProcessTracepoint != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessTracepoint, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessTracepoint, eventChecker)
 		}
-		eventChecker = spec.ProcessTracepoint
+		eventChecker = helper.ProcessTracepoint
 	}
-	if spec.Test != nil {
+	if helper.Test != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.Test, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.Test, eventChecker)
 		}
-		eventChecker = spec.Test
+		eventChecker = helper.Test
 	}
-	if spec.ProcessDns != nil {
+	if helper.ProcessDns != nil {
 		if eventChecker != nil {
-			return fmt.Errorf("EventCheckerSpec cannot define more than one checker, got %T but already had %T", spec.ProcessDns, eventChecker)
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessDns, eventChecker)
 		}
-		eventChecker = spec.ProcessDns
+		eventChecker = helper.ProcessDns
 	}
-	if eventChecker == nil {
-		return fmt.Errorf("EventCheckerSpec didn't define any event checker")
-	}
+	checker.EventChecker = eventChecker
 	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (checker EventChecker) MarshalJSON() ([]byte, error) {
+	var helper eventCheckerHelper
+	switch c := checker.EventChecker.(type) {
+	case *eventchecker.ProcessExecChecker:
+		helper.ProcessExec = c
+	case *eventchecker.ProcessExitChecker:
+		helper.ProcessExit = c
+	case *eventchecker.ProcessKprobeChecker:
+		helper.ProcessKprobe = c
+	case *eventchecker.ProcessTracepointChecker:
+		helper.ProcessTracepoint = c
+	case *eventchecker.TestChecker:
+		helper.Test = c
+	case *eventchecker.ProcessDnsChecker:
+		helper.ProcessDns = c
+	default:
+		return nil, fmt.Errorf("EventChecker: unknown checker type %T", c)
+	}
+	return json.Marshal(helper)
 }
 
 // MultiEventCheckerSpec is a YAML spec to define a MultiEventChecker
 type MultiEventCheckerSpec struct {
-	Ordered bool               `json:"ordered"`
-	Checks  []EventCheckerSpec `json:"checks"`
+	Ordered bool           `json:"ordered"`
+	Checks  []EventChecker `json:"checks"`
 }
 
 // IntoMultiEventChecker coerces an event checker from this spec
@@ -279,11 +233,7 @@ func (spec *MultiEventCheckerSpec) IntoMultiEventChecker() (eventchecker.MultiEv
 	var checkers []eventchecker.EventChecker
 
 	for _, check := range spec.Checks {
-		checker, err := check.IntoEventChecker()
-		if err != nil {
-			return nil, err
-		}
-		checkers = append(checkers, checker)
+		checkers = append(checkers, check.EventChecker)
 	}
 
 	if spec.Ordered {
@@ -293,10 +243,9 @@ func (spec *MultiEventCheckerSpec) IntoMultiEventChecker() (eventchecker.MultiEv
 	return eventchecker.NewUnorderedEventChecker(checkers...), nil
 }
 
-// SpecFromMultiEventChecker coerces an event checker from this spec
+// SpecFromMultiEventChecker coerces a spec from a MultiEventChecker
 func SpecFromMultiEventChecker(checker_ eventchecker.MultiEventChecker) (*MultiEventCheckerSpec, error) {
 	var spec MultiEventCheckerSpec
-	var specs []EventCheckerSpec
 
 	checker, ok := checker_.(interface {
 		GetChecks() []eventchecker.EventChecker
@@ -306,14 +255,8 @@ func SpecFromMultiEventChecker(checker_ eventchecker.MultiEventChecker) (*MultiE
 	}
 
 	for _, check := range checker.GetChecks() {
-		spec, err := SpecFromEventChecker(check)
-		if err != nil {
-			return nil, err
-		}
-		specs = append(specs, *spec)
+		spec.Checks = append(spec.Checks, EventChecker{check})
 	}
-
-	spec.Checks = specs
 
 	switch checker.(type) {
 	case *eventchecker.OrderedEventChecker:
