@@ -13,6 +13,8 @@
 #include "types/basic.h"
 #include "generic_calls.h"
 #include "pfilter.h"
+#include "data_event.h"
+#include "full_copy.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 
@@ -23,11 +25,18 @@ struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
 	.max_entries = 1,
 };
 
+struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(__u32),
+	.value_size = sizeof(struct msg_data),
+	.max_entries = 1,
+};
+
 struct bpf_map_def __attribute__((section("maps"), used)) kprobe_calls = {
 	.type = BPF_MAP_TYPE_PROG_ARRAY,
 	.key_size = sizeof(__u32),
 	.value_size = sizeof(__u32),
-	.max_entries = 11,
+	.max_entries = 12,
 };
 
 struct bpf_map_def __attribute__((section("maps"), used)) override_tasks = {
@@ -73,6 +82,7 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->match_cap = 0;
 #endif
+	full_copy_init(msg);
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;
@@ -167,35 +177,41 @@ __attribute__((section(("kprobe/6")), used)) int
 generic_kprobe_filter_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &data_heap);
 }
 
 __attribute__((section(("kprobe/7")), used)) int
 generic_kprobe_filter_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &data_heap);
 }
 
 __attribute__((section(("kprobe/8")), used)) int
 generic_kprobe_filter_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &data_heap);
 }
 
 __attribute__((section(("kprobe/9")), used)) int
 generic_kprobe_filter_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &data_heap);
 }
 
 __attribute__((section(("kprobe/10")), used)) int
 generic_kprobe_filter_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, &process_call_heap, &filter_map,
-			       &kprobe_calls, &override_tasks);
+			       &kprobe_calls, &override_tasks, &data_heap);
+}
+
+__attribute__((section(("kprobe/11")), used)) int
+generic_kprobe_full_copy(void *ctx)
+{
+	return full_copy(ctx, &process_call_heap, &data_heap);
 }
 
 __attribute__((section(("kprobe/override")), used)) int

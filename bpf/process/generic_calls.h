@@ -49,7 +49,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 #ifdef GENERIC_KPROBE
 	ty = bpf_core_enum_value(tetragon_args, argreturn);
 	if (ty > 0)
-		retprobe_map_set(e->thread_id, 1);
+		retprobe_map_set(e->thread_id, 1, false);
 #endif
 
 	/* Read out args1-5 */

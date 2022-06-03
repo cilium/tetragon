@@ -27,6 +27,9 @@ package bpf
 #include "libbpf.h"
 #include "libbpf__bpf.h"
 
+#define FULLCOPY_TAILCALL_IDX_KPROBE     11
+#define FULLCOPY_TAILCALL_IDX_RETKPROBE  0
+
 static int __print(enum libbpf_print_level level __attribute__((unused)),
 		   const char *format, va_list args)
 {
@@ -115,14 +118,16 @@ int bpf_loader_set_map(struct bpf_object *obj,
 static struct bpf_object *__loader(const int version,
 		    const int verbosity,
 		    bool override,
+		    bool fullcopy,
 		    struct btf *btf,
 		    const char *prog,
 		    const char *mapdir,
 		    const char *ciliumdir,
+		    const char *prog_fullcopy,
 		    const int type)
 {
 	struct bpf_object_load_attr attr = {0};
-	struct bpf_program *ovr;
+	struct bpf_program *ovr, *fcp;
 	struct bpf_object *obj;
 	int err;
 
@@ -153,6 +158,16 @@ static struct bpf_object *__loader(const int version,
 		if (ovr)
 			bpf_program__set_autoload(ovr, false);
 	}
+
+	// Do not load fullcopy program if we don't want it,
+	// applies only for kprobe, so we don't need to check
+	// for 'not found' case below
+	if (!fullcopy) {
+		fcp = bpf_object__find_program_by_title(obj, prog_fullcopy);
+		if (fcp)
+			bpf_program__set_autoload(fcp, false);
+	}
+
 
 	attr.obj = obj;
 	attr.target_btf = btf;
@@ -235,7 +250,7 @@ int tracepoint_loader(const int version,
 	struct bpf_object *obj;
 	int err;
 
-	obj = __loader(version, verbosity, false, btf, prog, mapdir, 0, BPF_PROG_TYPE_TRACEPOINT);
+	obj = __loader(version, verbosity, false, false, btf, prog, mapdir, 0, "", BPF_PROG_TYPE_TRACEPOINT);
 	if (!obj)
 		return -1;
 
@@ -334,13 +349,70 @@ int __kprobe_loader(struct bpf_object *obj,
 	return bpf_link_fd(prog_attach);
 }
 
+static int load_tailcalls(struct bpf_object *obj,
+			  const char *prog, const char *__prog,
+			  const char *map, const char *__map,
+			  int skip_fullcopy_idx)
+{
+	struct bpf_map *map_bpf;
+	int i, err, map_fd;
 
+	map_bpf = bpf_object__find_map_by_name(obj, map);
+	if (!map_bpf) {
+		fprintf(stderr,
+			"bpf_object__find_map_by_name: kprobe ret loader args obj(%s) map(%s) failed: ",
+			prog, __map);
+		return -1;
+	}
+	bpf_map__unpin(map_bpf, __map);
+	err = bpf_map__pin(map_bpf, __map);
+	if (err < 0) {
+		fprintf(stderr, "bpf_map__pin: obj(%s) map(%s) failed: %i", prog, __map, err);
+		return -1;
+	}
+	map_fd = bpf_map__fd(map_bpf);
+	printf("bpf fgs_kprobe_calls map and progs %s mapfd %d\n", __prog, map_fd);
+	if (map_fd >= 0) {
+		for (i = 0; i < 12; i++) {
+			struct bpf_program *prog;
+			char prog_name[20];
+			char pin_name[200];
+			int fd;
+
+			// skip loading of full copy program if needed
+			if (skip_fullcopy_idx != -1 && skip_fullcopy_idx == i)
+				continue;
+			snprintf(prog_name, sizeof(prog_name), "kprobe/%i", i);
+			prog = bpf_object__find_program_by_title(obj, prog_name);
+			if (!prog)
+				return 0;
+			fd = bpf_program__fd(prog);
+			if (fd < 0) {
+				return errno;
+			}
+			snprintf(pin_name, sizeof(pin_name), "%s_%i", __prog, i);
+			bpf_program__unpin(prog, pin_name);
+			err = bpf_program__pin(prog, pin_name);
+			if (err) {
+				printf("program pin %s tailcall err %d\n", pin_name, err);
+				return err;
+			}
+			err = bpf_map_update_elem(map_fd, &i, &fd, BPF_ANY);
+			if (err) {
+				printf("map update elem  i %i %s tailcall err %d %d\n", i, prog_name, err, errno);
+				return err;
+			}
+		}
+	}
+	return 0;
+}
 
 #define MAX_ARGS 5
 void *generic_loader_args(
 	const int version,
 	const int verbosity,
 	bool override,
+	bool fullcopy,
 	void *btf,
 	const char *prog,
 	const char *attach,
@@ -356,8 +428,9 @@ void *generic_loader_args(
 	struct bpf_object *obj;
 	char *filter_map = "filter_map";
 	char *fdinstall_map = "fdinstall_map";
+	const char *tailcalls_map;
 
-	obj = __loader(version, verbosity, override, btf, prog, mapdir, 0, type);
+	obj = __loader(version, verbosity, override, fullcopy, btf, prog, mapdir, 0, "kprobe/11", type);
 	if (!obj)
 		goto err;
 
@@ -389,65 +462,22 @@ void *generic_loader_args(
 	switch (type) {
 		case BPF_PROG_TYPE_KPROBE:
 			snprintf(map_name, sizeof(map_name), "%s-kp-calls", __prog);
-			map_bpf = bpf_object__find_map_by_name(obj, "kprobe_calls");
+			tailcalls_map = "kprobe_calls";
 			break;
 
 		case BPF_PROG_TYPE_TRACEPOINT:
 			snprintf(map_name, sizeof(map_name), "%s-tp-calls", __prog);
-			map_bpf = bpf_object__find_map_by_name(obj, "tp_calls");
+			tailcalls_map = "tp_calls";
 			break;
 
 		default:
 			fprintf(stderr, "%s(): unknown program type:%d", __FUNCTION__, type);
 			goto err;
 	}
-	if (!map_bpf) {
-		fprintf(stderr,
-			"bpf_object__find_map_by_name: generic loader args obj(%s) map(%s) failed: ",
-			prog, map_name);
-		goto err;
-	}
-	bpf_map__unpin(map_bpf, map_name);
-	err = bpf_map__pin(map_bpf, map_name);
-	if (err < 0) {
-		fprintf(stderr, "bpf_map__pin: obj(%s) map(%s) failed: %i", prog, map_name, err);
-		goto err;
-	}
 
-	map_fd = bpf_map__fd(map_bpf);
-	printf("bpf tetragon_kprobe_calls map and progs %s mapfd %d\n", __prog, map_fd);
-	if (map_fd >= 0) {
-		for (i = 0; i < 11; i++) {
-			struct bpf_program *prog;
-			char prog_name[20];
-			char pin_name[200];
-			int fd;
-
-			snprintf(prog_name, sizeof(prog_name), "kprobe/%i", i);
-			prog = bpf_object__find_program_by_title(obj, prog_name);
-			if (!prog)
-				goto out;
-			fd = bpf_program__fd(prog);
-			if (fd < 0) {
-				err = errno;
-				goto err;
-			}
-			snprintf(pin_name, sizeof(pin_name), "%s_%i", __prog, i);
-			bpf_program__unpin(prog, pin_name);
-			err = bpf_program__pin(prog, pin_name);
-			if (err) {
-				printf("program pin %s tailcall err %d\n", pin_name, err);
-				goto err;
-			}
-			err = bpf_map_update_elem(map_fd, &i, &fd, BPF_ANY);
-			if (err) {
-				printf("map update elem  i %i %s tailcall err %d %d\n", i, prog_name, err, errno);
-				goto err;
-			}
-		}
-	}
-out:
-	return obj;
+	if (!load_tailcalls(obj, prog, __prog, tailcalls_map, map_name,
+			    fullcopy ? -1 : FULLCOPY_TAILCALL_IDX_KPROBE))
+		return obj;
 err:
 	return NULL;
 }
@@ -476,6 +506,7 @@ int generic_kprobe_pin_retprobe(struct bpf_object *obj, const char *genmapdir) {
 int generic_kprobe_loader(const int version,
 		  const int verbosity,
 		  bool override,
+		  bool fullcopy,
 		  void *btf,
 		  const char *prog,
 		  const char *attach,
@@ -486,7 +517,7 @@ int generic_kprobe_loader(const int version,
 		  void *filters) {
 	struct bpf_object *obj;
 	int err;
-	obj = generic_loader_args(version, verbosity, override, btf, prog, attach,
+	obj = generic_loader_args(version, verbosity, override, fullcopy, btf, prog, attach,
 				  label, __prog, mapdir, filters, BPF_PROG_TYPE_KPROBE);
 	if (!obj) {
 		return -1;
@@ -501,6 +532,7 @@ int generic_kprobe_loader(const int version,
 
 int generic_kprobe_ret_loader(const int version,
 		  const int verbosity,
+		  bool fullcopy,
 		  void *btf,
 		  const char *prog,
 		  const char *attach,
@@ -510,8 +542,15 @@ int generic_kprobe_ret_loader(const int version,
 		  const char *genmapdir)
 {
 	struct bpf_object *obj;
-	obj = __loader(version, verbosity, false, btf, prog, mapdir, genmapdir, BPF_PROG_TYPE_KPROBE);
+	char map_name[255];
+
+	obj = __loader(version, verbosity, false, fullcopy, btf, prog, mapdir, genmapdir, "kprobe/0", BPF_PROG_TYPE_KPROBE);
 	if (!obj)
+		return -1;
+
+	snprintf(map_name, sizeof(map_name), "%s-kp-calls", __prog);
+	if (load_tailcalls(obj, prog, __prog, "retkprobe_calls", map_name,
+			   fullcopy ? -1 : FULLCOPY_TAILCALL_IDX_RETKPROBE))
 		return -1;
 
 	return __kprobe_loader(obj, verbosity, false, attach, label, __prog, true);
@@ -531,7 +570,7 @@ int tracepoint_loader_args(const int version,
 		  const bool retprobe,
 		  void *filters) {
 	struct bpf_object *obj;
-	obj = generic_loader_args(version, verbosity, false, btf, prog, attach, label,
+	obj = generic_loader_args(version, verbosity, false, false, btf, prog, attach, label,
 				  __prog, mapdir, filters, BPF_PROG_TYPE_TRACEPOINT);
 	if (!obj)
 		return -1;
@@ -549,7 +588,7 @@ int kprobe_loader(const int version,
 		  const bool retprobe)
 {
 	struct bpf_object *obj;
-	obj = __loader(version, verbosity, false, btf, prog, mapdir, 0, BPF_PROG_TYPE_KPROBE);
+	obj = __loader(version, verbosity, false, false, btf, prog, mapdir, 0, "", BPF_PROG_TYPE_KPROBE);
 	if (!obj)
 		return -1;
 
@@ -605,13 +644,14 @@ func LoadKprobeProgram(__version, __verbosity int, btf uintptr, object, attach, 
 	return loaderInt, nil
 }
 
-func LoadGenericKprobeProgram(__version, __verbosity int, __override bool,
+func LoadGenericKprobeProgram(__version, __verbosity int, __override, __fullcopy bool,
 	btf uintptr,
 	object, attach, __label, __prog, __mapdir string, __genmapdir string,
 	filters [4096]byte) (error, int) {
 	version := C.int(__version)
 	verbosity := C.int(__verbosity)
 	override := C.bool(__override)
+	fullcopy := C.bool(__fullcopy)
 	o := C.CString(object)
 	a := C.CString(attach)
 	l := C.CString(__label)
@@ -619,7 +659,7 @@ func LoadGenericKprobeProgram(__version, __verbosity int, __override bool,
 	mapdir := C.CString(__mapdir)
 	genmapdir := C.CString(__genmapdir)
 	loader_fd := C.generic_kprobe_loader(version,
-		verbosity, override,
+		verbosity, override, fullcopy,
 		unsafe.Pointer(btf),
 		o, a, l, p, mapdir, genmapdir, unsafe.Pointer(&filters))
 	loaderInt := int(loader_fd)
@@ -629,16 +669,17 @@ func LoadGenericKprobeProgram(__version, __verbosity int, __override bool,
 	return nil, loaderInt
 }
 
-func LoadGenericKprobeRetProgram(__version, __verbosity int, btf uintptr, object, attach, __label, __prog, __mapdir string, __genmapdir string) (error, int) {
+func LoadGenericKprobeRetProgram(__version, __verbosity int, __fullcopy bool, btf uintptr, object, attach, __label, __prog, __mapdir string, __genmapdir string) (error, int) {
 	version := C.int(__version)
 	verbosity := C.int(__verbosity)
 	o := C.CString(object)
 	a := C.CString(attach)
 	l := C.CString(__label)
 	p := C.CString(__prog)
+	fullcopy := C.bool(__fullcopy)
 	mapdir := C.CString(__mapdir)
 	genmapdir := C.CString(__genmapdir)
-	loader_fd := C.generic_kprobe_ret_loader(version, verbosity, unsafe.Pointer(btf), o, a, l, p, mapdir, genmapdir)
+	loader_fd := C.generic_kprobe_ret_loader(version, verbosity, fullcopy, unsafe.Pointer(btf), o, a, l, p, mapdir, genmapdir)
 	loaderInt := int(loader_fd)
 	if loaderInt < 0 {
 		return fmt.Errorf("Unable to kprobe load: %d %s", loaderInt, object), 0

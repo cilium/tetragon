@@ -6,6 +6,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
+#include "data_msg.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum { filter = -2,
@@ -39,6 +40,7 @@ enum { char_buf_enomem = -1,
        char_buf_pagefault = -2,
        char_buf_toolarge = -3,
        char_buf_saved_for_retprobe = -4,
+       char_buf_fullcopy_arg = -5,
 };
 
 enum { ACTION_POST = 0,
@@ -109,6 +111,56 @@ static inline __attribute__((always_inline)) int return_error(int *s, int err)
 	return sizeof(int);
 }
 
+static inline __attribute__((always_inline)) char *
+args_off(struct msg_generic_kprobe *e, long off)
+{
+	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off) :);
+	return e->args + off;
+}
+
+static inline __attribute__((always_inline)) long
+full_copy_set(struct msg_generic_kprobe *e, long off, unsigned long arg,
+	      size_t bytes, bool cont)
+{
+	long size = sizeof(struct data_event_desc);
+	int fci = e->full_copy.cnt & 7;
+
+	if (e->full_copy.cnt > 7)
+		return return_error((int *)args_off(e, off), char_buf_toolarge);
+
+	if (fci == 0) {
+		e->full_copy.off = off;
+		/* we store: char_buf_fullcopy_arg | bytes | desc | desc ... */
+		off += 8;
+		size += 8;
+	}
+
+	e->full_copy.bytes += bytes;
+	e->full_copy.data[fci].cont = cont;
+	e->full_copy.data[fci].off = off;
+	e->full_copy.data[fci].arg = arg;
+	e->full_copy.data[fci].bytes = bytes;
+	e->full_copy.cnt++;
+	return size;
+}
+
+static inline __attribute__((always_inline)) void
+full_copy_init(struct msg_generic_kprobe *e)
+{
+	e->full_copy.cnt = 0;
+	e->full_copy.bytes = 0;
+}
+
+static inline __attribute__((always_inline)) void
+full_copy_set_last(struct msg_generic_kprobe *e, int cnt)
+{
+	int fci = (e->full_copy.cnt - 1) & 7;
+
+	if (cnt > 7)
+		e->full_copy.bytes++;
+	e->full_copy.data[fci].cont = false;
+}
+
 /* Error writer for use when pointer *s is lost to stack and can not
  * be recoved with known bounds. We had to push this via asm to stop
  * clang from omitting some checks and applying code motion on us.
@@ -125,13 +177,30 @@ return_stack_error(char *args, int orig, int err)
 	return sizeof(int);
 }
 
+static inline __attribute__((always_inline)) bool has_max(unsigned long max)
+{
+	return max != (unsigned long)-1;
+}
+
+/**
+ * Parse and read single struct iovec data
+ *
+ * @off: offset into msg_generic_kprobe::args
+ * @arg: pointer to iovec data to copy from
+ * @maxp: pointer to maximum bytes to read
+ * @e: pointer to struct msg_generic_kprobe
+ *
+ * Reads iovec data descriptor from @arg pointer
+ * and reads its @bytes bytes into @e->args[@off].
+ */
 static inline __attribute__((always_inline)) int
-parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
-		  unsigned long max)
+parse_iovec_array(long off, unsigned long arg, int i, unsigned long *maxp,
+		  bool fullCopy, struct msg_generic_kprobe *e)
 {
 	struct iovec
 		iov; // limit is 1024 using a hack now. For 5.4 kernel we should loop over 1024
 	char index = sizeof(struct iovec) * i;
+	unsigned long max = *maxp;
 	__u64 size;
 	int err;
 
@@ -139,15 +208,19 @@ parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
 	if (err < 0)
 		return char_buf_pagefault;
 	size = iov.iov_len;
-	if (max && size > max)
-		size = max;
+	if (has_max(max)) {
+		if (size > max)
+			size = max;
+		*maxp -= size;
+	}
+	if (fullCopy)
+		return full_copy_set(e, off, (unsigned long)iov.iov_base, size,
+				     true);
+
 	if (size > 4094)
 		return char_buf_toolarge;
-	asm volatile("%[off] &= 0xfff;\n"
-		     "%[size] &= 0xfff;\n" ::[off] "+r"(off),
-		     [size] "+r"(size)
-		     :);
-	err = probe_read(&args[off], size, (char *)iov.iov_base);
+	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size) :);
+	err = probe_read(args_off(e, off), size, (char *)iov.iov_base);
 	if (err < 0)
 		return char_buf_pagefault;
 	return size;
@@ -160,15 +233,12 @@ parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
 		/* embedding this in the loop counter breaks verifier */       \
 		if (i >= cnt)                                                  \
 			goto char_iovec_done;                                  \
-		c = parse_iovec_array(args, arg, i, off, max);                 \
+		c = parse_iovec_array(off, arg, i, &max, fullCopy, e);         \
 		if (c < 0)                                                     \
 			return return_stack_error(args, 0, c);                 \
 		size += c;                                                     \
-		if (max) {                                                     \
-			max -= c;                                              \
-			if (!max)                                              \
-				goto char_iovec_done;                          \
-		}                                                              \
+		if (has_max(max) && !max)                                      \
+			goto char_iovec_done;                                  \
 		c &= 0x7fff;                                                   \
 		off += c;                                                      \
 		i++;                                                           \
@@ -393,11 +463,18 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 
 #define ARGM_INDEX_MASK	 ((1 << 4) - 1)
 #define ARGM_RETURN_COPY (1 << 4)
+#define ARGM_FULL_COPY	 (1 << 5)
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
 {
 	return (argm & ARGM_RETURN_COPY) != 0;
+}
+
+static inline __attribute__((always_inline)) bool
+hasFullCopy(unsigned long argm)
+{
+	return (argm & ARGM_FULL_COPY) != 0;
 }
 
 static inline __attribute__((always_inline)) unsigned long
@@ -418,17 +495,36 @@ get_arg_meta(int meta, struct msg_generic_kprobe *e)
 	return 0;
 }
 
+/**
+ * Read char_buf argument
+ *
+ * @off: offset into msg_generic_kprobe::args
+ * @arg: pointer to char_buf data to copy from
+ * @bytes: number of bytes to copy
+ * @e: pointer to struct msg_generic_kprobe
+ * @fullCopy: are we doing full copy
+ *
+ * Reads char_buf @bytes bytes into @e->args[@off]
+ * from @arg pointer or registers the full copy data
+ * and stores full copy descriptor is @fullCopy is
+ * true.
+ */
 static inline __attribute__((always_inline)) long
-__copy_char_buf(char *args, unsigned long arg, unsigned long bytes)
+__copy_char_buf(long off, unsigned long arg, unsigned long bytes,
+		struct msg_generic_kprobe *e, bool fullCopy)
 {
-	int *s = (int *)args;
+	int *s = (int *)args_off(e, off);
 	size_t rd_bytes;
 	int err;
 
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes;
 	rd_bytes &= 0xfff;
-	err = probe_read(&args[8], rd_bytes, (char *)arg);
+
+	if (bytes > rd_bytes && fullCopy)
+		return full_copy_set(e, off, arg, bytes, false);
+
+	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)
 		return return_error(s, char_buf_pagefault);
 	s[0] = (int)bytes;
@@ -437,21 +533,22 @@ __copy_char_buf(char *args, unsigned long arg, unsigned long bytes)
 }
 
 static inline __attribute__((always_inline)) long
-copy_char_buf(void *ctx, char *args, unsigned long arg, int argm,
+copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
 {
-	int *s = (int *)args;
+	bool fullCopy = hasFullCopy(argm);
+	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 	size_t bytes = 0;
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set(tid, arg);
+		retprobe_map_set(tid, arg, fullCopy);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(args, arg, bytes);
+	return __copy_char_buf(off, arg, bytes, e, fullCopy);
 }
 
 static inline __attribute__((always_inline)) long
@@ -559,42 +656,54 @@ filter_file_buf(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
-__copy_char_iovec(char *args, unsigned long arg, unsigned long meta,
-		  unsigned long max)
+__copy_char_iovec(long off, unsigned long arg, unsigned long meta,
+		  unsigned long max, struct msg_generic_kprobe *e,
+		  bool fullCopy)
 {
-	long size, off = 0;
-	int err, i = 0, cnt, *s = (int *)&args[off];
+	char *args = args_off(e, off);
+	long size;
+	int err, i = 0, cnt, *s = (int *)args;
 
 	err = probe_read(&cnt, sizeof(cnt), &meta);
 	if (err < 0) {
 		return return_stack_error(args, 0, char_buf_pagefault);
 	}
 
+	max = max ?: (unsigned long)-1;
 	size = 0;
-	off += 8;
+	// We don't return size below for fullCopy case
+	if (!fullCopy)
+		off += 8;
 	PARSE_IOVEC_ENTRIES // may return an error directly
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
-		char_iovec_done : s = (int *)args;
+
+		char_iovec_done : if (fullCopy)
+	{
+		full_copy_set_last(e, cnt);
+		return size;
+	}
+
 	s[0] = size;
 	s[1] = size;
 	return size + 8;
 }
 
 static inline __attribute__((always_inline)) long
-copy_char_iovec(void *ctx, char *args, unsigned long arg, int argm,
+copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
-	int *s = (int *)&args[0];
+	bool fullCopy = hasFullCopy(argm);
+	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
 	meta = get_arg_meta(argm, e);
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(tid, arg, meta);
+		retprobe_map_set_iovec(tid, arg, meta, fullCopy);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	return __copy_char_iovec(args, arg, meta, 0);
+	return __copy_char_iovec(off, arg, meta, 0, e, fullCopy);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1011,7 +1120,8 @@ out:
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks)
+		struct bpf_map_def *override_tasks,
+		struct bpf_map_def *data_heap)
 {
 	struct msg_generic_kprobe *e;
 	int pass, zero = 0;
@@ -1083,6 +1193,11 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	}
 #endif
 
+	if (data_heap && e->full_copy.cnt) {
+		tail_call(ctx, tailcalls, 11);
+		return 2;
+	}
+
 	total = e->common.size + generic_kprobe_common_size();
 	/* Code movement from clang forces us to inline bounds checks here */
 	asm volatile("%[total] &= 0x7fff;\n"
@@ -1119,8 +1234,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	if (orig_off >= 16383 - min_size) {
 		return 0;
 	}
-	asm volatile("%[orig_off] &= 0x3fff;\n" ::[orig_off] "+r"(orig_off) :);
-	args += orig_off;
+	args = args_off(e, orig_off);
 
 	/* Cache args offset for filter use later */
 	e->argsoff[index] = orig_off;
@@ -1199,10 +1313,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_cred(args, arg);
 		break;
 	case char_buf:
-		size = copy_char_buf(ctx, args, arg, argm, e);
+		size = copy_char_buf(ctx, orig_off, arg, argm, e);
 		break;
 	case char_iovec:
-		size = copy_char_iovec(ctx, args, arg, argm, e);
+		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	default:
 		size = 0;

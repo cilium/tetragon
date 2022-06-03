@@ -24,6 +24,8 @@ enum msg_ops {
 
 	MSG_OP_CLONE = 23,
 
+	MSG_OP_DATA = 24,
+
 	MSG_OP_MAX,
 };
 #endif // _MSG_TYPES_

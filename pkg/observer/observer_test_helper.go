@@ -62,6 +62,7 @@ type testObserverOptions struct {
 	config     string
 	lib        string
 	notestfail bool
+	numPages   int
 }
 
 type testExporterOptions struct {
@@ -109,6 +110,12 @@ func WithLib(lib string) TestOption {
 func withNotestfail(notestfail bool) TestOption {
 	return func(o *TestOptions) {
 		o.observer.notestfail = notestfail
+	}
+}
+
+func WithNumPages(numPages int) TestOption {
+	return func(o *TestOptions) {
+		o.observer.numPages = numPages
 	}
 }
 
@@ -210,10 +217,11 @@ func newDefaultTestOptions(t *testing.T, opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
-			pretty: false,
-			crd:    false,
-			config: "",
-			lib:    "",
+			pretty:   false,
+			crd:      false,
+			config:   "",
+			lib:      "",
+			numPages: 16,
 		},
 		exporter: testExporterOptions{
 			watcher:     watcher.NewFakeK8sWatcher(nil),
@@ -307,6 +315,7 @@ func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
 
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
 	obs.perfConfig.MapName = filepath.Join(observerTestDir, "tcpmon_map")
+	obs.perfConfig.NumPages = o.observer.numPages
 	return obs, nil
 }
 

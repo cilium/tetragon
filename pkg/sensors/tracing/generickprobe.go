@@ -14,8 +14,10 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
@@ -47,6 +49,7 @@ func init() {
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	sensors.RegisterTracingSensorsAtInit(kprobe.name, kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_DATA, handleData)
 }
 
 const (
@@ -74,7 +77,61 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
+	CharBufFullCopyArg      = -5
 )
+
+var (
+	dataMap map[tracingapi.DataEventId][]byte = make(map[tracingapi.DataEventId][]byte)
+)
+
+func dataAdd(r *bytes.Reader, m *tracingapi.MsgData) error {
+	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
+	msgData := make([]byte, size)
+
+	err := binary.Read(r, binary.LittleEndian, &msgData)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Failed to read data msg payload")
+		return err
+	}
+
+	data := dataMap[m.Id]
+	if data == nil {
+		dataMap[m.Id] = msgData
+	} else {
+		data = append(data, msgData...)
+		dataMap[m.Id] = data
+	}
+
+	logger.GetLogger().Debugf("Data message received id %v, size %v, total %v", m.Id, size, len(data))
+	return nil
+}
+
+func dataGet(id tracingapi.DataEventId) ([]byte, error) {
+	data := dataMap[id]
+	if data == nil {
+		return nil, fmt.Errorf("failed to find data for id: %v", id)
+	}
+
+	delete(dataMap, id)
+	logger.GetLogger().Debugf("Data message used id %v, data len %v", id, len(data))
+	return data, nil
+}
+
+func handleData(r *bytes.Reader) ([]observer.Event, error) {
+	m := tracingapi.MsgData{}
+	err := binary.Read(r, binary.LittleEndian, &m)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read data msg")
+	}
+
+	err = dataAdd(r, &m)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to add data msg")
+	}
+
+	// we don't send the event further
+	return nil, nil
+}
 
 func kprobeCharBufErrorToString(e int32) string {
 	switch e {
@@ -203,16 +260,22 @@ var (
 
 const (
 	argReturnCopyBit = 1 << 4
+	argFullCopyBit   = 1 << 5
 )
 
 func argReturnCopy(meta int) bool {
 	return meta&argReturnCopyBit != 0
 }
 
+func argFullCopy(meta int) bool {
+	return meta&argFullCopyBit != 0
+}
+
 // meta value format:
 // bits
 //  0-3 : SizeArgIndex
 //    4 : ReturnCopy
+//    5 : FullCopy
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -224,6 +287,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
+	}
+	if arg.FullCopy {
+		meta = meta | argFullCopyBit
 	}
 	return meta, nil
 }
@@ -283,6 +349,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			}
 		}
 
+		var hasFullCopy bool
+
 		// Parse Arguments
 		for j, a := range f.Args {
 			argType := gt.GenericTypeFromString(a.Type)
@@ -292,6 +360,12 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			argMValue, err := getMetaValue(&a)
 			if err != nil {
 				return nil, err
+			}
+			if argFullCopy(argMValue) {
+				if hasFullCopy {
+					return nil, fmt.Errorf("Error only one fullCopy argument supported")
+				}
+				hasFullCopy = true
 			}
 			if argReturnCopy(argMValue) {
 				argRetprobe = &f.Args[j]
@@ -491,6 +565,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			"generic_kprobe").
 			SetLoaderData(kprobeEntry.tableId)
 		load.Override = hasOverride
+		load.FullCopy = hasFullCopy
 		progs = append(progs, load)
 
 		if setRetprobe {
@@ -502,6 +577,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 				"generic_kprobe").
 				SetRetProbe(true).
 				SetLoaderData(kprobeEntry.tableId)
+			loadret.FullCopy = hasFullCopy
 			progs = append(progs, loadret)
 		}
 
@@ -519,7 +595,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 	progpath := filepath.Join(bpfDir, p.PinPath)
 	err, _ := bpf.LoadGenericKprobeProgram(
 		version, option.Config.Verbosity,
-		p.Override, btf,
+		p.Override, p.FullCopy, btf,
 		p.Name,
 		p.Attach,
 		p.Label,
@@ -549,7 +625,7 @@ func loadGenericKprobe(bpfDir, mapDir string, version int, p *program.Program, b
 
 func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program, btf uintptr, genmapDir string) error {
 	err, _ := bpf.LoadGenericKprobeRetProgram(
-		version, option.Config.Verbosity, btf,
+		version, option.Config.Verbosity, p.FullCopy, btf,
 		p.Name,
 		p.Attach,
 		p.Label,
@@ -605,6 +681,36 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 	return strVal
 }
 
+func readFullCopyArg(r *bytes.Reader) ([]byte, bool, error) {
+	var desc tracingapi.DataEventDesc
+
+	if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
+		return nil, false, fmt.Errorf("CharBufFullCopyArg: failed to desc data for buffer argument: %w", err)
+	}
+
+	more := desc.Flags&tracingapi.DATA_EVENT_DESC_FLAGS_CONT != 0
+
+	logger.GetLogger().Debugf("CharBufFullCopyArg: desc (Error %v, Leftover %v, Id %v, More %v)",
+		desc.Error, desc.Leftover, desc.Id, more)
+
+	if desc.Error < 0 {
+		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
+		return nil, false, nil
+	}
+
+	data, err := dataGet(desc.Id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if desc.Leftover != 0 {
+		logger.GetLogger().Debugf("CharBufFullCopyArg: bpf failed to read data")
+		return data, false, nil
+	}
+
+	return data, more, nil
+}
+
 func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, error) {
 	var bytes, bytes_rd int32
 	var arg api.MsgGenericKprobeArgBytes
@@ -617,6 +723,34 @@ func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, er
 	if bytes == CharBufSavedForRetprobe {
 		return &arg, nil
 	}
+	if bytes == CharBufFullCopyArg {
+		var err error
+		var origSize uint32
+		var data []byte
+		var more bool
+
+		if err := binary.Read(r, binary.LittleEndian, &origSize); err != nil {
+			return nil, fmt.Errorf("CharBufFullCopyArg: failed to read original size for buffer argument: %w", err)
+		}
+
+		// All our data should be already stored, because it's posted
+		// on same CPU ring buffer as (and before) kprobe event within
+		// kprobe bpf program, that can't migrate on another cpu
+
+		arg.OrigSize = uint64(origSize)
+
+		for {
+			if data, more, err = readFullCopyArg(r); err != nil {
+				break
+			}
+			arg.Value = append(arg.Value, data...)
+			if !more {
+				break
+			}
+		}
+		return &arg, err
+	}
+
 	// bpf-side returned an error
 	if bytes < 0 {
 		// NB: once we extended arguments to also pass errors, we can change
