@@ -10,7 +10,7 @@ import (
 )
 
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventchecker/matchers/bytesmatcher")
+	g := common.NewCodegenFile(gen, f, "eventchecker/matchers/bytesmatcher")
 
 	if err := matcher.Generate(g, f); err != nil {
 		return err

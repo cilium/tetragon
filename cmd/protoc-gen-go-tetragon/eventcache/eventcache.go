@@ -56,7 +56,7 @@ func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 
 // Generate generates boilerplate code for the event cache
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventcache")
+	g := common.NewCodegenFile(gen, f, "eventcache")
 
 	tetragonProcess := common.TetragonApiIdent(g, "Process")
 

@@ -9,7 +9,7 @@ import (
 )
 
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventchecker/matchers/listmatcher")
+	g := common.NewCodegenFile(gen, f, "eventchecker/matchers/listmatcher")
 
 	jsonMarshal := common.GoIdent(g, "encoding/json", "Marshal")
 	yamlUnmarshal := common.GoIdent(g, "sigs.k8s.io/yaml", "UnmarshalStrict")
