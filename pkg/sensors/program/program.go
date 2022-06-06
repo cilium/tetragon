@@ -13,8 +13,18 @@ func Builder(
 	ty string,
 ) *Program {
 	return &Program{
-		objFile, attach, label, pinFile, false, true, false, ty,
-		Idle(), -1, struct{}{}, nil,
+		Name:       objFile,
+		Attach:     attach,
+		Label:      label,
+		PinPath:    pinFile,
+		RetProbe:   false,
+		ErrorFatal: true,
+		Override:   false,
+		Type:       ty,
+		LoadState:  Idle(),
+		TraceFD:    -1,
+		LoaderData: struct{}{},
+		unloader:   nil,
 	}
 }
 
