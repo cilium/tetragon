@@ -86,7 +86,7 @@ func eventTypeToResponse(g *protogen.GeneratedFile, f *protogen.File, eventType 
 
 // Generate generates boilerplate code for the filters
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "filters")
+	g := common.NewCodegenFile(gen, f, "filters")
 
 	if err := generateOpCodeForEventType(g, f); err != nil {
 		return err

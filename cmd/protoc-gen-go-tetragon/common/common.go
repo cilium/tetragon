@@ -23,12 +23,11 @@ var TetragonApiPackageName = "api/v1/tetragon"
 var TetragonCopyrightHeader = `// SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon`
 
-// NewGeneratedFile creates a new codegen pakage and file in the project
-func NewGeneratedFile(gen *protogen.Plugin, file *protogen.File, pkg string) *protogen.GeneratedFile {
-	pkgName := filepath.Base(pkg)
-	importPath := filepath.Join(string(file.GoImportPath), "codegen", pkg)
+// NewFile creates a new pakage and file in the project
+func NewFile(gen *protogen.Plugin, file *protogen.File, pkg string, pkgName string, fileName string) *protogen.GeneratedFile {
+	importPath := filepath.Join(string(file.GoImportPath), pkg)
 	pathSuffix := filepath.Base(file.GeneratedFilenamePrefix)
-	fileName := filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, pathSuffix), "codegen", pkg, fmt.Sprintf("%s.pb.go", pkgName))
+	fileName = filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, pathSuffix), pkg, fmt.Sprintf("%s.pb.go", fileName))
 	logger.GetLogger().Infof("%s", fileName)
 
 	g := gen.NewGeneratedFile(fileName, protogen.GoImportPath(importPath))
@@ -42,6 +41,14 @@ func NewGeneratedFile(gen *protogen.Plugin, file *protogen.File, pkg string) *pr
 	g.P()
 
 	return g
+}
+
+// NewCodegenFile creates a new codegen pakage and file in the project
+func NewCodegenFile(gen *protogen.Plugin, file *protogen.File, pkg string) *protogen.GeneratedFile {
+	pkgName := filepath.Base(pkg)
+	pkg = filepath.Join("codegen", pkg)
+
+	return NewFile(gen, file, pkg, pkgName, pkgName)
 }
 
 // GoIdent is a convenience helper that returns a qualified go ident as a string for

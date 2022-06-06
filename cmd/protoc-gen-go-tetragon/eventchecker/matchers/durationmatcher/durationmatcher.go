@@ -10,7 +10,7 @@ import (
 )
 
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventchecker/matchers/durationmatcher")
+	g := common.NewCodegenFile(gen, f, "eventchecker/matchers/durationmatcher")
 
 	// Force an import of durationpb.Duration
 	common.GoIdent(g, "google.golang.org/protobuf/types/known/durationpb", "Duration")

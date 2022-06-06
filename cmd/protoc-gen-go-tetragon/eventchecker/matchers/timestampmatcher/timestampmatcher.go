@@ -10,7 +10,7 @@ import (
 )
 
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventchecker/matchers/timestampmatcher")
+	g := common.NewCodegenFile(gen, f, "eventchecker/matchers/timestampmatcher")
 
 	// Force an import of timestamppb.Timestamp
 	common.GoIdent(g, "google.golang.org/protobuf/types/known/timestamppb", "Timestamp")

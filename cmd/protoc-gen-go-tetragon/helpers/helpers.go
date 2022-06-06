@@ -160,7 +160,7 @@ func generateEventGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
 
 // Generate generates boilerplate helpers
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "helpers")
+	g := common.NewCodegenFile(gen, f, "helpers")
 
 	g.P(`type event interface {
         // Represents a generic Tetragon event

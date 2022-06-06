@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventchecker"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/filters"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/helpers"
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/types"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
@@ -20,6 +21,7 @@ var Generators = []GeneratorFunc{
 	filters.Generate,
 	helpers.Generate,
 	eventchecker.Generate,
+	types.Generate,
 }
 
 func Generate() {

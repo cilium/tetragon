@@ -13,8 +13,8 @@ import (
 
 // Generate generates boilerplate code for the eventcheckers
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewGeneratedFile(gen, f, "eventchecker")
-	yaml := common.NewGeneratedFile(gen, f, "eventchecker/yaml")
+	g := common.NewCodegenFile(gen, f, "eventchecker")
+	yaml := common.NewCodegenFile(gen, f, "eventchecker/yaml")
 
 	if err := generateEventCheckerConf(yaml, f); err != nil {
 		return err
@@ -104,9 +104,10 @@ func generateEventToChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 
 func generateInterfaces(g *protogen.GeneratedFile, f *protogen.File) error {
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonEvent := common.TetragonApiIdent(g, "Event")
 
 	g.P(`// Event is an empty interface used for events like ProcessExec, etc.
-    type Event interface {}`)
+    type Event ` + tetragonEvent)
 
 	g.P(`// EventChecker is an interface for checking a Tetragon event
     type EventChecker interface {
