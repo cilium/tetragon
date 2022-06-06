@@ -24,6 +24,7 @@ func Builder(
 		LoadState:  Idle(),
 		TraceFD:    -1,
 		LoaderData: struct{}{},
+		MapLoad:    nil,
 		unloader:   nil,
 		PinMap:     make(map[string]string),
 	}
@@ -31,6 +32,11 @@ func Builder(
 
 func GetProgramInfo(l *Program) (program, label, prog string) {
 	return l.Name, l.Label, l.PinPath
+}
+
+type MapLoad struct {
+	Name string
+	Data []byte
 }
 
 // Program reprents a BPF program.
@@ -69,6 +75,8 @@ type Program struct {
 
 	// LoaderData represents per-type specific fields.
 	LoaderData interface{}
+
+	MapLoad []*MapLoad
 
 	// unloader for the program. nil if not loaded.
 	unloader unloader.Unloader

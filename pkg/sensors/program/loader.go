@@ -221,6 +221,16 @@ func LoadProgram(
 		return fmt.Errorf("installing tail calls failed: %s", err)
 	}
 
+	for _, mapLoad := range load.MapLoad {
+		if m, ok := coll.Maps[mapLoad.Name]; ok {
+			if err := m.Update(uint32(0), mapLoad.Data, ebpf.UpdateAny); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("populating map failed as map '%s' was not found from collection", mapLoad.Name)
+		}
+	}
+
 	prog, ok := coll.Programs[progSpec.Name]
 	if !ok {
 		return fmt.Errorf("program for section '%s' not found", load.Label)
