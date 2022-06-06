@@ -30,7 +30,7 @@ blocking, and reacting to events directly in the kernel instead of sending
 events to a user space agent.
 
 For an observability use case, applying filters directly in the kernel drastically reduces
-observation overhead. By avoiding expensive context switching and wakeups, especially
+observation overhead. By avoiding expensive context switching and wake-ups, especially
 for high frequency events, such as send, read, or write operations, eBPF reduces required
 resources. Instead, Tetragon provides rich filters (file, socket, binary names, namespace/capabilities,
 etc.) in eBPF, which allows users to specify the important and relevant events in their
@@ -134,7 +134,7 @@ helm install tetragon cilium/tetragon -n kube-system
 kubectl rollout status -n kube-system ds/tetragon -w
 ```
 
-By default kube-system pods are filtered for the examples below we use the demo
+By default, kube-system pods are filtered for the examples below we use the demo
 deployment from [Cilium](https://docs.cilium.io/en/v1.11/gettingstarted/http/#gs-http)
 to generate events.
 

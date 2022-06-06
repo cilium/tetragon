@@ -19,7 +19,7 @@ merged upstream.
 Docs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#managing-github-actions-permissions-for-your-repository>)
    - This is recommended to avoid unnecessary CI notification failures on the fork.
 
-4. Clone your `${YOUR_GITHUB_USERNAME_OR_ORG}/tetragon` fork into your `GOPATH`, and setup the base repository as `upstream` remote:
+4. Clone your `${YOUR_GITHUB_USERNAME_OR_ORG}/tetragon` fork into your `GOPATH`, and set up the base repository as `upstream` remote:
 
 ```
    mkdir -p "${GOPATH}/src/github.com/cilium"
@@ -206,7 +206,7 @@ If you are on a Mac, use Vagrant to create a dev VM:
 
    - Describe the changes in the commit messages. Focus on answering the question why the change is required and document anything that might be unexpected.
    - If any description is required to understand your code changes, then those instructions should be code comments instead of statements in the commit description.
-   - For submitting PRs, all commits need be to signed off `(git commit -s)`. See the section [Developer's Cetificate of Origin](#developers-certificate-of-origin)
+   - For submitting PRs, all commits need to be signed off `(git commit -s)`. See the section [Developer's Certificate of Origin](#developers-certificate-of-origin)
 
 5. Make sure your changes meet the following criteria:
 
