@@ -3,10 +3,33 @@
 
 package types
 
-import "google.golang.org/protobuf/compiler/protogen"
+import (
+	"path/filepath"
 
-const (
-	WrappersPath  = protogen.GoImportPath("google.golang.org/protobuf/types/known/wrapperspb")
-	TimestampPath = protogen.GoImportPath("google.golang.org/protobuf/types/known/timestamppb")
-	DurationPath  = protogen.GoImportPath("google.golang.org/protobuf/types/known/durationpb")
+	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
+	"google.golang.org/protobuf/compiler/protogen"
 )
+
+func Generate(gen *protogen.Plugin, f *protogen.File) error {
+	g := common.NewFile(gen, f, "", filepath.Base(common.TetragonApiPackageName), "types")
+
+	events, err := common.GetEvents(f)
+	if err != nil {
+		return err
+	}
+
+	g.P(`// Event represents a Tetragon event
+    type Event interface {
+        __isEvent()
+    }`)
+
+	// Generate impls
+	for _, event := range events {
+		g.P(`func (event *` + event.GoIdent.GoName + `) __isEvent() {}`)
+	}
+
+	g.P(`// ResponseEvent represents a Tetragon GetEventsResponse inner type
+    type ResponseEvent isGetEventsResponse_Event`)
+
+	return nil
+}
