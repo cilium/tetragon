@@ -269,7 +269,7 @@ func CheckerFromResponse(response *tetragon.GetEventsResponse) (EventChecker, er
 }
 
 // Event is an empty interface used for events like ProcessExec, etc.
-type Event interface{}
+type Event tetragon.Event
 
 // EventChecker is an interface for checking a Tetragon event
 type EventChecker interface {
