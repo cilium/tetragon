@@ -58,7 +58,7 @@ done
 
 # Detect if we are running in kind
 set +e
-kubectl cluster-info dump | grep -q '"kind": "NodeList"' &>/dev/null
+kubectl config current-context | grep -q '^kind' &>/dev/null
 if [ $? == 0 ]; then
     IS_KIND=1
 else
