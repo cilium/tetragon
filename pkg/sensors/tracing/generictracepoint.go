@@ -345,6 +345,9 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 
 		prog0.LoaderData = tp.tableIdx
 		progs = append(progs, prog0)
+
+		fdinstall := program.MapBuilder("fdinstall_map", prog0)
+		maps = append(maps, fdinstall)
 	}
 
 	return &sensors.Sensor{
