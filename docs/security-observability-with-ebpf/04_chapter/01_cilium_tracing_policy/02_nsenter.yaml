@@ -5,8 +5,11 @@ metadata:
   name: "deny-nsenter"
 spec:
   kprobes:
-  - call: "<TBD>"
-    syscall: false
+  - call: "__x64_sys_setns"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
     selectors:
     - matchPIDs:
       # match host processes
@@ -21,15 +24,5 @@ spec:
         isNamespacePID: true
         values:
         - 1
-    # match on mount, network, uts, pid, ipc, user host namespaces
-    - matchNamespaceChanges:
-      - operator: In
-        values:
-        - "mount"
-        - "network"
-        - "uts"
-        - "pid"
-        - "ipc"
-        - "user"
     - matchActions:
       - action: Sigkill
