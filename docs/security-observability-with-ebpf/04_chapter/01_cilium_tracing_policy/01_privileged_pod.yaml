@@ -1,12 +1,17 @@
-# Deny a privileged pod start
-apiVersion: cilium.io/v1alpha1
+apiVersion: isovalent.com/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "deny-privileged-pod-start"
 spec:
   kprobes:
-  - call: "<TBD>"
+  # match open fd_install at pod start
+  - call: "fd_install"
     syscall: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
     selectors:
     # match all the namespace PIDs including init
     - matchPIDs:
@@ -15,17 +20,23 @@ spec:
         isNamespacePID: true
         values:
         - 0
-    # match a process with CAP_SYS_ADMIN
-    - matchCapabilities:
-      - operator: In
-        isNamespaceCapability: true
+      # match a process with CAP_SYS_ADMIN
+      matchCapabilities:
+      - type: Effective
+        operator: In
         values:
         - "CAP_SYS_ADMIN"
-    # match on containerd-shim binary
-    - matchBinarys:
-      - operator: "In"
+      # match a process with CAP_SYS_ADMIN that gained it later
+      matchCapabilityChanges:
+      - type: Effective
+        operator: In
         values:
-        - "/usr/bin/containerd-shim"
-    # terminate the process
-    - matchActions:
-      - action: Sigkill
+        - "CAP_SYS_ADMIN"
+      # match on containerd-shim binary
+      - matchBinaries:
+        - operator: "In"
+          values:
+          - "/usr/bin/containerd-shim"
+      # terminate the process
+      - matchActions:
+        - action: Sigkill
