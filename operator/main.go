@@ -87,7 +87,7 @@ func runOperator() {
 		log.WithError(err).Fatal("Unable to check k8s version")
 	}
 
-	log.Infof("Hubble Operator: %s", version.Version)
+	log.Infof("Tetragon Operator: %s", version.Version)
 	capabilities := k8sversion.Capabilities()
 	if !capabilities.MinimalVersionMet {
 		log.Fatalf("Minimal kubernetes version not met: %s < %s",
