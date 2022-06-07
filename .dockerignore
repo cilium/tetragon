@@ -1,6 +1,17 @@
-fgs-bench-rootfs*
-mnt
-bin
-ksrc
-kbuild
-contrib/kvm
+# Ignore VCS
+.git/
+
+# Ignore compiled binaries and libraries
+go-tests/
+lib/
+bin/
+bpf/objs
+tetra
+tetragon
+tetragon-alignchecker
+contrib/tester-progs/capabilities-tester
+contrib/tester-progs/dup-tester
+contrib/tester-progs/fork-tester
+contrib/tester-progs/namespace-tester
+contrib/tester-progs/sigkill-tester
+contrib/tester-progs/trigger-test-events
