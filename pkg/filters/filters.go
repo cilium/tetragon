@@ -102,12 +102,20 @@ func GetProcess(event *v1.Event) *tetragon.Process {
 	if event == nil {
 		return nil
 	}
-	return helpers.ResponseGetProcess(event.Event)
+	response, ok := event.Event.(*tetragon.GetEventsResponse)
+	if !ok {
+		return nil
+	}
+	return helpers.ResponseGetProcess(response)
 }
 
 func GetParent(event *v1.Event) *tetragon.Process {
 	if event == nil {
 		return nil
 	}
-	return helpers.ResponseGetParent(event.Event)
+	response, ok := event.Event.(*tetragon.GetEventsResponse)
+	if !ok {
+		return nil
+	}
+	return helpers.ResponseGetParent(response)
 }
