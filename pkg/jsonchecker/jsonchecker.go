@@ -58,7 +58,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		}
 		count++
 		prefix := fmt.Sprintf("jsonTestCheck/line:%04d ", count)
-		eType, err := helpers.EventTypeString(ev.Event)
+		eType, err := helpers.ResponseTypeString(&ev)
 		if err != nil {
 			eType = "<UNKNOWN>"
 		}
