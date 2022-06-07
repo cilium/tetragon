@@ -20,13 +20,17 @@ FORCE=0
 usage() {
 	echo "usage: bootstrap-kind-cluster.sh [OPTIONS]" 1>&2
 	echo "OPTIONS:" 1>&2
-    echo "    -f,--force  force bootstrapping even if cluster already exists" 1>&2
+    echo "    -f,--force    force bootstrapping even if cluster already exists" 1>&2
+    echo "       --cluster  override cluster name" 1>&2
 }
 
 while [ $# -ge 1 ]; do
 	if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then
         FORCE=1
 		shift 1
+    elif [ "$1" == "--cluster" ]; then
+        CLUSTER_NAME="$2"
+		shift 2
     else
         usage
         exit 1
