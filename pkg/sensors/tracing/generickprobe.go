@@ -186,6 +186,7 @@ func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
 
 func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) (*sensors.Sensor, error) {
 	var progs []*program.Program
+	var maps []*program.Map
 
 	btfobj := bpf.BTFNil
 	defer func() {
@@ -400,6 +401,9 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		load.Override = hasOverride
 		progs = append(progs, load)
 
+		fdinstall := program.MapBuilder("fdinstall_map", load)
+		maps = append(maps, fdinstall)
+
 		if setRetprobe {
 			loadret := program.Builder(
 				path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -418,7 +422,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 	return &sensors.Sensor{
 		Name:  "__generic_kprobe_sensors__",
 		Progs: progs,
-		Maps:  []*program.Map{},
+		Maps:  maps,
 	}, nil
 }
 

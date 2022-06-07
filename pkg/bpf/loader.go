@@ -355,26 +355,10 @@ void *generic_loader_args(
 	struct bpf_map *map_bpf, *map_fdinstall;
 	struct bpf_object *obj;
 	char *filter_map = "filter_map";
-	char *fdinstall_map = "fdinstall_map";
 
 	obj = __loader(version, verbosity, override, btf, prog, mapdir, 0, type);
 	if (!obj)
 		goto err;
-
-	map_fdinstall = bpf_object__find_map_by_name(obj, fdinstall_map);
-	if (map_fdinstall) {
-		snprintf(map_name, sizeof(map_name), "%s/fdinstall_map", mapdir);
-		bpf_map__unpin(map_fdinstall, map_name);
-		err = bpf_map__pin(map_fdinstall, map_name);
-		if (err < 0) {
-			fprintf(stderr, "bpf_map__pin: obj(%s) map(fd_map) failed: %i", map_name, err);
-			goto err;
-		}
-	} else {
-		fprintf(stderr, "bpf_object__find_map_by_name (%s): fdinstall_map failed\n",
-			fdinstall_map);
-		goto err;
-	}
 
 	map_fd = bpf_object__find_map_fd_by_name(obj, filter_map);
 	if (map_fd >= 0) {
