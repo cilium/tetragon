@@ -26,6 +26,7 @@ usage() {
     echo "    -i,--image     <IMAGE:TAG> override image for agent" 1>&2
     echo "    -o, --operator <IMAGE:TAG> override image for operator" 1>&2
     echo "    -v, --values   <PATH>      additional values file for helm install" 1>&2
+    echo "       --cluster               override cluster name" 1>&2
 }
 
 FORCE=0
@@ -45,6 +46,9 @@ while [ $# -ge 1 ]; do
 		shift 2
     elif [ "$1" == "--values" ] || [ "$1" == "-v" ]; then
         VALUES=$2
+		shift 2
+    elif [ "$1" == "--cluster" ]; then
+        CLUSTER_NAME="$2"
 		shift 2
     else
         usage
