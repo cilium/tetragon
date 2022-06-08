@@ -110,6 +110,46 @@ func StructTag(tag string) string {
 
 var eventsCache []*protogen.Message
 
+type GetEventsResponseOneofInfo struct {
+	TypeName  string
+	FieldName string
+}
+
+func GetEventsResponseOneofs(f *protogen.File) ([]GetEventsResponseOneofInfo, error) {
+	// find the GetEventsResponse type
+	var getEventsResponse *protogen.Message
+	for _, msg := range f.Messages {
+		if msg.GoIdent.GoName == "GetEventsResponse" {
+			getEventsResponse = msg
+			break
+		}
+	}
+	if getEventsResponse == nil {
+		return nil, fmt.Errorf("Unable to find GetEventsResponse message")
+	}
+
+	var eventOneof *protogen.Oneof
+	for _, oneof := range getEventsResponse.Oneofs {
+		if oneof.Desc.Name() == "event" {
+			eventOneof = oneof
+			break
+		}
+	}
+	if eventOneof == nil {
+		return nil, fmt.Errorf("Unable to find GetEventsResponse.event")
+	}
+
+	var info []GetEventsResponseOneofInfo
+	for _, oneof := range eventOneof.Fields {
+		info = append(info, GetEventsResponseOneofInfo{
+			TypeName:  strings.TrimPrefix(oneof.GoIdent.GoName, "GetEventsResponse_"),
+			FieldName: oneof.Desc.TextName(),
+		})
+	}
+
+	return info, nil
+}
+
 // GetEvents returns a list of all messages that are events
 func GetEvents(f *protogen.File) ([]*protogen.Message, error) {
 	if len(eventsCache) == 0 {

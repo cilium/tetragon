@@ -5,24 +5,23 @@ package helpers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
-	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
 func generateEventTypeString(g *protogen.GeneratedFile, f *protogen.File) error {
-	events, err := common.GetEvents(f)
+	oneofs, err := common.GetEventsResponseOneofs(f)
 	if err != nil {
 		return err
 	}
 
 	doCases := func() string {
 		var ret string
-		for _, msg := range events {
-			resGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
-			typeName := strcase.ToScreamingSnake(msg.GoIdent.GoName)
-			typeGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("EventType_%s", typeName))
+		for _, oneof := range oneofs {
+			resGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", oneof.TypeName))
+			typeGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("EventType_%s", strings.ToUpper(oneof.FieldName)))
 
 			ret += `case *` + resGoIdent + `:
                 return ` + typeGoIdent + `.String(), nil
