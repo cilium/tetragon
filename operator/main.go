@@ -47,26 +47,15 @@ var (
 				genMarkdown(cmd, cmdRefDir)
 				os.Exit(0)
 			}
-
-			initEnv()
-			runOperator()
+			operatorExecute()
 		},
 	}
 )
 
-func initEnv() {
+func operatorExecute() {
 	// Prepopulate option.Config with options from CLI.
-	operatorOption.Config.Populate()
-}
+	configPopulate()
 
-func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func runOperator() {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
 		log.WithError(err).Fatal("Unable to check k8s configuration")
@@ -105,4 +94,11 @@ func runOperator() {
 	}
 
 	log.Info("Initialization complete")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
