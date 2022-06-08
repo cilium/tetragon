@@ -21,6 +21,11 @@ var (
 // given the program and it's up to it to close it.
 type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
+type customInstall struct {
+	mapName   string
+	secPrefix string
+}
+
 func RawAttach(targetFD int) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
@@ -81,7 +86,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection) error {
+func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, ci *customInstall) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -119,15 +124,21 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	if err := install("tls_calls", "classifier"); err != nil {
 		return err
 	}
+	if ci != nil {
+		if err := install(ci.mapName, ci.secPrefix); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
-func LoadProgram(
+func loadProgram(
 	bpfDir string,
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
+	ci *customInstall,
 ) error {
 	var btfSpec *btf.Spec
 	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
@@ -216,7 +227,7 @@ func LoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(mapDirs[0], spec, coll)
+	err = installTailCalls(mapDirs[0], spec, coll, ci)
 	if err != nil {
 		return fmt.Errorf("installing tail calls failed: %s", err)
 	}
@@ -265,4 +276,13 @@ func LoadProgram(
 	}
 
 	return nil
+}
+
+func LoadProgram(
+	bpfDir string,
+	mapDirs []string,
+	load *Program,
+	withProgram AttachFunc,
+) error {
+	return loadProgram(bpfDir, mapDirs, load, withProgram, nil)
 }
