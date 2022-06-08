@@ -25,6 +25,7 @@ func Builder(
 		TraceFD:    -1,
 		LoaderData: struct{}{},
 		unloader:   nil,
+		PinMap:     make(map[string]string),
 	}
 }
 
@@ -71,6 +72,8 @@ type Program struct {
 
 	// unloader for the program. nil if not loaded.
 	unloader unloader.Unloader
+
+	PinMap map[string]string
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {

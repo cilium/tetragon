@@ -10,17 +10,23 @@ import (
 // Map represents BPF maps.
 type Map struct {
 	Name      string
+	PinName   string
 	Prog      *Program
 	PinState  State
 	mapHandle *ebpf.Map
 }
 
 func MapBuilder(name string, ld *Program) *Map {
-	return &Map{name, ld, Idle(), nil}
+	return &Map{name, name, ld, Idle(), nil}
+}
+
+func MapBuilderPin(name, pin string, ld *Program) *Map {
+	ld.PinMap[name] = pin
+	return &Map{name, pin, ld, Idle(), nil}
 }
 
 func (m *Map) Unload() error {
-	log := logger.GetLogger().WithField("map", m.Name)
+	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinName)
 	if !m.PinState.IsLoaded() || m.PinState.IsDisabled() {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded or is disabled")
 		return nil

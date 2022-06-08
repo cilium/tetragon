@@ -183,7 +183,7 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 			continue
 		}
 
-		pinPath := filepath.Join(mapDir, m.Name)
+		pinPath := filepath.Join(mapDir, m.PinName)
 
 		// Try to open the pinPath and if it exist use the previously
 		// pinned map otherwise pin the map and next user will find

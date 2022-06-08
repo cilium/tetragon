@@ -172,7 +172,12 @@ func LoadProgram(
 		var m *ebpf.Map
 		var err error
 		for _, mapDir := range mapDirs {
-			mapPath := filepath.Join(mapDir, name)
+			var mapPath string
+			if pinName, ok := load.PinMap[name]; ok {
+				mapPath = filepath.Join(mapDir, pinName)
+			} else {
+				mapPath = filepath.Join(mapDir, name)
+			}
 			m, err = ebpf.LoadPinnedMap(mapPath, nil)
 			if err == nil {
 				break
