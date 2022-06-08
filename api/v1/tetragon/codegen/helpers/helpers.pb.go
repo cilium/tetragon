@@ -31,10 +31,10 @@ func EventTypeString(event event) (string, error) {
 		return tetragon.EventType_PROCESS_KPROBE.String(), nil
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
 		return tetragon.EventType_PROCESS_TRACEPOINT.String(), nil
-	case *tetragon.GetEventsResponse_Test:
-		return tetragon.EventType_TEST.String(), nil
 	case *tetragon.GetEventsResponse_ProcessDns:
 		return tetragon.EventType_PROCESS_DNS.String(), nil
+	case *tetragon.GetEventsResponse_Test:
+		return tetragon.EventType_TEST.String(), nil
 
 	}
 	return "", fmt.Errorf("Unhandled event type %T", event)
