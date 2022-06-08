@@ -49,5 +49,5 @@ func DecodeKtime(ktime int64, monotonic bool) (time.Time, error) {
 	}
 	diff := ktime - currentTime.Nano()
 	t := time.Now().Add(time.Duration(diff))
-	return t.Truncate(1 * time.Millisecond), nil
+	return t, nil
 }
