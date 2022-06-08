@@ -14,11 +14,9 @@
 
 package option
 
-import (
-	"github.com/spf13/viper"
-)
-
 const (
+	TetragonOpEnvPrefix = "TETRAGON_OPERATOR"
+
 	// SkipCRDCreation specifies whether the CustomResourceDefinition will be
 	// disabled for the operator
 	SkipCRDCreation = "skip-crd-creation"
@@ -32,11 +30,6 @@ type OperatorConfig struct {
 	// SkipCRDCreation disables creation of the CustomResourceDefinition
 	// for the operator
 	SkipCRDCreation bool
-}
-
-// Populate sets all options with the values from viper.
-func (c *OperatorConfig) Populate() {
-	c.SkipCRDCreation = viper.GetBool(SkipCRDCreation)
 }
 
 // Config represents the operator configuration.
