@@ -6,20 +6,18 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"path/filepath"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/data"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 func fromCString(cstr []byte) string {
@@ -201,22 +199,11 @@ type execSensor struct {
 }
 
 func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) (int, error) {
-	btfObj := uintptr(btf.GetCachedBTF())
-
-	i, err := bpf.LoadTracingProgram(
-		args.Version,
-		args.Verbose,
-		btfObj,
-		args.Load.Name,
-		args.Load.Attach,
-		args.Load.Label,
-		filepath.Join(args.BPFDir, args.Load.PinPath),
-		args.MapDir,
-	)
+	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load)
 	if err == nil {
 		procevents.GetRunningProcs(true, true)
 	}
-	return i, err
+	return -1, err
 }
 
 func (e *execSensor) SpecHandler(spec interface{}) (*sensors.Sensor, error) {

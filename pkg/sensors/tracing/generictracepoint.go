@@ -9,13 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"path/filepath"
 	"reflect"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -334,12 +332,13 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
+		pinFile := fmt.Sprintf("tracepoint-%s-%s", tp.Info.Subsys, tp.Info.Event)
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
 		prog0 := program.Builder(
 			path.Join(option.Config.HubbleLib, progName),
 			attach,
 			"tracepoint/generic_tracepoint",
-			fmt.Sprintf("tracepoint-%s-%s", tp.Info.Subsys, tp.Info.Event),
+			pinFile,
 			"generic_tracepoint",
 		)
 
@@ -348,6 +347,9 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 
 		fdinstall := program.MapBuilder("fdinstall_map", prog0)
 		maps = append(maps, fdinstall)
+
+		tailCalls := program.MapBuilderPin("tp_calls", fmt.Sprintf("%s-tp-calls", pinFile), prog0)
+		maps = append(maps, tailCalls)
 	}
 
 	return &sensors.Sensor{
@@ -358,7 +360,7 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 }
 
 func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) (int, error) {
-	config := &api.EventConfig{}
+	config := api.EventConfig{}
 
 	tracepointLog = logger.GetLogger()
 
@@ -435,18 +437,16 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		return 0, err
 	}
 
-	return bpf.LoadTracepointArgsProgram(
-		version, option.Config.Verbosity,
-		uintptr(btfObj),
-		load.Name,
-		load.Attach,
-		load.Label,
-		filepath.Join(bpfDir, load.PinPath),
-		mapDir,
-		load.RetProbe,
-		kernelSelectors,
-		config,
-	)
+	filter := &program.MapLoad{Name: "filter_map", Data: kernelSelectors[:]}
+	load.MapLoad = append(load.MapLoad, filter)
+
+	var bin_buf bytes.Buffer
+
+	binary.Write(&bin_buf, binary.LittleEndian, config)
+	cfg := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
+	load.MapLoad = append(load.MapLoad, cfg)
+
+	return -1, program.LoadTracepointProgram(bpfDir, mapDir, load)
 }
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {

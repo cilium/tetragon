@@ -291,14 +291,7 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 	version = kernels.FixKernelVersion(version)
 	btfObj := uintptr(btf.GetCachedBTF())
 	if load.Type == "tracepoint" {
-		return loader.LoadTracingProgram(
-			version, verbose,
-			btfObj,
-			load.Name,
-			load.Attach,
-			load.Label,
-			filepath.Join(bpfDir, load.PinPath),
-			mapDir)
+		return -1, program.LoadTracepointProgram(bpfDir, mapDir, load)
 	} else if load.Type == "cgrp_socket" {
 		err := cgroup.LoadCgroupProgram(
 			bpfDir,
