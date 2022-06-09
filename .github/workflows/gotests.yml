@@ -24,10 +24,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt install libelf-dev netcat-traditional libcap-dev gcc
+        sudo apt-get install libelf-dev netcat-traditional libcap-dev gcc
 
         cd go/src/github.com/cilium/tetragon/
-        sudo -E make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib CLANG_INSTALL_DIR=/usr/bin
+        sudo -E make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib
         sudo -E ldconfig /usr/local/
 
         sudo sed -i '/secure_path/d' /etc/sudoers
