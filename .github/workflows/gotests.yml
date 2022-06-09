@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 40
     strategy:
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-20.04 ]
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
