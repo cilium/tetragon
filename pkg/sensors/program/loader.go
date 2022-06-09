@@ -155,27 +155,24 @@ func loadProgram(
 		return fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
+	// Find all the maps referenced by the program, so we'll rewrite only
+	// the ones used.
 	var progSpec *ebpf.ProgramSpec
 
-	// Find the program spec for the target program
+	refMaps := make(map[string]bool)
 	for _, prog := range spec.Programs {
 		if prog.SectionName == load.Label {
 			progSpec = prog
-			break
+		}
+		for _, inst := range prog.Instructions {
+			if inst.Reference() != "" {
+				refMaps[inst.Reference()] = true
+			}
 		}
 	}
 
 	if progSpec == nil {
 		return fmt.Errorf("program for section '%s' not found", load.Label)
-	}
-
-	// Find all the maps referenced by the program, so we'll rewrite only
-	// the ones used.
-	refMaps := make(map[string]bool)
-	for _, inst := range progSpec.Instructions {
-		if inst.Reference() != "" {
-			refMaps[inst.Reference()] = true
-		}
 	}
 
 	pinnedMaps := make(map[string]*ebpf.Map)
