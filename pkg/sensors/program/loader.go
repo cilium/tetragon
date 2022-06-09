@@ -74,9 +74,38 @@ func TracepointAttach(load *Program) AttachFunc {
 	}
 }
 
+func KprobeAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		var lnk link.Link
+		var err error
+
+		if load.RetProbe {
+			lnk, err = link.Kretprobe(load.Attach, prog, nil)
+		} else {
+			lnk, err = link.Kprobe(load.Attach, prog, nil)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+			unloader.LinkUnloader{
+				Link: lnk,
+			},
+		}, nil
+	}
+}
+
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program) error {
 	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
 	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci)
+}
+
+func LoadKprobeProgram(bpfDir, mapDir string, load *Program) error {
+	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
+	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci)
 }
 
 func slimVerifierError(errStr string) string {
