@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt install libelf-dev netcat-traditional libcap-dev gcc
+        sudo apt install libelf-dev netcat-traditional libcap-dev gcc clang-12
 
         cd go/src/github.com/cilium/tetragon/
         sudo -E make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib CLANG_INSTALL_DIR=/usr/bin
