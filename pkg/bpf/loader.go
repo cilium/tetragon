@@ -487,7 +487,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func LoadKprobeProgram(__version, __verbosity int, btf uintptr, object, attach, __label, __prog, __mapdir string, retprobe bool) (int, error) {
+func LoadKprobeProgram(__version, __verbosity int, btf uintptr, object, attach, __label, __prog, __mapdir string, retprobe bool) error {
 	version := C.int(__version)
 	verbosity := C.int(__verbosity)
 	o := C.CString(object)
@@ -496,12 +496,12 @@ func LoadKprobeProgram(__version, __verbosity int, btf uintptr, object, attach, 
 	p := C.CString(__prog)
 	mapdir := C.CString(__mapdir)
 	ret := C.bool(retprobe)
-	loader_fd := C.kprobe_loader(version, verbosity, unsafe.Pointer(btf), o, a, l, p, mapdir, ret)
-	loaderInt := int(loader_fd)
-	if loaderInt < 0 {
-		return 0, fmt.Errorf("Unable to kprobe load: %d %s", loaderInt, object)
+	err := C.kprobe_loader(version, verbosity, unsafe.Pointer(btf), o, a, l, p, mapdir, ret)
+	errVal := int(err)
+	if errVal < 0 {
+		return fmt.Errorf("Unable to kprobe load: %d %s", errVal, object)
 	}
-	return loaderInt, nil
+	return nil
 }
 
 func LoadGenericKprobeProgram(__version, __verbosity int, __override bool,

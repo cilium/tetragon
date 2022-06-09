@@ -131,7 +131,7 @@ func LogRegisteredSensorsAndProbes() {
 
 type tracingSensor interface {
 	SpecHandler(interface{}) (*Sensor, error)
-	LoadProbe(args LoadProbeArgs) (int, error)
+	LoadProbe(args LoadProbeArgs) error
 }
 
 // LoadProbeArgs are the args to the LoadProbe function.
