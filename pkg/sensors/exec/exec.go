@@ -198,12 +198,12 @@ type execSensor struct {
 	name string
 }
 
-func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) (int, error) {
+func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load)
 	if err == nil {
 		procevents.GetRunningProcs(true, true)
 	}
-	return -1, err
+	return err
 }
 
 func (e *execSensor) SpecHandler(spec interface{}) (*sensors.Sensor, error) {

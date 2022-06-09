@@ -261,12 +261,6 @@ func RemoveProgram(bpfDir string, prog *program.Program) {
 		if err := os.Remove(path); err != nil {
 			logger.GetLogger().Debugf("Failed to remove program '%s': %w", path, err)
 		}
-	} else if prog.TraceFD >= 0 {
-		removeTracepoint(prog.TraceFD)
-		prog.TraceFD = -1
-		if err := os.Remove(path); err != nil {
-			logger.GetLogger().Debugf("Failed to remove program '%s': %w", path, err)
-		}
 	} else {
 		if err := prog.Unload(); err != nil {
 			logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")

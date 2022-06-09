@@ -359,24 +359,24 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 	}, nil
 }
 
-func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) (int, error) {
+func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
 	config := api.EventConfig{}
 
 	tracepointLog = logger.GetLogger()
 
 	tpIdx, ok := load.LoaderData.(int)
 	if !ok {
-		return 0, fmt.Errorf("loaderData for genericTracepoint %s is %T (%v) (not an int)", load.Name, load.LoaderData, load.LoaderData)
+		return fmt.Errorf("loaderData for genericTracepoint %s is %T (%v) (not an int)", load.Name, load.LoaderData, load.LoaderData)
 	}
 
 	tp, err := genericTracepointTable.getTracepoint(tpIdx)
 	if err != nil {
-		return 0, fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
+		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
 	btfObj, err := btf.NewBTF()
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer btfObj.Close()
 
@@ -389,7 +389,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
 		_, err := tpArg.setGenericTypeId()
 		if err != nil {
-			return 0, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 
 		config.Arg[i] = int32(tpArg.genericTypeId)
@@ -411,7 +411,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 
 		ty, err := tpArg.setGenericTypeId()
 		if err != nil {
-			return 0, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 
 		if len(tp.Selectors.Args) > i && tp.Selectors.Args[i].Type == "" {
@@ -434,7 +434,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 
 	kernelSelectors, err := selectors.InitTracepointSelectors(tp.Selectors)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	filter := &program.MapLoad{Name: "filter_map", Data: kernelSelectors[:]}
@@ -446,7 +446,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	cfg := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	return -1, program.LoadTracepointProgram(bpfDir, mapDir, load)
+	return program.LoadTracepointProgram(bpfDir, mapDir, load)
 }
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
@@ -562,6 +562,6 @@ func (t *observerTracepointSensor) SpecHandler(raw interface{}) (*sensors.Sensor
 	return nil, nil
 }
 
-func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) (int, error) {
+func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return LoadGenericTracepointSensor(args.BPFDir, args.MapDir, args.Load, args.Version, args.Verbose)
 }

@@ -473,10 +473,10 @@ func loadGenericKprobeRet(bpfDir, mapDir string, version int, p *program.Program
 	return err
 }
 
-func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) (int, error) {
+func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
 	gk, err := genericKprobeFromBpfLoad(load)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	genmapDir := gk.getMapDir(mapDir)
@@ -485,10 +485,10 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 	retprobe := strings.Contains(load.Name, "ret")
 	if retprobe {
-		return 0, loadGenericKprobeRet(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.config)
+		return loadGenericKprobeRet(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.config)
 	}
 
-	return 0, loadGenericKprobe(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.filters, gk.loadArgs.config)
+	return loadGenericKprobe(bpfDir, mapDir, version, load, gk.loadArgs.btf, genmapDir, gk.loadArgs.filters, gk.loadArgs.config)
 }
 
 func handleGenericKprobeString(r *bytes.Reader) string {
@@ -904,6 +904,6 @@ func (k *observerKprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, er
 	return nil, nil
 }
 
-func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) (int, error) {
+func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.MapDir, args.Load, args.Version, args.Verbose)
 }

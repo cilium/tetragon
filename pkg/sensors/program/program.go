@@ -22,7 +22,6 @@ func Builder(
 		Override:   false,
 		Type:       ty,
 		LoadState:  Idle(),
-		TraceFD:    -1,
 		LoaderData: struct{}{},
 		MapLoad:    nil,
 		unloader:   nil,
@@ -66,12 +65,6 @@ type Program struct {
 	// etc.
 	Type      string
 	LoadState State
-
-	// TraceFD is needed because tracepoints are added different than kprobes
-	// for example. The FD is to keep a reference to the tracepoint program in
-	// order to delete it. TODO: This can be moved into loaderData for
-	// tracepoints.
-	TraceFD int
 
 	// LoaderData represents per-type specific fields.
 	LoaderData interface{}
