@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
@@ -49,6 +50,33 @@ func RawAttach(targetFD int) AttachFunc {
 			},
 		}, nil
 	}
+}
+
+func TracepointAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+
+		parts := strings.Split(load.Attach, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint, got: %s", load.Attach)
+		}
+		link, err := link.Tracepoint(parts[0], parts[1], prog, nil)
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+			unloader.LinkUnloader{
+				Link: link,
+			},
+		}, nil
+	}
+}
+
+func LoadTracepointProgram(bpfDir, mapDir string, load *Program) error {
+	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
+	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci)
 }
 
 func slimVerifierError(errStr string) string {
