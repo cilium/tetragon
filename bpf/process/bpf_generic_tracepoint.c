@@ -164,42 +164,42 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	return 0;
 }
 
-__attribute__((section("kprobe/0"), used)) int
+__attribute__((section("tracepoint/0"), used)) int
 generic_tracepoint_event0(void *ctx)
 {
 	return generic_process_event0(ctx, &tp_heap, &filter_map, &tp_calls,
 				      &config_map);
 }
 
-__attribute__((section("kprobe/1"), used)) int
+__attribute__((section("tracepoint/1"), used)) int
 generic_tracepoint_event1(void *ctx)
 {
 	return generic_process_event1(ctx, &tp_heap, &filter_map, &tp_calls,
 				      &config_map);
 }
 
-__attribute__((section("kprobe/2"), used)) int
+__attribute__((section("tracepoint/2"), used)) int
 generic_tracepoint_event2(void *ctx)
 {
 	return generic_process_event2(ctx, &tp_heap, &filter_map, &tp_calls,
 				      &config_map);
 }
 
-__attribute__((section("kprobe/3"), used)) int
+__attribute__((section("tracepoint/3"), used)) int
 generic_tracepoint_event3(void *ctx)
 {
 	return generic_process_event3(ctx, &tp_heap, &filter_map, &tp_calls,
 				      &config_map);
 }
 
-__attribute__((section("kprobe/4"), used)) int
+__attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_event4(void *ctx)
 {
 	return generic_process_event4(ctx, &tp_heap, &filter_map, &tp_calls,
 				      &config_map);
 }
 
-__attribute__((section("kprobe/5"), used)) int
+__attribute__((section("tracepoint/5"), used)) int
 generic_tracepoint_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
@@ -220,35 +220,35 @@ generic_tracepoint_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("kprobe/6"), used)) int
+__attribute__((section("tracepoint/6"), used)) int
 generic_tracepoint_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, &tp_heap, &filter_map, &tp_calls,
 			       (void *)0, &config_map);
 }
 
-__attribute__((section("kprobe/7"), used)) int
+__attribute__((section("tracepoint/7"), used)) int
 generic_tracepoint_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, &tp_heap, &filter_map, &tp_calls,
 			       (void *)0, &config_map);
 }
 
-__attribute__((section("kprobe/8"), used)) int
+__attribute__((section("tracepoint/8"), used)) int
 generic_tracepoint_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, &tp_heap, &filter_map, &tp_calls,
 			       (void *)0, &config_map);
 }
 
-__attribute__((section("kprobe/9"), used)) int
+__attribute__((section("tracepoint/9"), used)) int
 generic_tracepoint_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, &tp_heap, &filter_map, &tp_calls,
 			       (void *)0, &config_map);
 }
 
-__attribute__((section("kprobe/10"), used)) int
+__attribute__((section("tracepoint/10"), used)) int
 generic_tracepoint_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, &tp_heap, &filter_map, &tp_calls,
