@@ -168,80 +168,6 @@ static struct bpf_object *__loader(const int version,
 	return obj;
 }
 
-int __tracepoint_loader(struct bpf_object *obj,
-		      const int verbosity,
-		      void *btf,
-		      const char *prog,
-		      const char *attach_category,
-		      const char *attach_name,
-		      const char *label,
-		      const char *__prog,
-		      const char *mapdir)
-{
-	struct bpf_program *prog_bpf;
-	struct bpf_link *prog_attach;
-	int err;
-
-	prog_bpf = bpf_object__find_program_by_title(obj, label);
-	if (!prog_bpf) {
-		fprintf(stderr, "bpf_object__find_program_by_title(tracepoint:%s): null pointer\n", label);
-		bpf_object__close(obj);
-		err = -1;
-		goto out;
-	}
-	err = libbpf_get_error(prog_bpf);
-	if (err) {
-		fprintf(stderr, "bpf_object__find_program_by_title: failed\n");
-		bpf_object__close(obj);
-		goto out_object;
-	}
-
-	bpf_program__unpin(prog_bpf, __prog);
-
-	prog_attach = bpf_program__attach_tracepoint(prog_bpf, attach_category, attach_name);
-	err = libbpf_get_error(prog_attach);
-	if (err) {
-		// Expected error when attach point probe is happening
-		if (verbosity)
-			fprintf(stderr, "bpf_program__attach_tracepoint: failed (%s)\n", prog);
-		goto out_object;
-	}
-
-	err = bpf_program__pin(prog_bpf, __prog);
-	if (err < 0) {
-		fprintf(stderr, "bpf_program__pin: failed %i\n", err);
-		goto out_object;
-	}
-	bpf_object__close(obj);
-	bpf_program__unload(prog_bpf);
-	return bpf_link_fd(prog_attach);
-out_object:
-	bpf_program__unload(prog_bpf);
-	bpf_object__close(obj);
-out:
-	return err;
-}
-
-int tracepoint_loader(const int version,
-		      const int verbosity,
-		      void *btf,
-		      const char *prog,
-		      const char *attach_category,
-		      const char *attach_name,
-		      const char *label,
-		      const char *__prog,
-		      const char *mapdir)
-{
-	struct bpf_object *obj;
-	int err;
-
-	obj = __loader(version, verbosity, false, btf, prog, mapdir, 0, BPF_PROG_TYPE_TRACEPOINT);
-	if (!obj)
-		return -1;
-
-	return __tracepoint_loader(obj, verbosity, btf, prog, attach_category, attach_name, label, __prog, mapdir);
-}
-
 static int load_override(struct bpf_object *obj, const char *__prog,
 			 const char *attach, const int verbosity)
 {
@@ -532,35 +458,6 @@ int generic_kprobe_ret_loader(const int version,
 	return __kprobe_loader(obj, verbosity, false, attach, label, __prog, true);
 }
 
-
-
-int tracepoint_loader_args(const int version,
-		  const int verbosity,
-		  void *btf,
-		  const char *prog,
-		  const char *attach_category,
-		  const char *attach,
-		  const char *label,
-		  const char *__prog,
-		  const char *mapdir,
-		  const bool retprobe,
-		  void *filters,
-		  void *config) {
-	struct bpf_object *obj;
-	int err;
-
-	obj = generic_loader_args(version, verbosity, false, btf, prog, attach, label,
-				  __prog, mapdir, filters, BPF_PROG_TYPE_TRACEPOINT);
-	if (!obj)
-		return -1;
-	err = load_config(obj, config);
-	if (err) {
-		// TODO: cleanup
-		return -1;
-	}
-	return __tracepoint_loader(obj, verbosity, btf, prog, attach_category, attach, label, __prog, mapdir);
-}
-
 int kprobe_loader(const int version,
 		  const int verbosity,
 		  void *btf,
@@ -583,34 +480,12 @@ import "C"
 
 import (
 	"fmt"
-	"strings"
 	"unsafe"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
-
-func LoadTracingProgram(__version, __verbosity int, btf uintptr, object, attach, __label, __prog, __mapdir string) (int, error) {
-	version := C.int(__version)
-	verbosity := C.int(__verbosity)
-	o := C.CString(object)
-	aa := strings.Split(attach, "/")
-	if len(aa) != 2 {
-		return -1, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint. Instead got: %s", attach)
-	}
-	a_category := C.CString(aa[0])
-	a_name := C.CString(aa[1])
-	l := C.CString(__label)
-	p := C.CString(__prog)
-	mapdir := C.CString(__mapdir)
-	loader_fd := C.tracepoint_loader(version, verbosity, unsafe.Pointer(btf), o, a_category, a_name, l, p, mapdir)
-	loaderInt := int(loader_fd)
-	if loaderInt < 0 {
-		return loaderInt, fmt.Errorf("Unable to tracepoint load: %d %s", loaderInt, object)
-	}
-	return loaderInt, nil
-}
 
 func LoadKprobeProgram(__version, __verbosity int, btf uintptr, object, attach, __label, __prog, __mapdir string, retprobe bool) (int, error) {
 	version := C.int(__version)
@@ -669,36 +544,6 @@ func LoadGenericKprobeRetProgram(__version, __verbosity int, btf uintptr, object
 		return fmt.Errorf("Unable to kprobe load: %d %s", loaderInt, object), 0
 	}
 	return nil, loaderInt
-}
-
-func LoadTracepointArgsProgram(__version, __verbosity int,
-	btf uintptr,
-	object, attach, __label, __prog, __mapdir string,
-	retprobe bool,
-	filters [4096]byte, config *api.EventConfig) (int, error) {
-	version := C.int(__version)
-	verbosity := C.int(__verbosity)
-	o := C.CString(object)
-	aa := strings.Split(attach, "/")
-	if len(aa) != 2 {
-		return -1, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint. Instead got: %s", attach)
-	}
-	a_category := C.CString(aa[0])
-	a_name := C.CString(aa[1])
-	l := C.CString(__label)
-	p := C.CString(__prog)
-	mapdir := C.CString(__mapdir)
-	ret := C.bool(retprobe)
-	loader_fd := C.tracepoint_loader_args(version,
-		verbosity,
-		unsafe.Pointer(btf),
-		o, a_category, a_name, l, p, mapdir, ret, unsafe.Pointer(&filters),
-		unsafe.Pointer(config))
-	loaderInt := int(loader_fd)
-	if loaderInt < 0 {
-		return 0, fmt.Errorf("Unable to kprobe load: %d %s", loaderInt, object)
-	}
-	return loaderInt, nil
 }
 
 func QdiscTCInsert(linkName string, ingress bool) error {
