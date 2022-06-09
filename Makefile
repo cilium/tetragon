@@ -87,7 +87,7 @@ clean:
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
 test:
-	ulimit -n 1048576 && $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./...
+	ulimit -n 1048576 && $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./pkg/sensors/exec
 
 test-compile:
 	mkdir -p go-tests
