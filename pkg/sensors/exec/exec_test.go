@@ -203,9 +203,9 @@ func TestEventExecveLongPath(t *testing.T) {
 
 	dirNum := 14
 
-	// kernels < v.5.15 won't trigger tracepoints for data bigger
+	// kernels < v.5.16 won't trigger tracepoints for data bigger
 	// than 2048 bytes, so making the path smaller for them
-	if kernels.IsKernelVersionLessThan("5.15.0") {
+	if kernels.IsKernelVersionLessThan("5.16.0") {
 		dirNum = 6
 	}
 
@@ -334,9 +334,9 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 	dirNum := 14
 
-	// kernels < v.5.15 won't trigger tracepoints for data bigger
+	// kernels < v.5.16 won't trigger tracepoints for data bigger
 	// than 2048 bytes, so making the path smaller for them
-	if kernels.IsKernelVersionLessThan("5.15.0") {
+	if kernels.IsKernelVersionLessThan("5.16.0") {
 		dirNum = 6
 	}
 
