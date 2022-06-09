@@ -44,8 +44,8 @@ endif
 tetragon-bpf-local:
 	$(MAKE) -C ./bpf
 
-tetragon-bpf-verify: tetragon-bpf
-	sudo contrib/vmtest/tetragon-verify-programs bpf/objs
+verify: tetragon-bpf
+	sudo contrib/verify/verify.sh bpf/objs
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm hubble-llvm || true
