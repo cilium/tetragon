@@ -8,9 +8,10 @@
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 
-#include "data_event.h"
-
 char _license[] __attribute__((section(("license")), used)) = "GPL";
+
+#ifdef __LARGE_BPF_PROG
+#include "data_event.h"
 
 struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
@@ -18,6 +19,7 @@ struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
 	.value_size = sizeof(struct msg_data),
 	.max_entries = 1,
 };
+#endif
 
 /* event_args_builder: copies args into char *buffer
  * event: pointer to event storage
@@ -68,6 +70,10 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 
 		start_stack += off;
 
+#ifndef __LARGE_BPF_PROG
+		probe_arg_read(c, (char *)p, (char *)start_stack,
+			       (char *)end_stack);
+#else
 		if ((end_stack - start_stack) < BUFFER) {
 			probe_arg_read(c, (char *)p, (char *)start_stack,
 				       (char *)end_stack);
@@ -88,6 +94,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 			p->size += size;
 			p->flags |= EVENT_DATA_ARGS;
 		}
+#endif
 	}
 }
 
@@ -113,9 +120,13 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		flags |= EVENT_ERROR_FILENAME;
 		size = 0;
 	} else if (size == MAXARGLENGTH - 1) {
+#ifndef __LARGE_BPF_PROG
+		flags |= EVENT_TRUNC_FILENAME;
+#else
 		flags |= EVENT_DATA_FILENAME;
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename, &data_heap);
+#endif
 	}
 	curr->flags = flags;
 	curr->pid = curr_pid;
