@@ -132,7 +132,8 @@ static inline __attribute__((always_inline)) int return_error(int *s, int err)
 	return sizeof(int);
 }
 
-static char *args_off(struct msg_generic_kprobe *e, long off)
+static inline __attribute__((always_inline)) char *
+args_off(struct msg_generic_kprobe *e, long off)
 {
 	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off) :);
 	return e->args + off;
@@ -155,8 +156,8 @@ return_stack_error(char *args, int orig, int err)
 }
 
 static inline __attribute__((always_inline)) int
-parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
-		  unsigned long max)
+parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
+		  struct msg_generic_kprobe *e)
 {
 	struct iovec
 		iov; // limit is 1024 using a hack now. For 5.4 kernel we should loop over 1024
@@ -172,11 +173,8 @@ parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
 		size = max;
 	if (size > 4094)
 		return char_buf_toolarge;
-	asm volatile("%[off] &= 0xfff;\n"
-		     "%[size] &= 0xfff;\n" ::[off] "+r"(off),
-		     [size] "+r"(size)
-		     :);
-	err = probe_read(&args[off], size, (char *)iov.iov_base);
+	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size) :);
+	err = probe_read(args_off(e, off), size, (char *)iov.iov_base);
 	if (err < 0)
 		return char_buf_pagefault;
 	return size;
@@ -189,7 +187,7 @@ parse_iovec_array(char *args, unsigned long arg, int i, __u64 off,
 		/* embedding this in the loop counter breaks verifier */       \
 		if (i >= cnt)                                                  \
 			goto char_iovec_done;                                  \
-		c = parse_iovec_array(args, arg, i, off, max);                 \
+		c = parse_iovec_array(off, arg, i, max, e);                    \
 		if (c < 0)                                                     \
 			return return_stack_error(args, 0, c);                 \
 		size += c;                                                     \
@@ -600,11 +598,12 @@ filter_file_buf(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
-__copy_char_iovec(char *args, unsigned long arg, unsigned long meta,
-		  unsigned long max)
+__copy_char_iovec(long off, unsigned long arg, unsigned long meta,
+		  unsigned long max, struct msg_generic_kprobe *e)
 {
-	long size, off = 0;
-	int err, i = 0, cnt, *s = (int *)&args[off];
+	char *args = args_off(e, off);
+	long size;
+	int err, i = 0, cnt, *s = (int *)args;
 
 	err = probe_read(&cnt, sizeof(cnt), &meta);
 	if (err < 0) {
@@ -615,17 +614,16 @@ __copy_char_iovec(char *args, unsigned long arg, unsigned long meta,
 	off += 8;
 	PARSE_IOVEC_ENTRIES // may return an error directly
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
-		char_iovec_done : s = (int *)args;
-	s[0] = size;
+		char_iovec_done : s[0] = size;
 	s[1] = size;
 	return size + 8;
 }
 
 static inline __attribute__((always_inline)) long
-copy_char_iovec(void *ctx, char *args, unsigned long arg, int argm,
+copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
-	int *s = (int *)&args[0];
+	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
 	meta = get_arg_meta(argm, e);
@@ -635,7 +633,7 @@ copy_char_iovec(void *ctx, char *args, unsigned long arg, int argm,
 		retprobe_map_set_iovec(tid, arg, meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	return __copy_char_iovec(args, arg, meta, 0);
+	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1262,7 +1260,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_char_buf(ctx, orig_off, arg, argm, e);
 		break;
 	case char_iovec:
-		size = copy_char_iovec(ctx, args, arg, argm, e);
+		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	default:
 		size = 0;
