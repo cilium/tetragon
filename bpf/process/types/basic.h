@@ -132,6 +132,12 @@ static inline __attribute__((always_inline)) int return_error(int *s, int err)
 	return sizeof(int);
 }
 
+static char *args_off(struct msg_generic_kprobe *e, long off)
+{
+	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off) :);
+	return e->args + off;
+}
+
 /* Error writer for use when pointer *s is lost to stack and can not
  * be recoved with known bounds. We had to push this via asm to stop
  * clang from omitting some checks and applying code motion on us.
@@ -453,16 +459,17 @@ get_arg_meta(int meta, struct msg_generic_kprobe *e)
 }
 
 static inline __attribute__((always_inline)) long
-__copy_char_buf(char *args, unsigned long arg, unsigned long bytes)
+__copy_char_buf(long off, unsigned long arg, unsigned long bytes,
+		struct msg_generic_kprobe *e)
 {
-	int *s = (int *)args;
+	int *s = (int *)args_off(e, off);
 	size_t rd_bytes;
 	int err;
 
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes;
 	rd_bytes &= 0xfff;
-	err = probe_read(&args[8], rd_bytes, (char *)arg);
+	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)
 		return return_error(s, char_buf_pagefault);
 	s[0] = (int)bytes;
@@ -471,10 +478,10 @@ __copy_char_buf(char *args, unsigned long arg, unsigned long bytes)
 }
 
 static inline __attribute__((always_inline)) long
-copy_char_buf(void *ctx, char *args, unsigned long arg, int argm,
+copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
 {
-	int *s = (int *)args;
+	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 	size_t bytes = 0;
 
@@ -485,7 +492,7 @@ copy_char_buf(void *ctx, char *args, unsigned long arg, int argm,
 	}
 	meta = get_arg_meta(argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(args, arg, bytes);
+	return __copy_char_buf(off, arg, bytes, e);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1173,8 +1180,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	if (orig_off >= 16383 - min_size) {
 		return 0;
 	}
-	asm volatile("%[orig_off] &= 0x3fff;\n" ::[orig_off] "+r"(orig_off) :);
-	args += orig_off;
+	args = args_off(e, orig_off);
 
 	/* Cache args offset for filter use later */
 	e->argsoff[index] = orig_off;
@@ -1253,7 +1259,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_cred(args, arg);
 		break;
 	case char_buf:
-		size = copy_char_buf(ctx, args, arg, argm, e);
+		size = copy_char_buf(ctx, orig_off, arg, argm, e);
 		break;
 	case char_iovec:
 		size = copy_char_iovec(ctx, args, arg, argm, e);
