@@ -188,8 +188,10 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		if (i >= cnt)                                                  \
 			goto char_iovec_done;                                  \
 		c = parse_iovec_array(off, arg, i, max, e);                    \
-		if (c < 0)                                                     \
+		if (c < 0) {                                                   \
+			char *args = args_off(e, off_orig);                    \
 			return return_stack_error(args, 0, c);                 \
+		}                                                              \
 		size += c;                                                     \
 		if (max) {                                                     \
 			max -= c;                                              \
@@ -601,12 +603,13 @@ static inline __attribute__((always_inline)) long
 __copy_char_iovec(long off, unsigned long arg, unsigned long meta,
 		  unsigned long max, struct msg_generic_kprobe *e)
 {
-	char *args = args_off(e, off);
-	long size;
-	int err, i = 0, cnt, *s = (int *)args;
+	long size, off_orig = off;
+	int err, i = 0, cnt;
+	int *s;
 
 	err = probe_read(&cnt, sizeof(cnt), &meta);
 	if (err < 0) {
+		char *args = args_off(e, off_orig);
 		return return_stack_error(args, 0, char_buf_pagefault);
 	}
 
@@ -614,7 +617,10 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long meta,
 	off += 8;
 	PARSE_IOVEC_ENTRIES // may return an error directly
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
-		char_iovec_done : s[0] = size;
+		char_iovec_done :
+
+		s = (int *)args_off(e, off_orig);
+	s[0] = size;
 	s[1] = size;
 	return size + 8;
 }
