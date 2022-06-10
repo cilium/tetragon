@@ -8,12 +8,11 @@ LOCAL_CLANG_FORMAT ?= 0
 FORMAT_FIND_FLAGS ?= -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*'
 NOOPT ?= 0
 LIBBPF_IMAGE = quay.io/isovalent/hubble-libbpf:v0.2.3
-CLANG_IMAGE  = quay.io/isovalent/hubble-llvm:2020-12-29-45f6aa2
+CLANG_IMAGE  = quay.io/cilium/clang:7ea8dd5b610a8864ce7b56e10ffeb61030a0c50e@sha256:02ad7cc1d08d85c027557099b88856945be5124b5c31aeabce326e7983e3913b
 METADATA_IMAGE = quay.io/isovalent/tetragon-metadata
 TESTER_PROGS_DIR = "contrib/tester-progs"
 
 LIBBPF_INSTALL_DIR ?= ./lib
-CLANG_INSTALL_DIR  ?= ./bin
 VERSION=$(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
@@ -48,9 +47,9 @@ verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
 tetragon-bpf-container:
-	$(CONTAINER_ENGINE) rm hubble-llvm || true
-	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon -u $$(id -u)  --name hubble-llvm $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
-	$(CONTAINER_ENGINE) rm hubble-llvm
+	$(CONTAINER_ENGINE) rm tetragon-clang || true
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon -u $$(id -u) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
+	$(CONTAINER_ENGINE) rm tetragon-clang
 
 tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon/
@@ -116,7 +115,7 @@ update-copyright:
 lint:
 	golint -set_exit_status $$(go list ./...)
 
-image:
+image: image-clang
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
@@ -126,7 +125,7 @@ image-operator:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
-image-test:
+image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
@@ -136,24 +135,22 @@ image-codegen:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
-.PHONY: tools-install tools-clean libbpf-install clang-install
-tools-install: libbpf-install clang-install
+.PHONY: image-clang
+image-clang:
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
+	$(QUIET)echo "Push like this when ready:"
+	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
+
+.PHONY: tools-install tools-clean libbpf-install
+tools-install: libbpf-install
 tools-clean:
 	rm -rf $(LIBBPF_INSTALL_DIR)
-	rm -rf $(CLANG_INSTALL_DIR)
 libbpf-install:
 	$(eval id=$(shell $(CONTAINER_ENGINE) create $(LIBBPF_IMAGE)))
 	mkdir -p $(LIBBPF_INSTALL_DIR)
 	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so $(LIBBPF_INSTALL_DIR)
 	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 $(LIBBPF_INSTALL_DIR)
 	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)
-	$(CONTAINER_ENGINE) stop ${id}
-
-clang-install:
-	$(eval id=$(shell $(CONTAINER_ENGINE) create $(CLANG_IMAGE)))
-	mkdir -p $(CLANG_INSTALL_DIR)
-	$(CONTAINER_ENGINE) cp ${id}:/usr/local/bin/clang-11 $(CLANG_INSTALL_DIR)/clang
-	$(CONTAINER_ENGINE) cp ${id}:/usr/local/bin/llc $(CLANG_INSTALL_DIR)/llc
 	$(CONTAINER_ENGINE) stop ${id}
 
 generate:
