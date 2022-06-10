@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
-	loader "github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -285,7 +283,6 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 
 func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
-	btfObj := uintptr(btf.GetCachedBTF())
 	if load.Type == "tracepoint" {
 		return program.LoadTracepointProgram(bpfDir, mapDir, load)
 	} else if load.Type == "cgrp_socket" {
@@ -307,15 +304,7 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 				Verbose:   verbose,
 			})
 		}
-		return loader.LoadKprobeProgram(
-			version, verbose,
-			btfObj,
-			load.Name,
-			load.Attach,
-			load.Label,
-			filepath.Join(bpfDir, load.PinPath),
-			mapDir,
-			load.RetProbe)
+		return program.LoadKprobeProgram(bpfDir, mapDir, load)
 	}
 }
 
