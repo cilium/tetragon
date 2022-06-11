@@ -7,21 +7,28 @@
     {{- toYaml .Values.export.securityContext | nindent 4 }}
   resources:
     {{- toYaml .Values.export.resources | nindent 4 }}
+{{- if .Values.export.stdout.commandOverride }}}}  
   command:
-{{- with .Values.export.commandOverride }}
-  {{- toYaml . | nindent 2 }}
-{{- else }}
+  {{- with .Values.export.stdout.commandOverride }}
+  {{- toYaml . | nindent 3 }}
+  {{- else }}
     - hubble-export-stdout
-{{- end }}
+  {{- end }}
+{{- end}}
+{{- if .Values.export.stdout.argsOverride }}}}  
   args:
-{{- with .Values.export.argsOverride }}
-  {{- toYaml . | nindent 2 }}
-{{- else }}
-{{- range .Values.export.filenames }}
+  {{- with .Values.export.stdout.argsOverride }}
+  {{- toYaml . | nindent 3 }}
+  {{- else }}
+  {{- range .Values.export.filenames }}
     - {{ $.Values.exportDirectory }}/{{ . }}
-{{- end }}
+  {{- end }}
+  {{- end }}
 {{- end }}
   volumeMounts:
     - name: export-logs
       mountPath: {{ .Values.exportDirectory }}
+      {{- with .Values.export.stdout.extraVolumeMounts }}
+        {{- toYaml . | nindent 4 }}
+      {{- end }}      
 {{- end }}
