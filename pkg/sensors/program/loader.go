@@ -263,6 +263,14 @@ func loadProgram(
 
 	opts.MapReplacements = pinnedMaps
 
+	// Disable loading of override program if it's not needed
+	if !load.Override {
+		progOverrideSpec, ok := spec.Programs["generic_kprobe_override"]
+		if ok {
+			progOverrideSpec.Type = ebpf.UnspecifiedProgram
+		}
+	}
+
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
 	if err != nil {
 		// Retry again with logging to capture the verifier log. We don't log by default
@@ -293,6 +301,34 @@ func loadProgram(
 			}
 		} else {
 			return fmt.Errorf("populating map failed as map '%s' was not found from collection", mapLoad.Name)
+		}
+	}
+
+	if load.Override {
+		progOverrideSpec, ok := spec.Programs["generic_kprobe_override"]
+		if ok {
+			progOverrideSpec.Type = ebpf.UnspecifiedProgram
+		}
+
+		progOverride, ok := coll.Programs["generic_kprobe_override"]
+		if !ok {
+			return fmt.Errorf("program for section '%s' not found", load.Label)
+		}
+
+		progOverride, err = progOverride.Clone()
+		if err != nil {
+			return fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
+		}
+
+		pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+
+		if err := progOverride.Pin(pinPath); err != nil {
+			return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+		}
+
+		load.unloaderOverride, err = withProgram(progOverride, progOverrideSpec)
+		if err != nil {
+			logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 		}
 	}
 
