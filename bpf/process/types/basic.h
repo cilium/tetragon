@@ -30,6 +30,11 @@ enum {
 	file_ty = 16,
 	fd_ty = 17,
 
+	/* const_buf_type is a type for buffers with static size that is passed
+	 * in the meta argument
+	 */
+	const_buf_type = 18,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -680,7 +685,8 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) size_t type_to_min_size(int type)
+static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
+								     int argm)
 {
 	switch (type) {
 	case fd_ty:
@@ -704,6 +710,9 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type)
 	case char_buf:
 	case char_iovec:
 		return 4;
+	case const_buf_type:
+		return argm;
+
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1169,7 +1178,7 @@ static inline __attribute__((always_inline)) long
 read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	      long orig_off, unsigned long arg, int argm, void *filter_map)
 {
-	size_t min_size = type_to_min_size(type);
+	size_t min_size = type_to_min_size(type, argm);
 	char *args = e->args;
 	long size = -1;
 	const struct path *path_arg = 0;
@@ -1262,6 +1271,14 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case char_iovec:
 		size = copy_char_iovec(ctx, args, arg, argm, e);
 		break;
+	case const_buf_type: {
+		int err;
+
+		// bound size to 1023 to help the verifier out
+		size = argm & 0x03ff;
+		err = probe_read(args, size, (char *)arg);
+		break;
+	}
 	default:
 		size = 0;
 		break;
