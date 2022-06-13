@@ -4,7 +4,6 @@
 package btf
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -30,8 +29,6 @@ func btfFileExists(file string) error {
 
 func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 	if btf == "" {
-		var uname unix.Utsname
-
 		// Alternative to auto-discovery and/or command line argument we
 		// can also set via environment variable.
 		tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
@@ -42,11 +39,12 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 			return tetragonBtfEnv, nil
 		}
 
+		var uname unix.Utsname
 		err := unix.Uname(&uname)
 		if err != nil {
 			return btf, fmt.Errorf("Kernel version lookup (uname -r) failing. Use '--kernel' to set manually: %w", err)
 		}
-		n := bytes.IndexByte(uname.Release[:], 0)
+		kernelVersion := unix.ByteSliceToString(uname.Release[:])
 
 		// Preference of BTF files, first search for kernel exposed BTF, then
 		// check for vmlinux- hubble metadata, and finally if all those are missing
@@ -57,7 +55,7 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 		}
 		logger.GetLogger().WithField("file", runFile).Info("candidate btf file does not exist")
 
-		runFile = path.Join(lib, "metadata", "vmlinux-"+string(uname.Release[:n]))
+		runFile = path.Join(lib, "metadata", "vmlinux-"+kernelVersion)
 		if _, err := os.Stat(runFile); err == nil {
 			return runFile, nil
 		}
@@ -69,7 +67,7 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 		}
 		logger.GetLogger().WithField("file", runFile).Info("candidate btf file does not exist")
 
-		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Use --btf option to specify BTF path and/or '--kernel' to specify kernel version", uname.Release[:n])
+		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
 	}
 	if err := btfFileExists(btf); err != nil {
 		return btf, fmt.Errorf("User specified BTF does not exist: %w", err)
