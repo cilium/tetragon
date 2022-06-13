@@ -4,7 +4,6 @@
 package kernels
 
 import (
-	"bytes"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -77,8 +76,7 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 				// the kernel version string.
 				return 0, verStr, nil
 			}
-			n := bytes.IndexByte(uname.Release[:], 0)
-			release := string(uname.Release[:n])
+			release := unix.ByteSliceToString(uname.Release[:])
 			verStr = strings.Split(release, "-")[0]
 			version = int(KernelStringToNumeric(release))
 		}
@@ -106,12 +104,11 @@ func MinKernelVersion(kernel string) bool {
 	if err := unix.Uname(&uname); err != nil {
 		return true
 	}
-	n := bytes.IndexByte(uname.Release[:], 0)
 	// vendors like to define kernel 4.14.128-foo but
 	// everything after '-' is meaningless from BPF
 	// side so toss it out.
 	release := strings.TrimSuffix(
-		strings.Split(string(uname.Release[:n]), "-")[0],
+		strings.Split(unix.ByteSliceToString(uname.Release[:]), "-")[0],
 		"+")
 
 	runningVersion := int(KernelStringToNumeric(release))
