@@ -153,14 +153,14 @@ func (conf *GenericTracepointConfArg) configureTracepointArg(tp *genericTracepoi
 	}
 	field := tp.Info.Format.Fields[conf.Index]
 
-	metaTpIndex := getTracepointMetaValue(conf)
+	metaTp := getTracepointMetaValue(conf)
 
 	argIdx := uint32(len(tp.args))
 	tp.args = append(tp.args, genericTracepointArg{
 		CtxOffset:     int(field.Offset),
 		ArgIdx:        argIdx,
 		TpIdx:         int(conf.Index),
-		MetaTp:        metaTpIndex,
+		MetaTp:        metaTp,
 		nopTy:         false,
 		format:        &field,
 		genericTypeId: gt.GenericInvalidType,
