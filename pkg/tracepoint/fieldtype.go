@@ -204,3 +204,47 @@ func parseField(s string) (*Field, error) {
 		Type: retTy,
 	}, nil
 }
+
+// NBytes retruns the number of bytes of an integer type
+func (ty *IntTy) NBytes() (int, error) {
+	var ret int
+	switch ty.Base {
+	case IntTyChar:
+		ret = 1
+	case IntTyShort:
+		ret = 2
+	case IntTyInt:
+		ret = 4
+	case IntTyLong:
+		ret = 8
+	case IntTyLongLong:
+		ret = 8
+	case IntTyInt8:
+		ret = 1
+	case IntTyInt16:
+		ret = 2
+	case IntTyInt32:
+		ret = 4
+	case IntTyInt64:
+		ret = 8
+	default:
+		return ret, fmt.Errorf("unknown base: %d", ty.Base)
+	}
+
+	return ret, nil
+}
+
+// NBytes returns the number of bytes if an array type
+// TODO: expand for types other than Int as needed
+func (ty *ArrayTy) NBytes() (int, error) {
+	switch x := ty.Ty.(type) {
+	case IntTy:
+		intBytes, err := x.NBytes()
+		if err != nil {
+			return 0, err
+		}
+		return intBytes * int(ty.Size), nil
+	default:
+		return 0, fmt.Errorf("NBytes: unknown type: %T", ty)
+	}
+}
