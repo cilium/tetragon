@@ -89,6 +89,10 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 		return (unsigned long)buff;
 	}
 
+	case const_buf_type: {
+		return (unsigned long)src;
+	}
+
 	default:
 	case nop:
 		return 0;

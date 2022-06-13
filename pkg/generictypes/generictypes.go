@@ -23,6 +23,9 @@ const (
 	GenericFileType     = 16
 	GenericFdType       = 17
 
+	// GenericConstBuffer is a buffer type whose size is static (and known).
+	GenericConstBuffer = 18
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -61,6 +64,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericFdType
 	case "cred":
 		return GenericCredType
+	case "const_buf":
+		return GenericConstBuffer
 	case "nop":
 		return GenericNopType
 	default:
