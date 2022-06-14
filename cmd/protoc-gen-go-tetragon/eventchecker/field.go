@@ -5,6 +5,7 @@ package eventchecker
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
@@ -27,23 +28,23 @@ func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage)
 		return err
 	}
 
-	g.P(`// With` + field.GoName + ` adds a ` + field.GoName + ` check to the ` + msg.checkerName())
+	g.P(`// With` + field.GoName + ` adds a ` + field.GoName + ` check to the ` + msg.checkerName(g))
 	if field.isPrimitive() && !(field.isList() || field.isMap()) {
-		g.P(`func (checker *` + msg.checkerName() + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName() + `{
+		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = &check`)
 	} else if field.isList() {
-		g.P(`func (checker *` + msg.checkerName() + `) With` + field.GoName + `(check *` + field.listCheckerName() + `) *` + msg.checkerName() + `{
+		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check *` + field.listCheckerName(g) + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = check`)
 	} else if field.isMap() {
-		g.P(`func (checker *` + msg.checkerName() + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName() + `{
+		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = check`)
 	} else if field.isEnum() {
 		enumIdent := common.TetragonApiIdent(g, field.Enum.GoIdent.GoName)
-		g.P(`func (checker *` + msg.checkerName() + `) With` + field.GoName + `(check ` + enumIdent + `) *` + msg.checkerName() + `{
+		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + enumIdent + `) *` + msg.checkerName(g) + `{
             wrappedCheck := ` + typeName + `(check)
             checker.` + field.GoName + ` = &wrappedCheck`)
 	} else {
-		g.P(`func (checker *` + msg.checkerName() + `) With` + field.GoName + `(check *` + typeName + `) *` + msg.checkerName() + `{
+		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check *` + typeName + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = check`)
 	}
 	g.P(`return checker
@@ -67,7 +68,7 @@ func (field *Field) getFrom(g *protogen.GeneratedFile, msg *CheckedMessage) (str
 	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
 	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
 
-	from, err := doGetFieldFrom(field, g, true, true, msg.checkerName(), checkerVar, eventVar)
+	from, err := doGetFieldFrom(field, g, true, true, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
 		return "", err
 	}
@@ -142,7 +143,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
                 ` + innerFrom + `
                 checks = append(checks, convertedCheck)
             }
-            lm := New` + field.listCheckerName() + `().WithOperator(` + matchKind + `).
+            lm := ` + field.newListCheckerName(g) + `().WithOperator(` + matchKind + `).
                 WithValues(checks...)
             ` + checkerVar + ` = lm
         }`, nil
@@ -166,14 +167,33 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doCheckerFrom := func() string {
+		newCall := fmt.Sprintf("New%sChecker()", field.Message.GoIdent.GoName)
+		typeImportPath := string(field.Message.GoIdent.GoImportPath)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			newCall = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       newCall,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+
 		return `if ` + eventVar + ` != nil {
-        ` + checkerVar + `= New` + field.Message.GoIdent.GoName + `Checker().From` +
+        ` + checkerVar + `= ` + newCall + `.From` +
 			field.Message.GoIdent.GoName + `(` + eventVar + `)
         }`
 	}
 
 	doEnumFrom := func() string {
-		return checkerVar + `= New` + field.Enum.GoIdent.GoName + `Checker(` + eventVar + `)`
+		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
+		newCall := fmt.Sprintf("New%sChecker", field.Enum.GoIdent.GoName)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			newCall = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       newCall,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+		return checkerVar + `= ` + newCall + `(` + eventVar + `)`
 	}
 
 	// Pod.Labels is a special case
@@ -241,7 +261,7 @@ func (field *Field) getFieldCheck(g *protogen.GeneratedFile, msg *CheckedMessage
 	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
 	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
 
-	check, err := doGetFieldCheck(field, g, true, true, msg.checkerName(), checkerVar, eventVar)
+	check, err := doGetFieldCheck(field, g, true, true, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
 		return "", err
 	}
@@ -433,8 +453,18 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 	// Get the name of the underlying identifier
 	var varIdent string
 	if msg := field.Message; msg != nil {
+		typeImportPath := string(msg.GoIdent.GoImportPath)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			// NB: not one of our types, skip it
+			return nil
+		}
 		varIdent = common.TetragonApiIdent(g, msg.GoIdent.GoName)
 	} else if enum := field.Enum; enum != nil {
+		typeImportPath := string(enum.GoIdent.GoImportPath)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			// NB: not one of our types, skip it
+			return nil
+		}
 		varIdent = common.TetragonApiIdent(g, enum.GoIdent.GoName)
 	} else {
 		varIdent = field.kind().String()
@@ -453,7 +483,7 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 	}
 
 	// Get the name of the list checker
-	listCheckerName := field.listCheckerName()
+	listCheckerName := field.listCheckerName(g)
 
 	// Determine if we need to generate a checker still
 	if _, ok := generatedListChecks[varIdent]; ok {
@@ -582,14 +612,61 @@ func (field *Field) name() string {
 	return field.GoName
 }
 
-func (field *Field) listCheckerName() string {
+func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 	if msg := field.Message; msg != nil {
-		return fmt.Sprintf("%sListMatcher", msg.GoIdent.GoName)
+		typeImportPath := string(field.Message.GoIdent.GoImportPath)
+		ret := fmt.Sprintf("%sListMatcher", msg.GoIdent.GoName)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			ret = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       ret,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+		return ret
 	} else if enum := field.Enum; enum != nil {
-		return fmt.Sprintf("%sListMatcher", enum.GoIdent.GoName)
+		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
+		ret := fmt.Sprintf("%sListMatcher", enum.GoIdent.GoName)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			ret = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       ret,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+		return ret
 	} else {
 		varIdent := field.kind().String()
 		return fmt.Sprintf("%sListMatcher", strcase.ToCamel(varIdent))
+	}
+}
+
+func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
+	if msg := field.Message; msg != nil {
+		typeImportPath := string(field.Message.GoIdent.GoImportPath)
+		ret := fmt.Sprintf("New%sListMatcher", msg.GoIdent.GoName)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			ret = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       ret,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+		return ret
+	} else if enum := field.Enum; enum != nil {
+		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
+		ret := fmt.Sprintf("New%sListMatcher", enum.GoIdent.GoName)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			ret = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       ret,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
+		return ret
+	} else {
+		varIdent := field.kind().String()
+		return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
 	}
 }
 
@@ -703,10 +780,26 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 			type_ = dmatcher
 		} else {
 			type_ = fmt.Sprintf("%sChecker", field.Message.GoIdent.GoName)
+			typeImportPath := string(field.Message.GoIdent.GoImportPath)
+			if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+				importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+				type_ = g.QualifiedGoIdent(protogen.GoIdent{
+					GoName:       type_,
+					GoImportPath: protogen.GoImportPath(importPath),
+				})
+			}
 		}
 
 	case protoreflect.EnumKind:
 		type_ = fmt.Sprintf("%sChecker", field.Enum.GoIdent.GoName)
+		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
+		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+			type_ = g.QualifiedGoIdent(protogen.GoIdent{
+				GoName:       type_,
+				GoImportPath: protogen.GoImportPath(importPath),
+			})
+		}
 
 	default:
 		return "", fmt.Errorf("Unhandled field type %s (please edit checkerTypeName in field.go)", kind)

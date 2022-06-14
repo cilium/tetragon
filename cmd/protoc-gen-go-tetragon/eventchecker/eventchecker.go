@@ -74,7 +74,7 @@ func generateEventToChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 		for _, msg := range events {
 			msgIdent := common.TetragonApiIdent(g, msg.GoIdent.GoName)
 			ret += `case *` + msgIdent + `:
-            return New` + msg.checkerName() + `().From` + msg.GoIdent.GoName + `(ev), nil
+            return New` + msg.checkerName(g) + `().From` + msg.GoIdent.GoName + `(ev), nil
             `
 		}
 		return ret

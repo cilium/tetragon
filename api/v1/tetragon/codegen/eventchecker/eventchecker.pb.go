@@ -300,7 +300,7 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 	}
 }
 
-// ProcessExecChecker checks a ProcessExec event
+// ProcessExecChecker implements a checker struct to check a ProcessExec event
 type ProcessExecChecker struct {
 	Process   *ProcessChecker     `json:"process,omitempty"`
 	Parent    *ProcessChecker     `json:"parent,omitempty"`
@@ -498,7 +498,7 @@ nextCheck:
 	return nil
 }
 
-// ProcessExitChecker checks a ProcessExit event
+// ProcessExitChecker implements a checker struct to check a ProcessExit event
 type ProcessExitChecker struct {
 	Process *ProcessChecker              `json:"process,omitempty"`
 	Parent  *ProcessChecker              `json:"parent,omitempty"`
@@ -600,7 +600,7 @@ func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) 
 	return checker
 }
 
-// ProcessKprobeChecker checks a ProcessKprobe event
+// ProcessKprobeChecker implements a checker struct to check a ProcessKprobe event
 type ProcessKprobeChecker struct {
 	Process      *ProcessChecker              `json:"process,omitempty"`
 	Parent       *ProcessChecker              `json:"parent,omitempty"`
@@ -840,7 +840,7 @@ nextCheck:
 	return nil
 }
 
-// ProcessTracepointChecker checks a ProcessTracepoint event
+// ProcessTracepointChecker implements a checker struct to check a ProcessTracepoint event
 type ProcessTracepointChecker struct {
 	Process *ProcessChecker              `json:"process,omitempty"`
 	Parent  *ProcessChecker              `json:"parent,omitempty"`
@@ -964,7 +964,7 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 	return checker
 }
 
-// TestChecker checks a Test event
+// TestChecker implements a checker struct to check a Test event
 type TestChecker struct {
 	Arg0 *uint64 `json:"arg0,omitempty"`
 	Arg1 *uint64 `json:"arg1,omitempty"`
@@ -1071,7 +1071,7 @@ func (checker *TestChecker) FromTest(event *tetragon.Test) *TestChecker {
 	return checker
 }
 
-// ProcessDnsChecker checks a ProcessDns event
+// ProcessDnsChecker implements a checker struct to check a ProcessDns event
 type ProcessDnsChecker struct {
 	Process          *ProcessChecker    `json:"process,omitempty"`
 	Dns              *DnsInfoChecker    `json:"dns,omitempty"`
@@ -1282,7 +1282,7 @@ nextCheck:
 	return nil
 }
 
-// ImageChecker checks a Image field
+// ImageChecker implements a checker struct to check a Image field
 type ImageChecker struct {
 	Id   *stringmatcher.StringMatcher `json:"id,omitempty"`
 	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
@@ -1334,7 +1334,7 @@ func (checker *ImageChecker) FromImage(event *tetragon.Image) *ImageChecker {
 	return checker
 }
 
-// ContainerChecker checks a Container field
+// ContainerChecker implements a checker struct to check a Container field
 type ContainerChecker struct {
 	Id             *stringmatcher.StringMatcher       `json:"id,omitempty"`
 	Name           *stringmatcher.StringMatcher       `json:"name,omitempty"`
@@ -1450,7 +1450,7 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 	return checker
 }
 
-// PodChecker checks a Pod field
+// PodChecker implements a checker struct to check a Pod field
 type PodChecker struct {
 	Namespace *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
 	Name      *stringmatcher.StringMatcher           `json:"name,omitempty"`
@@ -1560,7 +1560,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	return checker
 }
 
-// CapabilitiesChecker checks a Capabilities field
+// CapabilitiesChecker implements a checker struct to check a Capabilities field
 type CapabilitiesChecker struct {
 	Permitted   *CapabilitiesTypeListMatcher `json:"permitted,omitempty"`
 	Effective   *CapabilitiesTypeListMatcher `json:"effective,omitempty"`
@@ -1755,7 +1755,7 @@ nextCheck:
 	return nil
 }
 
-// NamespaceChecker checks a Namespace field
+// NamespaceChecker implements a checker struct to check a Namespace field
 type NamespaceChecker struct {
 	Inum   *uint32 `json:"inum,omitempty"`
 	IsHost *bool   `json:"isHost,omitempty"`
@@ -1813,7 +1813,7 @@ func (checker *NamespaceChecker) FromNamespace(event *tetragon.Namespace) *Names
 	return checker
 }
 
-// NamespacesChecker checks a Namespaces field
+// NamespacesChecker implements a checker struct to check a Namespaces field
 type NamespacesChecker struct {
 	Uts             *NamespaceChecker `json:"uts,omitempty"`
 	Ipc             *NamespaceChecker `json:"ipc,omitempty"`
@@ -1989,7 +1989,7 @@ func (checker *NamespacesChecker) FromNamespaces(event *tetragon.Namespaces) *Na
 	return checker
 }
 
-// ProcessChecker checks a Process field
+// ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
 	ExecId       *stringmatcher.StringMatcher       `json:"execId,omitempty"`
 	Pid          *uint32                            `json:"pid,omitempty"`
@@ -2238,7 +2238,7 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	return checker
 }
 
-// KprobeSockChecker checks a KprobeSock field
+// KprobeSockChecker implements a checker struct to check a KprobeSock field
 type KprobeSockChecker struct {
 	Family   *stringmatcher.StringMatcher `json:"family,omitempty"`
 	Type     *stringmatcher.StringMatcher `json:"type,omitempty"`
@@ -2393,7 +2393,7 @@ func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *Kp
 	return checker
 }
 
-// KprobeSkbChecker checks a KprobeSkb field
+// KprobeSkbChecker implements a checker struct to check a KprobeSkb field
 type KprobeSkbChecker struct {
 	Hash        *uint32                      `json:"hash,omitempty"`
 	Len         *uint32                      `json:"len,omitempty"`
@@ -2589,7 +2589,7 @@ func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *Kprob
 	return checker
 }
 
-// KprobePathChecker checks a KprobePath field
+// KprobePathChecker implements a checker struct to check a KprobePath field
 type KprobePathChecker struct {
 	Mount *stringmatcher.StringMatcher `json:"mount,omitempty"`
 	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
@@ -2654,7 +2654,7 @@ func (checker *KprobePathChecker) FromKprobePath(event *tetragon.KprobePath) *Kp
 	return checker
 }
 
-// KprobeFileChecker checks a KprobeFile field
+// KprobeFileChecker implements a checker struct to check a KprobeFile field
 type KprobeFileChecker struct {
 	Mount *stringmatcher.StringMatcher `json:"mount,omitempty"`
 	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
@@ -2719,7 +2719,7 @@ func (checker *KprobeFileChecker) FromKprobeFile(event *tetragon.KprobeFile) *Kp
 	return checker
 }
 
-// KprobeTruncatedBytesChecker checks a KprobeTruncatedBytes field
+// KprobeTruncatedBytesChecker implements a checker struct to check a KprobeTruncatedBytes field
 type KprobeTruncatedBytesChecker struct {
 	BytesArg *bytesmatcher.BytesMatcher `json:"bytesArg,omitempty"`
 	OrigSize *uint64                    `json:"origSize,omitempty"`
@@ -2774,7 +2774,7 @@ func (checker *KprobeTruncatedBytesChecker) FromKprobeTruncatedBytes(event *tetr
 	return checker
 }
 
-// KprobeCredChecker checks a KprobeCred field
+// KprobeCredChecker implements a checker struct to check a KprobeCred field
 type KprobeCredChecker struct {
 	Permitted   *CapabilitiesTypeListMatcher `json:"permitted,omitempty"`
 	Effective   *CapabilitiesTypeListMatcher `json:"effective,omitempty"`
@@ -2869,7 +2869,7 @@ func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *Kp
 	return checker
 }
 
-// KprobeArgumentChecker checks a KprobeArgument field
+// KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg         *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
 	IntArg            *int32                       `json:"intArg,omitempty"`
@@ -3125,7 +3125,7 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	return checker
 }
 
-// DnsInfoChecker checks a DnsInfo field
+// DnsInfoChecker implements a checker struct to check a DnsInfo field
 type DnsInfoChecker struct {
 	QuestionTypes *Uint32ListMatcher           `json:"questionTypes,omitempty"`
 	AnswerTypes   *Uint32ListMatcher           `json:"answerTypes,omitempty"`

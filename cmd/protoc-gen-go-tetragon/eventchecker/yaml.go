@@ -26,7 +26,7 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error
 	g.P(`type eventCheckerHelper struct {`)
 	for _, event := range events {
 		jsonName := strcase.ToLowerCamel(strings.TrimPrefix(event.GoIdent.GoName, "Process"))
-		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName())
+		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName(g))
 		g.P(event.GoIdent.GoName + `*` + checkerIdent +
 			common.StructTag(fmt.Sprintf("json:\"%s,omitempty\"", jsonName)))
 	}
@@ -61,7 +61,7 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error
         var helper eventCheckerHelper
         switch c := checker.EventChecker.(type) {`)
 	for _, event := range events {
-		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName())
+		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName(g))
 		g.P(`case *` + checkerIdent + `:
             helper.` + event.GoIdent.GoName + ` = c`)
 	}
