@@ -182,9 +182,10 @@ struct msg_capabilities {
 };
 
 // indexes to access msg_capabilities's array (->c) -- should have the same order as the fields above.
-enum { caps_permitted = 0,
-       caps_effective = 1,
-       caps_inheritable = 2,
+enum {
+	caps_permitted = 0,
+	caps_effective = 1,
+	caps_inheritable = 2,
 };
 
 struct exit_info {
@@ -198,21 +199,22 @@ struct msg_exit {
 	struct exit_info info;
 };
 
-enum { ns_uts = 0,
-       ns_ipc = 1,
-       ns_mnt = 2,
-       ns_pid = 3,
-       ns_pid_for_children = 4,
-       ns_net = 5,
-       ns_time = 6,
-       ns_time_for_children = 7,
-       ns_cgroup = 8,
-       ns_user = 9,
+enum {
+	ns_uts = 0,
+	ns_ipc = 1,
+	ns_mnt = 2,
+	ns_pid = 3,
+	ns_pid_for_children = 4,
+	ns_net = 5,
+	ns_time = 6,
+	ns_time_for_children = 7,
+	ns_cgroup = 8,
+	ns_user = 9,
 
-       // If you update the value of ns_max_types you
-       // should also update parseMatchNamespaces()
-       // in kernel.go
-       ns_max_types = 10,
+	// If you update the value of ns_max_types you
+	// should also update parseMatchNamespaces()
+	// in kernel.go
+	ns_max_types = 10,
 };
 
 struct msg_ns {
