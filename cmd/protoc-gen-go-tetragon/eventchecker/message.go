@@ -5,6 +5,8 @@ package eventchecker
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -46,15 +48,15 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 		return err
 	}
 
-	g.P(`// ` + msg.checkerName() + ` checks a ` + msg.GoIdent.GoName + ` ` + msgType + `
-        type ` + msg.checkerName() + ` struct {
+	g.P(`// ` + msg.checkerName(g) + ` implements a checker struct to check a ` + msg.GoIdent.GoName + ` ` + msgType + `
+        type ` + msg.checkerName(g) + ` struct {
             ` + fieldsStr + `
         }`)
 
 	// Generate the EventChecker implementation
 	if isEvent {
 		g.P(`// CheckEvent checks a single event and implements the EventChecker interface
-        func (checker *` + msg.checkerName() + `) CheckEvent(event Event) error {
+        func (checker *` + msg.checkerName(g) + `) CheckEvent(event Event) error {
             if ev, ok := event.(*` + targetIdent + `); ok {
                 return checker.Check(ev)
             }
@@ -62,7 +64,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
         }`)
 
 		g.P(`// CheckResponse checks a single gRPC response and implements the EventChecker interface
-        func (checker *` + msg.checkerName() + `) CheckResponse(response *` + tetragonGER + `) error {
+        func (checker *` + msg.checkerName(g) + `) CheckResponse(response *` + tetragonGER + `) error {
             event, err := EventFromResponse(response)
             if err != nil {
                 return err
@@ -72,17 +74,17 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 
 	}
 
-	g.P(`// New` + msg.checkerName() + ` creates a new ` + msg.checkerName() + `
-    func New` + msg.checkerName() + `() *` + msg.checkerName() + ` {
-        return &` + msg.checkerName() + `{}
+	g.P(`// New` + msg.checkerName(g) + ` creates a new ` + msg.checkerName(g) + `
+    func New` + msg.checkerName(g) + `() *` + msg.checkerName(g) + ` {
+        return &` + msg.checkerName(g) + `{}
     }
     `)
 
 	// Do preamble
 	g.P(`// Check checks a ` + msg.GoIdent.GoName + ` ` + msgType + `
-        func (checker *` + msg.checkerName() + `) Check(event *` + targetIdent + `) error {
+        func (checker *` + msg.checkerName(g) + `) Check(event *` + targetIdent + `) error {
             if event == nil {
-                return ` + common.FmtErrorf(g, msg.checkerName()+": "+msg.GoIdent.GoName+" "+msgType+" "+"is nil") + `
+                return ` + common.FmtErrorf(g, msg.checkerName(g)+": "+msg.GoIdent.GoName+" "+msgType+" "+"is nil") + `
             }
         `)
 	// Do fields
@@ -101,8 +103,8 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 	}
 
 	// Generate From funcs
-	g.P(`//From` + msg.GoIdent.GoName + ` populates the ` + msg.checkerName() + ` using data from a ` + msg.GoIdent.GoName + ` ` + msgType + `
-    func (checker *` + msg.checkerName() + `) From` + msg.GoIdent.GoName + `(event *` + targetIdent + `) *` + msg.checkerName() + ` {
+	g.P(`//From` + msg.GoIdent.GoName + ` populates the ` + msg.checkerName(g) + ` using data from a ` + msg.GoIdent.GoName + ` ` + msgType + `
+    func (checker *` + msg.checkerName(g) + `) From` + msg.GoIdent.GoName + `(event *` + targetIdent + `) *` + msg.checkerName(g) + ` {
         if event == nil {
             return checker
         }`)
@@ -117,8 +119,17 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 	return nil
 }
 
-func (msg *CheckedMessage) checkerName() string {
-	return fmt.Sprintf("%sChecker", msg.GoIdent.GoName)
+func (msg *CheckedMessage) checkerName(g *protogen.GeneratedFile) string {
+	ret := fmt.Sprintf("%sChecker", msg.GoIdent.GoName)
+	typeImportPath := string(msg.GoIdent.GoImportPath)
+	if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
+		importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
+		ret = g.QualifiedGoIdent(protogen.GoIdent{
+			GoName:       ret,
+			GoImportPath: protogen.GoImportPath(importPath),
+		})
+	}
+	return ret
 }
 
 func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error) {
@@ -132,7 +143,7 @@ func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error)
 		if !(f.isList() || f.isMap()) {
 			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), typeName, f.jsonTag())
 		} else if f.isList() {
-			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(), f.jsonTag())
+			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag())
 		} else {
 			fieldsStr += fmt.Sprintf("%s %s `%s`\n", f.name(), typeName, f.jsonTag())
 		}
