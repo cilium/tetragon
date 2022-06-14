@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
 // EventEncoder is an interface for encoding tetragon.GetEventsResponse.
@@ -252,6 +253,66 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 		processInfo, caps := p.colorer.processInfo(response.NodeName, dns.Process)
 		args := p.colorer.cyan.Sprint(dns.GetDns().Names, " => ", dns.GetDns().Ips)
 		return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
+	case *tetragon.GetEventsResponse_ProcessTracepoint:
+		tp := response.GetProcessTracepoint()
+		if tp.Process == nil {
+			return "", fmt.Errorf("process field is not set")
+		}
+		processInfo, caps := p.colorer.processInfo(response.NodeName, tp.Process)
+		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
+		case "raw_syscalls/sys_enter":
+			event := p.colorer.blue.Sprintf("☎  %-7s", "syscall")
+			sysName := rawSyscallEnter(p, tp)
+			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sysName), caps), nil
+		default:
+			event := p.colorer.blue.Sprintf("⁉️ %-7s", "tracepoint")
+			return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, tp.Subsys, tp.Event), caps), nil
+		}
 	}
+
 	return "", fmt.Errorf("unknown event type")
+}
+
+func rawSyscallEnter(p *CompactEncoder, tp *tetragon.ProcessTracepoint) string {
+	sysID := int64(-1)
+	if len(tp.Args) > 0 && tp.Args[0] != nil {
+		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {
+			sysID = x.LongArg
+		}
+	}
+	sysName := "unknown"
+	if name := syscallinfo.GetSyscallName(int(sysID)); name != "" {
+		sysName = name
+		sysArgs, ok := syscallinfo.GetSyscallArgs(sysName)
+		if ok {
+			sysName += "("
+			for j, arg := range sysArgs {
+				if j > 0 {
+					sysName += ", "
+				}
+				i := j + 1
+
+				argVal := "?"
+				isPtr := false
+				if len(tp.Args) > i && tp.Args[i] != nil {
+					if x, ok := tp.Args[i].GetArg().(*tetragon.KprobeArgument_SizeArg); ok {
+						argVal_ := x.SizeArg
+						if len(arg.Type) > 0 && arg.Type[len(arg.Type)-1] == '*' {
+							isPtr = true
+							argVal = fmt.Sprintf("0x%x", argVal_)
+						} else {
+							argVal = fmt.Sprintf("%d", argVal_)
+						}
+					}
+				}
+				if isPtr {
+					sysName += fmt.Sprintf("%s%s=%s", arg.Type, arg.Name, argVal)
+				} else {
+					sysName += fmt.Sprintf("%s %s=%s", arg.Type, arg.Name, argVal)
+				}
+			}
+			sysName += ")"
+		}
+	}
+	return sysName
 }
