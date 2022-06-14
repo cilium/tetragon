@@ -50,8 +50,7 @@ func TestCopyFd(t *testing.T) {
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
 		data := map[string]string{
-			"MatchedPID":   pid,
-			"NamespacePID": "false",
+			"MatchedPID": pid,
 		}
 		specName, err := testutils.GetSpecFromTemplate("copyfd.yaml.tmpl", data)
 		if err != nil {
