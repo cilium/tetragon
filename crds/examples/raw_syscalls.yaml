@@ -1,0 +1,17 @@
+kind: TracingPolicy
+metadata:
+  name: "raw-syscalls"
+spec:
+  tracepoints:
+    - subsystem: "raw_syscalls"
+      event: "sys_enter"
+      # args: add both the syscall id, and the array with the arguments
+      args:
+        - index: 4
+        - index: 5
+      #selectors:
+      #- matchPIDs:
+      #  - operator: In
+      #    followForks: true
+      #    values:
+      #     - 208095
