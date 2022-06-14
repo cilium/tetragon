@@ -22,7 +22,7 @@ const (
 type Field protogen.Field
 
 func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage) error {
-	typeName, err := field.typeName(g, false)
+	typeName, err := field.typeName(g)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 
 	doListFrom := func() (string, error) {
 		matchKind := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Ordered")
-		typeName, err := field.typeName(g, false)
+		typeName, err := field.typeName(g)
 		if err != nil {
 			return "", err
 		}
@@ -129,7 +129,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 			return "", err
 		}
 
-		innerType, err := field.typeName(g, false)
+		innerType, err := field.typeName(g)
 		if err != nil {
 			return "", err
 		}
@@ -446,7 +446,7 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 
 	// Get the name of the underlying checker
 	var checkerName string
-	if name, err := field.typeName(g, false); err == nil {
+	if name, err := field.typeName(g); err == nil {
 		checkerName = name
 	} else {
 		return err
@@ -664,7 +664,7 @@ func (field *Field) jsonTag() string {
 	return fmt.Sprintf("json:\"%s,omitempty\"", field.Desc.JSONName())
 }
 
-func (field *Field) typeName(g *protogen.GeneratedFile, needsImport bool) (string, error) {
+func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 	kind := field.kind()
 
 	// Pod.Labels is a special case
@@ -703,16 +703,10 @@ func (field *Field) typeName(g *protogen.GeneratedFile, needsImport bool) (strin
 			type_ = dmatcher
 		} else {
 			type_ = fmt.Sprintf("%sChecker", field.Message.GoIdent.GoName)
-			if needsImport {
-				type_ = common.GeneratedIdent(g, "eventchecker", type_)
-			}
 		}
 
 	case protoreflect.EnumKind:
 		type_ = fmt.Sprintf("%sChecker", field.Enum.GoIdent.GoName)
-		if needsImport {
-			type_ = common.GeneratedIdent(g, "eventchecker", type_)
-		}
 
 	default:
 		return "", fmt.Errorf("Unhandled field type %s (please edit checkerTypeName in field.go)", kind)
