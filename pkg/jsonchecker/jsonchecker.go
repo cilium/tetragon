@@ -25,6 +25,30 @@ var (
 	RetryDelay = 2 * time.Second
 )
 
+// DebugError is an error that will create a debug output message
+type DebugError struct {
+	err error
+}
+
+func NewDebugError(err error) *DebugError {
+	if err == nil {
+		return nil
+	}
+	return &DebugError{
+		err: err,
+	}
+}
+
+// Error returns the error message
+func (e *DebugError) Error() string {
+	return fmt.Sprintf("DebugError: %v", e.err)
+}
+
+// Unwrap returns the original error
+func (e *DebugError) Unwrap() error {
+	return e.err
+}
+
 // JsonEOF is a type of error where we went over all the events and there was no match.
 //
 // The reason to have a special error is that there are cases where the events
@@ -52,6 +76,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
+		var dbgErr *DebugError
 		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
 			return fmt.Errorf("unmarshal failed: %w", err)
@@ -73,6 +98,8 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		} else if done && err != nil {
 			log.Errorf("%s => terminating error: %s", matchPrefix, err)
 			return err
+		} else if errors.As(err, &dbgErr) {
+			log.Debugf("%s => no match: %s, continuing", matchPrefix, err)
 		} else {
 			log.Infof("%s => no match: %s, continuing", matchPrefix, err)
 		}
