@@ -46,6 +46,6 @@ struct bpf_elf_map {
 	};                                                                     \
 	struct ____btf_map_##name                                              \
 		__attribute__((section(".maps." #name), used))                 \
-			____btf_map_##name = {}
+		____btf_map_##name = {}
 
 #endif /* __BPF_ELF__ */

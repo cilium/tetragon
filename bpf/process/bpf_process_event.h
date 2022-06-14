@@ -387,13 +387,13 @@ probe_arg_read(struct msg_process *c, char *earg, char *args, char *end_args)
 {
 	long off = 0;
 
-	asm volatile goto(PROBE_ARG_READ50
-			  :
-			  : [earg] "m"(earg), [args] "m"(args),
-			    [end] "m"(end_args), [curr] "ri"(c),
-			    [offset] "r"(off)
-			  : "r0", "r1", "r2", "r3", "r4", "r5"
-			  : a, b, c);
+	asm volatile goto(
+		PROBE_ARG_READ50
+		:
+		: [earg] "m"(earg), [args] "m"(args), [end] "m"(end_args),
+		  [curr] "ri"(c), [offset] "r"(off)
+		: "r0", "r1", "r2", "r3", "r4", "r5"
+		: a, b, c);
 	c->flags |= EVENT_TRUNC_ARGS;
 c:
 	return;

@@ -8,49 +8,53 @@
 #include "../bpf_process_event.h"
 
 /* Type IDs form API with user space generickprobe.go */
-enum { filter = -2,
-       nop = 0,
-       int_type = 1,
-       char_buf = 2,
-       char_iovec = 3,
-       size_type = 4,
-       skb_type = 5,
-       string_type = 6,
-       sock_type = 7,
-       cred_type = 8,
+enum {
+	filter = -2,
+	nop = 0,
+	int_type = 1,
+	char_buf = 2,
+	char_iovec = 3,
+	size_type = 4,
+	skb_type = 5,
+	string_type = 6,
+	sock_type = 7,
+	cred_type = 8,
 
-       s64_ty = 10,
-       u64_ty = 11,
-       s32_ty = 12,
-       u32_ty = 13,
+	s64_ty = 10,
+	u64_ty = 11,
+	s32_ty = 12,
+	u32_ty = 13,
 
-       filename_ty = 14,
-       path_ty = 15,
-       file_ty = 16,
-       fd_ty = 17,
+	filename_ty = 14,
+	path_ty = 15,
+	file_ty = 16,
+	fd_ty = 17,
 
-       nop_s64_ty = -10,
-       nop_u64_ty = -11,
-       nop_u32_ty = -12,
-       nop_s32_ty = -13,
+	nop_s64_ty = -10,
+	nop_u64_ty = -11,
+	nop_u32_ty = -12,
+	nop_s32_ty = -13,
 };
 
-enum { char_buf_enomem = -1,
-       char_buf_pagefault = -2,
-       char_buf_toolarge = -3,
-       char_buf_saved_for_retprobe = -4,
+enum {
+	char_buf_enomem = -1,
+	char_buf_pagefault = -2,
+	char_buf_toolarge = -3,
+	char_buf_saved_for_retprobe = -4,
 };
 
-enum { ACTION_POST = 0,
-       ACTION_FOLLOWFD = 1,
-       /* Actual SIGKILL value, but we dont want to pull headers in */
-       ACTION_SIGKILL = 2,
-       ACTION_UNFOLLOWFD = 3,
-       ACTION_OVERRIDE = 4,
-       ACTION_COPYFD = 5,
+enum {
+	ACTION_POST = 0,
+	ACTION_FOLLOWFD = 1,
+	/* Actual SIGKILL value, but we dont want to pull headers in */
+	ACTION_SIGKILL = 2,
+	ACTION_UNFOLLOWFD = 3,
+	ACTION_OVERRIDE = 4,
+	ACTION_COPYFD = 5,
 };
 
-enum { FGS_SIGKILL = 9,
+enum {
+	FGS_SIGKILL = 9,
 };
 
 struct selector_action {
@@ -355,18 +359,18 @@ copy_path(char *args, const struct path *arg)
 	 * -------------------------------
 	 * Next we set up the flags.
 	 */
-	asm volatile goto("r1 = *(u64 *)%[pid];\n"
-			  "r7 = *(u32 *)%[offset];\n"
-			  "if r7 s< 0 goto %l[a];\n"
-			  "if r7 s> 1188 goto %l[a];\n"
-			  "r1 += r7;\n"
-			  "r2 = *(u32 *)%[flags];\n"
-			  "*(u32 *)(r1 + 0) = r2;\n"
-			  :
-			  : [pid] "m"(args), [flags] "m"(flags),
-			    [offset] "+m"(size)
-			  : "r0", "r1", "r2", "r7", "memory"
-			  : a);
+	asm volatile goto(
+		"r1 = *(u64 *)%[pid];\n"
+		"r7 = *(u32 *)%[offset];\n"
+		"if r7 s< 0 goto %l[a];\n"
+		"if r7 s> 1188 goto %l[a];\n"
+		"r1 += r7;\n"
+		"r2 = *(u32 *)%[flags];\n"
+		"*(u32 *)(r1 + 0) = r2;\n"
+		:
+		: [pid] "m"(args), [flags] "m"(flags), [offset] "+m"(size)
+		: "r0", "r1", "r2", "r7", "memory"
+		: a);
 a:
 	size += sizeof(u32); // for the flags
 
