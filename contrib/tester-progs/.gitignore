@@ -4,3 +4,4 @@ namespace-tester
 sigkill-tester
 dup-tester
 trigger-test-events
+nop
