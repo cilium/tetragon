@@ -50,6 +50,9 @@ func TestMain(m *testing.M) {
 	bpf.ConfigureResourceLimits()
 	selfBinary = filepath.Base(os.Args[0])
 	exitCode := m.Run()
+	// NB: we currently seem to fail to remove the /sys/fs/bpf/testObserver
+	// dir. Do so here, until we figure out a way to do it properly.
+	os.RemoveAll(bpf.MapPrefixPath())
 	os.Exit(exitCode)
 }
 
