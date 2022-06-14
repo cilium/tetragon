@@ -1,11 +1,6 @@
 # Ignore VCS
 .git/
 
-# Ignore dockerignore and Dockerfiles
-.dockerignore
-Dockerfile
-Dockerfile.*
-
 # Ignore compiled binaries and libraries
 go-tests/
 lib/
