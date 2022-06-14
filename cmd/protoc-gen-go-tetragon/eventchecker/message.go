@@ -125,7 +125,7 @@ func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error)
 	var fieldsStr string
 	for _, field := range msg.Fields {
 		f := (*Field)(field)
-		typeName, err := f.typeName(g, false)
+		typeName, err := f.typeName(g)
 		if err != nil {
 			return "", err
 		}
