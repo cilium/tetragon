@@ -728,6 +728,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Index = uint64(a.index)
 			arg.Value = output
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericNopType:
+			// do nothing
 		default:
 			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")
 		}
