@@ -91,4 +91,15 @@ func (k *Observer) startUpdateMapMetrics() {
 			}
 		}
 	}()
+
+	// Map loaded sensor map metrics
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		for {
+			mapmetrics.UpdateMapLoadedMetrics()
+			select {
+			case <-ticker.C: // Wait for timer
+			}
+		}
+	}()
 }
