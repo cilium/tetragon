@@ -25,6 +25,7 @@ import (
 	lc "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,14 @@ func TestCopyFd(t *testing.T) {
 		data := map[string]string{
 			"MatchedPID": pid,
 		}
-		specName, err := testutils.GetSpecFromTemplate("copyfd.yaml.tmpl", data)
+		// For kernels <= 5.10, dup syscall calls fd_install, which calls
+		// __fd_install. fd_install is inlined and if we hook there we miss
+		// the dup event. For kernels > 5.10 __fd_install is removed.
+		templatePath := "copyfd-fd_install.yaml.tmpl"
+		if kernels.IsKernelVersionLessThan("5.11.0") {
+			templatePath = "copyfd-__fd_install.yaml.tmpl"
+		}
+		specName, err := testutils.GetSpecFromTemplate(templatePath, data)
 		if err != nil {
 			t.Fatal(err)
 		}
