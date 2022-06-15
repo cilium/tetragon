@@ -34,6 +34,10 @@ import (
 )
 
 func TestCopyFd(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
