@@ -185,14 +185,13 @@ func LoadProgram(
 			logger.GetLogger().WithField("prog", load.Label).Debugf("pin file for map '%s' not found, map is not shared!\n", name)
 		}
 	}
-	if err := spec.RewriteMaps(pinnedMaps); err != nil {
-		return fmt.Errorf("rewrite maps failed: %w", err)
-	}
 
 	var opts ebpf.CollectionOptions
 	if btfSpec != nil {
 		opts.Programs.KernelTypes = btfSpec
 	}
+
+	opts.MapReplacements = pinnedMaps
 
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
 	if err != nil {
