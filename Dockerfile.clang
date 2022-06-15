@@ -1,0 +1,9 @@
+FROM ubuntu:22.04
+ARG VERSION=1:13.0.1-2ubuntu2
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt-get install -y --no-install-recommends clang-13=$VERSION llvm-13=$VERSION make
+RUN ln -vsnf /usr/lib/llvm-13/bin/clang /usr/bin/clang
+RUN ln -vsnf /usr/lib/llvm-13/bin/llc /usr/bin/llc
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
