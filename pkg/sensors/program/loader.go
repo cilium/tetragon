@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/tetragon/pkg/btf"
+	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
@@ -128,15 +129,14 @@ func LoadProgram(
 	load *Program,
 	withProgram AttachFunc,
 ) error {
-	var btfFile *os.File
-	if btfFilePath := btf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
-		// Non-standard path to BTF, open it and provide it as 'TargetBTF'.
+	var btfSpec *btf.Spec
+	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
+		// Non-standard path to BTF, open it and provide it as 'KernelTypes'.
 		var err error
-		btfFile, err = os.Open(btfFilePath)
+		btfSpec, err = btf.LoadSpec(btfFilePath)
 		if err != nil {
 			return fmt.Errorf("opening BTF file '%s' failed: %w", btfFilePath, err)
 		}
-		defer btfFile.Close()
 	}
 
 	spec, err := ebpf.LoadCollectionSpec(load.Name)
@@ -162,8 +162,8 @@ func LoadProgram(
 	// the ones used.
 	refMaps := make(map[string]bool)
 	for _, inst := range progSpec.Instructions {
-		if inst.Reference != "" {
-			refMaps[inst.Reference] = true
+		if inst.Reference() != "" {
+			refMaps[inst.Reference()] = true
 		}
 	}
 
@@ -190,8 +190,8 @@ func LoadProgram(
 	}
 
 	var opts ebpf.CollectionOptions
-	if btfFile != nil {
-		opts.Programs.TargetBTF = btfFile
+	if btfSpec != nil {
+		opts.Programs.KernelTypes = btfSpec
 	}
 
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
