@@ -30,7 +30,7 @@ void read_with_fd(int fd)
 
 int main(int argc, char *argv[])
 {
-    int fd, fd_dup2, fd_dup3;
+    int fd, fd_dup, fd_dup2, fd_dup3;
     const char *pathname = "./strange.txt";
 
     {
@@ -54,6 +54,12 @@ int main(int argc, char *argv[])
 
     read_with_fd(fd);
 
+    fd_dup = dup(fd);
+    if (fd_dup == -1)
+         errExit("dup");
+
+    read_with_fd(fd_dup);
+
     fd_dup2 = dup2(fd, 15); // 15 should be an unused file descriptor
     if (fd_dup2 == -1)
         errExit("dup2");
@@ -68,6 +74,7 @@ int main(int argc, char *argv[])
 
     close(fd_dup3);
     close(fd_dup2);
+    close(fd_dup);
     close(fd);
 
     {

@@ -95,6 +95,7 @@ func TestCopyFd(t *testing.T) {
 		kpChecker,
 		kpChecker,
 		kpChecker,
+		kpChecker,
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
