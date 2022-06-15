@@ -1,0 +1,112 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "copyfd"
+spec:
+  kprobes:
+  - call: "__fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: nop
+    - index: 1
+      type: int
+    - index: 2
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - {{.MatchedPID}}
+      matchArgs:
+      - index: 2
+        operator: "Postfix"
+        values:
+        - "strange.txt"
+      matchActions:
+      - action: FollowFD
+        argFd: 1
+        argName: 2
+  - call: "__x64_sys_dup2"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - {{.MatchedPID}}
+      matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "strange.txt"
+      matchActions:
+      - action: CopyFD
+        argFd: 0
+        argName: 1
+  - call: "__x64_sys_dup3"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "int"
+    - index: 2
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - {{.MatchedPID}}
+      matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "strange.txt"
+      matchActions:
+      - action: CopyFD
+        argFd: 0
+        argName: 1
+  - call: "__x64_sys_close"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - {{.MatchedPID}}
+      matchActions:
+      - action: UnfollowFD
+        argFd: 0
+        argName: 0
+  - call: "__x64_sys_read"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - {{.MatchedPID}}
+      matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "strange.txt"
