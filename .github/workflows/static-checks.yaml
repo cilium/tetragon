@@ -20,7 +20,6 @@ jobs:
       - name: Install required libs
         run: |
           sudo apt-get -y install libelf-dev libz-dev
-          sudo make tools-install
           id=$(docker create quay.io/isovalent/hubble-libbpf:v0.2.3 sleep infinity)
           docker start ${id}
           docker exec ${id} bash -c 'mkdir -p /extract'
