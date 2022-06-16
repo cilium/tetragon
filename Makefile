@@ -91,16 +91,11 @@ test:
 
 test-compile:
 	mkdir -p go-tests
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/bugtool         -o go-tests/bugtool.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/filters         -o go-tests/filters.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/grpc            -o go-tests/grpc.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/stacktracetree  -o go-tests/stacktracetree.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/vtuplefilter    -o go-tests/vtuplefilter.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/tracepoint      -o go-tests/tracepoint.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/config          -o go-tests/config.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/idtable         -o go-tests/idtable.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/bpf             -o go-tests/bpf.test
-	$(GO) test -gcflags=$(GO_GCFLAGS) -c ./pkg/btf             -o go-tests/btf.test
+	for pkg in $$($(GO) list ./...); do \
+		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
+		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
+		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
+	done | xargs -P $$(nproc) -L 1 $(GO) test -gcflags=$(GO_GCFLAGS)
 
 .PHONY: check-copyright update-copyright
 check-copyright:
