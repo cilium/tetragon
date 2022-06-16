@@ -119,7 +119,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doListFrom := func() (string, error) {
-		matchKind := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Ordered")
+		matchKind := common.ListMatcherIdent(g, "Ordered")
 		typeName, err := field.typeName(g)
 		if err != nil {
 			return "", err
@@ -491,10 +491,10 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 	}
 	generatedListChecks[varIdent] = struct{}{}
 
-	listCheckerKind := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Operator")
-	kindOrdered := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Ordered")
-	kindUnordered := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Unordered")
-	KindSubset := common.GeneratedIdent(g, "eventchecker/matchers/listmatcher", "Subset")
+	listCheckerKind := common.ListMatcherIdent(g, "Operator")
+	kindOrdered := common.ListMatcherIdent(g, "Ordered")
+	kindUnordered := common.ListMatcherIdent(g, "Unordered")
+	KindSubset := common.ListMatcherIdent(g, "Subset")
 
 	// Generate struct
 	g.P(`// ` + listCheckerName + ` checks a list of ` + varIdent + ` fields

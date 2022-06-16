@@ -58,7 +58,7 @@ func generateDoHandleEvents(g *protogen.GeneratedFile, f *protogen.File) error {
 func Generate(gen *protogen.Plugin, f *protogen.File) error {
 	g := common.NewCodegenFile(gen, f, "eventcache")
 
-	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonProcess := common.ProcessIdent(g)
 
 	g.P(`
         type eventObj interface {
