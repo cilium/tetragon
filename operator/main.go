@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/rest"
+	k8sconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var (
@@ -56,10 +56,7 @@ func operatorExecute() {
 	// Prepopulate option.Config with options from CLI.
 	configPopulate()
 
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		log.WithError(err).Fatal("Unable to check k8s configuration")
-	}
+	restConfig := k8sconfig.GetConfigOrDie()
 
 	k8sClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
