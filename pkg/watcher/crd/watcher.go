@@ -16,8 +16,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	k8sconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Log "missing tracing policy" message once.
@@ -46,10 +46,7 @@ func k8sErrorHandler(e error) {
 
 func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	log := logger.GetLogger()
-	conf, err := rest.InClusterConfig()
-	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("couldn't get cluster config")
-	}
+	conf := k8sconfig.GetConfigOrDie()
 	client := versioned.NewForConfigOrDie(conf)
 	factory := externalversions.NewSharedInformerFactory(client, 0)
 	informer := factory.Cilium().V1alpha1().TracingPolicies()
