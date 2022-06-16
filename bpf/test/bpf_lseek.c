@@ -35,9 +35,9 @@ struct sys_enter_lseek_args {
 	__u64 whence;
 };
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 
-__attribute__((section(("tracepoint/sys_enter_lseek")), used)) int
+__attribute__((section("tracepoint/sys_enter_lseek"), used)) int
 test_lseek(struct sys_enter_lseek_args *ctx)
 {
 	// NB: this values should match BogusFd and  BogusWhenceVal in

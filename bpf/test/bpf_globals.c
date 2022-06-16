@@ -8,7 +8,7 @@
 #include "bpf_events.h"
 #include "globals.h"
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 
 GLOBAL_U16 g_u16;
 GLOBAL_I16 g_i16;
@@ -17,7 +17,7 @@ GLOBAL_I32 g_i32;
 GLOBAL_U64 g_u64;
 GLOBAL_I64 g_i64;
 
-__attribute__((section(("socket_filter/read_globals_test")), used)) int
+__attribute__((section("socket_filter/read_globals_test"), used)) int
 read_globals_test(void *ctx)
 {
 	if (READ_GLOBAL(g_u16) != 65535)
