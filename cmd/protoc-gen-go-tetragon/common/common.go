@@ -95,6 +95,11 @@ func ListMatcherIdent(g *protogen.GeneratedFile, name string) string {
 	return GoIdent(g, importPath, name)
 }
 
+func StringMatcherIdent(g *protogen.GeneratedFile, name string) string {
+	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/stringmatcher")
+	return GoIdent(g, importPath, name)
+}
+
 // FmtErrorf is a convenience helper that generates a call to fmt.Errorf
 func FmtErrorf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
 	args = append([]string{fmt.Sprintf("\"%s\"", fmt_)}, args...)

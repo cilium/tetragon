@@ -91,7 +91,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doStringFrom := func() string {
-		fullSmatcher := common.GeneratedIdent(g, "eventchecker/matchers/stringmatcher", "Full")
+		fullSmatcher := common.StringMatcherIdent(g, "Full")
 		return checkerVar + ` = ` + fullSmatcher + `(` + eventVar + `)`
 	}
 
@@ -746,7 +746,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 
 	// Pod.Labels is a special case
 	if field.GoIdent.GoName == "Pod_Labels" {
-		smatcher := common.GeneratedIdent(g, "eventchecker/matchers/stringmatcher", "StringMatcher")
+		smatcher := common.StringMatcherIdent(g, "StringMatcher")
 		return fmt.Sprintf("map[string]%s", smatcher), nil
 	}
 
@@ -768,7 +768,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		type_ = bmatcher
 
 	case protoreflect.StringKind:
-		smatcher := common.GeneratedIdent(g, "eventchecker/matchers/stringmatcher", "StringMatcher")
+		smatcher := common.StringMatcherIdent(g, "StringMatcher")
 		type_ = smatcher
 
 	case protoreflect.MessageKind:
