@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	sm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"

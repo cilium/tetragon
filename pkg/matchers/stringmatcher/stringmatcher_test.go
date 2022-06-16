@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package matchers_test
+package stringmatcher
 
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +18,7 @@ func TestStringMatcherFullSmoke(t *testing.T) {
     value: "` + str + `"
     `
 
-	var checker stringmatcher.StringMatcher
+	var checker StringMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -39,7 +38,7 @@ func TestStringMatcherPrefixSmoke(t *testing.T) {
     value: "` + str[:3] + `"
     `
 
-	var checker stringmatcher.StringMatcher
+	var checker StringMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -62,7 +61,7 @@ func TestStringMatcherSuffixSmoke(t *testing.T) {
     value: "` + str[3:] + `"
     `
 
-	var checker stringmatcher.StringMatcher
+	var checker StringMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -85,7 +84,7 @@ func TestStringMatcherContainsSmoke(t *testing.T) {
     value: "` + str[1:4] + `"
     `
 
-	var checker stringmatcher.StringMatcher
+	var checker StringMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -109,7 +108,7 @@ func TestStringMatcherRegexSmoke(t *testing.T) {
     value: ".*barqux$"
     `
 
-	var checker stringmatcher.StringMatcher
+	var checker StringMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
