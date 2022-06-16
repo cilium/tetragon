@@ -10,7 +10,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.2.2
 	github.com/fatih/color v1.13.0
 	github.com/google/go-cmp v0.5.8
-	github.com/google/gops v0.3.14
+	github.com/google/gops v0.3.23
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
