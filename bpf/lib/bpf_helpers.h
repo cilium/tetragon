@@ -35,6 +35,19 @@
 #define XSTR(s) STR(s)
 #define STR(s)	#s
 
+/*
+ * Following define is to assist VSCode Intellisense so that it treats
+ * __builtin_preserve_access_index() as a const void * instead of a
+ * simple void (because it doesn't have a definition for it). This stops
+ * Intellisense marking all _(P) macros (used in probe_read()) as errors.
+ * To use this, just define VSCODE in 'C/C++: Edit Configurations (JSON)'
+ * in the Command Palette in VSCODE (F1 or View->Command Palette...):
+ *    "defines": ["VSCODE"]
+ * under configurations.
+ */
+#ifdef VSCODE
+const void *__builtin_preserve_access_index(void *);
+#endif
 #define _(P) (__builtin_preserve_access_index(P))
 
 /*

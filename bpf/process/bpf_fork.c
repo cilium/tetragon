@@ -8,13 +8,13 @@
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 #ifdef VMLINUX_KERNEL_VERSION
 int _version __attribute__((section(("version")), used)) =
 	VMLINUX_KERNEL_VERSION;
 #endif
 
-__attribute__((section(("kprobe/wake_up_new_task")), used)) int
+__attribute__((section("kprobe/wake_up_new_task"), used)) int
 event_wake_up_new_task(struct pt_regs *ctx)
 {
 	struct execve_map_value *curr, *parent;

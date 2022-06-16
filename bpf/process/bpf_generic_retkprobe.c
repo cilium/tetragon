@@ -11,7 +11,7 @@
 
 #define MAX_FILENAME 8096
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 
 struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
@@ -27,7 +27,7 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 	.max_entries = 1,
 };
 
-__attribute__((section(("kprobe/generic_retkprobe")), used)) int
+__attribute__((section("kprobe/generic_retkprobe"), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	struct execve_map_value *enter;

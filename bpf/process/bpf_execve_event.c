@@ -8,7 +8,7 @@
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 
 #ifdef __LARGE_BPF_PROG
 #include "data_event.h"
@@ -145,7 +145,7 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	return bin;
 }
 
-__attribute__((section(("tracepoint/sys_execve")), used)) int
+__attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();

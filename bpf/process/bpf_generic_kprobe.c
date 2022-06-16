@@ -14,7 +14,7 @@
 #include "generic_calls.h"
 #include "pfilter.h"
 
-char _license[] __attribute__((section(("license")), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "GPL";
 
 struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
@@ -108,13 +108,13 @@ generic_kprobe_start_process_filter(void *ctx)
  * to get below 4k insns. For 5.x+ kernels with 1m.insns its not
  * an issue.
  */
-__attribute__((section(("kprobe/generic_kprobe")), used)) int
+__attribute__((section("kprobe/generic_kprobe"), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	return generic_kprobe_start_process_filter(ctx);
 }
 
-__attribute__((section(("kprobe/0")), used)) int
+__attribute__((section("kprobe/0"), used)) int
 generic_kprobe_process_event0(void *ctx)
 {
 	return generic_process_event_and_setup(ctx, &process_call_heap,
@@ -122,35 +122,35 @@ generic_kprobe_process_event0(void *ctx)
 					       &config_map);
 }
 
-__attribute__((section(("kprobe/1")), used)) int
+__attribute__((section("kprobe/1"), used)) int
 generic_kprobe_process_event1(void *ctx)
 {
 	return generic_process_event1(ctx, &process_call_heap, &filter_map,
 				      &kprobe_calls, &config_map);
 }
 
-__attribute__((section(("kprobe/2")), used)) int
+__attribute__((section("kprobe/2"), used)) int
 generic_kprobe_process_event2(void *ctx)
 {
 	return generic_process_event2(ctx, &process_call_heap, &filter_map,
 				      &kprobe_calls, &config_map);
 }
 
-__attribute__((section(("kprobe/3")), used)) int
+__attribute__((section("kprobe/3"), used)) int
 generic_kprobe_process_event3(void *ctx)
 {
 	return generic_process_event3(ctx, &process_call_heap, &filter_map,
 				      &kprobe_calls, &config_map);
 }
 
-__attribute__((section(("kprobe/4")), used)) int
+__attribute__((section("kprobe/4"), used)) int
 generic_kprobe_process_event4(void *ctx)
 {
 	return generic_process_event4(ctx, &process_call_heap, &filter_map,
 				      &kprobe_calls, &config_map);
 }
 
-__attribute__((section(("kprobe/5")), used)) int
+__attribute__((section("kprobe/5"), used)) int
 generic_kprobe_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
@@ -171,42 +171,42 @@ generic_kprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section(("kprobe/6")), used)) int
+__attribute__((section("kprobe/6"), used)) int
 generic_kprobe_filter_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, &process_call_heap, &filter_map,
 			       &kprobe_calls, &override_tasks, &config_map);
 }
 
-__attribute__((section(("kprobe/7")), used)) int
+__attribute__((section("kprobe/7"), used)) int
 generic_kprobe_filter_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, &process_call_heap, &filter_map,
 			       &kprobe_calls, &override_tasks, &config_map);
 }
 
-__attribute__((section(("kprobe/8")), used)) int
+__attribute__((section("kprobe/8"), used)) int
 generic_kprobe_filter_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, &process_call_heap, &filter_map,
 			       &kprobe_calls, &override_tasks, &config_map);
 }
 
-__attribute__((section(("kprobe/9")), used)) int
+__attribute__((section("kprobe/9"), used)) int
 generic_kprobe_filter_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, &process_call_heap, &filter_map,
 			       &kprobe_calls, &override_tasks, &config_map);
 }
 
-__attribute__((section(("kprobe/10")), used)) int
+__attribute__((section("kprobe/10"), used)) int
 generic_kprobe_filter_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, &process_call_heap, &filter_map,
 			       &kprobe_calls, &override_tasks, &config_map);
 }
 
-__attribute__((section(("kprobe/override")), used)) int
+__attribute__((section("kprobe/override"), used)) int
 generic_kprobe_override(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
