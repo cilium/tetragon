@@ -88,7 +88,7 @@ func generateResponseTypeString(g *protogen.GeneratedFile, f *protogen.File) err
 }
 
 func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonProcess := common.ProcessIdent(g)
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetProcess returns a GetEventsResponse's process if it exists
@@ -114,7 +114,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, f *protogen.File
 		return err
 	}
 
-	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonProcess := common.ProcessIdent(g)
 
 	doCases := func() string {
 		var ret string
@@ -146,7 +146,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, f *protogen.File
 }
 
 func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonProcess := common.ProcessIdent(g)
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetParent returns a GetEventsResponse's parent process if it exists
@@ -172,7 +172,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, f *protogen.File)
 		return err
 	}
 
-	tetragonProcess := common.TetragonApiIdent(g, "Process")
+	tetragonProcess := common.ProcessIdent(g)
 
 	doCases := func() string {
 		var ret string

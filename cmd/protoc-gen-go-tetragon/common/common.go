@@ -85,6 +85,16 @@ func Logger(g *protogen.GeneratedFile) string {
 	return fmt.Sprintf("%s()", GoIdent(g, "github.com/cilium/tetragon/pkg/logger", "GetLogger"))
 }
 
+func ProcessIdent(g *protogen.GeneratedFile) string {
+	importPath := filepath.Join("github.com/cilium/tetragon/api/v1/tetragon")
+	return GoIdent(g, importPath, "Process")
+}
+
+func ListMatcherIdent(g *protogen.GeneratedFile, name string) string {
+	importPath := filepath.Join("github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher")
+	return GoIdent(g, importPath, name)
+}
+
 // FmtErrorf is a convenience helper that generates a call to fmt.Errorf
 func FmtErrorf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
 	args = append([]string{fmt.Sprintf("\"%s\"", fmt_)}, args...)
