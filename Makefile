@@ -31,6 +31,29 @@ all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs
 
 -include Makefile.docker
 
+.PHONY: help
+help:
+	@echo 'Installation:'
+	@echo '    install           - install tetragon agent and tetra as standalone binaries'
+	@echo 'Compilation:'
+	@echo '    tetragon          - compile the Tetragon agent'
+	@echo '    tetragon-operator - compile the Tetragon operator'
+	@echo '    tetra             - compile the Tetragon gRPC client'
+	@echo '    tetragon-bpf      - compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env)'
+	@echo '    test-compile      - compile unit tests'
+	@echo '    tester-progs      - compile helper programs for unit testing'
+	@echo 'Container images:'
+	@echo '    image             - build the Tetragon agent container image'
+	@echo '    image-operator    - build the Tetragon operator container image'
+	@echo 'Generated files:'
+	@echo '    codegen           - genereate code based on .proto files'
+	@echo '    generate          - genereate kubebuilder files'
+	@echo 'Linting and chores:'
+	@echo '    vendor            - tidy and vendor Go modules'
+	@echo '    clang-format      - run code formatter on BPF code'
+	@echo '    go-format         - run code formatter on Go code'
+	@echo '    format            - convenience alias for clang-format and go-format'
+
 ifeq (1,$(LOCAL_CLANG))
 tetragon-bpf: tetragon-bpf-local
 else
@@ -79,6 +102,12 @@ install:
 	groupadd -f hubble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 0755 ./tetragon $(DESTDIR)$(BINDIR)
+
+.PHONY: vendor
+vendor:
+	$(GO) mod tidy -compat=1.17
+	$(GO) mod vendor
+	$(GO) mod verify
 
 clean:
 	$(MAKE) -C ./bpf clean
