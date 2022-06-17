@@ -122,7 +122,7 @@ export NAME="$(whoami)-$RANDOM"
 gcloud container clusters create "${NAME}" \
   --zone us-west2-a \
   --release-channel rapid \
-  --num-nodes 1 
+  --num-nodes 1
 ```
 
 ### Deploy Tetragon
@@ -490,7 +490,7 @@ additional data. An example `process_kprobe` event observing a write can be:
          "refcnt":1
       },
       "parent":{
-         
+
       },
       "function_name":"__x64_sys_write",
       "args":[
@@ -596,7 +596,7 @@ If you observe the output in the first terminal, you can see the container start
 🚀 process default/test-pod /usr/bin/cp /kind/product_name /kind/product_uuid /run/containerd/io.containerd.runtime.v2.task/k8s.io/7c7e513cd4d506417bc9d97dd9af670d94d9e84161c8c8 fdc9fa3a678289a59/rootfs/ 🛑 CAP_SYS_ADMIN
 ```
 
-## BTF Requirement 
+## BTF Requirement
 
 Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
 be use to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
@@ -618,11 +618,31 @@ we provide a standard VagrantFile with the required components enabled. Simply r
 
 This should be sufficient to create a Kind cluster and run Tetragon.
 
+# FAQ
+
+**Q:** Can I install and use Tetragon in standalone mode (outside of k8s)?
+
+**A:** Yes! You can run `make` to generate standalone binaries and run them directly.
+`make install` will do the same thing and also install to your `PATH`.
+
+----
+
+**Q:** CI is complaining about Go module vendoring, what do I do?
+
+**A:** You can run `make vendor` then add and commit your changes.
+
+----
+
+**Q:** CI is complaining about a missing "signed-off-by" line. What do I do?
+
+**A:** You need to add a signed-off-by line to your commit messages. The easiest way to do
+this is with `git fetch origin/main && git rebase --signoff origin/main`. Then push your changes.
+
 # Additional Resources
 
 ### Conference talks
 
-[Uncovering a Sophisticated Kubernetes Attack in Real-Time](https://www.youtube.com/watch?v=bohnofE_dvw) - Jed Salazar & Natália Réka Ivánkó, KubeCon EU, 2020 
+[Uncovering a Sophisticated Kubernetes Attack in Real-Time](https://www.youtube.com/watch?v=bohnofE_dvw) - Jed Salazar & Natália Réka Ivánkó, KubeCon EU, 2020
 
 [Uncovering a Sophisticated Kubernetes Attack in Real Time Part II.](https://www.oreilly.com/library/view/infrastructure-ops/0636920625377/video335775.html) - Jed Salazar & Natália Réka Ivánkó, O'Reilly Superstream Series, Infrastructure & Ops, 2021
 
