@@ -220,7 +220,7 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 }
 
 func RemoveProgram(bpfDir string, prog *program.Program) {
-	log := logger.GetLogger().WithField("label", prog.Label)
+	log := logger.GetLogger().WithField("label", prog.Label).WithField("pin", prog.PinPath)
 
 	if !prog.LoadState.IsLoaded() || prog.LoadState.IsDisabled() {
 		log.Debugf("Refusing to remove %s, program not loaded or is disabled", prog.Label)
