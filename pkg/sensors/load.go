@@ -166,6 +166,10 @@ func (s *Sensor) FindPrograms(ctx context.Context) error {
 	return nil
 }
 
+func isValidSubdir(dir string) bool {
+	return dir != "." && dir != ".."
+}
+
 // LoadMaps loads all the BPF maps in the sensor.
 func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 	l := logger.GetLogger()
@@ -184,6 +188,15 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 		}
 
 		pinPath := filepath.Join(mapDir, m.PinName)
+
+		// check if PinName has directory portion and create it,
+		// filepath.Dir returns '.' for filename without dir portion
+		if dir := filepath.Dir(m.PinName); isValidSubdir(dir) {
+			dirPath := filepath.Join(mapDir, dir)
+			if err := os.MkdirAll(dirPath, 0755); err != nil {
+				return fmt.Errorf("failed to create subbir for '%s': %w", m.Name, err)
+			}
+		}
 
 		// Try to open the pinPath and if it exist use the previously
 		// pinned map otherwise pin the map and next user will find
