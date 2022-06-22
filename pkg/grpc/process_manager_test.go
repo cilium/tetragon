@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -145,7 +146,10 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 	err := process.InitCache(context.Background(), watcher.NewFakeK8sWatcher(nil), false, 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
+	var wg sync.WaitGroup
 	pm, err := NewProcessManager(
+		context.Background(),
+		&wg,
 		cilium.GetFakeCiliumState(),
 		nil,
 		false, false, false, false)
