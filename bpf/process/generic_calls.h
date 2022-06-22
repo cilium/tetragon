@@ -7,8 +7,8 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
-	unsigned long a0, a1, a2, a3, a4;
 	struct event_config *config;
+	unsigned long a0;
 	bool walker = 0;
 	__u32 ppid;
 	int zero = 0;
@@ -31,10 +31,6 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		return 0;
 
 	a0 = e->a0;
-	a1 = e->a1;
-	a2 = e->a2;
-	a3 = e->a3;
-	a4 = e->a4;
 
 	e->common.flags = 0;
 	e->common.pad[0] = 0;
@@ -146,10 +142,10 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	unsigned long a1;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -170,11 +166,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 
 	total = e->common.size;
 
-	a0 = e->a0;
 	a1 = e->a1;
-	a2 = e->a2;
-	a3 = e->a3;
-	a4 = e->a4;
 
 	ty = config->arg1;
 	if (total < MAX_TOTAL) {
@@ -200,10 +192,10 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	unsigned long a2;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -224,11 +216,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 
 	total = e->common.size;
 
-	a0 = e->a0;
-	a1 = e->a1;
 	a2 = e->a2;
-	a3 = e->a3;
-	a4 = e->a4;
 
 	ty = config->arg2;
 	if (total < MAX_TOTAL) {
@@ -254,10 +242,10 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	unsigned long a3;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -278,11 +266,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 
 	total = e->common.size;
 
-	a0 = e->a0;
-	a1 = e->a1;
-	a2 = e->a2;
 	a3 = e->a3;
-	a4 = e->a4;
 
 	/* Arg filter and copy logic */
 	ty = config->arg3;
@@ -309,10 +293,10 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	unsigned long a0, a1, a2, a3, a4;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	unsigned long a4;
 	int zero = 0;
 	bool walker = 0;
 	long ty, total;
@@ -333,10 +317,6 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 
 	total = e->common.size;
 
-	a0 = e->a0;
-	a1 = e->a1;
-	a2 = e->a2;
-	a3 = e->a3;
 	a4 = e->a4;
 
 	ty = config->arg4;
