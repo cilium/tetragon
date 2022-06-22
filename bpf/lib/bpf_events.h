@@ -74,6 +74,46 @@ get_task_from_pid(__u32 pid)
 	return task;
 }
 
+static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	int thread_pid_exists;
+	unsigned int level;
+	struct upid upid;
+	struct pid *pid;
+	int upid_sz;
+
+	thread_pid_exists = bpf_core_field_exists(task->thread_pid);
+	if (thread_pid_exists) {
+		probe_read(&pid, sizeof(pid), _(&task->thread_pid));
+		if (!pid) {
+			return 0;
+		}
+	} else {
+		struct pid_link link;
+		int link_sz = bpf_core_field_size(task->pids);
+
+		/* 4.14 verifier did not prune this branch even though we
+		 * have the if (0) above after BTF exists check. So it will
+		 * try to run this probe_read and throw an error. So lets
+		 * sanitize it for the verifier.
+		 */
+		if (!thread_pid_exists)
+			link_sz =
+				24; // voodoo magic, hard-code 24 to init stack
+		probe_read(&link, link_sz,
+			   (void *)_(&task->pids) + (PIDTYPE_PID * link_sz));
+		pid = link.pid;
+	}
+	upid_sz = bpf_core_field_size(pid->numbers[0]);
+	probe_read(&level, sizeof(level), _(&pid->level));
+	if (level < 1)
+		return 0;
+	probe_read(&upid, upid_sz,
+		   (void *)_(&pid->numbers) + (level * upid_sz));
+	return upid.nr;
+}
+
 static inline __attribute__((always_inline)) int64_t
 event_copy_execve(struct msg_process *dst, struct msg_process *src)
 {
