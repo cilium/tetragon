@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -130,6 +131,8 @@ func hubbleTETRAGONExecute() error {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var cancelWg sync.WaitGroup
 
 	/* Remove any stale programs, otherwise feature set change can cause
 	 * old programs to linger resulting in undefined behavior. And because
@@ -170,6 +173,7 @@ func hubbleTETRAGONExecute() error {
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
+		&cancelWg,
 		ciliumState,
 		observer.SensorManager,
 		enableProcessCred,
@@ -193,6 +197,7 @@ func hubbleTETRAGONExecute() error {
 		obs.PrintStats()
 		obs.RemovePrograms()
 		cancel()
+		cancelWg.Wait()
 		os.Exit(1)
 	}()
 
@@ -235,7 +240,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	if err != nil {
 		return err
 	}
-	writer := lumberjack.Logger{
+	writer := &lumberjack.Logger{
 		Filename:   exportFilename,
 		MaxSize:    exportFileMaxSizeMB,
 		MaxBackups: exportFileMaxBackups,
@@ -259,7 +264,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 			}
 		}()
 	}
-	encoder := json.NewEncoder(&writer)
+	encoder := json.NewEncoder(writer)
 	var rateLimiter *ratelimit.RateLimiter
 	if exportRateLimit >= 0 {
 		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, exportRateLimit, encoder)
@@ -272,8 +277,8 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		}
 	}
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions}
-	log.WithFields(logrus.Fields{"logger": &writer, "request": &req}).Info("Starting JSON exporter")
-	exporter := exporter.NewExporter(ctx, &req, server, encoder, rateLimiter)
+	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
+	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 	exporter.Start()
 	return nil
 }

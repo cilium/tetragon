@@ -353,12 +353,18 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 		return err
 	}
 
+	// Tracks when its safe to close application when write ops are comnpleted.
+	// We don't currently track work group or contexts correctly in testing infra
+	// its not clear if its even useful considering the test infra doesn't get
+	// signals from users.
+	var cancelWg sync.WaitGroup
+
 	// For testing we disable the eventcache and cilium cache by default. If we
 	// enable these then every tests would need to wait for the 1.5 mimutes needed
 	// to bounce events through the cache waiting for Cilium to reply with endpoints
 	// and K8s cache data to be completed. We currently only stub them enough to
 	// report nil or a pre-defined value. So no cache needed.
-	processManager, err := tetragonGrpc.NewProcessManager(context.Background(), ciliumState, SensorManager, true, true, true, false)
+	processManager, err := tetragonGrpc.NewProcessManager(context.Background(), &cancelWg, ciliumState, SensorManager, true, true, true, false)
 	if err != nil {
 		return err
 	}
@@ -374,7 +380,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	}
 	denyList, _ := filters.ParseFilterList("")
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList}
-	exporter := exporter.NewExporter(context.Background(), &req, processManager.Server, encoder, nil)
+	exporter := exporter.NewExporter(context.Background(), &req, processManager.Server, encoder, outF, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
 	exporter.Start()
 	obs.AddListener(processManager)
