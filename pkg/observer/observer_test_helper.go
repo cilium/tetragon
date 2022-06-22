@@ -358,7 +358,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	// to bounce events through the cache waiting for Cilium to reply with endpoints
 	// and K8s cache data to be completed. We currently only stub them enough to
 	// report nil or a pre-defined value. So no cache needed.
-	processManager, err := tetragonGrpc.NewProcessManager(ciliumState, SensorManager, true, true, true, false)
+	processManager, err := tetragonGrpc.NewProcessManager(context.Background(), ciliumState, SensorManager, true, true, true, false)
 	if err != nil {
 		return err
 	}

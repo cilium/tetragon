@@ -4,6 +4,7 @@
 package grpc
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -58,6 +59,7 @@ type ProcessManager struct {
 
 // NewProcessManager returns a pointer to an initialized ProcessManager struct.
 func NewProcessManager(
+	ctx context.Context,
 	ciliumState *cilium.State,
 	manager *sensors.Manager,
 	enableProcessCred bool,
@@ -81,7 +83,7 @@ func NewProcessManager(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DNS cache %w", err)
 	}
-	pm.Server = server.NewServer(pm, manager)
+	pm.Server = server.NewServer(ctx, pm, manager)
 	pm.eventCache = eventcache.New(pm.Server, pm.dns)
 	pm.execCache = execcache.New(pm.Server, pm.dns)
 
