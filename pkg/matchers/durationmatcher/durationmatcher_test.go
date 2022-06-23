@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package matchers_test
+package durationmatcher
 
 import (
 	"testing"
 	"time"
 
-	dm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/durationmatcher"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -19,7 +18,7 @@ func TestDurationMatcherFullSmoke(t *testing.T) {
     value: 2s
     `
 
-	var checker dm.DurationMatcher
+	var checker DurationMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -37,7 +36,7 @@ func TestDurationMatcherFullSmoke(t *testing.T) {
 	// Make sure a flat duration is the same as a full matcher
 	yamlStr2 := `2s`
 
-	var checker2 dm.DurationMatcher
+	var checker2 DurationMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr2), &checker2) {
 		t.FailNow()
 	}
@@ -51,7 +50,7 @@ func TestDurationMatcherLessSmoke(t *testing.T) {
     value: 1m30s
     `
 
-	var checker dm.DurationMatcher
+	var checker DurationMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -88,7 +87,7 @@ func TestDurationMatcherGreaterSmoke(t *testing.T) {
     value: 1m30s
     `
 
-	var checker dm.DurationMatcher
+	var checker DurationMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -127,7 +126,7 @@ func TestDurationMatcherBetweenSmoke(t *testing.T) {
         upper: 2m
     `
 
-	var checker dm.DurationMatcher
+	var checker DurationMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
