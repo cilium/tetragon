@@ -103,12 +103,7 @@ static inline __attribute__((always_inline)) int
 prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 {
 	char slash = '/';
-	u64 buffer_offset;
-
-	if (buffer == 0) // prepend_path will never call that with buffer == 0
-		return -ENAMETOOLONG;
-
-	buffer_offset = (u64)(*buffer) - (u64)bf;
+	u64 buffer_offset = (u64)(*buffer) - (u64)bf;
 
 	// Change dlen (the dentry name length) to fit in the buffer.
 	// We prefer to store the part of it that fits rather that discard it.
