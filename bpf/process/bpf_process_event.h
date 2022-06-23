@@ -105,19 +105,28 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 	char slash = '/';
 	u64 buffer_offset;
 
-	if (buffer == 0)
+	if (buffer == 0) // prepend_path will never call that with buffer == 0
 		return -ENAMETOOLONG;
 
 	buffer_offset = (u64)(*buffer) - (u64)bf;
 
 	*buflen -= (dlen + 1);
+	// This will happen in the case where the size of a path component
+	// is greater than the remaining buffer size
 	if (*buflen < 0)
 		return -ENAMETOOLONG;
 
 	buffer_offset -= (dlen + 1);
 
+	// This will never happen as Linux ensures that the maximum value of a dentry name
+	// is 255 (https://elixir.bootlin.com/linux/v5.10/source/include/uapi/linux/limits.h#L12).
+	// Needed to bound that for probe_read call.
 	if (dlen > 255)
 		return -ENAMETOOLONG;
+	// This will never happen. buffer_offset is the diff of the initial buffer pointer
+	// with the current buffer pointer. This will be at max 256 bytes (similar to the initial
+	// size).
+	// Needed to bound that for probe_read call.
 	if (buffer_offset > PATH_MAP_SIZE - 256)
 		return -ENAMETOOLONG;
 
@@ -129,11 +138,16 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 	return 0;
 }
 
+/*
+ * Only called from path_with_deleted function before any path traversals.
+ * In the current scenarios, always buflen will be 256 and namelen 10.
+ * For this reason I will never return -ENAMETOOLONG.
+ */
 static inline __attribute__((always_inline)) int
 prepend(char **buffer, int *buflen, const char *str, int namelen)
 {
 	*buflen -= namelen;
-	if (*buflen < 0)
+	if (*buflen < 0) // will never happen - check function comment
 		return -ENAMETOOLONG;
 	*buffer -= namelen;
 	memcpy(*buffer, str, namelen);
@@ -162,7 +176,8 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
 #endif
-	for (i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
+	for (i = 0; i < PROBE_CWD_READ_ITERATIONS;
+	     ++i) { // maximum number of path compoments
 		struct dentry *parent;
 		struct dentry *vfsmnt_mnt_root;
 		struct vfsmount *root_mnt;
@@ -171,7 +186,8 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
 		probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
 		if (!(dentry != root_dentry || vfsmnt != root_mnt)) {
-			resolved = true;
+			resolved =
+				true; // resolved all path components successfully
 			break;
 		}
 
@@ -193,13 +209,17 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 				continue;
 			}
 
-			resolved = true;
+			resolved =
+				true; // resolved all path components successfully
 			break;
 		}
 		probe_read(&parent, sizeof(parent), _(&dentry->d_parent));
 		probe_read(&d_name, sizeof(d_name), _(&dentry->d_name));
 		error = prepend_name(bf, &bptr, &blen,
 				     (const char *)d_name.name, d_name.len);
+		// This will happen where the dentry name does not fit in the buffer.
+		// We will stop the loop with resolved == false and later we will
+		// set the proper value in error before function return.
 		if (error)
 			break;
 
@@ -225,14 +245,47 @@ path_with_deleted(const struct path *path, const struct path *root, char *bf,
 	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
 	if (d_unlinked(dentry)) {
 		int error = prepend(buf, buflen, " (deleted)", 10);
-
-		if (error)
+		if (error) // will never happen as prepend will never return a value != 0
 			return error;
 	}
 	return prepend_path(path, root, bf, buf, buflen);
 }
 
-/* the 'buf' argument should be always the value of 'buffer_heap_map' map */
+/*
+ * This function returns the path of a dentry and works in a similar
+ * way to Linux d_path function (https://elixir.bootlin.com/linux/v5.10/source/fs/d_path.c#L262).
+ *
+ * Input variables:
+ * - 'path' is a pointer to a dentry path that we want to resolve
+ * - 'buf' is the buffer where the path will be stored (this should be always the value of 'buffer_heap_map' map)
+ * - 'buflen' is the available buffer size to store the path (now 256 in all cases, maybe we can increase that further)
+ *
+ * Input buffer layout:
+ * <--        buflen         -->
+ * -----------------------------
+ * |                           |
+ * -----------------------------
+ * ^
+ * |
+ * buf
+ *
+ *
+ * Output variables:
+ * - 'buf' is where the path is stored (>= compared to the input argument)
+ * - 'buflen' the size of the resolved path (0 < buflen <= 256). Will not be negative. If buflen == 0 nothing is written to the buffer.
+ * - 'error' 0 in case of success or UNRESOLVED_PATH_COMPONENTS in the case where the path is larger than the provided buffer.
+ *
+ * Output buffer layout:
+ * <--   buflen  -->
+ * -----------------------------
+ * |                /etc/passwd|
+ * -----------------------------
+ *                 ^
+ *                 |
+ *                buf
+ *
+ * ps. The size of the path will be (initial value of buflen) - (return value of buflen) if (buflen != 0)
+ */
 static inline __attribute__((always_inline)) char *
 __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
 {
