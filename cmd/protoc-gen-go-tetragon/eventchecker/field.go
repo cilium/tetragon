@@ -96,7 +96,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doBytesFrom := func() string {
-		fullBmatcher := common.GeneratedIdent(g, "eventchecker/matchers/bytesmatcher", "Full")
+		fullBmatcher := common.BytesMatcherIdent(g, "Full")
 		return checkerVar + ` = ` + fullBmatcher + `(` + eventVar + `)`
 	}
 
@@ -764,7 +764,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		type_ = kind.String()
 
 	case protoreflect.BytesKind:
-		bmatcher := common.GeneratedIdent(g, "eventchecker/matchers/bytesmatcher", "BytesMatcher")
+		bmatcher := common.BytesMatcherIdent(g, "BytesMatcher")
 		type_ = bmatcher
 
 	case protoreflect.StringKind:
