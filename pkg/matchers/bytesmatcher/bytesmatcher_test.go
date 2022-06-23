@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package matchers_test
+package bytesmatcher
 
 import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/bytesmatcher"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +21,7 @@ func TestBytesMatcherFullSmoke(t *testing.T) {
     value: "` + enc + `"
     `
 
-	var checker bytesmatcher.BytesMatcher
+	var checker BytesMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -44,7 +43,7 @@ func TestBytesMatcherPrefixSmoke(t *testing.T) {
     value: "` + enc + `"
     `
 
-	var checker bytesmatcher.BytesMatcher
+	var checker BytesMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -69,7 +68,7 @@ func TestBytesMatcherSuffixSmoke(t *testing.T) {
     value: "` + enc + `"
     `
 
-	var checker bytesmatcher.BytesMatcher
+	var checker BytesMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -94,7 +93,7 @@ func TestBytesMatcherContainsSmoke(t *testing.T) {
     value: "` + enc + `"
     `
 
-	var checker bytesmatcher.BytesMatcher
+	var checker BytesMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
