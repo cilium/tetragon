@@ -119,11 +119,6 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 
 	buffer_offset -= (dlen + 1);
 
-	// This will never happen as Linux ensures that the maximum value of a dentry name
-	// is 255 (https://elixir.bootlin.com/linux/v5.10/source/include/uapi/linux/limits.h#L12).
-	// Needed to bound that for probe_read call.
-	if (dlen > 255)
-		return -ENAMETOOLONG;
 	// This will never happen. buffer_offset is the diff of the initial buffer pointer
 	// with the current buffer pointer. This will be at max 256 bytes (similar to the initial
 	// size).
@@ -132,6 +127,9 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 		return -ENAMETOOLONG;
 
 	probe_read(bf + buffer_offset, sizeof(char), &slash);
+	// This ensures that dlen is < 256, which is aligned with kernel's max dentry name length
+	// that is 255 (https://elixir.bootlin.com/linux/v5.10/source/include/uapi/linux/limits.h#L12).
+	// Needed to bound that for probe_read call.
 	asm volatile("%[dlen] &= 0xff;\n" ::[dlen] "+r"(dlen) :);
 	probe_read(bf + buffer_offset + 1, dlen * sizeof(char), name);
 
