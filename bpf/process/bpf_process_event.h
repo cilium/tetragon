@@ -159,7 +159,9 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	probe_read(&vfsmnt, sizeof(vfsmnt), _(&path->mnt));
 	mnt = real_mount(vfsmnt);
 
-#ifndef __LARGE_BPF_PROG
+// clang 14 will produce code which fails kernel validation without unrolling
+// https://github.com/cilium/tetragon/issues/164
+#if !defined(__LARGE_BPF_PROG) || __clang_major__ >= 14
 #pragma unroll
 #endif
 	for (i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
