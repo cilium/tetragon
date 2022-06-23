@@ -773,7 +773,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 
 	case protoreflect.MessageKind:
 		if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
-			tsmatcher := common.GeneratedIdent(g, "eventchecker/matchers/timestampmatcher", "TimestampMatcher")
+			tsmatcher := common.TimestampMatcherIdent(g, "TimestampMatcher")
 			type_ = tsmatcher
 		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
 			dmatcher := common.DurationMatcherIdent(g, "DurationMatcher")
