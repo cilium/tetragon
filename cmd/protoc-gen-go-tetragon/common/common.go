@@ -105,6 +105,11 @@ func BytesMatcherIdent(g *protogen.GeneratedFile, name string) string {
 	return GoIdent(g, importPath, name)
 }
 
+func DurationMatcherIdent(g *protogen.GeneratedFile, name string) string {
+	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/durationmatcher")
+	return GoIdent(g, importPath, name)
+}
+
 func PkgProcessIdent(g *protogen.GeneratedFile, name string) string {
 	importPath := filepath.Join("github.com/cilium/tetragon/pkg/process")
 	return GoIdent(g, importPath, name)
