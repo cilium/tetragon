@@ -91,7 +91,7 @@ func ProcessIdent(g *protogen.GeneratedFile) string {
 }
 
 func ListMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/listmatcher")
+	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/listmatcher")
 	return GoIdent(g, importPath, name)
 }
 
