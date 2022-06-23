@@ -110,10 +110,16 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 
 	buffer_offset = (u64)(*buffer) - (u64)bf;
 
+	// Change dlen (the dentry name length) to fit in the buffer.
+	// We prefer to store the part of it that fits rather that discard it.
+	if (dlen + 1 /* for the slash */ >= *buflen)
+		dlen = *buflen - 1 /* for the slash */ -
+		       1 /* in order to avoid the case to do *buflen == 0 */;
+
 	*buflen -= (dlen + 1);
-	// This will happen in the case where the size of a path component
-	// is greater than the remaining buffer size
-	if (*buflen < 0)
+	// This will not happen as in the previous if-clause ensures that *buflen will be > 0
+	// Needed to make the verifier happy in older kernels.
+	if (*buflen <= 0)
 		return -ENAMETOOLONG;
 
 	buffer_offset -= (dlen + 1);
