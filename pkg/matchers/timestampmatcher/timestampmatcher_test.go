@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package matchers_test
+package timestampmatcher
 
 import (
 	"testing"
 	"time"
 
-	tm "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/matchers/timestampmatcher"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -31,17 +30,17 @@ func TestTimestampMatcherTimeYaml(t *testing.T) {
     value: "2022-05-09T20:29:34"
     `
 
-	var checker1 tm.TimestampMatcher
+	var checker1 TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr1), &checker1) {
 		t.FailNow()
 	}
 
-	var checker2 tm.TimestampMatcher
+	var checker2 TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr2), &checker2) {
 		t.FailNow()
 	}
 
-	var checker3 tm.TimestampMatcher
+	var checker3 TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr3), &checker3) {
 		t.FailNow()
 	}
@@ -56,7 +55,7 @@ func TestTimestampMatcherDaySmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -88,7 +87,7 @@ func TestTimestampMatcherHourSmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -125,7 +124,7 @@ func TestTimestampMatcherMinuteSmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -167,7 +166,7 @@ func TestTimestampMatcherSecondSmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -214,7 +213,7 @@ func TestTimestampMatcherBeforeSmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -261,7 +260,7 @@ func TestTimestampMatcherAfterSmoke(t *testing.T) {
     value: "2022-05-09T20:29:34Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
@@ -310,7 +309,7 @@ func TestTimestampMatcherBetweenSmoke(t *testing.T) {
         before: "2022-05-09T20:30:00Z"
     `
 
-	var checker tm.TimestampMatcher
+	var checker TimestampMatcher
 	if !yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(yamlStr), &checker) {
 		t.FailNow()
 	}
