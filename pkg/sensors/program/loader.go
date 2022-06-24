@@ -98,14 +98,14 @@ func KprobeAttach(load *Program) AttachFunc {
 	}
 }
 
-func LoadTracepointProgram(bpfDir, mapDir string, load *Program) error {
+func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
-	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci)
+	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
 }
 
-func LoadKprobeProgram(bpfDir, mapDir string, load *Program) error {
+func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
-	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci)
+	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
 }
 
 func slimVerifierError(errStr string) string {
@@ -196,6 +196,7 @@ func loadProgram(
 	load *Program,
 	withProgram AttachFunc,
 	ci *customInstall,
+	verbose int,
 ) error {
 	var btfSpec *btf.Spec
 	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
@@ -282,7 +283,9 @@ func loadProgram(
 			// Log the error directly using the logger so that the verifier log
 			// gets properly pretty-printed.
 			logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
-			fmt.Println(slimVerifierError(err.Error()))
+			if verbose != 0 {
+				fmt.Println(slimVerifierError(err.Error()))
+			}
 
 			return fmt.Errorf("opening collection '%s' failed", load.Name)
 		}
@@ -374,5 +377,5 @@ func LoadProgram(
 	load *Program,
 	withProgram AttachFunc,
 ) error {
-	return loadProgram(bpfDir, mapDirs, load, withProgram, nil)
+	return loadProgram(bpfDir, mapDirs, load, withProgram, nil, 0)
 }

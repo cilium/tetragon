@@ -454,7 +454,7 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 
-	if err := program.LoadKprobeProgram(bpfDir, mapDir, load); err == nil {
+	if err := program.LoadKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
