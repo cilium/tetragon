@@ -284,7 +284,7 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
 	if load.Type == "tracepoint" {
-		return program.LoadTracepointProgram(bpfDir, mapDir, load)
+		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
 	} else if load.Type == "cgrp_socket" {
 		err := cgroup.LoadCgroupProgram(
 			bpfDir,
@@ -304,7 +304,7 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 				Verbose:   verbose,
 			})
 		}
-		return program.LoadKprobeProgram(bpfDir, mapDir, load)
+		return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
 	}
 }
 

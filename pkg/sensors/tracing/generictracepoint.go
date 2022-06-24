@@ -446,7 +446,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	cfg := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	return program.LoadTracepointProgram(bpfDir, mapDir, load)
+	return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
 }
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
