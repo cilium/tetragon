@@ -1282,11 +1282,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	case const_buf_type: {
-		int err;
-
 		// bound size to 1023 to help the verifier out
 		size = argm & 0x03ff;
-		err = probe_read(args, size, (char *)arg);
+		probe_read(args, size, (char *)arg);
 		break;
 	}
 	default:
