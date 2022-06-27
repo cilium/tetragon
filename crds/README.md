@@ -15,4 +15,4 @@ examples are written manually. Add more examples if you feel like it.
 # To Deploy sample write.yaml
 
 $ kubectl apply -f ./cilium.io_tracingpolicies.yaml
-$ kubectl apply -f ./examples/write.yam
+$ kubectl apply -f ./examples/write.yaml
