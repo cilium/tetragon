@@ -286,6 +286,15 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 			load.Label,
 			filepath.Join(bpfDir, load.PinPath),
 			mapDir)
+	} else if load.Type == "raw_tracepoint" {
+		return loader.LoadRawTracingProgram(
+			version, verbose,
+			btfObj,
+			load.Name,
+			load.Attach,
+			load.Label,
+			filepath.Join(bpfDir, load.PinPath),
+			mapDir)
 	} else if load.Type == "cgrp_socket" {
 		err := cgroup.LoadCgroupProgram(
 			bpfDir,
