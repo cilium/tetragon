@@ -7,7 +7,7 @@
     {{- toYaml .Values.export.securityContext | nindent 4 }}
   resources:
     {{- toYaml .Values.export.resources | nindent 4 }}
-{{- if .Values.export.stdout.enabledCommand }}}}  
+{{- if .Values.export.stdout.enabledCommand }}  
   command:
   {{- with .Values.export.stdout.commandOverride }}
   {{- toYaml . | nindent 3 }}
@@ -15,7 +15,7 @@
     - hubble-export-stdout
   {{- end }}
 {{- end}}
-{{- if .Values.export.stdout.enabledArgs }}}}  
+{{- if .Values.export.stdout.enabledArgs }}  
   args:
   {{- with .Values.export.stdout.argsOverride }}
   {{- toYaml . | nindent 3 }}
