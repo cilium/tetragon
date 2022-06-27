@@ -31,4 +31,6 @@ rules:
     verbs:
       - create
       - update
+      - get
+      - list
 {{- end }}
