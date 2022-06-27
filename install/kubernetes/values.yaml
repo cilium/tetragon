@@ -178,7 +178,23 @@ export:
   filenames:
   - tetragon.log
 
+  # stdout specific exporter settings
   stdout:
+    # should the manifest command be overriden?
+    enabledCommand: true
+
+    # should the manifest args be overridden?
+    enabledArgs: true
+
+    # specific manifest command to use
+    commandOverride: [ ]
+
+    # specific manifest args to use
+    argsOverride: [ ]
+
+    # Extra volume mounts to add to stdout export pod
+    extraVolumeMounts: [ ]
+    
     image:
       override: ~
       repository: quay.io/cilium/hubble-export-stdout
