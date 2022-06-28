@@ -1,0 +1,102 @@
+// Copyright 2020 Authors of Hubble
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package tetragon;
+
+import "tetragon/tetragon.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+// EventType constants are based on the ones from pkg/api/client
+enum EventType {
+	UNDEF = 0;
+	PROCESS_EXEC = 5;
+	PROCESS_EXIT = 7;
+	PROCESS_KPROBE = 13;
+	PROCESS_TRACEPOINT = 14;
+	PROCESS_DNS = 18;
+
+	TEST = 254;
+}
+
+message Filter {
+    repeated string binary_regex = 1;
+    repeated string namespace = 2;
+    google.protobuf.BoolValue health_check = 3;
+    repeated uint32 pid = 4;
+    repeated uint32 pid_set = 5;
+    repeated EventType event_set = 6;
+}
+
+message GetEventsRequest {
+    // allow_list specifies a list of filters to apply to only return certain
+    // events. If multiple filters are specified, at least one of them has to
+    // match for an event to be included in the results.
+    repeated Filter allow_list = 1;
+    // deny_list specifies a list of filters to apply to exclude certain events
+    // from the results. If multiple filters are specified, at least one of
+    // them has to match for an event to be excluded.
+    //
+    // If both allow_list and deny_list are specified, the results contain the
+    // set difference allow_list - deny_list.
+    repeated Filter deny_list = 2;
+    // aggregation_options configures aggregation options for this request.
+    // If this field is not set, responses will not be aggregated.
+    //
+    // Note that currently only process_accept and process_connect events are
+    // aggregated. Other events remain unaggregated.
+    AggregationOptions aggregation_options = 3;
+}
+
+// AggregationOptions defines configuration options for aggregating events.
+message AggregationOptions {
+    // Aggregation window size. Defaults to 15 seconds if this field is not set.
+    google.protobuf.Duration window_size = 1;
+    // Size of the buffer for the aggregator to receive incoming events. If the
+    // buffer becomes full, the aggregator will log a warning and start dropping
+    // incoming events.
+    uint64 channel_buffer_size = 2;
+}
+
+// AggregationInfo contains information about aggregation results.
+message AggregationInfo {
+    // Total count of events in this aggregation time window.
+    uint64 count = 1;
+}
+
+message GetEventsResponse {
+    oneof event {
+        ProcessExec process_exec = 1;
+        ProcessExit process_exit = 5;
+        ProcessKprobe process_kprobe = 9;
+        ProcessTracepoint process_tracepoint = 10;
+        ProcessDns process_dns = 14;
+
+        Test test = 40000;
+    }
+    // Name of the node where this event was observed.
+    string node_name = 1000;
+    // Timestamp at which this event was observed.
+    //
+    // For an aggregated response, this field to set to the timestamp at which
+    // the event was observed for the first time in a given aggregation time window.
+    google.protobuf.Timestamp time = 1001;
+
+    // aggregation_info contains information about aggregation results. This field
+    // is set only for aggregated responses.
+    AggregationInfo aggregation_info = 1002;
+}

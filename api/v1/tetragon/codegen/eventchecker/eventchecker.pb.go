@@ -3388,58 +3388,6 @@ nextCheck:
 	return nil
 }
 
-// KprobeActionChecker checks a tetragon.KprobeAction
-type KprobeActionChecker tetragon.KprobeAction
-
-// MarshalJSON implements json.Marshaler interface
-func (enum KprobeActionChecker) MarshalJSON() ([]byte, error) {
-	if name, ok := tetragon.KprobeAction_name[int32(enum)]; ok {
-		name = strings.TrimPrefix(name, "KPROBE_ACTION_")
-		return json.Marshal(name)
-	}
-
-	return nil, fmt.Errorf("Unknown KprobeAction %d", enum)
-}
-
-// UnmarshalJSON implements json.Unmarshaler interface
-func (enum *KprobeActionChecker) UnmarshalJSON(b []byte) error {
-	var str string
-	if err := yaml.UnmarshalStrict(b, &str); err != nil {
-		return err
-	}
-
-	// Convert to uppercase if not already
-	str = strings.ToUpper(str)
-
-	// Look up the value from the enum values map
-	if n, ok := tetragon.KprobeAction_value[str]; ok {
-		*enum = KprobeActionChecker(n)
-	} else if n, ok := tetragon.KprobeAction_value["KPROBE_ACTION_"+str]; ok {
-		*enum = KprobeActionChecker(n)
-	} else {
-		return fmt.Errorf("Unknown KprobeAction %s", str)
-	}
-
-	return nil
-}
-
-// NewKprobeActionChecker creates a new KprobeActionChecker
-func NewKprobeActionChecker(val tetragon.KprobeAction) *KprobeActionChecker {
-	enum := KprobeActionChecker(val)
-	return &enum
-}
-
-// Check checks a KprobeAction against the checker
-func (enum *KprobeActionChecker) Check(val *tetragon.KprobeAction) error {
-	if val == nil {
-		return fmt.Errorf("KprobeActionChecker: KprobeAction is nil and does not match expected value %s", tetragon.KprobeAction(*enum))
-	}
-	if *enum != KprobeActionChecker(*val) {
-		return fmt.Errorf("KprobeActionChecker: KprobeAction has value %s which does not match expected value %s", (*val), tetragon.KprobeAction(*enum))
-	}
-	return nil
-}
-
 // CapabilitiesTypeChecker checks a tetragon.CapabilitiesType
 type CapabilitiesTypeChecker tetragon.CapabilitiesType
 
@@ -3488,6 +3436,58 @@ func (enum *CapabilitiesTypeChecker) Check(val *tetragon.CapabilitiesType) error
 	}
 	if *enum != CapabilitiesTypeChecker(*val) {
 		return fmt.Errorf("CapabilitiesTypeChecker: CapabilitiesType has value %s which does not match expected value %s", (*val), tetragon.CapabilitiesType(*enum))
+	}
+	return nil
+}
+
+// KprobeActionChecker checks a tetragon.KprobeAction
+type KprobeActionChecker tetragon.KprobeAction
+
+// MarshalJSON implements json.Marshaler interface
+func (enum KprobeActionChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.KprobeAction_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "KPROBE_ACTION_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown KprobeAction %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *KprobeActionChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.KprobeAction_value[str]; ok {
+		*enum = KprobeActionChecker(n)
+	} else if n, ok := tetragon.KprobeAction_value["KPROBE_ACTION_"+str]; ok {
+		*enum = KprobeActionChecker(n)
+	} else {
+		return fmt.Errorf("Unknown KprobeAction %s", str)
+	}
+
+	return nil
+}
+
+// NewKprobeActionChecker creates a new KprobeActionChecker
+func NewKprobeActionChecker(val tetragon.KprobeAction) *KprobeActionChecker {
+	enum := KprobeActionChecker(val)
+	return &enum
+}
+
+// Check checks a KprobeAction against the checker
+func (enum *KprobeActionChecker) Check(val *tetragon.KprobeAction) error {
+	if val == nil {
+		return fmt.Errorf("KprobeActionChecker: KprobeAction is nil and does not match expected value %s", tetragon.KprobeAction(*enum))
+	}
+	if *enum != KprobeActionChecker(*val) {
+		return fmt.Errorf("KprobeActionChecker: KprobeAction has value %s which does not match expected value %s", (*val), tetragon.KprobeAction(*enum))
 	}
 	return nil
 }

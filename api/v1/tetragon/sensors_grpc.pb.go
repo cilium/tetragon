@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.20.1
-// source: tetragon/tetragon.proto
+// source: tetragon/sensors.proto
 
 package tetragon
 
@@ -487,5 +487,5 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "tetragon/tetragon.proto",
+	Metadata: "tetragon/sensors.proto",
 }

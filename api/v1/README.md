@@ -3,31 +3,15 @@
 
 ## Table of Contents
 
+- [tetragon/capabilities.proto](#tetragon_capabilities-proto)
+    - [CapabilitiesType](#tetragon-CapabilitiesType)
+  
 - [tetragon/tetragon.proto](#tetragon_tetragon-proto)
-    - [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest)
-    - [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse)
-    - [AggregationInfo](#tetragon-AggregationInfo)
-    - [AggregationOptions](#tetragon-AggregationOptions)
     - [Capabilities](#tetragon-Capabilities)
     - [Container](#tetragon-Container)
-    - [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest)
-    - [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse)
-    - [DisableSensorRequest](#tetragon-DisableSensorRequest)
-    - [DisableSensorResponse](#tetragon-DisableSensorResponse)
     - [DnsInfo](#tetragon-DnsInfo)
-    - [EnableSensorRequest](#tetragon-EnableSensorRequest)
-    - [EnableSensorResponse](#tetragon-EnableSensorResponse)
-    - [Filter](#tetragon-Filter)
-    - [GetEventsRequest](#tetragon-GetEventsRequest)
-    - [GetEventsResponse](#tetragon-GetEventsResponse)
     - [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest)
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
-    - [GetSensorConfigRequest](#tetragon-GetSensorConfigRequest)
-    - [GetSensorConfigResponse](#tetragon-GetSensorConfigResponse)
-    - [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest)
-    - [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse)
-    - [GetVersionRequest](#tetragon-GetVersionRequest)
-    - [GetVersionResponse](#tetragon-GetVersionResponse)
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
     - [KprobeArgument](#tetragon-KprobeArgument)
@@ -37,8 +21,6 @@
     - [KprobeSkb](#tetragon-KprobeSkb)
     - [KprobeSock](#tetragon-KprobeSock)
     - [KprobeTruncatedBytes](#tetragon-KprobeTruncatedBytes)
-    - [ListSensorsRequest](#tetragon-ListSensorsRequest)
-    - [ListSensorsResponse](#tetragon-ListSensorsResponse)
     - [Namespace](#tetragon-Namespace)
     - [Namespaces](#tetragon-Namespaces)
     - [Pod](#tetragon-Pod)
@@ -48,22 +30,49 @@
     - [ProcessExit](#tetragon-ProcessExit)
     - [ProcessKprobe](#tetragon-ProcessKprobe)
     - [ProcessTracepoint](#tetragon-ProcessTracepoint)
+    - [Test](#tetragon-Test)
+  
+    - [HealthStatusResult](#tetragon-HealthStatusResult)
+    - [HealthStatusType](#tetragon-HealthStatusType)
+    - [KprobeAction](#tetragon-KprobeAction)
+  
+- [tetragon/events.proto](#tetragon_events-proto)
+    - [AggregationInfo](#tetragon-AggregationInfo)
+    - [AggregationOptions](#tetragon-AggregationOptions)
+    - [Filter](#tetragon-Filter)
+    - [GetEventsRequest](#tetragon-GetEventsRequest)
+    - [GetEventsResponse](#tetragon-GetEventsResponse)
+  
+    - [EventType](#tetragon-EventType)
+  
+- [tetragon/stack.proto](#tetragon_stack-proto)
+    - [StackAddress](#tetragon-StackAddress)
+    - [StackTrace](#tetragon-StackTrace)
+    - [StackTraceLabel](#tetragon-StackTraceLabel)
+    - [StackTraceNode](#tetragon-StackTraceNode)
+  
+- [tetragon/sensors.proto](#tetragon_sensors-proto)
+    - [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest)
+    - [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse)
+    - [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest)
+    - [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse)
+    - [DisableSensorRequest](#tetragon-DisableSensorRequest)
+    - [DisableSensorResponse](#tetragon-DisableSensorResponse)
+    - [EnableSensorRequest](#tetragon-EnableSensorRequest)
+    - [EnableSensorResponse](#tetragon-EnableSensorResponse)
+    - [GetSensorConfigRequest](#tetragon-GetSensorConfigRequest)
+    - [GetSensorConfigResponse](#tetragon-GetSensorConfigResponse)
+    - [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest)
+    - [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse)
+    - [GetVersionRequest](#tetragon-GetVersionRequest)
+    - [GetVersionResponse](#tetragon-GetVersionResponse)
+    - [ListSensorsRequest](#tetragon-ListSensorsRequest)
+    - [ListSensorsResponse](#tetragon-ListSensorsResponse)
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
     - [SensorStatus](#tetragon-SensorStatus)
     - [SetSensorConfigRequest](#tetragon-SetSensorConfigRequest)
     - [SetSensorConfigResponse](#tetragon-SetSensorConfigResponse)
-    - [StackAddress](#tetragon-StackAddress)
-    - [StackTrace](#tetragon-StackTrace)
-    - [StackTraceLabel](#tetragon-StackTraceLabel)
-    - [StackTraceNode](#tetragon-StackTraceNode)
-    - [Test](#tetragon-Test)
-  
-    - [CapabilitiesType](#tetragon-CapabilitiesType)
-    - [EventType](#tetragon-EventType)
-    - [HealthStatusResult](#tetragon-HealthStatusResult)
-    - [HealthStatusType](#tetragon-HealthStatusType)
-    - [KprobeAction](#tetragon-KprobeAction)
   
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
   
@@ -71,66 +80,77 @@
 
 
 
+<a name="tetragon_capabilities-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## tetragon/capabilities.proto
+
+
+ 
+
+
+<a name="tetragon-CapabilitiesType"></a>
+
+### CapabilitiesType
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| CAP_CHOWN | 0 | In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this overrides the restriction of changing file ownership and group ownership. |
+| DAC_OVERRIDE | 1 | Override all DAC access, including ACL execute access if [_POSIX_ACL] is defined. Excluding DAC access covered by CAP_LINUX_IMMUTABLE. |
+| CAP_DAC_READ_SEARCH | 2 | Overrides all DAC restrictions regarding read and search on files and directories, including ACL restrictions if [_POSIX_ACL] is defined. Excluding DAC access covered by &#34;$1&#34;_LINUX_IMMUTABLE. |
+| CAP_FOWNER | 3 | Overrides all restrictions about allowed operations on files, where file owner ID must be equal to the user ID, except where CAP_FSETID is applicable. It doesn&#39;t override MAC and DAC restrictions. |
+| CAP_FSETID | 4 | Overrides the following restrictions that the effective user ID shall match the file owner ID when setting the S_ISUID and S_ISGID bits on that file; that the effective group ID (or one of the supplementary group IDs) shall match the file owner ID when setting the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are cleared on successful return from chown(2) (not implemented). |
+| CAP_KILL | 5 | Overrides the restriction that the real or effective user ID of a process sending a signal must match the real or effective user ID of the process receiving the signal. |
+| CAP_SETGID | 6 | Allows forged gids on socket credentials passing. |
+| CAP_SETUID | 7 | Allows forged pids on socket credentials passing. |
+| CAP_SETPCAP | 8 | Without VFS support for capabilities: Transfer any capability in your permitted set to any pid, remove any capability in your permitted set from any pid With VFS support for capabilities (neither of above, but) Add any capability from current&#39;s capability bounding set to the current process&#39; inheritable set Allow taking bits out of capability bounding set Allow modification of the securebits for a process |
+| CAP_LINUX_IMMUTABLE | 9 | Allow modification of S_IMMUTABLE and S_APPEND file attributes |
+| CAP_NET_BIND_SERVICE | 10 | Allows binding to ATM VCIs below 32 |
+| CAP_NET_BROADCAST | 11 | Allow broadcasting, listen to multicast |
+| CAP_NET_ADMIN | 12 | Allow activation of ATM control sockets |
+| CAP_NET_RAW | 13 | Allow binding to any address for transparent proxying (also via NET_ADMIN) |
+| CAP_IPC_LOCK | 14 | Allow mlock and mlockall (which doesn&#39;t really have anything to do with IPC) |
+| CAP_IPC_OWNER | 15 | Override IPC ownership checks |
+| CAP_SYS_MODULE | 16 | Insert and remove kernel modules - modify kernel without limit |
+| CAP_SYS_RAWIO | 17 | Allow sending USB messages to any device via /dev/bus/usb |
+| CAP_SYS_CHROOT | 18 | Allow use of chroot() |
+| CAP_SYS_PTRACE | 19 | Allow ptrace() of any process |
+| CAP_SYS_PACCT | 20 | Allow configuration of process accounting |
+| CAP_SYS_ADMIN | 21 | Allow everything under CAP_BPF and CAP_PERFMON for backward compatibility |
+| CAP_SYS_BOOT | 22 | Allow use of reboot() |
+| CAP_SYS_NICE | 23 | Allow setting cpu affinity on other processes |
+| CAP_SYS_RESOURCE | 24 | Control memory reclaim behavior |
+| CAP_SYS_TIME | 25 | Allow setting the real-time clock |
+| CAP_SYS_TTY_CONFIG | 26 | Allow vhangup() of tty |
+| CAP_MKNOD | 27 | Allow the privileged aspects of mknod() |
+| CAP_LEASE | 28 | Allow taking of leases on files |
+| CAP_AUDIT_WRITE | 29 | Allow writing the audit log via unicast netlink socket |
+| CAP_AUDIT_CONTROL | 30 | Allow configuration of audit via unicast netlink socket |
+| CAP_SETFCAP | 31 | Set or remove capabilities on files |
+| CAP_MAC_OVERRIDE | 32 | Override MAC access. The base kernel enforces no MAC policy. An LSM may enforce a MAC policy, and if it does and it chooses to implement capability based overrides of that policy, this is the capability it should use to do so. |
+| CAP_MAC_ADMIN | 33 | Allow MAC configuration or state changes. The base kernel requires no MAC configuration. An LSM may enforce a MAC policy, and if it does and it chooses to implement capability based checks on modifications to that policy or the data required to maintain it, this is the capability it should use to do so. |
+| CAP_SYSLOG | 34 | Allow configuring the kernel&#39;s syslog (printk behaviour) |
+| CAP_WAKE_ALARM | 35 | Allow triggering something that will wake the system |
+| CAP_BLOCK_SUSPEND | 36 | Allow preventing system suspends |
+| CAP_AUDIT_READ | 37 | Allow reading the audit log via multicast netlink socket |
+| CAP_PERFMON | 38 | Allow system performance and observability privileged operations using perf_events, i915_perf and other kernel subsystems |
+| CAP_BPF | 39 | CAP_BPF allows the following BPF operations: - Creating all types of BPF maps - Advanced verifier features - Indirect variable access - Bounded loops - BPF to BPF function calls - Scalar precision tracking - Larger complexity limits - Dead code elimination - And potentially other features - Loading BPF Type Format (BTF) data - Retrieve xlated and JITed code of BPF programs - Use bpf_spin_lock() helper CAP_PERFMON relaxes the verifier checks further: - BPF progs can use of pointer-to-integer conversions - speculation attack hardening measures are bypassed - bpf_probe_read to read arbitrary kernel memory is allowed - bpf_trace_printk to print kernel memory is allowed CAP_SYS_ADMIN is required to use bpf_probe_write_user. CAP_SYS_ADMIN is required to iterate system wide loaded programs, maps, links, BTFs and convert their IDs to file descriptors. CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and CAP_BPF are required to load networking programs. |
+| CAP_CHECKPOINT_RESTORE | 40 | Allow writing to ns_last_pid |
+
+
+ 
+
+ 
+
+ 
+
+
+
 <a name="tetragon_tetragon-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
 ## tetragon/tetragon.proto
-
-
-
-<a name="tetragon-AddTracingPolicyRequest"></a>
-
-### AddTracingPolicyRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| yaml | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-AddTracingPolicyResponse"></a>
-
-### AddTracingPolicyResponse
-
-
-
-
-
-
-
-<a name="tetragon-AggregationInfo"></a>
-
-### AggregationInfo
-AggregationInfo contains information about aggregation results.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| count | [uint64](#uint64) |  | Total count of events in this aggregation time window. |
-
-
-
-
-
-
-<a name="tetragon-AggregationOptions"></a>
-
-### AggregationOptions
-AggregationOptions defines configuration options for aggregating events.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| window_size | [google.protobuf.Duration](#google-protobuf-Duration) |  | Aggregation window size. Defaults to 15 seconds if this field is not set. |
-| channel_buffer_size | [uint64](#uint64) |  | Size of the buffer for the aggregator to receive incoming events. If the buffer becomes full, the aggregator will log a warning and start dropping incoming events. |
-
-
-
 
 
 
@@ -171,56 +191,6 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon-DeleteTracingPolicyRequest"></a>
-
-### DeleteTracingPolicyRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| yaml | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-DeleteTracingPolicyResponse"></a>
-
-### DeleteTracingPolicyResponse
-
-
-
-
-
-
-
-<a name="tetragon-DisableSensorRequest"></a>
-
-### DisableSensorRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-DisableSensorResponse"></a>
-
-### DisableSensorResponse
-
-
-
-
-
-
-
 <a name="tetragon-DnsInfo"></a>
 
 ### DnsInfo
@@ -236,91 +206,6 @@ AggregationOptions defines configuration options for aggregating events.
 | ips | [string](#string) | repeated |  |
 | query | [string](#string) |  |  |
 | response | [bool](#bool) |  |  |
-
-
-
-
-
-
-<a name="tetragon-EnableSensorRequest"></a>
-
-### EnableSensorRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-EnableSensorResponse"></a>
-
-### EnableSensorResponse
-
-
-
-
-
-
-
-<a name="tetragon-Filter"></a>
-
-### Filter
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| binary_regex | [string](#string) | repeated |  |
-| namespace | [string](#string) | repeated |  |
-| health_check | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  |  |
-| pid | [uint32](#uint32) | repeated |  |
-| pid_set | [uint32](#uint32) | repeated |  |
-| event_set | [EventType](#tetragon-EventType) | repeated |  |
-
-
-
-
-
-
-<a name="tetragon-GetEventsRequest"></a>
-
-### GetEventsRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| allow_list | [Filter](#tetragon-Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
-| deny_list | [Filter](#tetragon-Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded. If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
-| aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated. Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
-
-
-
-
-
-
-<a name="tetragon-GetEventsResponse"></a>
-
-### GetEventsResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process_exec | [ProcessExec](#tetragon-ProcessExec) |  |  |
-| process_exit | [ProcessExit](#tetragon-ProcessExit) |  |  |
-| process_kprobe | [ProcessKprobe](#tetragon-ProcessKprobe) |  |  |
-| process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  |  |
-| process_dns | [ProcessDns](#tetragon-ProcessDns) |  |  |
-| test | [Test](#tetragon-Test) |  |  |
-| node_name | [string](#string) |  | Name of the node where this event was observed. |
-| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
-| aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
 
 
 
@@ -351,92 +236,6 @@ AggregationOptions defines configuration options for aggregating events.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | health_status | [HealthStatus](#tetragon-HealthStatus) | repeated |  |
-
-
-
-
-
-
-<a name="tetragon-GetSensorConfigRequest"></a>
-
-### GetSensorConfigRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| cfgkey | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-GetSensorConfigResponse"></a>
-
-### GetSensorConfigResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| cfgval | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-GetStackTraceTreeRequest"></a>
-
-### GetStackTraceTreeRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-GetStackTraceTreeResponse"></a>
-
-### GetStackTraceTreeResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| root | [StackTraceNode](#tetragon-StackTraceNode) |  |  |
-
-
-
-
-
-
-<a name="tetragon-GetVersionRequest"></a>
-
-### GetVersionRequest
-
-
-
-
-
-
-
-<a name="tetragon-GetVersionResponse"></a>
-
-### GetVersionResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| version | [string](#string) |  |  |
 
 
 
@@ -610,31 +409,6 @@ AggregationOptions defines configuration options for aggregating events.
 | ----- | ---- | ----- | ----------- |
 | bytes_arg | [bytes](#bytes) |  |  |
 | orig_size | [uint64](#uint64) |  |  |
-
-
-
-
-
-
-<a name="tetragon-ListSensorsRequest"></a>
-
-### ListSensorsRequest
-
-
-
-
-
-
-
-<a name="tetragon-ListSensorsResponse"></a>
-
-### ListSensorsResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| sensors | [SensorStatus](#tetragon-SensorStatus) | repeated |  |
 
 
 
@@ -820,71 +594,210 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
-<a name="tetragon-RemoveSensorRequest"></a>
+<a name="tetragon-Test"></a>
 
-### RemoveSensorRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-RemoveSensorResponse"></a>
-
-### RemoveSensorResponse
-
-
-
-
-
-
-
-<a name="tetragon-SensorStatus"></a>
-
-### SensorStatus
+### Test
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| enabled | [bool](#bool) |  |  |
+| arg0 | [uint64](#uint64) |  |  |
+| arg1 | [uint64](#uint64) |  |  |
+| arg2 | [uint64](#uint64) |  |  |
+| arg3 | [uint64](#uint64) |  |  |
+
+
+
+
+
+ 
+
+
+<a name="tetragon-HealthStatusResult"></a>
+
+### HealthStatusResult
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| HEALTH_STATUS_UNDEF | 0 |  |
+| HEALTH_STATUS_RUNNING | 1 |  |
+| HEALTH_STATUS_STOPPED | 2 |  |
+| HEALTH_STATUS_ERROR | 3 |  |
+
+
+
+<a name="tetragon-HealthStatusType"></a>
+
+### HealthStatusType
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| HEALTH_STATUS_TYPE_UNDEF | 0 |  |
+| HEALTH_STATUS_TYPE_STATUS | 1 |  |
+
+
+
+<a name="tetragon-KprobeAction"></a>
+
+### KprobeAction
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| KPROBE_ACTION_UNKNOWN | 0 |  |
+| KPROBE_ACTION_POST | 1 |  |
+| KPROBE_ACTION_FOLLOWFD | 2 |  |
+| KPROBE_ACTION_SIGKILL | 3 |  |
+| KPROBE_ACTION_UNFOLLOWFD | 4 |  |
+| KPROBE_ACTION_OVERRIDE | 5 |  |
+| KPROBE_ACTION_COPYFD | 6 |  |
+
+
+ 
+
+ 
+
+ 
+
+
+
+<a name="tetragon_events-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## tetragon/events.proto
+
+
+
+<a name="tetragon-AggregationInfo"></a>
+
+### AggregationInfo
+AggregationInfo contains information about aggregation results.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| count | [uint64](#uint64) |  | Total count of events in this aggregation time window. |
 
 
 
 
 
 
-<a name="tetragon-SetSensorConfigRequest"></a>
+<a name="tetragon-AggregationOptions"></a>
 
-### SetSensorConfigRequest
+### AggregationOptions
+AggregationOptions defines configuration options for aggregating events.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| window_size | [google.protobuf.Duration](#google-protobuf-Duration) |  | Aggregation window size. Defaults to 15 seconds if this field is not set. |
+| channel_buffer_size | [uint64](#uint64) |  | Size of the buffer for the aggregator to receive incoming events. If the buffer becomes full, the aggregator will log a warning and start dropping incoming events. |
+
+
+
+
+
+
+<a name="tetragon-Filter"></a>
+
+### Filter
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| cfgkey | [string](#string) |  |  |
-| cfgval | [string](#string) |  |  |
+| binary_regex | [string](#string) | repeated |  |
+| namespace | [string](#string) | repeated |  |
+| health_check | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  |  |
+| pid | [uint32](#uint32) | repeated |  |
+| pid_set | [uint32](#uint32) | repeated |  |
+| event_set | [EventType](#tetragon-EventType) | repeated |  |
 
 
 
 
 
 
-<a name="tetragon-SetSensorConfigResponse"></a>
+<a name="tetragon-GetEventsRequest"></a>
 
-### SetSensorConfigResponse
-
-
+### GetEventsRequest
 
 
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| allow_list | [Filter](#tetragon-Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
+| deny_list | [Filter](#tetragon-Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded.
+
+If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
+| aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated.
+
+Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
+
+
+
+
+
+
+<a name="tetragon-GetEventsResponse"></a>
+
+### GetEventsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_exec | [ProcessExec](#tetragon-ProcessExec) |  |  |
+| process_exit | [ProcessExit](#tetragon-ProcessExit) |  |  |
+| process_kprobe | [ProcessKprobe](#tetragon-ProcessKprobe) |  |  |
+| process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  |  |
+| process_dns | [ProcessDns](#tetragon-ProcessDns) |  |  |
+| test | [Test](#tetragon-Test) |  |  |
+| node_name | [string](#string) |  | Name of the node where this event was observed. |
+| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed.
+
+For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
+| aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+
+
+
+
+
+ 
+
+
+<a name="tetragon-EventType"></a>
+
+### EventType
+EventType constants are based on the ones from pkg/api/client
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNDEF | 0 |  |
+| PROCESS_EXEC | 5 |  |
+| PROCESS_EXIT | 7 |  |
+| PROCESS_KPROBE | 13 |  |
+| PROCESS_TRACEPOINT | 14 |  |
+| PROCESS_DNS | 18 |  |
+| TEST | 254 |  |
+
+
+ 
+
+ 
+
+ 
+
+
+
+<a name="tetragon_stack-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## tetragon/stack.proto
 
 
 
@@ -952,136 +865,302 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
+ 
 
-<a name="tetragon-Test"></a>
+ 
 
-### Test
+ 
+
+ 
+
+
+
+<a name="tetragon_sensors-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## tetragon/sensors.proto
+
+
+
+<a name="tetragon-AddTracingPolicyRequest"></a>
+
+### AddTracingPolicyRequest
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| arg0 | [uint64](#uint64) |  |  |
-| arg1 | [uint64](#uint64) |  |  |
-| arg2 | [uint64](#uint64) |  |  |
-| arg3 | [uint64](#uint64) |  |  |
+| yaml | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-AddTracingPolicyResponse"></a>
+
+### AddTracingPolicyResponse
+
+
+
+
+
+
+
+<a name="tetragon-DeleteTracingPolicyRequest"></a>
+
+### DeleteTracingPolicyRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| yaml | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-DeleteTracingPolicyResponse"></a>
+
+### DeleteTracingPolicyResponse
+
+
+
+
+
+
+
+<a name="tetragon-DisableSensorRequest"></a>
+
+### DisableSensorRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-DisableSensorResponse"></a>
+
+### DisableSensorResponse
+
+
+
+
+
+
+
+<a name="tetragon-EnableSensorRequest"></a>
+
+### EnableSensorRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-EnableSensorResponse"></a>
+
+### EnableSensorResponse
+
+
+
+
+
+
+
+<a name="tetragon-GetSensorConfigRequest"></a>
+
+### GetSensorConfigRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| cfgkey | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-GetSensorConfigResponse"></a>
+
+### GetSensorConfigResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| cfgval | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-GetStackTraceTreeRequest"></a>
+
+### GetStackTraceTreeRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-GetStackTraceTreeResponse"></a>
+
+### GetStackTraceTreeResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| root | [StackTraceNode](#tetragon-StackTraceNode) |  |  |
+
+
+
+
+
+
+<a name="tetragon-GetVersionRequest"></a>
+
+### GetVersionRequest
+
+
+
+
+
+
+
+<a name="tetragon-GetVersionResponse"></a>
+
+### GetVersionResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-ListSensorsRequest"></a>
+
+### ListSensorsRequest
+
+
+
+
+
+
+
+<a name="tetragon-ListSensorsResponse"></a>
+
+### ListSensorsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| sensors | [SensorStatus](#tetragon-SensorStatus) | repeated |  |
+
+
+
+
+
+
+<a name="tetragon-RemoveSensorRequest"></a>
+
+### RemoveSensorRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-RemoveSensorResponse"></a>
+
+### RemoveSensorResponse
+
+
+
+
+
+
+
+<a name="tetragon-SensorStatus"></a>
+
+### SensorStatus
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| enabled | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="tetragon-SetSensorConfigRequest"></a>
+
+### SetSensorConfigRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| cfgkey | [string](#string) |  |  |
+| cfgval | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-SetSensorConfigResponse"></a>
+
+### SetSensorConfigResponse
+
 
 
 
 
 
  
-
-
-<a name="tetragon-CapabilitiesType"></a>
-
-### CapabilitiesType
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| CAP_CHOWN | 0 | In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this overrides the restriction of changing file ownership and group ownership. |
-| DAC_OVERRIDE | 1 | Override all DAC access, including ACL execute access if [_POSIX_ACL] is defined. Excluding DAC access covered by CAP_LINUX_IMMUTABLE. |
-| CAP_DAC_READ_SEARCH | 2 | Overrides all DAC restrictions regarding read and search on files and directories, including ACL restrictions if [_POSIX_ACL] is defined. Excluding DAC access covered by &#34;$1&#34;_LINUX_IMMUTABLE. |
-| CAP_FOWNER | 3 | Overrides all restrictions about allowed operations on files, where file owner ID must be equal to the user ID, except where CAP_FSETID is applicable. It doesn&#39;t override MAC and DAC restrictions. |
-| CAP_FSETID | 4 | Overrides the following restrictions that the effective user ID shall match the file owner ID when setting the S_ISUID and S_ISGID bits on that file; that the effective group ID (or one of the supplementary group IDs) shall match the file owner ID when setting the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are cleared on successful return from chown(2) (not implemented). |
-| CAP_KILL | 5 | Overrides the restriction that the real or effective user ID of a process sending a signal must match the real or effective user ID of the process receiving the signal. |
-| CAP_SETGID | 6 | Allows forged gids on socket credentials passing. |
-| CAP_SETUID | 7 | Allows forged pids on socket credentials passing. |
-| CAP_SETPCAP | 8 | Without VFS support for capabilities: Transfer any capability in your permitted set to any pid, remove any capability in your permitted set from any pid With VFS support for capabilities (neither of above, but) Add any capability from current&#39;s capability bounding set to the current process&#39; inheritable set Allow taking bits out of capability bounding set Allow modification of the securebits for a process |
-| CAP_LINUX_IMMUTABLE | 9 | Allow modification of S_IMMUTABLE and S_APPEND file attributes |
-| CAP_NET_BIND_SERVICE | 10 | Allows binding to ATM VCIs below 32 |
-| CAP_NET_BROADCAST | 11 | Allow broadcasting, listen to multicast |
-| CAP_NET_ADMIN | 12 | Allow activation of ATM control sockets |
-| CAP_NET_RAW | 13 | Allow binding to any address for transparent proxying (also via NET_ADMIN) |
-| CAP_IPC_LOCK | 14 | Allow mlock and mlockall (which doesn&#39;t really have anything to do with IPC) |
-| CAP_IPC_OWNER | 15 | Override IPC ownership checks |
-| CAP_SYS_MODULE | 16 | Insert and remove kernel modules - modify kernel without limit |
-| CAP_SYS_RAWIO | 17 | Allow sending USB messages to any device via /dev/bus/usb |
-| CAP_SYS_CHROOT | 18 | Allow use of chroot() |
-| CAP_SYS_PTRACE | 19 | Allow ptrace() of any process |
-| CAP_SYS_PACCT | 20 | Allow configuration of process accounting |
-| CAP_SYS_ADMIN | 21 | Allow everything under CAP_BPF and CAP_PERFMON for backward compatibility |
-| CAP_SYS_BOOT | 22 | Allow use of reboot() |
-| CAP_SYS_NICE | 23 | Allow setting cpu affinity on other processes |
-| CAP_SYS_RESOURCE | 24 | Control memory reclaim behavior |
-| CAP_SYS_TIME | 25 | Allow setting the real-time clock |
-| CAP_SYS_TTY_CONFIG | 26 | Allow vhangup() of tty |
-| CAP_MKNOD | 27 | Allow the privileged aspects of mknod() |
-| CAP_LEASE | 28 | Allow taking of leases on files |
-| CAP_AUDIT_WRITE | 29 | Allow writing the audit log via unicast netlink socket |
-| CAP_AUDIT_CONTROL | 30 | Allow configuration of audit via unicast netlink socket |
-| CAP_SETFCAP | 31 | Set or remove capabilities on files |
-| CAP_MAC_OVERRIDE | 32 | Override MAC access. The base kernel enforces no MAC policy. An LSM may enforce a MAC policy, and if it does and it chooses to implement capability based overrides of that policy, this is the capability it should use to do so. |
-| CAP_MAC_ADMIN | 33 | Allow MAC configuration or state changes. The base kernel requires no MAC configuration. An LSM may enforce a MAC policy, and if it does and it chooses to implement capability based checks on modifications to that policy or the data required to maintain it, this is the capability it should use to do so. |
-| CAP_SYSLOG | 34 | Allow configuring the kernel&#39;s syslog (printk behaviour) |
-| CAP_WAKE_ALARM | 35 | Allow triggering something that will wake the system |
-| CAP_BLOCK_SUSPEND | 36 | Allow preventing system suspends |
-| CAP_AUDIT_READ | 37 | Allow reading the audit log via multicast netlink socket |
-| CAP_PERFMON | 38 | Allow system performance and observability privileged operations using perf_events, i915_perf and other kernel subsystems |
-| CAP_BPF | 39 | CAP_BPF allows the following BPF operations: - Creating all types of BPF maps - Advanced verifier features - Indirect variable access - Bounded loops - BPF to BPF function calls - Scalar precision tracking - Larger complexity limits - Dead code elimination - And potentially other features - Loading BPF Type Format (BTF) data - Retrieve xlated and JITed code of BPF programs - Use bpf_spin_lock() helper CAP_PERFMON relaxes the verifier checks further: - BPF progs can use of pointer-to-integer conversions - speculation attack hardening measures are bypassed - bpf_probe_read to read arbitrary kernel memory is allowed - bpf_trace_printk to print kernel memory is allowed CAP_SYS_ADMIN is required to use bpf_probe_write_user. CAP_SYS_ADMIN is required to iterate system wide loaded programs, maps, links, BTFs and convert their IDs to file descriptors. CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and CAP_BPF are required to load networking programs. |
-| CAP_CHECKPOINT_RESTORE | 40 | Allow writing to ns_last_pid |
-
-
-
-<a name="tetragon-EventType"></a>
-
-### EventType
-EventType constants are based on the ones from pkg/api/client
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| UNDEF | 0 |  |
-| PROCESS_EXEC | 5 |  |
-| PROCESS_EXIT | 7 |  |
-| PROCESS_KPROBE | 13 |  |
-| PROCESS_TRACEPOINT | 14 |  |
-| PROCESS_DNS | 18 |  |
-| TEST | 254 |  |
-
-
-
-<a name="tetragon-HealthStatusResult"></a>
-
-### HealthStatusResult
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| HEALTH_STATUS_UNDEF | 0 |  |
-| HEALTH_STATUS_RUNNING | 1 |  |
-| HEALTH_STATUS_STOPPED | 2 |  |
-| HEALTH_STATUS_ERROR | 3 |  |
-
-
-
-<a name="tetragon-HealthStatusType"></a>
-
-### HealthStatusType
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| HEALTH_STATUS_TYPE_UNDEF | 0 |  |
-| HEALTH_STATUS_TYPE_STATUS | 1 |  |
-
-
-
-<a name="tetragon-KprobeAction"></a>
-
-### KprobeAction
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| KPROBE_ACTION_UNKNOWN | 0 |  |
-| KPROBE_ACTION_POST | 1 |  |
-| KPROBE_ACTION_FOLLOWFD | 2 |  |
-| KPROBE_ACTION_SIGKILL | 3 |  |
-| KPROBE_ACTION_UNFOLLOWFD | 4 |  |
-| KPROBE_ACTION_OVERRIDE | 5 |  |
-| KPROBE_ACTION_COPYFD | 6 |  |
-
 
  
 
