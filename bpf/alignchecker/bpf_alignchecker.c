@@ -3,6 +3,8 @@
 #include "include/vmlinux.h"
 #include "include/api.h"
 #include "lib/hubble_msg.h"
+#include "process/retprobe_map.h"
+#include "process/types/basic.h"
 
 /* DECLARE declares a unique usage of the union or struct 'x' on the stack.
  *
@@ -36,6 +38,7 @@ int main(void)
 	// from maps
 	DECLARE(struct, event, iter);
 	DECLARE(struct, execve_map_value, iter);
+	DECLARE(struct, event_config, iter);
 
 	return 0;
 }
