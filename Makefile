@@ -7,12 +7,10 @@ LOCAL_CLANG ?= 0
 LOCAL_CLANG_FORMAT ?= 0
 FORMAT_FIND_FLAGS ?= -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*'
 NOOPT ?= 0
-LIBBPF_IMAGE = quay.io/isovalent/hubble-libbpf:v0.2.3
 CLANG_IMAGE  = quay.io/isovalent/hubble-llvm:2020-12-29-45f6aa2
 METADATA_IMAGE = quay.io/isovalent/tetragon-metadata
 TESTER_PROGS_DIR = "contrib/tester-progs"
 
-LIBBPF_INSTALL_DIR ?= ./lib
 CLANG_INSTALL_DIR  ?= ./bin
 VERSION=$(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
@@ -164,18 +162,10 @@ image-codegen:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
-.PHONY: tools-install tools-clean libbpf-install clang-install
-tools-install: libbpf-install clang-install
+.PHONY: tools-install tools-clean clang-install
+tools-install: clang-install
 tools-clean:
-	rm -rf $(LIBBPF_INSTALL_DIR)
 	rm -rf $(CLANG_INSTALL_DIR)
-libbpf-install:
-	$(eval id=$(shell $(CONTAINER_ENGINE) create $(LIBBPF_IMAGE)))
-	mkdir -p $(LIBBPF_INSTALL_DIR)
-	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)
-	ln -fs libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)/libbpf.so.0
-	ln -fs libbpf.so.0 $(LIBBPF_INSTALL_DIR)/libbpf.so
-	$(CONTAINER_ENGINE) stop ${id}
 
 clang-install:
 	$(eval id=$(shell $(CONTAINER_ENGINE) create $(CLANG_IMAGE)))
