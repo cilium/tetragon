@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/config"
 )
 
@@ -57,11 +57,10 @@ func TestSpecs(t *testing.T) {
 	if _, err := os.Stat(btfFname); err != nil {
 		t.Skip(fmt.Sprintf("%s not found", btfFname))
 	}
-	btf, err := bpf.NewBTF(btfFname)
+	btf, err := btf.LoadSpec(btfFname)
 	if err != nil {
 		t.Fatalf("failed to initialize BTF: %s", err)
 	}
-	defer btf.Close()
 
 	for fi := range testFiles {
 		specFname := testFiles[fi].specFname

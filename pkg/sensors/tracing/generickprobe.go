@@ -186,14 +186,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 	var progs []*program.Program
 	var maps []*program.Map
 
-	btfobj := bpf.BTFNil
-	defer func() {
-		// if we return early due to an error, make sure that we don't leak the BTF object
-		if btfobj != bpf.BTFNil {
-			btfobj.Close()
-		}
-	}()
-
 	for i := range kprobes {
 		f := &kprobes[i]
 		var argSigPrinters []argPrinters
@@ -207,13 +199,11 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		argRetprobe = nil // holds pointer to arg for return handler
 		funcName := f.Call
 
-		// Write args into BTF ptr for use with load
 		var err error
-		btfobj, err = btf.NewBTF()
+		btfobj, err := btf.NewBTF()
 		if err != nil {
 			return nil, err
 		}
-
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
 			if warn, ok := err.(*btf.ValidationWarn); ok {
 				logger.GetLogger().Warnf("kprobe spec validation: %s", warn)

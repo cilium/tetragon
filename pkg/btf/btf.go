@@ -9,16 +9,14 @@ import (
 	"os"
 	"path"
 
-	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 
 	"golang.org/x/sys/unix"
 )
 
 var (
-	/* opaque pointer to C BTF object */
-	btfObj = bpf.BTFNil
-
+	btfObj  *btf.Spec
 	btfFile string
 )
 
@@ -75,8 +73,8 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 	return btf, nil
 }
 
-func NewBTF() (bpf.BTF, error) {
-	return bpf.NewBTF(btfFile)
+func NewBTF() (*btf.Spec, error) {
+	return btf.LoadSpec(btfFile)
 }
 
 func InitCachedBTF(ctx context.Context, lib, btf string) error {
@@ -95,13 +93,6 @@ func GetCachedBTFFile() string {
 	return btfFile
 }
 
-func GetCachedBTF() bpf.BTF {
+func GetCachedBTF() *btf.Spec {
 	return btfObj
-}
-
-func FreeCachedBTF() {
-	if btfObj != bpf.BTFNil {
-		btfObj.Close()
-		btfObj = bpf.BTFNil
-	}
 }
