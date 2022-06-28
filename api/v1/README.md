@@ -720,7 +720,6 @@ For an aggregated response, this field to set to the timestamp at which the even
 | uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | cwd | [string](#string) |  |  |
 | binary | [string](#string) |  |  |
-| arguments | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
 | start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
 | auid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
@@ -730,6 +729,7 @@ For an aggregated response, this field to set to the timestamp at which the even
 | refcnt | [uint32](#uint32) |  |  |
 | cap | [Capabilities](#tetragon-Capabilities) |  |  |
 | ns | [Namespaces](#tetragon-Namespaces) |  |  |
+| args | [bytes](#bytes) |  |  |
 
 
 

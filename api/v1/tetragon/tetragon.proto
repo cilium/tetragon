@@ -84,7 +84,9 @@ message Process {
     google.protobuf.UInt32Value uid = 3;
     string cwd = 4;
     string binary = 5;
-    string arguments = 6;
+    // Deprecated in favour of args
+    //string arguments = 6 [deprecated = true];
+    reserved 6;
     string flags = 7;
     google.protobuf.Timestamp start_time = 8;
     google.protobuf.UInt32Value auid = 9;
@@ -94,6 +96,7 @@ message Process {
     uint32 refcnt = 13;
     Capabilities cap = 14;
     Namespaces ns = 15;
+    bytes args = 16;
 }
 
 message ProcessExec {

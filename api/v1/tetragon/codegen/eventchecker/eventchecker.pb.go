@@ -1996,7 +1996,6 @@ type ProcessChecker struct {
 	Uid          *uint32                            `json:"uid,omitempty"`
 	Cwd          *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
 	Binary       *stringmatcher.StringMatcher       `json:"binary,omitempty"`
-	Arguments    *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
 	Flags        *stringmatcher.StringMatcher       `json:"flags,omitempty"`
 	StartTime    *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
 	Auid         *uint32                            `json:"auid,omitempty"`
@@ -2006,6 +2005,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	Args         *bytesmatcher.BytesMatcher         `json:"args,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -2048,11 +2048,6 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 	if checker.Binary != nil {
 		if err := checker.Binary.Match(event.Binary); err != nil {
 			return fmt.Errorf("ProcessChecker: Binary check failed: %w", err)
-		}
-	}
-	if checker.Arguments != nil {
-		if err := checker.Arguments.Match(event.Arguments); err != nil {
-			return fmt.Errorf("ProcessChecker: Arguments check failed: %w", err)
 		}
 	}
 	if checker.Flags != nil {
@@ -2103,6 +2098,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Ns check failed: %w", err)
 		}
 	}
+	if checker.Args != nil {
+		if err := checker.Args.Match(event.Args); err != nil {
+			return fmt.Errorf("ProcessChecker: Args check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -2133,12 +2133,6 @@ func (checker *ProcessChecker) WithCwd(check *stringmatcher.StringMatcher) *Proc
 // WithBinary adds a Binary check to the ProcessChecker
 func (checker *ProcessChecker) WithBinary(check *stringmatcher.StringMatcher) *ProcessChecker {
 	checker.Binary = check
-	return checker
-}
-
-// WithArguments adds a Arguments check to the ProcessChecker
-func (checker *ProcessChecker) WithArguments(check *stringmatcher.StringMatcher) *ProcessChecker {
-	checker.Arguments = check
 	return checker
 }
 
@@ -2196,6 +2190,12 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
+// WithArgs adds a Args check to the ProcessChecker
+func (checker *ProcessChecker) WithArgs(check *bytesmatcher.BytesMatcher) *ProcessChecker {
+	checker.Args = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2212,7 +2212,6 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	checker.Cwd = stringmatcher.Full(event.Cwd)
 	checker.Binary = stringmatcher.Full(event.Binary)
-	checker.Arguments = stringmatcher.Full(event.Arguments)
 	checker.Flags = stringmatcher.Full(event.Flags)
 	// NB: We don't want to match timestamps for now
 	checker.StartTime = nil
@@ -2235,6 +2234,7 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
 	}
+	checker.Args = bytesmatcher.Full(event.Args)
 	return checker
 }
 

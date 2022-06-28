@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
+	bm "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -178,7 +179,7 @@ func TestEventExecve(t *testing.T) {
 
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop)).
-		WithArguments(sm.Full("arg1 arg2 arg3"))
+		WithArgs(bm.Full([]byte("arg1 arg2 arg3")))
 
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
@@ -254,7 +255,7 @@ func TestEventExecveLongPath(t *testing.T) {
 
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithArguments(sm.Full("arg1 arg2 arg3"))
+		WithArgs(bm.Full([]byte("arg1 arg2 arg3")))
 
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
@@ -317,7 +318,7 @@ func TestEventExecveLongArgs(t *testing.T) {
 
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop)).
-		WithArguments(sm.Full(testArg1 + " " + testArg2 + " " + testArg3))
+		WithArgs(bm.Full([]byte(testArg1 + " " + testArg2 + " " + testArg3)))
 
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
@@ -409,7 +410,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithArguments(sm.Full(testArg1 + " " + testArg2 + " " + testArg3))
+		WithArgs(bm.Full([]byte(testArg1 + " " + testArg2 + " " + testArg3)))
 
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)

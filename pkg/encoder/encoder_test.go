@@ -36,8 +36,8 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
-					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Binary: "/usr/bin/curl",
+					Args:   []byte("cilium.io"),
 				},
 			},
 		},
@@ -51,8 +51,8 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
-					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Binary: "/usr/bin/curl",
+					Args:   []byte("cilium.io"),
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "tetragon",
@@ -124,8 +124,8 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExit{
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
-					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Binary: "/usr/bin/curl",
+					Args:   []byte("cilium.io"),
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "tetragon",
@@ -143,8 +143,8 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExit{
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
-					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Binary: "/usr/bin/curl",
+					Args:   []byte("cilium.io"),
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "tetragon",
@@ -339,8 +339,8 @@ func TestCompactEncoder_Encode(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
-					Binary:    "/usr/bin/curl",
-					Arguments: "cilium.io",
+					Binary: "/usr/bin/curl",
+					Args:   []byte("cilium.io"),
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "tetragon",

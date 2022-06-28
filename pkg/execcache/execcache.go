@@ -51,7 +51,7 @@ func (ec *Cache) handleExecEvents() {
 	for _, e := range ec.cache {
 		containerId := e.process.Process.Docker
 		filename := e.process.Process.Binary
-		args := e.process.Process.Arguments
+		args := string(e.process.Process.Args)
 		nspid := e.msg.Process.NSPID
 
 		podInfo, _ := process.GetPodInfo(containerId, filename, args, nspid)

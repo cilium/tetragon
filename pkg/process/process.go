@@ -185,7 +185,7 @@ func GetProcess(
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          cwd,
 			Binary:       path.GetBinaryAbsolutePath(process.Filename, cwd),
-			Arguments:    args,
+			Args:         []byte(args),
 			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
 			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
 			Auid:         &wrapperspb.UInt32Value{Value: process.AUID},

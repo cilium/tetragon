@@ -106,7 +106,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 		}
 		event := p.colorer.blue.Sprintf("🚀 %-7s", "process")
 		processInfo, caps := p.colorer.processInfo(response.NodeName, exec.Process)
-		args := p.colorer.cyan.Sprint(exec.Process.Arguments)
+		args := p.colorer.cyan.Sprint(string(exec.Process.Args))
 		return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
 	case *tetragon.GetEventsResponse_ProcessExit:
 		exit := response.GetProcessExit()
@@ -115,7 +115,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 		}
 		event := p.colorer.blue.Sprintf("💥 %-7s", "exit")
 		processInfo, caps := p.colorer.processInfo(response.NodeName, exit.Process)
-		args := p.colorer.cyan.Sprint(exit.Process.Arguments)
+		args := p.colorer.cyan.Sprint(string(exit.Process.Args))
 		var status string
 		if exit.Signal != "" {
 			status = p.colorer.red.Sprint(exit.Signal)

@@ -16,24 +16,24 @@ import (
 func Test_canBeHealthCheck(t *testing.T) {
 	assert.False(t, canBeHealthCheck(nil))
 	assert.False(t, canBeHealthCheck(&tetragon.Process{
-		Binary:    "myprogram",
-		Arguments: "arg-a arg-b argc",
+		Binary: "myprogram",
+		Args:   []byte("arg-a arg-b argc"),
 	}))
 	assert.False(t, canBeHealthCheck(&tetragon.Process{
-		Binary:    "myprogram",
-		Arguments: "arg-a arg-b argc",
-		Pod:       &tetragon.Pod{},
+		Binary: "myprogram",
+		Args:   []byte("arg-a arg-b argc"),
+		Pod:    &tetragon.Pod{},
 	}))
 	assert.False(t, canBeHealthCheck(&tetragon.Process{
-		Binary:    "myprogram",
-		Arguments: "arg-a arg-b argc",
+		Binary: "myprogram",
+		Args:   []byte("arg-a arg-b argc"),
 		Pod: &tetragon.Pod{
 			Container: &tetragon.Container{},
 		},
 	}))
 	assert.True(t, canBeHealthCheck(&tetragon.Process{
-		Binary:    "myprogram",
-		Arguments: "arg-a arg-b argc",
+		Binary: "myprogram",
+		Args:   []byte("arg-a arg-b argc"),
 		Pod: &tetragon.Pod{
 			Container: &tetragon.Container{
 				MaybeExecProbe: true,
