@@ -10,29 +10,6 @@ import (
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 )
 
-// EventTypeString returns an event's type as a string
-func EventTypeString(event tetragon.Event) (string, error) {
-	if event == nil {
-		return "", fmt.Errorf("Event is nil")
-	}
-	switch event.(type) {
-	case *tetragon.ProcessExec:
-		return tetragon.EventType_PROCESS_EXEC.String(), nil
-	case *tetragon.ProcessExit:
-		return tetragon.EventType_PROCESS_EXIT.String(), nil
-	case *tetragon.ProcessKprobe:
-		return tetragon.EventType_PROCESS_KPROBE.String(), nil
-	case *tetragon.ProcessTracepoint:
-		return tetragon.EventType_PROCESS_TRACEPOINT.String(), nil
-	case *tetragon.ProcessDns:
-		return tetragon.EventType_PROCESS_DNS.String(), nil
-	case *tetragon.Test:
-		return tetragon.EventType_TEST.String(), nil
-
-	}
-	return "", fmt.Errorf("Unhandled event type %T", event)
-}
-
 // ResponseTypeString returns an event's type as a string
 func ResponseTypeString(response *tetragon.GetEventsResponse) (string, error) {
 	if response == nil {
