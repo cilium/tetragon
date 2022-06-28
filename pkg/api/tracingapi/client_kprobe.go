@@ -228,12 +228,12 @@ type KprobeArgs struct {
 }
 
 type EventConfig struct {
-	FuncId        uint32
-	Arg           [5]int32
-	ArgM          [5]uint32
-	ArgTpCtxOff   [5]uint32
-	Sigkill       uint32
-	Syscall       uint32
-	ArgReturnCopy int32
-	ArgReturn     int32
+	FuncId        uint32    `align:"func_id"`
+	Arg           [5]int32  `align:"arg0"`
+	ArgM          [5]uint32 `align:"arg0m"`
+	ArgTpCtxOff   [5]uint32 `align:"t_arg0_ctx_off"`
+	Sigkill       uint32    `align:"sigkill"`
+	Syscall       uint32    `align:"syscall"`
+	ArgReturnCopy int32     `align:"argreturncopy"`
+	ArgReturn     int32     `align:"argreturn"`
 }

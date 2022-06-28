@@ -7,6 +7,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 
 	check "github.com/cilium/cilium/pkg/alignchecker"
@@ -29,6 +30,7 @@ func CheckStructAlignments(path string) error {
 		"msg_exit":         {reflect.TypeOf(processapi.MsgExitEvent{})},
 		"msg_test":         {reflect.TypeOf(testapi.MsgTestEvent{})},
 		"execve_map_value": {reflect.TypeOf(execvemap.ExecveValue{})},
+		"event_config":     {reflect.TypeOf(tracingapi.EventConfig{})},
 	}
 	return check.CheckStructAlignments(path, toCheck, true)
 }
