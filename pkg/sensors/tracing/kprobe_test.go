@@ -1726,7 +1726,8 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithWatchers(t, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
+	b := base.GetInitialSensor()
+	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}

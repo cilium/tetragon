@@ -11,7 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
-func mergeSensors(sens []*sensors.Sensor) *sensors.Sensor {
+func MergeSensors(sens []*sensors.Sensor) *sensors.Sensor {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -28,7 +28,7 @@ func mergeSensors(sens []*sensors.Sensor) *sensors.Sensor {
 
 // LoadConfig loads the default sensor, including any from the configuration file.
 func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir string, s []*sensors.Sensor) error {
-	load := mergeSensors(s)
+	load := MergeSensors(s)
 
 	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
