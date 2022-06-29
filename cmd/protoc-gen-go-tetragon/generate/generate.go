@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventchecker"
-	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/filters"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/helpers"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/types"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -16,7 +15,6 @@ import (
 type GeneratorFunc func(gen *protogen.Plugin, f *protogen.File) error
 
 var Generators = []GeneratorFunc{
-	filters.Generate,
 	helpers.Generate,
 	eventchecker.Generate,
 	types.Generate,
