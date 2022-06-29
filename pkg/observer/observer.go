@@ -14,11 +14,9 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
-	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
@@ -93,9 +91,6 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 
 	k.recvCntr++
 	r := bytes.NewReader(data)
-
-	// Increment the counter for the msg opcode
-	opcodemetrics.OpTotalInc(ops.OpCode(op))
 
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	if h, ok := eventHandler[op]; ok {
