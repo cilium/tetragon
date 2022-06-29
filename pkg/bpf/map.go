@@ -17,6 +17,22 @@ package bpf
 // MapType is an enumeration for valid BPF map types
 type MapType int
 
+type bpfAttrObjOp struct {
+	pathname uint64
+	fd       uint32
+	pad0     [4]byte
+}
+
+// This struct must be in sync with union bpf_attr's anonymous struct used by
+// BPF_MAP_*_ELEM commands
+type bpfAttrMapOpElem struct {
+	mapFd uint32
+	pad0  [4]byte
+	key   uint64
+	value uint64 // union: value or next_key
+	flags uint64
+}
+
 // This enumeration must be in sync with enum bpf_prog_type in <linux/bpf.h>
 const (
 	MapTypeUnspec MapType = iota
@@ -40,6 +56,32 @@ const (
 	MapTypeSockHash
 	// MapTypeMaximum is the maximum supported known map type.
 	MapTypeMaximum
+
+	// perf event map
+	eventsMapName = "tcpmon_map"
+
+	// BPF syscall command constants. Must match enum bpf_cmd from linux/bpf.h
+	BPF_MAP_CREATE          = 0
+	BPF_MAP_LOOKUP_ELEM     = 1
+	BPF_MAP_UPDATE_ELEM     = 2
+	BPF_MAP_DELETE_ELEM     = 3
+	BPF_MAP_GET_NEXT_KEY    = 4
+	BPF_PROG_LOAD           = 5
+	BPF_OBJ_PIN             = 6
+	BPF_OBJ_GET             = 7
+	BPF_PROG_ATTACH         = 8
+	BPF_PROG_DETACH         = 9
+	BPF_PROG_TEST_RUN       = 10
+	BPF_PROG_GET_NEXT_ID    = 11
+	BPF_MAP_GET_NEXT_ID     = 12
+	BPF_PROG_GET_FD_BY_ID   = 13
+	BPF_MAP_GET_FD_BY_ID    = 14
+	BPF_OBJ_GET_INFO_BY_FD  = 15
+	BPF_PROG_QUERY          = 16
+	BPF_RAW_TRACEPOINT_OPEN = 17
+	BPF_BTF_LOAD            = 18
+	BPF_BTF_GET_FD_BY_ID    = 19
+	BPF_TASK_FD_QUERY       = 20
 )
 
 func (t MapType) String() string {

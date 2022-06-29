@@ -6,11 +6,8 @@ package observer
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"sync"
-	"syscall"
-	"time"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
@@ -28,24 +25,10 @@ import (
 
 const (
 	TCP_PROC_STATE_LISTEN = 10
-
-	// Max events to read from each ring in one go. This is used to
-	// reduce the likelihood of events being out of order and the
-	// limit is required for HTTP/2 parsing to function correctly
-	// which relies on frame ordering (it does limited reordering)
-	maxEventsPerRing = 4
-
-	perCPUBufferBytes = 65535
-
-	// Use cilium/ebpf to read events from the perf ring. Since we're
-	// incrementally rolling this out we're keeping the old code functional
-	// in case we need to quickly roll back.
-	useCiliumEbpfReader = true
+	perCPUBufferBytes     = 65535
 )
 
 var (
-	pollTimeout = 5 * time.Second
-
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
 	observerList []*Observer
@@ -109,82 +92,12 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 	}
 }
 
-func (k *Observer) __runEvents(stopCtx context.Context) (*bpf.PerCpuEvents, error) {
-	e, err := bpf.NewPerCpuEvents(k.perfConfig, k.log)
-	if err != nil {
-		return nil, fmt.Errorf("failed kprobe events NewPerCpuEvents: %w", err)
-	}
-	return e, nil
-}
-
-func (k *Observer) observerLost(msg *bpf.PerfEventLost, cpu int) {
-	k.lostCntr++
-}
-
-func (k *Observer) observerError(msg *bpf.PerfEvent) {
-	k.errorCntr++
-}
-
-func isCtxDone(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
-}
-
-func (k *Observer) __loopEvents(stopCtx context.Context, e *bpf.PerCpuEvents) error {
-	receiveEvent := func(msg *bpf.PerfEventSample, cpu int) { k.receiveEvent(msg.DataDirect(), cpu) }
-	observerLost := k.observerLost
-	observerError := k.observerError
-	pollTimeoutMsec := int(pollTimeout / time.Millisecond)
-
-	k.log.Info("Listening for events...")
-	k.observerListeners(&readyapi.MsgTETRAGONReady{})
-
-	for !isCtxDone(stopCtx) {
-		_, err := e.Poll(pollTimeoutMsec)
-		switch {
-		case isCtxDone(stopCtx):
-			k.log.Debug("Context cancelled inside __loopEvents")
-			return nil
-
-		case errors.Is(err, syscall.EBADF):
-			return fmt.Errorf("kprobe events syscall.EBADF: %w", err)
-
-		case err != nil:
-			k.log.WithError(err).Debug("kprobe events poll failed")
-			continue
-		}
-
-		if err := e.ReadAll(maxEventsPerRing, receiveEvent, observerLost, observerError); err != nil {
-			k.log.WithError(err).Warn("kprobe events read failed")
-		}
-
-		ringbufmetrics.ReceivedSet(float64(k.recvCntr))
-		ringbufmetrics.LostSet(float64(k.lostCntr))
-		ringbufmetrics.ErrorsSet(float64(k.errorCntr))
-	}
-	return nil
-}
-
-func (k *Observer) runEvents(stopCtx context.Context) error {
-	e, err := k.__runEvents(stopCtx)
-	if err != nil {
-		return err
-	}
-	defer e.CloseAll()
-	k.__loopEvents(stopCtx, e)
-	return nil
-}
-
-func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
+func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}
 
-	perfMap, err := ebpf.LoadPinnedMap(k.perfConfig.MapName, &pinOpts)
+	perfMap, err := ebpf.LoadPinnedMap(k.perfMapName, &pinOpts)
 	if err != nil {
-		return fmt.Errorf("opening pinned map '%s' failed: %w", k.perfConfig.MapName, err)
+		return fmt.Errorf("opening pinned map '%s' failed: %w", k.perfMapName, err)
 	}
 	defer perfMap.Close()
 
@@ -241,11 +154,11 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 // notified of their corresponding events.
 type Observer struct {
 	/* Configuration */
-	bpfDir     string
-	mapDir     string
-	ciliumDir  string
-	listeners  map[Listener]struct{}
-	perfConfig *bpf.PerfEventConfig
+	bpfDir      string
+	mapDir      string
+	ciliumDir   string
+	listeners   map[Listener]struct{}
+	perfMapName string
 	/* Statistics */
 	lostCntr   int
 	errorCntr  int
@@ -274,14 +187,9 @@ func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
 		}
 	}
 
-	k.perfConfig = bpf.DefaultPerfEventConfig()
+	k.perfMapName = bpf.DefaultPerfEventMap()
 
-	var err error
-	if useCiliumEbpfReader {
-		err = k.runEventsNew(ctx, func() {})
-	} else {
-		err = k.runEvents(ctx)
-	}
+	err := k.runEvents(ctx, func() {})
 	if err != nil {
 		return fmt.Errorf("tetragon, aborting runtime error: %w", err)
 	}

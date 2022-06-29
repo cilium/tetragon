@@ -21,7 +21,6 @@ import (
 	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
@@ -305,8 +304,7 @@ func getDefaultObserver(t *testing.T, opts ...TestOption) (*Observer, error) {
 		testDone(t, obs)
 	})
 
-	obs.perfConfig = bpf.DefaultPerfEventConfig()
-	obs.perfConfig.MapName = filepath.Join(observerTestDir, "tcpmon_map")
+	obs.perfMapName = filepath.Join(observerTestDir, "tcpmon_map")
 	return obs, nil
 }
 
@@ -424,7 +422,7 @@ func LoopEvents(ctx context.Context, t *testing.T, doneWG, readyWG *sync.WaitGro
 	go func() {
 		defer doneWG.Done()
 
-		if err := obs.runEventsNew(ctx, func() { readyWG.Done() }); err != nil {
+		if err := obs.runEvents(ctx, func() { readyWG.Done() }); err != nil {
 			t.Errorf("runEvents error: %s", err)
 		}
 	}()
