@@ -2,7 +2,9 @@
 // Copyright Authors of Tetragon
 package testapi
 
-import "github.com/cilium/tetragon/pkg/api/processapi"
+import (
+	"github.com/cilium/tetragon/pkg/api/processapi"
+)
 
 type MsgTestEvent struct {
 	Common processapi.MsgCommon `align:"common"`
@@ -11,5 +13,3 @@ type MsgTestEvent struct {
 	Arg2   uint64               `align:"arg2"`
 	Arg3   uint64               `align:"arg3"`
 }
-
-type MsgTestEventUnix = MsgTestEvent

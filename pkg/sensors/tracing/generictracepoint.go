@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -456,7 +457,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, fmt.Errorf("Failed to read tracepoint: %w", err)
 	}
 
-	unix := &tracingapi.MsgGenericTracepointUnix{
+	unix := &tracing.MsgGenericTracepointUnix{
 		Common:     m.Common,
 		ProcessKey: m.ProcessKey,
 		Id:         m.Id,

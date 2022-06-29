@@ -168,19 +168,19 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		},
 	})
 
-	execGrpc := exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
-	assert.Nil(t, execGrpc.GetProcessExec(procInternal).Process.Cap)
+	exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
+	assert.Nil(t, exec.GetProcessExec(procInternal).Process.Cap)
 
 	// cap field should be set with enable-process-cred flag.
 	pm.enableProcessCred = true
-	execGrpc = exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
+	exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
 	assert.Equal(t,
 		&tetragon.Capabilities{
 			Permitted:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 			Effective:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 			Inheritable: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 		},
-		execGrpc.GetProcessExec(procInternal).Process.Cap)
+		exec.GetProcessExec(procInternal).Process.Cap)
 }
 
 func Test_getNodeNameForExport(t *testing.T) {

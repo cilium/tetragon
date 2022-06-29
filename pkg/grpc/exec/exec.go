@@ -7,6 +7,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/execcache"
@@ -22,19 +23,17 @@ import (
 
 var (
 	nodeName = node.GetNodeNameForExport()
+
+	enableCred bool
+	enableNs   bool
 )
 
 type Grpc struct {
-	execCache  *execcache.Cache
-	eventCache *eventcache.Cache
-	enableCred bool
-	enableNs   bool
+	execCache *execcache.Cache
 }
 
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
-func (e *Grpc) GetProcessExec(
-	proc *process.ProcessInternal,
-) *tetragon.ProcessExec {
+func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 	var tetragonParent *tetragon.Process
 
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -50,7 +49,7 @@ func (e *Grpc) GetProcessExec(
 	}
 
 	// Set the cap field only if --enable-process-cred flag is set.
-	if err := proc.AnnotateProcess(e.enableCred, e.enableNs); err != nil {
+	if err := proc.AnnotateProcess(enableCred, enableNs); err != nil {
 		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
 	}
 	if parent != nil {
@@ -72,14 +71,19 @@ func (e *Grpc) GetProcessExec(
 	}
 }
 
-func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetragon.GetEventsResponse {
+type MsgExecveEventUnix struct {
+	processapi.MsgExecveEventUnix
+}
+
+func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXECVE:
-		proc := process.AddExecEvent(msg)
-		procEvent := e.GetProcessExec(proc)
-		if e.eventCache.Needed(procEvent.Process) {
-			e.execCache.Add(proc, procEvent, ktime.ToProto(msg.Common.Ktime), msg)
+		proc := process.AddExecEvent(&msg.MsgExecveEventUnix)
+		procEvent := GetProcessExec(proc)
+		ec := eventcache.Get()
+		if ec.Needed(procEvent.Process) {
+			ec.Add(proc, procEvent, ktime.ToProto(msg.Common.Ktime), msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
 			res = &tetragon.GetEventsResponse{
@@ -94,18 +98,22 @@ func (e *Grpc) HandleExecveMessage(msg *tetragonAPI.MsgExecveEventUnix) *tetrago
 	return res
 }
 
-// HandleCloneMessage -- don't generate any events. Just add the process to the cache.
-func (e *Grpc) HandleCloneMessage(msg *tetragonAPI.MsgCloneEventUnix) {
+type MsgCloneEventUnix struct {
+	processapi.MsgCloneEvent
+}
+
+func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	switch msg.Common.Op {
 	case ops.MSG_OP_CLONE:
-		process.AddCloneEvent(msg)
+		process.AddCloneEvent(&msg.MsgCloneEvent)
 	default:
 		logger.GetLogger().WithField("message", msg).Warn("HandleCloneMessage: Unhandled event")
 	}
+	return nil
 }
 
 // GetProcessExit returns Exit protobuf message for a given process.
-func (e *Grpc) GetProcessExit(event *tetragonAPI.MsgExitEventUnix) *tetragon.ProcessExit {
+func GetProcessExit(event *tetragonAPI.MsgExitEvent) *tetragon.ProcessExit {
 	var tetragonProcess, tetragonParent *tetragon.Process
 
 	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
@@ -132,8 +140,9 @@ func (e *Grpc) GetProcessExit(event *tetragonAPI.MsgExitEventUnix) *tetragon.Pro
 		Signal:  signal,
 		Status:  code,
 	}
-	if e.eventCache.Needed(tetragonProcess) {
-		e.eventCache.Add(process, tetragonEvent, ktime.ToProto(event.Common.Ktime), event)
+	ec := eventcache.Get()
+	if ec.Needed(tetragonProcess) {
+		ec.Add(process, tetragonEvent, ktime.ToProto(event.Common.Ktime), event)
 		return nil
 	}
 	if process != nil {
@@ -142,11 +151,16 @@ func (e *Grpc) GetProcessExit(event *tetragonAPI.MsgExitEventUnix) *tetragon.Pro
 	return tetragonEvent
 }
 
-func (e *Grpc) HandleExitMessage(msg *tetragonAPI.MsgExitEventUnix) *tetragon.GetEventsResponse {
+type MsgExitEventUnix struct {
+	tetragonAPI.MsgExitEvent
+}
+
+func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
+
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXIT:
-		e := e.GetProcessExit(msg)
+		e := GetProcessExit(&msg.MsgExitEvent)
 		if e != nil {
 			res = &tetragon.GetEventsResponse{
 				Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
@@ -161,10 +175,9 @@ func (e *Grpc) HandleExitMessage(msg *tetragonAPI.MsgExitEventUnix) *tetragon.Ge
 }
 
 func New(exec *execcache.Cache, event *eventcache.Cache, cred, ns bool) *Grpc {
+	enableCred = cred
+	enableNs = ns
 	return &Grpc{
-		execCache:  exec,
-		eventCache: event,
-		enableCred: cred,
-		enableNs:   ns,
+		execCache: exec,
 	}
 }

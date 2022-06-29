@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/data"
+	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -29,8 +30,8 @@ func fromCString(cstr []byte) string {
 	return string(cstr)
 }
 
-func msgToExecveUnix(m *processapi.MsgExecveEvent) *processapi.MsgExecveEventUnix {
-	unix := &processapi.MsgExecveEventUnix{}
+func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
+	unix := &exec.MsgExecveEventUnix{}
 
 	unix.Common = m.Common
 	unix.Kube.NetNS = m.Kube.NetNS
@@ -174,8 +175,8 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func msgToExitUnix(m *processapi.MsgExitEvent) *processapi.MsgExitEventUnix {
-	return m
+func msgToExitUnix(m *processapi.MsgExitEvent) *exec.MsgExitEventUnix {
+	return &exec.MsgExitEventUnix{MsgExitEvent: *m}
 }
 
 func handleExit(r *bytes.Reader) ([]observer.Event, error) {
@@ -194,7 +195,7 @@ func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	var msgUnix *processapi.MsgCloneEventUnix = &m
+	msgUnix := &exec.MsgCloneEventUnix{MsgCloneEvent: m}
 	return []observer.Event{msgUnix}, nil
 }
 

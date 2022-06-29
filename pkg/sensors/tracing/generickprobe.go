@@ -17,6 +17,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -105,7 +106,7 @@ type genericKprobe struct {
 // function entry, and one at the function return. We merge these events into
 // one, before returning it to the user.
 type pendingEvent struct {
-	ev          *api.MsgGenericKprobeUnix
+	ev          *tracing.MsgGenericKprobeUnix
 	returnEvent bool
 }
 
@@ -551,7 +552,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, fmt.Errorf("Failed to match id")
 	}
 
-	unix := &api.MsgGenericKprobeUnix{}
+	unix := &tracing.MsgGenericKprobeUnix{}
 	unix.Common = m.Common
 	unix.ProcessKey = m.ProcessKey
 	unix.Id = m.Id
@@ -840,8 +841,8 @@ func reportMergeError(curr pendingEvent, prev pendingEvent) {
 }
 
 // retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
-func retprobeMerge(prev pendingEvent, curr pendingEvent) (*api.MsgGenericKprobeUnix, *api.MsgGenericKprobeArg) {
-	var retEv, enterEv *api.MsgGenericKprobeUnix
+func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKprobeUnix, *api.MsgGenericKprobeArg) {
+	var retEv, enterEv *tracing.MsgGenericKprobeUnix
 	var ret *api.MsgGenericKprobeArg
 
 	if prev.returnEvent && !curr.returnEvent {

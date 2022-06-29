@@ -10,34 +10,18 @@ import (
 
 	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/api/readyapi"
-	"github.com/cilium/tetragon/pkg/api/testapi"
-	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
-	"github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/sirupsen/logrus"
-)
-
-type execProcess interface {
-	HandleExecveMessage(*processapi.MsgExecveEventUnix) *tetragon.GetEventsResponse
-	HandleExitMessage(*processapi.MsgExitEventUnix) *tetragon.GetEventsResponse
-	HandleCloneMessage(*processapi.MsgCloneEventUnix)
-}
-
-var (
-	tracingGrpc *tracing.Grpc
-	execGrpc    execProcess
 )
 
 // ProcessManager maintains a cache of processes from tetragon exec events.
@@ -88,8 +72,8 @@ func NewProcessManager(
 	pm.eventCache = eventcache.New(pm.Server, pm.dns)
 	pm.execCache = execcache.New(pm.Server, pm.dns)
 
-	tracingGrpc = tracing.New(ciliumState, pm.dns, pm.eventCache, enableCilium, enableProcessCred, enableProcessNs)
-	execGrpc = exec.New(pm.execCache, pm.eventCache, enableProcessCred, enableProcessNs)
+	tracing.New(enableCilium, enableProcessCred, enableProcessNs)
+	exec.New(pm.execCache, pm.eventCache, enableProcessCred, enableProcessNs)
 
 	logger.GetLogger().WithField("enableCilium", enableCilium).WithFields(logrus.Fields{
 		"enableEventCache":  enableEventCache,
@@ -100,29 +84,8 @@ func NewProcessManager(
 }
 
 // Notify implements Listener.Notify.
-func (pm *ProcessManager) Notify(event interface{}) error {
-	var processedEvent *tetragon.GetEventsResponse
-	switch msg := event.(type) {
-	case *readyapi.MsgTETRAGONReady:
-		// pass
-	case *processapi.MsgExecveEventUnix:
-		processedEvent = execGrpc.HandleExecveMessage(msg)
-	case *processapi.MsgCloneEventUnix:
-		execGrpc.HandleCloneMessage(msg)
-	case *processapi.MsgExitEventUnix:
-		processedEvent = execGrpc.HandleExitMessage(msg)
-	case *tracingapi.MsgGenericKprobeUnix:
-		processedEvent = tracingGrpc.HandleGenericKprobeMessage(msg)
-	case *tracingapi.MsgGenericTracepointUnix:
-		processedEvent = tracingGrpc.HandleGenericTracepointMessage(msg)
-	case *testapi.MsgTestEventUnix:
-		processedEvent = test.HandleTestMessage(msg)
-
-	default:
-		logger.GetLogger().WithField("event", event).Warnf("unhandled event of type %T", msg)
-		errormetrics.ErrorTotalInc(errormetrics.UnhandledEvent)
-		return nil
-	}
+func (pm *ProcessManager) Notify(event notify.Interface) error {
+	processedEvent := event.HandleMessage()
 	if processedEvent != nil {
 		pm.NotifyListener(event, processedEvent)
 	}

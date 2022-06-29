@@ -7,6 +7,8 @@ import (
 	"encoding/gob"
 	"io"
 	"net"
+
+	"github.com/cilium/tetragon/pkg/reader/notify"
 )
 
 // Listener defines the interface to receive events from Observer. Listeners
@@ -14,7 +16,7 @@ import (
 // human-readable sinks such as the printer or GRPC encoder.
 type Listener interface {
 	// Notify gets called for each events from ObserverKprobe.
-	Notify(msg interface{}) error
+	Notify(msg notify.Interface) error
 
 	// Close the listener.
 	io.Closer

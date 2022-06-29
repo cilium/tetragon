@@ -263,7 +263,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
-func AddCloneEvent(event *tetragonAPI.MsgCloneEventUnix) {
+func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
 	parent, err := Get(parentExecId)
 	if err != nil {

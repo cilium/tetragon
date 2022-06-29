@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -130,7 +131,7 @@ func pushExecveEvents(p Procs, pushExecve, writeMaps bool) {
 		args = args + " " + cwd
 	}
 
-	m := processapi.MsgExecveEventUnix{}
+	m := exec.MsgExecveEventUnix{}
 	m.Common.Op = ops.MSG_OP_EXECVE
 	m.Common.Size = processapi.MsgUnixSize + p.psize + p.size
 

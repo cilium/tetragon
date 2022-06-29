@@ -15,7 +15,11 @@ var (
 	nodeName = node.GetNodeNameForExport()
 )
 
-func HandleTestMessage(msg *testapi.MsgTestEventUnix) *tetragon.GetEventsResponse {
+type MsgTestEventUnix struct {
+	testapi.MsgTestEvent
+}
+
+func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_TEST:
