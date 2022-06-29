@@ -272,6 +272,19 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
+	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
+		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		if err != nil {
+			l.WithField(
+				"raw_tracepoint", load.Name,
+			).Info("Failed to load, trying to remove and retrying")
+			load.Unload()
+			err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		}
+		if err != nil {
+			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
+				load.Name, version, err)
+		}
 	} else {
 		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
@@ -286,6 +299,8 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 	version = kernels.FixKernelVersion(version)
 	if load.Type == "tracepoint" {
 		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
+	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
+		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
 	} else if load.Type == "cgrp_socket" {
 		err := cgroup.LoadCgroupProgram(
 			bpfDir,
