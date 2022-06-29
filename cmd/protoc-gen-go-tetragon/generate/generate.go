@@ -6,7 +6,6 @@ package generate
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventcache"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/eventchecker"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/filters"
 	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/helpers"
@@ -17,7 +16,6 @@ import (
 type GeneratorFunc func(gen *protogen.Plugin, f *protogen.File) error
 
 var Generators = []GeneratorFunc{
-	eventcache.Generate,
 	filters.Generate,
 	helpers.Generate,
 	eventchecker.Generate,
