@@ -15,14 +15,6 @@ type ExecveKey struct {
 	Pid uint32
 }
 
-type ExecveValueL struct {
-	Common       processapi.MsgCommon
-	Kube         processapi.MsgK8s
-	Parent       processapi.MsgExecveKey
-	ParentFlags  uint64
-	Capabilities processapi.MsgCapabilities
-}
-
 type ExecveValue struct {
 	Process      processapi.MsgExecveKey    `align:"key"`
 	Parent       processapi.MsgExecveKey    `align:"pkey"`
