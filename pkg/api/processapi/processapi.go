@@ -36,9 +36,9 @@ type MsgExec struct {
 }
 
 type MsgExecveKey struct {
-	Pid   uint32
-	Pad   uint32
-	Ktime uint64
+	Pid   uint32 `align:"pid"`
+	Pad   uint32 `align:"pad"`
+	Ktime uint64 `align:"ktime"`
 }
 
 // API between Kernel BPF and Userspace tetragon Golang agent
