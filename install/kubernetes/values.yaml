@@ -160,19 +160,7 @@ export:
   # "stdout". "" to disable.
   mode: "stdout"
   resources: {}
-  extraArgs: {}
-  extraEnv: []
-  # extraEnv:
-  #   - name: foo
-  #     value: bar
-  extraVolumeMounts: []
   securityContext: {}
-
-  # Override the command. For advanced users only.
-  commandOverride: [ ]
-
-  # Override the arguments. For advanced users only.
-  argsOverride: [ ]
 
   # filenames defines list of files for fluentd to tail and export.
   filenames:
@@ -180,6 +168,11 @@ export:
 
   # stdout specific exporter settings
   stdout:
+    extraEnv: []
+    # extraEnv:
+    #   - name: foo
+    #     value: bar
+
     # should the manifest command be overriden?
     enabledCommand: true
 
