@@ -37,6 +37,7 @@ int main(void)
 
 	// from maps
 	DECLARE(struct, event, iter);
+	DECLARE(struct, msg_execve_key, iter);
 	DECLARE(struct, execve_map_value, iter);
 	DECLARE(struct, event_config, iter);
 

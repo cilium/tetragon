@@ -29,6 +29,7 @@ func CheckStructAlignments(path string) error {
 		// from perf_event_output
 		"msg_exit":         {reflect.TypeOf(processapi.MsgExitEvent{})},
 		"msg_test":         {reflect.TypeOf(testapi.MsgTestEvent{})},
+		"msg_execve_key":   {reflect.TypeOf(processapi.MsgExecveKey{})},
 		"execve_map_value": {reflect.TypeOf(execvemap.ExecveValue{})},
 		"event_config":     {reflect.TypeOf(tracingapi.EventConfig{})},
 	}

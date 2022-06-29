@@ -206,7 +206,19 @@ func writeExecveMap(procs []Procs) {
 		v.Process.Ktime = p.ktime
 		v.Flags = 0
 		v.Nspid = p.nspid
-		v.Buffer = 0
+		v.Capabilities.Permitted = p.permitted
+		v.Capabilities.Effective = p.effective
+		v.Capabilities.Inheritable = p.inheritable
+		v.Namespaces.UtsInum = p.uts_ns
+		v.Namespaces.IpcInum = p.ipc_ns
+		v.Namespaces.MntInum = p.mnt_ns
+		v.Namespaces.PidInum = p.pid_ns
+		v.Namespaces.PidChildInum = p.pid_for_children_ns
+		v.Namespaces.NetInum = p.net_ns
+		v.Namespaces.TimeInum = p.time_ns
+		v.Namespaces.TimeChildInum = p.time_for_children_ns
+		v.Namespaces.CgroupInum = p.cgroup_ns
+		v.Namespaces.UserInum = p.user_ns
 
 		m.Update(k, v)
 	}
@@ -222,9 +234,6 @@ func writeExecveMap(procs []Procs) {
 			Pid:   kernelPid,
 			Ktime: 1,
 		},
-		Flags:  0,
-		Nspid:  0,
-		Buffer: 0,
 	})
 	m.Close()
 }
