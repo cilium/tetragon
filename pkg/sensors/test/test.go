@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -38,8 +39,10 @@ func AddTest() {
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_TEST, handleTest)
 }
 
-func msgToTestUnix(m *api.MsgTestEvent) *api.MsgTestEventUnix {
-	return m
+func msgToTestUnix(m *api.MsgTestEvent) *test.MsgTestEventUnix {
+	return &test.MsgTestEventUnix{
+		MsgTestEvent: *m,
+	}
 }
 
 func handleTest(r *bytes.Reader) ([]observer.Event, error) {

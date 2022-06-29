@@ -8,12 +8,13 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 )
 
 type standaloneListener struct {
 }
 
-func (sl *standaloneListener) Notify(msg interface{}) error {
+func (sl *standaloneListener) Notify(msg notify.Interface) error {
 	_, err := fmt.Printf("=> %v\n", msg)
 	return err
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
 
@@ -52,13 +53,13 @@ var (
 	SensorManager *sensors.Manager
 )
 
-type Event interface{}
+type Event notify.Interface
 
 func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event, error)) {
 	eventHandler[ev] = handler
 }
 
-func (k *Observer) observerListeners(msg interface{}) {
+func (k *Observer) observerListeners(msg notify.Interface) {
 	for listener := range k.listeners {
 		if err := listener.Notify(msg); err != nil {
 			k.log.Debug("Write failure removing Listener")
@@ -67,7 +68,7 @@ func (k *Observer) observerListeners(msg interface{}) {
 	}
 }
 
-func AllListeners(msg interface{}) {
+func AllListeners(msg notify.Interface) {
 	for _, o := range observerList {
 		o.observerListeners(msg)
 	}

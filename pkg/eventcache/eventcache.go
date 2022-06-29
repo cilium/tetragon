@@ -4,18 +4,21 @@
 package eventcache
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	codegen "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventcache"
 	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/server"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
 )
 
 // garbage collection states
@@ -30,9 +33,12 @@ const (
 
 type eventObj interface {
 	GetProcess() *tetragon.Process
+	SetProcess(*tetragon.Process)
+	Encapsulate() tetragon.IsGetEventsResponse_Event
 }
 
 var (
+	cache    *Cache
 	nodeName string
 )
 
@@ -51,6 +57,47 @@ type Cache struct {
 	server   *server.Server
 }
 
+func (ec *Cache) eventLabels(endpoint *hubblev1.Endpoint, event *cacheObj) ([]string, error) {
+	// If Cilium has some useful information for us we can let Cilium
+	// give us the info.
+	e := event.event
+	if obj, ok := e.(interface{ GetDestinationNames() []string }); ok {
+		names := obj.GetDestinationNames()
+		if len(names) > 0 {
+			return names, nil
+		}
+	}
+	// Otherwise check our DNS cache, in other words ask Cilium again trying
+	// to convince it to give us more information about this connection.
+	//if _, ok := event.event.(interface{ GetDestinationIp() }); ok {
+	//	ip = obj.GetDestinationIp()
+	//	ec.dns.GetIp(ip)
+	//}
+	return []string{}, nil
+}
+
+func doHandleEvent(event eventObj, internal *process.ProcessInternal, labels []string, nodeName string, timestamp *timestamppb.Timestamp) (*tetragon.GetEventsResponse, error) {
+	if internal == nil {
+		typeName := fmt.Sprintf("%T", event)
+		fmt.Printf("debug... typeName %s\n", typeName)
+		eventcachemetrics.ProcessInfoErrorInc(typeName)
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+	} else {
+		event.SetProcess(internal.GetProcessCopy())
+	}
+
+	if obj, ok := event.(interface {
+		Encapsulate() tetragon.IsGetEventsResponse_Event
+	}); ok {
+		return &tetragon.GetEventsResponse{
+			Event:    obj.Encapsulate(),
+			NodeName: nodeName,
+			Time:     timestamp,
+		}, nil
+	}
+	return nil, fmt.Errorf("DoHandleEvent: Unhandled event type %T", event)
+}
+
 func (ec *Cache) handleNetEvents() {
 	tmp := ec.cache[:0]
 	for _, e := range ec.cache {
@@ -62,7 +109,6 @@ func (ec *Cache) handleNetEvents() {
 			/* If the Pod is nil because process event is incomplete lets
 			 * wait and hopefully it is eventually updated from handleProcEvents.
 			 */
-
 			if endpoint == nil || e.event.GetProcess().Pod == nil {
 				e.color++
 				if e.color < threeStrikes {
@@ -73,7 +119,17 @@ func (ec *Cache) handleNetEvents() {
 			}
 		}
 
-		processedEvent, err := codegen.DoHandleEvent(e.event, e.internal, []string{}, nodeName, e.timestamp)
+		labels, err := ec.eventLabels(endpoint, &e)
+		if err != nil {
+			e.color++
+			if e.color < threeStrikes {
+				tmp = append(tmp, e)
+				continue
+			}
+			errormetrics.EventCacheInc(errormetrics.EventCacheEndpointRetryFailed)
+		}
+
+		processedEvent, err := doHandleEvent(e.event, e.internal, labels, nodeName, e.timestamp)
 		if err == nil {
 			ec.server.NotifyListeners(e.msg, processedEvent)
 		} else {
@@ -134,13 +190,21 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 }
 
 func New(s *server.Server, dns *dns.Cache) *Cache {
-	ec := &Cache{
+	if cache != nil {
+		return cache
+	}
+
+	cache = &Cache{
 		objsChan: make(chan cacheObj),
 		cache:    make([]cacheObj, 0),
 		dns:      dns,
 		server:   s,
 	}
 	nodeName = node.GetNodeNameForExport()
-	go ec.loop()
-	return ec
+	go cache.loop()
+	return cache
+}
+
+func Get() *Cache {
+	return cache
 }

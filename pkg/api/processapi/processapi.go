@@ -94,8 +94,6 @@ type MsgCloneEvent struct {
 	Ktime  uint64
 }
 
-type MsgCloneEventUnix = MsgCloneEvent
-
 type MsgCapabilities struct {
 	Permitted   uint64
 	Effective   uint64
@@ -138,5 +136,3 @@ type MsgExitEvent struct {
 	ProcessKey MsgExecveKey `align:"current"`
 	Info       MsgExitInfo  `align:"info"`
 }
-
-type MsgExitEventUnix = MsgExitEvent
