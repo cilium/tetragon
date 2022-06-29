@@ -75,21 +75,22 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 	proc.Flags = exec.Flags
 	proc.Ktime = exec.Ktime
 	proc.AUID = exec.AUID
+	set_dummy_proc := func() {
+		proc.Size = processapi.MSG_SIZEOF_EXECVE
+		proc.Args = "enomem enomem"
+		proc.Filename = "enomem"
+	}
 
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
 	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
 		err := fmt.Errorf("msg exec size larger than argsbuffer")
-		exec.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
+		set_dummy_proc()
 		return proc, false, err
 	}
 
 	args := make([]byte, size) //+2)
 	if err := binary.Read(reader, binary.LittleEndian, &args); err != nil {
-		proc.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
+		set_dummy_proc()
 		return proc, false, err
 	}
 
@@ -99,9 +100,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		dr := bytes.NewReader(args)
 
 		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			proc.Size = processapi.MSG_SIZEOF_EXECVE
-			proc.Args = "enomem enomem"
-			proc.Filename = "enomem"
+			set_dummy_proc()
 			return proc, false, err
 		}
 		data, err := data.Get(desc.Id)
@@ -112,6 +111,11 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		args = args[unsafe.Sizeof(desc):]
 	} else {
 		n := bytes.Index(args, []byte{0x00})
+		if n < 0 {
+			err := fmt.Errorf("failed to parse filename from args")
+			set_dummy_proc()
+			return proc, false, err
+		}
 		proc.Filename = string(args[:n])
 		args = args[n+1:]
 	}
@@ -124,9 +128,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		dr := bytes.NewReader(args)
 
 		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			proc.Size = processapi.MSG_SIZEOF_EXECVE
-			proc.Args = "enomem enomem"
-			proc.Filename = "enomem"
+			set_dummy_proc()
 			return proc, false, err
 		}
 		data, err := data.Get(desc.Id)
