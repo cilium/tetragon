@@ -264,49 +264,115 @@ const (
 	// In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
 	//overrides the restriction of changing file ownership and group
 	//ownership.
-	CapabilitiesType_CAP_CHOWN    CapabilitiesType = 0
+	CapabilitiesType_CAP_CHOWN CapabilitiesType = 0
+	// Override all DAC access, including ACL execute access if
+	//[_POSIX_ACL] is defined. Excluding DAC access covered by
+	//CAP_LINUX_IMMUTABLE.
 	CapabilitiesType_DAC_OVERRIDE CapabilitiesType = 1
 	// Overrides all DAC restrictions regarding read and search on files
 	//and directories, including ACL restrictions if [_POSIX_ACL] is
 	//defined. Excluding DAC access covered by "$1"_LINUX_IMMUTABLE.
-	CapabilitiesType_CAP_DAC_READ_SEARCH  CapabilitiesType = 2
-	CapabilitiesType_CAP_FOWNER           CapabilitiesType = 3
-	CapabilitiesType_CAP_FSETID           CapabilitiesType = 4
-	CapabilitiesType_CAP_KILL             CapabilitiesType = 5
-	CapabilitiesType_CAP_SETGID           CapabilitiesType = 6
-	CapabilitiesType_CAP_SETUID           CapabilitiesType = 7
-	CapabilitiesType_CAP_SETPCAP          CapabilitiesType = 8
-	CapabilitiesType_CAP_LINUX_IMMUTABLE  CapabilitiesType = 9
+	CapabilitiesType_CAP_DAC_READ_SEARCH CapabilitiesType = 2
+	// Overrides all restrictions about allowed operations on files, where
+	//file owner ID must be equal to the user ID, except where CAP_FSETID
+	//is applicable. It doesn't override MAC and DAC restrictions.
+	CapabilitiesType_CAP_FOWNER CapabilitiesType = 3
+	// Overrides the following restrictions that the effective user ID
+	//shall match the file owner ID when setting the S_ISUID and S_ISGID
+	//bits on that file; that the effective group ID (or one of the
+	//supplementary group IDs) shall match the file owner ID when setting
+	//the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are
+	//cleared on successful return from chown(2) (not implemented).
+	CapabilitiesType_CAP_FSETID CapabilitiesType = 4
+	// Overrides the restriction that the real or effective user ID of a
+	//process sending a signal must match the real or effective user ID
+	//of the process receiving the signal.
+	CapabilitiesType_CAP_KILL CapabilitiesType = 5
+	// Allows forged gids on socket credentials passing.
+	CapabilitiesType_CAP_SETGID CapabilitiesType = 6
+	// Allows forged pids on socket credentials passing.
+	CapabilitiesType_CAP_SETUID CapabilitiesType = 7
+	// Without VFS support for capabilities:
+	//   Transfer any capability in your permitted set to any pid,
+	//   remove any capability in your permitted set from any pid
+	// With VFS support for capabilities (neither of above, but)
+	//   Add any capability from current's capability bounding set
+	//       to the current process' inheritable set
+	//   Allow taking bits out of capability bounding set
+	//   Allow modification of the securebits for a process
+	CapabilitiesType_CAP_SETPCAP CapabilitiesType = 8
+	// Allow modification of S_IMMUTABLE and S_APPEND file attributes
+	CapabilitiesType_CAP_LINUX_IMMUTABLE CapabilitiesType = 9
+	// Allows binding to ATM VCIs below 32
 	CapabilitiesType_CAP_NET_BIND_SERVICE CapabilitiesType = 10
-	CapabilitiesType_CAP_NET_BROADCAST    CapabilitiesType = 11
-	CapabilitiesType_CAP_NET_ADMIN        CapabilitiesType = 12
-	CapabilitiesType_CAP_NET_RAW          CapabilitiesType = 13
-	CapabilitiesType_CAP_IPC_LOCK         CapabilitiesType = 14
-	CapabilitiesType_CAP_IPC_OWNER        CapabilitiesType = 15
+	// Allow broadcasting, listen to multicast
+	CapabilitiesType_CAP_NET_BROADCAST CapabilitiesType = 11
+	// Allow activation of ATM control sockets
+	CapabilitiesType_CAP_NET_ADMIN CapabilitiesType = 12
+	// Allow binding to any address for transparent proxying (also via NET_ADMIN)
+	CapabilitiesType_CAP_NET_RAW CapabilitiesType = 13
+	// Allow mlock and mlockall (which doesn't really have anything to do
+	//with IPC)
+	CapabilitiesType_CAP_IPC_LOCK CapabilitiesType = 14
+	// Override IPC ownership checks
+	CapabilitiesType_CAP_IPC_OWNER CapabilitiesType = 15
 	// Insert and remove kernel modules - modify kernel without limit
-	CapabilitiesType_CAP_SYS_MODULE     CapabilitiesType = 16
-	CapabilitiesType_CAP_SYS_RAWIO      CapabilitiesType = 17
-	CapabilitiesType_CAP_SYS_CHROOT     CapabilitiesType = 18
-	CapabilitiesType_CAP_SYS_PTRACE     CapabilitiesType = 19 // Allow configuration of process accounting
-	CapabilitiesType_CAP_SYS_PACCT      CapabilitiesType = 20
-	CapabilitiesType_CAP_SYS_ADMIN      CapabilitiesType = 21
-	CapabilitiesType_CAP_SYS_BOOT       CapabilitiesType = 22
-	CapabilitiesType_CAP_SYS_NICE       CapabilitiesType = 23
-	CapabilitiesType_CAP_SYS_RESOURCE   CapabilitiesType = 24
-	CapabilitiesType_CAP_SYS_TIME       CapabilitiesType = 25
+	CapabilitiesType_CAP_SYS_MODULE CapabilitiesType = 16
+	// Allow sending USB messages to any device via /dev/bus/usb
+	CapabilitiesType_CAP_SYS_RAWIO CapabilitiesType = 17
+	// Allow use of chroot()
+	CapabilitiesType_CAP_SYS_CHROOT CapabilitiesType = 18
+	// Allow ptrace() of any process
+	CapabilitiesType_CAP_SYS_PTRACE CapabilitiesType = 19
+	// Allow configuration of process accounting
+	CapabilitiesType_CAP_SYS_PACCT CapabilitiesType = 20
+	// Allow everything under CAP_BPF and CAP_PERFMON for backward compatibility
+	CapabilitiesType_CAP_SYS_ADMIN CapabilitiesType = 21
+	// Allow use of reboot()
+	CapabilitiesType_CAP_SYS_BOOT CapabilitiesType = 22
+	// Allow setting cpu affinity on other processes
+	CapabilitiesType_CAP_SYS_NICE CapabilitiesType = 23
+	// Control memory reclaim behavior
+	CapabilitiesType_CAP_SYS_RESOURCE CapabilitiesType = 24
+	// Allow setting the real-time clock
+	CapabilitiesType_CAP_SYS_TIME CapabilitiesType = 25
+	// Allow vhangup() of tty
 	CapabilitiesType_CAP_SYS_TTY_CONFIG CapabilitiesType = 26
-	CapabilitiesType_CAP_MKNOD          CapabilitiesType = 27
-	CapabilitiesType_CAP_LEASE          CapabilitiesType = 28
-	CapabilitiesType_CAP_AUDIT_WRITE    CapabilitiesType = 29
-	CapabilitiesType_CAP_AUDIT_CONTROL  CapabilitiesType = 30
-	CapabilitiesType_CAP_SETFCAP        CapabilitiesType = 31
-	CapabilitiesType_CAP_MAC_OVERRIDE   CapabilitiesType = 32
-	CapabilitiesType_CAP_MAC_ADMIN      CapabilitiesType = 33
-	CapabilitiesType_CAP_SYSLOG         CapabilitiesType = 34
-	CapabilitiesType_CAP_WAKE_ALARM     CapabilitiesType = 35
-	CapabilitiesType_CAP_BLOCK_SUSPEND  CapabilitiesType = 36
-	CapabilitiesType_CAP_AUDIT_READ     CapabilitiesType = 37
-	CapabilitiesType_CAP_PERFMON        CapabilitiesType = 38
+	// Allow the privileged aspects of mknod()
+	CapabilitiesType_CAP_MKNOD CapabilitiesType = 27
+	// Allow taking of leases on files
+	CapabilitiesType_CAP_LEASE CapabilitiesType = 28
+	// Allow writing the audit log via unicast netlink socket
+	CapabilitiesType_CAP_AUDIT_WRITE CapabilitiesType = 29
+	// Allow configuration of audit via unicast netlink socket
+	CapabilitiesType_CAP_AUDIT_CONTROL CapabilitiesType = 30
+	// Set or remove capabilities on files
+	CapabilitiesType_CAP_SETFCAP CapabilitiesType = 31
+	// Override MAC access.
+	//The base kernel enforces no MAC policy.
+	//An LSM may enforce a MAC policy, and if it does and it chooses
+	//to implement capability based overrides of that policy, this is
+	//the capability it should use to do so.
+	CapabilitiesType_CAP_MAC_OVERRIDE CapabilitiesType = 32
+	// Allow MAC configuration or state changes.
+	//The base kernel requires no MAC configuration.
+	//An LSM may enforce a MAC policy, and if it does and it chooses
+	//to implement capability based checks on modifications to that
+	//policy or the data required to maintain it, this is the
+	//capability it should use to do so.
+	CapabilitiesType_CAP_MAC_ADMIN CapabilitiesType = 33
+	// Allow configuring the kernel's syslog (printk behaviour)
+	CapabilitiesType_CAP_SYSLOG CapabilitiesType = 34
+	// Allow triggering something that will wake the system
+	CapabilitiesType_CAP_WAKE_ALARM CapabilitiesType = 35
+	// Allow preventing system suspends
+	CapabilitiesType_CAP_BLOCK_SUSPEND CapabilitiesType = 36
+	// Allow reading the audit log via multicast netlink socket
+	CapabilitiesType_CAP_AUDIT_READ CapabilitiesType = 37
+	//
+	// Allow system performance and observability privileged operations
+	// using perf_events, i915_perf and other kernel subsystems
+	CapabilitiesType_CAP_PERFMON CapabilitiesType = 38
 	//
 	// CAP_BPF allows the following BPF operations:
 	// - Creating all types of BPF maps
@@ -321,21 +387,18 @@ const (
 	// - Loading BPF Type Format (BTF) data
 	// - Retrieve xlated and JITed code of BPF programs
 	// - Use bpf_spin_lock() helper
-	//
 	// CAP_PERFMON relaxes the verifier checks further:
 	// - BPF progs can use of pointer-to-integer conversions
 	// - speculation attack hardening measures are bypassed
 	// - bpf_probe_read to read arbitrary kernel memory is allowed
 	// - bpf_trace_printk to print kernel memory is allowed
-	//
 	// CAP_SYS_ADMIN is required to use bpf_probe_write_user.
-	//
 	// CAP_SYS_ADMIN is required to iterate system wide loaded
 	// programs, maps, links, BTFs and convert their IDs to file descriptors.
-	//
 	// CAP_PERFMON and CAP_BPF are required to load tracing programs.
 	// CAP_NET_ADMIN and CAP_BPF are required to load networking programs.
-	CapabilitiesType_CAP_BPF                CapabilitiesType = 39
+	CapabilitiesType_CAP_BPF CapabilitiesType = 39
+	// Allow writing to ns_last_pid
 	CapabilitiesType_CAP_CHECKPOINT_RESTORE CapabilitiesType = 40
 )
 
@@ -525,7 +588,6 @@ type Container struct {
 	Pid *wrapperspb.UInt32Value `protobuf:"bytes,5,opt,name=pid,proto3" json:"pid,omitempty"`
 	// If this is set true, it means that the process might have been originated from
 	// a Kubernetes exec probe. For this field to be true, the following must be true:
-	//
 	// 1. The binary field matches the first element of the exec command list for either
 	//    liveness or readiness probe excluding the basename. For example, "/bin/ls"
 	//    and "ls" are considered a match.
@@ -3708,13 +3770,11 @@ type GetEventsRequest struct {
 	// deny_list specifies a list of filters to apply to exclude certain events
 	// from the results. If multiple filters are specified, at least one of
 	// them has to match for an event to be excluded.
-	//
 	// If both allow_list and deny_list are specified, the results contain the
 	// set difference allow_list - deny_list.
 	DenyList []*Filter `protobuf:"bytes,2,rep,name=deny_list,json=denyList,proto3" json:"deny_list,omitempty"`
 	// aggregation_options configures aggregation options for this request.
 	// If this field is not set, responses will not be aggregated.
-	//
 	// Note that currently only process_accept and process_connect events are
 	// aggregated. Other events remain unaggregated.
 	AggregationOptions *AggregationOptions `protobuf:"bytes,3,opt,name=aggregation_options,json=aggregationOptions,proto3" json:"aggregation_options,omitempty"`
@@ -3838,7 +3898,6 @@ type GetEventsResponse struct {
 	// Name of the node where this event was observed.
 	NodeName string `protobuf:"bytes,1000,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
 	// Timestamp at which this event was observed.
-	//
 	// For an aggregated response, this field to set to the timestamp at which
 	// the event was observed for the first time in a given aggregation time window.
 	Time *timestamppb.Timestamp `protobuf:"bytes,1001,opt,name=time,proto3" json:"time,omitempty"`
