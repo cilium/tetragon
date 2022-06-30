@@ -11,43 +11,8 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-func generateEventTypeString(g *protogen.GeneratedFile, f *protogen.File) error {
-	oneofs, err := common.GetEventsResponseOneofs(f)
-	if err != nil {
-		return err
-	}
-
-	doCases := func() string {
-		var ret string
-		for _, oneof := range oneofs {
-			msgGoIdent := common.TetragonApiIdent(g, oneof.TypeName)
-			typeGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("EventType_%s", strings.ToUpper(oneof.FieldName)))
-
-			ret += `case *` + msgGoIdent + `:
-                return ` + typeGoIdent + `.String(), nil
-            `
-		}
-		return ret
-	}
-
-	ifaceIdent := common.TetragonApiIdent(g, "Event")
-
-	g.P(`// EventTypeString returns an event's type as a string
-    func EventTypeString(event ` + ifaceIdent + `) (string, error) {
-        if event == nil {
-            return "", ` + common.FmtErrorf(g, "Event is nil") + `
-        }
-        switch event.(type) {
-            ` + doCases() + `
-        }
-        return "", ` + common.FmtErrorf(g, "Unhandled event type %T", "event") + `
-	 }`)
-
-	return nil
-}
-
-func generateResponseTypeString(g *protogen.GeneratedFile, f *protogen.File) error {
-	oneofs, err := common.GetEventsResponseOneofs(f)
+func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.File) error {
+	oneofs, err := common.GetEventsResponseOneofs(files)
 	if err != nil {
 		return err
 	}
@@ -87,7 +52,7 @@ func generateResponseTypeString(g *protogen.GeneratedFile, f *protogen.File) err
 	return nil
 }
 
-func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateResponseGetProcess(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
@@ -108,8 +73,8 @@ func generateResponseGetProcess(g *protogen.GeneratedFile, f *protogen.File) err
 	return nil
 }
 
-func generateResponseInnerGetProcess(g *protogen.GeneratedFile, f *protogen.File) error {
-	events, err := common.GetEvents(f)
+func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protogen.File) error {
+	events, err := common.GetEvents(files)
 	if err != nil {
 		return err
 	}
@@ -145,7 +110,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, f *protogen.File
 	return nil
 }
 
-func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateResponseGetParent(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
@@ -166,8 +131,8 @@ func generateResponseGetParent(g *protogen.GeneratedFile, f *protogen.File) erro
 	return nil
 }
 
-func generateResponseInnerGetParent(g *protogen.GeneratedFile, f *protogen.File) error {
-	events, err := common.GetEvents(f)
+func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen.File) error {
+	events, err := common.GetEvents(files)
 	if err != nil {
 		return err
 	}
@@ -204,30 +169,27 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, f *protogen.File)
 }
 
 // Generate generates boilerplate helpers
-func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewCodegenFile(gen, f, "helpers")
+func Generate(gen *protogen.Plugin, files []*protogen.File) error {
+	// Pick arbitrary file to use for prefix of generated files, files[0] here.
+	g := common.NewCodegenFile(gen, files[0], "helpers")
 
-	if err := generateEventTypeString(g, f); err != nil {
+	if err := generateResponseTypeString(g, files); err != nil {
 		return err
 	}
 
-	if err := generateResponseTypeString(g, f); err != nil {
+	if err := generateResponseGetProcess(g); err != nil {
 		return err
 	}
 
-	if err := generateResponseGetProcess(g, f); err != nil {
+	if err := generateResponseInnerGetProcess(g, files); err != nil {
 		return err
 	}
 
-	if err := generateResponseInnerGetProcess(g, f); err != nil {
+	if err := generateResponseGetParent(g); err != nil {
 		return err
 	}
 
-	if err := generateResponseGetParent(g, f); err != nil {
-		return err
-	}
-
-	if err := generateResponseInnerGetParent(g, f); err != nil {
+	if err := generateResponseInnerGetParent(g, files); err != nil {
 		return err
 	}
 

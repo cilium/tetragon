@@ -157,13 +157,15 @@ type GetEventsResponseOneofInfo struct {
 	FieldName string
 }
 
-func GetEventsResponseOneofs(f *protogen.File) ([]GetEventsResponseOneofInfo, error) {
+func GetEventsResponseOneofs(files []*protogen.File) ([]GetEventsResponseOneofInfo, error) {
 	// find the GetEventsResponse type
 	var getEventsResponse *protogen.Message
-	for _, msg := range f.Messages {
-		if msg.GoIdent.GoName == "GetEventsResponse" {
-			getEventsResponse = msg
-			break
+	for _, f := range files {
+		for _, msg := range f.Messages {
+			if msg.GoIdent.GoName == "GetEventsResponse" {
+				getEventsResponse = msg
+				break
+			}
 		}
 	}
 	if getEventsResponse == nil {
@@ -193,36 +195,42 @@ func GetEventsResponseOneofs(f *protogen.File) ([]GetEventsResponseOneofInfo, er
 }
 
 // GetEvents returns a list of all messages that are events
-func GetEvents(f *protogen.File) ([]*protogen.Message, error) {
-	if len(eventsCache) == 0 {
-		var getEventsResponse *protogen.Message
+func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
+	if len(eventsCache) != 0 {
+		return eventsCache, nil
+	}
+
+	var getEventsResponse *protogen.Message
+	for _, f := range files {
 		for _, msg := range f.Messages {
 			if msg.GoIdent.GoName == "GetEventsResponse" {
 				getEventsResponse = msg
 				break
 			}
 		}
-		if getEventsResponse == nil {
-			return nil, fmt.Errorf("Unable to find GetEventsResponse message")
-		}
+	}
+	if getEventsResponse == nil {
+		return nil, fmt.Errorf("Unable to find GetEventsResponse message")
+	}
 
-		var eventOneof *protogen.Oneof
-		for _, oneof := range getEventsResponse.Oneofs {
-			if oneof.Desc.Name() == "event" {
-				eventOneof = oneof
-				break
-			}
+	var eventOneof *protogen.Oneof
+	for _, oneof := range getEventsResponse.Oneofs {
+		if oneof.Desc.Name() == "event" {
+			eventOneof = oneof
+			break
 		}
-		if eventOneof == nil {
-			return nil, fmt.Errorf("Unable to find GetEventsResponse.event")
-		}
+	}
+	if eventOneof == nil {
+		return nil, fmt.Errorf("Unable to find GetEventsResponse.event")
+	}
 
-		validNames := make(map[string]struct{})
-		for _, type_ := range eventOneof.Fields {
-			name := strings.TrimPrefix(type_.GoIdent.GoName, "GetEventsResponse_")
-			validNames[name] = struct{}{}
-		}
+	validNames := make(map[string]struct{})
+	for _, type_ := range eventOneof.Fields {
+		name := strings.TrimPrefix(type_.GoIdent.GoName, "GetEventsResponse_")
+		validNames[name] = struct{}{}
+	}
 
+	for _, f := range files {
 		for _, msg := range f.Messages {
 			if _, ok := validNames[string(msg.Desc.Name())]; ok {
 				eventsCache = append(eventsCache, msg)
@@ -235,10 +243,16 @@ func GetEvents(f *protogen.File) ([]*protogen.Message, error) {
 
 var fieldsCache []*protogen.Message
 
+var isReservedField = map[string]struct{}{
+	"Timestamp":   struct{}{},
+	"UInt32Value": struct{}{},
+	"Duration":    struct{}{},
+}
+
 // GetFields returns a list of all messages that are fields
-func GetFields(f *protogen.File) ([]*protogen.Message, error) {
+func GetFields(files []*protogen.File) ([]*protogen.Message, error) {
 	if len(fieldsCache) == 0 {
-		events, err := GetEvents(f)
+		events, err := GetEvents(files)
 		if err != nil {
 			return nil, err
 		}
@@ -250,13 +264,17 @@ func GetFields(f *protogen.File) ([]*protogen.Message, error) {
 				if field.Message == nil {
 					continue
 				}
-				validFields[field.Message.GoIdent.GoName] = struct{}{}
+				if _, reserved := isReservedField[field.Message.GoIdent.GoName]; !reserved {
+					validFields[field.Message.GoIdent.GoName] = struct{}{}
+				}
 			}
 		}
 
-		for _, msg := range f.Messages {
-			if _, ok := validFields[string(msg.Desc.Name())]; ok {
-				fieldsCache = append(fieldsCache, msg)
+		for _, f := range files {
+			for _, msg := range f.Messages {
+				if _, ok := validFields[string(msg.Desc.Name())]; ok {
+					fieldsCache = append(fieldsCache, msg)
+				}
 			}
 		}
 	}
@@ -293,14 +311,14 @@ func __getFieldsForMessage(msg *protogen.Message, seen map[string]struct{}) []*p
 var enumsCache []*protogen.Enum
 
 // GetEnums returns a list of all enums that are message fields
-func GetEnums(f *protogen.File) ([]*protogen.Enum, error) {
+func GetEnums(files []*protogen.File) ([]*protogen.Enum, error) {
 	if len(enumsCache) == 0 {
-		events, err := GetEvents(f)
+		events, err := GetEvents(files)
 		if err != nil {
 			return nil, err
 		}
 
-		fields, err := GetFields(f)
+		fields, err := GetFields(files)
 		if err != nil {
 			return nil, err
 		}
@@ -318,9 +336,11 @@ func GetEnums(f *protogen.File) ([]*protogen.Enum, error) {
 			}
 		}
 
-		for _, enum := range f.Enums {
-			if _, ok := validNames[string(enum.Desc.Name())]; ok {
-				enumsCache = append(enumsCache, enum)
+		for _, f := range files {
+			for _, enum := range f.Enums {
+				if _, ok := validNames[string(enum.Desc.Name())]; ok {
+					enumsCache = append(enumsCache, enum)
+				}
 			}
 		}
 	}

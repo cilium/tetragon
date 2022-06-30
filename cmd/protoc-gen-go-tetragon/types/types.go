@@ -10,10 +10,10 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewFile(gen, f, "", filepath.Base(common.TetragonApiPackageName), "types")
+func Generate(gen *protogen.Plugin, files []*protogen.File) error {
+	g := common.NewFile(gen, files[0], "", filepath.Base(common.TetragonApiPackageName), "types")
 
-	events, err := common.GetEvents(f)
+	events, err := common.GetEvents(files)
 	if err != nil {
 		return err
 	}

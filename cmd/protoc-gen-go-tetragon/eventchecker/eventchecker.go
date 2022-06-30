@@ -11,54 +11,58 @@ import (
 )
 
 // Generate generates boilerplate code for the eventcheckers
-func Generate(gen *protogen.Plugin, f *protogen.File) error {
-	g := common.NewCodegenFile(gen, f, "eventchecker")
-	yaml := common.NewCodegenFile(gen, f, "eventchecker/yaml")
+func Generate(gen *protogen.Plugin, files []*protogen.File) error {
+	// files[0] is used for the prefix to the generated filename. The
+	// generated files will be in pkg tetragon so its not important
+	// from packaging side and any prefix will work fine we just pick
+	// the first file arbitrarily.
+	g := common.NewCodegenFile(gen, files[0], "eventchecker")
+	yaml := common.NewCodegenFile(gen, files[0], "eventchecker/yaml")
 
-	if err := generateEventCheckerConf(yaml, f); err != nil {
+	if err := generateEventCheckerConf(yaml); err != nil {
 		return err
 	}
 
-	if err := generateEventCheckerSpec(yaml, f); err != nil {
+	if err := generateEventCheckerSpec(yaml, files); err != nil {
 		return err
 	}
 
-	if err := generateMultiEventCheckerSpec(yaml, f); err != nil {
+	if err := generateMultiEventCheckerSpec(yaml); err != nil {
 		return err
 	}
 
-	if err := generateMultiEventCheckers(g, f); err != nil {
+	if err := generateMultiEventCheckers(g); err != nil {
 		return err
 	}
 
-	if err := generateEventToChecker(g, f); err != nil {
+	if err := generateEventToChecker(g, files); err != nil {
 		return err
 	}
 
-	if err := generateInterfaces(g, f); err != nil {
+	if err := generateInterfaces(g); err != nil {
 		return err
 	}
 
-	if err := generateEventFromResponse(g, f); err != nil {
+	if err := generateEventFromResponse(g, files); err != nil {
 		return err
 	}
 
-	if err := generateEventCheckers(g, f); err != nil {
+	if err := generateEventCheckers(g, files); err != nil {
 		return err
 	}
 
-	if err := generateFieldCheckers(g, f); err != nil {
+	if err := generateFieldCheckers(g, files); err != nil {
 		return err
 	}
 
-	if err := generateEnumCheckers(g, f); err != nil {
+	if err := generateEnumCheckers(g, files); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func generateEventToChecker(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error {
 	events, err := getEvents(f)
 	if err != nil {
 		return err
@@ -97,7 +101,7 @@ func generateEventToChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 	return nil
 }
 
-func generateInterfaces(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateInterfaces(g *protogen.GeneratedFile) error {
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 	tetragonEvent := common.TetragonApiIdent(g, "Event")
 
@@ -115,7 +119,7 @@ func generateInterfaces(g *protogen.GeneratedFile, f *protogen.File) error {
 	return nil
 }
 
-func generateEventFromResponse(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEventFromResponse(g *protogen.GeneratedFile, f []*protogen.File) error {
 	events, err := getEvents(f)
 	if err != nil {
 		return err
@@ -139,7 +143,7 @@ func generateEventFromResponse(g *protogen.GeneratedFile, f *protogen.File) erro
 	return nil
 }
 
-func generateEventCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEventCheckers(g *protogen.GeneratedFile, f []*protogen.File) error {
 	events, err := getEvents(f)
 	if err != nil {
 		return err
@@ -154,7 +158,7 @@ func generateEventCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
 	return nil
 }
 
-func generateFieldCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateFieldCheckers(g *protogen.GeneratedFile, f []*protogen.File) error {
 	fields, err := getFields(f)
 	if err != nil {
 		return err
@@ -169,7 +173,7 @@ func generateFieldCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
 	return nil
 }
 
-func generateEnumCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEnumCheckers(g *protogen.GeneratedFile, f []*protogen.File) error {
 	enums, err := getEnums(f)
 	if err != nil {
 		return err
@@ -188,18 +192,19 @@ var eventsCache []*CheckedMessage
 
 // getEvents is a thin wrapper around common.GetEvents produces a list of messages wrapped
 // by CheckedMessage.
-func getEvents(f *protogen.File) ([]*CheckedMessage, error) {
-	if len(eventsCache) == 0 {
-		rawEvents, err := common.GetEvents(f)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, rawEvent := range rawEvents {
-			eventsCache = append(eventsCache, (*CheckedMessage)(rawEvent))
-		}
+func getEvents(files []*protogen.File) ([]*CheckedMessage, error) {
+	if len(eventsCache) != 0 {
+		return eventsCache, nil
 	}
 
+	rawEvents, err := common.GetEvents(files)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rawEvent := range rawEvents {
+		eventsCache = append(eventsCache, (*CheckedMessage)(rawEvent))
+	}
 	return eventsCache, nil
 }
 
@@ -207,16 +212,18 @@ var fieldsCache []*CheckedMessage
 
 // getFields is a thin wrapper around common.GetFields produces a list of messages wrapped
 // by CheckedMessage.
-func getFields(f *protogen.File) ([]*CheckedMessage, error) {
-	if len(fieldsCache) == 0 {
-		rawFields, err := common.GetFields(f)
-		if err != nil {
-			return nil, err
-		}
+func getFields(files []*protogen.File) ([]*CheckedMessage, error) {
+	if len(fieldsCache) != 0 {
+		return fieldsCache, nil
+	}
 
-		for _, rawField := range rawFields {
-			fieldsCache = append(fieldsCache, (*CheckedMessage)(rawField))
-		}
+	rawFields, err := common.GetFields(files)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rawField := range rawFields {
+		fieldsCache = append(fieldsCache, (*CheckedMessage)(rawField))
 	}
 
 	return fieldsCache, nil
@@ -226,17 +233,18 @@ var enumsCache []*Enum
 
 // getEnums is a thin wrapper around common.GetEnums produces a list of messages wrapped
 // by Enum.
-func getEnums(f *protogen.File) ([]*Enum, error) {
-	if len(enumsCache) == 0 {
-		rawEnums, err := common.GetEnums(f)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, rawEnum := range rawEnums {
-			enumsCache = append(enumsCache, (*Enum)(rawEnum))
-		}
+func getEnums(files []*protogen.File) ([]*Enum, error) {
+	if len(enumsCache) != 0 {
+		return enumsCache, nil
 	}
 
+	rawEnums, err := common.GetEnums(files)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rawEnum := range rawEnums {
+		enumsCache = append(enumsCache, (*Enum)(rawEnum))
+	}
 	return enumsCache, nil
 }
