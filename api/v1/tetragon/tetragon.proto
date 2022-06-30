@@ -38,7 +38,6 @@ message Container {
 
     // If this is set true, it means that the process might have been originated from
     // a Kubernetes exec probe. For this field to be true, the following must be true:
-    //
     // 1. The binary field matches the first element of the exec command list for either
     //    liveness or readiness probe excluding the basename. For example, "/bin/ls"
     //    and "ls" are considered a match.
@@ -387,13 +386,11 @@ message GetEventsRequest {
     // deny_list specifies a list of filters to apply to exclude certain events
     // from the results. If multiple filters are specified, at least one of
     // them has to match for an event to be excluded.
-    //
     // If both allow_list and deny_list are specified, the results contain the
     // set difference allow_list - deny_list.
     repeated Filter deny_list = 2;
     // aggregation_options configures aggregation options for this request.
     // If this field is not set, responses will not be aggregated.
-    //
     // Note that currently only process_accept and process_connect events are
     // aggregated. Other events remain unaggregated.
     AggregationOptions aggregation_options = 3;
@@ -418,7 +415,6 @@ message GetEventsResponse {
     // Name of the node where this event was observed.
     string node_name = 1000;
     // Timestamp at which this event was observed.
-    //
     // For an aggregated response, this field to set to the timestamp at which
     // the event was observed for the first time in a given aggregation time window.
     google.protobuf.Timestamp time = 1001;
@@ -457,7 +453,6 @@ enum CapabilitiesType {
 	/* Override all DAC access, including ACL execute access if
 	   [_POSIX_ACL] is defined. Excluding DAC access covered by
 	   CAP_LINUX_IMMUTABLE. */
-
  DAC_OVERRIDE = 1;
 
 	/* Overrides all DAC restrictions regarding read and search on files
@@ -468,7 +463,6 @@ enum CapabilitiesType {
 	/* Overrides all restrictions about allowed operations on files, where
 	   file owner ID must be equal to the user ID, except where CAP_FSETID
 	   is applicable. It doesn't override MAC and DAC restrictions. */
-
  CAP_FOWNER = 3;
 
 	/* Overrides the following restrictions that the effective user ID
@@ -477,24 +471,20 @@ enum CapabilitiesType {
 	   supplementary group IDs) shall match the file owner ID when setting
 	   the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are
 	   cleared on successful return from chown(2) (not implemented). */
-
  CAP_FSETID = 4;
 
 	/* Overrides the restriction that the real or effective user ID of a
 	   process sending a signal must match the real or effective user ID
 	   of the process receiving the signal. */
-
  CAP_KILL = 5;
 
 	/* Allows setgid(2) manipulation */
 	/* Allows setgroups(2) */
 	/* Allows forged gids on socket credentials passing. */
-
  CAP_SETGID = 6;
 
 	/* Allows set*uid(2) manipulation (including fsuid). */
 	/* Allows forged pids on socket credentials passing. */
-
  CAP_SETUID = 7;
 
 	/**
@@ -510,20 +500,16 @@ enum CapabilitiesType {
 	 *   Allow taking bits out of capability bounding set
 	 *   Allow modification of the securebits for a process
 	 */
-
  CAP_SETPCAP = 8;
 
 	/* Allow modification of S_IMMUTABLE and S_APPEND file attributes */
-
  CAP_LINUX_IMMUTABLE = 9;
 
 	/* Allows binding to TCP/UDP sockets below 1024 */
 	/* Allows binding to ATM VCIs below 32 */
-
  CAP_NET_BIND_SERVICE = 10;
 
 	/* Allow broadcasting, listen to multicast */
-
  CAP_NET_BROADCAST = 11;
 
 	/* Allow interface configuration */
@@ -539,23 +525,19 @@ enum CapabilitiesType {
 	/* Allow multicasting */
 	/* Allow read/write of device-specific registers */
 	/* Allow activation of ATM control sockets */
-
  CAP_NET_ADMIN = 12;
 
 	/* Allow use of RAW sockets */
 	/* Allow use of PACKET sockets */
 	/* Allow binding to any address for transparent proxying (also via NET_ADMIN) */
-
  CAP_NET_RAW = 13;
 
 	/* Allow locking of shared memory segments */
 	/* Allow mlock and mlockall (which doesn't really have anything to do
 	   with IPC) */
-
  CAP_IPC_LOCK = 14;
 
 	/* Override IPC ownership checks */
-
  CAP_IPC_OWNER = 15;
 
 	/* Insert and remove kernel modules - modify kernel without limit */
@@ -563,18 +545,14 @@ enum CapabilitiesType {
 
 	/* Allow ioperm/iopl access */
 	/* Allow sending USB messages to any device via /dev/bus/usb */
-
  CAP_SYS_RAWIO = 17;
 
 	/* Allow use of chroot() */
-
  CAP_SYS_CHROOT = 18;
 
 	/* Allow ptrace() of any process */
-
  CAP_SYS_PTRACE = 19;
 	/* Allow configuration of process accounting */
-
  CAP_SYS_PACCT = 20;
 
 	/* Allow configuration of the secure attention key */
@@ -612,11 +590,9 @@ enum CapabilitiesType {
 	/* Allow setting encryption key on loopback filesystem */
 	/* Allow setting zone reclaim policy */
 	/* Allow everything under CAP_BPF and CAP_PERFMON for backward compatibility */
-
  CAP_SYS_ADMIN = 21;
 
 	/* Allow use of reboot() */
-
  CAP_SYS_BOOT = 22;
 
 	/* Allow raising priority and setting priority on other (different
@@ -625,7 +601,6 @@ enum CapabilitiesType {
 	   processes and setting the scheduling algorithm used by another
 	   process. */
 	/* Allow setting cpu affinity on other processes */
-
  CAP_SYS_NICE = 23;
 
 	/* Override resource limits. Set resource limits. */
@@ -640,38 +615,30 @@ enum CapabilitiesType {
 	/* Override max number of consoles on console allocation */
 	/* Override max number of keymaps */
 	/* Control memory reclaim behavior */
-
  CAP_SYS_RESOURCE = 24;
 
 	/* Allow manipulation of system clock */
 	/* Allow irix_stime on mips */
 	/* Allow setting the real-time clock */
-
  CAP_SYS_TIME = 25;
 
 	/* Allow configuration of tty devices */
 	/* Allow vhangup() of tty */
-
  CAP_SYS_TTY_CONFIG = 26;
 
 	/* Allow the privileged aspects of mknod() */
-
  CAP_MKNOD = 27;
 
 	/* Allow taking of leases on files */
-
  CAP_LEASE = 28;
 
 	/* Allow writing the audit log via unicast netlink socket */
-
  CAP_AUDIT_WRITE = 29;
 
 	/* Allow configuration of audit via unicast netlink socket */
-
  CAP_AUDIT_CONTROL = 30;
 
 	/* Set or remove capabilities on files */
-
  CAP_SETFCAP = 31;
 
 	/* Override MAC access.
@@ -679,7 +646,6 @@ enum CapabilitiesType {
 	   An LSM may enforce a MAC policy, and if it does and it chooses
 	   to implement capability based overrides of that policy, this is
 	   the capability it should use to do so. */
-
  CAP_MAC_OVERRIDE = 32;
 
 	/* Allow MAC configuration or state changes.
@@ -688,30 +654,24 @@ enum CapabilitiesType {
 	   to implement capability based checks on modifications to that
 	   policy or the data required to maintain it, this is the
 	   capability it should use to do so. */
-
  CAP_MAC_ADMIN = 33;
 
 	/* Allow configuring the kernel's syslog (printk behaviour) */
-
  CAP_SYSLOG = 34;
 
 	/* Allow triggering something that will wake the system */
-
  CAP_WAKE_ALARM = 35;
 
 	/* Allow preventing system suspends */
-
  CAP_BLOCK_SUSPEND = 36;
 
 	/* Allow reading the audit log via multicast netlink socket */
-
  CAP_AUDIT_READ = 37;
 
 	/*
 	 * Allow system performance and observability privileged operations
 	 * using perf_events, i915_perf and other kernel subsystems
 	 */
-
  CAP_PERFMON = 38;
 
 	/*
@@ -728,18 +688,14 @@ enum CapabilitiesType {
 	 * - Loading BPF Type Format (BTF) data
 	 * - Retrieve xlated and JITed code of BPF programs
 	 * - Use bpf_spin_lock() helper
-	 *
 	 * CAP_PERFMON relaxes the verifier checks further:
 	 * - BPF progs can use of pointer-to-integer conversions
 	 * - speculation attack hardening measures are bypassed
 	 * - bpf_probe_read to read arbitrary kernel memory is allowed
 	 * - bpf_trace_printk to print kernel memory is allowed
-	 *
 	 * CAP_SYS_ADMIN is required to use bpf_probe_write_user.
-	 *
 	 * CAP_SYS_ADMIN is required to iterate system wide loaded
 	 * programs, maps, links, BTFs and convert their IDs to file descriptors.
-	 *
 	 * CAP_PERFMON and CAP_BPF are required to load tracing programs.
 	 * CAP_NET_ADMIN and CAP_BPF are required to load networking programs.
 	 */
@@ -748,6 +704,5 @@ enum CapabilitiesType {
 	/* Allow checkpoint/restore related operations */
 	/* Allow PID selection during clone3() */
 	/* Allow writing to ns_last_pid */
-
  CAP_CHECKPOINT_RESTORE = 40;
 }
