@@ -9,24 +9,24 @@ import (
 )
 
 // generateMultiEventCheckers generates boilerplate for MultiEventChecker types
-func generateMultiEventCheckers(g *protogen.GeneratedFile, f *protogen.File) error {
-	if err := generateMultiEventCheckerInterface(g, f); err != nil {
+func generateMultiEventCheckers(g *protogen.GeneratedFile) error {
+	if err := generateMultiEventCheckerInterface(g); err != nil {
 		return err
 	}
 
-	if err := generateMultiEventCheckerHelpers(g, f); err != nil {
+	if err := generateMultiEventCheckerHelpers(g); err != nil {
 		return err
 	}
 
-	if err := generateOrderedEventChecker(g, f); err != nil {
+	if err := generateOrderedEventChecker(g); err != nil {
 		return err
 	}
 
-	if err := generateUnorderedEventChecker(g, f); err != nil {
+	if err := generateUnorderedEventChecker(g); err != nil {
 		return err
 	}
 
-	if err := generateFnEventChecker(g, f); err != nil {
+	if err := generateFnEventChecker(g); err != nil {
 		return err
 	}
 
@@ -34,7 +34,7 @@ func generateMultiEventCheckers(g *protogen.GeneratedFile, f *protogen.File) err
 }
 
 // generateOrderedEventChecker generates boilerplate for the ordered MultiEventChecker
-func generateOrderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateOrderedEventChecker(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// OrderedEventChecker checks a series of events in order
@@ -104,7 +104,7 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) er
 }
 
 // generateUnorderedEventChecker generates boilerplate for the unordered MultiEventChecker
-func generateUnorderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	listList := common.GoIdent(g, "container/list", "List")
@@ -211,7 +211,7 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile, f *protogen.File) 
 }
 
 // generateFnEventChecker generates boilerplate for the unordered MultiEventChecker
-func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateFnEventChecker(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// FnEventChecker checks a series of events using custom-defined functions for
@@ -246,7 +246,7 @@ func generateFnEventChecker(g *protogen.GeneratedFile, f *protogen.File) error {
 }
 
 // generateMultiEventCheckerInterface generates the MultiEventChecker interface
-func generateMultiEventCheckerInterface(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateMultiEventCheckerInterface(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 
 	g.P(`// MultiEventChecker is an interface for checking multiple Tetragon events
@@ -275,7 +275,7 @@ func generateMultiEventCheckerInterface(g *protogen.GeneratedFile, f *protogen.F
 }
 
 // generateMultiEventCheckerHelpers generates the MultiEventChecker helper functions
-func generateMultiEventCheckerHelpers(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateMultiEventCheckerHelpers(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 

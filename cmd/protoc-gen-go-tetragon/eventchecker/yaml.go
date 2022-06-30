@@ -13,7 +13,7 @@ import (
 )
 
 // Generate generates boilerplate code for the eventchecker spec
-func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEventCheckerSpec(g *protogen.GeneratedFile, f []*protogen.File) error {
 	events, err := getEvents(f)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error
 }
 
 // Generate generates boilerplate code for the multi eventchecker spec
-func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateMultiEventCheckerSpec(g *protogen.GeneratedFile) error {
 	g.P(`// MultiEventCheckerSpec is a YAML spec to define a MultiEventChecker
     type MultiEventCheckerSpec struct {
         Ordered bool           ` + common.StructTag("json:\"ordered\"") + `
@@ -134,7 +134,7 @@ func generateMultiEventCheckerSpec(g *protogen.GeneratedFile, f *protogen.File) 
 	return nil
 }
 
-func generateEventCheckerConf(g *protogen.GeneratedFile, f *protogen.File) error {
+func generateEventCheckerConf(g *protogen.GeneratedFile) error {
 	g.P(`// Metadata contains metadata for the eventchecker definition
     type Metadata struct {
         Name string ` + common.StructTag(`json:"name"`) + `
