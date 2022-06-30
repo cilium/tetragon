@@ -1,4 +1,4 @@
-# Custom Resource Definitions for FGS
+# Custom Resource Definitions for Tetragon
 
 Custom resource definition YAML files in this directory are auto-generated
 using [controller-gen](https://book.kubebuilder.io/reference/controller-gen.html)
