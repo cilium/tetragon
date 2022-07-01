@@ -548,11 +548,8 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 	struct cgroup_subsys_state *subsys;
 	struct msg_process *curr;
 	struct task_struct *task;
-	struct nsproxy *nsproxy;
 	struct css_set *cgroups;
-	struct kernfs_node *kn;
 	struct cgroup *cgrp;
-	struct net *net_ns;
 	const char *name;
 
 	msg->common.op = op;
@@ -597,13 +594,7 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		curr->flags |= EVENT_TASK_WALK;
 
 	task = (struct task_struct *)get_current_task();
-	probe_read(&nsproxy, sizeof(nsproxy), _(&task->nsproxy));
-	if (nsproxy) {
-		probe_read(&net_ns, sizeof(net_ns), _(&nsproxy->net_ns));
-		if (net_ns)
-			probe_read(&msg->kube.net_ns, sizeof(msg->kube.net_ns),
-				   _(&net_ns->ns.inum));
-	}
+	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
 	task = (struct task_struct *)get_current_task();
 	probe_read(&cgroups, sizeof(cgroups), _(&task->cgroups));
@@ -612,18 +603,12 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		if (subsys) {
 			probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
 			if (cgrp) {
-				probe_read(&kn, sizeof(cgrp->kn), _(&cgrp->kn));
-				if (kn) {
-					probe_read(&name, sizeof(name),
-						   _(&kn->name));
-					if (name) {
-						probe_read_str(
-							msg->kube.docker_id,
-							DOCKER_ID_LENGTH, name);
-					} else {
-						curr->flags |=
-							EVENT_DOCKER_NAME_ERR;
-					}
+				if (BPF_CORE_READ_INTO(&name, cgrp, kn, name) ==
+				    0) {
+					probe_read_str(msg->kube.docker_id,
+						       DOCKER_ID_LENGTH, name);
+				} else {
+					curr->flags |= EVENT_DOCKER_NAME_ERR;
 				}
 				// else case we do not include error flag because it
 				// indicates there is not a docker id. This is normal
