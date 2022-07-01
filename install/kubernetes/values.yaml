@@ -173,11 +173,11 @@ export:
     #   - name: foo
     #     value: bar
 
-    # should the manifest command be overriden?
-    enabledCommand: true
+    # should the manifest command `hubble-export-stdout` be overriden?
+    enabledCommand: false
 
     # should the manifest args be overridden?
-    enabledArgs: true
+    enabledArgs: false
 
     # specific manifest command to use
     commandOverride: [ ]
