@@ -69,7 +69,6 @@ func kprobeCharBufErrorToString(e int32) string {
 
 type kprobeLoadArgs struct {
 	filters  [4096]byte
-	btf      uintptr
 	retprobe bool
 	syscall  bool
 	config   *api.EventConfig
@@ -352,7 +351,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		kprobeEntry := genericKprobe{
 			loadArgs: kprobeLoadArgs{
 				filters:  kernelSelectors,
-				btf:      uintptr(btfobj),
 				retprobe: setRetprobe,
 				syscall:  is_syscall,
 				config:   config,
@@ -374,21 +372,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 			loadProgName = "bpf_generic_kprobe_v53.o"
 			loadProgRetName = "bpf_generic_retkprobe_v53.o"
 		}
-
-		// NB(kkourt): after we insert the kprobeEntry to the global table
-		// (genericKprobeTable), the btf object will need to be released when we remove the
-		// entry from the table. We set btfobj to nil to indicate this.
-		//
-		// Currently, however, we do not remove entries from the global table.
-		//
-		// Removal is done in the sensor controller goroutine.  One option would be to
-		// add a sensorRemove method in the observerSensorImpl, so that each sensor does its
-		// own cleanup. Note that in that case, we would need to synchronize access to the
-		// table because sensorRemove would be called from the sensor controller goroutine.
-		//
-		// Alternatively, we could construct the btf object at load time (as we do in the
-		// tracepoints case) and release it there, which seems like a simpler option.
-		btfobj = bpf.BTFNil
 
 		pinFile := fmt.Sprintf("kprobe_%s", funcName)
 
