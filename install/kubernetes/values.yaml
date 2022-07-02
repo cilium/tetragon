@@ -173,11 +173,18 @@ export:
     #   - name: foo
     #     value: bar
 
-    # should the manifest command `hubble-export-stdout` be overriden?
-    enabledCommand: false
+    # * When enabledCommand=true and commandOverride is not set, the command inserted will be hubble-export-stdout. 
+    #   This supports the default for the current deployment instructions to deploy stdout-export sidecar container.
+    # * When enabledCommand=true and commandOverride override is set, the command inserted will be the value of commandOverride.
+    #   This is useful for inserting another sidecar container that requires a command override.
+    # * When enabledCommand=false, no command will be specified in the manifest and container's default command will take over.
+    enabledCommand: true
 
-    # should the manifest args be overridden?
-    enabledArgs: false
+    # * When enabledArgs=true and argsOverride is not set, the args inserted will be the default ones for export-stdout. 
+    # * When enabledArgs=true and argsOverride override is set, the args value inserted will be the value of argsOverride.
+    #   This is useful for inserting another sidecar container that requires args override.
+    # * When enabledArgs=false, no command will be specified in the manifest and container's default args value will take over.
+    enabledArgs: true
 
     # specific manifest command to use
     commandOverride: [ ]
