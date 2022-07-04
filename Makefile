@@ -123,6 +123,10 @@ test-compile:
 	for pkg in $$($(GO) list ./...); do \
 		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
 		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
+		numtests=$$(ls -l ./$$localpkg/*_test.go 2> /dev/null | wc -l); \
+		if [ $$numtests -le 0 ]; then \
+			continue; \
+		fi; \
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
 	done | xargs -P $$(nproc) -L 1 $(GO) test -gcflags=$(GO_GCFLAGS)
 
