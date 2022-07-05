@@ -168,9 +168,9 @@ tools-clean:
 libbpf-install:
 	$(eval id=$(shell $(CONTAINER_ENGINE) create $(LIBBPF_IMAGE)))
 	mkdir -p $(LIBBPF_INSTALL_DIR)
-	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so $(LIBBPF_INSTALL_DIR)
-	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0 $(LIBBPF_INSTALL_DIR)
 	$(CONTAINER_ENGINE) cp ${id}:/go/src/github.com/covalentio/hubble-fgs/src/libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)
+	ln -s libbpf.so.0.2.0 $(LIBBPF_INSTALL_DIR)/libbpf.so.0
+	ln -s libbpf.so.0 $(LIBBPF_INSTALL_DIR)/libbpf.so
 	$(CONTAINER_ENGINE) stop ${id}
 
 clang-install:
