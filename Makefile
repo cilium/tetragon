@@ -10,6 +10,8 @@ NOOPT ?= 0
 CLANG_IMAGE  = quay.io/isovalent/hubble-llvm:2020-12-29-45f6aa2
 METADATA_IMAGE = quay.io/isovalent/tetragon-metadata
 TESTER_PROGS_DIR = "contrib/tester-progs"
+# Extra flags to pass to test binary
+EXTRA_TESTFLAGS ?=
 
 CLANG_INSTALL_DIR  ?= ./bin
 VERSION=$(shell git describe --tags --always)
@@ -115,8 +117,14 @@ clean:
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
+.PHONY: test
 test:
-	ulimit -n 1048576 && $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./...
+	ulimit -n 1048576 && $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./pkg/... ${EXTRA_TESTFLAGS}
+
+
+.PHONY: e2e-test
+e2e-test: image image-operator
+	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="cilium/tetragon:${DOCKER_IMAGE_TAG}" -tetragon.helm.set tetragonOperator.image.override="cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes)"
 
 test-compile:
 	mkdir -p go-tests
