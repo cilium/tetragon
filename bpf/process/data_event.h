@@ -6,30 +6,26 @@
 static inline __attribute__((always_inline)) long
 __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
 {
-	size_t max = sizeof(msg->arg) - 1;
-	size_t rd_bytes, size;
 	int err;
 
-	rd_bytes = bytes > max ? max : bytes;
-	msg->common.size = offsetof(struct msg_data, arg) + rd_bytes;
-
 	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[rd_bytes] &= 0x7fff;\n"
-		     "if %[rd_bytes] < 32736 goto +1\n;"
-		     "%[rd_bytes] = 32736;\n"
-		     :
-		     : [rd_bytes] "+r"(rd_bytes)
-		     :);
-	err = probe_read(&msg->arg[0], rd_bytes, (char *)uptr);
+	asm volatile goto(
+		"if %[bytes] < 0 goto %l[b]\n;"
+		"if %[bytes] < " XSTR(MSG_DATA_ARG_LEN) " goto %l[a]\n;"
+		:
+		: [bytes] "+r"(bytes)::a, b);
+	bytes = MSG_DATA_ARG_LEN;
+a:
+	err = probe_read(&msg->arg[0], bytes, (char *)uptr);
 	if (err < 0)
 		return err;
 
-	size = rd_bytes + offsetof(struct msg_data, arg);
-
-	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[size] &= 0x7fff;\n" : : [size] "+r"(size) :);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
-	return rd_bytes;
+	msg->common.size = offsetof(struct msg_data, arg) + bytes;
+	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg,
+			  msg->common.size);
+	return bytes;
+b:
+	return -1;
 }
 
 static long do_bytes(void *ctx, struct msg_data *msg, unsigned long arg,
