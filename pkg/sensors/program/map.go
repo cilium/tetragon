@@ -13,7 +13,7 @@ type Map struct {
 	PinName   string
 	Prog      *Program
 	PinState  State
-	mapHandle *ebpf.Map
+	MapHandle *ebpf.Map
 }
 
 func MapBuilder(name string, ld *Program) *Map {
@@ -36,10 +36,10 @@ func (m *Map) Unload() error {
 		return nil
 	}
 	log.Info("map was unloaded")
-	if m.mapHandle != nil {
-		m.mapHandle.Unpin()
-		err := m.mapHandle.Close()
-		m.mapHandle = nil
+	if m.MapHandle != nil {
+		m.MapHandle.Unpin()
+		err := m.MapHandle.Close()
+		m.MapHandle = nil
 		return err
 	}
 	return nil
@@ -47,27 +47,27 @@ func (m *Map) Unload() error {
 
 func (m *Map) New(spec *ebpf.MapSpec) error {
 	var err error
-	m.mapHandle, err = ebpf.NewMap(spec)
+	m.MapHandle, err = ebpf.NewMap(spec)
 	return err
 }
 
 func (m *Map) Pin(path string) error {
-	return m.mapHandle.Pin(path)
+	return m.MapHandle.Pin(path)
 }
 
 func (m *Map) LoadPinnedMap(path string) error {
 	var err error
-	m.mapHandle, err = ebpf.LoadPinnedMap(path, nil)
+	m.MapHandle, err = ebpf.LoadPinnedMap(path, nil)
 	return err
 }
 
 func (m *Map) Close() error {
-	return m.mapHandle.Close()
+	return m.MapHandle.Close()
 }
 
 func (m *Map) GetFD() (int, error) {
-	if m.mapHandle == nil {
+	if m.MapHandle == nil {
 		return 0, fmt.Errorf("map %s is not loaded", m.Name)
 	}
-	return m.mapHandle.FD(), nil
+	return m.MapHandle.FD(), nil
 }
