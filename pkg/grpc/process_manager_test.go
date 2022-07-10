@@ -104,7 +104,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 				{
 					Name: "pod-a-container-a-name",
 					LivenessProbe: &corev1.Probe{
-						Handler: corev1.Handler{
+						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
 								Command: []string{"command", "arg-a", "arg-b"},
 							},

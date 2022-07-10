@@ -47,7 +47,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	k8sconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var (
@@ -306,10 +306,7 @@ func Serve(ctx context.Context, address string, server *server.Server) error {
 func getWatcher(enableK8sAPI bool) (watcher.K8sResourceWatcher, error) {
 	if enableK8sAPI {
 		log.Info("Enabling Kubernetes API")
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, err
-		}
+		config := k8sconfig.GetConfigOrDie()
 		k8sClient := kubernetes.NewForConfigOrDie(config)
 		return watcher.NewK8sWatcher(k8sClient, 60*time.Second), nil
 
