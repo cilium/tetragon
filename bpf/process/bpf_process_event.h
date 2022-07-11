@@ -4,8 +4,7 @@
 #ifndef _BPF_PROCESS_EVENT__
 #define _BPF_PROCESS_EVENT__
 
-#define ENAMETOOLONG  36 /* File name too long */
-#define PATH_MAP_SIZE 4096
+#define ENAMETOOLONG 36 /* File name too long */
 
 struct bpf_map_def __attribute__((section("maps"), used)) buffer_heap_map = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
