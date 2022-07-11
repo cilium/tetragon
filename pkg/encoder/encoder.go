@@ -241,18 +241,6 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 			event := p.colorer.blue.Sprintf("⁉️ %-7s", "syscall")
 			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
-	case *tetragon.GetEventsResponse_ProcessDns:
-		dns := response.GetProcessDns()
-		if dns.Process == nil {
-			return "", fmt.Errorf("process field is not set")
-		}
-		if dns.Dns == nil {
-			return "", fmt.Errorf("dns field is not set")
-		}
-		event := p.colorer.blue.Sprintf("📖 %-7s", "dns")
-		processInfo, caps := p.colorer.processInfo(response.NodeName, dns.Process)
-		args := p.colorer.cyan.Sprint(dns.GetDns().Names, " => ", dns.GetDns().Ips)
-		return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
 		tp := response.GetProcessTracepoint()
 		if tp.Process == nil {

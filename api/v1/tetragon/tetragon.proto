@@ -208,24 +208,6 @@ message Test {
 	uint64 arg3 = 4;
 }
 
-message DnsInfo {
-    repeated uint32 question_types = 1;
-    repeated uint32 answer_types = 2;
-    int32 rcode = 3;
-    repeated string names = 4;
-    repeated string ips = 5;
-    string query = 6;
-    bool response = 7;
-}
-
-message ProcessDns {
-    Process process = 1;
-    reserved 2;
-    DnsInfo dns   = 3;
-    repeated string destination_names = 4 [deprecated=true]; // deprecated in favor of socket.destination_names.
-    Pod destination_pod = 5;
-}
-
 enum HealthStatusType {
  HEALTH_STATUS_TYPE_UNDEF  = 0;
  HEALTH_STATUS_TYPE_STATUS = 1;

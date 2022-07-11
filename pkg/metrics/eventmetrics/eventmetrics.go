@@ -4,8 +4,6 @@
 package eventmetrics
 
 import (
-	"strings"
-
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
@@ -13,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
-	readerdns "github.com/cilium/tetragon/pkg/reader/dns"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -30,10 +27,6 @@ var (
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	DnsRequestTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: consts.MetricNamePrefix + "dns_total",
-		Help: "Dns request/response statistics",
-	}, []string{"namespace", "pod", "binary", "names", "rcodes", "response"})
 )
 
 func getProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
@@ -58,34 +51,6 @@ func handleOriginalEvent(originalEvent interface{}) {
 	}
 }
 
-func postDnsMetric(ev *tetragon.GetEventsResponse, res *tetragon.ProcessDns) {
-	var rr string
-
-	binary, pod, ns := getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
-
-	dns := res.Dns
-	names := strings.Join(dns.GetNames(), ",")
-	codes := readerdns.GetRCodeString(uint16(dns.GetRcode()))
-
-	if dns.Response {
-		rr = "Response"
-	} else {
-		rr = "Request"
-	}
-
-	DnsRequestTotal.WithLabelValues(ns, pod, binary, names, codes, rr).Inc()
-}
-
-func handleDnsEvent(processedEvent interface{}) {
-	switch ev := processedEvent.(type) {
-	case *tetragon.GetEventsResponse:
-		switch res := ev.Event.(type) {
-		case *tetragon.GetEventsResponse_ProcessDns:
-			postDnsMetric(ev, res.ProcessDns)
-		}
-	}
-}
-
 func handleProcessedEvent(processedEvent interface{}) {
 	var eventType, namespace, pod, binary string
 	switch ev := processedEvent.(type) {
@@ -106,5 +71,4 @@ func handleProcessedEvent(processedEvent interface{}) {
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
 	handleOriginalEvent(originalEvent)
 	handleProcessedEvent(processedEvent)
-	handleDnsEvent(processedEvent)
 }

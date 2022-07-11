@@ -15,7 +15,6 @@ func (event *ProcessExit) __isEvent()       {}
 func (event *ProcessKprobe) __isEvent()     {}
 func (event *ProcessTracepoint) __isEvent() {}
 func (event *Test) __isEvent()              {}
-func (event *ProcessDns) __isEvent()        {}
 
 // ResponseEvent represents a Tetragon GetEventsResponse inner type
 type ResponseEvent isGetEventsResponse_Event

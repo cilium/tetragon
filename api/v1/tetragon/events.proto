@@ -28,7 +28,6 @@ enum EventType {
 	PROCESS_EXIT = 7;
 	PROCESS_KPROBE = 13;
 	PROCESS_TRACEPOINT = 14;
-	PROCESS_DNS = 18;
 
 	TEST = 254;
 }
@@ -84,7 +83,6 @@ message GetEventsResponse {
         ProcessExit process_exit = 5;
         ProcessKprobe process_kprobe = 9;
         ProcessTracepoint process_tracepoint = 10;
-        ProcessDns process_dns = 14;
 
         Test test = 40000;
     }

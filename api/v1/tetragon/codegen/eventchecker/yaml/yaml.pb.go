@@ -145,7 +145,6 @@ type eventCheckerHelper struct {
 	ProcessKprobe     *eventchecker.ProcessKprobeChecker     `json:"kprobe,omitempty"`
 	ProcessTracepoint *eventchecker.ProcessTracepointChecker `json:"tracepoint,omitempty"`
 	Test              *eventchecker.TestChecker              `json:"test,omitempty"`
-	ProcessDns        *eventchecker.ProcessDnsChecker        `json:"dns,omitempty"`
 }
 
 // EventChecker is a wrapper around the EventChecker interface to help unmarshaling
@@ -190,12 +189,6 @@ func (checker *EventChecker) UnmarshalJSON(b []byte) error {
 		}
 		eventChecker = helper.Test
 	}
-	if helper.ProcessDns != nil {
-		if eventChecker != nil {
-			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessDns, eventChecker)
-		}
-		eventChecker = helper.ProcessDns
-	}
 	checker.EventChecker = eventChecker
 	return nil
 }
@@ -214,8 +207,6 @@ func (checker EventChecker) MarshalJSON() ([]byte, error) {
 		helper.ProcessTracepoint = c
 	case *eventchecker.TestChecker:
 		helper.Test = c
-	case *eventchecker.ProcessDnsChecker:
-		helper.ProcessDns = c
 	default:
 		return nil, fmt.Errorf("EventChecker: unknown checker type %T", c)
 	}

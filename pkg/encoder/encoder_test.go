@@ -65,49 +65,6 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io", result)
 }
 
-func TestCompactEncoder_DnsEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
-
-	// should fail if the process field is nil.
-	_, err := p.eventToString(&tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessDns{
-			ProcessDns: &tetragon.ProcessDns{},
-		},
-	})
-	assert.Error(t, err)
-
-	// should fail if dns field is nil
-	_, err = p.eventToString(&tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessDns{
-			ProcessDns: &tetragon.ProcessDns{
-				Process: &tetragon.Process{
-					Binary: "/usr/bin/curl",
-				},
-			},
-		},
-		NodeName: "my-node",
-	})
-	assert.Error(t, err)
-
-	// with dns info.
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessDns{
-			ProcessDns: &tetragon.ProcessDns{
-				Process: &tetragon.Process{
-					Binary: "/usr/bin/curl",
-				},
-				Dns: &tetragon.DnsInfo{
-					Names: []string{"cilium.io"},
-					Ips:   []string{"1.2.3.4"},
-				},
-			},
-		},
-		NodeName: "my-node",
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "📖 dns     my-node /usr/bin/curl [cilium.io] => [1.2.3.4]", result)
-}
-
 func TestCompactEncoder_ExitEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never)
 
