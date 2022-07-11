@@ -6,6 +6,10 @@
 
 #include "api.h"
 
+#ifndef PATH_MAP_SIZE
+#define PATH_MAP_SIZE 4096
+#endif
+
 #ifndef __READ_ONCE
 #define __READ_ONCE(x) (*(volatile typeof(x) *)&x)
 #endif
