@@ -30,7 +30,7 @@ func TestParseFilterList(t *testing.T) {
 {"binary_regex":["kube.*","iptables"]}
 {"binary_regex":["/usr/sbin/.*"],"namespace":["default"]}
 {"pid_set":[1]}
-{"event_set":["PROCESS_EXEC", "PROCESS_DNS", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_TRACEPOINT"]}`
+{"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_TRACEPOINT"]}`
 	filterProto, err := ParseFilterList(f)
 	assert.NoError(t, err)
 	if diff := cmp.Diff(
@@ -40,7 +40,7 @@ func TestParseFilterList(t *testing.T) {
 			{BinaryRegex: []string{"kube.*", "iptables"}},
 			{BinaryRegex: []string{"/usr/sbin/.*"}, Namespace: []string{"default"}},
 			{PidSet: []uint32{1}},
-			{EventSet: []tetragon.EventType{tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_DNS, tetragon.EventType_PROCESS_EXIT, tetragon.EventType_PROCESS_KPROBE, tetragon.EventType_PROCESS_TRACEPOINT}},
+			{EventSet: []tetragon.EventType{tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_EXIT, tetragon.EventType_PROCESS_KPROBE, tetragon.EventType_PROCESS_TRACEPOINT}},
 		},
 		filterProto,
 		cmpopts.IgnoreUnexported(tetragon.Filter{}),

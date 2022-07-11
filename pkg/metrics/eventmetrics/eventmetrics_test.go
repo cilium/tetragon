@@ -21,7 +21,6 @@ func TestHandleProcessedEvent(t *testing.T) {
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{}}})
 
 	// empty pod
@@ -33,9 +32,6 @@ func TestHandleProcessedEvent(t *testing.T) {
 	}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
 		Process: &tetragon.Process{Binary: "binary_c"},
-	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{
-		Process: &tetragon.Process{Binary: "binary_d"},
 	}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
 		Process: &tetragon.Process{Binary: "binary_e"},
@@ -60,12 +56,6 @@ func TestHandleProcessedEvent(t *testing.T) {
 			Pod:    &tetragon.Pod{Namespace: "namespace_c", Name: "pod_c"},
 		},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessDns{ProcessDns: &tetragon.ProcessDns{
-		Process: &tetragon.Process{
-			Binary: "binary_d",
-			Pod:    &tetragon.Pod{Namespace: "namespace_d", Name: "pod_d"},
-		},
-	}}})
 	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
 		Process: &tetragon.Process{
 			Binary: "binary_e",
@@ -79,7 +69,6 @@ tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE"} 1
 tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC"} 1
 tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXIT"} 1
 tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
-tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_DNS"} 1
 tetragon_events_total{binary="",namespace="",pod="",type="unknown"} 1
 tetragon_events_total{binary="binary_a",namespace="",pod="",type="PROCESS_KPROBE"} 1
 tetragon_events_total{binary="binary_a",namespace="namespace_a",pod="pod_a",type="PROCESS_KPROBE"} 1
@@ -87,8 +76,6 @@ tetragon_events_total{binary="binary_b",namespace="",pod="",type="PROCESS_EXEC"}
 tetragon_events_total{binary="binary_b",namespace="namespace_b",pod="pod_b",type="PROCESS_EXEC"} 1
 tetragon_events_total{binary="binary_c",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
 tetragon_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type="PROCESS_TRACEPOINT"} 1
-tetragon_events_total{binary="binary_d",namespace="",pod="",type="PROCESS_DNS"} 1
-tetragon_events_total{binary="binary_d",namespace="namespace_d",pod="pod_d",type="PROCESS_DNS"} 1
 tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT"} 1
 tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT"} 1
 `)

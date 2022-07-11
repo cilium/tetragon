@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
@@ -53,7 +52,6 @@ type cacheObj struct {
 type Cache struct {
 	objsChan chan cacheObj
 	cache    []cacheObj
-	dns      *dns.Cache
 	server   *server.Server
 }
 
@@ -67,12 +65,6 @@ func (ec *Cache) eventLabels(endpoint *hubblev1.Endpoint, event *cacheObj) ([]st
 			return names, nil
 		}
 	}
-	// Otherwise check our DNS cache, in other words ask Cilium again trying
-	// to convince it to give us more information about this connection.
-	//if _, ok := event.event.(interface{ GetDestinationIp() }); ok {
-	//	ip = obj.GetDestinationIp()
-	//	ec.dns.GetIp(ip)
-	//}
 	return []string{}, nil
 }
 
@@ -189,7 +181,7 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	ec.objsChan <- cacheObj{internal: internal, event: e, timestamp: t, msg: msg}
 }
 
-func New(s *server.Server, dns *dns.Cache) *Cache {
+func New(s *server.Server) *Cache {
 	if cache != nil {
 		return cache
 	}
@@ -197,7 +189,6 @@ func New(s *server.Server, dns *dns.Cache) *Cache {
 	cache = &Cache{
 		objsChan: make(chan cacheObj),
 		cache:    make([]cacheObj, 0),
-		dns:      dns,
 		server:   s,
 	}
 	nodeName = node.GetNodeNameForExport()

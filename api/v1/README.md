@@ -9,7 +9,6 @@
 - [tetragon/tetragon.proto](#tetragon_tetragon-proto)
     - [Capabilities](#tetragon-Capabilities)
     - [Container](#tetragon-Container)
-    - [DnsInfo](#tetragon-DnsInfo)
     - [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest)
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
     - [HealthStatus](#tetragon-HealthStatus)
@@ -25,7 +24,6 @@
     - [Namespaces](#tetragon-Namespaces)
     - [Pod](#tetragon-Pod)
     - [Process](#tetragon-Process)
-    - [ProcessDns](#tetragon-ProcessDns)
     - [ProcessExec](#tetragon-ProcessExec)
     - [ProcessExit](#tetragon-ProcessExit)
     - [ProcessKprobe](#tetragon-ProcessKprobe)
@@ -185,27 +183,6 @@
 | start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Start time of the container. |
 | pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | PID in the container namespace. |
 | maybe_exec_probe | [bool](#bool) |  | If this is set true, it means that the process might have been originated from a Kubernetes exec probe. For this field to be true, the following must be true: 1. The binary field matches the first element of the exec command list for either liveness or readiness probe excluding the basename. For example, &#34;/bin/ls&#34; and &#34;ls&#34; are considered a match. 2. The arguments field exactly matches the rest of the exec command list. |
-
-
-
-
-
-
-<a name="tetragon-DnsInfo"></a>
-
-### DnsInfo
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| question_types | [uint32](#uint32) | repeated |  |
-| answer_types | [uint32](#uint32) | repeated |  |
-| rcode | [int32](#int32) |  |  |
-| names | [string](#string) | repeated |  |
-| ips | [string](#string) | repeated |  |
-| query | [string](#string) |  |  |
-| response | [bool](#bool) |  |  |
 
 
 
@@ -502,24 +479,6 @@
 
 
 
-<a name="tetragon-ProcessDns"></a>
-
-### ProcessDns
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| dns | [DnsInfo](#tetragon-DnsInfo) |  |  |
-| destination_names | [string](#string) | repeated | **Deprecated.** deprecated in favor of socket.destination_names. |
-| destination_pod | [Pod](#tetragon-Pod) |  |  |
-
-
-
-
-
-
 <a name="tetragon-ProcessExec"></a>
 
 ### ProcessExec
@@ -755,7 +714,6 @@ Note that currently only process_accept and process_connect events are aggregate
 | process_exit | [ProcessExit](#tetragon-ProcessExit) |  |  |
 | process_kprobe | [ProcessKprobe](#tetragon-ProcessKprobe) |  |  |
 | process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  |  |
-| process_dns | [ProcessDns](#tetragon-ProcessDns) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed.
@@ -782,7 +740,6 @@ EventType constants are based on the ones from pkg/api/client
 | PROCESS_EXIT | 7 |  |
 | PROCESS_KPROBE | 13 |  |
 | PROCESS_TRACEPOINT | 14 |  |
-| PROCESS_DNS | 18 |  |
 | TEST | 254 |  |
 
 

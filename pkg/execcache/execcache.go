@@ -8,7 +8,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/process"
@@ -42,7 +41,6 @@ type cacheObj struct {
 type Cache struct {
 	objsChan chan cacheObj
 	cache    []cacheObj
-	dns      *dns.Cache
 	server   *server.Server
 }
 
@@ -109,11 +107,10 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	ec.objsChan <- cacheObj{internal: internal, process: e, timestamp: t, msg: msg}
 }
 
-func New(s *server.Server, dns *dns.Cache) *Cache {
+func New(s *server.Server) *Cache {
 	ec := &Cache{
 		objsChan: make(chan cacheObj),
 		cache:    make([]cacheObj, 0),
-		dns:      dns,
 		server:   s,
 	}
 	nodeName = node.GetNodeNameForExport()

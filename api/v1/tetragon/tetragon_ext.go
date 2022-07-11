@@ -26,12 +26,6 @@ func (x *ProcessTracepoint) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
-func (x *ProcessDns) Encapsulate() IsGetEventsResponse_Event {
-	return &GetEventsResponse_ProcessDns{
-		ProcessDns: x,
-	}
-}
-
 func (x *Test) Encapsulate() IsGetEventsResponse_Event {
 	return &GetEventsResponse_Test{
 		Test: x,
@@ -51,9 +45,5 @@ func (x *ProcessKprobe) SetProcess(p *Process) {
 }
 
 func (x *ProcessTracepoint) SetProcess(p *Process) {
-	x.Process = p
-}
-
-func (x *ProcessDns) SetProcess(p *Process) {
 	x.Process = p
 }

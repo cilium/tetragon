@@ -5,12 +5,10 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/dns"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
@@ -38,7 +36,6 @@ type ProcessManager struct {
 	enableProcessNs   bool
 	enableEventCache  bool
 	enableCilium      bool
-	dns               *dns.Cache
 }
 
 // NewProcessManager returns a pointer to an initialized ProcessManager struct.
@@ -52,8 +49,6 @@ func NewProcessManager(
 	enableEventCache bool,
 	enableCilium bool,
 ) (*ProcessManager, error) {
-	var err error
-
 	pm := &ProcessManager{
 		nodeName:          node.GetNodeNameForExport(),
 		ciliumState:       ciliumState,
@@ -64,13 +59,9 @@ func NewProcessManager(
 		enableCilium:      enableCilium,
 	}
 
-	pm.dns, err = dns.NewCache()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create DNS cache %w", err)
-	}
 	pm.Server = server.NewServer(ctx, wg, pm, manager)
-	pm.eventCache = eventcache.New(pm.Server, pm.dns)
-	pm.execCache = execcache.New(pm.Server, pm.dns)
+	pm.eventCache = eventcache.New(pm.Server)
+	pm.execCache = execcache.New(pm.Server)
 
 	tracing.New(enableCilium, enableProcessCred, enableProcessNs)
 	exec.New(pm.execCache, pm.eventCache, enableProcessCred, enableProcessNs)
