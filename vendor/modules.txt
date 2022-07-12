@@ -74,6 +74,12 @@ github.com/cilium/hubble/pkg/servicecache
 # github.com/cilium/lumberjack/v2 v2.2.2
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
+# github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ./api
+## explicit; go 1.17
+github.com/cilium/tetragon/api/v1/tetragon
+github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker
+github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml
+github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers
 # github.com/cpuguy83/go-md2man/v2 v2.0.1
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
@@ -435,7 +441,7 @@ google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20220628213854-d9e0b6570c03
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.47.0
+# google.golang.org/grpc v1.48.0
 ## explicit; go 1.14
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -932,10 +938,11 @@ sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
-# sigs.k8s.io/yaml v1.2.0
+# sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20220620135537-093202506da0
+# github.com/cilium/tetragon/api => ./api
 # github.com/miekg/dns => github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3
 # github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 # github.com/vishvananda/netlink => github.com/jrfastab/netlink v1.1.1

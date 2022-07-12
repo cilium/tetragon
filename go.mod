@@ -8,6 +8,7 @@ require (
 	github.com/cilium/ebpf v0.9.0
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
 	github.com/cilium/lumberjack/v2 v2.2.2
+	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/fatih/color v1.13.0
 	github.com/google/go-cmp v0.5.8
 	github.com/google/gops v0.3.23
@@ -24,7 +25,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
-	google.golang.org/grpc v1.47.0
+	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.0
 	k8s.io/api v0.22.5
 	k8s.io/apiextensions-apiserver v0.22.5
@@ -32,7 +33,7 @@ require (
 	k8s.io/client-go v0.22.5
 	k8s.io/code-generator v0.22.5
 	sigs.k8s.io/controller-tools v0.4.1
-	sigs.k8s.io/yaml v1.2.0
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -122,6 +123,10 @@ require (
 // has to be in sync with both cilium and hubble overrides (mostly cilium).
 replace (
 	github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20220620135537-093202506da0
+
+	// Use local version of API
+	github.com/cilium/tetragon/api => ./api
+
 	github.com/miekg/dns => github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	github.com/vishvananda/netlink => github.com/jrfastab/netlink v1.1.1

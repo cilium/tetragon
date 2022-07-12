@@ -1,0 +1,111 @@
+// Copyright 2020 Authors of Hubble
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package tetragon;
+
+import "tetragon/tetragon.proto";
+import "tetragon/stack.proto";
+import "tetragon/events.proto";
+
+/**
+ * Sensors
+ */
+
+message ListSensorsRequest { }
+
+message SensorStatus {
+	string name = 1;
+	bool enabled = 2;
+}
+message ListSensorsResponse {
+	repeated SensorStatus sensors = 1;
+}
+
+message AddTracingPolicyRequest {
+	string yaml = 1;
+}
+message AddTracingPolicyResponse {}
+
+message DeleteTracingPolicyRequest {
+	string yaml = 1;
+}
+message DeleteTracingPolicyResponse {}
+
+message RemoveSensorRequest {
+	string name = 1;
+}
+message RemoveSensorResponse {}
+
+
+message EnableSensorRequest {
+	string name = 1;
+}
+
+message EnableSensorResponse {}
+
+message DisableSensorRequest {
+	string name = 1;
+}
+
+message SetSensorConfigRequest {
+	string name = 1;
+	string cfgkey = 2;
+	string cfgval = 3;
+}
+
+message SetSensorConfigResponse {}
+
+message GetSensorConfigRequest {
+	string name = 1;
+	string cfgkey = 2;
+}
+
+message GetSensorConfigResponse {
+	string cfgval = 1;
+}
+
+message DisableSensorResponse { }
+
+message GetStackTraceTreeRequest {
+	string name = 1;
+}
+
+message GetStackTraceTreeResponse {
+	StackTraceNode root = 1;
+}
+
+message GetVersionRequest{}
+message GetVersionResponse{
+	string version = 1;
+}
+
+service FineGuidanceSensors {
+    rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
+    rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
+
+    rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
+    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
+
+    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {}
+    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {}
+    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {}
+    rpc SetSensorConfig(SetSensorConfigRequest) returns (SetSensorConfigResponse) {}
+    rpc GetSensorConfig(GetSensorConfigRequest) returns (GetSensorConfigResponse) {}
+
+    rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
+
+    rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+}

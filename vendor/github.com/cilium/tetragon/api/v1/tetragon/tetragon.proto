@@ -1,0 +1,235 @@
+// Copyright 2020 Authors of Hubble
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package tetragon;
+
+import "tetragon/capabilities.proto";
+
+message Image {
+    string id = 1;
+    string name = 2;
+}
+
+message Container {
+    string id = 1;
+    string name = 2;
+    Image image = 3;
+    // Start time of the container.
+    google.protobuf.Timestamp start_time = 4;
+    // PID in the container namespace.
+    google.protobuf.UInt32Value pid = 5;
+
+    // If this is set true, it means that the process might have been originated from
+    // a Kubernetes exec probe. For this field to be true, the following must be true:
+    // 1. The binary field matches the first element of the exec command list for either
+    //    liveness or readiness probe excluding the basename. For example, "/bin/ls"
+    //    and "ls" are considered a match.
+    // 2. The arguments field exactly matches the rest of the exec command list.
+    bool maybe_exec_probe = 13;
+}
+
+message Pod {
+    string namespace = 1;
+    string name = 2;
+    repeated string labels = 3;
+    Container container = 4;
+}
+
+message Capabilities {
+    repeated CapabilitiesType permitted = 1;
+    repeated CapabilitiesType effective = 2;
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message Namespace {
+    uint32 inum = 1;
+    bool is_host = 2;
+}
+
+message Namespaces {
+    Namespace uts = 1;
+    Namespace ipc = 2;
+    Namespace mnt = 3;
+    Namespace pid = 4;
+    Namespace pid_for_children = 5;
+    Namespace net = 6;
+    Namespace time = 7;
+    Namespace time_for_children = 8;
+    Namespace cgroup = 9;
+    Namespace user = 10;
+}
+
+message Process {
+    // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
+    string exec_id = 1;
+    google.protobuf.UInt32Value pid = 2;
+    google.protobuf.UInt32Value uid = 3;
+    string cwd = 4;
+    string binary = 5;
+    string arguments = 6;
+    string flags = 7;
+    google.protobuf.Timestamp start_time = 8;
+    google.protobuf.UInt32Value auid = 9;
+    Pod pod = 10;
+    string docker = 11;
+    string parent_exec_id = 12;
+    uint32 refcnt = 13;
+    Capabilities cap = 14;
+    Namespaces ns = 15;
+}
+
+message ProcessExec {
+    Process process = 1;
+    Process parent = 2;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 3;
+}
+
+message ProcessExit {
+    Process process = 1;
+    Process parent  = 2;
+    string  signal  = 3;
+    uint32  status  = 4;
+}
+
+message KprobeSock {
+    string family = 1;
+    string type = 2;
+    string protocol = 3;
+    uint32 mark = 4;
+    uint32 priority = 5;
+    string saddr = 6;
+    string daddr = 7;
+    uint32 sport = 8;
+    uint32 dport = 9;
+}
+
+message KprobeSkb {
+    uint32 hash = 1;
+    uint32 len = 2;
+    uint32 priority = 3;
+    uint32 mark = 4;
+    string saddr = 5;
+    string daddr = 6;
+    uint32 sport = 7;
+    uint32 dport = 8;
+    uint32 proto = 9;
+    uint32 sec_path_len = 10;
+    uint32 sec_path_olen = 11;
+}
+
+message KprobePath {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeFile {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeTruncatedBytes {
+	bytes bytes_arg = 1;
+	uint64 orig_size = 2;
+}
+
+message KprobeCred {
+    repeated CapabilitiesType permitted = 1;
+    repeated CapabilitiesType effective = 2;
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message KprobeArgument {
+    oneof arg {
+	string    string_arg = 1;
+	int32     int_arg = 2;
+	KprobeSkb skb_arg = 3;
+	uint64    size_arg = 4;
+	bytes     bytes_arg = 5;
+	KprobePath path_arg = 6;
+	KprobeFile file_arg = 7;
+	KprobeTruncatedBytes truncated_bytes_arg = 8;
+	KprobeSock sock_arg = 9;
+	KprobeCred cred_arg = 10;
+	int64 long_arg = 11;
+    }
+}
+
+enum KprobeAction {
+	KPROBE_ACTION_UNKNOWN    = 0;
+	KPROBE_ACTION_POST	 = 1;
+	KPROBE_ACTION_FOLLOWFD   = 2;
+	KPROBE_ACTION_SIGKILL    = 3;
+	KPROBE_ACTION_UNFOLLOWFD = 4;
+	KPROBE_ACTION_OVERRIDE   = 5;
+	KPROBE_ACTION_COPYFD     = 6;
+}
+
+message ProcessKprobe {
+    Process process = 1;
+    Process parent = 2;
+    string function_name = 3;
+    repeated KprobeArgument args = 4;
+    KprobeArgument return = 5;
+    KprobeAction action = 6;
+}
+
+message ProcessTracepoint {
+    Process process = 1;
+    Process parent = 2;
+    string subsys = 4;
+    string event = 5;
+    // TODO: once we implement all we want, rename KprobeArgument to GenericArgument
+    repeated KprobeArgument args = 6;
+}
+
+message Test {
+	uint64 arg0 = 1;
+	uint64 arg1 = 2;
+	uint64 arg2 = 3;
+	uint64 arg3 = 4;
+}
+
+enum HealthStatusType {
+ HEALTH_STATUS_TYPE_UNDEF  = 0;
+ HEALTH_STATUS_TYPE_STATUS = 1;
+}
+
+enum HealthStatusResult {
+ HEALTH_STATUS_UNDEF    = 0;
+ HEALTH_STATUS_RUNNING  = 1;
+ HEALTH_STATUS_STOPPED  = 2;
+ HEALTH_STATUS_ERROR    = 3;
+}
+
+message GetHealthStatusRequest {
+    repeated HealthStatusType event_set = 1;
+}
+
+message HealthStatus {
+	HealthStatusType event = 1;
+	HealthStatusResult status = 2;
+	string details = 3;
+}
+
+message GetHealthStatusResponse {
+	repeated HealthStatus health_status = 1;
+}
