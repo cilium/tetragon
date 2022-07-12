@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/sirupsen/logrus"
 )
 
 type TetragonConfKey struct {
@@ -28,6 +29,10 @@ type TetragonConfValue struct {
 	TGCgrpId    uint64
 	CgrpFsMagic uint64
 }
+
+var (
+	log = logger.GetLogger()
+)
 
 func (k *TetragonConfKey) String() string             { return fmt.Sprintf("key=%d", k.Key) }
 func (k *TetragonConfKey) GetKeyPtr() unsafe.Pointer  { return unsafe.Pointer(k) }
@@ -47,7 +52,7 @@ func UpdateTetragonConfMap(mapDir string, pid int) error {
 	configMap := base.GetTetragonConfMap()
 
 	mapPath := filepath.Join(mapDir, configMap.Name)
-	logger.GetLogger().WithField("map", configMap.Name).Debugf("updating TetragonConfMap '%q'", mapPath)
+	log.WithField("map", configMap.Name).Debugf("updating TetragonConfMap %q", mapPath)
 
 	m, err := bpf.OpenMap(mapPath)
 	for i := 0; err != nil; i++ {
@@ -56,7 +61,7 @@ func UpdateTetragonConfMap(mapDir string, pid int) error {
 			time.Sleep(1 * time.Second)
 		}
 		if i > 4 {
-			logger.GetLogger().WithField("map", configMap.Name).WithError(err).Warn("Failed to open TetragonConfMap")
+			log.WithField("map", configMap.Name).WithError(err).Warn("Failed to open TetragonConfMap")
 			return err
 		}
 	}
@@ -68,16 +73,20 @@ func UpdateTetragonConfMap(mapDir string, pid int) error {
 		// TODO complete
 		Mode:        0,
 		CgrpFsMagic: 0,
+		LogLevel:    uint32(logger.GetLogLevel()),
 		NSPID:       uint32(pid),
 	}
 
 	err = m.Update(k, v)
 	if err != nil {
-		logger.GetLogger().WithField("map", configMap.Name).WithError(err).Warn("Failed to update TetragonConfMap")
+		log.WithField("map", configMap.Name).WithError(err).Warn("Failed to update TetragonConfMap")
 		return err
 	}
 
-	logger.GetLogger().WithField("map", configMap.Name).WithField("NSPID", pid).Debugf("updated TetragonConfMap '%q' successfully", mapPath)
+	log.WithField("map", configMap.Name).WithFields(logrus.Fields{
+		"LogLevel": logrus.Level(v.LogLevel).String(),
+		"NSPID":    v.NSPID,
+	}).Infof("updated TetragonConfMap %q successfully", mapPath)
 
 	return nil
 }
