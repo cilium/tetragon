@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	observer.RegisterEventHandlerAtInit(ops.MSG_OP_DATA, handleData)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_DATA, HandleData)
 }
 
 var (
@@ -53,7 +53,7 @@ func Get(id dataapi.DataEventId) ([]byte, error) {
 	return data, nil
 }
 
-func handleData(r *bytes.Reader) ([]observer.Event, error) {
+func HandleData(r *bytes.Reader) ([]observer.Event, error) {
 	m := dataapi.MsgData{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
