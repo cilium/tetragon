@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
       cd /home/vagrant/go/src/github.com/cilium/tetragon
       apt-get update
       apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools
-      snap install go --channel=1.16/stable --classic
+      snap install go --channel=1.17/stable --classic
       make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib CLANG_INSTALL_DIR=/usr/bin
       ldconfig /usr/local/
 
