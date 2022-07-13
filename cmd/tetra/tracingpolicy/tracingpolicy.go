@@ -32,7 +32,7 @@ func New() *cobra.Command {
 
 	tpAddCmd := &cobra.Command{
 		Use:   "add <yaml_file>",
-		Short: "Add a new sennsor based on a tracing policy",
+		Short: "Add a new sensor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
