@@ -174,6 +174,9 @@ clang-install:
 	$(CONTAINER_ENGINE) cp ${id}:/usr/local/bin/llc $(CLANG_INSTALL_DIR)/llc
 	$(CONTAINER_ENGINE) stop ${id}
 
+fetch-testdata:
+	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
+
 generate:
 	./tools/controller-gen crd paths=./pkg/k8s/apis/... output:dir=pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 	export GOPATH=$$(go env GOPATH); \
