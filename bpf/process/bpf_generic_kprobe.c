@@ -90,6 +90,12 @@ generic_kprobe_start_process_filter(void *ctx)
 	return 0;
 }
 
+#ifdef __MULTI_KPROBE
+#define MAIN "kprobe.multi/generic_kprobe"
+#else
+#define MAIN "kprobe/generic_kprobe"
+#endif
+
 /* Generic kprobe pseudocode is the following
  *
  *  filter_pids -> drop if no matches
@@ -113,7 +119,7 @@ generic_kprobe_start_process_filter(void *ctx)
  * to get below 4k insns. For 5.x+ kernels with 1m.insns its not
  * an issue.
  */
-__attribute__((section("kprobe/generic_kprobe"), used)) int
+__attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	return generic_kprobe_start_process_filter(ctx);
