@@ -24,10 +24,16 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(int),
 	.value_size = sizeof(struct event_config),
-	.max_entries = 1,
+	.max_entries = 100,
 };
 
-__attribute__((section("kprobe/generic_retkprobe"), used)) int
+#ifdef __MULTI_KPROBE
+# define MAIN "kprobe.multi/generic_kprobe"
+#else
+# define MAIN "kprobe/generic_kprobe"
+#endif
+
+__attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	struct execve_map_value *enter;
@@ -45,13 +51,15 @@ generic_kprobe_event(struct pt_regs *ctx)
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &zero);
+	setup_index(ctx, e, &config_map);
+
+	config = map_lookup_elem(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	retprobe_buffer = retprobe_map_get(e->thread_id, &cnt);
+	retprobe_buffer = retprobe_map_get(e->func_id, e->thread_id, &cnt);
 	if (!retprobe_buffer)
 		return 0;
 

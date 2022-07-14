@@ -1,3 +1,8 @@
+struct retprobe_key {
+	u64 id;
+	u64 tid;
+};
+
 struct retprobe_info {
 	unsigned long ptr;
 	unsigned long cnt;
@@ -5,55 +10,72 @@ struct retprobe_info {
 
 struct bpf_map_def __attribute__((section("maps"), used)) retprobe_map = {
 	.type = BPF_MAP_TYPE_HASH,
-	.key_size = sizeof(__u64),
+	.key_size = sizeof(struct retprobe_key),
 	.value_size = sizeof(struct retprobe_info),
 	.max_entries = 1024,
 };
 
 static inline __attribute__((always_inline)) unsigned long
-retprobe_map_get(__u64 tid, unsigned long *cntp)
+retprobe_map_get(__u64 id, __u64 tid, unsigned long *cntp)
 {
 	struct retprobe_info *info;
 	unsigned long ptr;
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	info = map_lookup_elem(&retprobe_map, &tid);
+	info = map_lookup_elem(&retprobe_map, &key);
 	if (!info)
 		return 0;
 
 	ptr = info->ptr;
 	if (cntp)
 		*cntp = info->cnt;
-	map_delete_elem(&retprobe_map, &tid);
+	map_delete_elem(&retprobe_map, &key);
 	return ptr;
 }
 
-static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 tid)
+static inline __attribute__((always_inline)) void
+retprobe_map_clear(__u64 id, __u64 tid)
 {
-	struct retprobe_info *info = map_lookup_elem(&retprobe_map, &tid);
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
+	struct retprobe_info *info = map_lookup_elem(&retprobe_map, &key);
 
 	if (info)
-		map_delete_elem(&retprobe_map, &tid);
+		map_delete_elem(&retprobe_map, &key);
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set(__u64 tid, unsigned long ptr)
+retprobe_map_set(__u64 id, __u64 tid, unsigned long ptr)
 {
 	struct retprobe_info info = {
 		.ptr = ptr,
 	};
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
+	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set_iovec(__u64 tid, unsigned long ptr, unsigned long cnt)
+retprobe_map_set_iovec(__u64 id, __u64 tid, unsigned long ptr, unsigned long cnt)
 {
 	struct retprobe_info info = {
 		.ptr = ptr,
 		.cnt = cnt,
 	};
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
+	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
 }
 
 /**

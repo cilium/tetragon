@@ -69,7 +69,6 @@ func kprobeCharBufErrorToString(e int32) string {
 
 type kprobeLoadArgs struct {
 	filters  [4096]byte
-	btf      uintptr
 	retprobe bool
 	syscall  bool
 	config   *api.EventConfig
@@ -133,14 +132,6 @@ func genericKprobeTableGet(id idtable.EntryID) (*genericKprobe, error) {
 	}
 }
 
-func genericKprobeFromBpfLoad(l *program.Program) (*genericKprobe, error) {
-	id, ok := l.LoaderData.(idtable.EntryID)
-	if !ok {
-		return nil, fmt.Errorf("invalid loadData type: expecting idtable.EntryID and got: %T (%v)", l.LoaderData, l.LoaderData)
-	}
-	return genericKprobeTableGet(id)
-}
-
 var (
 	MaxFilterIntArgs = 8
 )
@@ -186,14 +177,14 @@ func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
 func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
+	var multiIDs, multiRetIDs []idtable.EntryID
 
-	btfobj := bpf.BTFNil
-	defer func() {
-		// if we return early due to an error, make sure that we don't leak the BTF object
-		if btfobj != bpf.BTFNil {
-			btfobj.Close()
-		}
-	}()
+	loadProgName := "bpf_generic_kprobe.o"
+	loadProgRetName := "bpf_generic_retkprobe.o"
+	if kernels.EnableLargeProgs() {
+		loadProgName = "bpf_generic_kprobe_v53.o"
+		loadProgRetName = "bpf_generic_retkprobe_v53.o"
+	}
 
 	for i := range kprobes {
 		f := &kprobes[i]
@@ -208,13 +199,11 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		argRetprobe = nil // holds pointer to arg for return handler
 		funcName := f.Call
 
-		// Write args into BTF ptr for use with load
 		var err error
-		btfobj, err = btf.NewBTF()
+		btfobj, err := btf.NewBTF()
 		if err != nil {
 			return nil, err
 		}
-
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
 			if warn, ok := err.(*btf.ValidationWarn); ok {
 				logger.GetLogger().Warnf("kprobe spec validation: %s", warn)
@@ -352,7 +341,6 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		kprobeEntry := genericKprobe{
 			loadArgs: kprobeLoadArgs{
 				filters:  kernelSelectors,
-				btf:      uintptr(btfobj),
 				retprobe: setRetprobe,
 				syscall:  is_syscall,
 				config:   config,
@@ -368,29 +356,15 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 
 		config.FuncId = uint32(kprobeEntry.tableId.ID)
 
-		loadProgName := "bpf_generic_kprobe.o"
-		loadProgRetName := "bpf_generic_retkprobe.o"
-		if kernels.EnableLargeProgs() {
-			loadProgName = "bpf_generic_kprobe_v53.o"
-			loadProgRetName = "bpf_generic_retkprobe_v53.o"
-		}
-
-		// NB(kkourt): after we insert the kprobeEntry to the global table
-		// (genericKprobeTable), the btf object will need to be released when we remove the
-		// entry from the table. We set btfobj to nil to indicate this.
-		//
-		// Currently, however, we do not remove entries from the global table.
-		//
-		// Removal is done in the sensor controller goroutine.  One option would be to
-		// add a sensorRemove method in the observerSensorImpl, so that each sensor does its
-		// own cleanup. Note that in that case, we would need to synchronize access to the
-		// table because sensorRemove would be called from the sensor controller goroutine.
-		//
-		// Alternatively, we could construct the btf object at load time (as we do in the
-		// tracepoints case) and release it there, which seems like a simpler option.
-		btfobj = bpf.BTFNil
-
 		pinFile := fmt.Sprintf("kprobe_%s", funcName)
+
+		if bpf.HasKprobeMulti() {
+			if setRetprobe {
+				multiRetIDs = append(multiRetIDs, kprobeEntry.tableId)
+			}
+			multiIDs = append(multiIDs, kprobeEntry.tableId)
+			continue
+		}
 
 		load := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgName),
@@ -429,6 +403,30 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 		logger.GetLogger().Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	}
 
+	if len(multiIDs) != 0 {
+		load := program.Builder(
+			path.Join(option.Config.HubbleLib, "bpf_multi_kprobe_v53.o"),
+			"",
+			"kprobe.multi/generic_kprobe",
+			"multi_kprobe",
+			"generic_kprobe").
+			SetLoaderData(multiIDs)
+		progs = append(progs, load)
+		logger.GetLogger().Infof("Added multi kprobe sensor: %s (%d functions)", load.Name, len(multiIDs))
+	}
+
+	if len(multiRetIDs) != 0 {
+		load := program.Builder(
+			path.Join(option.Config.HubbleLib, "bpf_multi_retkprobe_v53.o"),
+			"",
+			"kprobe.multi/generic_kprobe",
+			"multi_retkprobe",
+			"generic_kprobe").
+			SetLoaderData(multiRetIDs)
+		progs = append(progs, load)
+		logger.GetLogger().Infof("Added multi retkprobe sensor: %s (%d functions)", load.Name, len(multiRetIDs))
+	}
+
 	return &sensors.Sensor{
 		Name:  "__generic_kprobe_sensors__",
 		Progs: progs,
@@ -436,8 +434,8 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) 
 	}, nil
 }
 
-func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
-	gk, err := genericKprobeFromBpfLoad(load)
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
 	}
@@ -445,12 +443,12 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	var bin_buf bytes.Buffer
 
 	if !load.RetProbe {
-		filter := &program.MapLoad{Name: "filter_map", Data: gk.loadArgs.filters[:]}
+		filter := &program.MapLoad{Index: 0, Name: "filter_map", Data: gk.loadArgs.filters[:]}
 		load.MapLoad = append(load.MapLoad, filter)
 	}
 
 	binary.Write(&bin_buf, binary.LittleEndian, gk.loadArgs.config)
-	config := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
+	config := &program.MapLoad{Index: 0, Name: "config_map", Data: bin_buf.Bytes()[:]}
 	load.MapLoad = append(load.MapLoad, config)
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
@@ -472,6 +470,60 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	}
 
 	return err
+}
+
+func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	sensors.AllPrograms = append(sensors.AllPrograms, load)
+
+	bin_buf := make([]bytes.Buffer, len(ids))
+
+	for index, id := range ids {
+		gk, err := genericKprobeTableGet(id)
+		if err != nil {
+			return err
+		}
+
+		if !load.RetProbe {
+			filter := &program.MapLoad{Index: uint32(index), Name: "filter_map", Data: gk.loadArgs.filters[:]}
+			load.MapLoad = append(load.MapLoad, filter)
+		}
+
+		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
+		config := &program.MapLoad{Index: uint32(index), Name: "config_map", Data: bin_buf[index].Bytes()[:]}
+		load.MapLoad = append(load.MapLoad, config)
+
+		load.MultiSymbols = append(load.MultiSymbols, gk.funcName)
+		load.MultiCookies = append(load.MultiCookies, uint64(index))
+	}
+
+	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
+		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	} else {
+		return err
+	}
+
+	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
+	if err != nil {
+		return err
+	}
+	for i, b := range binaryNames {
+		for _, path := range b.Values {
+			writeBinaryMap(i+1, path, m)
+		}
+	}
+
+	return err
+}
+
+func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	if id, ok := load.LoaderData.(idtable.EntryID); ok {
+		return loadSingleKprobeSensor(id, bpfDir, mapDir, load, version, verbose)
+	}
+	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
+		return loadMultiKprobeSensor(ids, bpfDir, mapDir, load, version, verbose)
+	}
+	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
+		load.LoaderData, load.LoaderData)
 }
 
 func handleGenericKprobeString(r *bytes.Reader) string {

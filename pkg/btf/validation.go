@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
@@ -70,24 +69,21 @@ func hasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 // NB: turns out we need more than BTF information for the validation (see
 // syscalls). We still keep this code in the btf package for now, and we can
 // move it once we found a better home for it.
-func ValidateKprobeSpec(btf bpf.BTF, kspec *v1alpha1.KProbeSpec) error {
+func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 	if hasSigkillAction(kspec) && !kernels.MinKernelVersion("5.3.0") {
 		return &ValidationFailed{s: "sigkill action requires kernel >= 5.3.0"}
 	}
 
-	// check that the function itself exists
-	callID, err := btf.FindByNameKind(kspec.Call, bpf.BtfKindFunc)
+	var fn *btf.Func
+
+	err := bspec.TypeByName(kspec.Call, &fn)
 	if err != nil {
-		return fmt.Errorf("kprobe spec validation failed: call %s not found: %w", kspec.Call, err)
-	}
-	callTy, err := btf.TypeByID(callID)
-	if err != nil {
-		logger.GetLogger().WithError(err).Debug("failed to find type by id")
+		return fmt.Errorf("kprobe spec validation failed: call %s not found", kspec.Call)
 	}
 
-	callProtoID, err := btf.UnderlyingType(callTy)
-	if err != nil {
-		logger.GetLogger().WithError(err).WithField("call", kspec.Call).Debug("failed to find prototype")
+	proto, ok := fn.Type.(*btf.FuncProto)
+	if !ok {
+		return fmt.Errorf("kprobe spec validation failed: proto for call %s not found", kspec.Call)
 	}
 
 	// Syscalls are special.
@@ -96,14 +92,37 @@ func ValidateKprobeSpec(btf bpf.BTF, kspec *v1alpha1.KProbeSpec) error {
 	// arguments. Moreover, the does not seem to be a reliable way of doing
 	// so with our BTF files.
 	if kspec.Syscall {
-		// first validate that the call's signature is what we would expect from a syscall
-		s, err := btf.DumpTy(callProtoID)
-		if err != nil {
-			return fmt.Errorf("validating syscall: %w", err)
+		ret, ok := proto.Return.(*btf.Int)
+		if !ok {
+			return fmt.Errorf("kprobe spec validation failed: syscall return type is not Int")
 		}
-		if s != "long int(const struct pt_regs *regs)" {
-			return fmt.Errorf("function signature '%s' does not look like a syscall", s)
+		if ret.Name != "long int" {
+			return fmt.Errorf("kprobe spec validation failed: syscall return type is not long int")
 		}
+
+		if len(proto.Params) != 1 {
+			return fmt.Errorf("kprobe spec validation failed: syscall with more than one arg")
+		}
+
+		ptr, ok := proto.Params[0].Type.(*btf.Pointer)
+		if !ok {
+			return fmt.Errorf("kprobe spec validation failed: syscall arg is not pointer")
+		}
+
+		cnst, ok := ptr.Target.(*btf.Const)
+		if !ok {
+			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer")
+		}
+
+		arg, ok := cnst.Type.(*btf.Struct)
+		if !ok {
+			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer to struct")
+		}
+
+		if arg.Name != "pt_regs" {
+			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer to struct pt_regs")
+		}
+
 		// next try to deduce the syscall name.
 		// NB: this might change in different kernels so if we fail we treat it as a warning
 		prefix := "__x64_sys_"
@@ -114,53 +133,44 @@ func ValidateKprobeSpec(btf bpf.BTF, kspec *v1alpha1.KProbeSpec) error {
 		return validateSycall(kspec, syscall)
 	}
 
-	callProtoTy, err := btf.TypeByID(callProtoID)
-	if err != nil {
-		logger.GetLogger().WithError(err).Debug("failed to find type by id")
-	}
-
-	callProtoStr, err := btf.DumpTy(callProtoID)
-	if err != nil {
-		logger.GetLogger().WithError(err).Debug("failed to dump function prototype by id")
-	}
-
-	fnNArgs := uint32(callProtoTy.Vlen())
+	fnNArgs := uint32(len(proto.Params))
 	for i := range kspec.Args {
 		specArg := &kspec.Args[i]
 		if specArg.Index >= fnNArgs {
-			return fmt.Errorf("kprobe arg %d has an invalid index: %d based on prototype: %s", i, specArg.Index, callProtoStr)
+			return fmt.Errorf("kprobe arg %d has an invalid index: %d based on prototype: %s", i, specArg.Index, proto)
 		}
-
-		paramID, err := btf.ParamTypeID(callProtoTy, int(specArg.Index))
-		if err != nil {
-			return fmt.Errorf("failed to get paramater type for kprobe arg %d on prototype: %s", i, callProtoStr)
-		}
-
-		paramTyStr, err := btf.DumpTy(paramID)
-		if err != nil {
-			return fmt.Errorf("failed to dump paramemter type by id: %w", err)
-		}
-
+		arg := proto.Params[int(specArg.Index)]
+		paramTyStr := getKernelType(arg.Type)
 		if !typesCompatible(specArg.Type, paramTyStr) {
 			return &ValidationWarn{s: fmt.Sprintf("type (%s) of argument %d does not match spec type (%s)\n", paramTyStr, specArg.Index, specArg.Type)}
 		}
 	}
 
 	if kspec.Return {
-		retID, err := btf.UnderlyingType(callProtoTy)
-		if err != nil {
-			logger.GetLogger().WithError(err).WithField("call", kspec.Call).Debug("failed to find return type")
-		}
-		retTyStr, err := btf.DumpTy(retID)
-		if err != nil {
-			logger.GetLogger().WithError(err).WithField("call", kspec.Call).Debug("failed to dump return type")
-		}
+		retTyStr := getKernelType(proto.Return)
 		if !typesCompatible(kspec.ReturnArg.Type, retTyStr) {
 			return &ValidationWarn{s: fmt.Sprintf("return type (%s) does not match spec return type (%s)\n", retTyStr, kspec.ReturnArg.Type)}
 		}
 	}
 
 	return nil
+}
+
+func getKernelType(arg btf.Type) string {
+	ptr, ok := arg.(*btf.Pointer)
+	if ok {
+		arg = ptr.Target
+	}
+	num, ok := arg.(*btf.Int)
+	if ok {
+		return num.Name
+	}
+	strct, ok := arg.(*btf.Struct)
+	if ok {
+		return strct.Name
+	}
+	// TODO - add more types, above is enough to make validation_test pass
+	return arg.TypeName()
 }
 
 func typesCompatible(specTy string, kernelTy string) bool {

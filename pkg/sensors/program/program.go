@@ -34,8 +34,9 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 }
 
 type MapLoad struct {
-	Name string
-	Data []byte
+	Index uint32
+	Name  string
+	Data  []byte
 }
 
 // Program reprents a BPF program.
@@ -76,6 +77,9 @@ type Program struct {
 	unloaderOverride unloader.Unloader
 
 	PinMap map[string]string
+
+	MultiSymbols []string
+	MultiCookies []uint64
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {

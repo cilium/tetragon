@@ -98,6 +98,35 @@ func KprobeAttach(load *Program) AttachFunc {
 	}
 }
 
+func MultiKprobeAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		opts := link.KprobeMultiOptions{
+			Symbols: load.MultiSymbols,
+			Cookies: load.MultiCookies,
+		}
+
+		var lnk link.Link
+		var err error
+
+		if load.RetProbe {
+			lnk, err = link.KretprobeMulti(prog, &opts)
+		} else {
+			lnk, err = link.KprobeMulti(prog, &opts)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+			unloader.LinkUnloader{
+				Link: lnk,
+			},
+		}, nil
+	}
+}
+
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
 	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
@@ -106,6 +135,11 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
 	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+}
+
+func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
+	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
 }
 
 func slimVerifierError(errStr string) string {
@@ -299,7 +333,7 @@ func loadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := m.Update(uint32(0), mapLoad.Data, ebpf.UpdateAny); err != nil {
+			if err := m.Update(mapLoad.Index, mapLoad.Data, ebpf.UpdateAny); err != nil {
 				return err
 			}
 		} else {

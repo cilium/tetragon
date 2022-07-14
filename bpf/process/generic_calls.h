@@ -26,7 +26,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -50,7 +50,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 #ifdef GENERIC_KPROBE
 	ty = config->argreturn;
 	if (ty > 0)
-		retprobe_map_set(e->thread_id, 1);
+		retprobe_map_set(e->func_id, e->thread_id, 1);
 #endif
 
 	/* Read out args1-5 */
@@ -71,7 +71,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		 * do it where it makes most sense.
 		 */
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.flags = 0;
 	e->common.size = total;
@@ -95,7 +95,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -160,7 +160,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -180,7 +180,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 2);
@@ -210,7 +210,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -230,7 +230,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 3);
@@ -260,7 +260,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -281,7 +281,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 4);
@@ -311,7 +311,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -331,7 +331,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	/* Post event */

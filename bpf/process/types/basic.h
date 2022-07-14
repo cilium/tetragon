@@ -120,6 +120,28 @@ struct event_config {
  */
 #define MAX_STRING 1024
 
+#ifdef __MULTI_KPROBE
+static inline __attribute__((always_inline)) void
+setup_index(void *ctx, struct msg_generic_kprobe *msg, struct bpf_map_def *config_map)
+{
+	int idx = (int) get_attach_cookie(ctx);
+	struct event_config *config;
+
+	config = map_lookup_elem(config_map, &idx);
+	if (!config)
+		return;
+	msg->idx = idx;
+	msg->func_id = config->func_id;
+}
+#else
+static inline __attribute__((always_inline)) void
+setup_index(void *ctx, struct msg_generic_kprobe *msg, struct bpf_map_def *config_map)
+{
+	msg->idx = 0;
+	msg->func_id = 0;
+}
+#endif
+
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
 	switch (ty) {
@@ -496,7 +518,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set(tid, arg);
+		retprobe_map_set(e->func_id, tid, arg);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
@@ -645,7 +667,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(tid, arg, meta);
+		retprobe_map_set_iovec(e->func_id, tid, arg, meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e);
@@ -859,21 +881,20 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selector)
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(void)
+static inline __attribute__((always_inline)) int filter_args_reject(int idx)
 {
 	u64 tid = get_current_pid_tgid();
-	retprobe_map_clear(tid);
+	retprobe_map_clear(idx, tid);
 	return 0;
 }
 
 static inline __attribute__((always_inline)) int
 filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 {
-	int zero = 0;
 	__u8 *f;
 
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(filter_map, &zero);
+	f = map_lookup_elem(filter_map, &e->idx);
 	if (!f) {
 		return 1;
 	}
@@ -888,7 +909,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 	 * have their arg filters run.
 	 */
 	if (index > SELECTORS_ACTIVE)
-		return filter_args_reject();
+		return filter_args_reject(e->func_id);
 
 	if (e->active[index]) {
 		int pass = selector_arg_offset(f, e, index);
@@ -997,18 +1018,17 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) void
-__do_action_sigkill(struct bpf_map_def *config_map)
+__do_action_sigkill(struct bpf_map_def *config_map, int idx)
 {
 	struct event_config *config;
-	int zero = 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &idx);
 	if (config && config->sigkill)
 		send_signal(FGS_SIGKILL);
 }
 #else
 static inline __attribute__((always_inline)) void
-__do_action_sigkill(struct bpf_map_def *config_map)
+__do_action_sigkill(struct bpf_map_def *config_map, int idx)
 {
 }
 #endif /* __LARGE_BPF_PROG */
@@ -1038,7 +1058,7 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		err = copyfd(e, oldfdi, newfdi);
 		break;
 	case ACTION_SIGKILL:
-		__do_action_sigkill(config_map);
+		__do_action_sigkill(config_map, e->idx);
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
@@ -1100,7 +1120,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	if (!pass) {
 		index++;
 		if (index > MAX_SELECTORS || !e->active[index])
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 		tail_call(ctx, tailcalls, index + 5);
 		return 2;
 	}
@@ -1113,7 +1133,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		int actoff;
 		__u8 *f;
 
-		f = map_lookup_elem(filter, &zero);
+		f = map_lookup_elem(filter, &e->idx);
 		if (f) {
 			bool postit;
 

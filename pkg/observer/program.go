@@ -6,7 +6,6 @@ package observer
 import (
 	"os"
 
-	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
@@ -14,5 +13,4 @@ func RemovePrograms(bpfDir, mapDir string) {
 	sensors.UnloadAll(bpfDir)
 	os.Remove(bpfDir)
 	os.Remove(mapDir)
-	btf.FreeCachedBTF()
 }

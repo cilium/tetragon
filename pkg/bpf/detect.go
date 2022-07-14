@@ -18,6 +18,7 @@ type Feature struct {
 
 var (
 	overrideHelper = Feature{false, false}
+	kprobeMulti    = Feature{false, false}
 )
 
 func HasOverrideHelper() bool {
@@ -43,4 +44,14 @@ func HasOverrideHelper() bool {
 	}
 	overrideHelper.detected = true
 	return overrideHelper.detected
+}
+
+func HasKprobeMulti() bool {
+	if kprobeMulti.initialized {
+		return kprobeMulti.detected
+	}
+
+	kprobeMulti.detected = true
+	kprobeMulti.initialized = true
+	return kprobeMulti.detected
 }
