@@ -299,7 +299,7 @@ func loadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := m.Update(uint32(0), mapLoad.Data, ebpf.UpdateAny); err != nil {
+			if err := m.Update(mapLoad.Index, mapLoad.Data, ebpf.UpdateAny); err != nil {
 				return err
 			}
 		} else {

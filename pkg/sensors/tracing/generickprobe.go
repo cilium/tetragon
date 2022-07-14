@@ -418,12 +418,12 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	var bin_buf bytes.Buffer
 
 	if !load.RetProbe {
-		filter := &program.MapLoad{Name: "filter_map", Data: gk.loadArgs.filters[:]}
+		filter := &program.MapLoad{Index: 0, Name: "filter_map", Data: gk.loadArgs.filters[:]}
 		load.MapLoad = append(load.MapLoad, filter)
 	}
 
 	binary.Write(&bin_buf, binary.LittleEndian, gk.loadArgs.config)
-	config := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
+	config := &program.MapLoad{Index: 0, Name: "config_map", Data: bin_buf.Bytes()[:]}
 	load.MapLoad = append(load.MapLoad, config)
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)

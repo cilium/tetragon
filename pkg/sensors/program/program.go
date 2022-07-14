@@ -34,8 +34,9 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 }
 
 type MapLoad struct {
-	Name string
-	Data []byte
+	Index uint32
+	Name  string
+	Data  []byte
 }
 
 // Program reprents a BPF program.
