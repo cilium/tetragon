@@ -567,15 +567,18 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		if (a < v)
 			goto skip_string;
 	} else if (op == op_filter_str_postfix) {
-#ifdef __LARGE_BPF_PROG
-		err = cmpbytes(&value[4], &args[4], v - 1);
-#else
-		err = cmpbytes_small(&value[4], &args[4], v - 1);
-#endif
+		/* Due to the lack of followfd we get a kprobe with empty path. This is not a match */
+		if (a == 0)
+			goto skip_string;
+		err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
 		if (!err)
 			return 0;
 	}
-	err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
+#ifdef __LARGE_BPF_PROG
+	err = cmpbytes(&value[4], &args[4], v - 1);
+#else
+	err = cmpbytes_small(&value[4], &args[4], v - 1);
+#endif
 	if (!err)
 		return 0;
 skip_string:
@@ -583,12 +586,9 @@ skip_string:
 }
 
 /* filter_file_buf: runs a comparison between the file path in args against the
- * filter file path. This is slightly different from a string compare because
- * files are stored in reverse order. We could swap them in kernel but this is
- * problematic as well from a complexity angle. At the moment it seems easiest
- * to simply special case filepaths and do a reverse search over them. Notice
- * for 'equals' operatore either direction would work. But for prefix and
- * postfix mappings direction matters.
+ * filter file path. For 'equal' and 'prefix' operators we compare the file path
+ * and the filter file path in the normal order. For the 'postfix' operator we do
+ * a reverse search.
  */
 static inline __attribute__((always_inline)) long
 filter_file_buf(struct selector_arg_filter *filter, char *args)
