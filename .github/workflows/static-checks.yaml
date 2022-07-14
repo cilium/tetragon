@@ -46,6 +46,7 @@ jobs:
           go mod tidy -compat=1.17
           go mod vendor
           go mod verify
+          echo "git status --porcelain:" `git status --porcelain`
           test -z "$(git status --porcelain)" || (echo "Module vendoring checks failed. Please run 'go mod tidy -compat=1.17 && go mod vendor && go mod verify', and submit your changes"; exit 1)
       - name: Build clang-format Docker image
         run: |
