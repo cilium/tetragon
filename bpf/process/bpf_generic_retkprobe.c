@@ -27,7 +27,13 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 	.max_entries = 100,
 };
 
-__attribute__((section("kprobe/generic_retkprobe"), used)) int
+#ifdef __MULTI_KPROBE
+# define MAIN "kprobe.multi/generic_kprobe"
+#else
+# define MAIN "kprobe/generic_kprobe"
+#endif
+
+__attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	struct execve_map_value *enter;
