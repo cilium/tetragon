@@ -21,6 +21,10 @@ type config struct {
 	Verbosity          int
 	IgnoreMissingProgs bool
 	ForceSmallProgs    bool
+	EnableCilium       bool
+	EnableProcessNs    bool
+	EnableProcessCred  bool
+	EnableK8s          bool
 
 	LogOpts map[string]string
 }
@@ -28,7 +32,7 @@ type config struct {
 var (
 	log = logger.GetLogger()
 
-	// Config contains all the configuration used by FGS.
+	// Config contains all the configuration used by Tetragon.
 	Config = config{
 		// Initialize global defaults below.
 
