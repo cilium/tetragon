@@ -12,7 +12,6 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
-	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -60,7 +59,6 @@ func NewProcessManager(
 	pm.eventCache = eventcache.New(pm.Server)
 	pm.execCache = execcache.New(pm.Server)
 
-	tracing.New(enableCilium, enableProcessCred, enableProcessNs)
 	exec.New(pm.execCache, pm.eventCache, enableProcessCred, enableProcessNs)
 
 	logger.GetLogger().WithField("enableCilium", enableCilium).WithFields(logrus.Fields{
