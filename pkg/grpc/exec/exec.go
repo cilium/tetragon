@@ -10,11 +10,11 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
-	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -23,14 +23,7 @@ import (
 
 var (
 	nodeName = node.GetNodeNameForExport()
-
-	enableCred bool
-	enableNs   bool
 )
-
-type Grpc struct {
-	execCache *execcache.Cache
-}
 
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
 func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
@@ -49,7 +42,7 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 	}
 
 	// Set the cap field only if --enable-process-cred flag is set.
-	if err := proc.AnnotateProcess(enableCred, enableNs); err != nil {
+	if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
 	}
 	if parent != nil {
@@ -172,12 +165,4 @@ func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		logger.GetLogger().WithField("message", msg).Warn("HandleExitMessage: Unhandled event")
 	}
 	return res
-}
-
-func New(exec *execcache.Cache, event *eventcache.Cache, cred, ns bool) *Grpc {
-	enableCred = cred
-	enableNs = ns
-	return &Grpc{
-		execCache: exec,
-	}
 }
