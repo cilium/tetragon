@@ -178,7 +178,6 @@ func hubbleTETRAGONExecute() error {
 		observer.SensorManager,
 		option.Config.EnableProcessCred,
 		option.Config.EnableProcessNs,
-		option.Config.EnableK8s,
 		option.Config.EnableCilium)
 	if err != nil {
 		return err
