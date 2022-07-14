@@ -1948,6 +1948,65 @@ spec:
 	return configHook
 }
 
+func getMatchArgsFdCrd(opStr string, vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-matchArgs"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	configHook += "\n"
+	configHook += `      matchActions:
+      - action: FollowFD
+        argFd: 0
+        argName: 1
+  - call: "__x64_sys_close"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: UnfollowFD
+        argFd: 0
+        argName: 0
+  - call: "__x64_sys_read"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "char_buf"
+      returnCopy: false
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	return configHook
+}
+
 // this will trigger an fd_install event
 func openFile(t *testing.T, file string) int {
 	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
@@ -1959,6 +2018,18 @@ func openFile(t *testing.T, file string) int {
 	return fd
 }
 
+// reads 32 bytes from a file, this will trigger a __x64_sys_read.
+func readFile(t *testing.T, file string) int {
+	fd := openFile(t, file)
+	var readBytes = make([]byte, 32)
+	i, errno := syscall.Read(fd, readBytes)
+	if i < 0 {
+		t.Logf("syscall.Read failed: %s\n", errno)
+		t.Fatal()
+	}
+	return fd
+}
+
 func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
 	kpChecker := ec.NewProcessKprobeChecker().
 		WithFunctionName(sm.Full("fd_install")).
@@ -1967,6 +2038,19 @@ func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd)),
 				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
+	return kpChecker
+}
+
+func createReadChecker(filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte(""))), // returnCopy: false
+				ec.NewKprobeArgumentChecker().WithSizeArg(32),
 			))
 	return kpChecker
 }
@@ -2070,6 +2154,102 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	kpChecker2 := createFdInstallChecker(fd2, "/etc/group")
 
 	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "/etc/passwd"
+	argVals[1] = "/etc/group"
+
+	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	readFile(t, "/etc/passwd")
+	readFile(t, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(
+		createReadChecker("/etc/passwd"),
+		createReadChecker("/etc/group"),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPostfix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+
+	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	readFile(t, "/etc/passwd")
+	readFile(t, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(
+		createReadChecker("/etc/passwd"),
+		createReadChecker("/etc/group"),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "/etc/p"
+	argVals[1] = "/etc/g"
+
+	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	readFile(t, "/etc/passwd")
+	readFile(t, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(
+		createReadChecker("/etc/passwd"),
+		createReadChecker("/etc/group"),
+	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
