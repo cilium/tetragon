@@ -152,7 +152,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		&wg,
 		cilium.GetFakeCiliumState(),
 		nil,
-		false, false, false, false)
+		false, false, false)
 	assert.NoError(t, err)
 	procInternal := process.AddExecEvent(&processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{

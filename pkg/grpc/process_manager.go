@@ -34,7 +34,6 @@ type ProcessManager struct {
 	ciliumState       *cilium.State
 	enableProcessCred bool
 	enableProcessNs   bool
-	enableEventCache  bool
 	enableCilium      bool
 }
 
@@ -46,7 +45,6 @@ func NewProcessManager(
 	manager *sensors.Manager,
 	enableProcessCred bool,
 	enableProcessNs bool,
-	enableEventCache bool,
 	enableCilium bool,
 ) (*ProcessManager, error) {
 	pm := &ProcessManager{
@@ -55,7 +53,6 @@ func NewProcessManager(
 		listeners:         make(map[server.Listener]struct{}),
 		enableProcessCred: enableProcessCred,
 		enableProcessNs:   enableProcessNs,
-		enableEventCache:  enableEventCache,
 		enableCilium:      enableCilium,
 	}
 
@@ -67,7 +64,6 @@ func NewProcessManager(
 	exec.New(pm.execCache, pm.eventCache, enableProcessCred, enableProcessNs)
 
 	logger.GetLogger().WithField("enableCilium", enableCilium).WithFields(logrus.Fields{
-		"enableEventCache":  enableEventCache,
 		"enableProcessCred": enableProcessCred,
 		"enableProcessNs":   enableProcessNs,
 	}).Info("Starting process manager")
