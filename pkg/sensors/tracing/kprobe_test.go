@@ -1921,3 +1921,156 @@ spec:
 
 	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
+
+func getMatchArgsFileCrd(opStr string, vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-matchArgs"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	return configHook
+}
+
+// this will trigger an fd_install event
+func openFile(t *testing.T, file string) int {
+	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
+	if fd < 0 {
+		t.Logf("File open failed: %s\n", errno)
+		t.Fatal()
+	}
+	t.Cleanup(func() { syscall.Close(fd) })
+	return fd
+}
+
+func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd)),
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
+	return kpChecker
+}
+
+func createCrdFile(t *testing.T, readHook string) {
+	readConfigHook := []byte(readHook)
+	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+}
+
+func TestKprobeMatchArgsFileEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "/etc/passwd"
+	argVals[1] = "/etc/group"
+
+	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd1 := openFile(t, "/etc/passwd")
+	fd2 := openFile(t, "/etc/group")
+
+	kpChecker1 := createFdInstallChecker(fd1, "/etc/passwd")
+	kpChecker2 := createFdInstallChecker(fd2, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFilePostfix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+
+	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd1 := openFile(t, "/etc/passwd")
+	fd2 := openFile(t, "/etc/group")
+
+	kpChecker1 := createFdInstallChecker(fd1, "/etc/passwd")
+	kpChecker2 := createFdInstallChecker(fd2, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFilePrefix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	argVals := make([]string, 2)
+	argVals[0] = "/etc/p"
+	argVals[1] = "/etc/g"
+
+	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd1 := openFile(t, "/etc/passwd")
+	fd2 := openFile(t, "/etc/group")
+
+	kpChecker1 := createFdInstallChecker(fd1, "/etc/passwd")
+	kpChecker2 := createFdInstallChecker(fd2, "/etc/group")
+
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
