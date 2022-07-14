@@ -168,12 +168,10 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		},
 	})
 
-	exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
 	assert.Nil(t, exec.GetProcessExec(procInternal).Process.Cap)
 
 	// cap field should be set with enable-process-cred flag.
 	pm.enableProcessCred = true
-	exec.New(pm.execCache, pm.eventCache, pm.enableProcessCred, pm.enableProcessNs)
 	assert.Equal(t,
 		&tetragon.Capabilities{
 			Permitted:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
