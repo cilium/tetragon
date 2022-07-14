@@ -28,7 +28,13 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
-__attribute__((section("kprobe/generic_retkprobe"), used)) int
+#ifdef __MULTI_KPROBE
+#define MAIN "kprobe.multi/generic_retkprobe"
+#else
+#define MAIN "kprobe/generic_retkprobe"
+#endif
+
+__attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
