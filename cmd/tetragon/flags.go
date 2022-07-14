@@ -60,15 +60,10 @@ const (
 var (
 	processCacheSize int
 
-	enableK8sAPI    bool
-	enableCiliumAPI bool
-
-	metricsServer     string
-	serverAddress     string
-	ciliumBPF         string
-	enableProcessCred bool
-	enableProcessNs   bool
-	configFile        string
+	metricsServer string
+	serverAddress string
+	ciliumBPF     string
+	configFile    string
 
 	runStandalone bool
 
@@ -95,20 +90,20 @@ func readAndSetFlags() {
 	option.Config.ForceSmallProgs = viper.GetBool(keyForceSmallProgs)
 	option.Config.Debug = viper.GetBool(keyDebug)
 
+	option.Config.EnableProcessCred = viper.GetBool(keyEnableProcessCred)
+	option.Config.EnableProcessNs = viper.GetBool(keyEnableProcessNs)
+	option.Config.EnableCilium = viper.GetBool(keyEnableCiliumAPI)
+	option.Config.EnableK8s = viper.GetBool(keyEnableK8sAPI)
+
 	logLevel := viper.GetString(keyLogLevel)
 	logFormat := viper.GetString(keyLogFormat)
 	logger.PopulateLogOpts(option.Config.LogOpts, logLevel, logFormat)
 
 	processCacheSize = viper.GetInt(keyProcessCacheSize)
 
-	enableK8sAPI = viper.GetBool(keyEnableK8sAPI)
-	enableCiliumAPI = viper.GetBool(keyEnableCiliumAPI)
-
 	metricsServer = viper.GetString(keyMetricsServer)
 	serverAddress = viper.GetString(keyServerAddress)
 	ciliumBPF = viper.GetString(keyCiliumBPF)
-	enableProcessCred = viper.GetBool(keyEnableProcessCred)
-	enableProcessNs = viper.GetBool(keyEnableProcessNs)
 	configFile = viper.GetString(keyConfigFile)
 
 	runStandalone = viper.GetBool(keyRunStandalone)

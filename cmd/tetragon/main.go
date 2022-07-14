@@ -158,16 +158,16 @@ func hubbleTETRAGONExecute() error {
 		go metrics.EnableMetrics(metricsServer)
 	}
 
-	watcher, err := getWatcher(enableK8sAPI)
+	watcher, err := getWatcher()
 	if err != nil {
 		return err
 	}
-	ciliumState, err := cilium.InitCiliumState(ctx, enableCiliumAPI)
+	ciliumState, err := cilium.InitCiliumState(ctx, option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}
 
-	if err := process.InitCache(ctx, watcher, enableCiliumAPI, processCacheSize); err != nil {
+	if err := process.InitCache(ctx, watcher, option.Config.EnableCilium, processCacheSize); err != nil {
 		return err
 	}
 
@@ -176,10 +176,10 @@ func hubbleTETRAGONExecute() error {
 		&cancelWg,
 		ciliumState,
 		observer.SensorManager,
-		enableProcessCred,
-		enableProcessNs,
-		enableK8sAPI,
-		enableCiliumAPI)
+		option.Config.EnableProcessCred,
+		option.Config.EnableProcessNs,
+		option.Config.EnableK8s,
+		option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func hubbleTETRAGONExecute() error {
 	log.WithField("enabled", exportFilename != "").WithField("fileName", exportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)
 	saveInitInfo()
-	if enableK8sAPI {
+	if option.Config.EnableK8s {
 		go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
 
@@ -303,8 +303,8 @@ func Serve(ctx context.Context, address string, server *server.Server) error {
 	return nil
 }
 
-func getWatcher(enableK8sAPI bool) (watcher.K8sResourceWatcher, error) {
-	if enableK8sAPI {
+func getWatcher() (watcher.K8sResourceWatcher, error) {
+	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
 		config, err := rest.InClusterConfig()
 		if err != nil {
