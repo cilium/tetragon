@@ -114,6 +114,14 @@ struct event_config {
  */
 #define MAX_MATCH_STRING_VALUES 2
 
+/* Number of values allowed in matchArgs while using an "fd" or "file" arg.
+ */
+#ifdef __LARGE_BPF_PROG
+#define MAX_MATCH_FILE_VALUES 8
+#else
+#define MAX_MATCH_FILE_VALUES 2
+#endif
+
 /* Constants bounding printers if these change or buffer size changes then
  * we will need to resize. TBD would be to size these at compile time using
  * buffer size information.
@@ -581,17 +589,20 @@ static inline __attribute__((always_inline)) long
 filter_file_buf(struct selector_arg_filter *filter, char *args)
 {
 	char *value = (char *)&filter->value;
-	int next;
+	int i, next;
 
-	next = __filter_file_buf(value, args, filter->op);
-	if (!next)
-		return 1;
-	else if (next + 8 > filter->vallen)
-		return 0;
-	value += (next & 0x7f);
-	next = __filter_file_buf(value, args, filter->op);
-	if (!next)
-		return 1;
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	for (i = 0; i < MAX_MATCH_FILE_VALUES; ++i) {
+		next = __filter_file_buf(value, args, filter->op);
+		if (!next)
+			return 1;
+		else if (next + 8 > filter->vallen)
+			return 0;
+		value += (next & 0x7f);
+	}
+
 	return 0;
 }
 
