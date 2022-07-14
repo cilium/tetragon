@@ -224,8 +224,11 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		PARSE_IOVEC_ENTRY                                              \
 	}
 
-#define MAX_STRING_FILTER	128
-#define MAX_STRING_FILTER_SMALL 32
+#ifdef __LARGE_BPF_PROG
+#define MAX_STRING_FILTER 128
+#else
+#define MAX_STRING_FILTER 32
+#endif
 
 /* Unfortunately, clang really wanted to optimize this and was fairly
  * difficult to convince it otherwise. Clang tries to join the bounding
@@ -313,18 +316,6 @@ static inline __attribute__((always_inline)) int cmpbytes(char *s1, char *s2,
 	int i;
 #pragma unroll
 	for (i = 0; i < MAX_STRING_FILTER; i++) {
-		if (i < n && s1[i] != s2[i])
-			return -1;
-	}
-	return 0;
-}
-
-static inline __attribute__((always_inline)) int
-cmpbytes_small(char *s1, char *s2, size_t n)
-{
-	int i;
-#pragma unroll
-	for (i = 0; i < MAX_STRING_FILTER_SMALL; i++) {
 		if (i < n && s1[i] != s2[i])
 			return -1;
 	}
@@ -574,11 +565,7 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		if (!err)
 			return 0;
 	}
-#ifdef __LARGE_BPF_PROG
 	err = cmpbytes(&value[4], &args[4], v - 1);
-#else
-	err = cmpbytes_small(&value[4], &args[4], v - 1);
-#endif
 	if (!err)
 		return 0;
 skip_string:
