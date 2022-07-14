@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
@@ -20,14 +21,7 @@ import (
 
 var (
 	nodeName = node.GetNodeNameForExport()
-
-	enableNs   bool
-	enableCred bool
 )
-
-type Grpc struct {
-	enableCilium bool
-}
 
 func kprobeAction(act uint64) tetragon.KprobeAction {
 	switch act {
@@ -61,7 +55,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
-		if err := process.AnnotateProcess(enableCred, enableNs); err != nil {
+		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
@@ -267,16 +261,5 @@ func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 		Event:    &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: k},
 		NodeName: nodeName,
 		Time:     ktime.ToProto(msg.Common.Ktime),
-	}
-}
-
-func New(ciliumEnable bool,
-	enableProcessCred bool,
-	enableProcessNs bool,
-) *Grpc {
-	enableCred = enableProcessCred
-	enableNs = enableProcessNs
-	return &Grpc{
-		enableCilium: ciliumEnable,
 	}
 }
