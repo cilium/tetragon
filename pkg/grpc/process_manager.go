@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -27,12 +28,9 @@ type ProcessManager struct {
 	nodeName   string
 	Server     *server.Server
 	// synchronize access to the listeners map.
-	mux               sync.Mutex
-	listeners         map[server.Listener]struct{}
-	ciliumState       *cilium.State
-	enableProcessCred bool
-	enableProcessNs   bool
-	enableCilium      bool
+	mux         sync.Mutex
+	listeners   map[server.Listener]struct{}
+	ciliumState *cilium.State
 }
 
 // NewProcessManager returns a pointer to an initialized ProcessManager struct.
@@ -41,26 +39,20 @@ func NewProcessManager(
 	wg *sync.WaitGroup,
 	ciliumState *cilium.State,
 	manager *sensors.Manager,
-	enableProcessCred bool,
-	enableProcessNs bool,
-	enableCilium bool,
 ) (*ProcessManager, error) {
 	pm := &ProcessManager{
-		nodeName:          node.GetNodeNameForExport(),
-		ciliumState:       ciliumState,
-		listeners:         make(map[server.Listener]struct{}),
-		enableProcessCred: enableProcessCred,
-		enableProcessNs:   enableProcessNs,
-		enableCilium:      enableCilium,
+		nodeName:    node.GetNodeNameForExport(),
+		ciliumState: ciliumState,
+		listeners:   make(map[server.Listener]struct{}),
 	}
 
 	pm.Server = server.NewServer(ctx, wg, pm, manager)
 	pm.eventCache = eventcache.New(pm.Server)
 	pm.execCache = execcache.New(pm.Server)
 
-	logger.GetLogger().WithField("enableCilium", enableCilium).WithFields(logrus.Fields{
-		"enableProcessCred": enableProcessCred,
-		"enableProcessNs":   enableProcessNs,
+	logger.GetLogger().WithField("enableCilium", option.Config.EnableCilium).WithFields(logrus.Fields{
+		"enableProcessCred": option.Config.EnableProcessCred,
+		"enableProcessNs":   option.Config.EnableProcessNs,
 	}).Info("Starting process manager")
 	return pm, nil
 }

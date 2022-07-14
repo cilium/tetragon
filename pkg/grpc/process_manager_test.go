@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -147,12 +148,15 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	var wg sync.WaitGroup
-	pm, err := NewProcessManager(
+
+	option.Config.EnableProcessNs = false
+	option.Config.EnableProcessCred = false
+	option.Config.EnableCilium = false
+	_, err = NewProcessManager(
 		context.Background(),
 		&wg,
 		cilium.GetFakeCiliumState(),
-		nil,
-		false, false, false)
+		nil)
 	assert.NoError(t, err)
 	procInternal := process.AddExecEvent(&processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{
@@ -171,7 +175,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 	assert.Nil(t, exec.GetProcessExec(procInternal).Process.Cap)
 
 	// cap field should be set with enable-process-cred flag.
-	pm.enableProcessCred = true
+	option.Config.EnableProcessCred = true
 	assert.Equal(t,
 		&tetragon.Capabilities{
 			Permitted:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
