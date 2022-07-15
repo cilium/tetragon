@@ -144,6 +144,7 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	defer testutils.CaptureLog(t, log).Release()
 
 	cnt := 0
+	prevEvents := 0
 	for {
 		err = JsonCheck(jsonFile, checker, log)
 		if err == nil {
@@ -156,6 +157,13 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 		if !errors.As(err, &errEOF) {
 			break
 		}
+
+		// bail out if there are no new events in two consecutive runs
+		if cnt > 0 && prevEvents == errEOF.count {
+			err = fmt.Errorf("JsonTestCheck failed in retry cnt=%d and there were no new events from previous try: %w", cnt, err)
+			break
+		}
+		prevEvents = errEOF.count
 
 		cnt++
 		if cnt > Retries {
