@@ -23,10 +23,9 @@ import (
 
 // ProcessManager maintains a cache of processes from tetragon exec events.
 type ProcessManager struct {
-	eventCache *eventcache.Cache
-	execCache  *execcache.Cache
-	nodeName   string
-	Server     *server.Server
+	execCache *execcache.Cache
+	nodeName  string
+	Server    *server.Server
 	// synchronize access to the listeners map.
 	mux         sync.Mutex
 	listeners   map[server.Listener]struct{}
@@ -47,10 +46,17 @@ func NewProcessManager(
 	}
 
 	pm.Server = server.NewServer(ctx, wg, pm, manager)
-	pm.eventCache = eventcache.New(pm.Server)
+
+	// Event cache maps events to their K8s metadata, so only enable if we
+	// have a k8s watcher to lookup this info.
+	if option.Config.EnableK8s {
+		eventcache.New(pm.Server)
+	}
+
 	pm.execCache = execcache.New(pm.Server)
 
 	logger.GetLogger().WithField("enableCilium", option.Config.EnableCilium).WithFields(logrus.Fields{
+		"enableK8s":         option.Config.EnableK8s,
 		"enableProcessCred": option.Config.EnableProcessCred,
 		"enableProcessNs":   option.Config.EnableProcessNs,
 	}).Info("Starting process manager")
