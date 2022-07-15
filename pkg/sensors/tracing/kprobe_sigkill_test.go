@@ -18,6 +18,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -31,7 +32,7 @@ func TestKprobeSigkill(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	testBin := testutils.ContribPath("tester-progs/sigkill-tester")
@@ -75,7 +76,7 @@ func TestKprobeSigkill(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("child pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

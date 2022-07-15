@@ -47,9 +47,8 @@ import (
 )
 
 var (
-	observerTestDir = "/sys/fs/bpf/testObserver/"
-	metricsAddr     = "localhost:2112"
-	metricsEnabled  = false
+	metricsAddr    = "localhost:2112"
+	metricsEnabled = false
 )
 
 const (
@@ -229,8 +228,8 @@ func newDefaultTestOptions(t *testing.T, opts ...TestOption) *TestOptions {
 }
 
 func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
-	option.Config.BpfDir = observerTestDir
-	option.Config.MapDir = observerTestDir
+	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.MapDir = bpf.MapPrefixPath()
 	option.Config.CiliumDir = ""
 	return NewObserver(oo.config)
 }
@@ -306,7 +305,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 	})
 
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
-	obs.perfConfig.MapName = filepath.Join(observerTestDir, "tcpmon_map")
+	obs.perfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
 	return obs, nil
 }
 

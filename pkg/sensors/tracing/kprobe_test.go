@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -39,7 +40,6 @@ var mountPath = "/tmp2"
 
 const (
 	testConfigFile = "/tmp/tetragon.gotest.yaml"
-	kprobeTestDir  = "/sys/fs/bpf/testObserver/"
 )
 
 func TestKprobeObjectLoad(t *testing.T) {
@@ -75,12 +75,12 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(context.TODO(), kprobeTestDir, kprobeTestDir, "")
+	initialSensor.Load(context.TODO(), bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -89,7 +89,7 @@ func TestKprobeLseek(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
@@ -121,7 +121,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -154,7 +154,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	writeConfigHook := []byte(writeReadHook)
@@ -165,7 +165,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker()
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -407,7 +407,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
@@ -416,7 +416,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -600,7 +600,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	filePath := mntPath + "/testfile"
@@ -619,7 +619,7 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1010,7 +1010,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
@@ -1049,7 +1049,7 @@ spec:
 
 	kpChecker := ec.NewProcessKprobeChecker().
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(selfBinary))).
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
 		WithFunctionName(sm.Full("__x64_sys_writev")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1059,7 +1059,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1249,7 +1249,7 @@ func getWriteChecker(path, flags string) ec.MultiEventChecker {
 				ec.NewKprobeArgumentChecker().WithSizeArg(11),
 			)).
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(selfBinary)))
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
 
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
@@ -1282,7 +1282,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	// Create file to open later
@@ -1299,7 +1299,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1536,7 +1536,7 @@ spec:
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
@@ -1545,7 +1545,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1589,7 +1589,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Skip("skipping override test, bpf_override_return helper not available")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	configHook := []byte(hook)
@@ -1598,7 +1598,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1705,7 +1705,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tetragonLib, true)
+	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tus.Conf().TetragonLib, true)
 	if err == nil {
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
@@ -1717,7 +1717,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	testConfigHook := []byte(configHook)
@@ -1727,7 +1727,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	}
 
 	b := base.GetInitialSensor()
-	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
+	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tus.Conf().TetragonLib))
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}
