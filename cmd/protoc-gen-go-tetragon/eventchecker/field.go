@@ -396,6 +396,8 @@ func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handle
 		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
         case *` + fieldIdent + `:
             ` + innerCheck + `
+        default:
+            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %T is not a "+field.GoName, "event") + `
         }`, nil
 	}
 

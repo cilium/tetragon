@@ -1915,7 +1915,7 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdr)),
 				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
-				ec.NewKprobeArgumentChecker().WithIntArg(8),
+				ec.NewKprobeArgumentChecker().WithSizeArg(8),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
