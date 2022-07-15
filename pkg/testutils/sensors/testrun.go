@@ -21,10 +21,11 @@ var config *Config
 // It is intialized in TestSensorsRun() so all sensors test should call this
 // function in their TestMain
 type Config struct {
-	TetragonLib  string
-	VerboseLevel int
-	SelfBinary   string
-	CmdWaitTime  time.Duration
+	TetragonLib         string
+	VerboseLevel        int
+	SelfBinary          string
+	CmdWaitTime         time.Duration
+	DisableTetragonLogs bool
 }
 
 func Conf() *Config {
@@ -58,6 +59,11 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		"verbosity-level",
 		0,
 		"verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
+	flag.BoolVar(
+		&config.DisableTetragonLogs,
+		"disable-tetragon-logs",
+		false,
+		"do not output teragon log")
 	flag.Parse()
 
 	// use a sensor-specific name for the bpffs directory for the maps.
