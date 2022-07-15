@@ -44,6 +44,7 @@ import (
 )
 
 type Arguments struct {
+	Trace       string
 	Debug       bool
 	PrintEvents bool
 	JSONEncode  bool

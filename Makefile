@@ -23,9 +23,9 @@ GOLANGCILINT_WANT_VERSION = 1.45.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 
-all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon
+all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon bench
 
-.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container tester-progs protoc-gen-go-tetragon
+.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container tester-progs protoc-gen-go-tetragon bench
 
 -include Makefile.docker
 
@@ -78,6 +78,9 @@ tetragon:
 
 tetra:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetra/
+
+bench:
+	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/bench/
 
 tetragon-operator:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o $@ ./operator
