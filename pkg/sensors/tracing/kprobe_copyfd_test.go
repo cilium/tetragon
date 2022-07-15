@@ -98,7 +98,7 @@ func TestCopyFd(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithStringArg(sm.Suffix("strange.txt")),
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Suffix("strange.txt"))),
 				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00"))),
 				ec.NewKprobeArgumentChecker().WithSizeArg(9),
 			)).
