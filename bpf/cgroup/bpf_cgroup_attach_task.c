@@ -69,6 +69,10 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 
 	level = get_cgroup_level(cgrp);
 
+	/* Set level to max cgroup nested */
+	if (level > CGROUP_MAX_NESTED_LEVEL)
+		level = CGROUP_MAX_NESTED_LEVEL;
+
 	/* Update config */
 	config->pid = pid;
 	config->tg_cgrp_level = level;
