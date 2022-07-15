@@ -13,6 +13,7 @@ import (
 type logCapturer struct {
 	*testing.T
 	origOut io.Writer
+	log     *logrus.Logger
 }
 
 func (tl logCapturer) Write(p []byte) (n int, err error) {
@@ -21,14 +22,18 @@ func (tl logCapturer) Write(p []byte) (n int, err error) {
 }
 
 func (tl logCapturer) Release() {
-	logrus.SetOutput(tl.origOut)
+	tl.log.SetOutput(tl.origOut)
 }
 
 // CaptureLog redirects logrus output to testing.Log
-func captureLog(t *testing.T) *logCapturer {
-	lc := &logCapturer{T: t, origOut: logrus.StandardLogger().Out}
+func captureLog(t *testing.T, l *logrus.Logger) *logCapturer {
+	lc := &logCapturer{
+		T:       t,
+		origOut: logrus.StandardLogger().Out,
+		log:     l,
+	}
 	if !testing.Verbose() {
-		logrus.SetOutput(lc)
+		l.SetOutput(lc)
 	}
 	return lc
 }
