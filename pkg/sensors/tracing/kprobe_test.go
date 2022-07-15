@@ -1921,3 +1921,50 @@ spec:
 
 	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
 }
+
+// CGO_LDFLAGS=-L$(realpath ./lib) go test -gcflags="" -c ./pkg/sensors/tracing/ -o go-tests/sensor-tracing.test
+// sudo TETRAGON_LIB=$(realpath ./bpf/objs/)  CGO_LDFLAGS=-L$(realpath ./lib) LD_LIBRARY_PATH=$(realpath ./lib) ./go-tests/sensor-tracing.test -test.run TestCheckers
+func TestCheckers(t *testing.T) {
+	jsonEvents := `
+	{"process_kprobe":{"process":{"exec_id":"OjE3NDM2NjE5ODY3NTE0OjIyMzQ5","pid":22349,"uid":0,"cwd":"/etc","binary":"/usr/bin/cat","arguments":"/etc/passwd","flags":"execve clone","start_time":"2022-07-15T15:37:49.088606702Z","auid":1010,"parent_exec_id":"OjMzOTU1OTAwMDAwMDA6MTMwMDM=","refcnt":1},"parent":{"exec_id":"OjMzOTU1OTAwMDAwMDA6MTMwMDM=","pid":13003,"uid":0,"cwd":"/etc","binary":"/usr/bin/bash","flags":"procFS auid","start_time":"2022-07-15T11:43:48.058738956Z","auid":0,"parent_exec_id":"OjMzOTU1ODAwMDAwMDA6MTMwMDE=","refcnt":1},"function_name":"__x64_sys_read","args":[{"file_arg":{"path":"/etc/passwd"}},{"bytes_arg":""},{"size_arg":"131072"}],"action":"KPROBE_ACTION_POST"},"time":"2022-07-15T15:37:49.089626257Z"}
+	{"process_kprobe":{"process":{"exec_id":"OjE3NDM2NjE5ODY3NTE0OjIyMzQ5","pid":22349,"uid":0,"cwd":"/etc","binary":"/usr/bin/cat","arguments":"/etc/passwd","flags":"execve clone","start_time":"2022-07-15T15:37:49.088606702Z","auid":1010,"parent_exec_id":"OjMzOTU1OTAwMDAwMDA6MTMwMDM=","refcnt":1},"parent":{"exec_id":"OjMzOTU1OTAwMDAwMDA6MTMwMDM=","pid":13003,"uid":0,"cwd":"/etc","binary":"/usr/bin/bash","flags":"procFS auid","start_time":"2022-07-15T11:43:48.058738956Z","auid":0,"parent_exec_id":"OjMzOTU1ODAwMDAwMDA6MTMwMDE=","refcnt":1},"function_name":"__x64_sys_read","args":[{"file_arg":{"path":"/etc/passwd"}},{"bytes_arg":""},{"size_arg":"131072"}],"action":"KPROBE_ACTION_POST"},"time":"2022-07-15T15:37:49.089626257Z"}
+	`
+
+	f, err := os.Create("/tmp/data-test.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	_, err2 := f.WriteString(jsonEvents)
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+
+	kpChecker1 := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full("/etc/passwd"))),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte(""))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(131072),
+			))
+
+	kpChecker2 := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full("/etc/group"))),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte(""))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(131072),
+			))
+
+	checker := ec.NewUnorderedEventChecker(
+		kpChecker1,
+		kpChecker2,
+	)
+	err = jsonchecker.JsonTestCheckFile(t, checker, "/tmp/data-test.json")
+	assert.NoError(t, err)
+}

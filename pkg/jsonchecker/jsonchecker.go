@@ -115,10 +115,8 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 }
 
 // JsonTestCheck checks a JSON file using the new eventchecker library.
-func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
+func JsonTestCheckFile(t *testing.T, checker ec.MultiEventChecker, jsonFname string) error {
 	var err error
-
-	jsonFname := testutils.GetExportFilename(t)
 
 	// cleanup function: if test fails, mark export file to be kept
 	defer func() {
@@ -168,4 +166,9 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	}
 
 	return err
+}
+
+func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
+	jsonFname := testutils.GetExportFilename(t)
+	return JsonTestCheckFile(t, checker, jsonFname)
 }
