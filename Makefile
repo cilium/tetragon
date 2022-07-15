@@ -25,7 +25,7 @@ GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 
 .PHONY: all
-all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon
+all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
 -include Makefile.docker
 
@@ -75,12 +75,15 @@ tetragon-bpf-container:
 verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
-.PHONY: tetragon tetra tetragon-operator tetragon-alignchecker
+.PHONY: tetragon tetra tetragon-operator tetragon-alignchecker tetragon-bench
 tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon/
 
 tetra:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetra/
+
+tetragon-bench:
+	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon-bench/
 
 tetragon-operator:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o $@ ./operator
