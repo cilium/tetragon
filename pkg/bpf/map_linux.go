@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 
@@ -91,6 +92,10 @@ func (m *Map) Name() string {
 // Path returns the path to this map on the filesystem.
 func (m *Map) Path() string {
 	return m.path
+}
+
+func DefaultPerfEventMap() string {
+	return filepath.Join(MapPrefixPath(), eventsMapName)
 }
 
 func GetMapInfo(pid int, fd int) (*MapInfo, error) {
@@ -409,6 +414,19 @@ func (m *Map) Lookup(key MapKey) (MapValue, error) {
 		return nil, err
 	}
 	return value, nil
+}
+
+func UpdateElementFromPointers(fd int, structPtr, sizeOfStruct uintptr) error {
+	ret, _, err := unix.Syscall(
+		unix.SYS_BPF,
+		BPF_MAP_UPDATE_ELEM,
+		structPtr,
+		sizeOfStruct,
+	)
+	if ret != 0 || err != 0 {
+		return fmt.Errorf("Unable to update element for map with file descriptor %d: %s", fd, err)
+	}
+	return nil
 }
 
 func UpdateElement(fd int, key, value unsafe.Pointer, flags uint64) error {
