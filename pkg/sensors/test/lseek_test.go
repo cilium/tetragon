@@ -5,13 +5,10 @@ package test
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -19,41 +16,16 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
-	"github.com/cilium/tetragon/pkg/testutils"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
 
 // This bpf_lseek is a simple BPF program used for tests
 
-var (
-	selfBinary  string
-	tetragonLib string
-	cmdWaitTime time.Duration
-)
-
-const (
-	testMapDir = "testObserver"
-)
-
-func init() {
-	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
-	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for tetragon to gather logs from commands")
-
-	bpf.SetMapPrefix(testMapDir)
-}
-
 func TestMain(m *testing.M) {
-	flag.Parse()
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.ConfigureResourceLimits()
-	selfBinary = filepath.Base(os.Args[0])
-	exitCode := m.Run()
-	// NB: we currently seem to fail to remove the /sys/fs/bpf/testObserver
-	// dir. Do so here, until we figure out a way to do it properly.
-	os.RemoveAll(bpf.MapPrefixPath())
-	os.Exit(exitCode)
+	ec := tus.TestSensorsRun(m, "SensorTest")
+	os.Exit(ec)
 }
 
 func TestSensorLseekLoad(t *testing.T) {
@@ -64,19 +36,19 @@ func TestSensorLseekLoad(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	checker := ec.NewUnorderedEventChecker(
 		ec.NewTestChecker(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
-	testutils.LoadSensor(ctx, t, sensor)
+	tus.LoadSensor(ctx, t, sensor)
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
@@ -93,14 +65,14 @@ func TestSensorLseekEnable(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	checker := ec.NewUnorderedEventChecker(
 		ec.NewTestChecker(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
