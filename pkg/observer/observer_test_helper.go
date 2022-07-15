@@ -19,6 +19,7 @@ import (
 
 	hubbleV1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -253,6 +254,8 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 
 func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
 	var sens []*sensors.Sensor
+
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
 	o := newDefaultTestOptions(t, opts...)
 
