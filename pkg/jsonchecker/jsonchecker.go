@@ -141,7 +141,7 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	if !ok {
 		return fmt.Errorf("failed to convert logger")
 	}
-	defer captureLog(t, log).Release()
+	defer testutils.CaptureLog(t, log).Release()
 
 	cnt := 0
 	for {
