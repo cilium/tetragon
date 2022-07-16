@@ -27,6 +27,7 @@ const (
 )
 
 var (
+	cache    *Cache
 	nodeName string
 )
 
@@ -40,13 +41,13 @@ type cacheObj struct {
 
 type Cache struct {
 	objsChan chan cacheObj
-	cache    []cacheObj
+	objs     []cacheObj
 	server   *server.Server
 }
 
-func (ec *Cache) handleExecEvents() {
-	tmp := ec.cache[:0]
-	for _, e := range ec.cache {
+func handleExecEvents() {
+	tmp := cache.objs[:0]
+	for _, e := range cache.objs {
 		containerId := e.process.Process.Docker
 		filename := e.process.Process.Binary
 		args := e.process.Process.Arguments
@@ -74,12 +75,12 @@ func (ec *Cache) handleExecEvents() {
 			NodeName: nodeName,
 			Time:     e.timestamp,
 		}
-		ec.server.NotifyListeners(e.msg, processedEvent)
+		cache.server.NotifyListeners(e.msg, processedEvent)
 	}
-	ec.cache = tmp
+	cache.objs = tmp
 }
 
-func (ec *Cache) loop() {
+func loop() {
 	ticker := time.NewTicker(eventRetryTimer)
 	defer ticker.Stop()
 
@@ -90,12 +91,12 @@ func (ec *Cache) loop() {
 			 * an event hasn't completed its podInfo after two iterations send the
 			 * event anyways.
 			 */
-			ec.handleExecEvents()
-			mapmetrics.MapSizeSet("cache", 0, float64(len(ec.cache)))
+			handleExecEvents()
+			mapmetrics.MapSizeSet("cache", 0, float64(len(cache.objs)))
 
-		case event := <-ec.objsChan:
+		case event := <-cache.objsChan:
 			errormetrics.EventCacheInc(errormetrics.EventCacheProcessCount)
-			ec.cache = append(ec.cache, event)
+			cache.objs = append(cache.objs, event)
 		}
 	}
 }
@@ -104,16 +105,26 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	e *tetragon.ProcessExec,
 	t *timestamppb.Timestamp,
 	msg *processapi.MsgExecveEventUnix) {
-	ec.objsChan <- cacheObj{internal: internal, process: e, timestamp: t, msg: msg}
+	cache.objsChan <- cacheObj{internal: internal, process: e, timestamp: t, msg: msg}
 }
 
 func New(s *server.Server) *Cache {
-	ec := &Cache{
+	if cache != nil {
+		return cache
+	}
+
+	cache = &Cache{
 		objsChan: make(chan cacheObj),
-		cache:    make([]cacheObj, 0),
+		objs:     make([]cacheObj, 0),
 		server:   s,
 	}
+
 	nodeName = node.GetNodeNameForExport()
-	go ec.loop()
-	return ec
+	go loop()
+
+	return cache
+}
+
+func Get() *Cache {
+	return cache
 }
