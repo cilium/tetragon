@@ -229,10 +229,10 @@ func newDefaultTestOptions(t *testing.T, opts ...TestOption) *TestOptions {
 }
 
 func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
-	return NewObserver(observerTestDir,
-		observerTestDir,
-		"",
-		oo.config)
+	option.Config.BpfDir = observerTestDir
+	option.Config.MapDir = observerTestDir
+	option.Config.CiliumDir = ""
+	return NewObserver(oo.config)
 }
 
 func readConfig(file string) (*yaml.GenericTracingConf, error) {
@@ -282,7 +282,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 		}
 	}
 
-	if err := loadObserver(t, obs, base, sens, o.observer.notestfail); err != nil {
+	if err := loadObserver(t, base, sens, o.observer.notestfail); err != nil {
 		return nil, err
 	}
 
@@ -398,15 +398,15 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	return nil
 }
 
-func loadObserver(t *testing.T, obs *Observer, base *sensors.Sensor, sens []*sensors.Sensor, notestfail bool) error {
-	if err := base.Load(context.TODO(), obs.bpfDir, obs.mapDir, obs.ciliumDir); err != nil {
+func loadObserver(t *testing.T, base *sensors.Sensor, sens []*sensors.Sensor, notestfail bool) error {
+	if err := base.Load(context.TODO(), option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		t.Fatalf("Load base error: %s\n", err)
 	}
 	if err := config.LoadConfig(
 		context.TODO(),
-		obs.bpfDir,
-		obs.mapDir,
-		obs.ciliumDir,
+		option.Config.BpfDir,
+		option.Config.MapDir,
+		option.Config.CiliumDir,
 		sens,
 	); err != nil {
 		if notestfail {

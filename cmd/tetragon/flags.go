@@ -62,7 +62,6 @@ var (
 
 	metricsServer string
 	serverAddress string
-	ciliumBPF     string
 	configFile    string
 
 	runStandalone bool
@@ -103,7 +102,7 @@ func readAndSetFlags() {
 
 	metricsServer = viper.GetString(keyMetricsServer)
 	serverAddress = viper.GetString(keyServerAddress)
-	ciliumBPF = viper.GetString(keyCiliumBPF)
+	option.Config.CiliumDir = viper.GetString(keyCiliumBPF)
 	configFile = viper.GetString(keyConfigFile)
 
 	runStandalone = viper.GetBool(keyRunStandalone)

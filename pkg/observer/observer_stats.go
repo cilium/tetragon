@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
@@ -49,7 +50,7 @@ func (s *statValue) DeepCopyMapValue() bpf.MapValue {
 func (k *Observer) startUpdateMapMetrics() {
 	update := func() {
 		for _, m := range sensors.AllMaps {
-			pin := filepath.Join(k.mapDir, m.Name)
+			pin := filepath.Join(option.Config.MapDir, m.Name)
 			pinStats := pin + "_stats"
 
 			mapLinkStats, err := bpf.OpenMap(pinStats)

@@ -120,12 +120,9 @@ func hubbleTETRAGONExecute() error {
 
 	bpf.ConfigureResourceLimits()
 	observerDir := getObserverDir()
-	obs := observer.NewObserver(
-		observerDir,
-		observerDir,
-		ciliumBPF,
-		configFile,
-	)
+	option.Config.BpfDir = observerDir
+	option.Config.MapDir = observerDir
+	obs := observer.NewObserver(configFile)
 	if err := obs.InitSensorManager(); err != nil {
 		return err
 	}
@@ -148,7 +145,7 @@ func hubbleTETRAGONExecute() error {
 	}
 
 	if runStandalone {
-		if err := base.LoadDefault(ctx, observerDir, observerDir, ciliumBPF); err != nil {
+		if err := base.LoadDefault(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
 			return err
 		}
 		return obs.StartStandalone(ctx)
@@ -217,7 +214,7 @@ func hubbleTETRAGONExecute() error {
 		}
 	}
 
-	if err := base.LoadDefault(ctx, observerDir, observerDir, ciliumBPF); err != nil {
+	if err := base.LoadDefault(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
 		return err
 	}
 
