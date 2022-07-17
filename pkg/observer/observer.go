@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
@@ -237,9 +238,6 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 // notified of their corresponding events.
 type Observer struct {
 	/* Configuration */
-	bpfDir     string
-	mapDir     string
-	ciliumDir  string
 	listeners  map[Listener]struct{}
 	perfConfig *bpf.PerfEventConfig
 	/* Statistics */
@@ -259,7 +257,7 @@ func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
 	k.startUpdateMapMetrics()
 
 	if sens != nil {
-		if err := config.LoadConfig(ctx, k.bpfDir, k.mapDir, k.ciliumDir, sens); err != nil {
+		if err := config.LoadConfig(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir, sens); err != nil {
 			return err
 		}
 	}
@@ -287,15 +285,12 @@ func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
 // InitSensorManager starts the sensor controller and stt manager.
 func (k *Observer) InitSensorManager() error {
 	var err error
-	SensorManager, err = sensors.StartSensorManager(k.bpfDir, k.mapDir, k.ciliumDir)
+	SensorManager, err = sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir)
 	return err
 }
 
-func NewObserver(bpfDir, mapDir, ciliumDir, configFile string) *Observer {
+func NewObserver(configFile string) *Observer {
 	o := &Observer{
-		bpfDir:     bpfDir,
-		mapDir:     mapDir,
-		ciliumDir:  ciliumDir,
 		listeners:  make(map[Listener]struct{}),
 		log:        logger.GetLogger(),
 		configFile: configFile,
@@ -319,5 +314,5 @@ func (k *Observer) PrintStats() {
 }
 
 func (k *Observer) RemovePrograms() {
-	RemovePrograms(k.bpfDir, k.mapDir)
+	RemovePrograms(option.Config.BpfDir, option.Config.MapDir)
 }

@@ -21,10 +21,15 @@ type config struct {
 	Verbosity          int
 	IgnoreMissingProgs bool
 	ForceSmallProgs    bool
-	EnableCilium       bool
-	EnableProcessNs    bool
-	EnableProcessCred  bool
-	EnableK8s          bool
+
+	EnableCilium      bool
+	EnableProcessNs   bool
+	EnableProcessCred bool
+	EnableK8s         bool
+
+	CiliumDir string
+	MapDir    string
+	BpfDir    string
 
 	LogOpts map[string]string
 }
