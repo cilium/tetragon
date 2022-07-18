@@ -122,22 +122,6 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 }
 
 static inline __attribute__((always_inline)) int
-generic_filter_submit(void *ctx, struct msg_generic_kprobe *e, long total)
-{
-	/* Post event */
-	total += generic_kprobe_common_size();
-	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[total] &= 0x7fff;\n"
-		     "if %[total] < 9000 goto +1\n;"
-		     "%[total] = 9000;\n"
-		     :
-		     : [total] "+r"(total)
-		     :);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
-	return 0;
-}
-
-static inline __attribute__((always_inline)) int
 generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
