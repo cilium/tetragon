@@ -153,7 +153,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	ec := eventcache.Get()
-	if ec.Needed(tetragonProcess) {
+	if ec != nil && ec.Needed(tetragonProcess) {
 		ec.Add(process, tetragonEvent, ktime.ToProto(event.Common.Ktime), event)
 		return nil
 	}
@@ -226,7 +226,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	ec := eventcache.Get()
-	if ec.Needed(tetragonProcess) {
+	if ec != nil && ec.Needed(tetragonProcess) {
 		ec.Add(process, tetragonEvent, ktime.ToProto(msg.Common.Ktime), msg)
 		return nil
 	}
