@@ -17,7 +17,7 @@ type TraceBench interface {
 }
 
 var (
-	traceBenches = []string{}
+	traceBenches = []string{"rw"}
 )
 
 func TraceBenchSupported() []string {
@@ -51,6 +51,8 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 	var bench TraceBench
 
 	switch args.Trace {
+	case "rw":
+		bench = newTraceBenchRw()
 	default:
 		panic("unknown benchmark")
 	}
