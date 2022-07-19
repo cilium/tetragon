@@ -27,13 +27,17 @@ const (
 	// tc rules or filters, or other more memory requiring data.
 	RECEIVE_BUFFER_SIZE = 65536
 	// Kernel netlink pid
-	PidKernel uint32 = 0
+	PidKernel     uint32 = 0
+	SizeofCnMsgOp        = 0x18
 )
 
 // SupportedNlFamilies contains the list of netlink families this netlink package supports
 var SupportedNlFamilies = []int{unix.NETLINK_ROUTE, unix.NETLINK_XFRM, unix.NETLINK_NETFILTER}
 
 var nextSeqNr uint32
+
+// Default netlink socket timeout, 60s
+var SocketTimeoutTv = unix.Timeval{Sec: 60, Usec: 0}
 
 // GetIPFamily returns the family type of a net.IP.
 func GetIPFamily(ip net.IP) int {
@@ -80,6 +84,56 @@ func Swap32(i uint32) uint32 {
 type NetlinkRequestData interface {
 	Len() int
 	Serialize() []byte
+}
+
+const (
+	PROC_CN_MCAST_LISTEN = 1
+	PROC_CN_MCAST_IGNORE
+)
+
+type CbID struct {
+	Idx uint32
+	Val uint32
+}
+
+type CnMsg struct {
+	ID     CbID
+	Seq    uint32
+	Ack    uint32
+	Length uint16
+	Flags  uint16
+}
+
+type CnMsgOp struct {
+	CnMsg
+	// here we differ from the C header
+	Op uint32
+}
+
+func NewCnMsg(idx, val, op uint32) *CnMsgOp {
+	var cm CnMsgOp
+
+	cm.ID.Idx = idx
+	cm.ID.Val = val
+
+	cm.Ack = 0
+	cm.Seq = 1
+	cm.Length = uint16(binary.Size(op))
+	cm.Op = op
+
+	return &cm
+}
+
+func (msg *CnMsgOp) Serialize() []byte {
+	return (*(*[SizeofCnMsgOp]byte)(unsafe.Pointer(msg)))[:]
+}
+
+func DeserializeCnMsgOp(b []byte) *CnMsgOp {
+	return (*CnMsgOp)(unsafe.Pointer(&b[0:SizeofCnMsgOp][0]))
+}
+
+func (msg *CnMsgOp) Len() int {
+	return SizeofCnMsgOp
 }
 
 // IfInfomsg is related to links, but it is used for list requests as well
@@ -259,6 +313,29 @@ func NewIfInfomsgChild(parent *RtAttr, family int) *IfInfomsg {
 	return msg
 }
 
+type Uint32Attribute struct {
+	Type  uint16
+	Value uint32
+}
+
+func (a *Uint32Attribute) Serialize() []byte {
+	native := NativeEndian()
+	buf := make([]byte, rtaAlignOf(8))
+	native.PutUint16(buf[0:2], 8)
+	native.PutUint16(buf[2:4], a.Type)
+
+	if a.Type&NLA_F_NET_BYTEORDER != 0 {
+		binary.BigEndian.PutUint32(buf[4:], a.Value)
+	} else {
+		native.PutUint32(buf[4:], a.Value)
+	}
+	return buf
+}
+
+func (a *Uint32Attribute) Len() int {
+	return 8
+}
+
 // Extend RtAttr to handle data and children
 type RtAttr struct {
 	unix.RtAttr
@@ -403,6 +480,14 @@ func (req *NetlinkRequest) Execute(sockType int, resType uint16) ([][]byte, erro
 		if err != nil {
 			return nil, err
 		}
+
+		if err := s.SetSendTimeout(&SocketTimeoutTv); err != nil {
+			return nil, err
+		}
+		if err := s.SetReceiveTimeout(&SocketTimeoutTv); err != nil {
+			return nil, err
+		}
+
 		defer s.Close()
 	} else {
 		s.Lock()
