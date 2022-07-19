@@ -39,6 +39,9 @@ message Filter {
     repeated uint32 pid = 4;
     repeated uint32 pid_set = 5;
     repeated EventType event_set = 6;
+    // Filter by process.arguments field using RE2 regular expression syntax:
+    // https://github.com/google/re2/wiki/Syntax
+    repeated string arguments_regex = 7;
 }
 
 message GetEventsRequest {
