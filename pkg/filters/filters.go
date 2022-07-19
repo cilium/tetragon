@@ -96,6 +96,7 @@ var Filters = []OnBuildFilter{
 	&PidFilter{},
 	&PidSetFilter{},
 	&EventTypeFilter{},
+	&ArgumentsRegexFilter{},
 }
 
 func GetProcess(event *v1.Event) *tetragon.Process {
