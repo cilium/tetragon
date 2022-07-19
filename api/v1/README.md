@@ -675,6 +675,7 @@ AggregationOptions defines configuration options for aggregating events.
 | pid | [uint32](#uint32) | repeated |  |
 | pid_set | [uint32](#uint32) | repeated |  |
 | event_set | [EventType](#tetragon-EventType) | repeated |  |
+| arguments_regex | [string](#string) | repeated | Filter by process.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 
 
 
