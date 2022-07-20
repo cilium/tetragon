@@ -172,6 +172,7 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
 		Labels:    labels,
+		PodLabels: pod.Labels,
 		Container: &tetragon.Container{
 			Id:   container.ContainerID,
 			Pid:  containerPID,
