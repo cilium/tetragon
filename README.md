@@ -121,7 +121,6 @@ Run the following command to create a GKE cluster:
 export NAME="$(whoami)-$RANDOM"
 gcloud container clusters create "${NAME}" \
   --zone us-west2-a \
-  --release-channel rapid \
   --num-nodes 1
 ```
 
