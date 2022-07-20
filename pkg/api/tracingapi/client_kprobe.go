@@ -203,6 +203,27 @@ func (m MsgGenericKprobeArgCred) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeBpfAttr struct {
+	ProgType uint32
+	InsnCnt  uint32
+	ProgName [16]byte
+}
+
+type MsgGenericKprobeArgBpfAttr struct {
+	Index    uint64
+	ProgType uint32
+	InsnCnt  uint32
+	ProgName string
+}
+
+func (m MsgGenericKprobeArgBpfAttr) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeArg interface {
 	GetIndex() uint64
 	IsReturnArg() bool

@@ -690,6 +690,18 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericNopType:
 			// do nothing
+		case gt.GenericBpfAttr:
+			var output api.MsgGenericKprobeBpfAttr
+			var arg api.MsgGenericKprobeArgBpfAttr
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("bpf_attr type error")
+			}
+			arg.ProgType = output.ProgType
+			arg.InsnCnt = output.InsnCnt
+			arg.ProgName = string(output.ProgName[:15]) // don't include last null byte
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")
 		}
