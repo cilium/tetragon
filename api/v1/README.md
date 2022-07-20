@@ -14,6 +14,7 @@
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
     - [KprobeArgument](#tetragon-KprobeArgument)
+    - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
     - [KprobePath](#tetragon-KprobePath)
@@ -271,6 +272,24 @@
 | sock_arg | [KprobeSock](#tetragon-KprobeSock) |  |  |
 | cred_arg | [KprobeCred](#tetragon-KprobeCred) |  |  |
 | long_arg | [int64](#int64) |  |  |
+| bpf_attr_arg | [KprobeBpfAttr](#tetragon-KprobeBpfAttr) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeBpfAttr"></a>
+
+### KprobeBpfAttr
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| ProgType | [string](#string) |  |  |
+| InsnCnt | [uint32](#uint32) |  |  |
+| ProgName | [string](#string) |  |  |
 
 
 

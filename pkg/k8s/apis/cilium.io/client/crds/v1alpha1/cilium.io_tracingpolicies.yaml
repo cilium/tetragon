@@ -80,6 +80,7 @@ spec:
                             - filename
                             - path
                             - nop
+                            - bpf_attr
                             type: string
                         required:
                         - index
@@ -133,6 +134,7 @@ spec:
                           - filename
                           - path
                           - nop
+                          - bpf_attr
                           type: string
                       required:
                       - index
@@ -467,6 +469,7 @@ spec:
                             - filename
                             - path
                             - nop
+                            - bpf_attr
                             type: string
                         required:
                         - index

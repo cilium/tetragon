@@ -1,0 +1,11 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "bpf-check"
+spec:
+ kprobes:
+ - call: "bpf_check"
+   syscall: false
+   args:
+   - index: 1
+     type: "bpf_attr"

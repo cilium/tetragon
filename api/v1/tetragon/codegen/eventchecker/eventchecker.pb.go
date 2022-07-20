@@ -2654,6 +2654,74 @@ func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *Kp
 	return checker
 }
 
+// KprobeBpfAttrChecker implements a checker struct to check a KprobeBpfAttr field
+type KprobeBpfAttrChecker struct {
+	ProgType *stringmatcher.StringMatcher `json:"ProgType,omitempty"`
+	InsnCnt  *uint32                      `json:"InsnCnt,omitempty"`
+	ProgName *stringmatcher.StringMatcher `json:"ProgName,omitempty"`
+}
+
+// NewKprobeBpfAttrChecker creates a new KprobeBpfAttrChecker
+func NewKprobeBpfAttrChecker() *KprobeBpfAttrChecker {
+	return &KprobeBpfAttrChecker{}
+}
+
+// Check checks a KprobeBpfAttr field
+func (checker *KprobeBpfAttrChecker) Check(event *tetragon.KprobeBpfAttr) error {
+	if event == nil {
+		return fmt.Errorf("KprobeBpfAttrChecker: KprobeBpfAttr field is nil")
+	}
+
+	if checker.ProgType != nil {
+		if err := checker.ProgType.Match(event.ProgType); err != nil {
+			return fmt.Errorf("KprobeBpfAttrChecker: ProgType check failed: %w", err)
+		}
+	}
+	if checker.InsnCnt != nil {
+		if *checker.InsnCnt != event.InsnCnt {
+			return fmt.Errorf("KprobeBpfAttrChecker: InsnCnt has value %d which does not match expected value %d", event.InsnCnt, *checker.InsnCnt)
+		}
+	}
+	if checker.ProgName != nil {
+		if err := checker.ProgName.Match(event.ProgName); err != nil {
+			return fmt.Errorf("KprobeBpfAttrChecker: ProgName check failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// WithProgType adds a ProgType check to the KprobeBpfAttrChecker
+func (checker *KprobeBpfAttrChecker) WithProgType(check *stringmatcher.StringMatcher) *KprobeBpfAttrChecker {
+	checker.ProgType = check
+	return checker
+}
+
+// WithInsnCnt adds a InsnCnt check to the KprobeBpfAttrChecker
+func (checker *KprobeBpfAttrChecker) WithInsnCnt(check uint32) *KprobeBpfAttrChecker {
+	checker.InsnCnt = &check
+	return checker
+}
+
+// WithProgName adds a ProgName check to the KprobeBpfAttrChecker
+func (checker *KprobeBpfAttrChecker) WithProgName(check *stringmatcher.StringMatcher) *KprobeBpfAttrChecker {
+	checker.ProgName = check
+	return checker
+}
+
+//FromKprobeBpfAttr populates the KprobeBpfAttrChecker using data from a KprobeBpfAttr field
+func (checker *KprobeBpfAttrChecker) FromKprobeBpfAttr(event *tetragon.KprobeBpfAttr) *KprobeBpfAttrChecker {
+	if event == nil {
+		return checker
+	}
+	checker.ProgType = stringmatcher.Full(event.ProgType)
+	{
+		val := event.InsnCnt
+		checker.InsnCnt = &val
+	}
+	checker.ProgName = stringmatcher.Full(event.ProgName)
+	return checker
+}
+
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg         *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
@@ -2667,6 +2735,7 @@ type KprobeArgumentChecker struct {
 	SockArg           *KprobeSockChecker           `json:"sockArg,omitempty"`
 	CredArg           *KprobeCredChecker           `json:"credArg,omitempty"`
 	LongArg           *int64                       `json:"longArg,omitempty"`
+	BpfAttrArg        *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -2768,6 +2837,14 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			}
 		}
 	}
+	if checker.BpfAttrArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_BpfAttrArg:
+			if err := checker.BpfAttrArg.Check(event.BpfAttrArg); err != nil {
+				return fmt.Errorf("KprobeArgumentChecker: BpfAttrArg check failed: %w", err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -2834,6 +2911,12 @@ func (checker *KprobeArgumentChecker) WithCredArg(check *KprobeCredChecker) *Kpr
 // WithLongArg adds a LongArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLongArg(check int64) *KprobeArgumentChecker {
 	checker.LongArg = &check
+	return checker
+}
+
+// WithBpfAttrArg adds a BpfAttrArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithBpfAttrArg(check *KprobeBpfAttrChecker) *KprobeArgumentChecker {
+	checker.BpfAttrArg = check
 	return checker
 }
 
@@ -2905,6 +2988,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 		{
 			val := event.LongArg
 			checker.LongArg = &val
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_BpfAttrArg:
+		if event.BpfAttrArg != nil {
+			checker.BpfAttrArg = NewKprobeBpfAttrChecker().FromKprobeBpfAttr(event.BpfAttrArg)
 		}
 	}
 	return checker
