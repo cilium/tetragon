@@ -23,6 +23,7 @@
     - [Namespace](#tetragon-Namespace)
     - [Namespaces](#tetragon-Namespaces)
     - [Pod](#tetragon-Pod)
+    - [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry)
     - [Process](#tetragon-Process)
     - [ProcessExec](#tetragon-ProcessExec)
     - [ProcessExit](#tetragon-ProcessExit)
@@ -444,6 +445,23 @@
 | name | [string](#string) |  |  |
 | labels | [string](#string) | repeated |  |
 | container | [Container](#tetragon-Container) |  |  |
+| pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | pod_labels field contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
+
+
+
+
+
+
+<a name="tetragon-Pod-PodLabelsEntry"></a>
+
+### Pod.PodLabelsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 
