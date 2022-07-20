@@ -1241,6 +1241,7 @@ type PodChecker struct {
 	Name      *stringmatcher.StringMatcher           `json:"name,omitempty"`
 	Labels    map[string]stringmatcher.StringMatcher `json:"labels,omitempty"`
 	Container *ContainerChecker                      `json:"container,omitempty"`
+	PodLabels map[string]string                      `json:"podLabels,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -1304,6 +1305,7 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 			return fmt.Errorf("PodChecker: Container check failed: %w", err)
 		}
 	}
+	// TODO: implement check for maps
 	return nil
 }
 
@@ -1331,6 +1333,12 @@ func (checker *PodChecker) WithContainer(check *ContainerChecker) *PodChecker {
 	return checker
 }
 
+// WithPodLabels adds a PodLabels check to the PodChecker
+func (checker *PodChecker) WithPodLabels(check map[string]string) *PodChecker {
+	checker.PodLabels = check
+	return checker
+}
+
 //FromPod populates the PodChecker using data from a Pod field
 func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event == nil {
@@ -1342,6 +1350,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event.Container != nil {
 		checker.Container = NewContainerChecker().FromContainer(event.Container)
 	}
+	// TODO: implement fromMap
 	return checker
 }
 

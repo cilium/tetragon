@@ -146,6 +146,7 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
 		return nil, nil
 	}
+	podLabels := pod.Labels
 	var startTime *timestamppb.Timestamp
 	livenessProbe, readinessProbe := getProbes(pod, container)
 	maybeExecProbe := filters.MaybeExecProbe(binary, args, livenessProbe) ||
@@ -172,6 +173,7 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
 		Labels:    labels,
+		PodLabels: podLabels,
 		Container: &tetragon.Container{
 			Id:   container.ContainerID,
 			Pid:  containerPID,

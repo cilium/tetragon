@@ -49,6 +49,9 @@ message Pod {
     string name = 2;
     repeated string labels = 3;
     Container container = 4;
+    // podLabels field contains all the labels of the pod. Note that the labels field
+    // contains Cilium identity labels, which is a subset of pod labels.
+    map<string, string> podLabels = 5;
 }
 
 message Capabilities {
