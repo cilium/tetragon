@@ -195,10 +195,6 @@ func TestEventExecveLongPath(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	if !kernels.EnableLargeProgs() {
-		t.Skip()
-	}
-
 	testNop := testutils.ContribPath("tester-progs/nop")
 
 	// create dir portion of path
@@ -283,10 +279,6 @@ func TestEventExecveLongArgs(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	if !kernels.EnableLargeProgs() {
-		t.Skip()
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
 	defer cancel()
 
@@ -333,10 +325,6 @@ func TestEventExecveLongArgs(t *testing.T) {
 func TestEventExecveLongPathLongArgs(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
-
-	if !kernels.EnableLargeProgs() {
-		t.Skip()
-	}
 
 	testNop := testutils.ContribPath("tester-progs/nop")
 
