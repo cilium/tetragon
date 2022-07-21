@@ -29,6 +29,8 @@ github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/endpoint/id
 github.com/cilium/cilium/pkg/identity
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io
+github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
+github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection
 github.com/cilium/cilium/pkg/labels
 github.com/cilium/cilium/pkg/lock
 github.com/cilium/cilium/pkg/logging
