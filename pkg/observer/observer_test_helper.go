@@ -52,10 +52,6 @@ var (
 	metricsEnabled = false
 )
 
-const (
-	dfltVerbosity = 0
-)
-
 type testObserverOptions struct {
 	pretty     bool
 	crd        bool
@@ -270,7 +266,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 
 	obs := newDefaultObserver(t, &o.observer)
 	if testing.Verbose() {
-		option.Config.Verbosity = dfltVerbosity
+		option.Config.Verbosity = 1
 	}
 
 	loadExporter(t, obs, &o.exporter, &o.observer)
