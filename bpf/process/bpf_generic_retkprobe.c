@@ -29,7 +29,7 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 };
 
 __attribute__((section("kprobe/generic_retkprobe"), used)) int
-BPF_KRETPROBE(generic_kprobe_event, unsigned long ret)
+BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
