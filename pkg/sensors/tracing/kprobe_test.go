@@ -543,29 +543,14 @@ spec:
 }
 
 // __x64_sys_openat trace
-func getOpenatChecker() ec.MultiEventChecker {
+func getOpenatChecker(dir string) ec.MultiEventChecker {
 	kpChecker := ec.NewProcessKprobeChecker().
 		WithFunctionName(sm.Full("__x64_sys_openat")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(-100),
-				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("/tmp/testfile")),
-				ec.NewKprobeArgumentChecker(),
-			))
-
-	return ec.NewUnorderedEventChecker(kpChecker)
-}
-
-// __x64_sys_openat trace
-func getOpenatMntChecker() ec.MultiEventChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
-		WithFunctionName(sm.Full("__x64_sys_openat")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(-100),
-				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(mountPath+"/testfile")),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(filepath.Join(dir, "testfile"))),
 				ec.NewKprobeArgumentChecker(),
 			))
 
@@ -577,20 +562,25 @@ func getAnyChecker() ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker())
 }
 
+func createTempDir(t *testing.T) string {
+	dir, err := os.MkdirTemp("/", "tmp-*")
+	if err != nil {
+		t.Fatalf("MkdirTemp failed: %s\n", err)
+	}
+	t.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
+	return dir
+}
+
 func testKprobeObjectFiltered(t *testing.T,
 	readHook string,
 	checker ec.MultiEventChecker,
 	useMount bool,
+	mntPath string,
 	expectFailure bool) {
 
-	mntPath := "/tmp"
 	if useMount == true {
-		mntPath = mountPath
-
-		if err := os.Mkdir(mntPath, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
-		}
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
 			t.Logf("Mount failed: %s\n", err)
 			t.Skip()
@@ -598,9 +588,6 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Cleanup(func() {
 			if err := syscall.Unmount(mntPath, 0); err != nil {
 				t.Logf("Unmount failed: %s\n", err)
-			}
-			if err := os.Remove(mntPath); err != nil {
-				t.Logf("Remove failed: %s\n", err)
 			}
 		})
 	}
@@ -684,14 +671,16 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
 
 func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), true, dir, false)
 }
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
@@ -728,18 +717,21 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 
 func TestKprobeObjectMultiValueOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectMultiValueOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectMultiValueOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), true, dir, false)
 }
 
 func TestKprobeObjectFilterOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -766,13 +758,14 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "/tmp/foofile\0"
+		- "` + dir + `/foofile\0"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true)
 }
 
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -799,10 +792,10 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "/tmp/foo\0"
-        - "/tmp/bar\0"
+        - "` + dir + `/foo\0"
+        - "` + dir + `/bar\0"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true)
 }
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
@@ -838,14 +831,16 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 
 func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), true, dir, false)
 }
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
@@ -881,14 +876,16 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 
 func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), true, dir, false)
 }
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
@@ -924,18 +921,21 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 
 func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getOpenatMntChecker(), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), true, dir, false)
 }
 
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -964,11 +964,12 @@ spec:
         values:
         - "/foo/"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, true)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true)
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -997,7 +998,7 @@ spec:
         values:
         - "testfile\0"
 `
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(dir), false, dir, false)
 }
 
 func helloIovecWorldWritev() (err error) {
@@ -1080,14 +1081,14 @@ spec:
 	assert.NoError(t, err)
 }
 
-func getFilpOpenChecker() ec.MultiEventChecker {
+func getFilpOpenChecker(dir string) ec.MultiEventChecker {
 	kpChecker := ec.NewProcessKprobeChecker().
 		WithFunctionName(sm.Full("do_filp_open")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(-100),
-				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("/tmp/testfile")),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(filepath.Join(dir, "testfile"))),
 			))
 
 	return ec.NewUnorderedEventChecker(kpChecker)
@@ -1095,6 +1096,7 @@ func getFilpOpenChecker() ec.MultiEventChecker {
 
 func TestKprobeObjectFilenameOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -1116,11 +1118,12 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false)
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -1144,7 +1147,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(), false, false)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
@@ -1264,26 +1267,30 @@ func getWriteChecker(path, flags string) ec.MultiEventChecker {
 
 func TestKprobeObjectFileWrite(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(filepath.Join(dir, "testfile"), ""), false, dir, false)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp")
-	testKprobeObjectFiltered(t, readHook, getWriteChecker("/tmp/testfile", ""), false, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(filepath.Join(dir, "testfile"), ""), false, dir, false)
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := createTempDir(t)
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(filepath.Join(dir, "testfile"), ""), true, dir, false)
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, mountPath)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(mountPath+"/testfile", ""), true, false)
+	dir := createTempDir(t)
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(filepath.Join(dir, "testfile"), ""), true, dir, false)
 }
 
 func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
