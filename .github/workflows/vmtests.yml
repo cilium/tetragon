@@ -1,0 +1,76 @@
+name: vmtests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  run-vmtests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.17.8'
+
+    - name: Install docker
+      uses: docker-practice/actions-setup-docker@master
+
+    - name: Checkout code
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install build dependencies
+      run: |
+        sudo apt install libelf-dev netcat-traditional libcap-dev gcc
+
+        cd go/src/github.com/cilium/tetragon/
+        sudo -E make tools-install LIBBPF_INSTALL_DIR=/usr/local/lib CLANG_INSTALL_DIR=/usr/bin
+        sudo -E ldconfig /usr/local/
+
+        sudo sed -i '/secure_path/d' /etc/sudoers
+        sudo sed -i '/env_reset/d' /etc/sudoers
+
+        echo `which clang`
+        echo `which llc`
+        echo `clang --version`
+
+    - name: Build
+      env:
+        GOPATH: /home/runner/work/tetragon/tetragon/go
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        make tetragon-bpf tester-progs test-compile
+        make -C testing
+
+    - name: Install VM test dependencies
+      run: |
+        sudo apt-get -qy update
+        sudo apt-cache search qemu
+        sudo apt-get -qy install mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 docker
+
+    - name: Make kernel accessible
+      run: |
+        sudo chmod go+rX -R /boot/
+
+    - name: Fetch VM test data
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        docker version
+        which docker
+        ./testing/fetch-data.sh 5.10
+
+    - name: test 5.10 kernel
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        ./testing/tetragon-vmtests-run --kernel testing/test-data/kernels/5.10/boot/vmlinuz* --base testing/test-data/images/base.qcow2
+
+    - name: Upload results
+      if: failure()
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: tetragon-vmtests-results
+        path: go/src/github.com/cilium/tetragon/testing/vmtests-results-*
+        retention-days: 5

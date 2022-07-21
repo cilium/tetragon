@@ -15,3 +15,4 @@ contrib/tester-progs/fork-tester
 contrib/tester-progs/namespace-tester
 contrib/tester-progs/sigkill-tester
 contrib/tester-progs/trigger-test-events
+testing/test-data
