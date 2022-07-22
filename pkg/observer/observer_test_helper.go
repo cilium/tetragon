@@ -3,6 +3,10 @@
 
 package observer
 
+// NB(kkourt): Function(t *testing.T, ctx context.Context) is the reasonable
+// thing to do here even if revive complains.
+//revive:disable:context-as-argument
+
 import (
 	"bytes"
 	"context"
@@ -248,7 +252,7 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 	return cnf, nil
 }
 
-func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
 	var sens []*sensors.Sensor
 
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
@@ -269,7 +273,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 		option.Config.Verbosity = 1
 	}
 
-	loadExporter(t, obs, &o.exporter, &o.observer)
+	loadExporter(t, ctx, obs, &o.exporter, &o.observer)
 
 	cnf, _ := readConfig(o.observer.config)
 	if cnf != nil {
@@ -280,7 +284,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 		}
 	}
 
-	if err := loadObserver(t, base, sens, o.observer.notestfail); err != nil {
+	if err := loadObserver(t, ctx, base, sens, o.observer.notestfail); err != nil {
 		return nil, err
 	}
 
@@ -308,7 +312,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 	return obs, nil
 }
 
-func GetDefaultObserverWithWatchers(t *testing.T, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
 	const (
 		testPod       = "pod-1"
 		testNamespace = "ns-1"
@@ -319,23 +323,24 @@ func GetDefaultObserverWithWatchers(t *testing.T, base *sensors.Sensor, opts ...
 
 	opts = append(opts, withK8sWatcher(w))
 	opts = append(opts, withCiliumState(s))
-	return getDefaultObserver(t, base, opts...)
-}
-func GetDefaultObserverWithBase(t *testing.T, b *sensors.Sensor, file, lib string) (*Observer, error) {
-	return GetDefaultObserverWithWatchers(t, b, WithConfig(file), withPretty(), WithLib(lib))
+	return getDefaultObserver(t, ctx, base, opts...)
 }
 
-func GetDefaultObserverWithFile(t *testing.T, file, lib string) (*Observer, error) {
+func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string) (*Observer, error) {
+	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+}
+
+func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, b, WithConfig(file), withPretty(), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
 }
 
-func GetDefaultObserverWithFileNoTest(t *testing.T, file, lib string, fail bool) (*Observer, error) {
+func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, b, WithConfig(file), withPretty(), WithLib(lib), withNotestfail(fail))
+	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib), withNotestfail(fail))
 }
 
-func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *testObserverOptions) error {
+func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testExporterOptions, oo *testObserverOptions) error {
 	watcher := opts.watcher
 	ciliumState := opts.ciliumState
 	processCacheSize := 32768
@@ -345,14 +350,14 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	}
 
 	if oo.crd {
-		crd.WatchTracePolicy(context.Background(), SensorManager)
+		crd.WatchTracePolicy(ctx, SensorManager)
 	}
 
-	if err := btf.InitCachedBTF(context.Background(), option.Config.HubbleLib, ""); err != nil {
+	if err := btf.InitCachedBTF(ctx, option.Config.HubbleLib, ""); err != nil {
 		return err
 	}
 
-	if err := process.InitCache(context.Background(), watcher, false, processCacheSize); err != nil {
+	if err := process.InitCache(ctx, watcher, false, processCacheSize); err != nil {
 		return err
 	}
 
@@ -370,7 +375,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
 	option.Config.EnableCilium = false
-	processManager, err := tetragonGrpc.NewProcessManager(context.Background(), &cancelWg, ciliumState, SensorManager)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, SensorManager)
 	if err != nil {
 		return err
 	}
@@ -386,7 +391,7 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	}
 	denyList, _ := filters.ParseFilterList("")
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList}
-	exporter := exporter.NewExporter(context.Background(), &req, processManager.Server, encoder, outF, nil)
+	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
 	exporter.Start()
 	obs.AddListener(processManager)
@@ -396,12 +401,12 @@ func loadExporter(t *testing.T, obs *Observer, opts *testExporterOptions, oo *te
 	return nil
 }
 
-func loadObserver(t *testing.T, base *sensors.Sensor, sens []*sensors.Sensor, notestfail bool) error {
-	if err := base.Load(context.TODO(), option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+func loadObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, sens []*sensors.Sensor, notestfail bool) error {
+	if err := base.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		t.Fatalf("Load base error: %s\n", err)
 	}
 	if err := config.LoadConfig(
-		context.TODO(),
+		ctx,
 		option.Config.BpfDir,
 		option.Config.MapDir,
 		option.Config.CiliumDir,
@@ -526,14 +531,14 @@ func WriteConfigFile(fileName, config string) error {
 	return out.Sync()
 }
 
-func GetDefaultObserver(t *testing.T, lib string) (*Observer, error) {
+func GetDefaultObserver(t *testing.T, ctx context.Context, lib string) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, b, withPretty(), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, b, withPretty(), WithLib(lib))
 }
 
-func GetDefaultObserverWithLib(t *testing.T, config, lib string) (*Observer, error) {
+func GetDefaultObserverWithLib(t *testing.T, ctx context.Context, config, lib string) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, b, WithConfig(config), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(config), WithLib(lib))
 }
 
 func GetMyPid() uint32 {
