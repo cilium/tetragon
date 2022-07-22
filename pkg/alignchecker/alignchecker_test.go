@@ -7,12 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
 var tetragonLib string
 
 func init() {
-	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "tetragon lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
+	flag.StringVar(&tetragonLib, "bpf-lib", filepath.Join(tus.TetragonBpfPath(), "objs"), "tetragon lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
 
 	tetragonLibEnv := os.Getenv("TETRAGON_LIB")
 	if tetragonLibEnv != "" {
