@@ -11,13 +11,18 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	api "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -408,4 +413,39 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestLoadInitialSensor(t *testing.T) {
+
+	var sensorProgs = []tus.SensorProg{
+		0: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
+		1: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
+		2: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+	}
+
+	var sensorMaps = []tus.SensorMap{
+		// all programs
+		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
+
+		// event_execve
+		tus.SensorMap{Name: "names_map", Progs: []uint{0}},
+
+		// event_wake_up_new_task
+		tus.SensorMap{Name: "execve_val", Progs: []uint{2}},
+	}
+
+	sensor := base.GetInitialSensor()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+
+	t.Logf("Loading sensor %v\n", sensor.Name)
+	if err := sensor.Load(context.TODO(), bpf.MapPrefixPath(), bpf.MapPrefixPath(), ""); err != nil {
+		t.Fatalf("sensor.Load failed: %v\n", err)
+	}
+
+	tus.CheckSensorLoad([]*sensors.Sensor{sensor}, sensorMaps, sensorProgs, t)
+
+	sensors.UnloadAll(tus.Conf().TetragonLib)
 }
