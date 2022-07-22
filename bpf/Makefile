@@ -18,17 +18,18 @@ LIBBPF = ./libbpf/
 LDIR = ./lib
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-FLAGS := -I. -I/usr/include/x86_64-linux-gnu/ \
+FLAGS := -I. \
 	 -Wall -Werror \
 	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
 	 -O2
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(ARCH)
 LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
 LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
 
 CLANG  ?= clang
 LLC    ?= llc
+ARCH   ?= x86
 
 OBJSDIR       := objs/
 DEPSDIR       := deps/
