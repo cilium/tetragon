@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "api.h"
+#include "bpf_tracing.h"
 
 #include "hubble_msg.h"
 #include "bpf_events.h"
@@ -28,7 +29,7 @@ struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
 };
 
 __attribute__((section("kprobe/generic_retkprobe"), used)) int
-generic_kprobe_event(struct pt_regs *ctx)
+BPF_KRETPROBE(generic_kprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -58,8 +59,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg)
-		size += read_call_arg(ctx, e, 0, ty_arg, 0,
-				      (unsigned long)ctx->ax, 0, 0);
+		size += read_call_arg(ctx, e, 0, ty_arg, 0, ret, 0, 0);
 
 	/*
 	 * 0x1000 should be maximum argument length, so masking
@@ -69,11 +69,10 @@ generic_kprobe_event(struct pt_regs *ctx)
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(size, retprobe_buffer, ctx->ax, e);
+		size += __copy_char_buf(size, retprobe_buffer, ret, e);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, retprobe_buffer, cnt, ctx->ax,
-					  e);
+		size += __copy_char_iovec(size, retprobe_buffer, cnt, ret, e);
 	default:
 		break;
 	}

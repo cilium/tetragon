@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "api.h"
+#include "bpf_tracing.h"
 
 #include "hubble_msg.h"
 #include "bpf_events.h"
@@ -15,13 +16,11 @@ int _version __attribute__((section(("version")), used)) =
 #endif
 
 __attribute__((section("kprobe/wake_up_new_task"), used)) int
-event_wake_up_new_task(struct pt_regs *ctx)
+BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
-	struct task_struct *task;
 	u32 pid = 0;
 
-	probe_read(&task, sizeof(task), &ctx->di);
 	if (!task)
 		return 0;
 

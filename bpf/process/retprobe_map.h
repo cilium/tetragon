@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
+#include "bpf_tracing.h"
 
 struct retprobe_info {
 	unsigned long ptr;
@@ -94,7 +95,7 @@ retprobe_map_get_key(struct pt_regs *ctx)
 {
 	__u64 ret = get_current_pid_tgid();
 	if (ret == (__u64)-22) { // -EINVAL -- current == NULL
-		ret = (__u64)ctx->bp;
+		ret = PT_REGS_FP_CORE(ctx);
 	}
 	return ret;
 }

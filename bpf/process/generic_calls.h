@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
+#include "bpf_tracing.h"
 
 #define MAX_TOTAL 9000
 
@@ -104,20 +105,20 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 
 	if (config->syscall) {
 		struct pt_regs *_ctx;
-		_ctx = (struct pt_regs *)ctx->di;
+		_ctx = PT_REGS_SYSCALL_REGS(ctx);
 		if (!_ctx)
 			return 0;
-		probe_read(&e->a0, sizeof(e->a0), &_ctx->di);
-		probe_read(&e->a1, sizeof(e->a1), &_ctx->si);
-		probe_read(&e->a2, sizeof(e->a2), &_ctx->dx);
-		probe_read(&e->a3, sizeof(e->a3), &_ctx->r10);
-		probe_read(&e->a4, sizeof(e->a4), &_ctx->r8);
+		e->a0 = PT_REGS_PARM1_CORE_SYSCALL(_ctx);
+		e->a1 = PT_REGS_PARM2_CORE_SYSCALL(_ctx);
+		e->a2 = PT_REGS_PARM3_CORE_SYSCALL(_ctx);
+		e->a3 = PT_REGS_PARM4_CORE_SYSCALL(_ctx);
+		e->a4 = PT_REGS_PARM5_CORE_SYSCALL(_ctx);
 	} else {
-		e->a0 = ctx->di;
-		e->a1 = ctx->si;
-		e->a2 = ctx->dx;
-		e->a3 = ctx->cx;
-		e->a4 = ctx->r8;
+		e->a0 = PT_REGS_PARM1_CORE(ctx);
+		e->a1 = PT_REGS_PARM2_CORE(ctx);
+		e->a2 = PT_REGS_PARM3_CORE(ctx);
+		e->a3 = PT_REGS_PARM4_CORE(ctx);
+		e->a4 = PT_REGS_PARM5_CORE(ctx);
 	}
 	e->common.op = MSG_OP_GENERIC_KPROBE;
 	e->common.flags = 0;
