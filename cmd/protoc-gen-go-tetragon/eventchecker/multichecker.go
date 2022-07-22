@@ -140,8 +140,9 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
             return true, nil
         }
 
+        totalMatched := checker.totalChecks - pending
         if logger != nil {
-            logger.Infof("UnorderedEventChecker: %d/%d matched", checker.totalChecks-pending, checker.totalChecks)
+            logger.Infof("UnorderedEventChecker: checking event with %d/%d total matched", totalMatched, checker.totalChecks)
         }
         idx := 1
 
@@ -149,6 +150,10 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
             check := e.Value.(EventChecker)
             err := check.CheckEvent(event)
             if err == nil {
+                totalMatched++
+                if logger != nil {
+                        logger.Infof("UnorderedEventChecker: successfully matched %d/%d", totalMatched, checker.totalChecks)
+                }
                 checker.pendingChecks.Remove(e)
                 pending--
                 if pending > 0 {
@@ -156,17 +161,17 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
                 }
 
                 if logger != nil {
-                    logger.Infof("UnorderedEventChecker: all %d checks matched", checker.totalChecks)
+                    logger.Infof("UnorderedEventChecker: all %d check(s) matched", checker.totalChecks)
                 }
                 return true, nil
             }
             if logger != nil {
-                logger.Infof("UnorderedEventChecker: checking %d/%d: failure: %s", idx, pending, err)
+                logger.Infof("UnorderedEventChecker: checking pending %d/%d: failure: %s", idx, pending, err)
             }
             idx++
         }
 
-        return false, ` + common.FmtErrorf(g, "UnorderedEventChecker: all %d checks failed", "pending") + `
+        return false, ` + common.FmtErrorf(g, "UnorderedEventChecker: all %d check(s) failed", "pending") + `
     }`)
 
 	g.P(`// FinalCheck implements the MultiEventChecker interface
