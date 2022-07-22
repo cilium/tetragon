@@ -225,6 +225,7 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 				}
 			}
 		}
+		k.log.WithError(stopCtx.Err()).Info("Listening for events completed.")
 	}()
 
 	// Wait for context to be cancelled and then stop.
