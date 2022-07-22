@@ -19,6 +19,7 @@ import (
 
 	hubbleV1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -47,9 +48,8 @@ import (
 )
 
 var (
-	observerTestDir = "/sys/fs/bpf/testObserver/"
-	metricsAddr     = "localhost:2112"
-	metricsEnabled  = false
+	metricsAddr    = "localhost:2112"
+	metricsEnabled = false
 )
 
 const (
@@ -229,8 +229,8 @@ func newDefaultTestOptions(t *testing.T, opts ...TestOption) *TestOptions {
 }
 
 func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
-	option.Config.BpfDir = observerTestDir
-	option.Config.MapDir = observerTestDir
+	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.MapDir = bpf.MapPrefixPath()
 	option.Config.CiliumDir = ""
 	return NewObserver(oo.config)
 }
@@ -254,6 +254,8 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 
 func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
 	var sens []*sensors.Sensor
+
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
 	o := newDefaultTestOptions(t, opts...)
 
@@ -306,7 +308,7 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 	})
 
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
-	obs.perfConfig.MapName = filepath.Join(observerTestDir, "tcpmon_map")
+	obs.perfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
 	return obs, nil
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +27,7 @@ func TestTestChecker(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	dummyErr := errors.New("dummy error")
@@ -40,12 +41,12 @@ func TestTestChecker(t *testing.T) {
 	}
 	errorChecker := NewTestChecker(&dummyChecker)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
-	testutils.LoadSensor(ctx, t, sensor)
+	tus.LoadSensor(ctx, t, sensor)
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()

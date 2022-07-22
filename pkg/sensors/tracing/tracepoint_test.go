@@ -5,10 +5,8 @@ package tracing
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"testing"
@@ -16,14 +14,13 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
-	"github.com/cilium/tetragon/pkg/testutils"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
@@ -32,35 +29,13 @@ import (
 )
 
 var (
-	selfBinary   string
-	tetragonLib  string
-	cmdWaitTime  time.Duration
-	verboseLevel int
-
-	testMapPrefix = "testObserver"
-
 	whenceBogusValue = 4444
 	fdBogusValue     = uint64(18446744073709551615) // -1
 )
 
-func init() {
-	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
-	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for tetragon to gather logs from commands")
-	flag.IntVar(&verboseLevel, "verbosity-level", 0, "verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
-}
-
 func TestMain(m *testing.M) {
-	flag.Parse()
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.ConfigureResourceLimits()
-	bpf.SetMapPrefix(testMapPrefix)
-	selfBinary = filepath.Base(os.Args[0])
-	exitCode := m.Run()
-	// NB: we currently seem to fail to remove the /sys/fs/bpf/testObserver
-	// dir. Do so here, until we figure out a way to do it properly.
-	os.RemoveAll(bpf.MapPrefixPath())
-	os.Exit(exitCode)
+	ec := tus.TestSensorsRun(m, "SensorTracing")
+	os.Exit(ec)
 }
 
 // TestGenericTracepointSimple is a simple generic tracepoint test that creates a tracepoint for lseek()
@@ -68,7 +43,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	lseekConf := GenericTracepointConf{
@@ -81,12 +56,12 @@ func TestGenericTracepointSimple(t *testing.T) {
 	}
 
 	// initialize observer
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := testutils.StartTestSensorManager(ctx, t)
+	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor([]GenericTracepointConf{lseekConf})
 	if err != nil {
@@ -124,7 +99,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	pid := int(observer.GetMyPid())
@@ -140,12 +115,12 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		conf.Selectors = make([]v1alpha1.KProbeSelector, 1)
 	}
 	conf.Selectors[0].MatchPIDs = append(conf.Selectors[0].MatchPIDs, pidSelector)
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := testutils.StartTestSensorManager(ctx, t)
+	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor([]GenericTracepointConf{conf})
 	if err != nil {

@@ -2755,6 +2755,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.StringArg.Match(event.StringArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: StringArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: StringArg check failed: %T is not a StringArg", event)
 		}
 	}
 	if checker.IntArg != nil {
@@ -2763,6 +2765,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if *checker.IntArg != event.IntArg {
 				return fmt.Errorf("KprobeArgumentChecker: IntArg has value %d which does not match expected value %d", event.IntArg, *checker.IntArg)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: IntArg check failed: %T is not a IntArg", event)
 		}
 	}
 	if checker.SkbArg != nil {
@@ -2771,6 +2775,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.SkbArg.Check(event.SkbArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: SkbArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: SkbArg check failed: %T is not a SkbArg", event)
 		}
 	}
 	if checker.SizeArg != nil {
@@ -2779,6 +2785,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if *checker.SizeArg != event.SizeArg {
 				return fmt.Errorf("KprobeArgumentChecker: SizeArg has value %d which does not match expected value %d", event.SizeArg, *checker.SizeArg)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: SizeArg check failed: %T is not a SizeArg", event)
 		}
 	}
 	if checker.BytesArg != nil {
@@ -2787,6 +2795,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.BytesArg.Match(event.BytesArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: BytesArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: BytesArg check failed: %T is not a BytesArg", event)
 		}
 	}
 	if checker.PathArg != nil {
@@ -2795,6 +2805,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.PathArg.Check(event.PathArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: PathArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: PathArg check failed: %T is not a PathArg", event)
 		}
 	}
 	if checker.FileArg != nil {
@@ -2803,6 +2815,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.FileArg.Check(event.FileArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: FileArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: FileArg check failed: %T is not a FileArg", event)
 		}
 	}
 	if checker.TruncatedBytesArg != nil {
@@ -2811,6 +2825,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.TruncatedBytesArg.Check(event.TruncatedBytesArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: TruncatedBytesArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: TruncatedBytesArg check failed: %T is not a TruncatedBytesArg", event)
 		}
 	}
 	if checker.SockArg != nil {
@@ -2819,6 +2835,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.SockArg.Check(event.SockArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: SockArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: SockArg check failed: %T is not a SockArg", event)
 		}
 	}
 	if checker.CredArg != nil {
@@ -2827,6 +2845,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if err := checker.CredArg.Check(event.CredArg); err != nil {
 				return fmt.Errorf("KprobeArgumentChecker: CredArg check failed: %w", err)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: CredArg check failed: %T is not a CredArg", event)
 		}
 	}
 	if checker.LongArg != nil {
@@ -2835,6 +2855,8 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			if *checker.LongArg != event.LongArg {
 				return fmt.Errorf("KprobeArgumentChecker: LongArg has value %d which does not match expected value %d", event.LongArg, *checker.LongArg)
 			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: LongArg check failed: %T is not a LongArg", event)
 		}
 	}
 	if checker.BpfAttrArg != nil {

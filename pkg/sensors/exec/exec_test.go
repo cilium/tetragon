@@ -4,19 +4,15 @@ package exec
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	api "github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -24,33 +20,13 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	selfBinary   string
-	tetragonLib  string
-	cmdWaitTime  time.Duration
-	verboseLevel int
-)
-
-func init() {
-	flag.StringVar(&tetragonLib, "bpf-lib", "../../../bpf/objs/", "hubble lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
-	flag.DurationVar(&cmdWaitTime, "command-wait", 20000*time.Millisecond, "duration to wait for tetragon to gather logs from commands")
-	flag.IntVar(&verboseLevel, "verbosity-level", 0, "verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
-
-	bpf.SetMapPrefix("testObserver")
-}
-
 func TestMain(m *testing.M) {
-	flag.Parse()
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.ConfigureResourceLimits()
-	bpf.SetMapPrefix("testObserver")
-	selfBinary = filepath.Base(os.Args[0])
-	exitCode := m.Run()
-	os.Exit(exitCode)
+	ec := tus.TestSensorsRun(m, "SensorExec")
+	os.Exit(ec)
 }
 
 func Test_msgToExecveUnix(t *testing.T) {
@@ -133,14 +109,14 @@ func TestNamespaces(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	rootNs := namespace.GetCurrentNamespace()
 	nsChecker := ec.NewNamespacesChecker().FromNamespaces(rootNs)
 
 	selfChecker := ec.NewProcessChecker().
-		WithBinary(sm.Suffix(selfBinary)).
+		WithBinary(sm.Suffix(tus.Conf().SelfBinary)).
 		WithNs(nsChecker)
 
 	checker := ec.NewUnorderedEventChecker(
@@ -149,7 +125,7 @@ func TestNamespaces(t *testing.T) {
 			WithParent(ec.NewProcessChecker()),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -164,10 +140,10 @@ func TestEventExecve(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -259,10 +235,10 @@ func TestEventExecveLongPath(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -287,10 +263,10 @@ func TestEventExecveLongArgs(t *testing.T) {
 		t.Skip()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -414,10 +390,10 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, tetragonLib)
+	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}

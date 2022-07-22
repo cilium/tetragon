@@ -97,8 +97,6 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 		req.AddData(rtAttrs[i])
 	}
 
-	native := nl.NativeEndian()
-
 	if rule.Priority >= 0 {
 		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Priority))
@@ -142,16 +140,22 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 		}
 	}
 	if rule.IifName != "" {
-		req.AddData(nl.NewRtAttr(nl.FRA_IIFNAME, []byte(rule.IifName)))
+		req.AddData(nl.NewRtAttr(nl.FRA_IIFNAME, []byte(rule.IifName+"\x00")))
 	}
 	if rule.OifName != "" {
-		req.AddData(nl.NewRtAttr(nl.FRA_OIFNAME, []byte(rule.OifName)))
+		req.AddData(nl.NewRtAttr(nl.FRA_OIFNAME, []byte(rule.OifName+"\x00")))
 	}
 	if rule.Goto >= 0 {
 		msg.Type = nl.FR_ACT_GOTO
 		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Goto))
 		req.AddData(nl.NewRtAttr(nl.FRA_GOTO, b))
+	}
+
+	if rule.IPProto > 0 {
+		b := make([]byte, 4)
+		native.PutUint32(b, uint32(rule.IPProto))
+		req.AddData(nl.NewRtAttr(nl.FRA_IP_PROTO, b))
 	}
 
 	if rule.Dport != nil {
@@ -199,7 +203,6 @@ func (h *Handle) RuleListFiltered(family int, filter *Rule, filterMask uint64) (
 		return nil, err
 	}
 
-	native := nl.NativeEndian()
 	var res = make([]Rule, 0)
 	for i := range msgs {
 		msg := nl.DeserializeRtMsg(msgs[i])
@@ -232,7 +235,7 @@ func (h *Handle) RuleListFiltered(family int, filter *Rule, filterMask uint64) (
 			case nl.FRA_FWMASK:
 				rule.Mask = int(native.Uint32(attrs[j].Value[0:4]))
 			case nl.FRA_TUN_ID:
-				rule.TunID = uint(native.Uint64(attrs[j].Value[0:4]))
+				rule.TunID = uint(native.Uint64(attrs[j].Value[0:8]))
 			case nl.FRA_IIFNAME:
 				rule.IifName = string(attrs[j].Value[:len(attrs[j].Value)-1])
 			case nl.FRA_OIFNAME:
@@ -253,6 +256,8 @@ func (h *Handle) RuleListFiltered(family int, filter *Rule, filterMask uint64) (
 				rule.Goto = int(native.Uint32(attrs[j].Value[0:4]))
 			case nl.FRA_PRIORITY:
 				rule.Priority = int(native.Uint32(attrs[j].Value[0:4]))
+			case nl.FRA_IP_PROTO:
+				rule.IPProto = int(native.Uint32(attrs[j].Value[0:4]))
 			case nl.FRA_DPORT_RANGE:
 				rule.Dport = NewRulePortRange(native.Uint16(attrs[j].Value[0:2]), native.Uint16(attrs[j].Value[2:4]))
 			case nl.FRA_SPORT_RANGE:

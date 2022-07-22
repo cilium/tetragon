@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -35,11 +36,18 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var mountPath = "/tmp2"
-
 const (
+	mountPath      = "/tmp2"
 	testConfigFile = "/tmp/tetragon.gotest.yaml"
-	kprobeTestDir  = "/sys/fs/bpf/testObserver/"
+)
+
+var (
+	allFiles = [4]string{
+		"/etc/passwd",
+		"/etc/group",
+		"/etc/hostname",
+		"/etc/shadow",
+	}
 )
 
 func TestKprobeObjectLoad(t *testing.T) {
@@ -75,12 +83,12 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(context.TODO(), kprobeTestDir, kprobeTestDir, "")
+	initialSensor.Load(context.TODO(), bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -89,7 +97,7 @@ func TestKprobeLseek(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
@@ -121,7 +129,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -154,7 +162,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	writeConfigHook := []byte(writeReadHook)
@@ -165,7 +173,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker()
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -407,7 +415,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
@@ -416,7 +424,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -600,7 +608,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	filePath := mntPath + "/testfile"
@@ -619,7 +627,7 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1010,7 +1018,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
@@ -1049,7 +1057,7 @@ spec:
 
 	kpChecker := ec.NewProcessKprobeChecker().
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(selfBinary))).
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
 		WithFunctionName(sm.Full("__x64_sys_writev")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1059,7 +1067,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1249,7 +1257,7 @@ func getWriteChecker(path, flags string) ec.MultiEventChecker {
 				ec.NewKprobeArgumentChecker().WithSizeArg(11),
 			)).
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(selfBinary)))
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
 
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
@@ -1282,7 +1290,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	// Create file to open later
@@ -1299,7 +1307,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1536,7 +1544,7 @@ spec:
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
@@ -1545,7 +1553,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1589,7 +1597,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Skip("skipping override test, bpf_override_return helper not available")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	configHook := []byte(hook)
@@ -1598,7 +1606,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1705,7 +1713,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tetragonLib, true)
+	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tus.Conf().TetragonLib, true)
 	if err == nil {
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
@@ -1717,7 +1725,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), cmdWaitTime)
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	testConfigHook := []byte(configHook)
@@ -1727,7 +1735,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	}
 
 	b := base.GetInitialSensor()
-	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tetragonLib))
+	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tus.Conf().TetragonLib))
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}
@@ -1915,9 +1923,385 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdr)),
 				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(buffer)),
-				ec.NewKprobeArgumentChecker().WithIntArg(8),
+				ec.NewKprobeArgumentChecker().WithSizeArg(8),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+}
+
+func getMatchArgsFileCrd(opStr string, vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-matchArgs"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	return configHook
+}
+
+func getMatchArgsFdCrd(opStr string, vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-matchArgs"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	configHook += "\n"
+	configHook += `      matchActions:
+      - action: FollowFD
+        argFd: 0
+        argName: 1
+  - call: "__x64_sys_close"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: UnfollowFD
+        argFd: 0
+        argName: 0
+  - call: "__x64_sys_read"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "char_buf"
+      returnCopy: false
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	return configHook
+}
+
+// this will trigger an fd_install event
+func openFile(t *testing.T, file string) int {
+	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
+	if fd < 0 {
+		t.Logf("File open failed: %s\n", errno)
+		t.Fatal()
+	}
+	t.Cleanup(func() { syscall.Close(fd) })
+	return fd
+}
+
+// reads 32 bytes from a file, this will trigger a __x64_sys_read.
+func readFile(t *testing.T, file string) int {
+	fd := openFile(t, file)
+	var readBytes = make([]byte, 32)
+	i, errno := syscall.Read(fd, readBytes)
+	if i < 0 {
+		t.Logf("syscall.Read failed: %s\n", errno)
+		t.Fatal()
+	}
+	return fd
+}
+
+func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd)),
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
+	return kpChecker
+}
+
+func createReadChecker(filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("__x64_sys_read")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte(""))), // returnCopy: false
+				ec.NewKprobeArgumentChecker().WithSizeArg(32),
+			))
+	return kpChecker
+}
+
+func createCrdFile(t *testing.T, readHook string) {
+	readConfigHook := []byte(readHook)
+	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+}
+
+func getNumValues() int {
+	if kernels.EnableLargeProgs() {
+		return 4
+	}
+	return 2
+}
+
+func TestKprobeMatchArgsFileEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "/etc/passwd"
+	argVals[1] = "/etc/group"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "/etc/hostname"
+		argVals[3] = "/etc/shadow"
+	}
+
+	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fds := make([]int, numValues)
+	for i := 0; i < numValues; i++ {
+		fds[i] = openFile(t, allFiles[i])
+	}
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i, fd := range fds {
+		kpCheckers[i] = createFdInstallChecker(fd, allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFilePostfix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "hostname"
+		argVals[3] = "shadow"
+	}
+
+	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fds := make([]int, numValues)
+	for i := 0; i < numValues; i++ {
+		fds[i] = openFile(t, allFiles[i])
+	}
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i, fd := range fds {
+		kpCheckers[i] = createFdInstallChecker(fd, allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFilePrefix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "/etc/p"
+	argVals[1] = "/etc/g"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "/etc/h"
+		argVals[3] = "/etc/s"
+	}
+
+	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fds := make([]int, numValues)
+	for i := 0; i < numValues; i++ {
+		fds[i] = openFile(t, allFiles[i])
+	}
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i, fd := range fds {
+		kpCheckers[i] = createFdInstallChecker(fd, allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "/etc/passwd"
+	argVals[1] = "/etc/group"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "/etc/hostname"
+		argVals[3] = "/etc/shadow"
+	}
+
+	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i := 0; i < numValues; i++ {
+		readFile(t, allFiles[i])
+		kpCheckers[i] = createReadChecker(allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPostfix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "hostname"
+		argVals[3] = "shadow"
+	}
+
+	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i := 0; i < numValues; i++ {
+		readFile(t, allFiles[i])
+		kpCheckers[i] = createReadChecker(allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "/etc/p"
+	argVals[1] = "/etc/g"
+	if kernels.EnableLargeProgs() {
+		argVals[2] = "/etc/h"
+		argVals[3] = "/etc/s"
+	}
+
+	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i := 0; i < numValues; i++ {
+		readFile(t, allFiles[i])
+		kpCheckers[i] = createReadChecker(allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }

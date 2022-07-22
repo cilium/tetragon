@@ -209,6 +209,10 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 		return doListFrom()
 	}
 
+	if handleList && field.Desc.IsMap() {
+		return "// TODO: implement fromMap", nil
+	}
+
 	switch kind {
 	case protoreflect.BoolKind,
 		protoreflect.Int32Kind,
@@ -392,6 +396,8 @@ func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handle
 		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
         case *` + fieldIdent + `:
             ` + innerCheck + `
+        default:
+            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %T is not a "+field.GoName, "event") + `
         }`, nil
 	}
 
@@ -406,6 +412,10 @@ func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handle
 
 	if handleList && field.Desc.IsList() {
 		return doListCheck()
+	}
+
+	if handleList && field.Desc.IsMap() {
+		return "// TODO: implement check for maps", nil
 	}
 
 	switch kind {
@@ -806,7 +816,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 	}
 
 	if field.isMap() {
-		return fmt.Sprintf("map[%s]%s", field.Desc.MapKey(), type_), nil
+		return fmt.Sprintf("map[%s]%s", field.Desc.MapKey().Kind().String(), field.Desc.MapValue().Kind().String()), nil
 	} else if field.isList() {
 		if field.isPrimitive() {
 			return fmt.Sprintf("[]%s", type_), nil

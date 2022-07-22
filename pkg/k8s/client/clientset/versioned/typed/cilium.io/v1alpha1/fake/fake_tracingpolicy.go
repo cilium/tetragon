@@ -86,7 +86,7 @@ func (c *FakeTracingPolicies) Update(ctx context.Context, tracingPolicy *v1alpha
 // Delete takes name of the tracingPolicy and deletes it. Returns an error if one occurs.
 func (c *FakeTracingPolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(tracingpoliciesResource, name), &v1alpha1.TracingPolicy{})
+		Invokes(testing.NewRootDeleteActionWithOptions(tracingpoliciesResource, name, opts), &v1alpha1.TracingPolicy{})
 	return err
 }
 
