@@ -119,13 +119,20 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	var err error
 
-	jsonFname := testutils.GetExportFilename(t)
+	jsonFname, err := testutils.GetExportFilename(t)
+	if err != nil {
+		return err
+	}
 
 	// cleanup function: if test fails, mark export file to be kept
 	defer func() {
 		if err != nil {
-			t.Log("test failed, marking export file to be kept")
-			testutils.KeepExportFile(t)
+			err := testutils.KeepExportFile(t)
+			if err == nil {
+				t.Log("test failed, marked export file to be kept")
+			} else {
+				t.Logf("test failed, but failed to mark export file to be kept: %v", err)
+			}
 		}
 	}()
 
