@@ -48,19 +48,19 @@ func (f *ExportFile) Close() error {
 
 // CreateExportFile creates an export file for a test.
 // a callback will be registered at t.Cleanup() for closing the file, and removing the file
-func CreateExportFile(t *testing.T) *ExportFile {
+func CreateExportFile(t *testing.T) (*ExportFile, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 
 	testName := t.Name()
 	if _, ok := exportFiles[testName]; ok {
-		t.Fatalf("unexpected error: t.Name() %s already exists", testName)
+		return nil, fmt.Errorf("unexpected error: t.Name() %s already exists", testName)
 	}
 
 	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
 	f, err := os.CreateTemp("/tmp", fname)
 	if err != nil {
-		t.Fatalf("failed to create export file for test %s: %s", t.Name(), err)
+		return nil, fmt.Errorf("failed to create export file for test %s: %s", t.Name(), err)
 	}
 	os.Chmod(f.Name(), 0644)
 
@@ -72,44 +72,46 @@ func CreateExportFile(t *testing.T) *ExportFile {
 	}
 
 	exportFiles[testName] = ret
-	return ret
+	return ret, nil
 }
 
 // GetExportFilename return export filename for test
-func GetExportFilename(t *testing.T) string {
+func GetExportFilename(t *testing.T) (string, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := t.Name()
 	ef, ok := exportFiles[testName]
 	if !ok {
-		t.Fatalf("file for test %s does not exist", testName)
+		return "", fmt.Errorf("file for test %s does not exist", testName)
 	}
-	return ef.fName
+	return ef.fName, nil
 }
 
 // KeepExportFile marks export file to be kept
-func KeepExportFile(t *testing.T) {
+func KeepExportFile(t *testing.T) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := t.Name()
 	ef, ok := exportFiles[testName]
 	if !ok {
-		t.Fatalf("file for test %s does not exist", testName)
+		return fmt.Errorf("file for test %s does not exist", testName)
 	}
 	ef.keep = true
 	exportFiles[testName] = ef
+	return nil
 }
 
 // DontKeepExportFile: unmarks export file to be kept. This is meant for tests
 // that are expected to fail.
-func DontKeepExportFile(t *testing.T) {
+func DontKeepExportFile(t *testing.T) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := t.Name()
 	ef, ok := exportFiles[testName]
 	if !ok {
-		t.Fatalf("file for test %s does not exist", testName)
+		return fmt.Errorf("file for test %s does not exist", testName)
 	}
 	ef.keep = false
 	exportFiles[testName] = ef
+	return nil
 }

@@ -288,7 +288,11 @@ func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor,
 		return nil, err
 	}
 
-	saveInitInfo(o, testutils.GetExportFilename(t))
+	exportFname, err := testutils.GetExportFilename(t)
+	if err != nil {
+		return nil, err
+	}
+	saveInitInfo(o, exportFname)
 
 	// There doesn't appear to be a better way to enable the metrics server once and only
 	// once at the beginning of the observer tests. My initial thought was to use the init
@@ -379,7 +383,10 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	if err != nil {
 		return err
 	}
-	outF := testutils.CreateExportFile(t)
+	outF, err := testutils.CreateExportFile(t)
+	if err != nil {
+		return err
+	}
 	encoder := json.NewEncoder(outF)
 
 	// temporarily disable the allow list while we fixup TLS events

@@ -70,7 +70,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	readyWG.Wait()
 
 	if err := testCmd.Start(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to start command: %v", err)
 	}
 
 	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)

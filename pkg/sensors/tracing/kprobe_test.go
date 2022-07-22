@@ -650,7 +650,9 @@ func testKprobeObjectFiltered(t *testing.T,
 	err = jsonchecker.JsonTestCheck(t, checker)
 	if expectFailure {
 		t.Logf("Expectinfg failure")
-		testutils.DontKeepExportFile(t)
+		if err := testutils.DontKeepExportFile(t); err != nil {
+			t.Logf("failed to mark the file export file for deletion: %v", err)
+		}
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)
