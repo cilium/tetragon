@@ -31,7 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
-
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -625,6 +625,8 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.NoError(t, err)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	if expectFailure {
+		t.Logf("Expecting failure")
+		testutils.DontKeepExportFile(t)
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)
