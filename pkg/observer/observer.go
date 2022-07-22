@@ -252,6 +252,8 @@ type Observer struct {
 
 	/* YAML Configuration File */
 	configFile string
+
+	Sensors []*sensors.Sensor
 }
 
 func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
