@@ -25,6 +25,7 @@ const (
 
 	// GenericConstBuffer is a buffer type whose size is static (and known).
 	GenericConstBuffer = 18
+	GenericBpfAttr     = 19
 
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -68,6 +69,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericConstBuffer
 	case "nop":
 		return GenericNopType
+	case "bpf_attr":
+		return GenericBpfAttr
 	default:
 		return GenericInvalidType
 	}

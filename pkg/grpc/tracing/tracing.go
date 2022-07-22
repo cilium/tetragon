@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/reader/bpfattr"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -133,6 +134,13 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
 			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
+		case api.MsgGenericKprobeArgBpfAttr:
+			bpfAttrArg := &tetragon.KprobeBpfAttr{
+				ProgType: bpfattr.GetProgType(e.ProgType),
+				InsnCnt:  e.InsnCnt,
+				ProgName: e.ProgName,
+			}
+			a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}

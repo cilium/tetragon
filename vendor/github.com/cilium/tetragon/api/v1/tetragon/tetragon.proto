@@ -157,6 +157,12 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeBpfAttr {
+    string  ProgType = 1;
+    uint32  InsnCnt = 2;
+    string  ProgName = 3;
+}
+
 message KprobeArgument {
     oneof arg {
 	string    string_arg = 1;
@@ -170,6 +176,7 @@ message KprobeArgument {
 	KprobeSock sock_arg = 9;
 	KprobeCred cred_arg = 10;
 	int64 long_arg = 11;
+    KprobeBpfAttr bpf_attr_arg = 12;
     }
 }
 

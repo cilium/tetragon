@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
+
+package bpfattr
+
+import (
+	"fmt"
+)
+
+/*uapi/linux/bpf.h */
+var progTypeString = map[uint32]string{
+	0:  "BPF_PROG_TYPE_UNSPEC",
+	1:  "BPF_PROG_TYPE_SOCKET_FILTER",
+	2:  "BPF_PROG_TYPE_KPROBE",
+	3:  "BPF_PROG_TYPE_SCHED_CLS",
+	4:  "BPF_PROG_TYPE_SCHED_ACT",
+	5:  "BPF_PROG_TYPE_TRACEPOINT",
+	6:  "BPF_PROG_TYPE_XDP",
+	7:  "BPF_PROG_TYPE_PERF_EVENT",
+	8:  "BPF_PROG_TYPE_CGROUP_SKB",
+	9:  "BPF_PROG_TYPE_CGROUP_SOCK",
+	10: "BPF_PROG_TYPE_LWT_IN",
+	11: "BPF_PROG_TYPE_LWT_OUT",
+	12: "BPF_PROG_TYPE_LWT_XMIT",
+	13: "BPF_PROG_TYPE_SOCK_OPS",
+	14: "BPF_PROG_TYPE_SK_SKB",
+	15: "BPF_PROG_TYPE_CGROUP_DEVICE",
+	16: "BPF_PROG_TYPE_SK_MSG",
+	17: "BPF_PROG_TYPE_RAW_TRACEPOINT",
+	18: "BPF_PROG_TYPE_CGROUP_SOCK_ADDR",
+	19: "BPF_PROG_TYPE_LWT_SEG6LOCAL",
+	20: "BPF_PROG_TYPE_LIRC_MODE2",
+	21: "BPF_PROG_TYPE_SK_REUSEPORT",
+	22: "BPF_PROG_TYPE_FLOW_DISSECTOR",
+	23: "BPF_PROG_TYPE_CGROUP_SYSCTL",
+	24: "BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE",
+	25: "BPF_PROG_TYPE_CGROUP_SOCKOPT",
+	26: "BPF_PROG_TYPE_TRACING",
+	27: "BPF_PROG_TYPE_STRUCT_OPS",
+	28: "BPF_PROG_TYPE_EXT",
+	29: "BPF_PROG_TYPE_LSM",
+	30: "BPF_PROG_TYPE_SK_LOOKUP",
+	31: "BPF_PROG_TYPE_SYSCALL", /* a program that can execute syscalls */
+}
+
+func GetProgType(t uint32) string {
+	if t, ok := progTypeString[t]; ok {
+		return t
+	}
+	return fmt.Sprintf("%d", t)
+}

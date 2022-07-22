@@ -6,6 +6,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
+#include "bpfattr.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -34,6 +35,7 @@ enum {
 	 * in the meta argument
 	 */
 	const_buf_type = 18,
+	bpf_attr_type = 19,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -650,6 +652,20 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 }
 
 static inline __attribute__((always_inline)) long
+copy_bpf_attr(char *args, unsigned long arg)
+{
+	union bpf_attr *ba = (union bpf_attr *)arg;
+	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
+
+	/* struct values */
+	probe_read(&bpf_info->prog_type, sizeof(__u32), _(&ba->prog_type));
+	probe_read(&bpf_info->insn_cnt, sizeof(__u32), _(&ba->insn_cnt));
+	probe_read(&bpf_info->prog_name, 16U, _(&ba->prog_name));
+
+	return sizeof(struct bpf_info_type);
+}
+
+static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
@@ -721,7 +737,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return 4;
 	case const_buf_type:
 		return argm;
-
+	case bpf_attr_type:
+		return sizeof(struct bpf_info_type);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1283,6 +1300,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		// bound size to 1023 to help the verifier out
 		size = argm & 0x03ff;
 		probe_read(args, size, (char *)arg);
+		break;
+	}
+	case bpf_attr_type: {
+		size = copy_bpf_attr(args, arg);
 		break;
 	}
 	default:
