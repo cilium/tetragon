@@ -5,6 +5,7 @@ package program
 import (
 	"fmt"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -76,6 +77,8 @@ type Program struct {
 	unloaderOverride unloader.Unloader
 
 	PinMap map[string]string
+
+	Coll *ebpf.Collection
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
@@ -100,6 +103,7 @@ func (p *Program) Unload() error {
 			return fmt.Errorf("Failed to unload override: %s", err)
 		}
 	}
+	p.Coll.Close()
 	p.unloader = nil
 	p.unloaderOverride = nil
 	return nil
