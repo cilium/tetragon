@@ -42,7 +42,7 @@ func TestCopyFd(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60000*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	testBin := testutils.ContribPath("tester-progs/dup-tester")
@@ -76,7 +76,7 @@ func TestCopyFd(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

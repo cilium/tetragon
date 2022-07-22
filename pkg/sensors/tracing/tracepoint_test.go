@@ -56,7 +56,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	}
 
 	// initialize observer
-	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -115,7 +115,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		conf.Selectors = make([]v1alpha1.KProbeSelector, 1)
 	}
 	conf.Selectors[0].MatchPIDs = append(conf.Selectors[0].MatchPIDs, pidSelector)
-	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}

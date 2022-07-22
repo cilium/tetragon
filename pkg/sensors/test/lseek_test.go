@@ -43,7 +43,7 @@ func TestSensorLseekLoad(t *testing.T) {
 		ec.NewTestChecker(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -72,7 +72,7 @@ func TestSensorLseekEnable(t *testing.T) {
 		ec.NewTestChecker(),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
