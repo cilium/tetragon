@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
+/* Copyright Authors of Cilium */
+
 struct retprobe_info {
 	unsigned long ptr;
 	unsigned long cnt;

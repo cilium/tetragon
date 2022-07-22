@@ -1,5 +1,6 @@
-#ifndef __VMLINUX_
-#define __VMLINUX_
+/* SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause) */
+#ifndef __VMLINUX_H__
+#define __VMLINUX_H__
 
 /* User configurable BTF */
 enum generic_func_args_enum {

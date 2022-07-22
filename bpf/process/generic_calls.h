@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
+/* Copyright Authors of Cilium */
+
 #define MAX_TOTAL 9000
 
 static inline __attribute__((always_inline)) int
