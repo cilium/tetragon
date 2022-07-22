@@ -61,7 +61,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		"tetragon lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
 	flag.DurationVar(&config.CmdWaitTime,
 		"command-wait",
-		ConfigDefaults.CmdWaitTime,
+		5*time.Minute,
 		"duration to wait for tetragon to gather logs from commands")
 	flag.IntVar(
 		&config.VerboseLevel,
