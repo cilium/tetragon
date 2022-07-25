@@ -51,6 +51,7 @@ jobs:
         matrix:
            kernel:
               - '5.10'
+              - '5.4'
     needs: build
     name: Test ${{ matrix.kernel }}
     runs-on: ubuntu-latest
