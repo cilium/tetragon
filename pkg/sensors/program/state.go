@@ -47,3 +47,7 @@ func (s *State) RefDec() int {
 	s.count--
 	return s.count
 }
+
+func (s *State) Count() int {
+	return s.count
+}

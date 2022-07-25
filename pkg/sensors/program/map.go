@@ -71,3 +71,15 @@ func (m *Map) GetFD() (int, error) {
 	}
 	return m.MapHandle.FD(), nil
 }
+
+// Type returns the type of the underlying eBPF map
+func (m *Map) Type() (ebpf.MapType, error) {
+	if m.mapHandle == nil {
+		return 0, fmt.Errorf("Map is not loaded")
+	}
+	i, err := m.mapHandle.Info()
+	if err != nil {
+		return 0, err
+	}
+	return i.Type, nil
+}
