@@ -7,9 +7,10 @@ on:
     branches:
       - main
 jobs:
-  run-vmtests:
+  build:
+    name: Build tetragon
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -30,7 +31,6 @@ jobs:
         echo `which clang`
         echo `which llc`
         echo `clang --version`
-
     - name: Build
       env:
         GOPATH: /home/runner/work/tetragon/tetragon/go
@@ -38,7 +38,26 @@ jobs:
         cd go/src/github.com/cilium/tetragon/
         make tetragon-bpf tester-progs test-compile
         make -C tests/vmtests
-
+        cd ..
+        tar cvz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
+    - name: upload build
+      uses: actions/upload-artifact@v3
+      with:
+         name: tetragon-build
+         path: /tmp/tetragon.tar
+         retention-days: 5
+  test:
+    strategy:
+        matrix:
+           kernel:
+              - '5.10'
+    needs: build
+    name: Test ${{ matrix.kernel }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+    - name: Install docker
+      uses: docker-practice/actions-setup-docker@master
     - name: Install VM test dependencies
       run: |
         sudo apt-get -qy update
@@ -49,22 +68,27 @@ jobs:
       run: |
         sudo chmod go+rX -R /boot/
 
-    - name: Fetch VM test data
-      run: |
-        cd go/src/github.com/cilium/tetragon/
-        docker version
-        which docker
-        ./tests/vmtests/fetch-data.sh 5.10
+    - name: download build data
+      uses: actions/download-artifact@v3
+      with:
+         name: tetragon-build
 
-    - name: test 5.10 kernel
+    - name: extract build data
+      # NB: currently, due to how tests work, we need to extract to the same path.
       run: |
-        cd go/src/github.com/cilium/tetragon/
-        ./tests/vmtests/tetragon-vmtests-run --kernel tests/vmtests/test-data/kernels/5.10/boot/vmlinuz* --base tests/vmtests/test-data/images/base.qcow2
+        mkdir -p go/src/github.com/cilium/
+        tar xf tetragon.tar -C go/src/github.com/cilium
 
-    - name: Upload results
+    - name: test kernel ${{ matrix.kernel }}
+      run: |
+        cd go/src/github.com/cilium/tetragon
+        ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        ./tests/vmtests/tetragon-vmtests-run --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* --base tests/vmtests/test-data/images/base.qcow2
+
+    - name: Upload test results
       if: failure()
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
-        name: tetragon-vmtests-results
+        name: tetragon-vmtests-${{ matrix.kernel }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
         retention-days: 5
