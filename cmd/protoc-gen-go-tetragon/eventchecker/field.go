@@ -251,9 +251,18 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 }
 
 func (field *Field) generateFieldCheck(g *protogen.GeneratedFile, msg *CheckedMessage) error {
-	check, err := field.getFieldCheck(g, msg)
+	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
+	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+
+	check, err := field.getFieldCheck(g, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
 		return err
+	}
+
+	if !field.isMap() {
+		check = `if ` + checkerVar + ` != nil {
+            ` + check + `
+        }`
 	}
 
 	g.P(check)
@@ -261,40 +270,113 @@ func (field *Field) generateFieldCheck(g *protogen.GeneratedFile, msg *CheckedMe
 	return nil
 }
 
-func (field *Field) getFieldCheck(g *protogen.GeneratedFile, msg *CheckedMessage) (string, error) {
-	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
-	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checkerVar, eventVar string) (string, error) {
+	if field.Oneof != nil {
+		return checkForOneof(g, field, checkerName, checkerVar, eventVar)
+	}
 
-	check, err := doGetFieldCheck(field, g, true, true, msg.checkerName(g), checkerVar, eventVar)
+	if field.isList() {
+		return `if err := ` + checkerVar + `.Check(` + eventVar + `); err != nil {
+            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+        }`, nil
+	}
+
+	if field.isMap() {
+		// Wrap the check in its own scope so we can redeclare variables
+		check, err := checkForMap(g, field, checkerName, checkerVar, eventVar)
+		check = "{" + check + "}"
+		return check, err
+	}
+
+	return checkForKind(g, field, checkerName, checkerVar, eventVar)
+}
+
+// checkForMap returns the checker body for map fields and, as a special case, the
+// Pod_Labels field of the Pod message.
+func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
+	// Common part of the map check
+	mapCheck := func(eventVar string) (string, error) {
+		return `var unmatched []string
+            matched := make(map[string]struct{})
+            for key, value := range ` + eventVar + ` {
+                if len(` + checkerVar + `) > 0 {
+                    // Attempt to grab the matcher for this key
+                    if matcher, ok := ` + checkerVar + `[key]; ok {
+                        if err := matcher.Match(value); err != nil {
+                            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+"[%s] (%s=%s) check failed: %w", "key", "key", "value", "err") + `
+                        }
+                        matched[key] = struct{}{}
+                    }
+                }
+            }
+
+            // See if we have any unmatched values that we wanted to match
+            if len(matched) != len(` + checkerVar + `) {
+                for k := range ` + checkerVar + ` {
+                    if _, ok := matched[k]; !ok {
+                        unmatched = append(unmatched, k)
+                    }
+                }
+                return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" unmatched: %v", "unmatched") + `
+            }`, nil
+	}
+
+	// Specific to Pod_Labels which needs to be converted into a map
+	if field.GoIdent.GoName == "Pod_Labels" {
+		splitN := common.GoIdent(g, "strings", "SplitN")
+		preamble := `values := make(map[string]string)
+        for _, s := range ` + eventVar + ` {
+            // Split out key,value pair
+            kv := ` + splitN + `(s, "=", 2)
+            if len(kv) != 2 {
+                // If we wanted to match an invalid label, error out
+                if _, ok := ` + checkerVar + `[s]; ok {
+                    return ` + common.FmtErrorf(g, checkerName+": Label %s is in an invalid format (want key=value)", "s") + `
+                }
+                continue
+            }
+            values[kv[0]] = kv[1]
+        }`
+
+		check, err := mapCheck("values")
+		if err != nil {
+			return "", err
+		}
+		return preamble + "\n" + check, nil
+	}
+
+	return mapCheck(eventVar)
+}
+
+// checkForOneof returns the event checker body for a Oneof.
+func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
+	inner, err := checkForKind(g, field, checkerName, checkerVar, fmt.Sprintf("event.%s", field.GoName))
 	if err != nil {
 		return "", err
 	}
-
-	if !field.isMap() {
-		check = ` if ` + checkerVar + ` != nil {
-            ` + check + `
-        }`
-	}
-
-	return check, nil
+	fieldIdent := common.TetragonApiIdent(g, field.GoIdent.GoName)
+	return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, field.Oneof.GoName) + `.(type) {
+    case *` + fieldIdent + `:
+        ` + inner + `
+    default:
+        return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %T is not a "+field.GoName, "event") + `
+    }`, nil
 }
 
-func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handleOneOf bool, checkerName, checkerVar, eventVar string) (string, error) {
+// checkForKind returns the event checker body based on the field's protogen kind. For
+// maps and oneofs, use check
+func checkForKind(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
 	kind := field.Desc.Kind()
 
+	// primitive types
 	doPrimitiveCheck := func() string {
 		ff := kindToFormat(kind)
-		if field.isList() || field.isMap() {
-			return `if ` + checkerVar + ` != ` + eventVar + ` {
-                return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, checkerVar) + `
-            }`
-		}
 		return `if *` + checkerVar + ` != ` + eventVar + ` {
             return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, "*"+checkerVar) + `
         }`
-
 	}
 
+	// protobuf wrapper types
 	doWrapperCheck := func() string {
 		ff := kindToFormat(kind)
 		wrapperVal := fmt.Sprintf("%s.Value", eventVar)
@@ -342,82 +424,6 @@ func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handle
         }`
 	}
 
-	doLabelsCheck := func() string {
-		splitN := common.GoIdent(g, "strings", "SplitN")
-		return `if len(` + checkerVar + `) > 0 {
-            var unmatched []string
-            matched := make(map[string]struct{})
-            for _, s := range ` + eventVar + ` {
-                // Split out key,value pair
-                kv := ` + splitN + `(s, "=", 2)
-                if len(kv) != 2 {
-                    // If we wanted to match an invalid label, error out
-                    if _, ok := ` + checkerVar + `[s]; ok {
-                        return ` + common.FmtErrorf(g, checkerName+": Label %s is in an invalid format (want key=value)", "s") + `
-                    }
-                    continue
-                }
-                key := kv[0]
-                value := kv[1]
-
-                // Attempt to grab the matcher for this key
-                if matcher, ok := ` + checkerVar + `[key]; ok {
-                    if err := matcher.Match(value); err != nil {
-                        return ` + common.FmtErrorf(g, checkerName+": Label[%s] (%s=%s) check failed: %w", "key", "key", "value", "err") + `
-                    }
-                    matched[key] = struct{}{}
-                }
-            }
-
-            // See if we have any unmatched labels that we wanted to match
-            if len(matched) != len(` + checkerVar + `) {
-                for k := range ` + checkerVar + ` {
-                    if _, ok := matched[k]; !ok {
-                        unmatched = append(unmatched, k)
-                    }
-                }
-                return ` + common.FmtErrorf(g, checkerName+": Labels unmatched: %v", "unmatched") + `
-            }
-        }`
-	}
-
-	doListCheck := func() (string, error) {
-		return `if err := ` + checkerVar + `.Check(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
-        }`, nil
-	}
-
-	doOneOfCheck := func(oneof *protogen.Oneof) (string, error) {
-		innerCheck, err := doGetFieldCheck(field, g, handleList, false, checkerName, checkerVar, fmt.Sprintf("event.%s", field.GoName))
-		if err != nil {
-			return "", err
-		}
-		fieldIdent := common.TetragonApiIdent(g, field.GoIdent.GoName)
-		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
-        case *` + fieldIdent + `:
-            ` + innerCheck + `
-        default:
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %T is not a "+field.GoName, "event") + `
-        }`, nil
-	}
-
-	// Pod.Labels is a special case
-	if field.GoIdent.GoName == "Pod_Labels" {
-		return doLabelsCheck(), nil
-	}
-
-	if handleOneOf && field.Oneof != nil {
-		return doOneOfCheck(field.Oneof)
-	}
-
-	if handleList && field.Desc.IsList() {
-		return doListCheck()
-	}
-
-	if handleList && field.Desc.IsMap() {
-		return "// TODO: implement check for maps", nil
-	}
-
 	switch kind {
 	case protoreflect.BoolKind,
 		protoreflect.Int32Kind,
@@ -451,7 +457,7 @@ func doGetFieldCheck(field *Field, g *protogen.GeneratedFile, handleList, handle
 		return doEnumCheck(), nil
 
 	default:
-		return "", fmt.Errorf("Unhandled field type %s (please edit generateFieldCheck in field.go)", kind)
+		return "", fmt.Errorf("Unhandled field type %s (please edit checkForKind in field.go)", kind)
 	}
 }
 
@@ -551,7 +557,13 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
         }
     }`)
 
-	innerCheck, err := doGetFieldCheck(field, g, false, true, listCheckerName, "check", "value")
+	var innerCheck string
+	var err error
+	if field.isPrimitive() || field.isEnum() {
+		innerCheck, err = field.getFieldCheck(g, listCheckerName, "check", "&value")
+	} else {
+		innerCheck, err = field.getFieldCheck(g, listCheckerName, "check", "value")
+	}
 	if err != nil {
 		return err
 	}
@@ -816,11 +828,14 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 	}
 
 	if field.isMap() {
-		return fmt.Sprintf("map[%s]%s", field.Desc.MapKey().Kind().String(), field.Desc.MapValue().Kind().String()), nil
-	} else if field.isList() {
-		if field.isPrimitive() {
-			return fmt.Sprintf("[]%s", type_), nil
+		if field.Desc.MapKey().Kind() != protoreflect.StringKind {
+			return "", fmt.Errorf("maps without string keys are not supported")
 		}
+		if field.Desc.MapValue().Kind() != protoreflect.StringKind {
+			return "", fmt.Errorf("maps without string values are not supported")
+		}
+		return fmt.Sprintf("map[string]%s", common.StringMatcherIdent(g, "StringMatcher")), nil
+	} else if field.isList() {
 		return fmt.Sprintf("[]*%s", type_), nil
 	}
 

@@ -1265,9 +1265,8 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 			return fmt.Errorf("PodChecker: Name check failed: %w", err)
 		}
 	}
-	if len(checker.Labels) > 0 {
-		var unmatched []string
-		matched := make(map[string]struct{})
+	{
+		values := make(map[string]string)
 		for _, s := range event.Labels {
 			// Split out key,value pair
 			kv := strings.SplitN(s, "=", 2)
@@ -1278,19 +1277,23 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 				}
 				continue
 			}
-			key := kv[0]
-			value := kv[1]
-
-			// Attempt to grab the matcher for this key
-			if matcher, ok := checker.Labels[key]; ok {
-				if err := matcher.Match(value); err != nil {
-					return fmt.Errorf("PodChecker: Label[%s] (%s=%s) check failed: %w", key, key, value, err)
+			values[kv[0]] = kv[1]
+		}
+		var unmatched []string
+		matched := make(map[string]struct{})
+		for key, value := range values {
+			if len(checker.Labels) > 0 {
+				// Attempt to grab the matcher for this key
+				if matcher, ok := checker.Labels[key]; ok {
+					if err := matcher.Match(value); err != nil {
+						return fmt.Errorf("PodChecker: Labels[%s] (%s=%s) check failed: %w", key, key, value, err)
+					}
+					matched[key] = struct{}{}
 				}
-				matched[key] = struct{}{}
 			}
 		}
 
-		// See if we have any unmatched labels that we wanted to match
+		// See if we have any unmatched values that we wanted to match
 		if len(matched) != len(checker.Labels) {
 			for k := range checker.Labels {
 				if _, ok := matched[k]; !ok {
