@@ -1,0 +1,72 @@
+## Testing
+
+This directory is used for multi-kernel testing using litte-vm-helper
+(https://github.com/cilium/little-vm-helper/).
+
+### Usage
+
+NOTE: For now, commands need to be executed from the top-level tetragon directory.
+
+
+Build everything:
+
+```
+$ make -C testing
+make: Entering directory '/home/kkourt/src/tetragon/testing'
+go build ../cmd/tetragon-tester
+go build ../cmd/tetragon-vmtests-run
+make: Leaving directory '/home/kkourt/src/tetragon/testing'
+```
+
+
+Download rootfs images and kernels in `testing/test-data`
+```
+$ ./testing/fetch-data.sh 5.4  bpf-next
+...
+$ ls testing/test-data/images testing/test-data/kernels
+testing/test-data/images:
+base.qcow2
+
+testing/test-data/kernels:
+5.4/  bpf-next/
+```
+
+Run tests on 5.4:
+```
+$ make test-compile # <- this will build the test binaries
+$ ./testing/tetragon-vmtests-run \
+	--kernel testing/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
+	--base testing/test-data/images/base.qcow2
+```
+
+Run tests on 5.4, without KVM acceleration. Doing so, makes the run closer to the GH action
+environment (which do not support nested virtualization) and it  also uncover other issues due to
+the unconventional timing.
+
+```
+$ ./testing/tetragon-vmtests-run \
+	--kernel testing/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
+	--base testing/test-data/images/base.qcow2 \
+	--qemu-disable-kvm
+```
+
+Just Boot the VM. User
+
+```
+$ ./testing/tetragon-vmtests-run \
+	--kernel testing/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
+	--base testing/test-data/images/base.qcow2 \
+	--qemu-disable-kvm
+```
+
+### Design
+
+There are two go programs: one that runs inside the VM (tetragon-tester), and one that runs outside
+the VM (tetragon-vmtests-run). tetragon-vmtests-run, running outside, will prepare an image and then
+boot it using qemu. The image will be build based on the base image provided with --base.
+Some of the steps of preparing the image are:
+ * add tetragon-tester as a systemd service, so that it starts when the machine boots
+ * mount the teragon source directory inside the VM (currently, as a 9p filesystem)
+ * write a configuration file to be read by tetragon-tester
+
+Once the machine boots,
