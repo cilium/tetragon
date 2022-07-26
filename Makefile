@@ -103,6 +103,8 @@ install:
 
 .PHONY: vendor
 vendor:
+	$(MAKE) -C ./api vendor
+	$(MAKE) -C ./pkg/k8s vendor
 	$(GO) mod tidy -compat=1.17
 	$(GO) mod vendor
 	$(GO) mod verify
@@ -178,10 +180,18 @@ fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
 generate:
+	# Need to call vendor twice here, once before and once after generate, the reason
+	# being we need to grab changes first plus pull in whatever gets generated here.
+	$(MAKE) vendor
 	$(MAKE) -C pkg/k8s/
+	$(MAKE) vendor
 
 codegen: image-codegen
+	# Need to call vendor twice here, once before and once after codegen the reason
+	# being we need to grab changes first plus pull in whatever gets generated here.
+	$(MAKE) vendor
 	$(MAKE) -C api
+	$(MAKE) vendor
 
 protoc-gen-go-tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o bin/$@ ./cmd/protoc-gen-go-tetragon/

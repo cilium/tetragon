@@ -1,6 +1,7 @@
 # Copyright 2017-2020 Authors of Cilium
 # SPDX-License-Identifier: Apache-2.0
 
+GO ?= go
 BUILDER_IMAGE=cilium/tetragon-codegen:latest
 
 .PHONY: all
@@ -16,3 +17,9 @@ v1:
 		--user "$(shell id -u):$(shell id -g)" \
 		$(BUILDER_IMAGE) \
 		make -C /src -f Makefile.protoc
+
+.PHONY: vendor
+vendor:
+	$(GO) mod tidy -compat=1.17
+	$(GO) mod vendor
+	$(GO) mod verify
