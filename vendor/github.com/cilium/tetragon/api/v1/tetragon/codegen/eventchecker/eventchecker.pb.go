@@ -1241,7 +1241,7 @@ type PodChecker struct {
 	Name      *stringmatcher.StringMatcher           `json:"name,omitempty"`
 	Labels    map[string]stringmatcher.StringMatcher `json:"labels,omitempty"`
 	Container *ContainerChecker                      `json:"container,omitempty"`
-	PodLabels map[string]string                      `json:"podLabels,omitempty"`
+	PodLabels map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -1308,7 +1308,31 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 			return fmt.Errorf("PodChecker: Container check failed: %w", err)
 		}
 	}
-	// TODO: implement check for maps
+	{
+		var unmatched []string
+		matched := make(map[string]struct{})
+		for key, value := range event.PodLabels {
+			if len(checker.PodLabels) > 0 {
+				// Attempt to grab the matcher for this key
+				if matcher, ok := checker.PodLabels[key]; ok {
+					if err := matcher.Match(value); err != nil {
+						return fmt.Errorf("PodChecker: PodLabels[%s] (%s=%s) check failed: %w", key, key, value, err)
+					}
+					matched[key] = struct{}{}
+				}
+			}
+		}
+
+		// See if we have any unmatched values that we wanted to match
+		if len(matched) != len(checker.PodLabels) {
+			for k := range checker.PodLabels {
+				if _, ok := matched[k]; !ok {
+					unmatched = append(unmatched, k)
+				}
+			}
+			return fmt.Errorf("PodChecker: PodLabels unmatched: %v", unmatched)
+		}
+	}
 	return nil
 }
 
@@ -1337,7 +1361,7 @@ func (checker *PodChecker) WithContainer(check *ContainerChecker) *PodChecker {
 }
 
 // WithPodLabels adds a PodLabels check to the PodChecker
-func (checker *PodChecker) WithPodLabels(check map[string]string) *PodChecker {
+func (checker *PodChecker) WithPodLabels(check map[string]stringmatcher.StringMatcher) *PodChecker {
 	checker.PodLabels = check
 	return checker
 }
