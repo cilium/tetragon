@@ -17,7 +17,7 @@ type TraceBench interface {
 }
 
 var (
-	traceBenches = []string{"rw", "open"}
+	traceBenches = []string{"rw", "open", "perf-msg"}
 )
 
 func TraceBenchSupported() []string {
@@ -55,6 +55,8 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 		bench = newTraceBenchRw()
 	case "open":
 		bench = newTraceBenchOpen()
+	case "perf-msg":
+		bench = newTraceBenchPerfMsg()
 	default:
 		panic("unknown benchmark")
 	}
