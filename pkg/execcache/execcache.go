@@ -108,6 +108,16 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	cache.objsChan <- cacheObj{internal: internal, process: e, timestamp: t, msg: msg}
 }
 
+func (ec *Cache) Needed(proc *tetragon.Process) bool {
+	if proc == nil {
+		return true
+	}
+	if proc.Docker != "" && proc.Pod == nil {
+		return true
+	}
+	return false
+}
+
 func New(s *server.Server) *Cache {
 	if cache != nil {
 		return cache
