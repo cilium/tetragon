@@ -4,9 +4,21 @@
 #ifndef __ENVIRON_CONF_
 #define __ENVIRON_CONF_
 
+/* bpf runtime log levels that follows Golang logrus levels
+ * https://pkg.go.dev/github.com/sirupsen/logrus#Level
+ */
+enum {
+	LOG_ERROR_LEVEL = 2,
+	LOG_WARN_LEVEL  = 3,
+	LOG_INFO_LEVEL  = 4,
+	LOG_DEBUG_LEVEL = 5,
+	LOG_TRACE_LEVEL = 6,
+};
+
 /* Tetragon running configuration */
 struct tetragon_conf {
 	__u32 mode; /* Tetragon deployment mode */
+	__u32 loglevel; /* Tetragon log level */
 	__u32 pid; /* Tetragon pid */
 	__u32 nspid; /* Tetragon pid in namespace */
 	__u32 tg_cgrp_level; /* Tetragon cgroup level */
