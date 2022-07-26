@@ -123,8 +123,10 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 			},
 		},
 	}
+	_, err := cilium.InitCiliumState(context.Background(), false)
+	assert.NoError(t, err)
 	pods := []interface{}{&podA}
-	err := process.InitCache(context.Background(), watcher.NewFakeK8sWatcher(pods), false, 10)
+	err = process.InitCache(context.Background(), watcher.NewFakeK8sWatcher(pods), false, 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	pod, endpoint := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
@@ -144,7 +146,9 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 }
 
 func TestProcessManager_GetProcessExec(t *testing.T) {
-	err := process.InitCache(context.Background(), watcher.NewFakeK8sWatcher(nil), false, 10)
+	_, err := cilium.InitCiliumState(context.Background(), false)
+	assert.NoError(t, err)
+	err = process.InitCache(context.Background(), watcher.NewFakeK8sWatcher(nil), false, 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	var wg sync.WaitGroup
@@ -198,7 +202,10 @@ func Test_getNodeNameForExport(t *testing.T) {
 func TestProcessManager_GetProcessID(t *testing.T) {
 	assert.NoError(t, os.Setenv("NODE_NAME", "my-node"))
 
-	err := process.InitCache(context.Background(), watcher.NewFakeK8sWatcher([]interface{}{}), false, 10)
+	_, err := cilium.InitCiliumState(context.Background(), false)
+	assert.NoError(t, err)
+
+	err = process.InitCache(context.Background(), watcher.NewFakeK8sWatcher([]interface{}{}), false, 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	id := process.GetProcessID(1, 2)
