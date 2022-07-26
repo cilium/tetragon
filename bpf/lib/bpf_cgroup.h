@@ -7,7 +7,7 @@
 #include "hubble_msg.h"
 #include "bpf_helpers.h"
 #include "environ_conf.h"
-#include "bpf_helpers.h"
+#include "process.h"
 
 #define NULL ((void *)0)
 
@@ -389,6 +389,65 @@ __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
 
 	return heap;
+}
+
+/**
+ * __set_task_cgrpid_tracker() Sets the cgrpid_tracker of a task.
+ * It checks tetragon_conf if not available then exit.
+ * If tetragon_conf is available then checks if the task
+ * execve_map_value->cgrpid_tracker is set, if so do nothing.
+ * If not, then set the task execve_map_value->cgrpid_tracker
+ * to the tracking cgroup ID.
+ */
+static inline __attribute__((always_inline)) int
+__set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
+			  struct execve_map_value *execve_val, __u32 *error_flags)
+{
+	u32 flags = 0;
+	struct cgroup *cgrp;
+	__u64 cgrpid_tracker = 0;
+
+	/* Ensure that execve_val is not null */
+	if (unlikely(!conf) || unlikely(!execve_val))
+		return 0;
+
+	probe_read(&flags, sizeof(flags), _(&task->flags));
+	/* Skip kernel threads */
+	if (flags & PF_KTHREAD)
+		return 0;
+
+	/* Set the tracking cgroup id only if it was not set,
+	 * this avoids cgroup thread granularity mess!
+	 */
+	if (execve_val->cgrpid_tracker != 0)
+		return 0;
+
+	cgrp = get_task_cgroup(task, conf->tg_cgrp_subsys_idx, error_flags);
+	if (!cgrp)
+		return 0;
+
+	/* TODO: get current cgroup ancestors and their levels,
+	 *   so we can use them as a proper reference for setting,
+	 *   cgroup tracking IDs.
+	 *
+	 * For now we just use the current cgroup ID as tracker.
+	 */
+	cgrpid_tracker = tg_get_current_cgroup_id(cgrp, conf->cgrp_fs_magic);
+	if (!cgrpid_tracker) {
+		/* Failed to get cgrpid_tracker do nothing. This should never happen */
+		*error_flags |= EVENT_ERROR_CGROUP_ID;
+		return 0;
+	}
+
+	/* Update the execve_val with the tracking cgroup ID */
+	execve_val->cgrpid_tracker = cgrpid_tracker;
+
+	/* TODO:
+	 * Lookup cgroup data from the cgroup bpf map, create an entry
+	 * if not found, otherwise update previous with the corresponding
+	 * new cgroup state.
+	 */
+	return 0;
 }
 
 #endif // __BPF_CGROUP_

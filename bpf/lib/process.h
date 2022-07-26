@@ -105,6 +105,11 @@
 #define ARGSBUFFERMASK	 (ARGSBUFFER - 1)
 #define MAXARGMASK	 (MAXARG - 1)
 
+/* Task flags */
+#ifndef PF_KTHREAD
+#define PF_KTHREAD 0x00200000 /* I am a kernel thread */
+#endif
+
 /* Msg flags */
 #define EVENT_UNKNOWN		      0x00
 #define EVENT_EXECVE		      0x01
@@ -276,6 +281,7 @@ struct execve_map_value {
 	__u32 nspid;
 	__u32 binary;
 	__u32 pad;
+	__u64 cgrpid_tracker; /* Pinned Cgroup ID Tracker */
 	struct msg_ns ns;
 	struct msg_capabilities caps;
 } __attribute__((packed)) __attribute__((aligned(8)));
