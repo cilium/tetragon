@@ -29,3 +29,9 @@ generate:
 	  github.com/cilium/tetragon/pkg/k8s/apis \
 	  cilium.io:v1alpha1 \
 	  --go-header-file hack/custom-boilerplate.go.txt
+
+.PHONY: vendor
+vendor:
+	$(GO) mod tidy -compat=1.17
+	$(GO) mod vendor
+	$(GO) mod verify
