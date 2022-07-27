@@ -103,6 +103,11 @@ func main() {
 				return errors.New("failed")
 			}
 
+			if results.nrTests == 0 {
+				fmt.Printf("only 0 tests? something is 🐟\n")
+				return errors.New("failed")
+			}
+
 			fmt.Printf("All %d tests succeeded! 🎉🚢🍕 (took: %s)\n", results.nrTests, dur)
 			return nil
 		},
