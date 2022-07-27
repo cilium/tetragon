@@ -74,6 +74,33 @@ func TracepointAttach(load *Program) AttachFunc {
 	}
 }
 
+func RawTracepointAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		var lnk link.Link
+		var err error
+
+		parts := strings.Split(load.Attach, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("raw_tracepoint attach argument must be in the form category/tracepoint, got: %s", load.Attach)
+		}
+		lnk, err = link.AttachRawTracepoint(link.RawTracepointOptions{
+			Name:    parts[1],
+			Program: prog,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+			unloader.LinkUnloader{
+				Link: lnk,
+			},
+		}, nil
+	}
+}
+
 func KprobeAttach(load *Program) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		var lnk link.Link
@@ -101,6 +128,10 @@ func KprobeAttach(load *Program) AttachFunc {
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
 	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
+}
+
+func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{mapDir}, load, RawTracepointAttach(load), nil, verbose)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {

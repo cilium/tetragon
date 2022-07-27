@@ -26,6 +26,16 @@ enum msg_ops {
 
 	MSG_OP_DATA = 24,
 
+	MSG_OP_CGROUP = 25,
+
 	MSG_OP_MAX,
+};
+
+enum msg_cgroup_ops {
+	MSG_OP_CGROUP_UNDEF = 0,
+	MSG_OP_CGROUP_MKDIR = 1,
+	MSG_OP_CGROUP_RMDIR = 2,
+	MSG_OP_CGROUP_RELEASE = 3,
+	MSG_OP_CGROUP_ATTACH_TASK = 10,
 };
 #endif // _MSG_TYPES_

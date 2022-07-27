@@ -5,7 +5,6 @@
 #define _BPF_PROCESS_EVENT__
 
 #define ENAMETOOLONG  36 /* File name too long */
-#define PATH_MAP_SIZE 4096
 
 struct bpf_map_def __attribute__((section("maps"), used)) buffer_heap_map = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
@@ -345,46 +344,6 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 	if (prealloc)
 		curr->size = orig_size;
 	return 0;
-}
-
-static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
-{
-	struct task_struct *task = (struct task_struct *)get_current_task();
-	int thread_pid_exists;
-	unsigned int level;
-	struct upid upid;
-	struct pid *pid;
-	int upid_sz;
-
-	thread_pid_exists = bpf_core_field_exists(task->thread_pid);
-	if (thread_pid_exists) {
-		probe_read(&pid, sizeof(pid), _(&task->thread_pid));
-		if (!pid) {
-			return 0;
-		}
-	} else {
-		struct pid_link link;
-		int link_sz = bpf_core_field_size(task->pids);
-
-		/* 4.14 verifier did not prune this branch even though we
-		 * have the if (0) above after BTF exists check. So it will
-		 * try to run this probe_read and throw an error. So lets
-		 * sanitize it for the verifier.
-		 */
-		if (!thread_pid_exists)
-			link_sz =
-				24; // voodoo magic, hard-code 24 to init stack
-		probe_read(&link, link_sz,
-			   (void *)_(&task->pids) + (PIDTYPE_PID * link_sz));
-		pid = link.pid;
-	}
-	upid_sz = bpf_core_field_size(pid->numbers[0]);
-	probe_read(&level, sizeof(level), _(&pid->level));
-	if (level < 1)
-		return 0;
-	probe_read(&upid, upid_sz,
-		   (void *)_(&pid->numbers) + (level * upid_sz));
-	return upid.nr;
 }
 
 #define PROBE_ARG_HEADER "%[index] = 0;"

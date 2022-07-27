@@ -6,28 +6,79 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
-func fromCString(cstr []byte) string {
-	for i, c := range cstr {
-		if c == 0 {
-			return string(cstr[:i])
-		}
+func standarizeContainerId(id string) string {
+	if strings.HasSuffix(id, "service") {
+		return ""
 	}
-	return string(cstr)
+
+	if len(id) > procevents.BpfContainerIdLength {
+		return id[:procevents.BpfContainerIdLength]
+	}
+
+	return id
+}
+
+// Old container ID uses DOCKER_ID_LENGTH as it can be full path with cgroup subdirs
+func oldContainerId(cstr []byte) string {
+	// The first byte is set to zero if there is no docker ID for this event.
+	if cstr[0] != 0x00 {
+		// We always get a null terminated buffer from bpf
+		cgroup := cgroups.CgroupNameFromCStr(cstr[:processapi.DOCKER_ID_LENGTH])
+		container, _ := procevents.LookupContainerId(cgroup, true, false)
+		logger.GetLogger().Debugf("Cgroup Tracking data unavailable falling back to containerID='%s'", container)
+		return standarizeContainerId(container)
+	}
+
+	return ""
+}
+
+// This function handles both old and new behavior how we lookup for container ID
+// If we can't find it using the new way we fallback to the old method
+func containerIdFromCgrpId(m *processapi.MsgExecveEvent) string {
+	id := m.Kube.Cgrpid
+	configMap := base.CgroupsTrackingMap
+	mapPath := filepath.Join(bpf.MapPrefixPath(), configMap.Name)
+
+	if id == 0 {
+		return oldContainerId(m.Kube.Docker[:])
+	}
+
+	cgrp, err := cgrouptrackmap.LookupCgroupTracker(mapPath, m.Kube.Cgrpid)
+	if err != nil {
+		logger.GetLogger().WithError(err).Debugf("Failed to lookup Cgroup Tracking data for CgroupId=%d", id)
+		return oldContainerId(m.Kube.Docker[:])
+	}
+
+	name := cgroups.CgroupNameFromCStr(cgrp.Name[:255])
+	if name == "" {
+		logger.GetLogger().Debugf("Failed to lookup Cgroup Name for CgroupId=%d", id)
+		return oldContainerId(m.Kube.Docker[:])
+	}
+
+	s, _ := procevents.ProcsContainerIdOffset(name)
+
+	return standarizeContainerId(s)
 }
 
 func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
@@ -37,12 +88,7 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix.Kube.NetNS = m.Kube.NetNS
 	unix.Kube.Cid = m.Kube.Cid
 	unix.Kube.Cgrpid = m.Kube.Cgrpid
-	// The first byte is set to zero if there is no docker ID for this event.
-	if m.Kube.Docker[0] != 0x00 {
-		// We always get a null terminated buffer from bpf
-		cgroup := fromCString(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
-		unix.Kube.Docker, _ = procevents.LookupContainerId(cgroup, true, false)
-	}
+	unix.Kube.Docker = containerIdFromCgrpId(m)
 	unix.Parent = m.Parent
 	unix.Capabilities = m.Capabilities
 
@@ -199,6 +245,16 @@ func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
+func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
+	m := processapi.MsgCgroupEvent{}
+	err := binary.Read(r, binary.LittleEndian, &m)
+	if err != nil {
+		return nil, err
+	}
+	msgUnix := &exec.MsgCgroupEventUnix{MsgCgroupEvent: m}
+	return []observer.Event{msgUnix}, nil
+}
+
 type execSensor struct {
 	name string
 }
@@ -228,4 +284,5 @@ func AddExec() {
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXECVE, handleExecve)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXIT, handleExit)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_CLONE, handleClone)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_CGROUP, handleCgroupEvent)
 }
