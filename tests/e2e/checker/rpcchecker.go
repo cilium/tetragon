@@ -183,7 +183,34 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 	defer rc.checkerStartedWG.Add(1)
 	// When the checks are finished, call FinalCheck() to reset the internal checker's
 	// state.
-	defer rc.checker.FinalCheck(nil)
+	defer func() {
+		klog.V(2).Info("Calling FinalCheck()")
+		rc.checker.FinalCheck(nil)
+	}()
+	// Dump unmatched checks at the end of a run
+	defer func() {
+		var unmatched []ec.EventChecker
+
+		switch checker := rc.checker.(type) {
+		case *ec.OrderedEventChecker:
+			unmatched = checker.GetRemainingChecks()
+		case *ec.UnorderedEventChecker:
+			unmatched = checker.GetRemainingChecks()
+		}
+
+		if len(unmatched) > 0 {
+			klog.Infof("Dumping unmatched checks for checker %s", rc.name)
+		}
+
+		for i, checker := range unmatched {
+			b, err := yaml.Marshal(checker)
+			if err != nil {
+				klog.Warningf("Failed to marshal check (%d) in checker %s", i, rc.name)
+				continue
+			}
+			klog.Infof("Unmatched check (%d) in checker %s:\n%s", i, rc.name, string(b))
+		}
+	}()
 
 	for {
 		select {
