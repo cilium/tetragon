@@ -64,7 +64,7 @@ func NewProcessManager(
 }
 
 // Notify implements Listener.Notify.
-func (pm *ProcessManager) Notify(event notify.Interface) error {
+func (pm *ProcessManager) Notify(event notify.Message) error {
 	processedEvent := event.HandleMessage()
 	if processedEvent != nil {
 		pm.NotifyListener(event, processedEvent)

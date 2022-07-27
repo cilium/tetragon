@@ -16,7 +16,7 @@ import (
 // human-readable sinks such as the printer or GRPC encoder.
 type Listener interface {
 	// Notify gets called for each events from ObserverKprobe.
-	Notify(msg notify.Interface) error
+	Notify(msg notify.Message) error
 
 	// Close the listener.
 	io.Closer
