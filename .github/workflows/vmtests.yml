@@ -40,6 +40,7 @@ jobs:
         make -C tests/vmtests
         cd ..
         tar cvz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
+
     - name: upload build
       uses: actions/upload-artifact@v3
       with:

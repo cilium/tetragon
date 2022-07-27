@@ -35,14 +35,6 @@ func fromString(s string) GoTest {
 	return ret
 }
 
-// NB: hardcoded, for now. Eventually, we might expose user knobs for it
-var Blacklist = []GoTest{
-	// pkg.exporter has a rate limit test, which is time-dependent. There
-	// was a previous attempt to fix the test, but failed. Ignore it for
-	// now.
-	{PackageProg: "pkg.exporter"},
-}
-
 func LoadTestsFromFile(fname string, testDir string) ([]GoTest, error) {
 	f, err := os.Open(fname)
 	if err != nil {
@@ -64,11 +56,23 @@ func LoadTestsFromFile(fname string, testDir string) ([]GoTest, error) {
 	return ret, nil
 }
 
-func ListTests(testDir string, packagesOnly bool) ([]GoTest, error) {
+func ListTests(
+	testDir string,
+	packagesOnly bool,
+	blacklist []GoTest,
+) ([]GoTest, error) {
 
-	progs, err := listTestProgs(testDir)
+	progs, err := listTestProgs(testDir, blacklist)
 	if err != nil {
 		return nil, err
+	}
+
+	blacklistMap := make(map[string]struct{})
+	for _, b := range blacklist {
+		if b.Test == "" {
+			continue
+		}
+		blacklistMap[b.ToString()] = struct{}{}
 	}
 
 	ret := []GoTest{}
@@ -86,10 +90,11 @@ func ListTests(testDir string, packagesOnly bool) ([]GoTest, error) {
 		}
 
 		for _, test := range tests {
-			ret = append(ret, GoTest{
-				PackageProg: prog,
-				Test:        test,
-			})
+			t := GoTest{PackageProg: prog, Test: test}
+			if _, ok := blacklistMap[t.ToString()]; ok {
+				continue
+			}
+			ret = append(ret, t)
 		}
 	}
 
@@ -97,15 +102,14 @@ func ListTests(testDir string, packagesOnly bool) ([]GoTest, error) {
 }
 
 // listTestProgs lists tests programs from the filesystem (typically, this is the go-tests directory)
-// It filters the programs based on Blacklist.
-func listTestProgs(testDir string) ([]string, error) {
+func listTestProgs(testDir string, blacklist []GoTest) ([]string, error) {
 	files, err := os.ReadDir(testDir)
 	if err != nil {
 		return nil, err
 	}
 
 	blackListedPackages := make(map[string]struct{})
-	for _, t := range Blacklist {
+	for _, t := range blacklist {
 		if t.Test == "" {
 			blackListedPackages[t.PackageProg] = struct{}{}
 		}
@@ -139,8 +143,6 @@ func listTests(testDir string, testProg string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: blacklist: get the tests have this package as a prefix, and skip them.
 
 	var ret []string
 	reader := bytes.NewReader(out)
