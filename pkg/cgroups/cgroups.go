@@ -34,17 +34,6 @@ import (
 )
 
 const (
-	/* Arbitrary values we only use this to track Tetragon
-	 * process, not to enforce nor set cgroup values
-	 */
-	SYSTEMD_V2_HIERARCHY = 1
-	CPUSET_HIERARCHY     = 2
-	PIDS_HIERARCHY       = 3
-	MEMORY_HIERARCHY     = 4
-	CGROUPV2_HIERARCHY   = 20
-)
-
-const (
 	/* Cgroup Mode:
 	 * https://systemd.io/CGROUP_DELEGATION/
 	 * But this should work also for non-systemd environments: where
@@ -61,13 +50,18 @@ var (
 	cgroup2Root       = defaults.Cgroup2Dir
 	defaultCgroupRoot = "/sys/fs/cgroup"
 
-	matchedHierarchies = map[int]string{
-		SYSTEMD_V2_HIERARCHY: ":name=systemd:",
-		CPUSET_HIERARCHY:     ":cpuset:",
-		PIDS_HIERARCHY:       ":pids:",
-		MEMORY_HIERARCHY:     ":memory:",
-		CGROUPV2_HIERARCHY:   "0::",
+	/* Cgroupv1 controllers that we are interested in
+	 * are usually the ones that are setup by systemd
+	 * or other init programs.
+	 */
+	cgroupv1Hierarchies = []string{
+		":cpuset:",
+		":pids:",
+		":memory:",
+		":name=systemd:",
 	}
+
+	cgroupv2Hierarchy = "0::"
 
 	cgroupModesStr = map[int]string{
 		CGROUP_UNDEF:   "undefined",
@@ -78,7 +72,13 @@ var (
 
 	readCgroupMode sync.Once
 	cgroupMode     int
-	cgroupPath     string
+	cgroupFSPath   string
+
+	readCgroupPaths sync.Once
+	selfCgroupPaths []string
+
+	findMigPathOnce sync.Once
+	migrationPath   string
 )
 
 func CgroupFsMagicStr(magic uint64) string {
@@ -91,33 +91,68 @@ func CgroupFsMagicStr(magic uint64) string {
 	return ""
 }
 
-func getValidCgroupPath(hierarchy_idx int, cgroup string) string {
-	_, ok := matchedHierarchies[hierarchy_idx]
-	if !ok {
-		return ""
+func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
+	path := ""
+	for _, v := range cgroupv1Hierarchies {
+		for _, s := range cgroupPaths {
+			if strings.Contains(s, v) {
+				idx := strings.Index(s, "/")
+				path = s[idx+1:]
+				fields := strings.Split(s, ":")
+				if fields[1] == "name=systemd" {
+					fields[1] = "systemd"
+				}
+
+				path = filepath.Join(cgroupFSPath, fields[1], path, "cgroup.procs")
+				_, err := os.Stat(path)
+				if err != nil {
+					logger.GetLogger().WithError(err).Warnf("failed to validate Cgroupv1 Path '%s'", path)
+				} else {
+					return path, nil
+				}
+			}
+		}
 	}
 
-	idx := strings.Index(cgroup, "/")
-	path := cgroup[idx+1:]
+	return "", fmt.Errorf("no valid Cgroupv1 controller to construct a proper Cgroup path")
+}
 
-	switch hierarchy_idx {
-	case CPUSET_HIERARCHY, PIDS_HIERARCHY, MEMORY_HIERARCHY:
-		fields := strings.Split(cgroup, ":")
-		path = filepath.Join(defaultCgroupRoot, fields[1], path, "cgroup.procs")
-	case SYSTEMD_V2_HIERARCHY:
-		path = filepath.Join(defaultCgroupRoot, "systemd", path, "cgroup.procs")
-	case CGROUPV2_HIERARCHY:
-		path = filepath.Join(cgroup2Root, path, "cgroup.procs")
-	default:
-		return ""
+func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
+	path := ""
+	for _, s := range cgroupPaths {
+		if strings.Contains(s, cgroupv2Hierarchy) {
+			idx := strings.Index(s, "/")
+			path = s[idx+1:]
+			path = filepath.Join(cgroupFSPath, path, "cgroup.procs")
+			_, err := os.Stat(path)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("failed to validate Cgroupv2 Path '%s'", path)
+			} else {
+				return path, nil
+			}
+		}
 	}
 
-	_, err := os.Stat(path)
-	if err != nil {
-		return ""
+	return "", fmt.Errorf("no valid Cgroupv2 path")
+}
+
+func getPidCgroupPaths(pidStr string) ([]string, error) {
+	file := filepath.Join(option.Config.ProcFS, pidStr, "cgroup")
+	readCgroupPaths.Do(func() {
+		cgroups, err := ioutil.ReadFile(file)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("failed to read %s", file)
+			return
+		}
+
+		selfCgroupPaths = strings.Split(strings.TrimSpace(string(cgroups)), "\n")
+	})
+
+	if len(selfCgroupPaths) == 0 {
+		return nil, fmt.Errorf("failed to read %s", file)
 	}
 
-	return path
+	return selfCgroupPaths, nil
 }
 
 func migratePidtoCgrp(path string, pidstr string) error {
@@ -130,37 +165,12 @@ func migratePidtoCgrp(path string, pidstr string) error {
 	_, err = f.Write([]byte(pidstr))
 	f.Close()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("migrating pid=%s to '%q' failed", pidstr, path)
+		logger.GetLogger().WithError(err).Warnf("migrating pid=%s to %q failed", pidstr, path)
 		return err
 	}
 
-	logger.GetLogger().Debugf("Migrated Tetragon pid=%s to its cgroup '%q'", pidstr, path)
+	logger.GetLogger().Infof("Migrated Tetragon pid=%s to its cgroup %q", pidstr, path)
 	return nil
-}
-
-func MigratePidToSameCgrp(pid uint32) error {
-	pidstr := fmt.Sprint(pid)
-	cgroups, err := ioutil.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
-	if err != nil {
-		return err
-	}
-
-	cgrpPaths := strings.Split(string(cgroups), "\n")
-	for k, v := range matchedHierarchies {
-		for _, s := range cgrpPaths {
-			if strings.Contains(s, v) {
-				path := getValidCgroupPath(k, s)
-				if path != "" {
-					return migratePidtoCgrp(path, pidstr)
-				}
-			}
-		}
-	}
-
-	err = fmt.Errorf("no valid cgroup in /proc/%s/cgroup", pidstr)
-	logger.GetLogger().WithError(err).Warn("Unable to migrate Tetragon pid to its own cgroup")
-
-	return err
 }
 
 func detectCgroupMode(cgroupfs string) (int, error) {
@@ -188,18 +198,18 @@ func detectCgroupMode(cgroupfs string) (int, error) {
 func getCgroupMode() error {
 	readCgroupMode.Do(func() {
 		var err error
-		cgroupPath = defaultCgroupRoot
-		cgroupMode, err = detectCgroupMode(cgroupPath)
+		cgroupFSPath = defaultCgroupRoot
+		cgroupMode, err = detectCgroupMode(cgroupFSPath)
 		if err != nil {
 			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
 			if err == nil {
-				cgroupPath = defaults.Cgroup2Dir
+				cgroupFSPath = defaults.Cgroup2Dir
 			}
 		}
 		if cgroupMode != CGROUP_UNDEF {
 			str, ok := cgroupModesStr[cgroupMode]
 			if ok {
-				logger.GetLogger().WithField("cgroupfs", cgroupPath).Infof("Running under Cgroup: %s", str)
+				logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Infof("Running under Cgroup: %s", str)
 			}
 		}
 	})
@@ -209,6 +219,55 @@ func getCgroupMode() error {
 	}
 
 	return nil
+}
+
+func findMigrationPath() (string, error) {
+	err := getCgroupMode()
+	if err != nil {
+		return "", err
+	}
+
+	findMigPathOnce.Do(func() {
+		switch cgroupMode {
+		case CGROUP_LEGACY, CGROUP_HYBRID:
+			migrationPath, err = getValidCgroupv1Path(selfCgroupPaths)
+		case CGROUP_UNIFIED:
+			migrationPath, err = getValidCgroupv2Path(selfCgroupPaths)
+		default:
+			err = fmt.Errorf("could not detect Cgroup Mode")
+		}
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Unable to find Cgroup Path for Tetragon self detection")
+		}
+	})
+
+	if migrationPath == "" {
+		return migrationPath, fmt.Errorf("could not find Cgroup path for Tetragon self detection")
+	}
+
+	return migrationPath, nil
+}
+
+func MigrateSelfToSameCgrp() error {
+	pid := os.Getpid()
+	pidstr := fmt.Sprint(pid)
+
+	_, err := getPidCgroupPaths(pidstr)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Unable to migrate Tetragon pid=%s to its own cgroup", pidstr)
+		return err
+	}
+
+	path, err := findMigrationPath()
+	if err != nil {
+		return err
+	}
+
+	if err == nil {
+		err = migratePidtoCgrp(path, pidstr)
+	}
+
+	return err
 }
 
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
@@ -221,10 +280,10 @@ func GetBpfCgroupFS() (uint64, error) {
 	switch cgroupMode {
 	case CGROUP_LEGACY, CGROUP_HYBRID:
 		/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-		logger.GetLogger().WithField("cgroupfs", cgroupPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
+		logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
 		return unix.CGROUP_SUPER_MAGIC, nil
 	case CGROUP_UNIFIED:
-		logger.GetLogger().WithField("cgroupfs", cgroupPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+		logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
 		return unix.CGROUP2_SUPER_MAGIC, nil
 	}
 
