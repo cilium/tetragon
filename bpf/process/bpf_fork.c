@@ -55,7 +55,7 @@ event_wake_up_new_task(struct pt_regs *ctx)
 				tracking_level = level;
 			} else {
 				/* Set the ancestor as the tracking cgroup */
-				curr->cgrpid_tracker = get_ancestor_cgroup_id(cgrp, CGROUP_SUPER_MAGIC, config->tg_cgrp_level);
+				curr->cgrpid_tracker = get_ancestor_cgroup_id(cgrp, config->cgrp_fs_magic, config->tg_cgrp_level);
 				tracking_level = config->tg_cgrp_level;
 			}
 
