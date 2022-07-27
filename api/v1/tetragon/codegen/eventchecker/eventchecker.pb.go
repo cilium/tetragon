@@ -112,6 +112,11 @@ func (checker *OrderedEventChecker) GetChecks() []EventChecker {
 	return checker.checks
 }
 
+// GetRemainingChecks returns this checker's list of remaining checks
+func (checker *OrderedEventChecker) GetRemainingChecks() []EventChecker {
+	return checker.checks[checker.idx:]
+}
+
 // UnorderedEventChecker checks a series of events in arbitrary order
 type UnorderedEventChecker struct {
 	pendingChecks *list.List
@@ -207,6 +212,19 @@ func (checker *UnorderedEventChecker) GetChecks() []EventChecker {
 	var checks []EventChecker
 
 	for e := checker.allChecks.Front(); e != nil; e = e.Next() {
+		if check, ok := e.Value.(EventChecker); ok {
+			checks = append(checks, check)
+		}
+	}
+
+	return checks
+}
+
+// GetRemainingChecks returns this checker's list of remaining checks
+func (checker *UnorderedEventChecker) GetRemainingChecks() []EventChecker {
+	var checks []EventChecker
+
+	for e := checker.pendingChecks.Front(); e != nil; e = e.Next() {
 		if check, ok := e.Value.(EventChecker); ok {
 			checks = append(checks, check)
 		}
