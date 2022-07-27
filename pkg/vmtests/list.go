@@ -24,12 +24,44 @@ func (t *GoTest) ToString() string {
 	return fmt.Sprintf("%s:%s", t.PackageProg, t.Test)
 }
 
+func fromString(s string) GoTest {
+	sl := strings.SplitN(s, ":", 2)
+	ret := GoTest{
+		PackageProg: sl[0],
+	}
+	if len(sl) == 2 {
+		ret.Test = sl[1]
+	}
+	return ret
+}
+
 // NB: hardcoded, for now. Eventually, we might expose user knobs for it
 var Blacklist = []GoTest{
 	// pkg.exporter has a rate limit test, which is time-dependent. There
 	// was a previous attempt to fix the test, but failed. Ignore it for
 	// now.
 	{PackageProg: "pkg.exporter"},
+}
+
+func LoadTestsFromFile(fname string, testDir string) ([]GoTest, error) {
+	f, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	var ret []GoTest
+	for scanner.Scan() {
+		txt := scanner.Text()
+		ret = append(ret, fromString(txt))
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }
 
 func ListTests(testDir string, packagesOnly bool) ([]GoTest, error) {

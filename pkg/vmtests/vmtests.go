@@ -32,6 +32,7 @@ type Conf struct {
 	NoPowerOff  bool   `json:"no-poweroff"`  // do not power-off the machine when done
 	TetragonDir string `json:"tetragon-dir"` // tetragon source dir
 	ResultsDir  string `json:"results-dir"`  // directory to place the results
+	TestsFile   string `json:"tests-file"`   // file describing which tests to run
 }
 
 // Result is the result of a single test
@@ -66,18 +67,33 @@ func printProgress(f *os.File, done <-chan struct{}) {
 // tests failed.
 func Run(cnf *Conf) error {
 
+	testDir := filepath.Join(cnf.TetragonDir, "go-tests")
+
+	var tests []GoTest
+	if cnf.TestsFile == "" {
+		var err error
+		tests, err = ListTests(testDir, false)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		testFile := cnf.TestsFile
+		// NB: assume relative dirs are in tetragon dir
+		if testFile[0] != '/' {
+			testFile = filepath.Join(cnf.TetragonDir, testFile)
+		}
+		tests, err = LoadTestsFromFile(testFile, testDir)
+		if err != nil {
+			return err
+		}
+	}
+
 	resultsFname := filepath.Join(cnf.ResultsDir, "results.json")
 	f, err := os.Create(resultsFname)
 	if err != nil {
 		return err
 	}
-
-	testDir := filepath.Join(cnf.TetragonDir, "go-tests")
-	tests, err := ListTests(testDir, false)
-	if err != nil {
-		return nil
-	}
-
 	defer gatherExportFiles(cnf)
 
 	// helper function to run test and append result to the results file
