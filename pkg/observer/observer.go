@@ -140,8 +140,6 @@ func (k *Observer) __loopEvents(stopCtx context.Context, e *bpf.PerCpuEvents) er
 	observerError := k.observerError
 	pollTimeoutMsec := int(pollTimeout / time.Millisecond)
 
-	k.probeTetragonCgroups()
-
 	k.log.Info("Listening for events...")
 	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 
@@ -178,6 +176,11 @@ func (k *Observer) runEvents(stopCtx context.Context) error {
 	}
 	defer e.CloseAll()
 
+	err = k.probeTetragonCgroups()
+	if err != nil {
+		return err
+	}
+
 	k.__loopEvents(stopCtx, e)
 	return nil
 }
@@ -196,11 +199,14 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
 
+	err = k.probeTetragonCgroups()
+	if err != nil {
+		return err
+	}
+
 	// Inform caller that we're about to start processing events.
 	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 	ready()
-
-	k.probeTetragonCgroups()
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -266,18 +272,17 @@ func (k *Observer) updateTetragonConf() error {
 	pid := os.Getpid()
 	err := confmap.UpdateTetragonConfMap(option.Config.MapDir, pid)
 	if err != nil {
-		return err
+		return fmt.Errorf("update Tetragon bpf conf failed: %v", err)
 	}
 
 	return nil
 }
 
 func (k *Observer) probeTetragonCgroups() error {
-	pid := os.Getpid()
 	/* Migrate Tetragon to its own cgroup to generate a tracepoint */
-	err := cgroups.MigratePidToSameCgrp(uint32(pid))
+	err := cgroups.MigrateSelfToSameCgrp()
 	if err != nil {
-		return err
+		return fmt.Errorf("migrating Tetragon to same cgroup failed: %v", err)
 	}
 
 	return nil
