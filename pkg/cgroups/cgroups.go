@@ -125,3 +125,12 @@ func MigratePidToSameCgrp(pid uint32) error {
 
 	return err
 }
+
+func CgroupNameFromCStr(cstr []byte) string {
+	for i, c := range cstr {
+		if c == 0 {
+			return string(cstr[:i])
+		}
+	}
+	return string(cstr)
+}

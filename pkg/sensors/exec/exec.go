@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -20,15 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
-
-func fromCString(cstr []byte) string {
-	for i, c := range cstr {
-		if c == 0 {
-			return string(cstr[:i])
-		}
-	}
-	return string(cstr)
-}
 
 func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
@@ -40,7 +32,7 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	// The first byte is set to zero if there is no docker ID for this event.
 	if m.Kube.Docker[0] != 0x00 {
 		// We always get a null terminated buffer from bpf
-		cgroup := fromCString(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
+		cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
 		unix.Kube.Docker, _ = procevents.LookupContainerId(cgroup, true, false)
 	}
 	unix.Parent = m.Parent
