@@ -10,7 +10,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
-	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
@@ -75,9 +74,9 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	case ops.MSG_OP_EXECVE:
 		proc := process.AddExecEvent(&msg.MsgExecveEventUnix)
 		procEvent := GetProcessExec(proc)
-		ec := execcache.Get()
+		ec := eventcache.Get()
 		if ec != nil && ec.Needed(procEvent.Process) {
-			ec.Add(proc, procEvent, ktime.ToProto(msg.Common.Ktime), &msg.MsgExecveEventUnix)
+			ec.Add(proc, procEvent, ktime.ToProto(msg.Common.Ktime), msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
 			res = &tetragon.GetEventsResponse{
@@ -90,6 +89,10 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		logger.GetLogger().WithField("message", msg).Warn("HandleExecveMessage: Unhandled event")
 	}
 	return res
+}
+
+func (msg *MsgExecveEventUnix) GetNsPid() uint32 {
+	return msg.Process.NSPID
 }
 
 type MsgCloneEventUnix struct {
