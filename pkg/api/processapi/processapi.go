@@ -136,3 +136,25 @@ type MsgExitEvent struct {
 	ProcessKey MsgExecveKey `align:"current"`
 	Info       MsgExitInfo  `align:"info"`
 }
+
+type MsgCgroupData struct {
+	State     uint32
+	Hierarchy uint32
+	Level     uint32
+	Pad       uint32
+	Name      [256]byte
+}
+
+type MsgCgroupEvent struct {
+	Common        MsgCommon
+	Parent        MsgExecveKey
+	CgrpOp        uint32
+	PID           uint32
+	NSPID         uint32
+	Flags         uint32
+	Ktime         uint64
+	CgrpidTracker uint64
+	Cgrpid        uint64
+	CgrpData      MsgCgroupData
+	Path          [4096]byte
+}
