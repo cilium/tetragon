@@ -69,6 +69,10 @@ jobs:
       run: |
         sudo chmod go+rX -R /boot/
 
+    - name: set panic on RCU stall
+      run: |
+        sudo sh -c 'echo 1 > /proc/sys/kernel/panic_on_rcu_stall'
+
     - name: download build data
       uses: actions/download-artifact@v3
       with:
