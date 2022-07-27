@@ -72,7 +72,7 @@ func Run(cnf *Conf) error {
 	var tests []GoTest
 	if cnf.TestsFile == "" {
 		var err error
-		tests, err = ListTests(testDir, false)
+		tests, err = ListTests(testDir, false, nil)
 		if err != nil {
 			return err
 		}
