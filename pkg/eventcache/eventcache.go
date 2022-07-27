@@ -47,7 +47,7 @@ type Cache struct {
 	server   *server.Server
 }
 
-func (ec *Cache) handleNetEvents() {
+func (ec *Cache) handleEvents() {
 	tmp := ec.cache[:0]
 	for _, e := range ec.cache {
 		/* Ensure we actually have a dockerID, we use this for testing reasons
@@ -64,7 +64,7 @@ func (ec *Cache) handleNetEvents() {
 					tmp = append(tmp, e)
 					continue
 				}
-				errormetrics.EventCacheInc(errormetrics.EventCacheEndpointRetryFailed)
+				errormetrics.ErrorTotalInc(errormetrics.EventCacheEndpointRetryFailed)
 			}
 		}
 
@@ -98,11 +98,11 @@ func (ec *Cache) loop() {
 			 * an event hasn't completed its podInfo after two iterations send the
 			 * event anyways.
 			 */
-			ec.handleNetEvents()
-			mapmetrics.MapSizeSet("netCache", 0, float64(len(ec.cache)))
+			ec.handleEvents()
+			mapmetrics.MapSizeSet("eventcache", 0, float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
-			errormetrics.EventCacheInc(errormetrics.EventCacheNetworkCount)
+			eventcachemetrics.EventCacheCount.Inc()
 			ec.cache = append(ec.cache, event)
 		}
 	}
