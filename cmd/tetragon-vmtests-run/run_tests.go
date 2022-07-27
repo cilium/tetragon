@@ -56,16 +56,18 @@ func runTests(
 		results = append(results, result)
 	}
 
+	var totalDuration time.Duration
 	errCnt := 0
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	for _, r := range results {
+		totalDuration += r.Duration
 		ok := "✅"
 		if r.Error {
 			ok = "❌"
 			errCnt++
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\n", ok, r.Name, r.Duration.Round(time.Millisecond))
+		fmt.Fprintf(w, "%s\t%s\t%s\t(%s)\n", ok, r.Name, r.Duration.Round(time.Millisecond), totalDuration.Round(time.Millisecond))
 	}
 	w.Flush()
 
