@@ -194,6 +194,13 @@ func (m *Manager) RunInstall(opts ...Option) error {
 	return m.run(o)
 }
 
+// RunUninstall provides a way to uninstall the specified helm chart (useful in teardowns etc...)
+func (m *Manager) RunUninstall(opts ...Option) error {
+	o := m.processOpts(opts...)
+	o.mode = "uninstall"
+	return m.run(o)
+}
+
 // RunTemplate provides a way to invoke the `helm template` commands that can be used
 // to perform the basic sanity check on the charts to make sure if the charts can be
 // rendered successfully or not.

@@ -27,7 +27,6 @@ import (
 	"k8s.io/client-go/rest"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/k8s"
-	"sigs.k8s.io/e2e-framework/klient/k8s/watcher"
 )
 
 type Resources struct {
@@ -65,11 +64,6 @@ func New(cfg *rest.Config) (*Resources, error) {
 	}
 
 	return res, nil
-}
-
-// GetConfig hepls to get config type *rest.Config
-func (r *Resources) GetConfig() *rest.Config {
-	return r.config
 }
 
 func (r *Resources) WithNamespace(ns string) *Resources {
@@ -187,20 +181,4 @@ func (r *Resources) Label(obj k8s.Object, label map[string]string) {
 
 func (r *Resources) GetScheme() *runtime.Scheme {
 	return r.scheme
-}
-
-func (r *Resources) Watch(object k8s.ObjectList, opts ...ListOption) *watcher.EventHandlerFuncs {
-	listOptions := &metav1.ListOptions{}
-
-	for _, fn := range opts {
-		fn(listOptions)
-	}
-
-	o := &cr.ListOptions{Raw: listOptions}
-
-	return &watcher.EventHandlerFuncs{
-		ListOptions: o,
-		K8sObject:   object,
-		Cfg:         r.GetConfig(),
-	}
 }
