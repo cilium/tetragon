@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -62,6 +63,33 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
 	}
+}
+
+type MsgCgroupEventUnix struct {
+	processapi.MsgCgroupEvent
+}
+
+func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
+	switch msg.Common.Op {
+	case ops.MSG_OP_CGROUP:
+		switch msg.CgrpOp {
+		case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
+			op := ops.CgroupOpCode(msg.CgrpOp).String()
+			st := ops.CgroupState(msg.CgrpData.State).String()
+			logger.GetLogger().WithField("cgroup-event", op).Debugf("PID=%d  NSPID=%d  CgroupIdTracker=%d  CgroupId=%d  CgroupState=%s  CgroupLevel=%d  CgroupPath=%s",
+				msg.PID, msg.NSPID, msg.CgrpidTracker, msg.Cgrpid, st, msg.CgrpData.Level, cgroups.CgroupNameFromCStr(msg.Path[:4096]))
+		case ops.MSG_OP_CGROUP_ATTACH_TASK:
+			op := ops.CgroupOpCode(msg.CgrpOp).String()
+			st := ops.CgroupState(msg.CgrpData.State).String()
+			logger.GetLogger().WithField("cgroup-event", op).Infof("PID=%d  NSPID=%d  CgroupIdTracker=%d  CgroupId=%d  CgroupState=%s  CgroupLevel=%d  CgroupPath=%s",
+				msg.PID, msg.NSPID, msg.CgrpidTracker, msg.Cgrpid, st, msg.CgrpData.Level, cgroups.CgroupNameFromCStr(msg.Path[:4096]))
+		default:
+			logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
+		}
+	default:
+		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled event")
+	}
+	return nil
 }
 
 type MsgExecveEventUnix struct {
