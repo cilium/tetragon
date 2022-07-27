@@ -10,7 +10,6 @@ import (
 	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/eventcache"
-	"github.com/cilium/tetragon/pkg/execcache"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -46,14 +45,8 @@ func NewProcessManager(
 
 	pm.Server = server.NewServer(ctx, wg, pm, manager)
 
-	// Event cache maps events to their K8s metadata, so only enable if we
-	// have a k8s watcher to lookup this info.
-	if option.Config.EnableK8s {
-		eventcache.New(pm.Server)
-	}
-
 	// Exec cache is always needed to ensure events have an associated Process{}
-	execcache.New(pm.Server)
+	eventcache.New(pm.Server)
 
 	logger.GetLogger().WithField("enableCilium", option.Config.EnableCilium).WithFields(logrus.Fields{
 		"enableK8s":         option.Config.EnableK8s,

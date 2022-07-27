@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -47,42 +48,79 @@ type Cache struct {
 	server   *server.Server
 }
 
+func handleExecEvent(event *cacheObj, nspid uint32) error {
+	p := event.event.GetProcess()
+	containerId := p.Docker
+	filename := p.Binary
+	args := p.Arguments
+
+	podInfo, _ := process.GetPodInfo(containerId, filename, args, nspid)
+	if podInfo == nil {
+		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
+		return fmt.Errorf("failed to get pod info")
+	}
+
+	if event.internal != nil {
+		event.internal.AddPodInfo(podInfo)
+		event.event.SetProcess(event.internal.GetProcessCopy())
+	} else {
+		event.internal.GetProcess().Pod = podInfo
+	}
+
+	return nil
+}
+
+func handleEvent(event *cacheObj) error {
+	// No need to fetch endpoint info if we don't have the watcher to do so.
+	if !option.Config.EnableK8s {
+		return nil
+	}
+
+	p := event.event.GetProcess()
+
+	endpoint := process.GetProcessEndpoint(p)
+	if p.Docker != "" && (endpoint == nil || p.Pod == nil) {
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheEndpointRetryFailed)
+		return fmt.Errorf("failed to get process endpoint ifno")
+	}
+
+	if event.internal != nil {
+		event.event.SetProcess(event.internal.GetProcessCopy())
+	} else {
+		typeName := fmt.Sprintf("%T", event.event)
+		eventcachemetrics.ProcessInfoErrorInc(typeName)
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+	}
+
+	return nil
+}
+
 func (ec *Cache) handleEvents() {
 	tmp := ec.cache[:0]
-	for _, e := range ec.cache {
-		/* Ensure we actually have a dockerID, we use this for testing reasons
-		 * mostly. It is nice though if we ever hit this case to just post it.
-		 */
-		endpoint := process.GetProcessEndpoint(e.event.GetProcess())
-		if e.event.GetProcess().GetDocker() != "" {
-			/* If the Pod is nil because process event is incomplete lets
-			 * wait and hopefully it is eventually updated from handleProcEvents.
-			 */
-			if endpoint == nil || e.event.GetProcess().Pod == nil {
-				e.color++
-				if e.color < threeStrikes {
-					tmp = append(tmp, e)
-					continue
-				}
-				errormetrics.ErrorTotalInc(errormetrics.EventCacheEndpointRetryFailed)
+	for _, event := range ec.cache {
+		var err error
+		if getNsPid, ok := event.msg.(interface{ GetNsPid() uint32 }); ok {
+			nspid := getNsPid.GetNsPid()
+			err = handleExecEvent(&event, nspid)
+		} else {
+			err = handleEvent(&event)
+		}
+
+		if err != nil {
+			event.color++
+			if event.color < threeStrikes {
+				tmp = append(tmp, event)
+				continue
 			}
 		}
 
-		if e.internal == nil {
-			typeName := fmt.Sprintf("%T", e.event)
-			eventcachemetrics.ProcessInfoErrorInc(typeName)
-			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-		} else {
-			e.event.SetProcess(e.internal.GetProcessCopy())
-		}
-
 		processedEvent := &tetragon.GetEventsResponse{
-			Event:    e.event.Encapsulate(),
+			Event:    event.event.Encapsulate(),
 			NodeName: nodeName,
-			Time:     e.timestamp,
+			Time:     event.timestamp,
 		}
 
-		ec.server.NotifyListeners(e.msg, processedEvent)
+		ec.server.NotifyListeners(event.msg, processedEvent)
 	}
 	ec.cache = tmp
 }
