@@ -8,6 +8,7 @@ type TetragonConf struct {
 	PID         uint32 // Tetragon PID
 	NSPID       uint32 // Tetragon PID in namespace
 	TgCgrpLevel uint32 // Tetragon cgroup level
+	Pad         uint32
 	TgCgrpId    uint64 // Tetragon cgroup ID
 	CgrpFsMagic uint64 // Cgroupv1 or cgroupv2
 }

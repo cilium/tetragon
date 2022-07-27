@@ -22,9 +22,10 @@ struct tetragon_conf {
 	__u32 pid; /* Tetragon pid */
 	__u32 nspid; /* Tetragon pid in namespace */
 	__u32 tg_cgrp_level; /* Tetragon cgroup level */
+	__u32 pad;
 	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */
 	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
-};
+} __attribute__((packed));
 
 struct bpf_map_def __attribute__((section("maps"), used)) tg_conf_map = {
 	.type = BPF_MAP_TYPE_HASH,
