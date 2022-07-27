@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -16,12 +17,14 @@ import (
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
+	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 
 	"github.com/sirupsen/logrus"
 )
@@ -137,6 +140,8 @@ func (k *Observer) __loopEvents(stopCtx context.Context, e *bpf.PerCpuEvents) er
 	observerError := k.observerError
 	pollTimeoutMsec := int(pollTimeout / time.Millisecond)
 
+	k.probeTetragonCgroups()
+
 	k.log.Info("Listening for events...")
 	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 
@@ -172,6 +177,7 @@ func (k *Observer) runEvents(stopCtx context.Context) error {
 		return err
 	}
 	defer e.CloseAll()
+
 	k.__loopEvents(stopCtx, e)
 	return nil
 }
@@ -193,6 +199,8 @@ func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
 	// Inform caller that we're about to start processing events.
 	k.observerListeners(&readyapi.MsgTETRAGONReady{})
 	ready()
+
+	k.probeTetragonCgroups()
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -254,6 +262,27 @@ type Observer struct {
 	configFile string
 }
 
+func (k *Observer) updateTetragonConf() error {
+	pid := os.Getpid()
+	err := confmap.UpdateTetragonConfMap(option.Config.MapDir, pid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (k *Observer) probeTetragonCgroups() error {
+	pid := os.Getpid()
+	/* Migrate Tetragon to its own cgroup to generate a tracepoint */
+	err := cgroups.MigratePidToSameCgrp(uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
 	k.startUpdateMapMetrics()
 
@@ -271,7 +300,12 @@ func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
 
 	k.perfConfig = bpf.DefaultPerfEventConfig()
 
-	var err error
+	/* Probe runtime configuration */
+	err := k.updateTetragonConf()
+	if err != nil {
+		return err
+	}
+
 	if useCiliumEbpfReader {
 		err = k.runEventsNew(ctx, func() {})
 	} else {
