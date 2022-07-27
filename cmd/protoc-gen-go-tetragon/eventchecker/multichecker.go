@@ -100,6 +100,11 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile) error {
         return checker.checks
     }`)
 
+	g.P(`// GetRemainingChecks returns this checker's list of remaining checks
+    func (checker *OrderedEventChecker) GetRemainingChecks() []EventChecker {
+        return checker.checks[checker.idx:]
+    }`)
+
 	return nil
 }
 
@@ -204,6 +209,19 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
         var checks []EventChecker
 
         for e := checker.allChecks.Front(); e != nil; e = e.Next() {
+            if check, ok := e.Value.(EventChecker); ok {
+                checks = append(checks, check)
+            }
+        }
+
+        return checks
+    }`)
+
+	g.P(`// GetRemainingChecks returns this checker's list of remaining checks
+    func (checker *UnorderedEventChecker) GetRemainingChecks() []EventChecker {
+        var checks []EventChecker
+
+        for e := checker.pendingChecks.Front(); e != nil; e = e.Next() {
             if check, ok := e.Value.(EventChecker); ok {
                 checks = append(checks, check)
             }
