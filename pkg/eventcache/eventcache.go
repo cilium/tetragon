@@ -8,16 +8,14 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/server"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
 )
 
 // garbage collection states
@@ -30,12 +28,6 @@ const (
 	eventRetryTimer = time.Second * 10
 )
 
-type eventObj interface {
-	GetProcess() *tetragon.Process
-	SetProcess(*tetragon.Process)
-	Encapsulate() tetragon.IsGetEventsResponse_Event
-}
-
 var (
 	cache    *Cache
 	nodeName string
@@ -43,51 +35,16 @@ var (
 
 type cacheObj struct {
 	internal  *process.ProcessInternal
-	event     eventObj
+	event     notify.Event
 	timestamp *timestamppb.Timestamp
 	color     int
-	msg       interface{}
+	msg       notify.Message
 }
 
 type Cache struct {
 	objsChan chan cacheObj
 	cache    []cacheObj
 	server   *server.Server
-}
-
-func (ec *Cache) eventLabels(endpoint *hubblev1.Endpoint, event *cacheObj) ([]string, error) {
-	// If Cilium has some useful information for us we can let Cilium
-	// give us the info.
-	e := event.event
-	if obj, ok := e.(interface{ GetDestinationNames() []string }); ok {
-		names := obj.GetDestinationNames()
-		if len(names) > 0 {
-			return names, nil
-		}
-	}
-	return []string{}, nil
-}
-
-func doHandleEvent(event eventObj, internal *process.ProcessInternal, labels []string, nodeName string, timestamp *timestamppb.Timestamp) (*tetragon.GetEventsResponse, error) {
-	if internal == nil {
-		typeName := fmt.Sprintf("%T", event)
-		fmt.Printf("debug... typeName %s\n", typeName)
-		eventcachemetrics.ProcessInfoErrorInc(typeName)
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-	} else {
-		event.SetProcess(internal.GetProcessCopy())
-	}
-
-	if obj, ok := event.(interface {
-		Encapsulate() tetragon.IsGetEventsResponse_Event
-	}); ok {
-		return &tetragon.GetEventsResponse{
-			Event:    obj.Encapsulate(),
-			NodeName: nodeName,
-			Time:     timestamp,
-		}, nil
-	}
-	return nil, fmt.Errorf("DoHandleEvent: Unhandled event type %T", event)
 }
 
 func (ec *Cache) handleNetEvents() {
@@ -111,22 +68,21 @@ func (ec *Cache) handleNetEvents() {
 			}
 		}
 
-		labels, err := ec.eventLabels(endpoint, &e)
-		if err != nil {
-			e.color++
-			if e.color < threeStrikes {
-				tmp = append(tmp, e)
-				continue
-			}
-			errormetrics.EventCacheInc(errormetrics.EventCacheEndpointRetryFailed)
+		if e.internal == nil {
+			typeName := fmt.Sprintf("%T", e.event)
+			eventcachemetrics.ProcessInfoErrorInc(typeName)
+			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+		} else {
+			e.event.SetProcess(e.internal.GetProcessCopy())
 		}
 
-		processedEvent, err := doHandleEvent(e.event, e.internal, labels, nodeName, e.timestamp)
-		if err == nil {
-			ec.server.NotifyListeners(e.msg, processedEvent)
-		} else {
-			logger.GetLogger().WithField("event", e.event).WithError(err).Warn("Error while handling event")
+		processedEvent := &tetragon.GetEventsResponse{
+			Event:    e.event.Encapsulate(),
+			NodeName: nodeName,
+			Time:     e.timestamp,
 		}
+
+		ec.server.NotifyListeners(e.msg, processedEvent)
 	}
 	ec.cache = tmp
 }
@@ -175,9 +131,9 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 }
 
 func (ec *Cache) Add(internal *process.ProcessInternal,
-	e eventObj,
+	e notify.Event,
 	t *timestamppb.Timestamp,
-	msg interface{}) {
+	msg notify.Message) {
 	ec.objsChan <- cacheObj{internal: internal, event: e, timestamp: t, msg: msg}
 }
 

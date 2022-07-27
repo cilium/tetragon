@@ -107,7 +107,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 // GetProcessExit returns Exit protobuf message for a given process.
-func GetProcessExit(event *tetragonAPI.MsgExitEvent) *tetragon.ProcessExit {
+func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	var tetragonProcess, tetragonParent *tetragon.Process
 
 	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
@@ -154,7 +154,7 @@ func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXIT:
-		e := GetProcessExit(&msg.MsgExitEvent)
+		e := GetProcessExit(msg)
 		if e != nil {
 			res = &tetragon.GetEventsResponse{
 				Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
