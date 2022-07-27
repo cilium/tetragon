@@ -38,8 +38,17 @@ jobs:
         cd go/src/github.com/cilium/tetragon/
         make tetragon-bpf tester-progs test-compile
         make -C tests/vmtests
-        cd ..
-        tar cvz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
+
+    - name: Split tests
+      run: |
+        #  see testfile below
+        cd go/src/github.com/cilium/tetragon/
+        go run ./tools/split-tetragon-gotests -ci-run 3
+
+    - name: tar build
+      run: |
+        cd go/src/github.com/cilium/
+        tar cz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
 
     - name: upload build
       uses: actions/upload-artifact@v3
@@ -53,8 +62,12 @@ jobs:
            kernel:
               - '5.10'
               - '5.4'
+           group:
+              - 0
+              - 1
+              - 2
     needs: build
-    name: Test ${{ matrix.kernel }}
+    name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -89,12 +102,12 @@ jobs:
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
-        ./tests/vmtests/tetragon-vmtests-run --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* --base tests/vmtests/test-data/images/base.qcow2
+        ./tests/vmtests/tetragon-vmtests-run --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* --base tests/vmtests/test-data/images/base.qcow2 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
-    - name: Upload test results
-      if: failure()
+    - name: Upload test results on failure or cancelation
+      if: failure() || cancelled()
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
-        name: tetragon-vmtests-${{ matrix.kernel }}-results
+        name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
         retention-days: 5
