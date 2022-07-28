@@ -49,7 +49,7 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	msg->common.op = MSG_OP_CGROUP;
 	msg->common.size = size;
 
-	path = (char *) ctx->args[1];
+	path = (char *)ctx->args[1];
 	task = (struct task_struct *)get_current_task();
 	probe_read(&pid, sizeof(pid), _(&task->tgid));
 
@@ -69,8 +69,8 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	msg->cgrp_data.state = cgrp_track->state;
 	msg->cgrp_data.level = cgrp_track->level;
 	msg->cgrp_data.hierarchy_id = cgrp_track->hierarchy_id;
-	memcpy(&(msg->cgrp_data.name), &(cgrp_track->name), KN_NAME_LENGTH);
-	probe_read_str(&(msg->path), PATH_MAP_SIZE - 1, path);
+	memcpy(&msg->cgrp_data.name, &cgrp_track->name, KN_NAME_LENGTH);
+	probe_read_str(&msg->path, PATH_MAP_SIZE - 1, path);
 
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
 

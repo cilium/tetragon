@@ -31,7 +31,7 @@ tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 	if (!config || config->tg_cgrp_level == 0)
 		return 0;
 
-	cgrp = (struct cgroup*)ctx->args[0];
+	cgrp = (struct cgroup *)ctx->args[0];
 	path = (char*)ctx->args[1];
 
 	task = (struct task_struct *)get_current_task();

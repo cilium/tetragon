@@ -86,9 +86,8 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	thread_pid_exists = bpf_core_field_exists(task->thread_pid);
 	if (thread_pid_exists) {
 		probe_read(&pid, sizeof(pid), _(&task->thread_pid));
-		if (!pid) {
+		if (!pid)
 			return 0;
-		}
 	} else {
 		struct pid_link link;
 		int link_sz = bpf_core_field_size(task->pids);

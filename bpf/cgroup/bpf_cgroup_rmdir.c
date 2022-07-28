@@ -22,7 +22,7 @@ tg_tp_cgrp_rmdir(struct bpf_raw_tracepoint_args *ctx)
 	struct cgroup *cgrp;
 	struct cgroup_tracking_value *cgrp_track;
 
-	cgrp = (struct cgroup *) ctx->args[0];
+	cgrp = (struct cgroup *)ctx->args[0];
 	cgrpid = get_cgroup_id(cgrp);
 
 	/* This was never tracked exit now */

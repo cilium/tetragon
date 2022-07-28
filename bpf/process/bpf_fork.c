@@ -49,7 +49,8 @@ __set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
 		tracking_level = level;
 	} else {
 		/* Set the ancestor as the tracking cgroup */
-		execve_val->cgrpid_tracker = get_ancestor_cgroup_id(cgrp, conf->cgrp_fs_magic, conf->tg_cgrp_level);
+		execve_val->cgrpid_tracker = get_ancestor_cgroup_id(cgrp, conf->cgrp_fs_magic,
+								    conf->tg_cgrp_level);
 		tracking_level = conf->tg_cgrp_level;
 	}
 
@@ -57,9 +58,11 @@ __set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
 	if (!cgrp_data) {
 		/* This was never tracked let's push it here */
 		hierarchy_id = get_cgroup_hierarchy_id(cgrp);
-		cgrp_data = __get_cgrp_tracking_val_heap(CGROUP_RUNNING, hierarchy_id, tracking_level);
+		cgrp_data = __get_cgrp_tracking_val_heap(CGROUP_RUNNING, hierarchy_id,
+							 tracking_level);
 		if (cgrp_data)
-			map_update_elem(&tg_cgrps_tracking_map, &execve_val->cgrpid_tracker, cgrp_data, BPF_ANY);
+			map_update_elem(&tg_cgrps_tracking_map, &execve_val->cgrpid_tracker,
+					cgrp_data, BPF_ANY);
 	} else if (cgrp_data->state != CGROUP_RUNNING) {
 		/* Convert to cgroup running now as we are able to track it */
 		cgrp_data->state = CGROUP_RUNNING;

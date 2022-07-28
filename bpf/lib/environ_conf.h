@@ -34,4 +34,4 @@ struct bpf_map_def __attribute__((section("maps"), used)) tg_conf_map = {
 	.max_entries = 1,
 };
 
-#endif // __ENVIRON_CONFIG__
+#endif // __ENVIRON_CONF_

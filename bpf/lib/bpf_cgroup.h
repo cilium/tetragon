@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Tetragon */
 
-#ifndef _BPF_CGROUP__
-#define _BPF_CGROUP__
+#ifndef __BPF_CGROUP_
+#define __BPF_CGROUP_
 
 #include "hubble_msg.h"
 #include "bpf_helpers.h"
@@ -27,8 +27,7 @@
  */
 #define CGROUP_MAX_NESTED_LEVEL 32
 
-typedef enum
-{
+typedef enum {
 	CGROUP_UNTRACKED = 0, /* Cgroup was created but we did not track it */
 	CGROUP_NEW = 1, /* Cgroup was just created */
 	CGROUP_RUNNING = 2, /* Cgroup from new => running (fork,exec task inside) */
@@ -248,4 +247,4 @@ __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 	return heap;
 }
 
-#endif
+#endif // __BPF_CGROUP_

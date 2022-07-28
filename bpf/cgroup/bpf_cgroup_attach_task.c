@@ -39,9 +39,9 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	if (likely(config->tg_cgrp_level != 0))
 		return 0;
 
-	cgrp = (struct cgroup*)ctx->args[0];
+	cgrp = (struct cgroup *)ctx->args[0];
 	path = (char*)ctx->args[1];
-	task = (struct task_struct*)ctx->args[2];
+	task = (struct task_struct *)ctx->args[2];
 
 	pid = get_current_pid_tgid() >> 32;
 	probe_read(&tgid, sizeof(tgid), _(&task->tgid));
@@ -52,22 +52,10 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	nspid = get_task_pid_vnr();
 	cgrpid = get_cgroup_id(cgrp);
 
-	/* TODO for now we only track in kubernetes mode
-	if (config->mode != MODE_K8S)
-		return 0;
-	*/
-
 	/* Make sure we only catch own pid */
 	tgid = (nspid) ? nspid : pid;
 	if (config->nspid != tgid)
 		return 0;
-
-	/* TODO:  Make this robust
-	 read /proc/tetragon/cgroup match the hierarchy to this current
-	 task hierarchy see below then match also cgrpids
-	 if (likely(config->cgrpid != id))
-		return 0;
-	*/
 
 	/* Let's initialize tetragon itself in execve_value_map here */
 	curr = execve_map_get(pid);
