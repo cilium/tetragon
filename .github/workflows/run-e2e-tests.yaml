@@ -110,9 +110,6 @@ jobs:
           -kubeconfig ~/.kube/config \
           -args -v=4
 
-          # -tetragon.helm.set enterprise.metadataImage.override=btf:latest \
-          # -tetragon.helm.set enterprise.metadataImage.imagePullPolicy=Never \
-
     - name: Upload Tetragon Logs
       if: failure()
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
