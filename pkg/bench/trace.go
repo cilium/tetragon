@@ -63,8 +63,14 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 		panic("unknown benchmark")
 	}
 
-	configFile := bench.Crd(ctx, args)
-	defer os.Remove(configFile)
+	var configFile string
+
+	if args.Crd != "" {
+		configFile = args.Crd
+	} else {
+		configFile = bench.Crd(ctx, args)
+		defer os.Remove(configFile)
+	}
 
 	// Start FGS if requested.
 	tetragonFinished := make(chan bool, 1)

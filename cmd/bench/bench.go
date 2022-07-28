@@ -29,6 +29,7 @@ var (
 
 	traceBench *string
 	cpuProfile *string
+	userCrd    *string
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	traceBench = flag.String("trace", "none", "trace benchmark to run, one of: "+strings.Join(bench.TraceBenchSupported(), ", "))
 	goPerf = flag.Bool("goperf", false, "Measure perf events (goperf)")
 	cpuProfile = flag.String("cpuprofile", "", "start cpu prifiling to provided file")
+	userCrd = flag.String("crd", "", "use provided crd instead hardcoded one")
 }
 
 func main() {
@@ -78,6 +80,7 @@ func main() {
 		Baseline:    *baseline,
 		Trace:       bench.TraceBenchNameOrPanic(*traceBench),
 		GoPerf:      *goPerf,
+		Crd:         *userCrd,
 	}
 
 	summary := bench.RunTraceBench(args)
