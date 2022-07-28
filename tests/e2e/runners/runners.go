@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/install"
 	"github.com/cilium/tetragon/tests/e2e/state"
+	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
@@ -43,7 +45,18 @@ var DefaultRunner = Runner{
 	setupCluster: func(testenv env.Environment) env.Func {
 		return e2ehelpers.MaybeCreateTempKindCluster(testenv, ClusterPrefix)
 	},
-	installCilium: ciliuminstall.Setup(),
+	installCilium: func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+		client, err := c.NewClient()
+		if err != nil {
+			return ctx, err
+		}
+		// Only install Cilium if it does not already exist
+		ciliumDs := &appsv1.DaemonSet{}
+		if err := client.Resources("kube-system").Get(ctx, "cilium", "kube-system", ciliumDs); err != nil && apierrors.IsNotFound(err) {
+			return ciliuminstall.Setup(ciliuminstall.WithNamespace("kube-system"))(ctx, c)
+		}
+		return ctx, nil
+	},
 	installTetragon: install.Install(install.WithHelmOptions(map[string]string{
 		"tetragon.exportAllowList": "",
 	})),
