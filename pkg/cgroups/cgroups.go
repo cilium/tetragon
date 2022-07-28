@@ -46,8 +46,7 @@ const (
 )
 
 var (
-	// Path to where cgroup2 is mounted
-	cgroup2Root       = defaults.Cgroup2Dir
+	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
 
 	/* Cgroupv1 controllers that we are interested in
