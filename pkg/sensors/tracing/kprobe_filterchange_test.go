@@ -62,7 +62,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -70,7 +70,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	readyWG.Wait()
 
 	if err := testCmd.Start(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to start command: %v", err)
 	}
 
 	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
@@ -143,7 +143,7 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

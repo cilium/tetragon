@@ -41,7 +41,7 @@ func TestTestChecker(t *testing.T) {
 	}
 	errorChecker := NewTestChecker(&dummyChecker)
 
-	obs, err := observer.GetDefaultObserver(t, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -59,5 +59,7 @@ func TestTestChecker(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// NB: we expect a failure, so mark the file to be removed.
-	testutils.DontKeepExportFile(t)
+	if err := testutils.DontKeepExportFile(t); err != nil {
+		t.Logf("failed to mark the file export file for deletion: %v", err)
+	}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -78,17 +79,20 @@ spec:
         values:
         - "1"
 `
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
 	writeConfigHook := []byte(writeReadHook)
 	err := ioutil.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	_, err = observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(context.TODO(), bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
+	initialSensor.Load(ctx, bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -129,7 +133,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -173,7 +177,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker()
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -424,7 +428,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -627,7 +631,7 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -645,6 +649,10 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.NoError(t, err)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	if expectFailure {
+		t.Logf("Expectinfg failure")
+		if err := testutils.DontKeepExportFile(t); err != nil {
+			t.Logf("failed to mark the file export file for deletion: %v", err)
+		}
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)
@@ -1067,7 +1075,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1307,7 +1315,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1553,7 +1561,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1606,7 +1614,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1713,7 +1721,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	_, err = observer.GetDefaultObserverWithFileNoTest(t, testConfigFile, tus.Conf().TetragonLib, true)
+	_, err = observer.GetDefaultObserverWithFileNoTest(t, context.Background(), testConfigFile, tus.Conf().TetragonLib, true)
 	if err == nil {
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
@@ -1735,7 +1743,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	}
 
 	b := base.GetInitialSensor()
-	obs, err := observer.GetDefaultObserverWithWatchers(t, b, observer.WithConfig(testConfigFile), observer.WithLib(tus.Conf().TetragonLib))
+	obs, err := observer.GetDefaultObserverWithWatchers(t, ctx, b, observer.WithConfig(testConfigFile), observer.WithLib(tus.Conf().TetragonLib))
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}
@@ -2096,7 +2104,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2136,7 +2144,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2176,7 +2184,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2216,7 +2224,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2252,7 +2260,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2288,7 +2296,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

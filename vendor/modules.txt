@@ -67,6 +67,10 @@ github.com/cilium/hubble/pkg/k8s
 github.com/cilium/hubble/pkg/parser/endpoint
 github.com/cilium/hubble/pkg/parser/getters
 github.com/cilium/hubble/pkg/servicecache
+# github.com/cilium/little-vm-helper v0.0.0-20220720160905-9e7539fbeba9
+## explicit; go 1.18
+github.com/cilium/little-vm-helper/pkg/images
+github.com/cilium/little-vm-helper/pkg/logcmd
 # github.com/cilium/lumberjack/v2 v2.2.2
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
@@ -90,7 +94,7 @@ github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io/v
 github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces
 github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1
 github.com/cilium/tetragon/pkg/k8s/version
-# github.com/cpuguy83/go-md2man/v2 v2.0.1
+# github.com/cpuguy83/go-md2man/v2 v2.0.2
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.1
@@ -204,8 +208,6 @@ github.com/google/gopacket/layers
 github.com/google/gops/agent
 github.com/google/gops/internal
 github.com/google/gops/signal
-# github.com/google/uuid v1.3.0
-## explicit
 # github.com/hashicorp/golang-lru v0.5.4
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
@@ -222,6 +224,9 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
+# github.com/hashicorp/packer-plugin-sdk v0.3.0
+## explicit; go 1.17
+github.com/hashicorp/packer-plugin-sdk/multistep
 # github.com/iancoleman/strcase v0.2.0
 ## explicit; go 1.16
 github.com/iancoleman/strcase
@@ -340,7 +345,7 @@ github.com/spf13/afero/mem
 # github.com/spf13/cast v1.5.0
 ## explicit; go 1.18
 github.com/spf13/cast
-# github.com/spf13/cobra v1.4.0
+# github.com/spf13/cobra v1.5.0
 ## explicit; go 1.15
 github.com/spf13/cobra
 github.com/spf13/cobra/doc
