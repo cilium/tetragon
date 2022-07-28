@@ -7,6 +7,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ var (
 	goPerf      *bool
 
 	traceBench *string
+	cpuProfile *string
 )
 
 func init() {
@@ -37,6 +39,7 @@ func init() {
 	printEvents = flag.Bool("print", false, "print events in JSON to stdout")
 	traceBench = flag.String("trace", "none", "trace benchmark to run, one of: "+strings.Join(bench.TraceBenchSupported(), ", "))
 	goPerf = flag.Bool("goperf", false, "Measure perf events (goperf)")
+	cpuProfile = flag.String("cpuprofile", "", "start cpu prifiling to provided file")
 }
 
 func main() {
@@ -49,6 +52,23 @@ func main() {
 
 	if *debug {
 		viper.Set("log-level", "debug")
+	}
+
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close()
+
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		log.Printf("Starting cpu profiling: %s", *cpuProfile)
+		defer func() {
+			log.Printf("Stopping cpu profiling: %s", *cpuProfile)
+			pprof.StopCPUProfile()
+		}()
 	}
 
 	args := &bench.Arguments{
