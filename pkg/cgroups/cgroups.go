@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -72,12 +73,6 @@ var (
 	readCgroupMode sync.Once
 	cgroupMode     int
 	cgroupFSPath   string
-
-	readCgroupPaths sync.Once
-	selfCgroupPaths []string
-
-	findMigPathOnce sync.Once
-	migrationPath   string
 )
 
 func CgroupFsMagicStr(magic uint64) string {
@@ -113,7 +108,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("no valid Cgroupv1 controller to construct a proper Cgroup path")
+	return "", fmt.Errorf("no valid Cgroupv1 controller path")
 }
 
 func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
@@ -135,40 +130,35 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 	return "", fmt.Errorf("no valid Cgroupv2 path")
 }
 
-func getPidCgroupPaths(pidStr string) ([]string, error) {
-	file := filepath.Join(option.Config.ProcFS, pidStr, "cgroup")
-	readCgroupPaths.Do(func() {
-		cgroups, err := ioutil.ReadFile(file)
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("failed to read %s", file)
-			return
-		}
+func getPidCgroupPaths(pid uint32) ([]string, error) {
+	file := filepath.Join(option.Config.ProcFS, fmt.Sprint(pid), "cgroup")
 
-		selfCgroupPaths = strings.Split(strings.TrimSpace(string(cgroups)), "\n")
-	})
-
-	if len(selfCgroupPaths) == 0 {
-		return nil, fmt.Errorf("failed to read %s", file)
+	cgroups, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %v", file, err)
 	}
 
-	return selfCgroupPaths, nil
+	if len(cgroups) == 0 {
+		return nil, fmt.Errorf("no entry from %s", file)
+	}
+
+	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
-func migratePidtoCgrp(path string, pidstr string) error {
+func migratePidtoCgrp(path string, pid uint32) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("open '%q' failed", path)
 		return err
 	}
 
-	_, err = f.Write([]byte(pidstr))
+	_, err = f.Write([]byte(fmt.Sprint(pid)))
 	f.Close()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("migrating pid=%s to %q failed", pidstr, path)
+		logger.GetLogger().WithError(err).Warnf("migrating pid=%d to %q failed", pid, path)
 		return err
 	}
 
-	logger.GetLogger().Infof("Migrated Tetragon pid=%s to its cgroup %q", pidstr, path)
 	return nil
 }
 
@@ -189,94 +179,103 @@ func detectCgroupMode(cgroupfs string) (int, error) {
 		return CGROUP_LEGACY, nil
 	}
 
-	err := fmt.Errorf("cgroupfs: '%s' is with the wrong fs type: %d", cgroupfs, st.Type)
-	logger.GetLogger().WithError(err).WithField("cgroupfs", cgroupfs).Debug("could not detect Cgroup Mode")
-	return CGROUP_UNDEF, err
+	return CGROUP_UNDEF, fmt.Errorf("cgroupfs: '%s' is with the wrong fs type: %d", cgroupfs, st.Type)
 }
 
-func getCgroupMode() error {
+// GetCgroupMode() Returns the current Cgroup mode that is applied to the system
+// This applies to systemd and non-systemd machines, possible values:
+//  - CGROUP_UNDEF: undefined
+//  - CGROUP_LEGACY: Cgroupv1 legacy controllers
+//  - CGROUP_HYBRID: Cgroupv1 and Cgroupv2 set up by systemd
+//  - CGROUP_UNIFIED: Pure Cgroupv2 hierarchy
+// Reference: https://systemd.io/CGROUP_DELEGATION/
+func GetCgroupMode() (int, error) {
 	readCgroupMode.Do(func() {
 		var err error
 		cgroupFSPath = defaultCgroupRoot
 		cgroupMode, err = detectCgroupMode(cgroupFSPath)
 		if err != nil {
+			logger.GetLogger().WithError(err).WithField("cgroupfs", cgroupFSPath).Debug("could not detect Cgroup Mode")
 			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
-			if err == nil {
+			if err != nil {
+				logger.GetLogger().WithError(err).WithField("cgroupfs", defaults.Cgroup2Dir).Debug("could not detect Cgroup Mode")
+			} else {
 				cgroupFSPath = defaults.Cgroup2Dir
 			}
 		}
 		if cgroupMode != CGROUP_UNDEF {
 			str, ok := cgroupModesStr[cgroupMode]
 			if ok {
-				logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Infof("Running under Cgroup: %s", str)
+				logger.GetLogger().WithFields(logrus.Fields{
+					"cgroupfs":   cgroupFSPath,
+					"cgroupMode": str,
+				}).Infof("Cgroup mode detection succeeded")
 			}
 		}
 	})
 
 	if cgroupMode == CGROUP_UNDEF {
-		return fmt.Errorf("could not detect Cgroup Mode")
+		return CGROUP_UNDEF, fmt.Errorf("could not detect Cgroup Mode")
 	}
 
-	return nil
+	return cgroupMode, nil
 }
 
-func findMigrationPath() (string, error) {
-	err := getCgroupMode()
+func findMigrationPath(pid uint32) (string, error) {
+	cgroupPaths, err := getPidCgroupPaths(pid)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
+		return "", err
+	}
+
+	mode, err := GetCgroupMode()
 	if err != nil {
 		return "", err
 	}
 
-	findMigPathOnce.Do(func() {
-		switch cgroupMode {
-		case CGROUP_LEGACY, CGROUP_HYBRID:
-			migrationPath, err = getValidCgroupv1Path(selfCgroupPaths)
-		case CGROUP_UNIFIED:
-			migrationPath, err = getValidCgroupv2Path(selfCgroupPaths)
-		default:
-			err = fmt.Errorf("could not detect Cgroup Mode")
-		}
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Unable to find Cgroup Path for Tetragon self detection")
-		}
-	})
-
-	if migrationPath == "" {
-		return migrationPath, fmt.Errorf("could not find Cgroup path for Tetragon self detection")
+	var mig string
+	switch mode {
+	case CGROUP_LEGACY, CGROUP_HYBRID:
+		mig, err = getValidCgroupv1Path(cgroupPaths)
+	case CGROUP_UNIFIED:
+		mig, err = getValidCgroupv2Path(cgroupPaths)
+	default:
+		err = fmt.Errorf("could not detect Cgroup Mode")
 	}
 
-	return migrationPath, nil
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
+		return "", err
+	}
+
+	return mig, err
 }
 
 func MigrateSelfToSameCgrp() error {
 	pid := os.Getpid()
-	pidstr := fmt.Sprint(pid)
 
-	_, err := getPidCgroupPaths(pidstr)
-	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Unable to migrate Tetragon pid=%s to its own cgroup", pidstr)
-		return err
-	}
-
-	path, err := findMigrationPath()
+	path, err := findMigrationPath(uint32(pid))
 	if err != nil {
 		return err
 	}
 
-	if err == nil {
-		err = migratePidtoCgrp(path, pidstr)
+	err = migratePidtoCgrp(path, uint32(pid))
+	if err != nil {
+		return err
 	}
 
-	return err
+	logger.GetLogger().Infof("Migrated Tetragon pid=%d to its cgroup %q", pid, path)
+	return nil
 }
 
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
 func GetBpfCgroupFS() (uint64, error) {
-	err := getCgroupMode()
+	mode, err := GetCgroupMode()
 	if err != nil {
 		return CGROUP_UNDEF, err
 	}
 
-	switch cgroupMode {
+	switch mode {
 	case CGROUP_LEGACY, CGROUP_HYBRID:
 		/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
 		logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
