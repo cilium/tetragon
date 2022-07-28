@@ -49,6 +49,7 @@ type Arguments struct {
 	PrintEvents bool
 	JSONEncode  bool
 	Baseline    bool
+	GoPerf      bool
 }
 
 func readConfig(file string) (*config.GenericTracingConf, error) {

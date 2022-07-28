@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/tezc/goperf"
 )
 
 type TraceBench interface {
@@ -86,10 +88,18 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 
 	summary.RunTime = time.Now()
 
+	if args.GoPerf {
+		goperf.Start()
+	}
+
 	err := bench.Run(ctx, args, summary)
 	if err != nil {
 		cancel()
 		return
+	}
+
+	if args.GoPerf {
+		goperf.Pause()
 	}
 
 	summary.EndTime = time.Now()

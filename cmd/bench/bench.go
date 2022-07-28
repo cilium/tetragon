@@ -13,6 +13,8 @@ import (
 	"github.com/cilium/tetragon/pkg/bench"
 	"github.com/spf13/viper"
 	"golang.org/x/sys/unix"
+
+	"github.com/tezc/goperf"
 )
 
 // Command-line flags
@@ -22,6 +24,7 @@ var (
 	jsonEncode  *bool
 	baseline    *bool
 	printEvents *bool
+	goPerf      *bool
 
 	traceBench *string
 )
@@ -33,6 +36,7 @@ func init() {
 	baseline = flag.Bool("baseline", false, "run a baseline benchmark without FGS")
 	printEvents = flag.Bool("print", false, "print events in JSON to stdout")
 	traceBench = flag.String("trace", "none", "trace benchmark to run, one of: "+strings.Join(bench.TraceBenchSupported(), ", "))
+	goPerf = flag.Bool("goperf", false, "Measure perf events (goperf)")
 }
 
 func main() {
@@ -53,11 +57,17 @@ func main() {
 		PrintEvents: *printEvents,
 		Baseline:    *baseline,
 		Trace:       bench.TraceBenchNameOrPanic(*traceBench),
+		GoPerf:      *goPerf,
 	}
 
 	summary := bench.RunTraceBench(args)
 
 	summary.PrettyPrint()
+
+	if args.GoPerf {
+		goperf.End()
+	}
+
 	if summary.Error != "" {
 		os.Exit(1)
 	}
