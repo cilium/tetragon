@@ -20,7 +20,7 @@ func (msg *CheckedMessage) Generate(g *protogen.GeneratedFile, isEvent bool) err
 	}
 
 	for _, rawField := range msg.Fields {
-		field := (*Field)(rawField)
+		field := &Field{Field: rawField, IsInnerField: false}
 		if !field.isList() {
 			continue
 		}
@@ -89,7 +89,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
         `)
 	// Do fields
 	for _, rawField := range msg.Fields {
-		field := (*Field)(rawField)
+		field := &Field{Field: rawField, IsInnerField: false}
 		field.generateFieldCheck(g, msg)
 	}
 	// Do final return
@@ -98,7 +98,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 
 	// Generate With funcs
 	for _, rawField := range msg.Fields {
-		field := (*Field)(rawField)
+		field := &Field{Field: rawField, IsInnerField: false}
 		field.generateWith(g, msg)
 	}
 
@@ -110,7 +110,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
         }`)
 	// Do fields
 	for _, rawField := range msg.Fields {
-		field := (*Field)(rawField)
+		field := &Field{Field: rawField, IsInnerField: false}
 		field.generateFrom(g, msg)
 	}
 	g.P(`return checker
@@ -135,7 +135,7 @@ func (msg *CheckedMessage) checkerName(g *protogen.GeneratedFile) string {
 func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error) {
 	var fieldsStr string
 	for _, field := range msg.Fields {
-		f := (*Field)(field)
+		f := &Field{Field: field, IsInnerField: false}
 		typeName, err := f.typeName(g)
 		if err != nil {
 			return "", err
