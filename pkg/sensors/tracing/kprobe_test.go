@@ -37,7 +37,6 @@ import (
 )
 
 const (
-	mountPath      = "/tmp2"
 	testConfigFile = "/tmp/tetragon.gotest.yaml"
 )
 
