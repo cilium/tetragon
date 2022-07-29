@@ -20,7 +20,10 @@ const (
 	eventVarName   = "event"
 )
 
-type Field protogen.Field
+type Field struct {
+	*protogen.Field
+	IsInnerField bool
+}
 
 func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage) error {
 	typeName, err := field.typeName(g)
@@ -81,7 +84,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	kind := field.Desc.Kind()
 
 	doPrimitiveFrom := func() string {
-		if field.isList() || field.isMap() {
+		if !field.IsInnerField && (field.isList() || field.isMap()) {
 			return checkerVar + ` = ` + eventVar
 		}
 		return `{
@@ -277,8 +280,8 @@ func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checke
 
 	if field.isList() {
 		return `if err := ` + checkerVar + `.Check(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
-        }`, nil
+		return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+		}`, nil
 	}
 
 	if field.isMap() {
@@ -371,6 +374,11 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerName, checkerV
 	// primitive types
 	doPrimitiveCheck := func() string {
 		ff := kindToFormat(kind)
+		if field.IsInnerField {
+			return `if ` + checkerVar + ` != ` + eventVar + ` {
+                return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, checkerVar) + `
+            }`
+		}
 		return `if *` + checkerVar + ` != ` + eventVar + ` {
             return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, "*"+checkerVar) + `
         }`
@@ -559,11 +567,8 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 
 	var innerCheck string
 	var err error
-	if field.isPrimitive() || field.isEnum() {
-		innerCheck, err = field.getFieldCheck(g, listCheckerName, "check", "&value")
-	} else {
-		innerCheck, err = field.getFieldCheck(g, listCheckerName, "check", "value")
-	}
+	innerField := &Field{Field: field.Field, IsInnerField: true}
+	innerCheck, err = innerField.getFieldCheck(g, listCheckerName, "check", "value")
 	if err != nil {
 		return err
 	}
@@ -742,6 +747,9 @@ func (field *Field) isPrimitive() bool {
 }
 
 func (field *Field) isList() bool {
+	if field.IsInnerField {
+		return false
+	}
 	if field.GoIdent.GoName == "Pod_Labels" {
 		return false
 	}
@@ -749,6 +757,9 @@ func (field *Field) isList() bool {
 }
 
 func (field *Field) isMap() bool {
+	if field.IsInnerField {
+		return false
+	}
 	if field.GoIdent.GoName == "Pod_Labels" {
 		return true
 	}
@@ -836,6 +847,9 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		}
 		return fmt.Sprintf("map[string]%s", common.StringMatcherIdent(g, "StringMatcher")), nil
 	} else if field.isList() {
+		if field.isPrimitive() {
+			return fmt.Sprintf("[]%s", type_), nil
+		}
 		return fmt.Sprintf("[]*%s", type_), nil
 	}
 
