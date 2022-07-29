@@ -28,6 +28,14 @@ type Config struct {
 	DisableTetragonLogs bool
 }
 
+var ConfigDefaults = Config{
+	TetragonLib:         filepath.Join(TetragonBpfPath(), "objs"),
+	VerboseLevel:        0,
+	SelfBinary:          filepath.Base(os.Args[0]),
+	CmdWaitTime:         60000 * time.Millisecond,
+	DisableTetragonLogs: false,
+}
+
 func Conf() *Config {
 	if config == nil {
 		panic("please call TestSensorsRun() to initialize GetTestSensorsConf")
@@ -42,27 +50,28 @@ func TetragonBpfPath() string {
 }
 
 func TestSensorsRun(m *testing.M, sensorName string) int {
-	config = new(Config)
+	c := ConfigDefaults
+	config = &c
 
 	// some tests require the name of the current binary.
 	config.SelfBinary = filepath.Base(os.Args[0])
 
 	flag.StringVar(&config.TetragonLib,
-		"bpf-lib", filepath.Join(TetragonBpfPath(), "objs"),
+		"bpf-lib", ConfigDefaults.TetragonLib,
 		"tetragon lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
 	flag.DurationVar(&config.CmdWaitTime,
 		"command-wait",
-		60000*time.Millisecond,
+		ConfigDefaults.CmdWaitTime,
 		"duration to wait for tetragon to gather logs from commands")
 	flag.IntVar(
 		&config.VerboseLevel,
 		"verbosity-level",
-		0,
+		ConfigDefaults.VerboseLevel,
 		"verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
 	flag.BoolVar(
 		&config.DisableTetragonLogs,
 		"disable-tetragon-logs",
-		false,
+		ConfigDefaults.DisableTetragonLogs,
 		"do not output teragon log")
 	flag.Parse()
 
