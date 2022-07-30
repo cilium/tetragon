@@ -20,3 +20,6 @@ contrib/tester-progs/fork-tester
 contrib/tester-progs/namespace-tester
 contrib/tester-progs/sigkill-tester
 contrib/tester-progs/trigger-test-events
+# ignore files downloaded by tests/vmtests/fetch-data.sh
+tests/vmtests/test-data
+tests/vmtests/vmtests-results-*

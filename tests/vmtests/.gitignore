@@ -1,2 +1,4 @@
 /tetragon-tester
 /tetragon-vmtests-run
+/test-data
+/vmtests-results-*
