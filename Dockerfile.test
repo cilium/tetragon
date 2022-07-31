@@ -1,4 +1,9 @@
-FROM quay.io/isovalent/hubble-llvm:2022-01-03-a6dfdaf as bpf-builder
+FROM quay.io/cilium/clang:7ea8dd5b610a8864ce7b56e10ffeb61030a0c50e@sha256:02ad7cc1d08d85c027557099b88856945be5124b5c31aeabce326e7983e3913b as bpf-builder
+WORKDIR /go/src/github.com/cilium/tetragon
+RUN apt-get update
+RUN apt-get install -y linux-libc-dev
+COPY . ./
+RUN make tetragon-bpf LOCAL_CLANG=1
 
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update

@@ -1,0 +1,9 @@
+FROM ubuntu:22.04
+WORKDIR /go/src/github.com/cilium/tetragon
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt-get install -y --no-install-recommends clang-13 llvm-13 make
+RUN ln -vsnf /usr/lib/llvm-13/bin/clang /usr/bin/clang
+RUN ln -vsnf /usr/lib/llvm-13/bin/llc /usr/bin/llc
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,96 @@
+name: Build Clang Image
+
+on:
+  push:
+    branches:
+      - main
+      - v*
+    paths:
+    - 'Dockerfile.clang'
+  pull_request:
+    paths:
+    - 'Dockerfile.clang'
+
+jobs:
+  build-and-push:
+    environment: release-clang
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Login to quay.io
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_CLANG_RELEASE_USERNAME }}
+          password: ${{ secrets.QUAY_CLANG_RELEASE_PASSWORD }}
+
+      - name: Getting image tag
+        id: tag
+        run: |
+          if [ ${{ github.event.pull_request.head.sha }} != "" ]; then
+            echo ::set-output name=tag::${{ github.event.pull_request.head.sha }}
+          else
+            echo ::set-output name=tag::${{ github.sha }}
+          fi
+
+      - name: Checkout Source Code
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Release Build clang
+        uses: docker/build-push-action@e551b19e49efd4e98792db7592c17c09b89db8d8
+        id: docker_build_release
+        with:
+          context: .
+          file: ./Dockerfile.clang
+          push: true
+          platforms: linux/amd64
+          tags: |
+            quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
+
+      - name: Image Release Digest
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+          job_name=clang
+          job_name_capital=${job_name^^}
+          job_name_underscored=${job_name_capital//-/_}
+          echo "${job_name_underscored}_DIGEST := \"${{ steps.docker_build_release.outputs.digest }}\"" > image-digest/makefile-digest.txt
+
+          echo "### clang" > image-digest/clang.txt
+          echo "" >> image-digest/clang.txt
+          echo "\`quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_release.outputs.digest }}\`" >> image-digest/clang.txt
+          echo "" >> image-digest/clang.txt
+
+      # Upload artifact digests
+      - name: Upload artifact digests
+        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        with:
+          name: image-digest clang
+          path: image-digest
+          retention-days: 1
+
+  image-digests:
+    if: ${{ github.repository == 'cilium/tetragon' }}
+    name: Display Digests
+    runs-on: ubuntu-20.04
+    needs: build-and-push
+    steps:
+      - name: Downloading Image Digests
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+
+      - name: Download digests of all images built
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        with:
+          path: image-digest/
+
+      - name: Image Digests Output
+        shell: bash
+        run: |
+          cd image-digest/
+          find -type f | sort | xargs -d '\n' cat
+
