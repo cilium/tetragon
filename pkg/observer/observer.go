@@ -44,6 +44,9 @@ const (
 	// incrementally rolling this out we're keeping the old code functional
 	// in case we need to quickly roll back.
 	useCiliumEbpfReader = true
+
+	// Features enabled/disabled due to running environment
+	features = "Advanced Cgroups Tracking"
 )
 
 var (
@@ -272,7 +275,8 @@ func (k *Observer) updateTetragonConf() error {
 	pid := os.Getpid()
 	err := confmap.UpdateTetragonConfMap(option.Config.MapDir, pid)
 	if err != nil {
-		return fmt.Errorf("update Tetragon bpf conf failed: %v", err)
+		// Do not fail
+		k.log.WithField("observer", "confmap-update").WithError(err).Warnf("Update TetragonConfMap failed, advanced features: '%s' will be disabled", features)
 	}
 
 	return nil
@@ -282,7 +286,7 @@ func (k *Observer) probeTetragonCgroups() error {
 	/* Migrate Tetragon to its own cgroup to generate a tracepoint */
 	err := cgroups.MigrateSelfToSameCgrp()
 	if err != nil {
-		return fmt.Errorf("migrating Tetragon to same cgroup failed: %v", err)
+		k.log.WithField("observer", "probe-cgroups").WithError(err).Warnf("Migrating Tetragon to same Cgroup failed, advanced features: '%s' will be disabled", features)
 	}
 
 	return nil
