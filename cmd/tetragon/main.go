@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"sync"
 	"syscall"
 	"time"
@@ -94,6 +95,14 @@ func readConfig(file string) (*config.GenericTracingConf, error) {
 	return cnf, nil
 }
 
+func stopProfile(prof string) {
+	if prof == "" {
+		return
+	}
+	log.WithField("file", prof).Info("Stopping cpu profiling")
+	pprof.StopCPUProfile()
+}
+
 func hubbleTETRAGONExecute() error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -110,6 +119,20 @@ func hubbleTETRAGONExecute() error {
 
 	if viper.IsSet(keyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(keyNetnsDir)
+	}
+
+	if cpuProfile != "" {
+		f, err := os.Create(cpuProfile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close()
+
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		log.WithField("file", cpuProfile).Info("Starting cpu profiling")
+		defer stopProfile(cpuProfile)
 	}
 
 	bpf.CheckOrMountFS("")
@@ -191,6 +214,7 @@ func hubbleTETRAGONExecute() error {
 		obs.RemovePrograms()
 		cancel()
 		cancelWg.Wait()
+		stopProfile(cpuProfile)
 		os.Exit(1)
 	}()
 
@@ -385,6 +409,9 @@ func execute() error {
 
 	flags.Bool(keyIgnoreMissingProgs, false, "Ignore missing BPF programs")
 	flags.MarkHidden(keyIgnoreMissingProgs)
+
+	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")
+	flags.MarkHidden(keyCpuProfile)
 
 	// JSON export aggregation options.
 	flags.Bool(keyEnableExportAggregation, false, "Enable JSON export aggregation")
