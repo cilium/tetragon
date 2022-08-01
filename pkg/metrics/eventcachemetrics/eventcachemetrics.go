@@ -15,6 +15,11 @@ var (
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
+	EventCacheCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name:        "event_cache_count",
+		Help:        "The total number of Tetragon event cache accesses. For internal use only.",
+		ConstLabels: nil,
+	})
 )
 
 // Get a new handle on an processInfoErrors metric for an eventType

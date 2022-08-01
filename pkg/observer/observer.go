@@ -54,13 +54,13 @@ var (
 	SensorManager *sensors.Manager
 )
 
-type Event notify.Interface
+type Event notify.Message
 
 func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event, error)) {
 	eventHandler[ev] = handler
 }
 
-func (k *Observer) observerListeners(msg notify.Interface) {
+func (k *Observer) observerListeners(msg notify.Message) {
 	for listener := range k.listeners {
 		if err := listener.Notify(msg); err != nil {
 			k.log.Debug("Write failure removing Listener")
@@ -69,7 +69,7 @@ func (k *Observer) observerListeners(msg notify.Interface) {
 	}
 }
 
-func AllListeners(msg notify.Interface) {
+func AllListeners(msg notify.Message) {
 	for _, o := range observerList {
 		o.observerListeners(msg)
 	}

@@ -14,7 +14,7 @@ import (
 type standaloneListener struct {
 }
 
-func (sl *standaloneListener) Notify(msg notify.Interface) error {
+func (sl *standaloneListener) Notify(msg notify.Message) error {
 	_, err := fmt.Printf("=> %v\n", msg)
 	return err
 }

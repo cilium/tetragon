@@ -22,10 +22,6 @@ var (
 	ProcessCacheMissOnRemove ErrorType = "process_cache_miss_on_remove"
 	// Missing event handler.
 	UnhandledEvent ErrorType = "unhandled_event"
-	// Event cache add network entry to cache.
-	EventCacheNetworkCount ErrorType = "event_cache_network_count"
-	// Event cache add process entry to cache.
-	EventCacheProcessCount ErrorType = "event_cache_process_count"
 	// Event cache podInfo retries failed.
 	EventCachePodInfoRetryFailed ErrorType = "event_cache_podinfo_retry_failed"
 	// Event cache endpoint retries failed.
@@ -48,11 +44,6 @@ var (
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	EventCacheCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache",
-		Help:        "The total number of Tetragon event cache access/errors. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"type"})
 )
 
 // Get a new handle on an errorsTotal metric for an ErrorType
@@ -63,14 +54,4 @@ func GetErrorTotal(t ErrorType) prometheus.Counter {
 // Increment an errorsTotal for an ErrorType
 func ErrorTotalInc(t ErrorType) {
 	GetErrorTotal(t).Inc()
-}
-
-// Get a new handle on an eventCacheCount metric for an ErrorType
-func EventCache(t ErrorType) prometheus.Counter {
-	return EventCacheCount.WithLabelValues(string(t))
-}
-
-// Increment an eventCacheCount for an ErrorType
-func EventCacheInc(t ErrorType) {
-	EventCache(t).Inc()
 }
