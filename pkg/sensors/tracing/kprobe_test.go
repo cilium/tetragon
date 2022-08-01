@@ -16,6 +16,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -27,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -2310,4 +2312,76 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestLoadKprobeSensor(t *testing.T) {
+	var sensorProgs = []tus.SensorProg{
+		// kprobe
+		0:  tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+		1:  tus.SensorProg{Name: "generic_kprobe_process_event0", Type: ebpf.Kprobe},
+		2:  tus.SensorProg{Name: "generic_kprobe_process_event1", Type: ebpf.Kprobe},
+		3:  tus.SensorProg{Name: "generic_kprobe_process_event2", Type: ebpf.Kprobe},
+		4:  tus.SensorProg{Name: "generic_kprobe_process_event3", Type: ebpf.Kprobe},
+		5:  tus.SensorProg{Name: "generic_kprobe_process_event4", Type: ebpf.Kprobe},
+		6:  tus.SensorProg{Name: "generic_kprobe_filter_arg1", Type: ebpf.Kprobe},
+		7:  tus.SensorProg{Name: "generic_kprobe_filter_arg2", Type: ebpf.Kprobe},
+		8:  tus.SensorProg{Name: "generic_kprobe_filter_arg3", Type: ebpf.Kprobe},
+		9:  tus.SensorProg{Name: "generic_kprobe_filter_arg4", Type: ebpf.Kprobe},
+		10: tus.SensorProg{Name: "generic_kprobe_filter_arg5", Type: ebpf.Kprobe},
+		11: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+		// retkprobe
+		12: tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+	}
+
+	var sensorMaps = []tus.SensorMap{
+		tus.SensorMap{
+			Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12},
+		},
+	}
+
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys_read"
+spec:
+  kprobes:
+  - call: "__x64_sys_read"
+    syscall: true
+    return: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    returnArg:
+      type: "size_t"
+`
+
+	var obs *observer.Observer
+	var err error
+
+	readConfigHook := []byte(readHook)
+	err = ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	obs, err = observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	var colls []*ebpf.Collection
+
+	for _, sensor := range obs.Sensors {
+		for _, load := range sensor.Progs {
+			colls = append(colls, load.Coll)
+		}
+	}
+
+	tus.CheckSensorLoad(colls, sensorMaps, sensorProgs, t)
+
+	sensors.UnloadAll(tus.Conf().TetragonLib)
 }

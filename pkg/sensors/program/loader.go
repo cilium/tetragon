@@ -290,7 +290,8 @@ func loadProgram(
 			return fmt.Errorf("opening collection '%s' failed", load.Name)
 		}
 	}
-	defer coll.Close()
+
+	load.Coll = coll
 
 	err = installTailCalls(mapDirs[0], spec, coll, ci)
 	if err != nil {

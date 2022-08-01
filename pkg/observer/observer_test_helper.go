@@ -288,6 +288,8 @@ func getDefaultObserver(t *testing.T, base *sensors.Sensor, opts ...TestOption) 
 		return nil, err
 	}
 
+	obs.Sensors = sens
+
 	saveInitInfo(o, testutils.GetExportFilename(t))
 
 	// There doesn't appear to be a better way to enable the metrics server once and only
