@@ -166,6 +166,9 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	if proc.Docker != "" && proc.Pod == nil {
 		return true
 	}
+	if proc.Binary == "" {
+		return true
+	}
 	return false
 }
 
