@@ -50,15 +50,19 @@ type Cache struct {
 }
 
 func handleExecEvent(event *cacheObj, nspid uint32) error {
+	var podInfo *tetragon.Pod
+
 	p := event.event.GetProcess()
 	containerId := p.Docker
 	filename := p.Binary
 	args := p.Arguments
 
-	podInfo, _ := process.GetPodInfo(containerId, filename, args, nspid)
-	if podInfo == nil {
-		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
-		return fmt.Errorf("failed to get pod info")
+	if option.Config.EnableK8s {
+		podInfo, _ = process.GetPodInfo(containerId, filename, args, nspid)
+		if podInfo == nil {
+			errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
+			return fmt.Errorf("failed to get pod info")
+		}
 	}
 
 	event.internal.AddPodInfo(podInfo)
@@ -68,11 +72,6 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 }
 
 func handleEvent(event *cacheObj) error {
-	// No need to fetch endpoint info if we don't have the watcher to do so.
-	if !option.Config.EnableK8s {
-		return nil
-	}
-
 	p := event.event.GetProcess()
 
 	endpoint := process.GetProcessEndpoint(p)
@@ -159,8 +158,10 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	if proc == nil {
 		return true
 	}
-	if proc.Docker != "" && proc.Pod == nil {
-		return true
+	if option.Config.EnableK8s {
+		if proc.Docker != "" && proc.Pod == nil {
+			return true
+		}
 	}
 	if proc.Binary == "" {
 		return true
