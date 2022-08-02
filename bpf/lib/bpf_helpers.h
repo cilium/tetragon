@@ -99,7 +99,13 @@ static long (*bpf_probe_read)(void *dst, __u32 size,
  */
 static inline __attribute__((always_inline)) void relax_verifier(void)
 {
-	volatile int __attribute__((__unused__)) id = get_smp_processor_id();
+	/* Calling get_smp_processor_id() in asm saves an instruction as we
+	 * don't have to store the result to ensure the call takes place.
+	 * However, we have to specifiy the call target by number and not
+	 * name, hence 'call 8'. This is unlikely to change, though, so this
+	 * isn't a big issue.
+	 */
+	asm volatile("call 8;\n" ::: "r0", "r1", "r2", "r3", "r4", "r5");
 }
 
 static inline void compiler_barrier(void)
