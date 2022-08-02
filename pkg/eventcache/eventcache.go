@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
@@ -16,7 +17,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/server"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // garbage collection states
@@ -37,7 +37,7 @@ var (
 type cacheObj struct {
 	internal  *process.ProcessInternal
 	event     notify.Event
-	timestamp *timestamppb.Timestamp
+	timestamp uint64
 	color     int
 	msg       notify.Message
 }
@@ -85,7 +85,7 @@ func handleEvent(event *cacheObj) error {
 	// now because it should be available. Otherwise we have a valid
 	// process and lets copy it across.
 	if event.internal == nil {
-		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, uint64(p.StartTime.AsTime().UnixNano()))
+		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, event.timestamp)
 		if event.internal == nil {
 			return fmt.Errorf("Process lookup failed")
 		}
@@ -122,7 +122,7 @@ func (ec *Cache) handleEvents() {
 		processedEvent := &tetragon.GetEventsResponse{
 			Event:    event.event.Encapsulate(),
 			NodeName: nodeName,
-			Time:     event.timestamp,
+			Time:     ktime.ToProto(event.timestamp),
 		}
 
 		ec.server.NotifyListeners(event.msg, processedEvent)
@@ -180,7 +180,7 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 
 func (ec *Cache) Add(internal *process.ProcessInternal,
 	e notify.Event,
-	t *timestamppb.Timestamp,
+	t uint64,
 	msg notify.Message) {
 	ec.objsChan <- cacheObj{internal: internal, event: e, timestamp: t, msg: msg}
 }
