@@ -48,6 +48,11 @@ type Cache struct {
 	server   *server.Server
 }
 
+// protoTimeToUnix converts a protobuf timestamp to a Unix epoch.
+func protoTimeToUnix(t *timestamppb.Timestamp) uint64 {
+	return uint64(t.Seconds)*1000000000 + uint64(t.Nanos)
+}
+
 func handleExecEvent(event *cacheObj, nspid uint32) error {
 	var podInfo *tetragon.Pod
 
@@ -78,7 +83,7 @@ func handleEvent(event *cacheObj) error {
 	// now because it should be available. Otherwise we have a valid
 	// process and lets copy it across.
 	if event.internal == nil {
-		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, p.StartTime.Value) //tbd StartTime needs to be the correct uint64 not the mangled timestamp.
+		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, protoTimeToUnix(p.StartTime))
 		if event.internal == nil {
 			return fmt.Errorf("Process lookup failed")
 		}
