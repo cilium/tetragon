@@ -84,6 +84,11 @@ func handleEvent(event *cacheObj) error {
 		}
 	}
 
+	p = event.internal.UnsafeGetProcess()
+	if option.Config.EnableK8s && p.Pod == nil {
+		return fmt.Errorf("Process missing PodInfo")
+	}
+
 	event.event.SetProcess(event.internal.GetProcessCopy())
 	return nil
 }
