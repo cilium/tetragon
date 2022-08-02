@@ -73,14 +73,18 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 func handleEvent(event *cacheObj) error {
 	p := event.event.GetProcess()
 
-	if event.internal != nil {
-		event.event.SetProcess(event.internal.GetProcessCopy())
-	} else {
-		typeName := fmt.Sprintf("%T", event.event)
-		eventcachemetrics.ProcessInfoErrorInc(typeName)
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+	// If the process wasn't found before the Add(), likely because
+	// the execve event was processed after this event, lets look it up
+	// now because it should be available. Otherwise we have a valid
+	// process and lets copy it across.
+	if event.internal == nil {
+		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, p.StartTime.Value) //tbd StartTime needs to be the correct uint64 not the mangled timestamp.
+		if event.internal == nil {
+			return fmt.Errorf("Process lookup failed")
+		}
 	}
 
+	event.event.SetProcess(event.internal.GetProcessCopy())
 	return nil
 }
 
