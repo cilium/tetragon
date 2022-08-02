@@ -32,6 +32,8 @@ type config struct {
 	BpfDir    string
 
 	LogOpts map[string]string
+
+	ExecIdInMetrics bool
 }
 
 var (
@@ -46,6 +48,9 @@ var (
 
 		// LogOpts contains logger parameters
 		LogOpts: make(map[string]string),
+
+		// Include exec id in metrics by default and allow users to opt out
+		ExecIdInMetrics: false,
 	}
 )
 

@@ -56,6 +56,8 @@ const (
 	keyExportDenylist  = "export-denylist"
 
 	keyNetnsDir = "netns-dir"
+
+	keyExecIdInMetrics = "exec-id-in-metrics"
 )
 
 var (
@@ -96,6 +98,8 @@ func readAndSetFlags() {
 	option.Config.EnableProcessNs = viper.GetBool(keyEnableProcessNs)
 	option.Config.EnableCilium = viper.GetBool(keyEnableCiliumAPI)
 	option.Config.EnableK8s = viper.GetBool(keyEnableK8sAPI)
+
+	option.Config.ExecIdInMetrics = viper.GetBool(keyExecIdInMetrics)
 
 	logLevel := viper.GetString(keyLogLevel)
 	logFormat := viper.GetString(keyLogFormat)

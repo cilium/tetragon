@@ -378,6 +378,8 @@ func execute() error {
 	flags.String(keyHubbleLib, "/var/lib/tetragon/", "Location of hubble libs (btf and bpf files)")
 	flags.String(keyBTF, "", "Location of btf")
 
+	flags.Bool(keyExecIdInMetrics, false, "Include process exec ID in some metrics. When set to false this label will be set to empty instead")
+
 	flags.String(keyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
 	flags.String(keyKernelVersion, "", "Kernel version")
 	flags.Int(keyVerbosity, 0, "set verbosity level")

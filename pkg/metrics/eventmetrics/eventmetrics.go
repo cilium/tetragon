@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -21,7 +22,7 @@ var (
 		Name:        consts.MetricNamePrefix + "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
-	}, []string{"type", "namespace", "pod", "binary"})
+	}, []string{"type", "namespace", "pod", "binary", "exec_id"})
 	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name:        consts.MetricNamePrefix + "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
@@ -29,15 +30,20 @@ var (
 	}, []string{"type"})
 )
 
-func getProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
+func getProcessInfo(process *tetragon.Process) (binary, exec_id, pod, namespace string) {
 	if process != nil {
 		binary = process.Binary
+		// Populate exec id if configured to do so
+		if option.Config.ExecIdInMetrics {
+			exec_id = process.ExecId
+		}
+
 		if process.Pod != nil {
 			namespace = process.Pod.Namespace
 			pod = process.Pod.Name
 		}
 	}
-	return binary, pod, namespace
+	return binary, exec_id, pod, namespace
 }
 
 func handleOriginalEvent(originalEvent interface{}) {
@@ -52,10 +58,10 @@ func handleOriginalEvent(originalEvent interface{}) {
 }
 
 func handleProcessedEvent(processedEvent interface{}) {
-	var eventType, namespace, pod, binary string
+	var eventType, namespace, pod, binary, exec_id string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
-		binary, pod, namespace = getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
+		binary, exec_id, pod, namespace = getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
 		var err error
 		eventType, err = helpers.ResponseTypeString(ev)
 		if err != nil {
@@ -65,7 +71,7 @@ func handleProcessedEvent(processedEvent interface{}) {
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
+	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary, exec_id).Inc()
 }
 
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
