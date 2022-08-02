@@ -78,12 +78,6 @@ func handleEvent(event *cacheObj) error {
 
 	p := event.event.GetProcess()
 
-	endpoint := process.GetProcessEndpoint(p)
-	if p.Docker != "" && (endpoint == nil || p.Pod == nil) {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheEndpointRetryFailed)
-		return fmt.Errorf("failed to get process endpoint ifno")
-	}
-
 	if event.internal != nil {
 		event.event.SetProcess(event.internal.GetProcessCopy())
 	} else {
