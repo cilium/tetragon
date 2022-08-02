@@ -19,14 +19,19 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	yaml "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/config"
+
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -2297,6 +2302,93 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func loadTestCrd(t *testing.T) error {
+	testHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "sys-write"
+spec:
+ kprobes:
+ - call: "__x64_sys_write"
+   syscall: true
+`
+	var sens []*sensors.Sensor
+
+	cnf, _ := yaml.ReadConfigYaml(testHook)
+	if cnf != nil {
+		var err error
+		sens, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+		if err != nil {
+			return err
+		}
+	}
+
+	b := base.GetInitialSensor()
+	if err := b.Load(context.TODO(), option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+		t.Fatalf("Load base error: %s\n", err)
+	}
+
+	if err := config.LoadConfig(
+		context.TODO(),
+		option.Config.BpfDir,
+		option.Config.MapDir,
+		option.Config.CiliumDir,
+		sens,
+	); err != nil {
+		t.Fatalf("LoadConfig error: %s\n", err)
+	}
+	return nil
+}
+
+func TestKprobeBpfAttr(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "bpf-check"
+spec:
+ kprobes:
+ - call: "bpf_check"
+   syscall: false
+   args:
+   - index: 1
+     type: "bpf_attr"
+`
+	createCrdFile(t, hook)
+
+	obs, err := observer.GetDefaultObserverWithFile(t, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = loadTestCrd(t)
+	if err != nil {
+		t.Fatalf("Loading test CRD failed: %s", err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("bpf_check")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBpfAttrArg(ec.NewKprobeBpfAttrChecker().
+					WithProgName(sm.Full("generic_kprobe_")).
+					WithProgType(sm.Full("BPF_PROG_TYPE_KPROBE")),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
