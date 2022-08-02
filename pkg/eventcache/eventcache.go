@@ -61,12 +61,8 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 		return fmt.Errorf("failed to get pod info")
 	}
 
-	if event.internal != nil {
-		event.internal.AddPodInfo(podInfo)
-		event.event.SetProcess(event.internal.GetProcessCopy())
-	} else {
-		event.internal.GetProcess().Pod = podInfo
-	}
+	event.internal.AddPodInfo(podInfo)
+	event.event.SetProcess(event.internal.GetProcessCopy())
 
 	return nil
 }
