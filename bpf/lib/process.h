@@ -7,6 +7,13 @@
 #include "hubble_msg.h"
 #include "bpf_helpers.h"
 
+/* Applying 'packed' attribute to structs causes clang to write to the
+ * members byte-by-byte, as offsets may not be aligned. This is bad for
+ * performance, instruction count and complexity, so don't apply this
+ * attribute to structs where members are correctly aligned already
+ * (e.g. by padding, layout).
+ */
+
 /* These are your sizing variables. Because we are running in BPF and must
  * be bounded in terms of loop iterations and memory usage we have to set
  * worse case bounds.
@@ -139,7 +146,7 @@ struct msg_execve_key {
 	__u32 pid;
 	__u8 pad[4];
 	__u64 ktime;
-} __attribute__((packed));
+}; // All fields aligned so no 'packed' attribute.
 
 /* process information
  *
@@ -155,7 +162,7 @@ struct msg_process {
 	__u32 flags;
 	__u64 ktime;
 	char *args;
-};
+}; // All fields aligned so no 'packed' attribute.
 
 /* msg_clone_event holds only the necessary fields to construct a new entry from
  * the parent after a clone() event.
@@ -179,7 +186,7 @@ struct msg_capabilities {
 		};
 		__u64 c[3];
 	};
-};
+}; // All fields aligned so no 'packed' attribute.
 
 // indexes to access msg_capabilities's array (->c) -- should have the same order as the fields above.
 enum {
@@ -197,7 +204,7 @@ struct msg_exit {
 	struct msg_common common;
 	struct msg_execve_key current;
 	struct exit_info info;
-};
+}; // All fields aligned so no 'packed' attribute.
 
 enum {
 	ns_uts = 0,
@@ -233,14 +240,14 @@ struct msg_ns {
 		};
 		__u32 inum[ns_max_types];
 	};
-};
+}; // All fields aligned so no 'packed' attribute.
 
 struct msg_k8s {
 	__u32 net_ns;
 	__u32 cid;
 	__u64 cgrpid;
 	char docker_id[DOCKER_ID_LENGTH];
-} __attribute__((packed));
+}; // All fields aligned so no 'packed' attribute.
 
 struct msg_execve_event {
 	struct msg_common common;
@@ -255,7 +262,7 @@ struct msg_execve_event {
 		struct msg_process process;
 		char buffer[PADDED_BUFFER];
 	};
-} __attribute__((packed));
+}; // All fields aligned so no 'packed' attribute.
 
 struct execve_map_value {
 	struct msg_execve_key key;
