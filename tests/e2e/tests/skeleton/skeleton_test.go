@@ -89,7 +89,7 @@ func TestSkeletonBasic(t *testing.T) {
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
 	kversion := helpers.GetMinKernelVersion(t, testenv)
 	// Create an curl event checker with a limit or 10 events or 30 seconds, whichever comes first
-	curlChecker := curlEventChecker(kversion).WithEventLimit(10).WithTimeLimit(30 * time.Second)
+	curlChecker := curlEventChecker(kversion).WithEventLimit(100).WithTimeLimit(30 * time.Second)
 
 	// Define test features here. These can be used to perform actions like:
 	// - Spawning an event checker and running checks

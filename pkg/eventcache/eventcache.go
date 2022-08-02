@@ -74,12 +74,6 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 func handleEvent(event *cacheObj) error {
 	p := event.event.GetProcess()
 
-	endpoint := process.GetProcessEndpoint(p)
-	if p.Docker != "" && (endpoint == nil || p.Pod == nil) {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheEndpointRetryFailed)
-		return fmt.Errorf("failed to get process endpoint ifno")
-	}
-
 	// If the process wasn't found before the Add(), likely because
 	// the execve event was processed after this event, lets look it up
 	// now because it should be available. Otherwise we have a valid
