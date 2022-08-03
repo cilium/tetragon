@@ -222,7 +222,7 @@ func TestGrpcExecInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46983, 21034975089403)
+	execMsg, exitMsg := createEvents(46984, 21034975089403)
 
 	e2 := execMsg.HandleMessage()
 	if e2 != nil {
