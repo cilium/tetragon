@@ -44,6 +44,7 @@ type cacheObj struct {
 
 type Cache struct {
 	objsChan chan cacheObj
+	done     chan bool
 	cache    []cacheObj
 	server   *server.Server
 	dur      time.Duration
@@ -141,6 +142,9 @@ func (ec *Cache) loop() {
 		case event := <-ec.objsChan:
 			eventcachemetrics.EventCacheCount.Inc()
 			ec.cache = append(ec.cache, event)
+
+		case <-ec.done:
+			return
 		}
 	}
 }
@@ -181,11 +185,12 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 
 func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 	if cache != nil {
-		return cache
+		cache.done <- true
 	}
 
 	cache = &Cache{
 		objsChan: make(chan cacheObj),
+		done:     make(chan bool),
 		cache:    make([]cacheObj, 0),
 		server:   s,
 		dur:      dur,
