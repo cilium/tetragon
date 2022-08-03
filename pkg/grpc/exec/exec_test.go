@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -253,4 +254,36 @@ func TestGrpcExecInOrder(t *testing.T) {
 
 	// success
 	assert.Equal(t, ev1.GetProcessExec().Parent, ev2.GetProcessExit().Parent)
+}
+
+func TestGrpcMissingExec(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	cancel := initEnv(t, &cancelWg)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	processPid := uint32(46985)
+	_, exitMsg := createEvents(processPid, 21034975089403)
+
+	e1 := exitMsg.HandleMessage()
+	if e1 != nil {
+		AllEvents = append(AllEvents, e1)
+	}
+
+	time.Sleep(time.Millisecond * 1000) // wait for cache to do it's work
+
+	assert.Equal(t, len(AllEvents), 1)
+	ev := AllEvents[0]
+	assert.NotEqual(t, ev.GetProcessExit(), nil)
+
+	// this events misses process info
+	assert.Equal(t, ev.GetProcessExit().Process.ExecId, "")
+	assert.Equal(t, ev.GetProcessExit().Process.Binary, "")
+
+	// but should have a correct Pid
+	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: processPid})
 }
