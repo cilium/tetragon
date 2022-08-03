@@ -162,6 +162,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 
 	ec := eventcache.Get()
 	if ec != nil && ec.Needed(tetragonProcess) {
+		logger.GetLogger().Warnf("\nkprobe event is cached!\n")
 		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}
@@ -235,6 +236,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 	ec := eventcache.Get()
 	if ec != nil && ec.Needed(tetragonProcess) {
+		logger.GetLogger().Warnf("\ntracepoint event is cached!\n")
 		ec.Add(process, tetragonEvent, msg.ProcessKey.Ktime, msg)
 		return nil
 	}
