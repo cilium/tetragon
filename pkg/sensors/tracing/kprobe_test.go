@@ -2327,13 +2327,14 @@ spec:
 		}
 	}
 
+	ctx := context.Background()
 	b := base.GetInitialSensor()
-	if err := b.Load(context.TODO(), option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := b.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		t.Fatalf("Load base error: %s\n", err)
 	}
 
 	if err := config.LoadConfig(
-		context.TODO(),
+		ctx,
 		option.Config.BpfDir,
 		option.Config.MapDir,
 		option.Config.CiliumDir,
