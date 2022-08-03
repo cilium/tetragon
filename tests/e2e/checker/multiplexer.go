@@ -131,7 +131,6 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 				select {
 				case <-ctx.Done():
 					klog.V(2).Info("ClientMultiplexer: Context cancelled, stopping GetEvents goroutine")
-					close(c)
 					return
 				default:
 				}
