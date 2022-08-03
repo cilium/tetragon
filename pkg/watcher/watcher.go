@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -143,6 +144,7 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 	}
 	pod, container, ok := watcher.FindPod(containerID)
 	if !ok {
+		watchermetrics.GetWatcherErrors("k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
 		return nil, nil
 	}
@@ -168,6 +170,8 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 			Value: nspid,
 		}
 	}
+
+	watchermetrics.GetWatcherEvents("k8s").Inc()
 	return &tetragon.Pod{
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
@@ -205,6 +209,7 @@ func (watcher *FakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1
 func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	pod, container, ok := watcher.FindPod(containerID)
 	if !ok {
+		watchermetrics.GetWatcherErrors("fake-k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
 		return nil, nil
 	}
@@ -227,6 +232,7 @@ func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, arg
 		}
 	}
 
+	watchermetrics.GetWatcherEvents("fake-k8s").Inc()
 	return &tetragon.Pod{
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
