@@ -88,7 +88,7 @@ func TestMain(m *testing.M) {
 func TestLabelsDemoApp(t *testing.T) {
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
 	kversion := helpers.GetMinKernelVersion(t, testenv)
-	labelsChecker := labelsEventChecker(kversion).WithEventLimit(2500).WithTimeLimit(2 * time.Minute)
+	labelsChecker := labelsEventChecker(kversion).WithEventLimit(5000).WithTimeLimit(5 * time.Minute)
 
 	// This starts labelsChecker and uses it to run event checks.
 	runEventChecker := features.New("Run Event Checks").
