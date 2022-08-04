@@ -62,6 +62,7 @@ jobs:
            kernel:
               - '5.10'
               - '5.4'
+              - '4.19'
            group:
               - 0
               - 1
@@ -99,10 +100,25 @@ jobs:
         tar xf tetragon.tar -C go/src/github.com/cilium
 
     - name: test kernel ${{ matrix.kernel }}
+      if: ${{ matrix.kernel  != '4.19' }}
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
-        ./tests/vmtests/tetragon-vmtests-run --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* --base tests/vmtests/test-data/images/base.qcow2 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
+        ./tests/vmtests/tetragon-vmtests-run \
+                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
+                --base tests/vmtests/test-data/images/base.qcow2 \
+                --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
+
+    - name: test kernel ${{ matrix.kernel }} with btf file
+      if: ${{ matrix.kernel  == '4.19' }}
+      run: |
+        cd go/src/github.com/cilium/tetragon
+        ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        ./tests/vmtests/tetragon-vmtests-run \
+                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
+                --btf-file tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/btf-* \
+                --base tests/vmtests/test-data/images/base.qcow2 \
+                --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
     - name: Upload test results on failure or cancelation
       if: failure() || cancelled()
