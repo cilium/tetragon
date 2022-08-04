@@ -38,15 +38,11 @@ func (n DummyNotifier) RemoveListener(listener server.Listener) {}
 
 func (n DummyNotifier) NotifyListener(original interface{}, processed *tetragon.GetEventsResponse) {
 	switch v := original.(type) {
-	case *MsgExitEventUnix:
-		e := v.HandleMessage()
-		if e != nil {
-			AllEvents = append(AllEvents, e)
-		}
-	case *MsgExecveEventUnix:
-		e := v.HandleMessage()
-		if e != nil {
-			AllEvents = append(AllEvents, e)
+	case *MsgExitEventUnix, *MsgExecveEventUnix:
+		if processed != nil {
+			AllEvents = append(AllEvents, processed)
+		} else {
+			n.t.Fatalf("Processed arg is nil in NotifyListener with type %T", v)
 		}
 	default:
 		n.t.Fatalf("Unknown type in NotifyListener = %T", v)
@@ -206,7 +202,6 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 	}
 
 	// fails but we don't expect to have the same Refcnt
-	ev1.GetProcessExec().Process.Refcnt = 0 // hardcode that to make the following pass
 	assert.Equal(t, ev1.GetProcessExec().Process, ev2.GetProcessExit().Process)
 
 	// success
