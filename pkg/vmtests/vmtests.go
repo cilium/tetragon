@@ -33,6 +33,7 @@ type Conf struct {
 	TetragonDir string `json:"tetragon-dir"` // tetragon source dir
 	ResultsDir  string `json:"results-dir"`  // directory to place the results
 	TestsFile   string `json:"tests-file"`   // file describing which tests to run
+	BTFFile     string `json:"btf-file"`     // btf file to use
 }
 
 // Result is the result of a single test
@@ -68,6 +69,12 @@ func printProgress(f *os.File, done <-chan struct{}) {
 func Run(cnf *Conf) error {
 
 	testDir := filepath.Join(cnf.TetragonDir, "go-tests")
+
+	if cnf.BTFFile != "" {
+		if err := os.Setenv("TETRAGON_BTF", cnf.BTFFile); err != nil {
+			return fmt.Errorf("failed to set TETRAGON_BTF to %s", cnf.BTFFile)
+		}
+	}
 
 	var tests []GoTest
 	if cnf.TestsFile == "" {

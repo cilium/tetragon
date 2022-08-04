@@ -100,6 +100,22 @@ func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 }
 
 func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
+	ret := []images.Action{
+		{Op: &images.CopyInCommand{LocalPath: TetragonTesterBin, RemoteDir: "/sbin"}},
+	}
+
+	// NB: need to do this before we marshal the configuration
+	if rcnf.btfFile != "" {
+		ret = append(ret, images.Action{
+			Op: &images.CopyInCommand{
+				LocalPath: rcnf.btfFile,
+				RemoteDir: "/boot/",
+			},
+		})
+
+		baseName := filepath.Base(rcnf.btfFile)
+		rcnf.testerConf.BTFFile = filepath.Join("/boot", baseName)
+	}
 
 	confB, err := json.MarshalIndent(&rcnf.testerConf, "", "    ")
 	if err != nil {
@@ -112,10 +128,9 @@ func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 		return nil, err
 	}
 
-	ret := []images.Action{
-		{Op: &images.CopyInCommand{LocalPath: TetragonTesterBin, RemoteDir: "/sbin"}},
-		{Op: &images.CopyInCommand{LocalPath: tmpConfFile, RemoteDir: remoteConfDir}},
-	}
+	ret = append(ret, images.Action{
+		Op: &images.CopyInCommand{LocalPath: tmpConfFile, RemoteDir: remoteConfDir},
+	})
 
 	if !rcnf.useTetragonTesterInit {
 		acts, err := buildTesterService(rcnf, tmpDir)

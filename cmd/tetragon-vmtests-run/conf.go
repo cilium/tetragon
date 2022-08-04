@@ -16,6 +16,7 @@ type RunConf struct {
 	qemuPrint             bool
 	justBoot              bool
 	disableKVM            bool
+	btfFile               string
 	testerConf            vmtests.Conf
 
 	filesystems []QemuFS
