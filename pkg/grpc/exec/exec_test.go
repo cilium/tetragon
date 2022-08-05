@@ -24,6 +24,10 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+const (
+	cacheTimerMs = 100
+)
+
 var (
 	AllEvents []*tetragon.GetEventsResponse
 )
@@ -161,7 +165,7 @@ func initEnv(t *testing.T, cancelWg *sync.WaitGroup) context.CancelFunc {
 	lServer := server.NewServer(ctx, cancelWg, dn, do)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
-	eventcache.NewWithTimer(lServer, time.Millisecond*200)
+	eventcache.NewWithTimer(lServer, time.Millisecond*cacheTimerMs)
 
 	return cancel
 }
@@ -188,7 +192,7 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e2)
 	}
 
-	time.Sleep(time.Millisecond * 1000) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
 	assert.Equal(t, len(AllEvents), 2)
 
@@ -230,7 +234,7 @@ func TestGrpcExecInOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e1)
 	}
 
-	time.Sleep(time.Millisecond * 1000) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
 	assert.Equal(t, len(AllEvents), 2)
 
@@ -269,7 +273,7 @@ func TestGrpcMissingExec(t *testing.T) {
 		AllEvents = append(AllEvents, e1)
 	}
 
-	time.Sleep(time.Millisecond * 1000) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
 	assert.Equal(t, len(AllEvents), 1)
 	ev := AllEvents[0]
