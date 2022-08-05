@@ -19,14 +19,11 @@ import (
 	"github.com/cilium/tetragon/pkg/server"
 )
 
-// garbage collection states
 const (
-	threeStrikes = 3
-)
-
-// garbage collection run interval
-const (
-	eventRetryTimer = time.Second * 10
+	// garbage collection retries
+	cacheStrikes = 15
+	// garbage collection run interval
+	eventRetryTimer = time.Second * 2
 )
 
 var (
@@ -108,7 +105,7 @@ func (ec *Cache) handleEvents() {
 
 		if err != nil {
 			event.color++
-			if event.color < threeStrikes {
+			if event.color < cacheStrikes {
 				tmp = append(tmp, event)
 				continue
 			}
