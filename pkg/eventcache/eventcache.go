@@ -21,9 +21,9 @@ import (
 
 const (
 	// garbage collection retries
-	cacheStrikes = 15
+	CacheStrikes = 15
 	// garbage collection run interval
-	eventRetryTimer = time.Second * 2
+	EventRetryTimer = time.Second * 2
 )
 
 var (
@@ -105,7 +105,7 @@ func (ec *Cache) handleEvents() {
 
 		if err != nil {
 			event.color++
-			if event.color < cacheStrikes {
+			if event.color < CacheStrikes {
 				tmp = append(tmp, event)
 				continue
 			}
@@ -129,7 +129,7 @@ func (ec *Cache) loop() {
 	for {
 		select {
 		case <-ticker.C:
-			/* Every 'eventRetryTimer' walk the slice of events pending pod info. If
+			/* Every 'EventRetryTimer' walk the slice of events pending pod info. If
 			 * an event hasn't completed its podInfo after two iterations send the
 			 * event anyways.
 			 */
@@ -198,7 +198,7 @@ func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 }
 
 func New(s *server.Server) *Cache {
-	return NewWithTimer(s, eventRetryTimer)
+	return NewWithTimer(s, EventRetryTimer)
 }
 
 func Get() *Cache {
