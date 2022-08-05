@@ -73,5 +73,5 @@ jobs:
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: tetragon-bugtool
-        path: /tmp/tetragon-bugtool-*
+        path: /tmp/tetragon-bugtool*
         retention-days: 5
