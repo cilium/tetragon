@@ -4,7 +4,7 @@
 package eventcache
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -47,6 +47,11 @@ type Cache struct {
 	dur      time.Duration
 }
 
+var (
+	ErrFailedToGetPodInfo     = errors.New("failed to get pod info")
+	ErrFailedToGetProcessInfo = errors.New("failed to get process info")
+)
+
 func handleExecEvent(event *cacheObj, nspid uint32) error {
 	var podInfo *tetragon.Pod
 
@@ -59,8 +64,13 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 		podInfo, _ = process.GetPodInfo(containerId, filename, args, nspid)
 		if podInfo == nil {
 			errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
-			return fmt.Errorf("failed to get pod info")
+			return ErrFailedToGetPodInfo
 		}
+	}
+
+	if event.internal == nil {
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+		return ErrFailedToGetProcessInfo
 	}
 
 	event.internal.AddPodInfo(podInfo)
@@ -79,16 +89,19 @@ func handleEvent(event *cacheObj) error {
 	if event.internal == nil {
 		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, event.timestamp)
 		if event.internal == nil {
-			return fmt.Errorf("Process lookup failed")
+			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+			return ErrFailedToGetProcessInfo
 		}
 	}
 
+	event.event.SetProcess(event.internal.GetProcessCopy())
+
 	p = event.internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		return fmt.Errorf("Process missing PodInfo")
+		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
+		return ErrFailedToGetPodInfo
 	}
 
-	event.event.SetProcess(event.internal.GetProcessCopy())
 	return nil
 }
 
@@ -108,6 +121,11 @@ func (ec *Cache) handleEvents() {
 			if event.color < CacheStrikes {
 				tmp = append(tmp, event)
 				continue
+			}
+			if errors.Is(err, ErrFailedToGetProcessInfo) {
+				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
+			} else if errors.Is(err, ErrFailedToGetPodInfo) {
+				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
 			}
 		}
 

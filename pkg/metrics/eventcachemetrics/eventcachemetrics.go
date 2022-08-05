@@ -10,9 +10,14 @@ import (
 )
 
 var (
-	ProcessInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "process_info_errors",
+	processInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "event_cache_process_info_errors",
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
+		ConstLabels: nil,
+	}, []string{"event_type"})
+	podInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "event_cache_pod_info_errors",
+		Help:        "The total of times we failed to fetch cached pod info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	EventCacheCount = promauto.NewCounter(prometheus.CounterOpts{
@@ -23,11 +28,11 @@ var (
 )
 
 // Get a new handle on an processInfoErrors metric for an eventType
-func GetProcessInfoError(eventType string) prometheus.Counter {
-	return ProcessInfoErrors.WithLabelValues(eventType)
+func ProcessInfoError(eventType string) prometheus.Counter {
+	return processInfoErrors.WithLabelValues(eventType)
 }
 
-// Increment an errorsTotal for an eventType
-func ProcessInfoErrorInc(eventType string) {
-	GetProcessInfoError(eventType).Inc()
+// Get a new handle on an processInfoErrors metric for an eventType
+func PodInfoError(eventType string) prometheus.Counter {
+	return podInfoErrors.WithLabelValues(eventType)
 }
