@@ -62,7 +62,7 @@ func InitCache(ctx context.Context, w watcher.K8sResourceWatcher, enableCilium b
 	var err error
 
 	if procCache != nil {
-		return nil
+		FreeCache()
 	}
 
 	nodeName = node.GetNodeNameForExport()

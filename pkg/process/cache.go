@@ -52,7 +52,8 @@ func (pc *Cache) cacheGarbageCollector() {
 			select {
 			case <-pc.stopChan:
 				ticker.Stop()
-				pc.Purge()
+				pc.cache.Purge()
+				pc.pidMap.Purge()
 			case <-ticker.C:
 				newQueue = newQueue[:0]
 				for _, p := range deleteQueue {
