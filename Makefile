@@ -27,7 +27,7 @@ GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon
 
-.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container tester-progs protoc-gen-go-tetragon
+.PHONY: tester-progs protoc-gen-go-tetragon
 
 -include Makefile.docker
 
@@ -54,6 +54,7 @@ help:
 	@echo '    go-format         - run code formatter on Go code'
 	@echo '    format            - convenience alias for clang-format and go-format'
 
+.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container
 ifeq (1,$(LOCAL_CLANG))
 tetragon-bpf: tetragon-bpf-local
 else
@@ -67,14 +68,16 @@ endif
 tetragon-bpf-local:
 	$(MAKE) -C ./bpf
 
-verify: tetragon-bpf
-	sudo contrib/verify/verify.sh bpf/objs
-
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm hubble-llvm || true
 	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon -u $$(id -u)  --name hubble-llvm $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
 	$(CONTAINER_ENGINE) rm hubble-llvm
 
+.PHONY: verify
+verify: tetragon-bpf
+	sudo contrib/verify/verify.sh bpf/objs
+
+.PHONY: tetragon tetra tetragon-operator tetragon-alignchecker
 tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon/
 
@@ -187,6 +190,7 @@ clang-install:
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
+.PHONY: generate
 generate:
 	# Need to call vendor twice here, once before and once after generate, the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
@@ -231,7 +235,7 @@ go-format:
 .PHONY: format
 format: go-format clang-format
 
-.PHONY: headers all clean image install lint tetragon tetra generate check
+.PHONY: headers all clean image install lint check
 
 
 # generate cscope for bpf files
