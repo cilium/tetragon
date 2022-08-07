@@ -25,9 +25,8 @@ GOLANGCILINT_WANT_VERSION = 1.45.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 
+.PHONY: all
 all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon
-
-.PHONY: tester-progs protoc-gen-go-tetragon
 
 -include Makefile.docker
 
@@ -94,6 +93,7 @@ tetragon-alignchecker:
 ksyms:
 	$(GO) build ./cmd/ksyms/
 
+.PHONY: tetragon-image tetragon-operator-image
 tetragon-image:
 	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
 	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
@@ -101,6 +101,7 @@ tetragon-image:
 tetragon-operator-image:
 	CGO_ENABLED=0 $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
 
+.PHONY: install
 install:
 	groupadd -f hubble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
@@ -114,6 +115,7 @@ vendor:
 	$(GO) mod vendor
 	$(GO) mod verify
 
+.PHONY: clean
 clean:
 	$(MAKE) -C ./bpf clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
@@ -129,6 +131,7 @@ test:
 e2e-test: image image-operator
 	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="cilium/tetragon:${DOCKER_IMAGE_TAG}" -tetragon.helm.set tetragonOperator.image.override="cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes)"
 
+.PHONY: test-compile
 test-compile:
 	mkdir -p go-tests
 	for pkg in $$($(GO) list ./...); do \
@@ -152,9 +155,11 @@ update-copyright:
 		contrib/copyright-headers update $$dir; \
 	done
 
+.PHONY: lint
 lint:
 	golint -set_exit_status $$(go list ./...)
 
+.PHONY: image image-operator image-test image-codegen
 image:
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
@@ -190,7 +195,7 @@ clang-install:
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
-.PHONY: generate
+.PHONY: generate codegen protoc-gen-go-tetragon
 generate:
 	# Need to call vendor twice here, once before and once after generate, the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
@@ -208,6 +213,7 @@ codegen: image-codegen
 protoc-gen-go-tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o bin/$@ ./cmd/protoc-gen-go-tetragon/
 
+.PHONY: check
 ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
 check:
 	golangci-lint run
@@ -234,9 +240,6 @@ go-format:
 
 .PHONY: format
 format: go-format clang-format
-
-.PHONY: headers all clean image install lint check
-
 
 # generate cscope for bpf files
 cscope:
