@@ -127,3 +127,17 @@ jobs:
         name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
         retention-days: 5
+  post-test:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: success()
+    steps:
+    - name: Create truncated build file
+      run: |
+        touch /tmp/tetragon.tar
+    - name: Upload truncated file
+      uses: actions/upload-artifact@v3
+      with:
+         name: tetragon-build
+         path: /tmp/tetragon.tar
+         retention-days: 1
