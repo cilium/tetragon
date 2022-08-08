@@ -147,6 +147,49 @@ func createEvents(Pid uint32, Ktime uint64) (*MsgExecveEventUnix, *MsgExitEventU
 	return execMsg, exitMsg
 }
 
+func createCloneEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*MsgCloneEventUnix, *MsgExitEventUnix) {
+	cloneMsg := &MsgCloneEventUnix{MsgCloneEvent: tetragonAPI.MsgCloneEvent{
+		Common: tetragonAPI.MsgCommon{
+			Op:     23,
+			Flags:  0,
+			Pad_v2: [2]uint8{0, 0},
+			Size:   326,
+			Ktime:  21034975126173,
+		},
+		Parent: tetragonAPI.MsgExecveKey{
+			Pid:   ParentPid,
+			Pad:   0,
+			Ktime: ParentKtime,
+		},
+		PID:   Pid,
+		NSPID: 0,
+		Flags: 16385,
+		Ktime: Ktime,
+	}}
+
+	exitMsg := &MsgExitEventUnix{MsgExitEvent: tetragonAPI.MsgExitEvent{
+		Common: tetragonAPI.MsgCommon{
+			Op:     7,
+			Flags:  0,
+			Pad_v2: [2]uint8{0, 0},
+			Size:   40,
+			Ktime:  21034976291104,
+		},
+		ProcessKey: tetragonAPI.MsgExecveKey{
+			Pid:   Pid,
+			Pad:   0,
+			Ktime: Ktime,
+		},
+		Info: tetragonAPI.MsgExitInfo{
+			Code: 0,
+			Pad1: 0,
+		},
+	},
+	}
+
+	return cloneMsg, exitMsg
+}
+
 func initEnv(t *testing.T, cancelWg *sync.WaitGroup) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -285,4 +328,98 @@ func TestGrpcMissingExec(t *testing.T) {
 
 	// but should have a correct Pid
 	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: processPid})
+}
+
+func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
+	assert.Equal(t, len(events), 3)
+
+	foundExitExecProcess := false
+	foundExitCloneProcess := false
+	for _, ev := range events {
+		if ev.GetProcessExec() != nil {
+			execEv := ev.GetProcessExec()
+			assert.Equal(t, execEv.Process.Pid.Value, uint32(46986))
+		} else if ev.GetProcessExit() != nil {
+			exitEv := ev.GetProcessExit()
+			assert.NotEqual(t, exitEv.Process.ExecId, "") // ensure not empty
+			assert.NotEqual(t, exitEv.Process.Binary, "") // ensure not empty
+
+			if exitEv.Process.Pid.Value == uint32(46986) {
+				foundExitExecProcess = true
+			} else if exitEv.Process.Pid.Value == uint32(46987) {
+				foundExitCloneProcess = true
+			} else {
+				assert.Fail(t, "unknown event PID")
+			}
+		} else {
+			assert.Fail(t, "unknown event type")
+		}
+	}
+
+	assert.True(t, foundExitExecProcess)
+	assert.True(t, foundExitCloneProcess)
+}
+
+func TestGrpcExecCloneInOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	cancel := initEnv(t, &cancelWg)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	execMsg, exitMsg := createEvents(46986, 21034975089403)
+	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	cloneMsg.HandleMessage() // does not return anything and not produces any event
+
+	if e := exitCloneMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+
+	checkCloneEvents(t, AllEvents)
+}
+
+func TestGrpcExecCloneOutOfOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	cancel := initEnv(t, &cancelWg)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	execMsg, exitMsg := createEvents(46986, 21034975089403)
+	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := exitCloneMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	cloneMsg.HandleMessage() // does not return anything and not produces any event
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+
+	checkCloneEvents(t, AllEvents)
 }
