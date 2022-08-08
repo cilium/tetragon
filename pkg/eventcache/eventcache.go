@@ -68,10 +68,10 @@ func handleExecEvent(event *cacheObj, nspid uint32) error {
 		}
 	}
 
-	if event.internal == nil {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-		return ErrFailedToGetProcessInfo
-	}
+	// We can assume that event.internal != nil here since it's being set by AddExecEvent
+	// earlier in the code path. If this invariant ever changes in the future, we probably
+	// want to panic anyway to help us catch the bug faster. So no need to do a nil check
+	// here.
 
 	event.internal.AddPodInfo(podInfo)
 	event.event.SetProcess(event.internal.GetProcessCopy())
