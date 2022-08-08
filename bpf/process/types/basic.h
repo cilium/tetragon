@@ -338,19 +338,11 @@ copy_path(char *args, const struct path *arg)
 	int *s = (int *)args;
 	int size = 0, flags = 0;
 	char *buffer;
-	int zero = 0;
 	void *curr = &args[4];
 
-	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	buffer = d_path_local(arg, &size, &flags);
 	if (!buffer)
 		return 0;
-
-	size = 256;
-	buffer = __d_path_local(arg, buffer, &size, &flags);
-	if (!buffer)
-		return 0;
-	if (size > 0)
-		size = 256 - size;
 
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
 	probe_read(curr, size, buffer);

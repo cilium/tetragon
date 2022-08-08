@@ -298,15 +298,45 @@ __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
 	return res;
 }
 
+/*
+ * Entry point to the codepath used for path resolution.
+ *
+ * This function allocates a buffer from 'buffer_heap_map' map and calls
+ * __d_path_local. After __d_path_local returns, it also does the appropriate
+ * calculations on the buffer size (check __d_path_local comment).
+ *
+ * Returns the buffer where the path is stored. 'buflen' is the size of the
+ * resolved path (0 < buflen <= 256) and will not be negative. If buflen == 0
+ * nothing is written to the buffer (still the value to the buffer is valid).
+ * 'error' is 0 in case of success or UNRESOLVED_PATH_COMPONENTS in the case
+ * where the path is larger than the provided buffer.
+ */
+static inline __attribute__((always_inline)) char *
+d_path_local(const struct path *path, int *buflen, int *error)
+{
+	int zero = 0;
+	char *buffer = 0;
+
+	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
+		return 0;
+
+	*buflen = 256;
+	buffer = __d_path_local(path, buffer, buflen, error);
+	if (*buflen > 0)
+		*buflen = 256 - *buflen;
+
+	return buffer;
+}
+
 static inline __attribute__((always_inline)) int64_t
 getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 {
 	struct task_struct *task = get_task_from_pid(proc_pid);
 	__u32 orig_size = curr->size, orig_offset = offset;
 	struct fs_struct *fs;
-	int flags = 0;
+	int flags = 0, size = 0;
 	char *buffer;
-	int zero = 0, size = 0;
 
 	probe_read(&fs, sizeof(fs), _(&task->fs));
 	if (!fs) {
@@ -314,16 +344,9 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 		return 0;
 	}
 
-	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	buffer = d_path_local(_(&fs->pwd), &size, &flags);
 	if (!buffer)
 		return 0;
-
-	size = 256;
-	buffer = __d_path_local(_(&fs->pwd), buffer, &size, &flags);
-	if (!buffer)
-		return 0;
-	if (size > 0)
-		size = 256 - size;
 
 	asm volatile("%[offset] &= 0x3ff;\n" ::[offset] "+r"(offset) :);
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
