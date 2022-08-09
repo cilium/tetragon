@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
@@ -558,4 +559,169 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	assert.Equal(t, parentExitEv.Process.Pid.Value, parentPid)
 	assert.Equal(t, parentExitEv.Process.Refcnt, uint32(0))
 	assert.Nil(t, parentExitEv.Parent)
+}
+
+func checkPodEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
+	assert.Equal(t, len(events), 2)
+
+	execEv := events[0].GetProcessExec()
+	exitEv := events[1].GetProcessExit()
+
+	assert.NotNil(t, execEv)
+	assert.NotNil(t, execEv.Process.Pod)                                // has pod info
+	assert.Equal(t, execEv.Process.Pod.Namespace, "fake_pod_namespace") // correct pod
+	assert.NotEqual(t, execEv.Process.ExecId, "")                       // full process info
+
+	assert.NotNil(t, exitEv)
+	assert.NotNil(t, exitEv.Process.Pod)                                // has pod info
+	assert.Equal(t, exitEv.Process.Pod.Namespace, "fake_pod_namespace") // correct pod
+	assert.NotEqual(t, exitEv.Process.ExecId, "")                       // full process info
+}
+
+// In this case, we get an exec and an exit event (in-order) but we
+// miss Pod info. Both of these go through the eventcache to get the
+// pod info. At the end both should have correct pod info and the exit
+// event should also have full process info.
+func TestGrpcExecPodInfoInOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	option.Config.EnableK8s = true // enable Kubernetes
+	watcher := NewDummyK8sWatcher()
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
+	watcher.SetDummyPod()                                                         // setup some dummy pod to return
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+	checkPodEvents(t, AllEvents)
+}
+
+// In this case, we get an exit and an exec event (out-of-order) and we
+// also miss Pod info. Both of these go through the eventcache to get the
+// pod info and process info. At the end both should have correct pod info
+// and the exit event should also have full process info.
+func TestGrpcExecPodInfoOutOfOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	option.Config.EnableK8s = true // enable Kubernetes
+	watcher := NewDummyK8sWatcher()
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
+	watcher.SetDummyPod()                                                         // setup some dummy pod to return
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+	checkPodEvents(t, AllEvents)
+}
+
+// In this case, we get an exec and an exit event (in-order). During
+// the exec event we miss pod info. We get pod info before getting
+// the exit event. In this case exec event should go through the
+// eventcache (missed pod info) and exit event should also go through
+// the cache as the procCache has not been updated yet. At the end both
+// should have correct pod info and the exit event should also have full
+// process info.
+func TestGrpcExecPodInfoInOrderAfter(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	option.Config.EnableK8s = true // enable Kubernetes
+	watcher := NewDummyK8sWatcher()
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	watcher.SetDummyPod() // setup some dummy pod to return
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+	checkPodEvents(t, AllEvents)
+}
+
+// In this case, we get an exit and an exec event (out-of-order). During
+// the exit event we also miss pod info. We get pod info before getting
+// the exec event. In this case exit event should go through the
+// eventcache (missed pod and process info) and exec event should not go
+// through the cache as we have everything. At the end both should
+// have correct pod info and the exit event should also have full
+// process info.
+func TestGrpcExecPodInfoOutOfOrderAfter(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	option.Config.EnableK8s = true // enable Kubernetes
+	watcher := NewDummyK8sWatcher()
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	watcher.SetDummyPod() // setup some dummy pod to return
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	assert.Equal(t, len(AllEvents), 1)                                            // as exit is OOO this goes through the cache (exec have both and expoted immediately)
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+	checkPodEvents(t, AllEvents)
 }
