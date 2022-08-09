@@ -192,10 +192,9 @@ func createCloneEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime u
 	return cloneMsg, exitMsg
 }
 
-func initEnv(t *testing.T, cancelWg *sync.WaitGroup) context.CancelFunc {
+func initEnv(t *testing.T, cancelWg *sync.WaitGroup, watcher watcher.K8sResourceWatcher) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	watcher := watcher.NewFakeK8sWatcher(nil)
 	_, err := cilium.InitCiliumState(ctx, false)
 	if err != nil {
 		t.Fatalf("failed to call cilium.InitCiliumState %s", err)
@@ -219,7 +218,8 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -262,7 +262,8 @@ func TestGrpcExecInOrder(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -304,7 +305,8 @@ func TestGrpcMissingExec(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -367,7 +369,8 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -401,7 +404,8 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -437,7 +441,8 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
 	AllEvents = nil
-	cancel := initEnv(t, &cancelWg)
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
