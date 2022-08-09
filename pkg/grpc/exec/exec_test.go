@@ -281,8 +281,6 @@ func TestGrpcExecInOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
-
 	assert.Equal(t, len(AllEvents), 2)
 
 	var ev1, ev2 *tetragon.GetEventsResponse
@@ -395,8 +393,6 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
 	}
-
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
 	checkCloneEvents(t, AllEvents, currentPid, clonePid)
 }
