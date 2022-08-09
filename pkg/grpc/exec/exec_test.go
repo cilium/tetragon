@@ -423,3 +423,84 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 
 	checkCloneEvents(t, AllEvents)
 }
+
+func TestGrpcParentRefcntInOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	cancel := initEnv(t, &cancelWg)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := uint32(1459)
+	currentPid := uint32(46987)
+
+	parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0)
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+
+	if e := parentExecMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := parentExitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	assert.Equal(t, len(AllEvents), 4)
+
+	parentExecEv := AllEvents[0].GetProcessExec()
+	currentExecEv := AllEvents[1].GetProcessExec()
+	currentExitEv := AllEvents[2].GetProcessExit()
+	parentExitEv := AllEvents[3].GetProcessExit()
+
+	assert.NotNil(t, parentExecEv)
+	assert.NotNil(t, currentExecEv)
+	assert.NotNil(t, currentExitEv)
+	assert.NotNil(t, parentExitEv)
+
+	// 1st event: exec from parent
+	// 1. should match pid of parent
+	// 2. refcount should be 1
+	// 3. no parent
+	assert.Equal(t, parentExecEv.Process.Pid.Value, parentPid)
+	assert.Equal(t, parentExecEv.Process.Refcnt, uint32(1))
+	assert.Nil(t, parentExecEv.Parent)
+
+	// 2nd event: exec from child
+	// 1. should match pid of child
+	// 2. refcount should be 1
+	// 3. parent pid should match previous event's pid
+	// 4. parent refcount should be 2 (increased by 1 during this exec)
+	assert.Equal(t, currentExecEv.Process.Pid.Value, currentPid)
+	assert.Equal(t, currentExecEv.Process.Refcnt, uint32(1))
+	assert.Equal(t, currentExecEv.Parent.Pid.Value, parentPid)
+	assert.Equal(t, currentExecEv.Parent.Refcnt, uint32(2))
+
+	// 3rd event: exit from child
+	// 1. should match pid of child
+	// 2. refcount should be 0 (decreased by 1 during this exit)
+	// 3. parent pid should match previous event's pid
+	// 4. parent refcount should be 2 (decreased by 1 during this exit)
+	assert.Equal(t, currentExitEv.Process.Pid.Value, currentPid)
+	assert.Equal(t, currentExitEv.Process.Refcnt, uint32(0))
+	assert.Equal(t, currentExitEv.Parent.Pid.Value, parentPid)
+	assert.Equal(t, currentExitEv.Parent.Refcnt, uint32(1))
+
+	// 4th event: exit from parent
+	// 1. should match pid of parent
+	// 2. refcount should be 0 (decreased by 1 during this exit)
+	// 3. no parent
+	assert.Equal(t, parentExitEv.Process.Pid.Value, parentPid)
+	assert.Equal(t, parentExitEv.Process.Refcnt, uint32(0))
+	assert.Nil(t, parentExitEv.Parent)
+}
