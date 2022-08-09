@@ -9,6 +9,7 @@ package exec
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -30,6 +31,7 @@ const (
 
 var (
 	AllEvents []*tetragon.GetEventsResponse
+	basePid   uint32 = 46987
 )
 
 type DummyNotifier struct {
@@ -223,7 +225,10 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46983, 21034975089403, 1459, 75200000000)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -263,7 +268,10 @@ func TestGrpcExecInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46984, 21034975089403, 1459, 75200000000)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -304,8 +312,10 @@ func TestGrpcMissingExec(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	processPid := uint32(46985)
-	_, exitMsg := createEvents(processPid, 21034975089403, 1459, 75200000000)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	_, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -322,10 +332,10 @@ func TestGrpcMissingExec(t *testing.T) {
 	assert.Equal(t, ev.GetProcessExit().Process.Binary, "")
 
 	// but should have a correct Pid
-	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: processPid})
+	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: currentPid})
 }
 
-func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
+func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, currentPid uint32, clonePid uint32) {
 	assert.Equal(t, len(events), 3)
 
 	foundExitExecProcess := false
@@ -333,15 +343,15 @@ func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
 	for _, ev := range events {
 		if ev.GetProcessExec() != nil {
 			execEv := ev.GetProcessExec()
-			assert.Equal(t, execEv.Process.Pid.Value, uint32(46986))
+			assert.Equal(t, execEv.Process.Pid.Value, currentPid)
 		} else if ev.GetProcessExit() != nil {
 			exitEv := ev.GetProcessExit()
 			assert.NotEqual(t, exitEv.Process.ExecId, "") // ensure not empty
 			assert.NotEqual(t, exitEv.Process.Binary, "") // ensure not empty
 
-			if exitEv.Process.Pid.Value == uint32(46986) {
+			if exitEv.Process.Pid.Value == currentPid {
 				foundExitExecProcess = true
-			} else if exitEv.Process.Pid.Value == uint32(46987) {
+			} else if exitEv.Process.Pid.Value == clonePid {
 				foundExitCloneProcess = true
 			} else {
 				assert.Fail(t, "unknown event PID")
@@ -365,8 +375,12 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46986, 21034975089403, 1459, 75200000000)
-	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+	clonePid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -384,7 +398,7 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
-	checkCloneEvents(t, AllEvents)
+	checkCloneEvents(t, AllEvents, currentPid, clonePid)
 }
 
 func TestGrpcExecCloneOutOfOrder(t *testing.T) {
@@ -397,8 +411,12 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46986, 21034975089403, 1459, 75200000000)
-	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+	clonePid := atomic.AddUint32(&basePid, 1)
+
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -416,7 +434,7 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 
-	checkCloneEvents(t, AllEvents)
+	checkCloneEvents(t, AllEvents, currentPid, clonePid)
 }
 
 func TestGrpcParentRefcntInOrder(t *testing.T) {
@@ -429,8 +447,8 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	parentPid := uint32(1459)
-	currentPid := uint32(46987)
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
 
 	parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0)
 	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
