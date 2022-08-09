@@ -320,7 +320,7 @@ func TestGrpcMissingExec(t *testing.T) {
 
 	assert.Equal(t, len(AllEvents), 1)
 	ev := AllEvents[0]
-	assert.NotEqual(t, ev.GetProcessExit(), nil)
+	assert.NotNil(t, ev.GetProcessExit())
 
 	// this events misses process info
 	assert.Equal(t, ev.GetProcessExit().Process.ExecId, "")
