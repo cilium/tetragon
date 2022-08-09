@@ -225,14 +225,12 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 
 	execMsg, exitMsg := createEvents(46983, 21034975089403, 1459, 75200000000)
 
-	e1 := exitMsg.HandleMessage()
-	if e1 != nil {
-		AllEvents = append(AllEvents, e1)
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
 	}
 
-	e2 := execMsg.HandleMessage()
-	if e2 != nil {
-		AllEvents = append(AllEvents, e2)
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
 	}
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
@@ -267,14 +265,12 @@ func TestGrpcExecInOrder(t *testing.T) {
 
 	execMsg, exitMsg := createEvents(46984, 21034975089403, 1459, 75200000000)
 
-	e2 := execMsg.HandleMessage()
-	if e2 != nil {
-		AllEvents = append(AllEvents, e2)
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
 	}
 
-	e1 := exitMsg.HandleMessage()
-	if e1 != nil {
-		AllEvents = append(AllEvents, e1)
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
 	}
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
@@ -311,9 +307,8 @@ func TestGrpcMissingExec(t *testing.T) {
 	processPid := uint32(46985)
 	_, exitMsg := createEvents(processPid, 21034975089403, 1459, 75200000000)
 
-	e1 := exitMsg.HandleMessage()
-	if e1 != nil {
-		AllEvents = append(AllEvents, e1)
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
 	}
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
