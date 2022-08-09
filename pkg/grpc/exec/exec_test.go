@@ -17,12 +17,16 @@ import (
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -89,6 +93,43 @@ func (o DummyObserver) SetSensorConfig(ctx context.Context, name string, cfgkey 
 
 func (o DummyObserver) RemoveSensor(ctx context.Context, sensorName string) error {
 	return nil
+}
+
+type DummyK8sWatcher struct {
+	pod *tetragon.Pod
+}
+
+func NewDummyK8sWatcher() *DummyK8sWatcher {
+	return &DummyK8sWatcher{pod: nil}
+}
+
+func (watcher *DummyK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+	return nil, nil, true
+}
+
+func (watcher *DummyK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
+	return watcher.pod, nil
+}
+
+func (watcher *DummyK8sWatcher) SetDummyPod() {
+	var emptyLabels []string
+
+	watcher.pod = &tetragon.Pod{
+		Namespace: "fake_pod_namespace",
+		Name:      "fake_pod_name",
+		Labels:    emptyLabels,
+		Container: &tetragon.Container{
+			Id:   "fake_container_container_id",
+			Pid:  &wrapperspb.UInt32Value{Value: 0},
+			Name: "fake_container_name",
+			Image: &tetragon.Image{
+				Id:   "fake_container_image_id",
+				Name: "fake_container_image",
+			},
+			StartTime:      ktime.ToProto(21034995089403),
+			MaybeExecProbe: false,
+		},
+	}
 }
 
 func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*MsgExecveEventUnix, *MsgExitEventUnix) {
