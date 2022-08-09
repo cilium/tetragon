@@ -107,29 +107,20 @@ Requirements:
   * `libcap` and `libelf` (in Debian systems, e.g., install `libelf-dev` and
     `libcap-dev`)
 
-Tetragon relies on a permanent fork of libbpf and a fork of clang with some custom patches in order
-to build and load its BPF programs correctly. We first need to get a local copy of both, which can be done
-with:
+You can build Tetragon as follows:
 
 ```
-make tools-install
-```
-
-After running the above command, you are ready to build Tetragon as follows:
-
-```
-LD_LIBRARY_PATH=$(realpath ./lib) make
+make
 ```
 
 You should now have a `./tetragon` binary, which can be run as follows:
 
 ```
-sudo LD_LIBRARY_PATH=$(realpath ./lib) ./tetragon --bpf-lib bpf/objs
+sudo ./tetragon --bpf-lib bpf/objs
 ```
 
-Note that we need to specify the `LD_LIBRARY_PATH` as shown above so that Tetragon can find
-the correct libbpf to use at runtime. The `--bpf-lib` flag tells Tetragon where to look
-for its compiled BPF programs (which were built in the `make` step above).
+The `--bpf-lib` flag tells Tetragon where to look for its compiled BPF programs
+(which were built in the `make` step above).
 
 ### Running Code Generation
 
@@ -160,7 +151,7 @@ Then, run the following commands:
 
 ```
 # Build Tetragon agent and operator images
-LD_LIBRARY_PATH=$(realpath ./lib) make LOCAL_CLANG=0 image image-operator
+make LOCAL_CLANG=0 image image-operator
 
 # Bootstrap the cluster
 contrib/localdev/bootstrap-kind-cluster.sh
