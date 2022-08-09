@@ -89,7 +89,7 @@ func (o DummyObserver) RemoveSensor(ctx context.Context, sensorName string) erro
 	return nil
 }
 
-func createEvents(Pid uint32, Ktime uint64) (*MsgExecveEventUnix, *MsgExitEventUnix) {
+func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*MsgExecveEventUnix, *MsgExitEventUnix) {
 	execMsg := &MsgExecveEventUnix{MsgExecveEventUnix: tetragonAPI.MsgExecveEventUnix{
 		Common: tetragonAPI.MsgCommon{
 			Op:     5,
@@ -105,9 +105,9 @@ func createEvents(Pid uint32, Ktime uint64) (*MsgExecveEventUnix, *MsgExitEventU
 			Docker: "",
 		},
 		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   1459,
+			Pid:   ParentPid,
 			Pad:   0,
-			Ktime: 75200000000,
+			Ktime: ParentKtime,
 		},
 		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
@@ -223,7 +223,7 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46983, 21034975089403)
+	execMsg, exitMsg := createEvents(46983, 21034975089403, 1459, 75200000000)
 
 	e1 := exitMsg.HandleMessage()
 	if e1 != nil {
@@ -265,7 +265,7 @@ func TestGrpcExecInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46984, 21034975089403)
+	execMsg, exitMsg := createEvents(46984, 21034975089403, 1459, 75200000000)
 
 	e2 := execMsg.HandleMessage()
 	if e2 != nil {
@@ -309,7 +309,7 @@ func TestGrpcMissingExec(t *testing.T) {
 	}()
 
 	processPid := uint32(46985)
-	_, exitMsg := createEvents(processPid, 21034975089403)
+	_, exitMsg := createEvents(processPid, 21034975089403, 1459, 75200000000)
 
 	e1 := exitMsg.HandleMessage()
 	if e1 != nil {
@@ -370,7 +370,7 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46986, 21034975089403)
+	execMsg, exitMsg := createEvents(46986, 21034975089403, 1459, 75200000000)
 	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
@@ -402,7 +402,7 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 		cancelWg.Wait()
 	}()
 
-	execMsg, exitMsg := createEvents(46986, 21034975089403)
+	execMsg, exitMsg := createEvents(46986, 21034975089403, 1459, 75200000000)
 	cloneMsg, exitCloneMsg := createCloneEvents(46987, 21034995089403, 46986, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
