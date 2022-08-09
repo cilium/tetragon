@@ -91,7 +91,7 @@ func (o DummyObserver) RemoveSensor(ctx context.Context, sensorName string) erro
 	return nil
 }
 
-func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*MsgExecveEventUnix, *MsgExitEventUnix) {
+func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*MsgExecveEventUnix, *MsgExitEventUnix) {
 	execMsg := &MsgExecveEventUnix{MsgExecveEventUnix: tetragonAPI.MsgExecveEventUnix{
 		Common: tetragonAPI.MsgCommon{
 			Op:     5,
@@ -104,7 +104,7 @@ func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64
 			NetNS:  4026531992,
 			Cid:    0,
 			Cgrpid: 0,
-			Docker: "",
+			Docker: Docker,
 		},
 		Parent: tetragonAPI.MsgExecveKey{
 			Pid:   ParentPid,
@@ -228,7 +228,7 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -271,7 +271,7 @@ func TestGrpcExecInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -313,7 +313,7 @@ func TestGrpcMissingExec(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	_, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -377,7 +377,7 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
@@ -411,7 +411,7 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
@@ -446,8 +446,8 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0)
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000)
+	parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0, "")
+	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := parentExecMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
