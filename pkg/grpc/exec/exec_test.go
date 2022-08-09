@@ -139,7 +139,7 @@ func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64
 		},
 		Info: tetragonAPI.MsgExitInfo{
 			Code: 0,
-			Pad1: 0, // Cached
+			Pad1: 0,
 		},
 	},
 	}
@@ -248,7 +248,7 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 		ev1 = AllEvents[1]
 	}
 
-	// fails but we don't expect to have the same Refcnt
+	// success
 	assert.Equal(t, ev1.GetProcessExec().Process, ev2.GetProcessExit().Process)
 
 	// success
