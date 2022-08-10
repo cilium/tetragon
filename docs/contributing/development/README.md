@@ -113,6 +113,13 @@ You can build Tetragon as follows:
 make
 ```
 
+If you want to use `podman` instead of `docker`, you can do the following (assuming you
+need to use `sudo` with `podman`):
+```
+CONTAINER_ENGINE='sudo podman' make
+```
+You can ignore `/bin/sh: docker: command not found` in the output.
+
 You should now have a `./tetragon` binary, which can be run as follows:
 
 ```
