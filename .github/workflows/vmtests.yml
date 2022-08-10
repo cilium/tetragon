@@ -46,7 +46,7 @@ jobs:
       run: |
         #  see testfile below
         cd go/src/github.com/cilium/tetragon/
-        go run ./tools/split-tetragon-gotests -ci-run 3
+        go run ./tools/split-tetragon-gotests -ci-run 5
 
     - name: tar build
       run: |
@@ -70,6 +70,8 @@ jobs:
               - 0
               - 1
               - 2
+              - 3
+              - 4
     concurrency:
       group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
       cancel-in-progress: true
