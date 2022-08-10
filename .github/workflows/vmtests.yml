@@ -11,6 +11,9 @@ jobs:
     name: Build tetragon
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    concurrency:
+      group: ${{ github.ref }}-vmtest-build
+      cancel-in-progress: true
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -67,6 +70,9 @@ jobs:
               - 0
               - 1
               - 2
+    concurrency:
+      group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
+      cancel-in-progress: true
     needs: build
     name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
     runs-on: ubuntu-latest
