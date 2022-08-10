@@ -283,6 +283,11 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 }
 
+func (msg *MsgGenericTracepointUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericTracepointUnix)
+	return &t
+}
+
 type MsgGenericKprobeUnix struct {
 	Common       processapi.MsgCommon
 	ProcessKey   processapi.MsgExecveKey
@@ -316,4 +321,9 @@ func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 		NodeName: nodeName,
 		Time:     ktime.ToProto(msg.Common.Ktime),
 	}
+}
+
+func (msg *MsgGenericKprobeUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericKprobeUnix)
+	return &t
 }

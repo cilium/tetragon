@@ -13,6 +13,7 @@ type Message interface {
 	RetryInternal(Event, uint64) (*process.ProcessInternal, error)
 	Retry(*process.ProcessInternal, Event) error
 	Notify() bool
+	Cast(o interface{}) Message
 }
 
 type Event interface {
