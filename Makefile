@@ -68,7 +68,7 @@ tetragon-bpf-local:
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
-	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon -u $$(id -u) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
 .PHONY: verify
@@ -213,7 +213,7 @@ check:
 else
 check:
 	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
-	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app -w /app golangci-lint:tetragon golangci-lint run
+	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app golangci-lint:tetragon golangci-lint run
 endif
 
 .PHONY: clang-format
