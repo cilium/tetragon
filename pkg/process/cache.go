@@ -17,7 +17,6 @@ import (
 )
 
 type Cache struct {
-	log        logrus.FieldLogger
 	cache      *lru.Cache
 	deleteChan chan *ProcessInternal
 	stopChan   chan bool
@@ -213,7 +212,7 @@ func (pc *Cache) getFromPidMap(pid uint32) string {
 	}
 	execID, ok := entry.(string)
 	if !ok {
-		pc.log.WithFields(logrus.Fields{"pid": pid, "execID": execID}).Warn("Invalid entry in pidMap")
+		logger.GetLogger().WithFields(logrus.Fields{"pid": pid, "execID": execID}).Warn("Invalid entry in pidMap")
 		errormetrics.ErrorTotalInc(errormetrics.PidMapInvalidEntry)
 		return ""
 	}
@@ -223,7 +222,7 @@ func (pc *Cache) getFromPidMap(pid uint32) string {
 func (pc *Cache) AddToPidMap(pid uint32, execID string) bool {
 	evicted := pc.pidMap.Add(pid, execID)
 	if evicted {
-		pc.log.Warn("Entry evicted from pidMap")
+		logger.GetLogger().Warn("Entry evicted from pidMap")
 		errormetrics.ErrorTotalInc(errormetrics.PidMapEvicted)
 	}
 	return evicted
