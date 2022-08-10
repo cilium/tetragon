@@ -5,10 +5,13 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/process"
 )
 
 type Message interface {
 	HandleMessage() *tetragon.GetEventsResponse
+	RetryInternal(Event, uint64) (*process.ProcessInternal, error)
+	Retry(*process.ProcessInternal, Event) error
 }
 
 type Event interface {

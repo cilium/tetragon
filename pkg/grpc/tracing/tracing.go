@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -181,6 +182,14 @@ type MsgGenericTracepointUnix struct {
 	Args       []tracingapi.MsgGenericTracepointArg
 }
 
+func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, timestamp)
+}
+
+func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev)
+}
+
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var tetragonParent, tetragonProcess *tetragon.Process
 
@@ -258,6 +267,14 @@ type MsgGenericKprobeUnix struct {
 	Action       uint64
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
+}
+
+func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, timestamp)
+}
+
+func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev)
 }
 
 func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
