@@ -5,7 +5,7 @@ RUN apt-get install -y linux-libc-dev
 COPY . ./
 RUN make tetragon-bpf LOCAL_CLANG=1
 
-FROM quay.io/cilium/cilium-builder:b7a9dcdcadd77d38db87bbd06b9bc238e9dab5a0@sha256:eecc017a6ccf0c7884f1ffcf10e58462a272f5e41c0ece09adb351e8839e3157 as hubble-builder
+FROM quay.io/cilium/cilium-builder:a2dc3278c48e1593b1f6c8fd9e5c6a982d56a875@sha256:98c4e694805e9a9d410ed73d555e97e91d77e2ab4529b6b51f5243b33ab411b1 as hubble-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update && apt-get install -y libelf-dev zlib1g-dev
 COPY . ./
