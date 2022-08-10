@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 var config *Config
@@ -52,6 +53,9 @@ func TetragonBpfPath() string {
 func TestSensorsRun(m *testing.M, sensorName string) int {
 	c := ConfigDefaults
 	config = &c
+
+	// instruct loader to keep the loaded collection for TestLoad* tests
+	program.KeepCollection = true
 
 	// some tests require the name of the current binary.
 	config.SelfBinary = filepath.Base(os.Args[0])
