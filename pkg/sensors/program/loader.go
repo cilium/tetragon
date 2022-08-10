@@ -190,27 +190,27 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	return nil
 }
 
-func loadProgram(
+func doLoadProgram(
 	bpfDir string,
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
 	ci *customInstall,
 	verbose int,
-) error {
+) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
 	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
 		// Non-standard path to BTF, open it and provide it as 'KernelTypes'.
 		var err error
 		btfSpec, err = btf.LoadSpec(btfFilePath)
 		if err != nil {
-			return fmt.Errorf("opening BTF file '%s' failed: %w", btfFilePath, err)
+			return nil, fmt.Errorf("opening BTF file '%s' failed: %w", btfFilePath, err)
 		}
 	}
 
 	spec, err := ebpf.LoadCollectionSpec(load.Name)
 	if err != nil {
-		return fmt.Errorf("loading collection spec failed: %w", err)
+		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only
@@ -230,7 +230,7 @@ func loadProgram(
 	}
 
 	if progSpec == nil {
-		return fmt.Errorf("program for section '%s' not found", load.Label)
+		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
 	pinnedMaps := make(map[string]*ebpf.Map)
@@ -287,23 +287,23 @@ func loadProgram(
 				fmt.Println(slimVerifierError(err.Error()))
 			}
 
-			return fmt.Errorf("opening collection '%s' failed", load.Name)
+			return nil, fmt.Errorf("opening collection '%s' failed", load.Name)
 		}
 	}
 	defer coll.Close()
 
 	err = installTailCalls(mapDirs[0], spec, coll, ci)
 	if err != nil {
-		return fmt.Errorf("installing tail calls failed: %s", err)
+		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
 
 	for _, mapLoad := range load.MapLoad {
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
 			if err := m.Update(uint32(0), mapLoad.Data, ebpf.UpdateAny); err != nil {
-				return err
+				return nil, err
 			}
 		} else {
-			return fmt.Errorf("populating map failed as map '%s' was not found from collection", mapLoad.Name)
+			return nil, fmt.Errorf("populating map failed as map '%s' was not found from collection", mapLoad.Name)
 		}
 	}
 
@@ -315,18 +315,18 @@ func loadProgram(
 
 		progOverride, ok := coll.Programs["generic_kprobe_override"]
 		if !ok {
-			return fmt.Errorf("program for section '%s' not found", load.Label)
+			return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 		}
 
 		progOverride, err = progOverride.Clone()
 		if err != nil {
-			return fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
+			return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
 		}
 
 		pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
 
 		if err := progOverride.Pin(pinPath); err != nil {
-			return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+			return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 		}
 
 		load.unloaderOverride, err = withProgram(progOverride, progOverrideSpec)
@@ -337,7 +337,7 @@ func loadProgram(
 
 	prog, ok := coll.Programs[progSpec.Name]
 	if !ok {
-		return fmt.Errorf("program for section '%s' not found", load.Label)
+		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
 	pinPath := filepath.Join(bpfDir, load.PinPath)
@@ -353,11 +353,11 @@ func loadProgram(
 	// we close the collection.
 	prog, err = prog.Clone()
 	if err != nil {
-		return fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
+		return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
 	}
 
 	if err := prog.Pin(pinPath); err != nil {
-		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
 	load.unloader, err = withProgram(prog, progSpec)
@@ -365,9 +365,32 @@ func loadProgram(
 		if err := prog.Unpin(); err != nil {
 			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
 		}
-		return err
+		return nil, err
 	}
 
+	// Copy the loaded collection before it's destroyed
+	if KeepCollection {
+		return copyLoadedCollection(coll)
+	}
+	return nil, nil
+}
+
+func loadProgram(
+	bpfDir string,
+	mapDirs []string,
+	load *Program,
+	withProgram AttachFunc,
+	ci *customInstall,
+	verbose int,
+) error {
+	lc, err := doLoadProgram(bpfDir, mapDirs, load, withProgram, ci, verbose)
+	if err != nil {
+		return err
+	}
+	if KeepCollection {
+		load.LC = filterLoadedCollection(lc)
+		printLoadedCollection(load.Name, load.LC)
+	}
 	return nil
 }
 
