@@ -27,3 +27,7 @@ func (msg *MsgTetragonReady) Retry(internal *process.ProcessInternal, ev notify.
 func (msg *MsgTetragonReady) HandleMessage() *tetragon.GetEventsResponse {
 	return nil
 }
+
+func (msg *MsgTetragonReady) Cast(o interface{}) notify.Message {
+	return &MsgTetragonReady{}
+}
