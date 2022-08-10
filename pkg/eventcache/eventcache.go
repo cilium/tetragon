@@ -31,7 +31,7 @@ var (
 	nodeName string
 )
 
-type cacheObj struct {
+type CacheObj struct {
 	internal  *process.ProcessInternal
 	event     notify.Event
 	timestamp uint64
@@ -40,9 +40,9 @@ type cacheObj struct {
 }
 
 type Cache struct {
-	objsChan chan cacheObj
+	objsChan chan CacheObj
 	done     chan bool
-	cache    []cacheObj
+	cache    []CacheObj
 	server   *server.Server
 	dur      time.Duration
 }
@@ -52,56 +52,31 @@ var (
 	ErrFailedToGetProcessInfo = errors.New("failed to get process info")
 )
 
-func handleExecEvent(event *cacheObj, nspid uint32) error {
-	var podInfo *tetragon.Pod
-
-	p := event.event.GetProcess()
-	containerId := p.Docker
-	filename := p.Binary
-	args := p.Arguments
-
-	if option.Config.EnableK8s {
-		podInfo, _ = process.GetPodInfo(containerId, filename, args, nspid)
-		if podInfo == nil {
-			errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
-			return ErrFailedToGetPodInfo
-		}
+// Generic internal lookup happens when events are received out of order and
+// this event was handled before an exec event so it wasn't able to populate
+// the process info yet.
+func HandleGenericInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	p := ev.GetProcess()
+	internal, _ := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+	if internal == nil {
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+		return nil, ErrFailedToGetProcessInfo
 	}
-
-	// We can assume that event.internal != nil here since it's being set by AddExecEvent
-	// earlier in the code path. If this invariant ever changes in the future, we probably
-	// want to panic anyway to help us catch the bug faster. So no need to do a nil check
-	// here.
-
-	event.internal.AddPodInfo(podInfo)
-	event.event.SetProcess(event.internal.GetProcessCopy())
-
-	return nil
+	return internal, nil
 }
 
-func handleEvent(event *cacheObj) error {
-	p := event.event.GetProcess()
-
-	// If the process wasn't found before the Add(), likely because
-	// the execve event was processed after this event, lets look it up
-	// now because it should be available. Otherwise we have a valid
-	// process and lets copy it across.
-	if event.internal == nil {
-		event.internal, _ = process.GetParentProcessInternal(p.Pid.Value, event.timestamp)
-		if event.internal == nil {
-			errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-			return ErrFailedToGetProcessInfo
-		}
-	}
-
-	event.event.SetProcess(event.internal.GetProcessCopy())
-
-	p = event.internal.UnsafeGetProcess()
+// Generic Event handler without any extra msg specific details or debugging
+// so we only need to wait for the internal link to the process context to
+// resolve PodInfo. This happens when the msg populates the internal state
+// but that event is not fully populated yet.
+func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event) error {
+	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
 		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
 		return ErrFailedToGetPodInfo
 	}
 
+	ev.SetProcess(internal.GetProcessCopy())
 	return nil
 }
 
@@ -109,13 +84,17 @@ func (ec *Cache) handleEvents() {
 	tmp := ec.cache[:0]
 	for _, event := range ec.cache {
 		var err error
-		if getNsPid, ok := event.msg.(interface{ GetNsPid() uint32 }); ok {
-			nspid := getNsPid.GetNsPid()
-			err = handleExecEvent(&event, nspid)
-		} else {
-			err = handleEvent(&event)
-		}
 
+		// If the process wasn't found before the Add(), likely because
+		// the execve event was processed after this event, lets look it up
+		// now because it should be available. Otherwise we have a valid
+		// process and lets copy it across.
+		if event.internal == nil {
+			event.internal, err = event.msg.RetryInternal(event.event, event.timestamp)
+		}
+		if err == nil {
+			err = event.msg.Retry(event.internal, event.event)
+		}
 		if err != nil {
 			event.color++
 			if event.color < CacheStrikes {
@@ -195,7 +174,7 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	e notify.Event,
 	t uint64,
 	msg notify.Message) {
-	ec.objsChan <- cacheObj{internal: internal, event: e, timestamp: t, msg: msg}
+	ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, msg: msg}
 }
 
 func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
@@ -204,9 +183,9 @@ func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 	}
 
 	cache = &Cache{
-		objsChan: make(chan cacheObj),
+		objsChan: make(chan CacheObj),
 		done:     make(chan bool),
-		cache:    make([]cacheObj, 0),
+		cache:    make([]CacheObj, 0),
 		server:   s,
 		dur:      dur,
 	}
