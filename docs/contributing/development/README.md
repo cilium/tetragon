@@ -101,7 +101,7 @@ changes and building Tetragon.
 For local development, you will likely want to build and run bare-metal Tetragon.
 
 Requirements:
-  * go 1.17
+  * go 1.18
   * GNU make
   * A running docker service
   * `libcap` and `libelf` (in Debian systems, e.g., install `libelf-dev` and

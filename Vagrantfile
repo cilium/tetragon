@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
       cd /home/vagrant/go/src/github.com/cilium/tetragon
       apt-get update
       apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools
-      snap install go --channel=1.17/stable --classic
+      snap install go --channel=1.18/stable --classic
 
       # Install crictl
       VERSION="v1.22.0"
