@@ -114,7 +114,7 @@ func tester() int {
 	printInfo()
 	err = vmtests.Run(&conf)
 	if err != nil {
-		fmt.Printf("error running vmtests: %v\n", err)
+		fmt.Printf("tetragon-tester: error running vmtests: %v\n", err)
 		return 1
 	}
 
