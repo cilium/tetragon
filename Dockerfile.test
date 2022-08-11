@@ -15,7 +15,7 @@ FROM quay.io/isovalent/hubble-libbpf:v0.2.3 as hubble-libbpf
 WORKDIR /go/src/github.com/cilium/tetragon
 COPY . ./
 
-FROM docker.io/library/golang:1.18.3@sha256:0168c352a2be96f4bcc5856fe6e03ee665b187593f574cecb5cd2712c2b20cab
+FROM docker.io/library/golang:1.18.3@sha256:1650c170f3c55c158431cd35906cb6faf25f5c93b9d8850341c81e1236eaa745
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev rpm2cpio cpio git flex bison autoconf libelf-dev bc netcat-traditional
 WORKDIR /go/src/github.com/cilium/tetragon
