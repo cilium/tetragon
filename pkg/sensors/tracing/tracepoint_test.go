@@ -6,19 +6,23 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
@@ -386,4 +390,84 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 	}
 
 	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+}
+
+func TestLoadTracepointSensor(t *testing.T) {
+	var sensorProgs = []tus.SensorProg{
+		0:  tus.SensorProg{Name: "generic_tracepoint_event", Type: ebpf.TracePoint},
+		1:  tus.SensorProg{Name: "generic_tracepoint_arg1", Type: ebpf.TracePoint},
+		2:  tus.SensorProg{Name: "generic_tracepoint_arg2", Type: ebpf.TracePoint},
+		3:  tus.SensorProg{Name: "generic_tracepoint_arg3", Type: ebpf.TracePoint},
+		4:  tus.SensorProg{Name: "generic_tracepoint_arg4", Type: ebpf.TracePoint},
+		5:  tus.SensorProg{Name: "generic_tracepoint_arg5", Type: ebpf.TracePoint},
+		6:  tus.SensorProg{Name: "generic_tracepoint_event0", Type: ebpf.TracePoint},
+		7:  tus.SensorProg{Name: "generic_tracepoint_event1", Type: ebpf.TracePoint},
+		8:  tus.SensorProg{Name: "generic_tracepoint_event2", Type: ebpf.TracePoint},
+		9:  tus.SensorProg{Name: "generic_tracepoint_event3", Type: ebpf.TracePoint},
+		10: tus.SensorProg{Name: "generic_tracepoint_event4", Type: ebpf.TracePoint},
+		11: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
+
+		// base sensor
+		12: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
+		13: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
+		14: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+	}
+
+	var sensorMaps = []tus.SensorMap{
+		// all programs
+		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+
+		// only generic_tracepoint_event*
+		tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{6, 7, 8, 9, 10}},
+
+		// all but generic_tracepoint_event,generic_tracepoint_filter
+		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+
+		// generic_tracepoint_arg**,base
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 12, 13, 14}},
+
+		// shared with base sensor
+		tus.SensorMap{Name: "execve_map", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+	}
+
+	if kernels.EnableLargeProgs() {
+		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
+	} else {
+		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 6, 7, 8, 9, 10}})
+	}
+
+	readHook := `
+kind: TracingPolicy
+metadata:
+  name: "raw-syscalls"
+spec:
+  tracepoints:
+    - subsystem: "raw_syscalls"
+      event: "sys_enter"
+      # args: add both the syscall id, and the array with the arguments
+      args:
+        - index: 4
+        - index: 5
+`
+
+	var sens []*sensors.Sensor
+	var err error
+
+	readConfigHook := []byte(readHook)
+	err = ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	sens, err = observer.GetDefaultSensorsWithFile(t, context.TODO(), testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
+
+	sensors.UnloadAll(tus.Conf().TetragonLib)
 }
