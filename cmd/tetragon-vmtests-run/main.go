@@ -52,7 +52,7 @@ func main() {
 			}
 
 			err := buildTestImage(log, &rcnf)
-			if err != nil {
+			if err != nil || rcnf.justBuildImage {
 				return err
 			}
 
@@ -117,6 +117,7 @@ func main() {
 	cmd.Flags().BoolVar(&rcnf.qemuPrint, "qemu-cmd-print", false, "Do not run the qemu command, just print it")
 	cmd.Flags().BoolVar(&rcnf.disableKVM, "qemu-disable-kvm", false, "Do not use KVM acceleration, even if /dev/kvm exists")
 	cmd.Flags().BoolVar(&rcnf.justBoot, "just-boot", false, "Do not actually run any tests. Just setup everything and start the VM. User will be able to login to the VM.")
+	cmd.Flags().BoolVar(&rcnf.justBuildImage, "just-build-image", false, "Just build an image. Do not actually run any tests or boot the VM.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")

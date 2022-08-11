@@ -15,6 +15,7 @@ type RunConf struct {
 	testerOut             string
 	qemuPrint             bool
 	justBoot              bool
+	justBuildImage        bool
 	disableKVM            bool
 	btfFile               string
 	testerConf            vmtests.Conf
