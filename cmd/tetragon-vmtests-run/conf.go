@@ -17,6 +17,7 @@ type RunConf struct {
 	justBoot              bool
 	justBuildImage        bool
 	disableKVM            bool
+	enableHVF             bool
 	btfFile               string
 	testerConf            vmtests.Conf
 

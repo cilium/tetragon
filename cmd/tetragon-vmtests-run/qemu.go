@@ -20,13 +20,16 @@ func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 		"-smp", "2", "-m", "4G",
 	}
 
-	// quick-and-dirty kvm detection
-	if !rcnf.disableKVM {
+	if rcnf.enableHVF {
+		log.Info("HVF enabled")
+		qemuArgs = append(qemuArgs, "-accel", "hvf")
+	} else if !rcnf.disableKVM {
+		// quick-and-dirty kvm detection
 		if f, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0755); err == nil {
 			qemuArgs = append(qemuArgs, "-enable-kvm", "-cpu", "kvm64")
 			f.Close()
 		} else {
-			log.Info("KVM disabled")
+			log.Infof("KVM disabled (%v)", err)
 		}
 	}
 

@@ -116,6 +116,7 @@ func main() {
 	cmd.Flags().BoolVar(&rcnf.useTetragonTesterInit, "use-tetragon-init", false, "use tetragon-vmtests-init as init process in the VM")
 	cmd.Flags().BoolVar(&rcnf.qemuPrint, "qemu-cmd-print", false, "Do not run the qemu command, just print it")
 	cmd.Flags().BoolVar(&rcnf.disableKVM, "qemu-disable-kvm", false, "Do not use KVM acceleration, even if /dev/kvm exists")
+	cmd.Flags().BoolVar(&rcnf.enableHVF, "qemu-enable-hvf", false, "Use hvf acceleration")
 	cmd.Flags().BoolVar(&rcnf.justBoot, "just-boot", false, "Do not actually run any tests. Just setup everything and start the VM. User will be able to login to the VM.")
 	cmd.Flags().BoolVar(&rcnf.justBuildImage, "just-build-image", false, "Just build an image. Do not actually run any tests or boot the VM.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
