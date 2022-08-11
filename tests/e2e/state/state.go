@@ -21,4 +21,6 @@ var (
 	EventCheckers = Key{slug: "EventCheckers"}
 	// Stores the most recent *testing.T
 	Test = Key{slug: "Test"}
+	// Key for storing the export directory for this test
+	ExportDir = Key{slug: "ExportDir"}
 )
