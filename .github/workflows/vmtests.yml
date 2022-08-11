@@ -61,6 +61,7 @@ jobs:
          retention-days: 5
   test:
     strategy:
+        fail-fast: false
         matrix:
            kernel:
               - '5.10'
