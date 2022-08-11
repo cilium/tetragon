@@ -51,6 +51,9 @@ var CiBlacklist = []vmtests.GoTest{
 	{PackageProg: "pkg.exporter"},
 	// https://github.com/cilium/tetragon/issues/247
 	{PackageProg: "pkg.sensors.tracing", Test: "TestCopyFd"},
+	// this fails when running it on a macos runner. Nothing kernel-specific here so we can just
+	// remove it.
+	{PackageProg: "pkg.timer"},
 }
 
 func usage() {
