@@ -182,7 +182,7 @@ func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
 	return nil
 }
 
-func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec, btfBaseFile string) (*sensors.Sensor, error) {
+func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -867,7 +867,7 @@ func (k *observerKprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, er
 		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
 	}
 	if len(spec.KProbes) > 0 {
-		return addGenericKprobeSensors(spec.KProbes, option.Config.BTF)
+		return addGenericKprobeSensors(spec.KProbes)
 	}
 	return nil, nil
 }
