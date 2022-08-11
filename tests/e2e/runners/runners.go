@@ -158,16 +158,41 @@ func (r *Runner) Setup() env.Environment {
 	}
 	testenv.Setup(r.installTetragon)
 
-	// Ugly hack so that we can get a testing.T object in the Finish() hook
+	// Create the export dir before each test
 	testenv.BeforeEachTest(func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
-		return context.WithValue(ctx, state.Test, t), nil
+		ctx, err := helpers.CreateExportDir(ctx, t)
+		if err != nil {
+			return ctx, fmt.Errorf("failed to create export dir: %w", err)
+		}
+		return ctx, nil
 	})
-	testenv.Finish(func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		if t, ok := ctx.Value(state.Test).(*testing.T); ok {
-			ctx, err = helpers.MaybeDumpInfo(r.keepExportFiles)(ctx, cfg, t)
+
+	allTestsPassed := true
+
+	// Dump info after each test
+	testenv.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
+		if t.Failed() {
+			allTestsPassed = false
+		}
+		if t.Failed() || r.keepExportFiles {
+			ctx, err = helpers.DumpInfo()(ctx, cfg, t)
+		}
+		return context.WithValue(ctx, state.Test, nil), err
+	})
+
+	testenv.Finish(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+		// The test passed and we are not keeping export files, remove the export dir
+		// and return early
+		if !r.keepExportFiles && allTestsPassed {
+			if exportDir, err := helpers.GetExportDir(ctx); err == nil {
+				klog.Info("test passed and keep-export not set, removing export dir")
+				if err := os.RemoveAll(exportDir); err != nil {
+					klog.ErrorS(err, "failed to remove export dir")
+				}
+			}
 			return context.WithValue(ctx, state.Test, nil), err
 		}
-		return ctx, fmt.Errorf("failed to get test object from context")
+		return context.WithValue(ctx, state.Test, nil), nil
 	})
 
 	if r.tetragonPortForward != nil {

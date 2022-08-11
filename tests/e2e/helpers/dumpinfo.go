@@ -33,29 +33,24 @@ var (
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
 
-func MaybeDumpInfo(keepRegardless bool) TestEnvFunc {
+func DumpInfo() TestEnvFunc {
 	return func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
-		if !t.Failed() && !keepRegardless {
-			klog.Info("Test passed, skipping log export due to test configuration")
-			return ctx, nil
-		}
-
 		opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
 		if !ok {
 			return ctx, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
 		}
 
-		dir, err := createExportDir(t)
+		exportDir, err := GetExportDir(ctx)
 		if err != nil {
-			return ctx, fmt.Errorf("failed to create export dir: %w", err)
+			return ctx, err
 		}
 
-		klog.InfoS("Dumping test data", "dir", dir)
-		dumpCheckers(ctx, dir)
+		klog.InfoS("Dumping test data", "dir", exportDir)
+		dumpCheckers(ctx, exportDir)
 
 		if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 			for podName, port := range ports {
-				dumpMetrics(fmt.Sprint(port), podName, dir)
+				dumpMetrics(fmt.Sprint(port), podName, exportDir)
 			}
 		}
 
@@ -75,24 +70,46 @@ func MaybeDumpInfo(keepRegardless bool) TestEnvFunc {
 		}
 
 		for _, pod := range podList.Items {
-			if err := extractJson(&pod, dir); err != nil {
+			if err := extractJson(&pod, exportDir); err != nil {
 				klog.ErrorS(err, "Failed to extract json events")
 			}
-			if err := extractLogs(&pod, dir, true); err != nil {
+			if err := extractLogs(&pod, exportDir, true); err != nil {
 				klog.ErrorS(err, "Failed to extract previous tetragon logs")
 			}
-			if err := extractLogs(&pod, dir, false); err != nil {
+			if err := extractLogs(&pod, exportDir, false); err != nil {
 				klog.ErrorS(err, "Failed to extract tetragon logs")
 			}
-			dumpBpftool(ctx, client, dir, pod.Namespace, pod.Name, TetragonContainerName)
+			dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
 		}
 
 		return ctx, nil
 	}
 }
 
-func createExportDir(t *testing.T) (string, error) {
-	return ioutil.TempDir("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
+func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error) {
+	dir, err := GetExportDir(ctx)
+	if err == nil {
+		klog.V(2).InfoS("export dir already exists, skipping creation", "test", t.Name(), "dir", dir)
+		return ctx, nil
+	}
+
+	dir, err = ioutil.TempDir("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
+	if err != nil {
+		return ctx, err
+	}
+
+	klog.InfoS("created export dir for test", "test", t.Name(), "dir", dir)
+
+	return context.WithValue(ctx, state.ExportDir, dir), nil
+}
+
+func GetExportDir(ctx context.Context) (string, error) {
+	exportDir, ok := ctx.Value(state.ExportDir).(string)
+	if !ok {
+		return "", fmt.Errorf("export dir has not been created. Call helpers.CreateExportDir() first")
+	}
+
+	return exportDir, nil
 }
 
 func extractJson(pod *corev1.Pod, exportDir string) error {
@@ -158,17 +175,17 @@ func dumpCheckers(ctx context.Context, exportDir string) {
 
 			yamlStr, err := checker.CheckerYaml()
 			if err != nil {
-				klog.Warningf("failed to dump checker yaml for %s: %w", name, err)
+				klog.ErrorS(err, "failed to dump checker yaml for %s", name)
 			}
 
 			fname := filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.yaml", name))
 			if err := os.WriteFile(fname, []byte(yamlStr), os.FileMode(0o644)); err != nil {
-				klog.Warningf("failed to write checker yaml to file %s: %w", fname, err)
+				klog.ErrorS(err, "failed to write checker yaml to file %s", fname, err)
 			}
 
 			fname = filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.log", name))
 			if err := os.WriteFile(fname, checker.Logs(), os.FileMode(0o644)); err != nil {
-				klog.Warningf("failed to write checker logs to file %s: %w", fname, err)
+				klog.ErrorS(err, "failed to write checker logs to file %s", fname)
 			}
 		}
 		return
