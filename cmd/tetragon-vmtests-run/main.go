@@ -38,11 +38,22 @@ func main() {
 				rcnf.testerConf.TetragonDir = cwd
 				testingDir := filepath.Join(cwd, "tests", "vmtests")
 				rcnf.testerOut = filepath.Join(testingDir, "tester-tetragon.out")
-				rcnf.testerConf.ResultsDir, err = os.MkdirTemp(testingDir, "vmtests-results-")
-				if err != nil {
-					return fmt.Errorf("failed to make results dir: %w", err)
+				// NB: this is awkward, but if the user just
+				// wants to build an image or use an existing
+				// image to run tests, using a random results
+				// dir will not work.
+				if !rcnf.justBuildImage && !rcnf.dontRebuildImage {
+					rcnf.testerConf.ResultsDir, err = os.MkdirTemp(testingDir, "vmtests-results-")
+					if err != nil {
+						return fmt.Errorf("failed to make results dir: %w", err)
+					}
+				} else {
+					rcnf.testerConf.ResultsDir = filepath.Join(testingDir, "vmtests-results")
+					err := os.MkdirAll(rcnf.testerConf.ResultsDir, 0755)
+					if err != nil {
+						return fmt.Errorf("failed to make results dir: %w", err)
+					}
 				}
-
 			} else {
 				return fmt.Errorf("failed to get cwd: %w", err)
 			}
