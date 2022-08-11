@@ -36,6 +36,9 @@ const (
 
 	// Default kernel exposed BTF file path
 	DefaultBTFFile = "/sys/kernel/btf/vmlinux"
+
+	// Default location for BPF programs and BTF files
+	DefaultTetragonLib = "/var/lib/tetragon/"
 )
 
 var (
