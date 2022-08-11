@@ -130,10 +130,11 @@ test:
 e2e-test: image image-operator
 	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="cilium/tetragon:${DOCKER_IMAGE_TAG}" -tetragon.helm.set tetragonOperator.image.override="cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes)"
 
+TEST_COMPILE ?= ./...
 .PHONY: test-compile
 test-compile:
 	mkdir -p go-tests
-	for pkg in $$($(GO) list ./...); do \
+	for pkg in $$($(GO) list "$(TEST_COMPILE)"); do \
 		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
 		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
 		numtests=$$(ls -l ./$$localpkg/*_test.go 2> /dev/null | wc -l); \
