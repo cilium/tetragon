@@ -68,7 +68,7 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 		}
 		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
 
-		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
+		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Please check Tetragon requirements documentation, then use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
 	}
 	if err := btfFileExists(btf); err != nil {
 		return btf, fmt.Errorf("User specified BTF does not exist: %w", err)
