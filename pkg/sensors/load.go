@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -73,7 +74,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	AllPrograms = append(AllPrograms, s.Progs...)
 	AllMaps = append(AllMaps, s.Maps...)
 
-	logger.GetLogger().WithField("metadata", option.Config.BTF).Info("Using metadata file")
+	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
 	if _, err := observerMinReqs(stopCtx); err != nil {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
