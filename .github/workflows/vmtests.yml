@@ -79,7 +79,7 @@ jobs:
     needs: build
     name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
     - name: Install docker
       uses: docker-practice/actions-setup-docker@master
