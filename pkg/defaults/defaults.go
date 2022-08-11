@@ -33,6 +33,9 @@ const (
 
 	// DedfaultNetnsDir is the default network namespace directory for runtime
 	DefaultNetnsDir = "/var/run/docker/netns/"
+
+	// Default kernel exposed BTF file path
+	DefaultBTFFile = "/sys/kernel/btf/vmlinux"
 )
 
 var (

@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"github.com/cilium/ebpf/btf"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 
 	"golang.org/x/sys/unix"
@@ -47,29 +48,32 @@ func observerFindBTF(ctx context.Context, lib, btf string) (string, error) {
 		// Preference of BTF files, first search for kernel exposed BTF, then
 		// check for vmlinux- hubble metadata, and finally if all those are missing
 		// search the lib directory for a btf file.
-		runFile := path.Join("/sys", "kernel", "btf", "vmlinux")
-		if _, err := os.Stat(runFile); err == nil {
-			return runFile, nil
+		if _, err := os.Stat(defaults.DefaultBTFFile); err == nil {
+			logger.GetLogger().WithField("btf-file", defaults.DefaultBTFFile).Info("BTF discovery: default kernel btf file found")
+			return defaults.DefaultBTFFile, nil
 		}
-		logger.GetLogger().WithField("file", runFile).Info("candidate btf file does not exist")
+		logger.GetLogger().WithField("btf-file", defaults.DefaultBTFFile).Info("BTF discovery: default kernel btf file does not exist")
 
-		runFile = path.Join(lib, "metadata", "vmlinux-"+kernelVersion)
+		runFile := path.Join(lib, "metadata", "vmlinux-"+kernelVersion)
 		if _, err := os.Stat(runFile); err == nil {
+			logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file found")
 			return runFile, nil
 		}
-		logger.GetLogger().WithField("file", runFile).Info("candidate btf file does not exist")
+		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
 
 		runFile = path.Join(lib, "btf")
 		if _, err := os.Stat(runFile); err == nil {
+			logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file found")
 			return runFile, nil
 		}
-		logger.GetLogger().WithField("file", runFile).Info("candidate btf file does not exist")
+		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
 
 		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
 	}
 	if err := btfFileExists(btf); err != nil {
 		return btf, fmt.Errorf("User specified BTF does not exist: %w", err)
 	}
+	logger.GetLogger().WithField("btf-file", btf).Info("BTF file: user specified btf file found")
 	return btf, nil
 }
 
