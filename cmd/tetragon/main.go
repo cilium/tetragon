@@ -378,7 +378,7 @@ func execute() error {
 
 	flags.String(keyConfigDir, "", "Configuration directory that contains a file for each option")
 	flags.BoolP(keyDebug, "d", false, "Enable debug messages. Equivalent to '--log-level=debug'")
-	flags.String(keyHubbleLib, "/var/lib/tetragon/", "Location of hubble libs (btf and bpf files)")
+	flags.String(keyHubbleLib, defaults.DefaultTetragonLib, "Location of Tetragon libs (btf and bpf files)")
 	flags.String(keyBTF, "", "Location of btf")
 
 	flags.String(keyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
