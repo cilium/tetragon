@@ -133,6 +133,10 @@ func (watcher *DummyK8sWatcher) SetDummyPod() {
 	}
 }
 
+func (watcher *DummyK8sWatcher) ClearPod() {
+	watcher.pod = nil
+}
+
 func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*MsgExecveEventUnix, *MsgExecveEventUnix, *MsgExecveEventUnix, *MsgExitEventUnix) {
 	// Create a parent event to hand events off of and convince execCache that parents are known. In order for this to
 	// work we set the Pid == 1 here so that system believes this is the root of the tree.
@@ -331,10 +335,27 @@ func getProcessRefcntFromCache(t *testing.T, Pid uint32, Ktime uint64) uint32 {
 	proc, err := process.Get(procID)
 	if err == nil {
 		return proc.RefGet()
-	} else {
-		t.Fatalf("failed to find a process in the procCache pid: %d, ktime: %d, ID: %s ", Pid, Ktime, err)
-		return 0
 	}
+
+	t.Fatalf("failed to find a process in the procCache pid: %d, ktime: %d, ID: %s ", Pid, Ktime, err)
+	return 0
+}
+
+func getEvents(t *testing.T, events []*tetragon.GetEventsResponse) (*tetragon.ProcessExec, *tetragon.ProcessExit) {
+	assert.Equal(t, len(events), 2)
+
+	var execEv *tetragon.ProcessExec
+	var exitEv *tetragon.ProcessExit
+
+	if events[0].GetProcessExec() != nil {
+		execEv = events[0].GetProcessExec()
+		exitEv = events[1].GetProcessExit()
+	} else {
+		exitEv = events[0].GetProcessExit()
+		execEv = events[1].GetProcessExec()
+	}
+
+	return execEv, exitEv
 }
 
 func checkExecEvents(t *testing.T, events []*tetragon.GetEventsResponse, parentPid uint32, currentPid uint32) {
@@ -456,6 +477,35 @@ func TestGrpcExecInOrder(t *testing.T) {
 	checkExecEvents(t, AllEvents, parentPid, currentPid)
 }
 
+func TestGrpcExecMisingParent(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	_, _, execMsg, _ := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+
+	assert.Equal(t, len(AllEvents), 1)
+	execEv := AllEvents[0].GetProcessExec()
+	assert.NotNil(t, execEv)
+	assert.Equal(t, getProcessRefcntFromCache(t, currentPid, 21034975089403), uint32(1))
+	assert.Nil(t, execEv.Parent)
+}
+
 func TestGrpcMissingExec(t *testing.T) {
 	var cancelWg sync.WaitGroup
 
@@ -504,7 +554,11 @@ func TestGrpcExecParentOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	execRoot, execParent, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	// create some corrent events to have parents
+	execRoot.HandleMessage()
+	execParent.HandleMessage()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -514,23 +568,17 @@ func TestGrpcExecParentOutOfOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, len(AllEvents), 2)
-
-	var ev1, ev2 *tetragon.GetEventsResponse
-	if AllEvents[0].GetProcessExec() != nil {
-		ev1 = AllEvents[0]
-		ev2 = AllEvents[1]
-	} else {
-		ev2 = AllEvents[0]
-		ev1 = AllEvents[1]
-	}
-
-	// fails but we don't expect to have the same Refcnt
-	ev1.GetProcessExec().Process.Refcnt = 0 // hardcode that to make the following pass
-	assert.Equal(t, ev1.GetProcessExec().Process, ev2.GetProcessExit().Process)
+	ev1, ev2 := getEvents(t, AllEvents)
 
 	// success
-	assert.Equal(t, ev1.GetProcessExec().Parent, ev2.GetProcessExit().Parent)
+	ev1.Process.Refcnt = 0
+	ev2.Process.Refcnt = 0
+	assert.Equal(t, ev1.Process, ev2.Process)
+
+	// success
+	ev1.Parent.Refcnt = 0
+	ev2.Parent.Refcnt = 0
+	assert.Equal(t, ev1.Parent, ev2.Parent)
 }
 
 func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, currentPid uint32, clonePid uint32) {
@@ -578,8 +626,12 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	execRoot, execParent, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
+
+	// create some corrent events to have parents
+	execRoot.HandleMessage()
+	execParent.HandleMessage()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -613,8 +665,12 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	execRoot, execParent, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
+
+	// create some corrent events to have parents
+	execRoot.HandleMessage()
+	execParent.HandleMessage()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -649,8 +705,10 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0, "")
+	rootMsg, _, parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 1, 0, "")
 	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	rootMsg.HandleMessage()
 
 	if e := parentExecMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -683,10 +741,10 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	// 1st event: exec from parent
 	// 1. should match pid of parent
 	// 2. refcount should be 1
-	// 3. no parent
+	// 3. has parent
 	assert.Equal(t, parentExecEv.Process.Pid.Value, parentPid)
 	assert.Equal(t, parentExecEv.Process.Refcnt, uint32(1))
-	assert.Nil(t, parentExecEv.Parent)
+	assert.NotNil(t, parentExecEv.Parent)
 
 	// 2nd event: exec from child
 	// 1. should match pid of child
@@ -711,35 +769,28 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	// 4th event: exit from parent
 	// 1. should match pid of parent
 	// 2. refcount should be 0 (decreased by 1 during this exit)
-	// 3. no parent
+	// 3. has parent
 	assert.Equal(t, parentExitEv.Process.Pid.Value, parentPid)
 	assert.Equal(t, parentExitEv.Process.Refcnt, uint32(0))
-	assert.Nil(t, parentExitEv.Parent)
+	assert.NotNil(t, parentExitEv.Parent)
 }
 
 func checkPodEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
 	assert.Equal(t, len(events), 2)
 
-	var execEv *tetragon.ProcessExec
-	var exitEv *tetragon.ProcessExit
-
-	if AllEvents[0].GetProcessExec() != nil {
-		execEv = AllEvents[0].GetProcessExec()
-		exitEv = AllEvents[1].GetProcessExit()
-	} else {
-		exitEv = AllEvents[0].GetProcessExit()
-		execEv = AllEvents[1].GetProcessExec()
-	}
+	execEv, exitEv := getEvents(t, events)
 
 	assert.NotNil(t, execEv)
 	assert.NotNil(t, execEv.Process.Pod)                                // has pod info
 	assert.Equal(t, execEv.Process.Pod.Namespace, "fake_pod_namespace") // correct pod
 	assert.NotEqual(t, execEv.Process.ExecId, "")                       // full process info
+	assert.NotNil(t, execEv.Parent)
 
 	assert.NotNil(t, exitEv)
 	assert.NotNil(t, exitEv.Process.Pod)                                // has pod info
 	assert.Equal(t, exitEv.Process.Pod.Namespace, "fake_pod_namespace") // correct pod
 	assert.NotEqual(t, exitEv.Process.ExecId, "")                       // full process info
+	assert.NotNil(t, exitEv.Parent)
 }
 
 // In this case, we get an exec and an exit event (in-order) but we
@@ -761,7 +812,17 @@ func TestGrpcExecPodInfoInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -796,7 +857,17 @@ func TestGrpcExecPodInfoOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -834,7 +905,17 @@ func TestGrpcExecPodInfoInOrderAfter(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -873,7 +954,17 @@ func TestGrpcExecPodInfoOutOfOrderAfter(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -910,7 +1001,17 @@ func TestGrpcExecPodInfoDelayedOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -949,7 +1050,17 @@ func TestGrpcExecPodInfoDelayedInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -987,7 +1098,17 @@ func TestGrpcDelayedExecK8sOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	rootMsg, parentMsg, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+
+	// Create some corrent events to have parents
+	// in the cache. We also provide a dummy pod
+	// here in order not to cache these events. At
+	// the end we remove pod info to do the actual
+	// test.
+	watcher.SetDummyPod()
+	rootMsg.HandleMessage()
+	parentMsg.HandleMessage()
+	watcher.ClearPod()
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
