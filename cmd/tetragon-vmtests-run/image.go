@@ -166,6 +166,10 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 		{Op: &images.SetHostnameCommand{Hostname: hostname}},
 		// NB: some of the tetragon tests expect a /usr/bin/cp
 		{Op: &images.RunCommand{Cmd: "cp /bin/cp /usr/bin/cp"}},
+		{Op: &images.AppendLineCommand{
+			File: "/etc/sysctl.d/local.conf",
+			Line: "kernel.panic_on_rcu_stall=1",
+		}},
 	}
 	actions = append(actions, fsActions...)
 	actions = append(actions, testerActions...)

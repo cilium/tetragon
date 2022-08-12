@@ -30,6 +30,7 @@ var actionOpInstances = []ActionOp{
 	&MkdirCommand{},
 	&UploadCommand{},
 	&ChmodCommand{},
+	&AppendLineCommand{},
 }
 
 type VirtCustomizeAction struct {
@@ -133,5 +134,22 @@ func (c *ChmodCommand) ToStep(s *StepConf) multistep.Step {
 	return &VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--chmod", fmt.Sprintf("%s:%s", c.Permissions, c.File)},
+	}
+}
+
+// AppendLineCommand
+type AppendLineCommand struct {
+	File string
+	Line string
+}
+
+func (c *AppendLineCommand) ActionOpName() string {
+	return "append-line"
+}
+
+func (c *AppendLineCommand) ToStep(s *StepConf) multistep.Step {
+	return &VirtCustomizeStep{
+		StepConf: s,
+		Args:     []string{"--append-line", fmt.Sprintf("%s:%s", c.File, c.Line)},
 	}
 }

@@ -6,6 +6,8 @@ type ImgConf struct {
 	Name string `json:"name"`
 	// Parent is the name parent image (or "" if image does not have a parent)
 	Parent string `json:"parent,omitempty"`
+	// ImageSize is the size of the image (defaults to images.DefaultImageSize)
+	ImageSize string `json:"image_size,omitempty"`
 	// Packages is the list of packages contained in the image
 	Packages []string `json:"packages"`
 	// Actions is a list of additional actions for building the image.
