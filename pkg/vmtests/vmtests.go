@@ -179,19 +179,19 @@ func gatherExportFiles(cnf *Conf) error {
 			return nil
 		}
 
-		if !strings.HasPrefix(path, "tetragon.gotest.") {
+		base := filepath.Base(path)
+		if !strings.HasPrefix(base, "tetragon.gotest") {
 			return nil
 		}
 
-		fname := filepath.Join("/tmp", path)
-		in, err := os.Open(fname)
+		in, err := os.Open(path)
 		if err != nil {
-			fmt.Printf("failed to open %s. Continuing...\n", fname)
+			fmt.Printf("failed to open %s. Continuing...\n", path)
 			return nil
 		}
 		defer in.Close()
 
-		outName := filepath.Join(cnf.ResultsDir, path)
+		outName := filepath.Join(cnf.ResultsDir, base)
 		out, err := os.Create(outName)
 		if err != nil {
 			fmt.Printf("failed to create %s. Continuing...\n", outName)
@@ -201,7 +201,7 @@ func gatherExportFiles(cnf *Conf) error {
 
 		_, err = io.Copy(out, in)
 		if err != nil {
-			fmt.Printf("failed to copy %s to %s. Continuing...\n", fname, outName)
+			fmt.Printf("failed to copy %s to %s. Continuing...\n", path, outName)
 		}
 		return nil
 	})
