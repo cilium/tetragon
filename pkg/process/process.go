@@ -151,6 +151,11 @@ func (pi *ProcessInternal) RefInc() {
 	procCache.refInc(pi)
 }
 
+func (pi *ProcessInternal) RefGet() uint32 {
+	ref := atomic.LoadUint32(&pi.refcnt)
+	return ref
+}
+
 func GetProcessID(pid uint32, ktime uint64) string {
 	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", nodeName, ktime, pid)))
 }
