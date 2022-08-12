@@ -35,6 +35,7 @@ type Conf struct {
 	TestsFile   string `json:"tests-file"`   // file describing which tests to run
 	BTFFile     string `json:"btf-file"`     // btf file to use
 	FailFast    bool   `json:"fail-fast"`
+	KeepAllLogs bool   `json:"keep-all-logs"`
 }
 
 // Result is the result of a single test
@@ -207,8 +208,10 @@ func runTest(cnf *Conf, testName string, cmd string, args ...string) (*Result, e
 		fmt.Printf("> failed after %s: %v\n", elapsed, testErr)
 	} else {
 		fmt.Printf("> succeeded after %s\n", elapsed)
-		if err := os.Remove(outFname); err == nil {
-			outFname = ""
+		if !cnf.KeepAllLogs {
+			if err := os.Remove(outFname); err == nil {
+				outFname = ""
+			}
 		}
 	}
 
