@@ -210,6 +210,16 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			rc.eventWriter.Flush()
 		}
 	}()
+	// Dump unmatched checks at the end
+	defer func() {
+		checker, ok := rc.checker.(interface{ GetRemainingChecks() []ec.EventChecker })
+		if !ok {
+			klog.ErrorS(fmt.Errorf("checker has no method GetRemainingChecks()"), "unable to dump remaining checks")
+		}
+		if err := dumpChecks(ctx, rc.Name(), checker.GetRemainingChecks()); err != nil {
+			klog.ErrorS(err, "failed to dump unmatched checks")
+		}
+	}()
 
 	for {
 		select {
@@ -301,4 +311,26 @@ func getExportDir(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("export dir has not been created. Call helpers.CreateExportDir() first")
 	}
 	return exportDir, nil
+}
+
+func dumpChecks(ctx context.Context, checkerName string, checks []ec.EventChecker) error {
+	exportDir, err := getExportDir(ctx)
+	if err != nil {
+		return err
+	}
+
+	fname := checkerName + ".eventchecker.unmatched.json"
+	f, err := os.Create(filepath.Join(exportDir, fname))
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %w", fname, err)
+	}
+
+	encoder := json.NewEncoder(f)
+	err = encoder.Encode(checks)
+	if err != nil {
+		return fmt.Errorf("failed encode unmatched checks: %w", err)
+
+	}
+
+	return nil
 }
