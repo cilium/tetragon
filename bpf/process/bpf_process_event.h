@@ -619,20 +619,22 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 	task = (struct task_struct *)get_current_task();
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
+    bpf_printk("we made it here 1 ------- pid = %u\n", curr->pid);
+
 	task = (struct task_struct *)get_current_task();
 	probe_read(&cgroups, sizeof(cgroups), _(&task->cgroups));
 	if (cgroups) {
 		probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[0]));
 		if (subsys) {
 			probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
+            if (!BPF_CORE_READ(cgrp, kn))
+                bpf_printk("kn is null ------- pid = %u\n", curr->pid);
 			if (cgrp) {
-                if (!BPF_CORE_READ(cgrp, kn)) {
-                    bpf_printk("kn is null pid=%u", curr->pid);
-                }
 				if (BPF_CORE_READ_INTO(&name, cgrp, kn, name) ==
 				    0) {
-					probe_read_str(msg->kube.docker_id,
+					int ret = probe_read_str(msg->kube.docker_id,
 						       DOCKER_ID_LENGTH, name);
+                    bpf_printk("we made it here 2 ------- pid = %u ret = %d\n", curr->pid, ret);
 				} else {
 					curr->flags |= EVENT_DOCKER_NAME_ERR;
 				}
