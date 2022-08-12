@@ -14,7 +14,7 @@ const (
 	nanoPerSeconds = 1000000000
 
 	// CLK_TCK is always constant 100 on all architectures except alpha and ia64 which are both
-	// obsolete and not supported by TETRAGON. Also see
+	// obsolete and not supported by Tetragon. Also see
 	// https://lore.kernel.org/lkml/agtlq6$iht$1@penguin.transmeta.com/ and
 	// https://github.com/containerd/cgroups/pull/12
 	clktck = uint64(100)

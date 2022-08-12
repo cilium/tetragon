@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-// TETRAGON bugtool code
+// Tetragon bugtool code
 
 package bugtool
 
@@ -34,7 +34,7 @@ const (
 	initInfoFname = defaults.DefaultRunDir + "tetragon-info.json"
 )
 
-// InitInfo contains information about how TETRAGON was initialized.
+// InitInfo contains information about how Tetragon was initialized.
 type InitInfo struct {
 	ExportFname string `json:"export_fname"`
 	LibDir      string `json:"lib_dir"`

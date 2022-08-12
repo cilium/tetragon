@@ -13,8 +13,8 @@ const (
 	// execveAt syscall
 	EventExecveAt = 0x02
 	// EventProcFS indicates the event is generated from a proc interface.
-	// This happens at TETRAGON init when existing processes are being loaded
-	// into TETRAGON event buffer. All events should have either EventExecve or
+	// This happens at Tetragon init when existing processes are being loaded
+	// into Tetragon event buffer. All events should have either EventExecve or
 	// EventProcFS set.
 	EventProcFS = 0x04
 	// EventTruncFilename indicates we truncated the processes filename
@@ -26,7 +26,7 @@ const (
 	// buffer size to avoid this.
 	EventTruncArgs = 0x10
 	// EventTaskWalk indicates we walked the process hierarchy to find a
-	// parent process in the TETRAGON buffer. This may happen when we did not
+	// parent process in the Tetragon buffer. This may happen when we did not
 	// receive an exec event for the immediate parent of a process.
 	// Typically means we are looking at a fork that in turn did another
 	// fork we don't currently track fork events exactly and instead push
@@ -34,25 +34,25 @@ const (
 	// this insight into the event if needed. Primarily useful for debugging.
 	EventTaskWalk = 0x20
 	// EventMiss is an *error flag* indicating we could not find parent info
-	// in the TETRAGON event buffer. If this is set it should be reported to TETRAGON
-	// developers for debugging. TETRAGON will do its best to recover information
+	// in the Tetragon event buffer. If this is set it should be reported to Tetragon
+	// developers for debugging. Tetragon will do its best to recover information
 	// about the process from available kernel data structures instead of
 	// using cached info in this case. However, args will not be available.
 	EventMiss = 0x40
-	// EventNeedsAUID is an *internal flag* for TETRAGON to indicate the audit
+	// EventNeedsAUID is an *internal flag* for Tetragon to indicate the audit
 	// has not yet been resolved. The BPF hooks look at this flag to
 	// determine if probing the audit system is necessary.
 	EventNeedsAUID = 0x80
 	// EventErrorFilename is an *error flag* indicating an error happened
 	// while reading the filename. If this is set it should be reported to
-	// TETRAGON developers for debugging.
+	// Tetragon developers for debugging.
 	EventErrorFilename = 0x100
 	// EventErrorArgs is an *error flag* indicating an error happened while
 	// reading the process args. If this is set it should be reported to
-	// TETRAGON developers for debugging.
+	// Tetragon developers for debugging.
 	EventErrorArgs = 0x200
-	// EventNeedsCWD is an *internal flag* for TETRAGON to indicate the current
-	// working directory has not yet been resolved. The TETRAGON hooks look at
+	// EventNeedsCWD is an *internal flag* for Tetragon to indicate the current
+	// working directory has not yet been resolved. The Tetragon hooks look at
 	// this flag to determine if probing the CWD is necessary.
 	EventNeedsCWD = 0x400
 	// EventNoCWDSupport indicates we removed the CWD from the event because
@@ -64,7 +64,7 @@ const (
 	EventRootCWD = 0x1000
 	// EventErrorCWD is an *error flag* indicating an error happened while
 	// reading the CWD of a process. If this is set it should be reported to
-	// TETRAGON developers for debugging.
+	// Tetragon developers for debugging.
 	EventErrorCWD = 0x2000
 	// EventClone indicates the process issues a clone before exec* was
 	// issued. This is the general flow to exec* a new process. However,

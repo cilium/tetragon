@@ -18,7 +18,7 @@ const (
 	// DefaultMapRoot is the default path where BPFFS should be mounted
 	DefaultMapRoot = "/sys/fs/bpf"
 
-	// DefaultMapPrefix is the default path prefix where TETRAGON maps should be pinned
+	// DefaultMapPrefix is the default path prefix where Tetragon maps should be pinned
 	DefaultMapPrefix = "tetragon"
 
 	// DefaultEventMap is the default name of the Event map
