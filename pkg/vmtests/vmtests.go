@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	ConfFile    = "/etc/tetragon-tester.json" // configuration file for the tester
-	TestTimeout = 45 * time.Minute            // timeout for each test
+	ConfFile     = "/etc/tetragon-tester.json" // configuration file for the tester
+	TestTimeout  = 45 * time.Minute            // timeout for each test
+	bugtoolFname = "/tmp/tetragon-bugtool.tar.gz"
 )
 
 // Conf configures the tester
@@ -40,10 +41,33 @@ type Conf struct {
 
 // Result is the result of a single test
 type Result struct {
-	Name     string        `json:"name"`
-	Error    bool          `json:"error"`
-	Outfile  string        `json:"outfile"`
-	Duration time.Duration `json:"duration"`
+	Name       string        `json:"name"`
+	Error      bool          `json:"error"`
+	Outfile    string        `json:"outfile,omitempty"`
+	Duration   time.Duration `json:"duration"`
+	BugtoolOut string        `json:"bugtool-out,omitempty"`
+}
+
+func copyBugTool(cnf *Conf, res *Result) error {
+	in, err := os.Open(bugtoolFname)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	outPattern := fmt.Sprintf("%s-bugtool-*.tar.gz", res.Name)
+	out, err := os.CreateTemp(cnf.ResultsDir, outPattern)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	res.BugtoolOut = out.Name()
+	return nil
 }
 
 func printProgress(f *os.File, done <-chan struct{}) {
@@ -106,17 +130,23 @@ func Run(cnf *Conf) error {
 	defer gatherExportFiles(cnf)
 
 	// helper function to run test and append result to the results file
-	doRunTest := func(testName string, cmd string, args ...string) error {
+	doRunTest := func(testName string, cmd string, args ...string) (*Result, error) {
+		os.Remove(bugtoolFname)
 		res, err := runTest(cnf, testName, cmd, args...)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		if res.Error {
+			copyBugTool(cnf, res)
+		}
+
 		if b, err := json.Marshal(res); err != nil {
-			return err
+			return res, err
 		} else if _, err := f.Write(b); err != nil {
-			return err
+			return res, err
 		}
-		return nil
+
+		return res, nil
 	}
 
 	for _, test := range tests {
