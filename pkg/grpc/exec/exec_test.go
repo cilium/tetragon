@@ -764,7 +764,7 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	assert.Equal(t, currentExitEv.Process.Pid.Value, currentPid)
 	assert.Equal(t, currentExitEv.Process.Refcnt, uint32(0))
 	assert.Equal(t, currentExitEv.Parent.Pid.Value, parentPid)
-	assert.Equal(t, currentExitEv.Parent.Refcnt, uint32(1))
+	assert.Equal(t, currentExitEv.Parent.Refcnt, uint32(2))
 
 	// 4th event: exit from parent
 	// 1. should match pid of parent
