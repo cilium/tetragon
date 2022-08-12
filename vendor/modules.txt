@@ -74,7 +74,7 @@ github.com/cilium/hubble/pkg/k8s
 github.com/cilium/hubble/pkg/parser/endpoint
 github.com/cilium/hubble/pkg/parser/getters
 github.com/cilium/hubble/pkg/servicecache
-# github.com/cilium/little-vm-helper v0.0.0-20220729082344-f2ca5b097f67
+# github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
 ## explicit; go 1.18
 github.com/cilium/little-vm-helper/pkg/images
 github.com/cilium/little-vm-helper/pkg/logcmd

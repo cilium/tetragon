@@ -7,7 +7,7 @@ require (
 	github.com/cilium/cilium-e2e v0.0.0-00010101000000-000000000000
 	github.com/cilium/ebpf v0.9.0
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
-	github.com/cilium/little-vm-helper v0.0.0-20220729082344-f2ca5b097f67
+	github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
 	github.com/cilium/lumberjack/v2 v2.2.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000

@@ -90,6 +90,11 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		}
 	}()
 
+	imgSize := DefaultImageSize
+	if size := s.imgCnf.ImageSize; size != "" {
+		imgSize = size
+	}
+
 	// example: guestfish -N foo.img=disk:8G -- mkfs ext4 /dev/sda : mount /dev/sda / : tar-in /tmp/foo.tar /
 	if s.bootable {
 		dirname, err := os.MkdirTemp("", "extlinux-")
@@ -105,7 +110,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		}
 
 		cmd = exec.CommandContext(ctx, GuestFish,
-			"-N", fmt.Sprintf("%s=disk:%s", imgFname, DefaultImageSize),
+			"-N", fmt.Sprintf("%s=disk:%s", imgFname, imgSize),
 			"--",
 			"part-disk", "/dev/sda", "mbr",
 			":",
@@ -123,7 +128,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		)
 	} else {
 		cmd = exec.CommandContext(ctx, GuestFish,
-			"-N", fmt.Sprintf("%s=disk:%s", imgFname, DefaultImageSize),
+			"-N", fmt.Sprintf("%s=disk:%s", imgFname, imgSize),
 			"--",
 			"mkfs", "ext4", "/dev/sda",
 			":",
