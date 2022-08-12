@@ -2,5 +2,5 @@
 // Copyright Authors of Tetragon
 
 // Package option provides global singletons for storing configuration and
-// variables used in Hubble TETRAGON.
+// variables used in Tetragon.
 package option

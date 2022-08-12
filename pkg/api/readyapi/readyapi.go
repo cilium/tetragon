@@ -10,16 +10,16 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 )
 
-type MsgTETRAGONReady struct{}
+type MsgTetragonReady struct{}
 
-func (msg *MsgTETRAGONReady) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("Unsupported cache event MsgTETRAGONReady")
+func (msg *MsgTetragonReady) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return nil, fmt.Errorf("Unsupported cache event MsgTetragonReady")
 }
 
-func (msg *MsgTETRAGONReady) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return fmt.Errorf("Unsupported cache retry event MsgTETRAGONReady")
+func (msg *MsgTetragonReady) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return fmt.Errorf("Unsupported cache retry event MsgTetragonReady")
 }
 
-func (msg *MsgTETRAGONReady) HandleMessage() *tetragon.GetEventsResponse {
+func (msg *MsgTetragonReady) HandleMessage() *tetragon.GetEventsResponse {
 	return nil
 }
