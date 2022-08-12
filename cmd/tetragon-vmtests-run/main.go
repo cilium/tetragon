@@ -134,6 +134,7 @@ func main() {
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
+	cmd.Flags().BoolVar(&rcnf.testerConf.KeepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
