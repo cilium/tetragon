@@ -634,7 +634,7 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 				    0) {
 					int ret = probe_read_str(msg->kube.docker_id,
 						       DOCKER_ID_LENGTH, name);
-                    bpf_printk("we made it here 2 ------- pid = %u ret = %d\n", curr->pid, ret);
+                    bpf_printk("we made it here 2 ------- pid = %u ret = %d name =\"%s\"\n", curr->pid, ret, name);
 				} else {
 					curr->flags |= EVENT_DOCKER_NAME_ERR;
 				}
