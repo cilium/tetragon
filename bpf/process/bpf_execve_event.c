@@ -192,11 +192,20 @@ event_execve(struct sched_execve_args *ctx)
 			init_curr = 1;
 #endif
 		curr->key.pid = execve->pid;
-		curr->key.ktime = execve->ktime;
 		curr->nspid = execve->nspid;
 		curr->pkey = event->parent;
+		/* If this event was preceded by a clone event use the ktime
+		 * of when the clone happened. This allows us to build a single
+		 * execId for the clone+exec common path. The execId can then
+		 * be used for the procCache. If we are running exec without
+		 * a clone() then we need a new entry and user space will
+		 * learn that we smashed the current stack with exec.
+		 */
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
 			event_set_clone(execve);
+			execve->ktime = curr->key.ktime;
+		} else {
+			curr->key.ktime = execve->ktime;
 		}
 		curr->flags = 0;
 		curr->binary = binary;
