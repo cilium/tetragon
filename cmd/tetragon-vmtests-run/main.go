@@ -133,6 +133,7 @@ func main() {
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
+	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

@@ -34,6 +34,7 @@ type Conf struct {
 	ResultsDir  string `json:"results-dir"`  // directory to place the results
 	TestsFile   string `json:"tests-file"`   // file describing which tests to run
 	BTFFile     string `json:"btf-file"`     // btf file to use
+	FailFast    bool   `json:"fail-fast"`
 }
 
 // Result is the result of a single test
@@ -127,8 +128,10 @@ func Run(cnf *Conf) error {
 			progArgs = append(progArgs, "-test.run", t)
 		}
 
-		if err := doRunTest(name, prog, progArgs...); err != nil {
+		if res, err := doRunTest(name, prog, progArgs...); err != nil {
 			return err
+		} else if cnf.FailFast && res.Error {
+			break
 		}
 	}
 
