@@ -8,6 +8,7 @@ package exec
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -133,7 +134,77 @@ func (watcher *DummyK8sWatcher) SetDummyPod() {
 	}
 }
 
-func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*MsgExecveEventUnix, *MsgExitEventUnix) {
+func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*MsgExecveEventUnix, *MsgExecveEventUnix, *MsgExecveEventUnix, *MsgExitEventUnix) {
+	// Create a parent event to hand events off of and convince execCache that parents are known. In order for this to
+	// work we set the Pid == 1 here so that system believes this is the root of the tree.
+	execRootMsg := &MsgExecveEventUnix{MsgExecveEventUnix: tetragonAPI.MsgExecveEventUnix{
+		Common: tetragonAPI.MsgCommon{
+			Op:     5,
+			Flags:  0,
+			Pad_v2: [2]uint8{0, 0},
+			Size:   326,
+			Ktime:  0,
+		},
+		Kube: tetragonAPI.MsgK8sUnix{
+			NetNS:  0,
+			Cid:    0,
+			Cgrpid: 0,
+			Docker: "",
+		},
+		Parent: tetragonAPI.MsgExecveKey{
+			Pid:   0,
+			Pad:   0,
+			Ktime: 0,
+		},
+		ParentFlags: 0,
+		Process: tetragonAPI.MsgProcess{
+			Size:     78,
+			PID:      1,
+			NSPID:    0,
+			UID:      1010,
+			AUID:     1010,
+			Flags:    16385,
+			Ktime:    0,
+			Filename: "init",
+			Args:     "",
+		},
+	},
+	}
+
+	execParentMsg := &MsgExecveEventUnix{MsgExecveEventUnix: tetragonAPI.MsgExecveEventUnix{
+		Common: tetragonAPI.MsgCommon{
+			Op:     5,
+			Flags:  0,
+			Pad_v2: [2]uint8{0, 0},
+			Size:   326,
+			Ktime:  21034975106173,
+		},
+		Kube: tetragonAPI.MsgK8sUnix{
+			NetNS:  4026531992,
+			Cid:    0,
+			Cgrpid: 0,
+			Docker: Docker,
+		},
+		Parent: tetragonAPI.MsgExecveKey{
+			Pid:   1,
+			Pad:   0,
+			Ktime: 0,
+		},
+		ParentFlags: 0,
+		Process: tetragonAPI.MsgProcess{
+			Size:     78,
+			PID:      ParentPid,
+			NSPID:    0,
+			UID:      1010,
+			AUID:     1010,
+			Flags:    16385,
+			Ktime:    ParentKtime,
+			Filename: "/usr/bin/bash",
+			Args:     "--color=auto\x00/home/apapag/tetragon",
+		},
+	},
+	}
+
 	execMsg := &MsgExecveEventUnix{MsgExecveEventUnix: tetragonAPI.MsgExecveEventUnix{
 		Common: tetragonAPI.MsgCommon{
 			Op:     5,
@@ -188,7 +259,7 @@ func createEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64
 	},
 	}
 
-	return execMsg, exitMsg
+	return execRootMsg, execParentMsg, execMsg, exitMsg
 }
 
 func createCloneEvents(Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*MsgCloneEventUnix, *MsgExitEventUnix) {
@@ -270,7 +341,15 @@ func TestGrpcExecOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	execRoot, execParent, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	if e := execRoot.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	if e := execParent.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -314,7 +393,107 @@ func TestGrpcExecInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	execRoot, execParent, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	if e := execRoot.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	} else {
+		fmt.Printf("root %v\n", e); 
+	}
+	fmt.Printf("root\n");
+
+	if e := execParent.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	} else {
+		fmt.Printf("parent %v\n", e); 
+	}
+	fmt.Printf("parent\n");
+
+	if e := execMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	} else {
+		fmt.Printf("%v\n", e); 
+	}
+	fmt.Printf("execmsg\n");
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	} else {
+		fmt.Printf("%v\n", e); 
+	}
+	fmt.Printf("exit\n");
+
+	assert.Equal(t, len(AllEvents), 4)
+
+	var ev1, ev2 *tetragon.GetEventsResponse
+	if AllEvents[2].GetProcessExec() != nil {
+		ev1 = AllEvents[2]
+		ev2 = AllEvents[3]
+	} else {
+		ev2 = AllEvents[2]
+		ev1 = AllEvents[3]
+	}
+
+	fmt.Printf("getprocexec\n");
+
+	// fails but we don't expect to have the same Refcnt
+	//ev1.GetProcessExec().Process.Refcnt = 0 // hardcode that to make the following pass
+	assert.Equal(t, ev1.GetProcessExec().Process, ev2.GetProcessExit().Process)
+
+	fmt.Printf("sucess\n");
+	// success
+	assert.Equal(t, ev1.GetProcessExec().Parent, ev2.GetProcessExit().Parent)
+}
+
+func TestGrpcMissingExec(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	_, _, _, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+
+	if e := exitMsg.HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
+
+	assert.Equal(t, len(AllEvents), 1)
+	ev := AllEvents[0]
+	assert.NotNil(t, ev.GetProcessExit())
+
+	// this events misses process info
+	assert.Equal(t, ev.GetProcessExit().Process.ExecId, "")
+	assert.Equal(t, ev.GetProcessExit().Process.Binary, "")
+
+	// but should have a correct Pid
+	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: currentPid})
+}
+
+func TestGrpcExecParentOutOfOrder(t *testing.T) {
+	var cancelWg sync.WaitGroup
+
+	AllEvents = nil
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := initEnv(t, &cancelWg, watcher)
+	defer func() {
+		cancel()
+		cancelWg.Wait()
+	}()
+
+	parentPid := atomic.AddUint32(&basePid, 1)
+	currentPid := atomic.AddUint32(&basePid, 1)
+
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -341,40 +520,6 @@ func TestGrpcExecInOrder(t *testing.T) {
 
 	// success
 	assert.Equal(t, ev1.GetProcessExec().Parent, ev2.GetProcessExit().Parent)
-}
-
-func TestGrpcMissingExec(t *testing.T) {
-	var cancelWg sync.WaitGroup
-
-	AllEvents = nil
-	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel := initEnv(t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
-
-	parentPid := atomic.AddUint32(&basePid, 1)
-	currentPid := atomic.AddUint32(&basePid, 1)
-
-	_, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
-
-	if e := exitMsg.HandleMessage(); e != nil {
-		AllEvents = append(AllEvents, e)
-	}
-
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
-
-	assert.Equal(t, len(AllEvents), 1)
-	ev := AllEvents[0]
-	assert.NotNil(t, ev.GetProcessExit())
-
-	// this events misses process info
-	assert.Equal(t, ev.GetProcessExit().Process.ExecId, "")
-	assert.Equal(t, ev.GetProcessExit().Process.Binary, "")
-
-	// but should have a correct Pid
-	assert.Equal(t, ev.GetProcessExit().Process.Pid, &wrapperspb.UInt32Value{Value: currentPid})
 }
 
 func checkCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, currentPid uint32, clonePid uint32) {
@@ -422,7 +567,7 @@ func TestGrpcExecCloneInOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
@@ -457,7 +602,7 @@ func TestGrpcExecCloneOutOfOrder(t *testing.T) {
 	currentPid := atomic.AddUint32(&basePid, 1)
 	clonePid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := createCloneEvents(clonePid, 21034995089403, currentPid, 21034975089403)
 
 	if e := execMsg.HandleMessage(); e != nil {
@@ -493,8 +638,8 @@ func TestGrpcParentRefcntInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0, "")
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
+	_, _, parentExecMsg, parentExitMsg := createEvents(parentPid, 75200000000, 0, 0, "")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := parentExecMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -605,7 +750,7 @@ func TestGrpcExecPodInfoInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -640,7 +785,7 @@ func TestGrpcExecPodInfoOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -678,7 +823,7 @@ func TestGrpcExecPodInfoInOrderAfter(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -717,7 +862,7 @@ func TestGrpcExecPodInfoOutOfOrderAfter(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -754,7 +899,7 @@ func TestGrpcExecPodInfoDelayedOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -793,7 +938,7 @@ func TestGrpcExecPodInfoDelayedInOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := execMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -831,7 +976,7 @@ func TestGrpcDelayedExecK8sOutOfOrder(t *testing.T) {
 	parentPid := atomic.AddUint32(&basePid, 1)
 	currentPid := atomic.AddUint32(&basePid, 1)
 
-	execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
+	_, _, execMsg, exitMsg := createEvents(currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
 	if e := exitMsg.HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)

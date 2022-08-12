@@ -122,7 +122,7 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		ec := eventcache.Get()
 		if ec != nil &&
 			(ec.Needed(procEvent.Process) ||
-				ec.Needed(procEvent.Parent)) {
+			(procEvent.Process.Pid.Value > 1 && ec.Needed(procEvent.Parent))) {
 			ec.Add(proc, procEvent, msg.MsgExecveEventUnix.Process.Ktime, msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
