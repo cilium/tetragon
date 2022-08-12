@@ -50,6 +50,7 @@ type Cache struct {
 var (
 	ErrFailedToGetPodInfo     = errors.New("failed to get pod info")
 	ErrFailedToGetProcessInfo = errors.New("failed to get process info")
+	ErrFailedToGetParentInfo  = errors.New("failed to get parent info")
 )
 
 // Generic internal lookup happens when events are received out of order and

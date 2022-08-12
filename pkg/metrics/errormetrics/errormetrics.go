@@ -28,6 +28,8 @@ var (
 	EventCacheEndpointRetryFailed ErrorType = "event_cache_endpoint_retry_failed"
 	// Event cache failed to set process information for an event.
 	EventCacheProcessInfoFailed ErrorType = "event_cache_process_info_failed"
+	// Event cache failed to set parent information for an event.
+	EventCacheParentInfoFailed ErrorType = "event_cache_parent_info_failed"
 	// There was an invalid entry in the pid map.
 	PidMapInvalidEntry ErrorType = "pid_map_invalid_entry"
 	// An entry was evicted from the pid map because the map was full.
