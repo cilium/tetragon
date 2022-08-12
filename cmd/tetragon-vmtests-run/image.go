@@ -91,10 +91,8 @@ func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 		*/
 	}
 
-	if !rcnf.justBoot {
-		enableTester := images.Action{Op: &images.RunCommand{Cmd: "systemctl enable tetragon-tester.service"}}
-		actions = append(actions, enableTester)
-	}
+	enableTester := images.Action{Op: &images.RunCommand{Cmd: "systemctl enable tetragon-tester.service"}}
+	actions = append(actions, enableTester)
 
 	return actions, nil
 }
@@ -132,7 +130,7 @@ func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 		Op: &images.CopyInCommand{LocalPath: tmpConfFile, RemoteDir: remoteConfDir},
 	})
 
-	if !rcnf.useTetragonTesterInit {
+	if !rcnf.useTetragonTesterInit && !rcnf.justBoot {
 		acts, err := buildTesterService(rcnf, tmpDir)
 		if err != nil {
 			return nil, err
