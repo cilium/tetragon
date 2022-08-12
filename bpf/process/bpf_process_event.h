@@ -626,6 +626,9 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		if (subsys) {
 			probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
 			if (cgrp) {
+                if (!BPF_CORE_READ(cgrp, kn)) {
+                    bpf_printk("kn is null pid=%u", curr->pid);
+                }
 				if (BPF_CORE_READ_INTO(&name, cgrp, kn, name) ==
 				    0) {
 					probe_read_str(msg->kube.docker_id,
