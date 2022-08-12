@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/pprof"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -368,6 +369,8 @@ func execute() error {
 			}
 			log.WithField(keyConfigDir, configDir).Info("Loaded config from directory")
 		}
+		replacer := strings.NewReplacer("-", "_")
+		viper.SetEnvKeyReplacer(replacer)
 		viper.AutomaticEnv()
 	})
 
