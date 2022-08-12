@@ -79,10 +79,12 @@ func (msg *MsgExecveEventUnix) RetryInternal(ev notify.Event, timestamp uint64) 
 func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	var podInfo *tetragon.Pod
 
-	p := ev.GetProcess()
-	containerId := p.Docker
-	filename := p.Binary
-	args := p.Arguments
+	proc := ev.GetProcess()
+	parent := ev.GetParent()
+
+	containerId := proc.Docker
+	filename := proc.Binary
+	args := proc.Arguments
 	nspid := msg.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
@@ -99,6 +101,20 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	// here.
 	internal.AddPodInfo(podInfo)
 	ev.SetProcess(internal.GetProcessCopy())
+
+	// Check we have a parent with exception for pid 1, note we do this last because we want
+	// to ensure the podInfo and process are set before returning any errors.
+	if proc.Pid.Value > 1 && parent == nil {
+		parentId := proc.ParentExecId
+		parent, err := process.Get(parentId)
+		if parent == nil {
+			return err
+		}
+		if strings.Contains(proc.Flags, "clone") == true {
+			parent.RefInc()
+		}
+	}
+
 	return nil
 }
 
@@ -109,7 +125,9 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		proc := process.AddExecEvent(&msg.MsgExecveEventUnix)
 		procEvent := GetProcessExec(proc)
 		ec := eventcache.Get()
-		if ec != nil && ec.Needed(procEvent.Process) {
+		if ec != nil &&
+			(ec.Needed(procEvent.Process) ||
+				ec.Needed(procEvent.Parent)) {
 			ec.Add(proc, procEvent, msg.MsgExecveEventUnix.Process.Ktime, msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
@@ -176,7 +194,9 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		Status:  code,
 	}
 	ec := eventcache.Get()
-	if ec != nil && ec.Needed(tetragonProcess) {
+	if ec != nil &&
+		(ec.Needed(tetragonProcess) ||
+			ec.Needed(tetragonParent)) {
 		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}

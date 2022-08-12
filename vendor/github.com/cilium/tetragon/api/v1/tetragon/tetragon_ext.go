@@ -47,3 +47,19 @@ func (x *ProcessKprobe) SetProcess(p *Process) {
 func (x *ProcessTracepoint) SetProcess(p *Process) {
 	x.Process = p
 }
+
+func (x *ProcessExec) SetParent(p *Process) {
+	x.Parent = p
+}
+
+func (x *ProcessExit) SetParent(p *Process) {
+	x.Parent = p
+}
+
+func (x *ProcessKprobe) SetParent(p *Process) {
+	x.Parent = p
+}
+
+func (x *ProcessTracepoint) SetParent(p *Process) {
+	x.Parent = p
+}
