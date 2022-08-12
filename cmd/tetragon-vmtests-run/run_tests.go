@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -28,11 +29,17 @@ func runTests(
 	ctx, cancel := signal.NotifyContext(ctx, unix.SIGINT, unix.SIGTERM)
 	defer cancel()
 	qemuCmd := exec.CommandContext(ctx, qemuBin, qemuArgs...)
-	qemuCmd.Stdout = os.Stdout
-	qemuCmd.Stderr = os.Stderr
+
+	// buffer output from qemu's  stdout/stderr to avoid delays
+	bout := bufio.NewWriter(os.Stdout)
+	berr := bufio.NewWriter(os.Stderr)
+	qemuCmd.Stdout = bout
+	qemuCmd.Stderr = berr
 	if err := qemuCmd.Run(); err != nil {
 		return nil, err
 	}
+	bout.Flush()
+	berr.Flush()
 
 	fmt.Printf("results directory: %s\n", rcnf.testerConf.ResultsDir)
 	resFile := filepath.Join(rcnf.testerConf.ResultsDir, "results.json")
