@@ -105,7 +105,7 @@ func main() {
 
 			dur := time.Since(t0).Round(time.Millisecond)
 			if results.nrFailedTests > 0 {
-				fmt.Printf("%d/%d tests failed 😞 (took: %s)", results.nrFailedTests, results.nrTests, dur)
+				fmt.Printf("%d/%d tests failed 😞 (took: %s)\n", results.nrFailedTests, results.nrTests, dur)
 				return errors.New("failed")
 			}
 
