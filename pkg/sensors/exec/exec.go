@@ -16,9 +16,11 @@ import (
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/sirupsen/logrus"
 )
 
 func fromCString(cstr []byte) string {
@@ -34,15 +36,6 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
 
 	unix.Common = m.Common
-	unix.Kube.NetNS = m.Kube.NetNS
-	unix.Kube.Cid = m.Kube.Cid
-	unix.Kube.Cgrpid = m.Kube.Cgrpid
-	// The first byte is set to zero if there is no docker ID for this event.
-	if m.Kube.Docker[0] != 0x00 {
-		// We always get a null terminated buffer from bpf
-		cgroup := fromCString(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
-		unix.Kube.Docker, _ = procevents.LookupContainerId(cgroup, true, false)
-	}
 	unix.Parent = m.Parent
 	unix.Capabilities = m.Capabilities
 
@@ -58,6 +51,46 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix.Namespaces.UserInum = m.Namespaces.UserInum
 
 	return unix
+}
+
+func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename string) processapi.MsgK8sUnix {
+	kube := processapi.MsgK8sUnix{
+		NetNS:  m.Kube.NetNS,
+		Cid:    m.Kube.Cid,
+		Cgrpid: m.Kube.Cgrpid,
+	}
+
+	// The first byte is set to zero if there is no docker ID for this event.
+	if m.Kube.Docker[0] != 0x00 {
+		// We always get a null terminated buffer from bpf
+		cgroup := fromCString(m.Kube.Docker[:processapi.DOCKER_ID_LENGTH])
+		docker, _ := procevents.LookupContainerId(cgroup, true, false)
+		if docker != "" {
+			kube.Docker = docker
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.id":       kube.Cgrpid,
+				"cgroup.name":     cgroup,
+				"docker":          kube.Docker,
+				"process.exec_id": exec_id,
+				"process.binary":  filename,
+			}).Trace("process_exec: container ID set successfully")
+		} else {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.id":       kube.Cgrpid,
+				"cgroup.name":     cgroup,
+				"process.exec_id": exec_id,
+				"process.binary":  filename,
+			}).Trace("process_exec: no container ID due to cgroup name not being a compatible ID, ignoring.")
+		}
+	} else {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.id":       kube.Cgrpid,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: no container ID due to cgroup name being empty, ignoring.")
+	}
+
+	return kube
 }
 
 func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
@@ -172,6 +205,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil && empty {
 		msgUnix.Process = nopMsgProcess()
 	}
+	msgUnix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Process), msgUnix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
 }
 
