@@ -31,6 +31,9 @@ const (
 	// DefaultRunDir is the default run directory for runtime
 	DefaultRunDir = "/var/run/tetragon/"
 
+	// Default Path to where cgroup2 is mounted (Prefix with /run)
+	Cgroup2Dir = "/run/tetragon/cgroup2"
+
 	// DedfaultNetnsDir is the default network namespace directory for runtime
 	DefaultNetnsDir = "/var/run/docker/netns/"
 
