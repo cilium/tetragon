@@ -5,16 +5,110 @@
 
 package tetragon
 
+// IsGetEventsResponse_Event encapulates isGetEventsResponse_Event
+type IsGetEventsResponse_Event = isGetEventsResponse_Event
+
 // Event represents a Tetragon event
 type Event interface {
-	__isEvent()
+	Encapsulate() IsGetEventsResponse_Event
 }
 
-func (event *ProcessExec) __isEvent()       {}
-func (event *ProcessExit) __isEvent()       {}
-func (event *ProcessKprobe) __isEvent()     {}
-func (event *ProcessTracepoint) __isEvent() {}
-func (event *Test) __isEvent()              {}
+// ProcessEvent represents a Tetragon event that has a Process field
+type ProcessEvent interface {
+	Event
+	SetProcess(p *Process)
+}
 
-// ResponseEvent represents a Tetragon GetEventsResponse inner type
-type ResponseEvent isGetEventsResponse_Event
+// ParentEvent represents a Tetragon event that has a Parent field
+type ParentEvent interface {
+	Event
+	SetParent(p *Process)
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessExec) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessExec{
+		ProcessExec: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessExec) SetProcess(p *Process) {
+	event.Process = p
+}
+
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessExec) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessExit) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessExit{
+		ProcessExit: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessExit) SetProcess(p *Process) {
+	event.Process = p
+}
+
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessExit) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessKprobe) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessKprobe{
+		ProcessKprobe: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessKprobe) SetProcess(p *Process) {
+	event.Process = p
+}
+
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessKprobe) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessTracepoint) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessTracepoint{
+		ProcessTracepoint: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessTracepoint) SetProcess(p *Process) {
+	event.Process = p
+}
+
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessTracepoint) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *Test) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_Test{
+		Test: event,
+	}
+}

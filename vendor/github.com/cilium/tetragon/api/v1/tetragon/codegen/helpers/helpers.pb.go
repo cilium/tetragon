@@ -52,7 +52,7 @@ func ResponseGetProcess(response *tetragon.GetEventsResponse) *tetragon.Process 
 }
 
 // ResponseInnerGetProcess returns a GetEventsResponse inner event's process if it exists
-func ResponseInnerGetProcess(event tetragon.ResponseEvent) *tetragon.Process {
+func ResponseInnerGetProcess(event tetragon.IsGetEventsResponse_Event) *tetragon.Process {
 	switch ev := event.(type) {
 	case *tetragon.GetEventsResponse_ProcessExec:
 		return ev.ProcessExec.Process
@@ -82,7 +82,7 @@ func ResponseGetParent(response *tetragon.GetEventsResponse) *tetragon.Process {
 }
 
 // ResponseInnerGetParent returns a GetEventsResponse inner event's parent process if it exists
-func ResponseInnerGetParent(event tetragon.ResponseEvent) *tetragon.Process {
+func ResponseInnerGetParent(event tetragon.IsGetEventsResponse_Event) *tetragon.Process {
 	switch ev := event.(type) {
 	case *tetragon.GetEventsResponse_ProcessExec:
 		return ev.ProcessExec.Parent
