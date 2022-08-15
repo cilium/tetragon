@@ -245,16 +245,16 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 
 			done, err := ec.NextResponseCheck(rc.checker, event, log)
 			if done && err == nil {
-				klog.Infof("%s => FINAL MATCH ", prefix)
-				klog.Infof("DONE!")
+				log.Infof("%s => FINAL MATCH ", prefix)
+				log.Infof("DONE!")
 				return nil
 			} else if err == nil {
-				klog.Infof("%s => MATCH, continuing", prefix)
+				log.Infof("%s => MATCH, continuing", prefix)
 			} else if done {
-				klog.Errorf("%s => terminating error: %s", prefix, err)
+				log.Errorf("%s => terminating error: %s", prefix, err)
 				return err
 			} else {
-				klog.Infof("%s => no match: %s, continuing", prefix, err)
+				log.Infof("%s => no match: %s, continuing", prefix, err)
 			}
 		}
 	}
