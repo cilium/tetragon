@@ -38,7 +38,7 @@ var (
 	debugFSRoot = "/sys/kernel/debug"
 
 	// Path to where cgroup2 is mounted
-	cgroup2Root = "/run/tetragon/cgroup2"
+	cgroup2Root = defaults.Cgroup2Dir
 
 	// Prefix for all maps (default: tc/globals)
 	mapPrefix = defaults.DefaultMapPrefix
