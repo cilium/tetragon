@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
+
+package btf
+
+import (
+	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
+)
+
+var testBtfFiles = []struct {
+	btf     string
+	create  string
+	wantbtf string
+	err     error
+}{
+	{"", "", defaults.DefaultBTFFile, nil},
+	{defaults.DefaultBTFFile, "", defaults.DefaultBTFFile, nil},
+	{"invalid-btf-file", "", "", fmt.Errorf("BTF file 'invalid-btf-file' does not exist should fail")},
+	{"valid-btf-file", "valid-btf-file", "valid-btf-file", nil},
+}
+
+func setupfiles() func(*testing.T, string, ...string) {
+	return func(t *testing.T, param string, files ...string) {
+		for _, f := range files {
+			if param == "create" {
+				h, e := os.Create(f)
+				assert.NoError(t, e)
+				h.Close()
+			} else if param == "remove" {
+				os.Remove(f)
+			}
+		}
+	}
+}
+
+func TestObserverFindBTF(t *testing.T) {
+	ctx := context.Background()
+
+	tmpdir, err := ioutil.TempDir("/tmp", fmt.Sprintf("tetragon-%s-*", t.Name()))
+	assert.NoError(t, err, "failed to create temporary directory")
+	defer os.RemoveAll(tmpdir)
+
+	old := os.Getenv("TETRAGON_BTF")
+	defer os.Setenv("TETRAGON_BTF", old)
+
+	handlefiles := setupfiles()
+	for _, test := range testBtfFiles {
+		if test.create != "" {
+			handlefiles(t, "create", test.create, filepath.Join(tmpdir, test.create))
+			defer handlefiles(t, "remove", test.create, filepath.Join(tmpdir, test.create))
+		}
+
+		_, err := os.Stat(defaults.DefaultBTFFile)
+		if err != nil && test.wantbtf == defaults.DefaultBTFFile {
+			continue
+		}
+
+		btf, err := observerFindBTF(ctx, tmpdir, test.btf)
+		if test.err != nil {
+			assert.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
+			continue
+		}
+		assert.NoErrorf(t, err, "observerFindBTF() on '%s'  - want:no error  -  got:%v", test.btf, err)
+		assert.Equalf(t, test.wantbtf, btf, "observerFindBTF() on '%s'  -  want:'%s'  -  got:'%s'", test.btf, test.wantbtf, btf)
+
+		// Test now without lib set
+		btf, err = observerFindBTF(ctx, "", test.btf)
+		if test.err != nil {
+			assert.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
+			continue
+		}
+		assert.NoErrorf(t, err, "observerFindBTF() on '%s'  -   want:no error  -  got:%v", test.btf, err)
+		assert.Equalf(t, test.wantbtf, btf, "observerFindBTF() on '%s'  -  want:'%s'  -  got:'%s'", test.btf, test.wantbtf, btf)
+	}
+}
+
+func TestObserverFindBTFEnv(t *testing.T) {
+	ctx := context.Background()
+
+	old := os.Getenv("TETRAGON_BTF")
+	defer os.Setenv("TETRAGON_BTF", old)
+
+	lib := defaults.DefaultTetragonLib
+	btffile := defaults.DefaultBTFFile
+	_, err := os.Stat(btffile)
+	if err != nil {
+		/* No default vmlinux file */
+		btf, err := observerFindBTF(ctx, "", "")
+		if old != "" {
+			assert.NoError(t, err)
+			assert.NotEmpty(t, btf)
+		} else {
+			assert.Error(t, err)
+			assert.Empty(t, btf)
+		}
+		/* Let's clear up environment vars */
+		os.Setenv("TETRAGON_BTF", "")
+		btf, err = observerFindBTF(ctx, "", "")
+		assert.Error(t, err)
+		assert.Empty(t, btf)
+
+		/* Let's try provided path to lib but tests put the btf inside /boot/ */
+		btf, err = observerFindBTF(ctx, lib, "")
+		assert.Error(t, err)
+		assert.Empty(t, btf)
+
+		/* Let's try out the btf file that is inside /boot/ */
+		var uname unix.Utsname
+		err = unix.Uname(&uname)
+		assert.NoError(t, err)
+		kernelVersion := unix.ByteSliceToString(uname.Release[:])
+		os.Setenv("TETRAGON_BTF", filepath.Join("/boot/", fmt.Sprintf("btf-%s", kernelVersion)))
+		btf, err = observerFindBTF(ctx, lib, "")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, btf)
+
+		btffile = btf
+		err = os.Setenv("TETRAGON_BTF", btffile)
+		assert.NoError(t, err)
+		btf, err = observerFindBTF(ctx, lib, "")
+		assert.NoError(t, err)
+		assert.Equal(t, btffile, btf)
+	} else {
+		btf, err := observerFindBTF(ctx, "", "")
+		assert.NoError(t, err)
+		assert.Equal(t, btffile, btf)
+
+		err = os.Setenv("TETRAGON_BTF", btffile)
+		assert.NoError(t, err)
+		btf, err = observerFindBTF(ctx, lib, "")
+		assert.NoError(t, err)
+		assert.Equal(t, btffile, btf)
+	}
+
+	/* Following should fail */
+	err = os.Setenv("TETRAGON_BTF", "invalid-btf-file")
+	assert.NoError(t, err)
+	btf, err := observerFindBTF(ctx, lib, "")
+	assert.Error(t, err)
+	assert.Equal(t, "", btf)
+}
+
+func TestInitCachedBTF(t *testing.T) {
+	ctx := context.Background()
+
+	_, err := os.Stat(defaults.DefaultBTFFile)
+	if err != nil {
+		btffile := os.Getenv("TETRAGON_BTF")
+		err = InitCachedBTF(ctx, defaults.DefaultTetragonLib, "")
+		if btffile != "" {
+			assert.NoError(t, err)
+			file := GetCachedBTFFile()
+			assert.EqualValues(t, btffile, file, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", btffile, file)
+		} else {
+			assert.Error(t, err)
+		}
+	} else {
+		err = InitCachedBTF(ctx, defaults.DefaultTetragonLib, "")
+		assert.NoError(t, err)
+
+		btffile := GetCachedBTFFile()
+		assert.EqualValues(t, defaults.DefaultBTFFile, btffile, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", defaults.DefaultBTFFile, btffile)
+	}
+}
