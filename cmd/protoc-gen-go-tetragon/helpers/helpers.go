@@ -97,7 +97,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 		return ret
 	}
 
-	ifaceIdent := common.TetragonApiIdent(g, "ResponseEvent")
+	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
 
 	g.P(`// ResponseInnerGetProcess returns a GetEventsResponse inner event's process if it exists
     func ResponseInnerGetProcess(event ` + ifaceIdent + `) *` + tetragonProcess + ` {
@@ -155,7 +155,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 		return ret
 	}
 
-	ifaceIdent := common.TetragonApiIdent(g, "ResponseEvent")
+	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
 
 	g.P(`// ResponseInnerGetParent returns a GetEventsResponse inner event's parent process if it exists
     func ResponseInnerGetParent(event ` + ifaceIdent + `) *` + tetragonProcess + ` {
