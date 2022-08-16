@@ -252,8 +252,8 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 	return cnf, nil
 }
 
-func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
-	var sens []*sensors.Sensor
+func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
+	var sens, ret []*sensors.Sensor
 
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
@@ -280,17 +280,17 @@ func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor,
 		var err error
 		sens, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
 		if err != nil {
-			return nil, err
+			return nil, ret, err
 		}
 	}
 
 	if err := loadObserver(t, ctx, base, sens, o.observer.notestfail); err != nil {
-		return nil, err
+		return nil, ret, err
 	}
 
 	exportFname, err := testutils.GetExportFilename(t)
 	if err != nil {
-		return nil, err
+		return nil, ret, err
 	}
 	saveInitInfo(o, exportFname)
 
@@ -311,9 +311,16 @@ func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor,
 		testDone(t, obs)
 	})
 
+	ret = append(sens, base)
+
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
 	obs.perfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
-	return obs, nil
+	return obs, ret, nil
+}
+
+func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+	obs, _, err := getDefaultObserverSensors(t, ctx, base, opts...)
+	return obs, err
 }
 
 func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
@@ -337,6 +344,12 @@ func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Se
 func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string) (*Observer, error) {
 	b := base.GetInitialSensor()
 	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+}
+
+func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string) ([]*sensors.Sensor, error) {
+	b := base.GetInitialSensor()
+	_, sens, err := getDefaultObserverSensors(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	return sens, err
 }
 
 func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool) (*Observer, error) {
