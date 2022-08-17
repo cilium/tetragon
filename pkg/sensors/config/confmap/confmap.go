@@ -30,6 +30,10 @@ type TetragonConfValue struct {
 	CgrpFsMagic uint64 // Cgroupv1 or cgroupv2
 }
 
+var (
+	log = logger.GetLogger()
+)
+
 func (k *TetragonConfKey) String() string             { return fmt.Sprintf("key=%d", k.Key) }
 func (k *TetragonConfKey) GetKeyPtr() unsafe.Pointer  { return unsafe.Pointer(k) }
 func (k *TetragonConfKey) DeepCopyMapKey() bpf.MapKey { return &TetragonConfKey{k.Key} }
@@ -55,7 +59,7 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 			time.Sleep(1 * time.Second)
 		}
 		if i > 4 {
-			logger.GetLogger().WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
+			log.WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
 			return err
 		}
 	}
@@ -67,18 +71,20 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 		// TODO complete
 		Mode:        0,
 		CgrpFsMagic: 0,
+		LogLevel:    uint32(logger.GetLogLevel()),
 		NSPID:       uint32(nspid),
 	}
 
 	err = m.Update(k, v)
 	if err != nil {
-		logger.GetLogger().WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
+		log.WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
 		return err
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"bpf-map": configMap.Name,
-		"NSPID":   nspid,
+	log.WithFields(logrus.Fields{
+		"bpf-map":  configMap.Name,
+		"LogLevel": logrus.Level(v.LogLevel).String(),
+		"NSPID":    nspid,
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
