@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -313,7 +314,22 @@ func getExportDir(ctx context.Context) (string, error) {
 	return exportDir, nil
 }
 
+func checkertypeString(checker ec.EventChecker) string {
+	// Get the concrete type of the event
+	ty := fmt.Sprintf("%T", checker)
+	// Take only what comes after the last "."
+	tys := strings.Split(ty, ".")
+	ty = tys[len(tys)-1]
+	return ty
+}
+
 func dumpChecks(ctx context.Context, checkerName string, checks []ec.EventChecker) error {
+	var unmatchedChecks []map[string]interface{}
+
+	for _, check := range checks {
+		unmatchedChecks = append(unmatchedChecks, map[string]interface{}{checkertypeString(check): check})
+	}
+
 	exportDir, err := getExportDir(ctx)
 	if err != nil {
 		return err
@@ -326,7 +342,7 @@ func dumpChecks(ctx context.Context, checkerName string, checks []ec.EventChecke
 	}
 
 	encoder := json.NewEncoder(f)
-	err = encoder.Encode(checks)
+	err = encoder.Encode(unmatchedChecks)
 	if err != nil {
 		return fmt.Errorf("failed encode unmatched checks: %w", err)
 
