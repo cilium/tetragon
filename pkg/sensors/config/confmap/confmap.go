@@ -9,7 +9,10 @@ import (
 	"time"
 	"unsafe"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/sirupsen/logrus"
@@ -66,13 +69,21 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 
 	defer m.Close()
 
+	cgroupFsMagic, err := cgroups.GetBpfCgroupFS()
+	if err != nil {
+		log.WithField("bpf-map", configMap.Name).WithError(err).Warnf("Cgroupfs detection failed, falling back to Cgroupv1")
+		// Let's fallback to Cgroupv1 so we can use raw cgroup bpf code and avoid
+		// cgroupv2 helpers
+		cgroupFsMagic = unix.CGROUP_SUPER_MAGIC
+	}
+
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
 		// TODO complete
 		Mode:        0,
-		CgrpFsMagic: 0,
 		LogLevel:    uint32(logger.GetLogLevel()),
 		NSPID:       uint32(nspid),
+		CgrpFsMagic: cgroupFsMagic,
 	}
 
 	err = m.Update(k, v)
@@ -82,9 +93,10 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	}
 
 	log.WithFields(logrus.Fields{
-		"bpf-map":  configMap.Name,
-		"LogLevel": logrus.Level(v.LogLevel).String(),
-		"NSPID":    nspid,
+		"bpf-map":       configMap.Name,
+		"LogLevel":      logrus.Level(v.LogLevel).String(),
+		"NSPID":         nspid,
+		"CgroupFSMagic": cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
