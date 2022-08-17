@@ -62,41 +62,52 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 			time.Sleep(1 * time.Second)
 		}
 		if i > 4 {
-			log.WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
+			log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
 			return err
 		}
 	}
 
 	defer m.Close()
 
+	// First let's detect cgroupfs magic
 	cgroupFsMagic, err := cgroups.GetBpfCgroupFS()
 	if err != nil {
-		log.WithField("bpf-map", configMap.Name).WithError(err).Warnf("Cgroupfs detection failed, falling back to Cgroupv1")
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Cgroupfs detection failed, falling back to Cgroupv1")
 		// Let's fallback to Cgroupv1 so we can use raw cgroup bpf code and avoid
 		// cgroupv2 helpers
 		cgroupFsMagic = unix.CGROUP_SUPER_MAGIC
 	}
 
+	// Detect deployment mode
+	deployMode, err := cgroups.DetectDeploymentMode()
+	if err != nil {
+		deployMode = cgroups.DEPLOY_UNKNOWN
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Deployment mode detection failed")
+		log.WithField("confmap-update", configMap.Name).Warnf("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
+	}
+
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
-		// TODO complete
-		Mode:        0,
+		Mode:        deployMode,
 		LogLevel:    uint32(logger.GetLogLevel()),
 		NSPID:       uint32(nspid),
+		TgCgrpLevel: 0,
+		Pad:         0,
 		CgrpFsMagic: cgroupFsMagic,
 	}
 
 	err = m.Update(k, v)
 	if err != nil {
-		log.WithField("bpf-map", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
 		return err
 	}
 
 	log.WithFields(logrus.Fields{
-		"bpf-map":       configMap.Name,
-		"LogLevel":      logrus.Level(v.LogLevel).String(),
-		"NSPID":         nspid,
-		"CgroupFSMagic": cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+		"confmap-update": configMap.Name,
+		"DeploymentMode": cgroups.DeploymentCode(deployMode).String(),
+		"LogLevel":       logrus.Level(v.LogLevel).String(),
+		"NSPID":          nspid,
+		"CgroupFSMagic":  cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
