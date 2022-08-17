@@ -13,7 +13,7 @@ TESTER_PROGS_DIR = "contrib/tester-progs"
 # Extra flags to pass to test binary
 EXTRA_TESTFLAGS ?=
 
-VERSION=$(shell git describe --tags --always)
+VERSION ?= $(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
 GO_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode external -extldflags -static"
@@ -161,7 +161,7 @@ lint:
 
 .PHONY: image image-operator image-test image-codegen
 image: image-clang
-	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --build-arg TETRAGON_VERSION=$(VERSION) .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
