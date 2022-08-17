@@ -12,6 +12,9 @@ const (
 	// cgroup of the task
 	DOCKER_ID_LENGTH = 128
 
+	// Length of the cgroup name as it is returned from BPF side
+	CGROUP_NAME_LENGTH = 128
+
 	MSG_SIZEOF_MAXARG = 100
 	MSG_SIZEOF_EXECVE = 32
 	MSG_SIZEOF_CWD    = 256
