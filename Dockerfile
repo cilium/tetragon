@@ -6,10 +6,11 @@ COPY . ./
 RUN make tetragon-bpf LOCAL_CLANG=1
 
 FROM quay.io/cilium/cilium-builder:a2dc3278c48e1593b1f6c8fd9e5c6a982d56a875@sha256:98c4e694805e9a9d410ed73d555e97e91d77e2ab4529b6b51f5243b33ab411b1 as hubble-builder
+ARG TETRAGON_VERSION
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update && apt-get install -y libelf-dev zlib1g-dev
 COPY . ./
-RUN make tetragon-image LOCAL_CLANG=1
+RUN make tetragon-image LOCAL_CLANG=1 VERSION=$TETRAGON_VERSION
 
 FROM docker.io/library/golang:1.18.3-alpine3.15@sha256:b35984144ec2c2dfd6200e112a9b8ecec4a8fd9eff0babaff330f1f82f14cb2a as gops
 RUN apk add --no-cache binutils git \
