@@ -108,11 +108,11 @@ func copyLoadedCollection(coll *ebpf.Collection) (*LoadedCollection, error) {
 			return nil, fmt.Errorf("failed to get id")
 		}
 		mapIDs, ok := info.MapIDs()
-		if !ok {
-			return nil, fmt.Errorf("failed to get map ids")
-		}
+
 		lp := &LoadedProgram{ID: id}
-		lp.MapIDs = mapIDs
+		if ok {
+			lp.MapIDs = mapIDs
+		}
 		lp.Type = p.Type()
 		lc.Programs[name] = lp
 	}
