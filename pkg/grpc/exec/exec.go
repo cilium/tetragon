@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -61,6 +62,41 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
 	}
+}
+
+type MsgCgroupEventUnix struct {
+	processapi.MsgCgroupEvent
+}
+
+func (msg *MsgCgroupEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return nil, fmt.Errorf("Unreachable state: MsgCgroupEventUnix RetryInternal() was called")
+}
+
+func (msg *MsgCgroupEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return fmt.Errorf("Unreachable state: MsgCgroupEventUnix Retry() was called")
+}
+
+func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
+	switch msg.Common.Op {
+	case ops.MSG_OP_CGROUP:
+		op := ops.CgroupOpCode(msg.CgrpOp)
+		st := ops.CgroupState(msg.CgrpData.State).String()
+		switch op {
+		case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
+			logger.GetLogger().WithField("cgroup-event", op.String()).Debugf("PID=%d  NSPID=%d  CgroupIdTracker=%d  CgroupId=%d  CgroupState=%s  CgroupLevel=%d  CgroupPath=%s",
+				msg.PID, msg.NSPID, msg.CgrpidTracker, msg.Cgrpid, st, msg.CgrpData.Level, cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
+		case ops.MSG_OP_CGROUP_ATTACH_TASK:
+			// Here we should get notification when Tetragon migrate itself
+			// and discovers cgroups configuration
+			logger.GetLogger().WithField("cgroup-event", op.String()).Infof("PID=%d  NSPID=%d  CgroupIdTracker=%d  CgroupId=%d  CgroupState=%s  CgroupLevel=%d  CgroupPath=%s",
+				msg.PID, msg.NSPID, msg.CgrpidTracker, msg.Cgrpid, st, msg.CgrpData.Level, cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
+		default:
+			logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
+		}
+	default:
+		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled event")
+	}
+	return nil
 }
 
 type MsgExecveEventUnix struct {
