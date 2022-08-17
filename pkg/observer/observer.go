@@ -273,7 +273,8 @@ func (k *Observer) updateTetragonConf() error {
 	pid := os.Getpid()
 	err := confmap.UpdateTetragonConfMap(option.Config.MapDir, pid)
 	if err != nil {
-		return fmt.Errorf("update Tetragon bpf conf failed: %v", err)
+		// Do not fail
+		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroup tracking will be disabled")
 	}
 
 	return nil
@@ -283,7 +284,8 @@ func (k *Observer) updateTetragonConf() error {
 func (k *Observer) probeTetragonCgroups() error {
 	err := cgroups.MigrateSelfToSameCgrp()
 	if err != nil {
-		return fmt.Errorf("migrating Tetragon to same cgroup failed: %v", err)
+		// Do not fail
+		k.log.WithField("observer", "probe-cgroups").WithError(err).Warn("Migrating Tetragon to same Cgroup failed, advanced Cgroup tracking will be disabled")
 	}
 
 	return nil
