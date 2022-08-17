@@ -46,6 +46,20 @@ const (
 	CGROUP_UNIFIED = 3
 )
 
+type deploymentEnv struct {
+	id  uint32
+	str string
+}
+
+const (
+	// Deployment modes
+	DEPLOY_UNKNOWN    = 0
+	DEPLOY_K8S        = 1  // K8s deployment
+	DEPLOY_CONTAINER  = 2  // Container docker, podman, etc
+	DEPLOY_SD_SERVICE = 10 // Systemd service
+	DEPLOY_SD_USER    = 11 // Systemd user session
+)
+
 var (
 	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
@@ -70,10 +84,36 @@ var (
 		CGROUP_UNIFIED: "Unified mode (Cgroupv2)",
 	}
 
+	/* Ordered from nested to top cgroup parents
+	 * For k8s we check also config k8s flags.
+	 */
+	deployments = []deploymentEnv{
+		{id: DEPLOY_K8S, str: "kube"},
+		{id: DEPLOY_CONTAINER, str: "docker"},
+		{id: DEPLOY_CONTAINER, str: "podman"},
+		{id: DEPLOY_CONTAINER, str: "libpod"},
+		{id: DEPLOY_SD_SERVICE, str: "system.slice"},
+		{id: DEPLOY_SD_USER, str: "user.slice"},
+	}
+
 	readCgroupMode sync.Once
 	cgroupMode     int
 	cgroupFSPath   string
+
+	deploymentMode uint32
 )
+
+type DeploymentCode int
+
+func (op DeploymentCode) String() string {
+	return [...]string{
+		DEPLOY_UNKNOWN:    "unknown",
+		DEPLOY_K8S:        "Kubernetes",
+		DEPLOY_CONTAINER:  "Container",
+		DEPLOY_SD_SERVICE: "systemd service",
+		DEPLOY_SD_USER:    "systemd user session",
+	}[op]
+}
 
 // CgroupFsMagicStr() Returns "Cgroupv2" or "Cgroupv1" based on passed magic.
 func CgroupFsMagicStr(magic uint64) string {
@@ -86,25 +126,77 @@ func CgroupFsMagicStr(magic uint64) string {
 	return ""
 }
 
+func setDeploymentMode(cgroupPath string) error {
+	if deploymentMode != DEPLOY_UNKNOWN {
+		return nil
+	}
+
+	if option.Config.EnableK8s == true {
+		deploymentMode = DEPLOY_K8S
+		return nil
+	}
+
+	if cgroupPath == "" {
+		// Probably namespaced
+		deploymentMode = DEPLOY_CONTAINER
+		return nil
+	}
+
+	for _, d := range deployments {
+		if strings.Contains(cgroupPath, d.str) {
+			deploymentMode = d.id
+			return nil
+		}
+	}
+
+	// Last operation fallback
+	if cgroupPath == "/" {
+		deploymentMode = DEPLOY_CONTAINER
+		return nil
+	}
+
+	return fmt.Errorf("detect deployment mode failed no match for Cgroup Path '%s'", cgroupPath)
+}
+
+func getDeploymentMode() uint32 {
+	return deploymentMode
+}
+
 // Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv1
 func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
-	path := ""
 	for _, v := range cgroupv1Hierarchies {
 		for _, s := range cgroupPaths {
 			if strings.Contains(s, v) {
 				idx := strings.Index(s, "/")
-				path = s[idx+1:]
+				path := s[idx+1:]
+				// Get controllers
 				fields := strings.Split(s, ":")
 				if fields[1] == "name=systemd" {
 					fields[1] = "systemd"
 				}
 
-				path = filepath.Join(cgroupFSPath, fields[1], path, "cgroup.procs")
-				_, err := os.Stat(path)
+				finalpath := filepath.Join(cgroupFSPath, fields[1], path, "cgroup.procs")
+				_, err := os.Stat(finalpath)
 				if err != nil {
-					logger.GetLogger().WithError(err).Warnf("failed to validate Cgroupv1 Path '%s'", path)
+					// Probably namespaced... run the deployment mode detection
+					err = setDeploymentMode(path)
+					if err == nil {
+						mode := getDeploymentMode()
+						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
+							// Cgroups are namespaced let's try again
+							finalpath = filepath.Join(cgroupFSPath, fields[1], "cgroup.procs")
+							_, err = os.Stat(finalpath)
+						}
+					}
+				}
+				if err == nil {
+					// Run the deployment mode detection, fine to run it again.
+					err = setDeploymentMode(path)
+				}
+				if err != nil {
+					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv1 Path '%s'", finalpath)
 				} else {
-					return path, nil
+					return finalpath, nil
 				}
 			}
 		}
@@ -115,17 +207,32 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 
 // Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv2
 func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
-	path := ""
 	for _, s := range cgroupPaths {
 		if strings.Contains(s, cgroupv2Hierarchy) {
 			idx := strings.Index(s, "/")
-			path = s[idx+1:]
-			path = filepath.Join(cgroupFSPath, path, "cgroup.procs")
-			_, err := os.Stat(path)
+			path := s[idx+1:]
+			finalpath := filepath.Join(cgroupFSPath, path, "cgroup.procs")
+			_, err := os.Stat(finalpath)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("failed to validate Cgroupv2 Path '%s'", path)
+				// Namespaced ? let's force the check
+				err = setDeploymentMode(path)
+				if err == nil {
+					mode := getDeploymentMode()
+					if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
+						// Cgroups are namespaced let's try again
+						finalpath = filepath.Join(cgroupFSPath, "cgroup.procs")
+						_, err = os.Stat(finalpath)
+					}
+				}
+			}
+			if err == nil {
+				// Run the deployment mode detection, fine to run it again.
+				err = setDeploymentMode(path)
+			}
+			if err != nil {
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv2 Path '%s'", finalpath)
 			} else {
-				return path, nil
+				return finalpath, nil
 			}
 		}
 	}
@@ -151,14 +258,14 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 func migratePidtoCgrp(path string, pid uint32) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("open '%q' failed", path)
+		logger.GetLogger().WithError(err).Warnf("Open file %q failed", path)
 		return err
 	}
 
 	_, err = f.Write([]byte(fmt.Sprint(pid)))
 	f.Close()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("migrating pid=%d to %q failed", pid, path)
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Migrating pid=%d to %q failed", pid, path)
 		return err
 	}
 
@@ -182,7 +289,7 @@ func detectCgroupMode(cgroupfs string) (int, error) {
 		return CGROUP_LEGACY, nil
 	}
 
-	return CGROUP_UNDEF, fmt.Errorf("cgroupfs: '%s' is with the wrong fs type: %d", cgroupfs, st.Type)
+	return CGROUP_UNDEF, fmt.Errorf("wrong type '%d' for cgroupfs '%s'", st.Type, cgroupfs)
 }
 
 // GetCgroupMode() Returns the current Cgroup mode that is applied to the system
@@ -198,10 +305,10 @@ func GetCgroupMode() (int, error) {
 		cgroupFSPath = defaultCgroupRoot
 		cgroupMode, err = detectCgroupMode(cgroupFSPath)
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("cgroupfs", cgroupFSPath).Debug("could not detect Cgroup Mode")
+			logger.GetLogger().WithError(err).WithField("Cgroupfs", cgroupFSPath).Debug("Could not detect Cgroup Mode")
 			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("cgroupfs", defaults.Cgroup2Dir).Debug("could not detect Cgroup Mode")
+				logger.GetLogger().WithError(err).WithField("Cgroupfs", defaults.Cgroup2Dir).Debug("Could not detect Cgroup Mode")
 			} else {
 				cgroupFSPath = defaults.Cgroup2Dir
 			}
@@ -210,8 +317,8 @@ func GetCgroupMode() (int, error) {
 			str, ok := cgroupModesStr[cgroupMode]
 			if ok {
 				logger.GetLogger().WithFields(logrus.Fields{
-					"cgroupfs":   cgroupFSPath,
-					"cgroupMode": str,
+					"Cgroupfs":   cgroupFSPath,
+					"CgroupMode": str,
 				}).Infof("Cgroup mode detection succeeded")
 			}
 		}
@@ -227,7 +334,7 @@ func GetCgroupMode() (int, error) {
 func findMigrationPath(pid uint32) (string, error) {
 	cgroupPaths, err := getPidCgroupPaths(pid)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
 		return "", err
 	}
 
@@ -247,7 +354,7 @@ func findMigrationPath(pid uint32) (string, error) {
 	}
 
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
 		return "", err
 	}
 
@@ -267,8 +374,39 @@ func MigrateSelfToSameCgrp() error {
 		return err
 	}
 
-	logger.GetLogger().Infof("Migrated Tetragon pid=%d to its cgroup %q", pid, path)
+	logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Infof("Migrated Tetragon pid=%d to its cgroup %q", pid, path)
 	return nil
+}
+
+func detectDeploymentMode() (uint32, error) {
+	mode := getDeploymentMode()
+	if mode != DEPLOY_UNKNOWN {
+		return mode, nil
+	}
+
+	// Let's call findMigrationPath in case to
+	// get the Deployment Mode.
+	pid := os.Getpid()
+	_, err := findMigrationPath(uint32(pid))
+	if err != nil {
+		return DEPLOY_UNKNOWN, err
+	}
+
+	return getDeploymentMode(), nil
+}
+
+func DetectDeploymentMode() (uint32, error) {
+	mode, err := detectDeploymentMode()
+	if err != nil {
+		return mode, err
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"Cgroupfs":       cgroupFSPath,
+		"DeploymentMode": DeploymentCode(mode).String(),
+	}).Info("Deployment mode detection succeeded")
+
+	return mode, nil
 }
 
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
@@ -281,10 +419,10 @@ func GetBpfCgroupFS() (uint64, error) {
 	switch mode {
 	case CGROUP_LEGACY, CGROUP_HYBRID:
 		/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-		logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
 		return unix.CGROUP_SUPER_MAGIC, nil
 	case CGROUP_UNIFIED:
-		logger.GetLogger().WithField("cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
 		return unix.CGROUP2_SUPER_MAGIC, nil
 	}
 
