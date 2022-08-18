@@ -622,7 +622,7 @@ we provide a standard VagrantFile with the required components enabled. Simply r
  $ vagrant ssh
  ```
 
-This should be sufficient to create a Kind cluster and run Tetragon.
+This should be sufficient to create a Kind cluster and run Tetragon. For more information on the vagrant builds, see the [Development Guide](docs/contributing/development/README.md#local-development-in-vagrant-box).
 
 # FAQ
 
