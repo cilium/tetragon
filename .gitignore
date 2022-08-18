@@ -16,4 +16,5 @@ cscope.po.out
 cscope.out
 cscope.in.out
 strange.txt
+.vagrant/
 .vscode
