@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -29,6 +32,7 @@ type Config struct {
 	SelfBinary          string
 	CmdWaitTime         time.Duration
 	DisableTetragonLogs bool
+	Debug               bool
 }
 
 var ConfigDefaults = Config{
@@ -37,6 +41,7 @@ var ConfigDefaults = Config{
 	SelfBinary:          filepath.Base(os.Args[0]),
 	CmdWaitTime:         60000 * time.Millisecond,
 	DisableTetragonLogs: false,
+	Debug:               false,
 }
 
 func Conf() *Config {
@@ -79,7 +84,18 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		"disable-tetragon-logs",
 		ConfigDefaults.DisableTetragonLogs,
 		"do not output teragon log")
+	flag.BoolVar(
+		&config.Debug,
+		"debug",
+		ConfigDefaults.Debug,
+		"enable debug log output")
 	flag.Parse()
+
+	if config.Debug {
+		if err := logger.SetupLogging(option.Config.LogOpts, true); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	// use a sensor-specific name for the bpffs directory for the maps.
 	// Also, we currently seem to fail to remove the /sys/fs/bpf/<testMapDir>
