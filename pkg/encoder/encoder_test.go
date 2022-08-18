@@ -18,7 +18,7 @@ func TestCompactEncoder_InvalidEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the event field is nil.
-	_, err := p.eventToString(&tetragon.GetEventsResponse{})
+	_, err := p.EventToString(&tetragon.GetEventsResponse{})
 	assert.Error(t, err)
 }
 
@@ -26,7 +26,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the process field is nil.
-	_, err := p.eventToString(&tetragon.GetEventsResponse{
+	_, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{},
 		},
@@ -34,7 +34,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 	assert.Error(t, err)
 
 	// without pod info
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
@@ -49,7 +49,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 	assert.Equal(t, "🚀 process my-node /usr/bin/curl cilium.io", result)
 
 	// with pod info
-	result, err = p.eventToString(&tetragon.GetEventsResponse{
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{
 				Process: &tetragon.Process{
@@ -71,7 +71,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the process field is nil.
-	_, err := p.eventToString(&tetragon.GetEventsResponse{
+	_, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExit{
 			ProcessExit: &tetragon.ProcessExit{},
 		},
@@ -79,7 +79,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 	assert.Error(t, err)
 
 	// with status
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExit{
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
@@ -98,7 +98,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 	assert.Equal(t, "💥 exit    kube-system/tetragon /usr/bin/curl cilium.io 1", result)
 
 	// with signal
-	result, err = p.eventToString(&tetragon.GetEventsResponse{
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExit{
 			ProcessExit: &tetragon.ProcessExit{
 				Process: &tetragon.Process{
@@ -121,7 +121,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail without process field
-	_, err := p.eventToString(&tetragon.GetEventsResponse{
+	_, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				FunctionName: "unhandled_function",
@@ -131,7 +131,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 	assert.Error(t, err)
 
 	// unknown function
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -153,7 +153,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// open without args
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -171,7 +171,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 	assert.Equal(t, "📬 open    kube-system/tetragon /usr/bin/curl ", result)
 
 	// open with args
-	result, err = p.eventToString(&tetragon.GetEventsResponse{
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -197,7 +197,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// write without args
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -215,7 +215,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 	assert.Equal(t, "📝 write   kube-system/tetragon /usr/bin/curl  ", result)
 
 	// write with args
-	result, err = p.eventToString(&tetragon.GetEventsResponse{
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -242,7 +242,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// open without args
-	result, err := p.eventToString(&tetragon.GetEventsResponse{
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
@@ -260,7 +260,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl ", result)
 
 	// open with args
-	result, err = p.eventToString(&tetragon.GetEventsResponse{
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessKprobe{
 			ProcessKprobe: &tetragon.ProcessKprobe{
 				Process: &tetragon.Process{
