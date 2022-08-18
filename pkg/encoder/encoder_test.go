@@ -8,12 +8,14 @@ import (
 	"os"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCompactEncoder_InvalidEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the event field is nil.
 	_, err := p.eventToString(&tetragon.GetEventsResponse{})
@@ -21,7 +23,7 @@ func TestCompactEncoder_InvalidEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_ExecEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the process field is nil.
 	_, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -66,7 +68,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_ExitEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail if the process field is nil.
 	_, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -116,7 +118,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_KprobeEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// should fail without process field
 	_, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -148,7 +150,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// open without args
 	result, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -192,7 +194,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// write without args
 	result, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -237,7 +239,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 }
 
 func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
-	p := NewCompactEncoder(os.Stdout, Never)
+	p := NewCompactEncoder(os.Stdout, Never, false)
 
 	// open without args
 	result, err := p.eventToString(&tetragon.GetEventsResponse{
@@ -281,7 +283,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 
 func TestCompactEncoder_Encode(t *testing.T) {
 	var b bytes.Buffer
-	p := NewCompactEncoder(&b, Never)
+	p := NewCompactEncoder(&b, Never, false)
 
 	// invalid event
 	err := p.Encode(nil)
@@ -308,4 +310,36 @@ func TestCompactEncoder_Encode(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
+}
+
+func TestCompactEncoder_EncodeWithTimestamp(t *testing.T) {
+	var b bytes.Buffer
+	p := NewCompactEncoder(&b, Never, true)
+
+	// invalid event
+	err := p.Encode(nil)
+	assert.Error(t, err)
+
+	// more invalid event
+	err = p.Encode(&tetragon.GetEventsResponse{})
+	assert.Error(t, err)
+
+	// valid event
+	err = p.Encode(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{
+					Binary:    "/usr/bin/curl",
+					Arguments: "cilium.io",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+			},
+		},
+		Time: &timestamppb.Timestamp{},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "1970-01-01T00:00:00.000000000Z 🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
 }
