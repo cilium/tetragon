@@ -210,6 +210,8 @@ If you are on a Mac, use Vagrant to create a dev VM:
     vagrant ssh
     make
 
+If you are getting an error, you can try to run `sudo launchctl load /Library/LaunchDaemons/org.virtualbox.startup.plist` (from https://stackoverflow.com/questions/18149546/macos-vagrant-up-failed-dev-vboxnetctl-no-such-file-or-directory).
+
 ### Making Changes
 
 1. Make sure the main branch of your fork is up-to-date:
