@@ -37,17 +37,17 @@ const (
 
 // CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {
-	writer     io.Writer
-	colorer    *colorer
-	timestamps bool
+	Writer     io.Writer
+	Colorer    *Colorer
+	Timestamps bool
 }
 
 // NewCompactEncoder initializes and returns a pointer to CompactEncoder.
 func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool) *CompactEncoder {
 	return &CompactEncoder{
-		writer:     w,
-		colorer:    newColorer(colorMode),
-		timestamps: timestamps,
+		Writer:     w,
+		Colorer:    NewColorer(colorMode),
+		Timestamps: timestamps,
 	}
 }
 
@@ -58,15 +58,15 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 		return ErrInvalidEvent
 	}
 	logger.GetLogger().WithField("event", v).Debug("Processing event")
-	str, err := p.eventToString(event)
+	str, err := p.EventToString(event)
 	if err != nil {
 		return err
 	}
-	if p.timestamps {
+	if p.Timestamps {
 		ts := event.Time.AsTime().UTC().Format(rfc3339Nano)
 		str = fmt.Sprintf("%s %s", ts, str)
 	}
-	fmt.Fprintln(p.writer, str)
+	fmt.Fprintln(p.Writer, str)
 	return nil
 }
 
@@ -74,7 +74,7 @@ const (
 	capsPad = 120
 )
 
-func capTrailorPrinter(str string, caps string) string {
+func CapTrailorPrinter(str string, caps string) string {
 	if len(caps) == 0 {
 		return fmt.Sprintf("%s", str)
 	}
@@ -108,168 +108,168 @@ var nsId = map[int32]string{
 	int32(CLONE_NEWUTS):    "uts",
 }
 
-func printNS(ns int32) string {
+func PrintNS(ns int32) string {
 	return nsId[ns]
 }
 
-func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (string, error) {
+func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (string, error) {
 	switch response.Event.(type) {
 	case *tetragon.GetEventsResponse_ProcessExec:
 		exec := response.GetProcessExec()
 		if exec.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		event := p.colorer.blue.Sprintf("🚀 %-7s", "process")
-		processInfo, caps := p.colorer.processInfo(response.NodeName, exec.Process)
-		args := p.colorer.cyan.Sprint(exec.Process.Arguments)
-		return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
+		event := p.Colorer.Blue.Sprintf("🚀 %-7s", "process")
+		processInfo, caps := p.Colorer.processInfo(response.NodeName, exec.Process)
+		args := p.Colorer.Cyan.Sprint(exec.Process.Arguments)
+		return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
 	case *tetragon.GetEventsResponse_ProcessExit:
 		exit := response.GetProcessExit()
 		if exit.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		event := p.colorer.blue.Sprintf("💥 %-7s", "exit")
-		processInfo, caps := p.colorer.processInfo(response.NodeName, exit.Process)
-		args := p.colorer.cyan.Sprint(exit.Process.Arguments)
+		event := p.Colorer.Blue.Sprintf("💥 %-7s", "exit")
+		processInfo, caps := p.Colorer.processInfo(response.NodeName, exit.Process)
+		args := p.Colorer.Cyan.Sprint(exit.Process.Arguments)
 		var status string
 		if exit.Signal != "" {
-			status = p.colorer.red.Sprint(exit.Signal)
+			status = p.Colorer.Red.Sprint(exit.Signal)
 		} else {
-			status = p.colorer.red.Sprint(exit.Status)
+			status = p.Colorer.Red.Sprint(exit.Status)
 		}
-		return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
+		return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
 	case *tetragon.GetEventsResponse_ProcessKprobe:
 		kprobe := response.GetProcessKprobe()
 		if kprobe.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		processInfo, caps := p.colorer.processInfo(response.NodeName, kprobe.Process)
+		processInfo, caps := p.Colorer.processInfo(response.NodeName, kprobe.Process)
 		switch kprobe.FunctionName {
 		case "__x64_sys_write":
-			event := p.colorer.blue.Sprintf("📝 %-7s", "write")
+			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
-				file = p.colorer.cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
 			}
 			bytes := ""
 			if len(kprobe.Args) > 2 && kprobe.Args[2] != nil {
-				bytes = p.colorer.cyan.Sprint(kprobe.Args[2].GetSizeArg(), " bytes")
+				bytes = p.Colorer.Cyan.Sprint(kprobe.Args[2].GetSizeArg(), " bytes")
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s %v", event, processInfo, file, bytes), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %v", event, processInfo, file, bytes), caps), nil
 		case "__x64_sys_read":
-			event := p.colorer.blue.Sprintf("📚 %-7s", "read")
+			event := p.Colorer.Blue.Sprintf("📚 %-7s", "read")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
-				file = p.colorer.cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
 			}
 			bytes := ""
 			if len(kprobe.Args) > 2 && kprobe.Args[2] != nil {
-				bytes = p.colorer.cyan.Sprint(kprobe.Args[2].GetSizeArg(), " bytes")
+				bytes = p.Colorer.Cyan.Sprint(kprobe.Args[2].GetSizeArg(), " bytes")
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s %v", event, processInfo, file, bytes), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %v", event, processInfo, file, bytes), caps), nil
 		case "fd_install":
-			event := p.colorer.blue.Sprintf("📬 %-7s", "open")
+			event := p.Colorer.Blue.Sprintf("📬 %-7s", "open")
 			file := ""
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil && kprobe.Args[1].GetFileArg() != nil {
-				file = p.colorer.cyan.Sprint(kprobe.Args[1].GetFileArg().Path)
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetFileArg().Path)
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
 		case "__x64_sys_close":
-			event := p.colorer.blue.Sprintf("📪 %-7s", "close")
+			event := p.Colorer.Blue.Sprintf("📪 %-7s", "close")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
-				file = p.colorer.cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
 		case "__x64_sys_mount":
-			event := p.colorer.blue.Sprintf("💾 %-7s", "mount")
+			event := p.Colorer.Blue.Sprintf("💾 %-7s", "mount")
 			src := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
-				src = p.colorer.cyan.Sprint(kprobe.Args[0].GetStringArg())
+				src = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetStringArg())
 			}
 			dst := ""
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
-				dst = p.colorer.cyan.Sprint(kprobe.Args[1].GetStringArg())
+				dst = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetStringArg())
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, src, dst), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, src, dst), caps), nil
 		case "__x64_sys_setuid":
-			event := p.colorer.blue.Sprintf("🔑 %-7s", "setuid")
+			event := p.Colorer.Blue.Sprintf("🔑 %-7s", "setuid")
 			uid := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
-				uidInt := p.colorer.cyan.Sprint(kprobe.Args[0].GetIntArg())
+				uidInt := p.Colorer.Cyan.Sprint(kprobe.Args[0].GetIntArg())
 				uid = string(uidInt)
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, uid), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, uid), caps), nil
 		case "__x64_sys_clock_settime":
-			event := p.colorer.blue.Sprintf("⏰ %-7s", "clock_settime")
-			return capTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
+			event := p.Colorer.Blue.Sprintf("⏰ %-7s", "clock_settime")
+			return CapTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
 		case "__x64_sys_pivot_root":
-			event := p.colorer.blue.Sprintf("💾 %-7s", "pivot_root")
+			event := p.Colorer.Blue.Sprintf("💾 %-7s", "pivot_root")
 			src := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
-				src = p.colorer.cyan.Sprint(kprobe.Args[0].GetStringArg())
+				src = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetStringArg())
 			}
 			dst := ""
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
-				dst = p.colorer.cyan.Sprint(kprobe.Args[1].GetStringArg())
+				dst = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetStringArg())
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, src, dst), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, src, dst), caps), nil
 		case "proc_exec_connector":
-			event := p.colorer.blue.Sprintf("🔧 %-7s", "proc_exec_connector")
-			return capTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
+			event := p.Colorer.Blue.Sprintf("🔧 %-7s", "proc_exec_connector")
+			return CapTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
 		case "__x64_sys_setns":
 			netns := ""
-			event := p.colorer.blue.Sprintf("🔧 %-7s", "setns")
+			event := p.Colorer.Blue.Sprintf("🔧 %-7s", "setns")
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
-				netns = printNS(kprobe.Args[1].GetIntArg())
+				netns = PrintNS(kprobe.Args[1].GetIntArg())
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, netns), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, netns), caps), nil
 		case "tcp_connect":
-			event := p.colorer.blue.Sprintf("🔌 %-7s", "connect")
+			event := p.Colorer.Blue.Sprintf("🔌 %-7s", "connect")
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_close":
-			event := p.colorer.blue.Sprintf("\U0001F9F9 %-7s", "close")
+			event := p.Colorer.Blue.Sprintf("\U0001F9F9 %-7s", "close")
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_sendmsg":
-			event := p.colorer.blue.Sprintf("📤 %-7s", "sendmsg")
+			event := p.Colorer.Blue.Sprintf("📤 %-7s", "sendmsg")
 			args := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				args = p.colorer.cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				args = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
 			}
 			bytes := int32(0)
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
 				bytes = kprobe.Args[1].GetIntArg()
 			}
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s bytes %d", event, processInfo, args, bytes), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s bytes %d", event, processInfo, args, bytes), caps), nil
 		default:
-			event := p.colorer.blue.Sprintf("⁉️ %-7s", "syscall")
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
+			event := p.Colorer.Blue.Sprintf("⁉️ %-7s", "syscall")
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
 		tp := response.GetProcessTracepoint()
 		if tp.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		processInfo, caps := p.colorer.processInfo(response.NodeName, tp.Process)
+		processInfo, caps := p.Colorer.processInfo(response.NodeName, tp.Process)
 		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
 		case "raw_syscalls/sys_enter":
-			event := p.colorer.blue.Sprintf("☎  %-7s", "syscall")
+			event := p.Colorer.Blue.Sprintf("☎  %-7s", "syscall")
 			sysName := rawSyscallEnter(p, tp)
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sysName), caps), nil
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sysName), caps), nil
 		default:
-			event := p.colorer.blue.Sprintf("⁉️ %-7s", "tracepoint")
-			return capTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, tp.Subsys, tp.Event), caps), nil
+			event := p.Colorer.Blue.Sprintf("⁉️ %-7s", "tracepoint")
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, tp.Subsys, tp.Event), caps), nil
 		}
 	}
 

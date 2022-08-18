@@ -11,17 +11,17 @@ import (
 	"github.com/fatih/color"
 )
 
-type colorer struct {
-	colors  []*color.Color
-	red     *color.Color
-	green   *color.Color
-	blue    *color.Color
-	cyan    *color.Color
-	magenta *color.Color
-	yellow  *color.Color
+type Colorer struct {
+	Colors  []*color.Color
+	Red     *color.Color
+	Green   *color.Color
+	Blue    *color.Color
+	Cyan    *color.Color
+	Magenta *color.Color
+	Yellow  *color.Color
 }
 
-func newColorer(when ColorMode) *colorer {
+func NewColorer(when ColorMode) *Colorer {
 	red := color.New(color.FgRed)
 	green := color.New(color.FgGreen)
 	blue := color.New(color.FgBlue)
@@ -29,16 +29,16 @@ func newColorer(when ColorMode) *colorer {
 	magenta := color.New(color.FgMagenta)
 	yellow := color.New(color.FgYellow)
 
-	c := &colorer{
-		red:     red,
-		green:   green,
-		blue:    blue,
-		cyan:    cyan,
-		magenta: magenta,
-		yellow:  yellow,
+	c := &Colorer{
+		Red:     red,
+		Green:   green,
+		Blue:    blue,
+		Cyan:    cyan,
+		Magenta: magenta,
+		Yellow:  yellow,
 	}
 
-	c.colors = []*color.Color{
+	c.Colors = []*color.Color{
 		red, green, blue,
 		cyan, magenta, yellow,
 	}
@@ -53,8 +53,8 @@ func newColorer(when ColorMode) *colorer {
 	return c
 }
 
-func (c *colorer) auto() {
-	for _, v := range c.colors {
+func (c *Colorer) auto() {
+	for _, v := range c.Colors {
 		if color.NoColor { // NoColor is global and set dynamically
 			v.DisableColor()
 		} else {
@@ -63,14 +63,14 @@ func (c *colorer) auto() {
 	}
 }
 
-func (c *colorer) enable() {
-	for _, v := range c.colors {
+func (c *Colorer) enable() {
+	for _, v := range c.Colors {
 		v.EnableColor()
 	}
 }
 
-func (c *colorer) disable() {
-	for _, v := range c.colors {
+func (c *Colorer) disable() {
+	for _, v := range c.Colors {
 		v.DisableColor()
 	}
 }
@@ -103,12 +103,12 @@ func processCaps(c *tetragon.Capabilities) string {
 	return capsString
 }
 
-func (c colorer) processInfo(host string, process *tetragon.Process) (string, string) {
-	source := c.green.Sprint(host)
+func (c Colorer) processInfo(host string, process *tetragon.Process) (string, string) {
+	source := c.Green.Sprint(host)
 	if process.Pod != nil {
-		source = c.green.Sprint(process.Pod.Namespace, "/", process.Pod.Name)
+		source = c.Green.Sprint(process.Pod.Namespace, "/", process.Pod.Name)
 	}
-	proc := c.magenta.Sprint(process.Binary)
-	caps := c.magenta.Sprint(processCaps(process.Cap))
+	proc := c.Magenta.Sprint(process.Binary)
+	caps := c.Magenta.Sprint(processCaps(process.Cap))
 	return fmt.Sprintf("%s %s", source, proc), caps
 }
