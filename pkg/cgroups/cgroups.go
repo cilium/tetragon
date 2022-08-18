@@ -18,10 +18,12 @@
 package cgroups
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -69,6 +71,17 @@ const (
 	DEPLOY_SD_USER    DeploymentCode = 11 // Systemd user session
 )
 
+const (
+	// The default hierarchy for cgroupv2
+	CGROUP_DEFAULT_HIERARCHY = 0
+)
+
+type cgroupController struct {
+	id  uint32 // Hierarchy uniq ID
+	idx uint32 // Cgroup SubSys index
+	str string // Controller name
+}
+
 var (
 	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
@@ -77,11 +90,10 @@ var (
 	 * are usually the ones that are setup by systemd
 	 * or other init programs.
 	 */
-	cgroupv1Hierarchies = []string{
-		":cpuset:",
-		":pids:",
-		":memory:",
-		":name=systemd:",
+	cgroupControllers = []cgroupController{
+		// Memory first
+		{str: "memory"},
+		{str: "pids"},
 	}
 
 	cgroupv2Hierarchy = "0::"
@@ -101,6 +113,16 @@ var (
 	readCgroupMode sync.Once
 	cgroupMode     CgroupModeCode
 	cgroupFSPath   string
+
+	// Cgroup Migration Path
+	findMigPath       sync.Once
+	cgrpMigrationPath string
+
+	// Cgroup Tracking Hierarchy
+	cgrpHierarchy    uint32
+	cgrpHierarchyIdx uint32
+
+	trackingCgrpID uint64
 
 	deploymentMode DeploymentCode
 )
@@ -135,6 +157,52 @@ func CgroupFsMagicStr(magic uint64) string {
 	return ""
 }
 
+// DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
+// of the corresponding controllers that we are interested
+// in. We need this dynamic behavior since these controllers are
+// compile config.
+func DiscoverSubSysIds() error {
+	path := filepath.Join(option.Config.ProcFS, "cgroups")
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	fscanner := bufio.NewScanner(file)
+	fixed := false
+	idx := 0
+	for fscanner.Scan() {
+		line := fscanner.Text()
+		fields := strings.Fields(line)
+		for i, controller := range cgroupControllers {
+			if fields[0] == controller.str {
+				id, err := strconv.ParseUint(fields[1], 10, 32)
+				if err == nil {
+					cgroupControllers[i].id = uint32(id)
+					cgroupControllers[i].idx = uint32(idx - 1)
+					fixed = true
+				}
+			}
+		}
+		idx++
+	}
+
+	if fixed == false {
+		return fmt.Errorf("detect Cgroup controllers IDs from '%s' failed", path)
+	}
+
+	for _, controller := range cgroupControllers {
+		if controller.id == 0 {
+			continue
+		}
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debugf("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.str, controller.id, controller.idx)
+	}
+
+	return nil
+}
+
 func setDeploymentMode(cgroupPath string) error {
 	if deploymentMode != DEPLOY_UNKNOWN {
 		return nil
@@ -158,33 +226,48 @@ func setDeploymentMode(cgroupPath string) error {
 		}
 	}
 
-	// Last operation fallback
-	if cgroupPath == "/" {
-		deploymentMode = DEPLOY_CONTAINER
-		return nil
-	}
-
-	return fmt.Errorf("detect deployment mode failed no match for Cgroup Path '%s'", cgroupPath)
+	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
 }
 
 func getDeploymentMode() DeploymentCode {
 	return deploymentMode
 }
 
+func SetCgrpHierarchyID(id uint32) {
+	cgrpHierarchy = id
+}
+
+func SetCgrpHierarchyIdx(idx uint32) {
+	cgrpHierarchyIdx = idx
+}
+
+// GetCgrpHierarchyID() returns the ID of the Cgroup hierarchy
+// that is used to track process. This is used for Cgroupv1 as for
+// Cgroupv2 we run in the default hierarchy.
+func GetCgrpHierarchyID() uint32 {
+	return cgrpHierarchy
+}
+
+// GetCgrpHierarchyIdx() returns the Index of the subsys
+// or hierarchy to be used to track process.
+func GetCgrpHierarchyIdx() uint32 {
+	return cgrpHierarchyIdx
+}
+
 // Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv1
+// and returns it on success
 func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
-	for _, v := range cgroupv1Hierarchies {
+	for _, controller := range cgroupControllers {
+		if controller.id == 0 {
+			return "", fmt.Errorf("Cgroup controller '%s' is missing HierarchyID", controller.str)
+		}
+
 		for _, s := range cgroupPaths {
-			if strings.Contains(s, v) {
+			if strings.Contains(s, fmt.Sprintf(":%s:", controller.str)) {
 				idx := strings.Index(s, "/")
 				path := s[idx+1:]
-				// Get controllers
-				fields := strings.Split(s, ":")
-				if fields[1] == "name=systemd" {
-					fields[1] = "systemd"
-				}
-
-				finalpath := filepath.Join(cgroupFSPath, fields[1], path, "cgroup.procs")
+				cgroupPath := filepath.Join(cgroupFSPath, controller.str, path)
+				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 				_, err := os.Stat(finalpath)
 				if err != nil {
 					// Probably namespaced... run the deployment mode detection
@@ -193,25 +276,67 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 						mode := getDeploymentMode()
 						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 							// Cgroups are namespaced let's try again
-							finalpath = filepath.Join(cgroupFSPath, fields[1], "cgroup.procs")
+							cgroupPath = filepath.Join(cgroupFSPath, controller.str)
+							finalpath = filepath.Join(cgroupPath, "cgroup.procs")
 							_, err = os.Stat(finalpath)
 						}
 					}
 				}
-				if err == nil {
-					// Run the deployment mode detection, fine to run it again.
-					err = setDeploymentMode(path)
-				}
+
 				if err != nil {
-					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv1 Path '%s'", finalpath)
-				} else {
-					return finalpath, nil
+					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv1 path '%s'", finalpath)
+					continue
 				}
+
+				// Run the deployment mode detection, fine to run it again.
+				err = setDeploymentMode(path)
+				if err != nil {
+					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment from Cgroupv1 path")
+					continue
+				}
+
+				SetCgrpHierarchyID(controller.id)
+				SetCgrpHierarchyIdx(controller.idx)
+				logger.GetLogger().WithFields(logrus.Fields{
+					"Cgroupfs":              cgroupFSPath,
+					"cgroup.path":           cgroupPath,
+					"cgroup.controller":     controller.str,
+					"cgroup.hierarchyID":    controller.id,
+					"cgroup.hierarchyIndex": controller.idx,
+				}).Info("Cgroupv1 hierarchy validated successfully")
+				return finalpath, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("no valid Cgroupv1 controller path")
+	return "", fmt.Errorf("could not validate Cgroupv1 hierarchies")
+}
+
+// Lookup Cgroupv2 active controllers and returns one that we support
+func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
+	file := filepath.Join(cgroupPath, "cgroup.controllers")
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %v", file, err)
+	}
+
+	activeControllers := strings.TrimRight(string(data), "\n")
+	if len(activeControllers) == 0 {
+		return nil, fmt.Errorf("no active controllers from '%s'", file)
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"Cgroupfs":           cgroupFSPath,
+		"cgroup.controllers": strings.Fields(activeControllers),
+	}).Info("Cgroupv2 supported controllers detected successfully")
+
+	for i, controller := range cgroupControllers {
+		if strings.Contains(activeControllers, controller.str) {
+			return &cgroupControllers[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("Cgroupv2 no appropriate active controller")
 }
 
 // Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv2
@@ -220,7 +345,8 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 		if strings.Contains(s, cgroupv2Hierarchy) {
 			idx := strings.Index(s, "/")
 			path := s[idx+1:]
-			finalpath := filepath.Join(cgroupFSPath, path, "cgroup.procs")
+			cgroupPath := filepath.Join(cgroupFSPath, path)
+			finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 			_, err := os.Stat(finalpath)
 			if err != nil {
 				// Namespaced ? let's force the check
@@ -229,24 +355,47 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 					mode := getDeploymentMode()
 					if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 						// Cgroups are namespaced let's try again
-						finalpath = filepath.Join(cgroupFSPath, "cgroup.procs")
+						cgroupPath = cgroupFSPath
+						finalpath = filepath.Join(cgroupPath, "cgroup.procs")
 						_, err = os.Stat(finalpath)
 					}
 				}
 			}
-			if err == nil {
-				// Run the deployment mode detection, fine to run it again.
-				err = setDeploymentMode(path)
-			}
+
 			if err != nil {
-				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv2 Path '%s'", finalpath)
-			} else {
-				return finalpath, nil
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv2 path '%s'", finalpath)
+				break
 			}
+
+			// Run the deployment mode detection, fine to run it again.
+			err = setDeploymentMode(path)
+			if err != nil {
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment from Cgroupv2 path")
+				break
+			}
+
+			// This should not be necessary but there are broken setups out there
+			// without cgroupv2 default bpf helpers
+			controller, err := getCgroupv2Controller(cgroupPath)
+			if err != nil {
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to detect Cgroupv2 active controllers from path '%s'", cgroupPath)
+				break
+			}
+
+			SetCgrpHierarchyID(CGROUP_DEFAULT_HIERARCHY)
+			SetCgrpHierarchyIdx(controller.idx)
+			logger.GetLogger().WithFields(logrus.Fields{
+				"Cgroupfs":              cgroupFSPath,
+				"cgroup.path":           cgroupPath,
+				"cgroup.controller":     controller.str,
+				"cgroup.hierarchyID":    controller.id,
+				"cgroup.hierarchyIndex": controller.idx,
+			}).Info("Cgroupv2 hierarchy validated successfully")
+			return finalpath, nil
 		}
 	}
 
-	return "", fmt.Errorf("no valid Cgroupv2 path")
+	return "", fmt.Errorf("could not validate Cgroupv2 hierarchy")
 }
 
 func getPidCgroupPaths(pid uint32) ([]string, error) {
@@ -338,6 +487,10 @@ func GetCgroupMode() (CgroupModeCode, error) {
 }
 
 func findMigrationPath(pid uint32) (string, error) {
+	if cgrpMigrationPath != "" {
+		return cgrpMigrationPath, nil
+	}
+
 	cgroupPaths, err := getPidCgroupPaths(pid)
 	if err != nil {
 		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
@@ -349,22 +502,30 @@ func findMigrationPath(pid uint32) (string, error) {
 		return "", err
 	}
 
-	var mig string
-	switch mode {
-	case CGROUP_LEGACY, CGROUP_HYBRID:
-		mig, err = getValidCgroupv1Path(cgroupPaths)
-	case CGROUP_UNIFIED:
-		mig, err = getValidCgroupv2Path(cgroupPaths)
-	default:
-		err = fmt.Errorf("could not detect Cgroup Mode")
+	/* Run the validate and get cgroup migration path once
+	 * as it triggers lot of checks.
+	 */
+	findMigPath.Do(func() {
+		var err error
+		switch mode {
+		case CGROUP_LEGACY, CGROUP_HYBRID:
+			cgrpMigrationPath, err = getValidCgroupv1Path(cgroupPaths)
+		case CGROUP_UNIFIED:
+			cgrpMigrationPath, err = getValidCgroupv2Path(cgroupPaths)
+		default:
+			err = fmt.Errorf("could not detect Cgroup Mode")
+		}
+
+		if err != nil {
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
+		}
+	})
+
+	if cgrpMigrationPath == "" {
+		return "", fmt.Errorf("could not detect Cgroup migration path for pid=%d", pid)
 	}
 
-	if err != nil {
-		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
-		return "", err
-	}
-
-	return mig, err
+	return cgrpMigrationPath, nil
 }
 
 func MigrateSelfToSameCgrp() error {
@@ -390,8 +551,8 @@ func detectDeploymentMode() (uint32, error) {
 		return uint32(mode), nil
 	}
 
-	// Let's call findMigrationPath in case to
-	// get the Deployment Mode.
+	// Let's call findMigrationPath in case to parse own cgroup
+	// paths and detect the deployment mode.
 	pid := os.Getpid()
 	_, err := findMigrationPath(uint32(pid))
 	if err != nil {

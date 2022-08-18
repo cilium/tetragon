@@ -29,6 +29,8 @@ struct tetragon_conf {
 	__u32 loglevel; /* Tetragon log level */
 	__u32 pid; /* Tetragon pid for debugging purpose */
 	__u32 nspid; /* Tetragon pid in namespace for debugging purpose */
+	__u32 tg_cgrp_hierarchy; /* Tetragon tracked hierarchy ID */
+	__u32 tg_cgrp_hierarchy_idx; /* Tetragon tracked controller (hierarchy) index at compile time */
 	__u32 tg_cgrp_level; /* Tetragon cgroup level */
 	__u32 pad;
 	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */

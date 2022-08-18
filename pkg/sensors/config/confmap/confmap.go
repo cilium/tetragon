@@ -9,8 +9,6 @@ import (
 	"time"
 	"unsafe"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -23,14 +21,16 @@ type TetragonConfKey struct {
 }
 
 type TetragonConfValue struct {
-	Mode        uint32 // Deployment mode
-	LogLevel    uint32 // Tetragon log level
-	PID         uint32 // Tetragon PID for debugging purpose
-	NSPID       uint32 // Tetragon PID in namespace for debugging purpose
-	TgCgrpLevel uint32 // Tetragon cgroup level
-	Pad         uint32
-	TgCgrpId    uint64 // Tetragon cgroup ID
-	CgrpFsMagic uint64 // Cgroupv1 or cgroupv2
+	Mode               uint32 // Deployment mode
+	LogLevel           uint32 // Tetragon log level
+	PID                uint32 // Tetragon PID for debugging purpose
+	NSPID              uint32 // Tetragon PID in namespace for debugging purpose
+	TgCgrpHierarchy    uint32 // Tetragon Cgroup tracking hierarchy
+	TgCgrpHierarchyIdx uint32 // Tracking Cgroup hierarchy idx at compile time
+	TgCgrpLevel        uint32 // Tetragon cgroup level
+	Pad                uint32
+	TgCgrpId           uint64 // Tetragon cgroup ID
+	CgrpFsMagic        uint64 // Cgroupv1 or cgroupv2
 }
 
 var (
@@ -72,28 +72,38 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	// First let's detect cgroupfs magic
 	cgroupFsMagic, err := cgroups.GetBpfCgroupFS()
 	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Cgroupfs detection failed, falling back to Cgroupv1")
-		// Let's fallback to Cgroupv1 so we can use raw cgroup bpf code and avoid
-		// cgroupv2 helpers
-		cgroupFsMagic = unix.CGROUP_SUPER_MAGIC
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Cgroupfs version failed")
+		log.WithField("confmap-update", configMap.Name).Warnf("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled")
+		return nil
+	}
+
+	// This must be called before probing cgroup configurations
+	err = cgroups.DiscoverSubSysIds()
+	if err != nil {
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Cgroup SubSys Controllers failed")
+		log.WithField("confmap-update", configMap.Name).Warnf("Cgroup SubSys IDs are unknown, advanced Cgroups tracking will be disabled")
+		return nil
 	}
 
 	// Detect deployment mode
 	deployMode, err := cgroups.DetectDeploymentMode()
 	if err != nil {
 		deployMode = cgroups.CGROUP_UNSET_VALUE
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Deployment mode detection failed")
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of deployment mode failed")
 		log.WithField("confmap-update", configMap.Name).Warnf("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
+		return nil
 	}
 
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
-		Mode:        deployMode,
-		LogLevel:    uint32(logger.GetLogLevel()),
-		NSPID:       uint32(nspid),
-		TgCgrpLevel: 0,
-		Pad:         0,
-		CgrpFsMagic: cgroupFsMagic,
+		Mode:               deployMode,
+		LogLevel:           uint32(logger.GetLogLevel()),
+		NSPID:              uint32(nspid),
+		TgCgrpHierarchy:    cgroups.GetCgrpHierarchyID(),
+		TgCgrpHierarchyIdx: cgroups.GetCgrpHierarchyIdx(),
+		TgCgrpLevel:        0,
+		Pad:                0,
+		CgrpFsMagic:        cgroupFsMagic,
 	}
 
 	err = m.Update(k, v)
@@ -103,11 +113,13 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	}
 
 	log.WithFields(logrus.Fields{
-		"confmap-update": configMap.Name,
-		"DeploymentMode": cgroups.DeploymentCode(deployMode).String(),
-		"LogLevel":       logrus.Level(v.LogLevel).String(),
-		"NSPID":          nspid,
-		"CgroupFSMagic":  cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+		"confmap-update":       configMap.Name,
+		"DeploymentMode":       cgroups.DeploymentCode(deployMode).String(),
+		"LogLevel":             logrus.Level(v.LogLevel).String(),
+		"NSPID":                nspid,
+		"CgroupHierarchyID":    v.TgCgrpHierarchy,
+		"CgroupHierarchyIndex": v.TgCgrpHierarchyIdx,
+		"CgroupFSMagic":        cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
