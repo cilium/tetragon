@@ -4,6 +4,7 @@
 package encoder
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -13,6 +14,12 @@ import (
 )
 
 const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
+
+var (
+	ErrInvalidEvent       = errors.New("invalid event")
+	ErrMissingProcessInfo = errors.New("process field is not set")
+	ErrUnknownEventType   = errors.New("unknown event type")
+)
 
 // EventEncoder is an interface for encoding tetragon.GetEventsResponse.
 type EventEncoder interface {
@@ -48,7 +55,7 @@ func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool) *Compa
 func (p *CompactEncoder) Encode(v interface{}) error {
 	event, ok := v.(*tetragon.GetEventsResponse)
 	if !ok {
-		return fmt.Errorf("invalid event")
+		return ErrInvalidEvent
 	}
 	logger.GetLogger().WithField("event", v).Debug("Processing event")
 	str, err := p.eventToString(event)
@@ -110,7 +117,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 	case *tetragon.GetEventsResponse_ProcessExec:
 		exec := response.GetProcessExec()
 		if exec.Process == nil {
-			return "", fmt.Errorf("process field is not set")
+			return "", ErrMissingProcessInfo
 		}
 		event := p.colorer.blue.Sprintf("🚀 %-7s", "process")
 		processInfo, caps := p.colorer.processInfo(response.NodeName, exec.Process)
@@ -119,7 +126,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 	case *tetragon.GetEventsResponse_ProcessExit:
 		exit := response.GetProcessExit()
 		if exit.Process == nil {
-			return "", fmt.Errorf("process field is not set")
+			return "", ErrMissingProcessInfo
 		}
 		event := p.colorer.blue.Sprintf("💥 %-7s", "exit")
 		processInfo, caps := p.colorer.processInfo(response.NodeName, exit.Process)
@@ -134,7 +141,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 	case *tetragon.GetEventsResponse_ProcessKprobe:
 		kprobe := response.GetProcessKprobe()
 		if kprobe.Process == nil {
-			return "", fmt.Errorf("process field is not set")
+			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.colorer.processInfo(response.NodeName, kprobe.Process)
 		switch kprobe.FunctionName {
@@ -252,7 +259,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
 		tp := response.GetProcessTracepoint()
 		if tp.Process == nil {
-			return "", fmt.Errorf("process field is not set")
+			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.colorer.processInfo(response.NodeName, tp.Process)
 		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
@@ -266,7 +273,7 @@ func (p *CompactEncoder) eventToString(response *tetragon.GetEventsResponse) (st
 		}
 	}
 
-	return "", fmt.Errorf("unknown event type")
+	return "", ErrUnknownEventType
 }
 
 func rawSyscallEnter(p *CompactEncoder, tp *tetragon.ProcessTracepoint) string {
