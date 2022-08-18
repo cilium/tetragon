@@ -12,6 +12,8 @@ import (
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
+const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
+
 // EventEncoder is an interface for encoding tetragon.GetEventsResponse.
 type EventEncoder interface {
 	Encode(v interface{}) error
@@ -28,15 +30,17 @@ const (
 
 // CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {
-	writer  io.Writer
-	colorer *colorer
+	writer     io.Writer
+	colorer    *colorer
+	timestamps bool
 }
 
 // NewCompactEncoder initializes and returns a pointer to CompactEncoder.
-func NewCompactEncoder(w io.Writer, colorMode ColorMode) *CompactEncoder {
+func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool) *CompactEncoder {
 	return &CompactEncoder{
-		writer:  w,
-		colorer: newColorer(colorMode),
+		writer:     w,
+		colorer:    newColorer(colorMode),
+		timestamps: timestamps,
 	}
 }
 
@@ -50,6 +54,10 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 	str, err := p.eventToString(event)
 	if err != nil {
 		return err
+	}
+	if p.timestamps {
+		ts := event.Time.AsTime().UTC().Format(rfc3339Nano)
+		str = fmt.Sprintf("%s %s", ts, str)
 	}
 	fmt.Fprintln(p.writer, str)
 	return nil
