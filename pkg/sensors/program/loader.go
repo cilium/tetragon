@@ -343,7 +343,7 @@ func doLoadProgram(
 	pinPath := filepath.Join(bpfDir, load.PinPath)
 
 	if _, err := os.Stat(pinPath); err == nil {
-		logger.GetLogger().Warnf("Pin file '%s' already exists, repinning", load.PinPath)
+		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)
 		if err := os.Remove(pinPath); err != nil {
 			logger.GetLogger().Warnf("Unpinning '%s' failed: %s", pinPath, err)
 		}

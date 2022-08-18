@@ -69,13 +69,13 @@ func newLoadedCollection() *LoadedCollection {
 }
 
 func printLoadedCollection(str string, lc *LoadedCollection) {
-	logger.GetLogger().Infof("Programs (%s):", str)
+	logger.GetLogger().Debugf("Programs (%s):", str)
 	for name, lp := range lc.Programs {
-		logger.GetLogger().Infof("%d: %s - %v", lp.ID, name, lp.MapIDs)
+		logger.GetLogger().Debugf(" - %d: %s - %v", lp.ID, name, lp.MapIDs)
 	}
-	logger.GetLogger().Infof("Maps (%s):", str)
+	logger.GetLogger().Debugf("Maps (%s):", str)
 	for name, lm := range lc.Maps {
-		logger.GetLogger().Infof("%d: %s", lm.ID, name)
+		logger.GetLogger().Debugf(" - %d: %s", lm.ID, name)
 	}
 }
 
