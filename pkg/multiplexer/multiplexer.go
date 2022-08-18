@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package checker
+package multiplexer
 
 import (
 	"context"
@@ -10,14 +10,15 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/klog/v2"
 )
 
 const (
-	connectRetries = 10
-	connectBackoff = time.Second
+	defaultConnectRetries = 10
+	defaultConnectBackoff = time.Second
 )
 
 type connResult struct {
@@ -33,7 +34,32 @@ type GetEventsResult struct {
 
 // ClientMultiplexer multiplexes one or more GetEvents clients into a single stream
 type ClientMultiplexer struct {
-	clients []tetragon.FineGuidanceSensorsClient
+	clients        []tetragon.FineGuidanceSensorsClient
+	connectRetries int
+	connectBackoff time.Duration
+}
+
+// NewClientMultiplexer constructs a new ClientMultiplexer.
+func NewClientMultiplexer() *ClientMultiplexer {
+	return &ClientMultiplexer{
+		clients:        []tetragon.FineGuidanceSensorsClient{},
+		connectRetries: defaultConnectRetries,
+		connectBackoff: defaultConnectBackoff,
+	}
+}
+
+// WithConnectRetries updates the number of attempts this multiplexer will make to connect
+// to each gRPC server. The default is 10.
+func (cm *ClientMultiplexer) WithConnectRetries(retries uint) *ClientMultiplexer {
+	cm.connectRetries = int(retries)
+	return cm
+}
+
+// WithConnectBackoff updates the backoff time between connection attempts to each gRPC
+// server. The default is 1 second.
+func (cm *ClientMultiplexer) WithConnectBackoff(backoff time.Duration) *ClientMultiplexer {
+	cm.connectBackoff = backoff
+	return cm
 }
 
 // Connect connects the ClientMultiplexer to one or more gRPC servers specified addrs
@@ -54,11 +80,6 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 				connCtx,
 				addr,
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
-				// grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				// 	Time:                connTimeout / 2,
-				// 	Timeout:             connTimeout,
-				// 	PermitWithoutStream: true,
-				// }),
 			)
 
 			if err != nil {
@@ -67,7 +88,7 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 			}
 
 			queue <- connResult{conn, nil}
-			klog.InfoS("Connected to gRPC server", "addr", addr)
+			logger.GetLogger().WithField("addr", addr).Info("Connected to gRPC server")
 		}(addr)
 	}
 
@@ -113,7 +134,7 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 	for _, client := range cm.clients {
 		var stream tetragon.FineGuidanceSensors_GetEventsClient
 		var err error
-		for i := 0; i < connectRetries; i++ {
+		for i := 0; i < cm.connectRetries; i++ {
 			stream, err = client.GetEvents(ctx, &tetragon.GetEventsRequest{
 				AllowList: allowList,
 				DenyList:  denyList,
@@ -121,22 +142,20 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 			if err == nil {
 				break
 			}
-			time.Sleep(connectBackoff)
+			time.Sleep(cm.connectBackoff)
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to get events after %d tries", connectRetries)
+			return nil, fmt.Errorf("failed to get events after %d tries", cm.connectRetries)
 		}
 		go func(stream tetragon.FineGuidanceSensors_GetEventsClient) {
 			for {
 				select {
 				case <-ctx.Done():
-					klog.V(2).Info("ClientMultiplexer: Context cancelled, stopping GetEvents goroutine")
+					logger.GetLogger().Debug("ClientMultiplexer: Context cancelled, stopping GetEvents goroutine")
 					return
 				default:
 				}
-				klog.V(4).Info("ClientMultiplexer: Calling stream.Recv()")
 				res, err := stream.Recv()
-				klog.V(4).Info("ClientMultiplexer: Queueing a response")
 				c <- GetEventsResult{res, err}
 			}
 		}(stream)

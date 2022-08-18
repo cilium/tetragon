@@ -24,6 +24,7 @@ import (
 	eventHelpers "github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/multiplexer"
 	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,7 @@ import (
 type RPCChecker struct {
 	name             string
 	checker          ec.MultiEventChecker
-	getEvents        *ClientMultiplexer
+	getEvents        *multiplexer.ClientMultiplexer
 	eventLimit       uint32
 	timeLimit        time.Duration
 	logs             *bytes.Buffer
@@ -174,7 +175,7 @@ func (rc *RPCChecker) CheckWithFilters(connTimeout time.Duration, allowList, den
 // Connect connects the RPCChecker to one or more gRPC servers. This must be called
 // before calling RPCChecker.Check().
 func (rc *RPCChecker) connect(ctx context.Context, connTimeout time.Duration, addrs ...string) error {
-	cm := &ClientMultiplexer{}
+	cm := multiplexer.NewClientMultiplexer()
 	if err := cm.Connect(ctx, connTimeout, addrs...); err != nil {
 		return err
 	}
