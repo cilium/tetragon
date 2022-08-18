@@ -34,30 +34,39 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type CgroupModeCode int
+
 const (
 	/* Cgroup Mode:
 	 * https://systemd.io/CGROUP_DELEGATION/
 	 * But this should work also for non-systemd environments: where
 	 * only legacy or unified are available by default.
 	 */
-	CGROUP_UNDEF   = 0
-	CGROUP_LEGACY  = 1
-	CGROUP_HYBRID  = 2
-	CGROUP_UNIFIED = 3
+	CGROUP_UNDEF   CgroupModeCode = iota
+	CGROUP_LEGACY  CgroupModeCode = 1
+	CGROUP_HYBRID  CgroupModeCode = 2
+	CGROUP_UNIFIED CgroupModeCode = 3
 )
 
+const (
+	// Generic unset value that means undefined or not set
+	CGROUP_UNSET_VALUE = 0
+)
+
+type DeploymentCode int
+
 type deploymentEnv struct {
-	id  uint32
+	id  DeploymentCode
 	str string
 }
 
 const (
 	// Deployment modes
-	DEPLOY_UNKNOWN    = 0
-	DEPLOY_K8S        = 1  // K8s deployment
-	DEPLOY_CONTAINER  = 2  // Container docker, podman, etc
-	DEPLOY_SD_SERVICE = 10 // Systemd service
-	DEPLOY_SD_USER    = 11 // Systemd user session
+	DEPLOY_UNKNOWN    DeploymentCode = iota
+	DEPLOY_K8S        DeploymentCode = 1  // K8s deployment
+	DEPLOY_CONTAINER  DeploymentCode = 2  // Container docker, podman, etc
+	DEPLOY_SD_SERVICE DeploymentCode = 10 // Systemd service
+	DEPLOY_SD_USER    DeploymentCode = 11 // Systemd user session
 )
 
 var (
@@ -77,13 +86,6 @@ var (
 
 	cgroupv2Hierarchy = "0::"
 
-	cgroupModesStr = map[int]string{
-		CGROUP_UNDEF:   "undefined",
-		CGROUP_LEGACY:  "Legacy mode (Cgroupv1)",
-		CGROUP_HYBRID:  "Hybrid mode (Cgroupv1 and Cgroupv2)",
-		CGROUP_UNIFIED: "Unified mode (Cgroupv2)",
-	}
-
 	/* Ordered from nested to top cgroup parents
 	 * For k8s we check also config k8s flags.
 	 */
@@ -97,13 +99,20 @@ var (
 	}
 
 	readCgroupMode sync.Once
-	cgroupMode     int
+	cgroupMode     CgroupModeCode
 	cgroupFSPath   string
 
-	deploymentMode uint32
+	deploymentMode DeploymentCode
 )
 
-type DeploymentCode int
+func (code CgroupModeCode) String() string {
+	return [...]string{
+		CGROUP_UNDEF:   "undefined",
+		CGROUP_LEGACY:  "Legacy mode (Cgroupv1)",
+		CGROUP_HYBRID:  "Hybrid mode (Cgroupv1 and Cgroupv2)",
+		CGROUP_UNIFIED: "Unified mode (Cgroupv2)",
+	}[code]
+}
 
 func (op DeploymentCode) String() string {
 	return [...]string{
@@ -158,7 +167,7 @@ func setDeploymentMode(cgroupPath string) error {
 	return fmt.Errorf("detect deployment mode failed no match for Cgroup Path '%s'", cgroupPath)
 }
 
-func getDeploymentMode() uint32 {
+func getDeploymentMode() DeploymentCode {
 	return deploymentMode
 }
 
@@ -272,7 +281,7 @@ func migratePidtoCgrp(path string, pid uint32) error {
 	return nil
 }
 
-func detectCgroupMode(cgroupfs string) (int, error) {
+func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 	var st syscall.Statfs_t
 
 	if err := syscall.Statfs(cgroupfs, &st); err != nil {
@@ -299,7 +308,7 @@ func detectCgroupMode(cgroupfs string) (int, error) {
 //  - CGROUP_HYBRID: Cgroupv1 and Cgroupv2 set up by systemd
 //  - CGROUP_UNIFIED: Pure Cgroupv2 hierarchy
 // Reference: https://systemd.io/CGROUP_DELEGATION/
-func GetCgroupMode() (int, error) {
+func GetCgroupMode() (CgroupModeCode, error) {
 	readCgroupMode.Do(func() {
 		var err error
 		cgroupFSPath = defaultCgroupRoot
@@ -314,13 +323,10 @@ func GetCgroupMode() (int, error) {
 			}
 		}
 		if cgroupMode != CGROUP_UNDEF {
-			str, ok := cgroupModesStr[cgroupMode]
-			if ok {
-				logger.GetLogger().WithFields(logrus.Fields{
-					"Cgroupfs":   cgroupFSPath,
-					"CgroupMode": str,
-				}).Infof("Cgroup mode detection succeeded")
-			}
+			logger.GetLogger().WithFields(logrus.Fields{
+				"Cgroupfs":   cgroupFSPath,
+				"CgroupMode": cgroupMode.String(),
+			}).Infof("Cgroup mode detection succeeded")
 		}
 	})
 
@@ -381,7 +387,7 @@ func MigrateSelfToSameCgrp() error {
 func detectDeploymentMode() (uint32, error) {
 	mode := getDeploymentMode()
 	if mode != DEPLOY_UNKNOWN {
-		return mode, nil
+		return uint32(mode), nil
 	}
 
 	// Let's call findMigrationPath in case to
@@ -389,10 +395,11 @@ func detectDeploymentMode() (uint32, error) {
 	pid := os.Getpid()
 	_, err := findMigrationPath(uint32(pid))
 	if err != nil {
-		return DEPLOY_UNKNOWN, err
+		return uint32(DEPLOY_UNKNOWN), err
 	}
 
-	return getDeploymentMode(), nil
+	mode = getDeploymentMode()
+	return uint32(mode), nil
 }
 
 func DetectDeploymentMode() (uint32, error) {
@@ -413,7 +420,7 @@ func DetectDeploymentMode() (uint32, error) {
 func GetBpfCgroupFS() (uint64, error) {
 	mode, err := GetCgroupMode()
 	if err != nil {
-		return CGROUP_UNDEF, err
+		return CGROUP_UNSET_VALUE, err
 	}
 
 	switch mode {
@@ -426,7 +433,7 @@ func GetBpfCgroupFS() (uint64, error) {
 		return unix.CGROUP2_SUPER_MAGIC, nil
 	}
 
-	return CGROUP_UNDEF, fmt.Errorf("could not detect Cgroup Mode")
+	return CGROUP_UNSET_VALUE, fmt.Errorf("could not detect Cgroup Mode")
 }
 
 // CgroupNameFromCstr() Returns a Golang string from the passed C language format string.

@@ -81,7 +81,7 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	// Detect deployment mode
 	deployMode, err := cgroups.DetectDeploymentMode()
 	if err != nil {
-		deployMode = cgroups.DEPLOY_UNKNOWN
+		deployMode = cgroups.CGROUP_UNSET_VALUE
 		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Deployment mode detection failed")
 		log.WithField("confmap-update", configMap.Name).Warnf("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
 	}

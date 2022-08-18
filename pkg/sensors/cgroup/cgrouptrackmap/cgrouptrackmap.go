@@ -7,11 +7,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type CgrpTrackingKey struct {
@@ -60,11 +57,6 @@ func LookupCgroupTracker(mapPath string, cgrpid uint64) (*CgrpTrackingValue, err
 	}
 
 	defer m.Close()
-
-	logger.GetLogger().WithFields(logrus.Fields{
-		"cgroup.id": cgrpid,
-		"bpf-map":   m.Name(),
-	}).Trace("Looking for tracking CgroupID inside map")
 
 	k := &CgrpTrackingKey{CgrpId: cgrpid}
 	v, err := m.Lookup(k)
