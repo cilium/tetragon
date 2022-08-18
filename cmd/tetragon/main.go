@@ -34,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -126,6 +127,11 @@ func tetragonExecute() error {
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
 		log.Fatal(err)
+	}
+
+	// enable extra programs/maps loading debug output
+	if logger.DefaultLogger.IsLevelEnabled(logrus.DebugLevel) {
+		program.KeepCollection = true
 	}
 
 	log.WithField("version", version.Version).Info("Starting tetragon")
