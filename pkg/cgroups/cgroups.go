@@ -36,6 +36,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// Generic unset value that means undefined or not set
+	CGROUP_UNSET_VALUE = 0
+
+	// Max cgroup subsystems count that is used from BPF side
+	// to define a max index for the default controllers on tasks.
+	// For further documentation check BPF part.
+	CGROUP_SUBSYS_COUNT = 15
+
+	// The default hierarchy for cgroupv2
+	CGROUP_DEFAULT_HIERARCHY = 0
+)
+
 type CgroupModeCode int
 
 const (
@@ -48,11 +61,6 @@ const (
 	CGROUP_LEGACY  CgroupModeCode = 1
 	CGROUP_HYBRID  CgroupModeCode = 2
 	CGROUP_UNIFIED CgroupModeCode = 3
-)
-
-const (
-	// Generic unset value that means undefined or not set
-	CGROUP_UNSET_VALUE = 0
 )
 
 type DeploymentCode int
@@ -69,11 +77,6 @@ const (
 	DEPLOY_CONTAINER  DeploymentCode = 2  // Container docker, podman, etc
 	DEPLOY_SD_SERVICE DeploymentCode = 10 // Systemd service
 	DEPLOY_SD_USER    DeploymentCode = 11 // Systemd user session
-)
-
-const (
-	// The default hierarchy for cgroupv2
-	CGROUP_DEFAULT_HIERARCHY = 0
 )
 
 type cgroupController struct {
@@ -176,6 +179,10 @@ func DiscoverSubSysIds() error {
 	for fscanner.Scan() {
 		line := fscanner.Text()
 		fields := strings.Fields(line)
+
+		// No need to read enabled field as it can be enabled on
+		// root without having a proper cgroup name to reflect that
+		// or the controller is not active on the unified cgroupv2.
 		for i, controller := range cgroupControllers {
 			if fields[0] == controller.str {
 				id, err := strconv.ParseUint(fields[1], 10, 32)
@@ -183,6 +190,10 @@ func DiscoverSubSysIds() error {
 					cgroupControllers[i].id = uint32(id)
 					cgroupControllers[i].idx = uint32(idx - 1)
 					fixed = true
+				}
+				// idx here is already > 1
+				if (idx - 1) >= CGROUP_SUBSYS_COUNT {
+					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at high value '%d'", controller.str, idx-1)
 				}
 			}
 		}
@@ -452,10 +463,11 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 
 // GetCgroupMode() Returns the current Cgroup mode that is applied to the system
 // This applies to systemd and non-systemd machines, possible values:
-//  - CGROUP_UNDEF: undefined
-//  - CGROUP_LEGACY: Cgroupv1 legacy controllers
-//  - CGROUP_HYBRID: Cgroupv1 and Cgroupv2 set up by systemd
-//  - CGROUP_UNIFIED: Pure Cgroupv2 hierarchy
+//   - CGROUP_UNDEF: undefined
+//   - CGROUP_LEGACY: Cgroupv1 legacy controllers
+//   - CGROUP_HYBRID: Cgroupv1 and Cgroupv2 set up by systemd
+//   - CGROUP_UNIFIED: Pure Cgroupv2 hierarchy
+//
 // Reference: https://systemd.io/CGROUP_DELEGATION/
 func GetCgroupMode() (CgroupModeCode, error) {
 	readCgroupMode.Do(func() {
