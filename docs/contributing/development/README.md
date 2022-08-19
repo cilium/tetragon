@@ -215,3 +215,6 @@ If you are on a Mac, use Vagrant to create a dev VM:
 6. Run `git diff --check` to catch obvious white space violations
 
 7. Build Tetragon with your changes included.
+
+### Running Tests
+See <https://github.com/cilium/tetragon/blob/main/tests/vmtests/README.md>.

@@ -6,7 +6,7 @@ set -eu -o pipefail
 OCIORG=quay.io/lvh-images
 ROOTIMG=$OCIORG/root-images
 KERNIMG=$OCIORG/kernel-images
-CONTAINER_ENGINE=docker
+CONTAINER_ENGINE=${CONTAINER_ENGINE:-docker}
 KERNEL_VERS="$@"
 DEST_DIR="tests/vmtests/test-data"
 
