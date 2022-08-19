@@ -18,7 +18,6 @@ struct {
 	__uint(value_size, sizeof(__u32));
 } execve_calls SEC(".maps");
 
-#ifdef __LARGE_BPF_PROG
 #include "data_event.h"
 
 struct {
@@ -27,7 +26,6 @@ struct {
 	__type(key, __u32);
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
-#endif
 
 /* event_args_builder: copies args into char *buffer
  * event: pointer to event storage
@@ -56,7 +54,8 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 	if (mm) {
 		unsigned long start_stack, end_stack;
 		struct execve_heap *heap;
-		__u32 zero = 0;
+		__u32 zero = 0, size;
+		char *args;
 		long off;
 
 		probe_read(&start_stack, sizeof(start_stack),
@@ -78,31 +77,19 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 
 		start_stack += off;
 
-#ifndef __LARGE_BPF_PROG
-		probe_arg_read(c, (char *)p, (char *)start_stack,
-			       (char *)end_stack);
-#else
-		if ((end_stack - start_stack) < BUFFER) {
-			probe_arg_read(c, (char *)p, (char *)start_stack,
-				       (char *)end_stack);
-		} else {
-			char *args = (char *)p + p->size;
-			__u32 size;
+		args = (char *)p + p->size;
 
-			if (args >= (char *)&event->process + BUFFER)
-				return;
+		if (args >= (char *)&event->process + BUFFER)
+			return;
 
-			size = data_event_bytes(
-				ctx, (struct data_event_desc *)args,
-				(unsigned long)start_stack,
-				end_stack - start_stack,
-				(struct bpf_map_def *)&data_heap);
-			if (size < 0)
-				return;
-			p->size += size;
-			p->flags |= EVENT_DATA_ARGS;
-		}
-#endif
+		size = data_event_bytes(ctx, (struct data_event_desc *)args,
+					(unsigned long)start_stack,
+					end_stack - start_stack,
+					(struct bpf_map_def *)&data_heap);
+		if (size < 0)
+			return;
+		p->size += size;
+		p->flags |= EVENT_DATA_ARGS;
 	}
 }
 
@@ -128,9 +115,6 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		flags |= EVENT_ERROR_FILENAME;
 		size = 0;
 	} else if (size == MAXARGLENGTH - 1) {
-#ifndef __LARGE_BPF_PROG
-		flags |= EVENT_TRUNC_FILENAME;
-#else
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename,
 				      (struct bpf_map_def *)&data_heap);
@@ -140,7 +124,6 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		} else {
 			flags |= EVENT_DATA_FILENAME;
 		}
-#endif
 	}
 	curr->flags = flags;
 	curr->pid = curr_pid;
