@@ -94,6 +94,12 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 		return nil
 	}
 
+	tetragonCgrpId := cgroups.GetTetragonCgroupID()
+	if tetragonCgrpId == 0 {
+		log.WithField("confmap-update", configMap.Name).Warnf("Tetragon own Cgroup ID is unknown, advanced Cgroups tracking will be disabled")
+		return nil
+	}
+
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
 		Mode:               deployMode,
@@ -103,6 +109,7 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 		TgCgrpHierarchyIdx: cgroups.GetCgrpHierarchyIdx(),
 		TgCgrpLevel:        0,
 		Pad:                0,
+		TgCgrpId:           tetragonCgrpId,
 		CgrpFsMagic:        cgroupFsMagic,
 	}
 
@@ -113,13 +120,14 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	}
 
 	log.WithFields(logrus.Fields{
-		"confmap-update":       configMap.Name,
-		"DeploymentMode":       cgroups.DeploymentCode(deployMode).String(),
-		"LogLevel":             logrus.Level(v.LogLevel).String(),
-		"NSPID":                nspid,
-		"CgroupHierarchyID":    v.TgCgrpHierarchy,
-		"CgroupHierarchyIndex": v.TgCgrpHierarchyIdx,
-		"CgroupFSMagic":        cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+		"confmap-update":        configMap.Name,
+		"DeploymentMode":        cgroups.DeploymentCode(deployMode).String(),
+		"LogLevel":              logrus.Level(v.LogLevel).String(),
+		"NSPID":                 nspid,
+		"cgroup.hierarchyID":    v.TgCgrpHierarchy,
+		"cgroup.hierarchyIndex": v.TgCgrpHierarchyIdx,
+		"cgroup.id":             v.TgCgrpId,
+		"CgroupFSMagic":         cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
