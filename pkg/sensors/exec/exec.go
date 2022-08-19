@@ -6,12 +6,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"path/filepath"
+	"strings"
+	"sync"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
@@ -19,10 +23,186 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	logEmptyCgrpid sync.Once
+)
+
+// standarizeContainerId() Ensures the passed ID is container ID with 32 characters
+func standarizeContainerId(id string) string {
+	if strings.HasSuffix(id, "service") {
+		return ""
+	}
+
+	if len(id) >= procevents.BpfContainerIdLength {
+		return id[:procevents.BpfContainerIdLength]
+	}
+
+	return ""
+}
+
+// containerFromBpfCgroup() Get the Container ID from the current
+// Cgroup Name returned by BPF, this operates on current cgroup context.
+func containerFromBpfCgroup(m *processapi.MsgExecveEvent, exec_id string, filename string) string {
+	cgrpid := m.Kube.Cgrpid
+
+	/* The first byte is set to zero if there is no docker ID for this event. */
+	if m.Kube.Docker[0] == 0x00 {
+		/* This can happen for a couple of reasons:
+		 * - Failed to read the cgroup name or maybe the cgroup hierarchy or controller
+		 *   is not set properly and we failed to read it? This is a bug.
+		 */
+		fs := cgroups.GetCgroupFSMagic()
+		mode := cgroups.GetDeploymentMode()
+		cgroupMode := cgroups.GetCgroupMode()
+		if cgrpid != 0 {
+			/* Cgroup is deep nested below the Cgroup container tracking level, and its
+			 * parent or ancestor was not properly tracked?
+			 */
+			logger.GetLogger().WithFields(logrus.Fields{
+				"deployment.mode": cgroups.DeploymentCode(mode).String(),
+				"cgroup.mode":     cgroupMode.String(),
+				"cgroup.fs.magic": cgroups.CgroupFsMagicStr(fs),
+				"cgroup.id":       cgrpid,
+				"process.exec_id": exec_id,
+				"process.binary":  filename,
+			}).Trace("process_exec: lookup container ID from BPF current context failed. cgroup.name is empty, cgroup ancestor was not tracked and it is nested below the tracking cgroup level")
+			return ""
+		}
+		logEmptyCgrpid.Do(func() {
+			err := fmt.Errorf("cgroup.name is empty and cgroup.id is zero this should not happen")
+			logger.GetLogger().WithFields(logrus.Fields{
+				"deployment.mode": cgroups.DeploymentCode(mode).String(),
+				"cgroup.mode":     cgroupMode.String(),
+				"cgroup.fs.magic": cgroups.CgroupFsMagicStr(fs),
+				"cgroup.id":       cgrpid,
+				"process.exec_id": exec_id,
+				"process.binary":  filename,
+			}).WithError(err).Warn("process_exec: lookup container ID from BPF current context failed. Please see documentation on how to report your cgroup configuration")
+		})
+		return ""
+	}
+
+	// We always get a null terminated buffer from bpf
+	cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.CGROUP_NAME_LENGTH])
+	container, _ := procevents.LookupContainerId(cgroup, true, false)
+	docker := standarizeContainerId(container)
+	if container == "" || docker == "" {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.id":       cgrpid,
+			"cgroup.name":     cgroup,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: lookup container ID from BPF current context failed, cgroup name is not a container compatible ID")
+		return ""
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.id":       cgrpid,
+		"cgroup.name":     cgroup,
+		"docker":          docker,
+		"process.exec_id": exec_id,
+		"process.binary":  filename,
+	}).Trace("process_exec: lookup container ID from BPF current cgroup name succeeded")
+
+	return docker
+}
+
+// containerIDFromTrackedCgrp() Get a container ID from Cgroup information
+// that should be in the tracking cgroup BPF map.
+// If it fails it logs the operation, returns empty string and a bool to
+// indicate if it should fallsback to current BPF context.
+func containerIDFromTrackedCgrp(m *processapi.MsgExecveEvent, exec_id string, filename string) (string, bool) {
+	id := m.Kube.Cgrpid
+	cgroupMap := base.GetCgroupsTrackingMap()
+	mapPath := filepath.Join(bpf.MapPrefixPath(), cgroupMap.Name)
+
+	if id == 0 {
+		/* This should never happen:
+		 * We failed to read the Cgroup ID maybe the cgroup hierarchy or
+		 * controller is not set properly and we failed to detect it?
+		 * This bug should be reported.
+		 */
+		logEmptyCgrpid.Do(func() {
+			err := fmt.Errorf("cgroup.id is zero this should not happen")
+			fs := cgroups.GetCgroupFSMagic()
+			mode := cgroups.GetDeploymentMode()
+			cgroupMode := cgroups.GetCgroupMode()
+			logger.GetLogger().WithFields(logrus.Fields{
+				"bpf-map":         cgroupMap.Name,
+				"deployment.mode": cgroups.DeploymentCode(mode).String(),
+				"cgroup.mode":     cgroupMode.String(),
+				"cgroup.fs.magic": cgroups.CgroupFsMagicStr(fs),
+				"cgroup.id":       id,
+				"process.exec_id": exec_id,
+				"process.binary":  filename,
+			}).WithError(err).Warn("process_exec: lookup container ID from Cgroups tracking map failed. Please see documentation on how to report your cgroup configuration")
+		})
+		/* Indicate we should retry as we failed to properly operate on
+		 * on the cgroups hierarchy...
+		 */
+		return "", true
+	}
+
+	cgrp, err := cgrouptrackmap.LookupCgroupTracker(mapPath, id)
+	if err != nil {
+		/* Failed to read Cgroup tracked data from cgroup BPF map. */
+		logger.GetLogger().WithFields(logrus.Fields{
+			"bpf-map":         cgroupMap.Name,
+			"cgroup.id":       id,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).WithError(err).Trace("process_exec: lookup container ID from Cgroups tracking map failed, cgroup.id is not being tracked in the cgroups tracking BPF map")
+		return "", true
+	}
+
+	cgroupName := cgroups.CgroupNameFromCStr(cgrp.Name[:processapi.CGROUP_NAME_LENGTH])
+	if cgroupName == "" {
+		/* This may happen if we have tracked the Cgroup ID but did not
+		 * push the cgroup name to the tracking cgroup bpf map, maybe the
+		 * process was running before tetragon? or there was a race somewhere?
+		 */
+		err := fmt.Errorf("tracked cgroup has an empty cgroup.name")
+		logger.GetLogger().WithFields(logrus.Fields{
+			"bpf-map":         cgroupMap.Name,
+			"cgroup.id":       id,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).WithError(err).Trace("process_exec: lookup container ID from Cgroups tracking map failed")
+		return "", true
+	}
+
+	container, _ := procevents.LookupContainerId(cgroupName, false, false)
+	docker := standarizeContainerId(container)
+	if container == "" || docker == "" {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"bpf-map":         cgroupMap.Name,
+			"cgroup.id":       id,
+			"cgroup.name":     cgroupName,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: lookup container ID from Cgroups tracking map failed, cgroup.name is not a container compatible ID")
+		/* No need to retry here as the recorded cgroup name is not a container compatible ID */
+		return "", false
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"bpf-map":         cgroupMap.Name,
+		"cgroup.id":       id,
+		"cgroup.name":     cgroupName,
+		"docker":          docker,
+		"process.exec_id": exec_id,
+		"process.binary":  filename,
+	}).Trace("process_exec: lookup container ID from Cgroups tracking map succeeded")
+
+	return docker, false
+}
 
 func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
@@ -52,35 +232,22 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 		Cgrpid: m.Kube.Cgrpid,
 	}
 
-	// The first byte is set to zero if there is no docker ID for this event.
-	if m.Kube.Docker[0] != 0x00 {
-		// We always get a null terminated buffer from bpf
-		cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.CGROUP_NAME_LENGTH])
-		docker, _ := procevents.LookupContainerId(cgroup, true, false)
-		if docker != "" {
-			kube.Docker = docker
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
-				"cgroup.name":     cgroup,
-				"docker":          kube.Docker,
-				"process.exec_id": exec_id,
-				"process.binary":  filename,
-			}).Trace("process_exec: container ID set successfully")
-		} else {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
-				"cgroup.name":     cgroup,
-				"process.exec_id": exec_id,
-				"process.binary":  filename,
-			}).Trace("process_exec: no container ID due to cgroup name not being a compatible ID, ignoring.")
-		}
-	} else {
+	/* First let's try the Cgroup tacking BPF map */
+	docker, retry := containerIDFromTrackedCgrp(m, exec_id, filename)
+	if docker == "" && retry == true {
+		/* Fallback to current Cgroup context returned from BPF and
+		 * log the operation that Cgroup Tracking data is unavailable.
+		 */
 		logger.GetLogger().WithFields(logrus.Fields{
 			"cgroup.id":       kube.Cgrpid,
 			"process.exec_id": exec_id,
 			"process.binary":  filename,
-		}).Trace("process_exec: no container ID due to cgroup name being empty, ignoring.")
+		}).Trace("process_exec: lookup container ID from current BPF cgroup name as cgroups tracking data is unavailable")
+
+		docker = containerFromBpfCgroup(m, exec_id, filename)
 	}
+
+	kube.Docker = docker
 
 	return kube
 }
