@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/state"
@@ -257,36 +256,16 @@ func dumpBpftool(ctx context.Context, client klient.Client, exportDir, podNamesp
 	}
 }
 
+// runBpftool runs bpftool with a specific set of arguments, dumping its output into
+// a file inside exportDir.
 func runBpftool(ctx context.Context, client klient.Client, exportDir, fname, podNamespace, podName, containerName string, args ...string) error {
-	cmd := append([]string{"bpftool"}, args...)
-
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	if err := e2ehelpers.ExecInPod(ctx,
-		client,
-		podNamespace,
-		podName,
-		containerName,
-		stdout,
-		stderr,
-		cmd); err != nil {
-		return fmt.Errorf("failed to run %s: %w", cmd, err)
+	out, err := RunCommand(ctx, client, podNamespace, podName, containerName, "bpftool", args...)
+	if err != nil {
+		klog.ErrorS(err, "failed to run bpftool")
 	}
-
-	var err error
-	buff := new(bytes.Buffer)
-	buff.WriteString("-------------------- stdout starts here --------------------\n")
-	if _, err = buff.ReadFrom(stdout); err != nil {
-		klog.ErrorS(err, "error reading stdout", "cmd", cmd)
-	}
-	buff.WriteString("-------------------- stderr starts here --------------------\n")
-	if _, err = buff.ReadFrom(stderr); err != nil {
-		klog.ErrorS(err, "error reading stdout", "cmd", cmd)
-	}
-	buff.WriteString("------------------------------------------------------------\n")
 
 	fname = filepath.Join(exportDir, fname)
-	if err := os.WriteFile(fname, buff.Bytes(), os.FileMode(0o644)); err != nil {
+	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to bpftool output file", "file", fname)
 	}
 
