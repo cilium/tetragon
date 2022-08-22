@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
 	"github.com/cilium/tetragon/tests/e2e/checker"
@@ -47,12 +48,6 @@ func DumpInfo() TestEnvFunc {
 
 		klog.InfoS("Dumping test data", "dir", exportDir)
 		dumpCheckers(ctx, exportDir)
-
-		if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
-			for podName, port := range ports {
-				dumpMetrics(fmt.Sprint(port), podName, exportDir)
-			}
-		}
 
 		client, err := cfg.NewClient()
 		if err != nil {
@@ -216,6 +211,37 @@ func dumpMetrics(port string, podName string, exportDir string) {
 	if err := os.WriteFile(fname, buff.Bytes(), os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to metrics file", "file", fname, "addr", metricsAddr)
 	}
+}
+
+// StartMetricsDumper starts a goroutine that dumps metrics at a regular interval until
+// the context is done. We want to do this in case the pod crashes or gets restarted
+// during a failing test. This way we can at least have a snapshot of the metrics to look
+// back on.
+func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		for {
+			select {
+			case <-ticker.C:
+				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
+					for podName, port := range ports {
+						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+					}
+				} else {
+					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
+				}
+			case <-ctx.Done():
+				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
+					for podName, port := range ports {
+						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+					}
+				} else {
+					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
+				}
+				return
+			}
+		}
+	}()
 }
 
 // dumpBpftool dumps bpftool progs and maps for a pod
