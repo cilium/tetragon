@@ -76,6 +76,9 @@ func DumpInfo() TestEnvFunc {
 			if err := describeTetragonPod(&pod, exportDir); err != nil {
 				klog.ErrorS(err, "Failed to describe tetragon pods")
 			}
+			if err := dumpPodSummary("pods.txt", exportDir); err != nil {
+				klog.ErrorS(err, "Failed to dump pod summary")
+			}
 			dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
 		}
 
@@ -136,6 +139,23 @@ func describeTetragonPod(pod *corev1.Pod, exportDir string) error {
 	return kubectlDescribe(filepath.Join(exportDir, fname),
 		pod.Namespace,
 		pod.Name)
+}
+
+func dumpPodSummary(fname, exportDir string) error {
+	cmd := exec.Command("kubectl", strings.Fields("get pods -A")...)
+	stdout := &bytes.Buffer{}
+	cmd.Stdout = stdout
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run kubectl get pods -A: %w", err)
+	}
+
+	fname = filepath.Join(exportDir, fname)
+	if err := os.WriteFile(fname, stdout.Bytes(), os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("failed to write pod summary to file %s: %w", fname, err)
+	}
+
+	return nil
 }
 
 func kubectlCp(podNamespace, podName, containerName, src, dst string) error {
