@@ -276,6 +276,12 @@ func UnloadSensor(ctx context.Context, bpfDir, mapDir string, sensor *Sensor) er
 		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", sensor.Name)
 	}
 
+	if sensor.UnloadHook != nil {
+		if err := sensor.UnloadHook(); err != nil {
+			logger.GetLogger().Warnf("Sensor %s unload hook failed: %s", sensor.Name, err)
+		}
+	}
+
 	for _, p := range sensor.Progs {
 		RemoveProgram(bpfDir, p)
 	}

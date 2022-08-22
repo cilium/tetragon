@@ -43,6 +43,10 @@ type Sensor struct {
 	Loaded bool
 	// Ops contains an implementation to perform on this sensor.
 	Ops Operations
+	// UnloadHook can optionally contain a pointer to a function to be
+	// called during sensor unloading, prior to the programs and maps being
+	// unloaded.
+	UnloadHook SensorUnloadHook
 }
 
 // Operations is the interface to the underlying sensor implementations.
@@ -53,6 +57,10 @@ type Operations interface {
 	GetConfig(cfg string) (string, error)
 	SetConfig(cfg string, val string) error
 }
+
+// SensorUnloadHook is the function signature for an optional function
+// that can be called during sensor unloading.
+type SensorUnloadHook func() error
 
 func SensorCombine(name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
