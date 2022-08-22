@@ -96,12 +96,11 @@ func readConfig(file string) (*config.GenericTracingConf, error) {
 	return cnf, nil
 }
 
-func stopProfile(prof string) {
-	if prof == "" {
-		return
+func stopProfile() {
+	if cpuProfile != "" {
+		log.WithField("file", cpuProfile).Info("Stopping cpu profiling")
+		pprof.StopCPUProfile()
 	}
-	log.WithField("file", prof).Info("Stopping cpu profiling")
-	pprof.StopCPUProfile()
 }
 
 func tetragonExecute() error {
@@ -133,7 +132,6 @@ func tetragonExecute() error {
 			log.Fatal("could not start CPU profile: ", err)
 		}
 		log.WithField("file", cpuProfile).Info("Starting cpu profiling")
-		defer stopProfile(cpuProfile)
 	}
 
 	bpf.CheckOrMountFS("")
@@ -213,9 +211,9 @@ func tetragonExecute() error {
 		<-sigs
 		obs.PrintStats()
 		obs.RemovePrograms()
+		stopProfile()
 		cancel()
 		cancelWg.Wait()
-		stopProfile(cpuProfile)
 		os.Exit(1)
 	}()
 
