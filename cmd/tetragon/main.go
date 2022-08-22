@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -97,6 +98,19 @@ func readConfig(file string) (*config.GenericTracingConf, error) {
 }
 
 func stopProfile() {
+	if memProfile != "" {
+		log.WithField("file", memProfile).Info("Stopping mem profiling")
+		f, err := os.Create(memProfile)
+		if err != nil {
+			log.WithField("file", memProfile).Fatal("Could not create memory profile: ", err)
+		}
+		defer f.Close()
+		// get up-to-date statistics
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+	}
 	if cpuProfile != "" {
 		log.WithField("file", cpuProfile).Info("Stopping cpu profiling")
 		pprof.StopCPUProfile()
@@ -119,6 +133,10 @@ func tetragonExecute() error {
 
 	if viper.IsSet(keyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(keyNetnsDir)
+	}
+
+	if memProfile != "" {
+		log.WithField("file", memProfile).Info("Starting mem profiling")
 	}
 
 	if cpuProfile != "" {
@@ -413,6 +431,9 @@ func execute() error {
 
 	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")
 	flags.MarkHidden(keyCpuProfile)
+
+	flags.String(keyMemProfile, "", "Store MEM profile into provided file")
+	flags.MarkHidden(keyMemProfile)
 
 	// JSON export aggregation options.
 	flags.Bool(keyEnableExportAggregation, false, "Enable JSON export aggregation")

@@ -40,6 +40,7 @@ const (
 	keyRunStandalone      = "run-standalone"
 	keyIgnoreMissingProgs = "ignore-missing-progs"
 	keyCpuProfile         = "cpuprofile"
+	keyMemProfile         = "memprofile"
 
 	keyExportFilename             = "export-filename"
 	keyExportFileMaxSizeMB        = "export-file-max-size-mb"
@@ -80,6 +81,7 @@ var (
 	exportAggregationBufferSize uint64
 
 	cpuProfile string
+	memProfile string
 )
 
 func readAndSetFlags() {
@@ -122,4 +124,5 @@ func readAndSetFlags() {
 	exportAggregationBufferSize = viper.GetUint64(keyExportAggregationBufferSize)
 
 	cpuProfile = viper.GetString(keyCpuProfile)
+	memProfile = viper.GetString(keyMemProfile)
 }
