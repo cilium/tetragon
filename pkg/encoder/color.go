@@ -103,7 +103,7 @@ func processCaps(c *tetragon.Capabilities) string {
 	return capsString
 }
 
-func (c Colorer) processInfo(host string, process *tetragon.Process) (string, string) {
+func (c *Colorer) ProcessInfo(host string, process *tetragon.Process) (string, string) {
 	source := c.Green.Sprint(host)
 	if process.Pod != nil {
 		source = c.Green.Sprint(process.Pod.Namespace, "/", process.Pod.Name)

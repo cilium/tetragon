@@ -120,7 +120,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		event := p.Colorer.Blue.Sprintf("🚀 %-7s", "process")
-		processInfo, caps := p.Colorer.processInfo(response.NodeName, exec.Process)
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, exec.Process)
 		args := p.Colorer.Cyan.Sprint(exec.Process.Arguments)
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
 	case *tetragon.GetEventsResponse_ProcessExit:
@@ -129,7 +129,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		event := p.Colorer.Blue.Sprintf("💥 %-7s", "exit")
-		processInfo, caps := p.Colorer.processInfo(response.NodeName, exit.Process)
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, exit.Process)
 		args := p.Colorer.Cyan.Sprint(exit.Process.Arguments)
 		var status string
 		if exit.Signal != "" {
@@ -143,7 +143,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		if kprobe.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		processInfo, caps := p.Colorer.processInfo(response.NodeName, kprobe.Process)
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, kprobe.Process)
 		switch kprobe.FunctionName {
 		case "__x64_sys_write":
 			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
@@ -261,7 +261,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		if tp.Process == nil {
 			return "", ErrMissingProcessInfo
 		}
-		processInfo, caps := p.Colorer.processInfo(response.NodeName, tp.Process)
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, tp.Process)
 		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
 		case "raw_syscalls/sys_enter":
 			event := p.Colorer.Blue.Sprintf("☎  %-7s", "syscall")
