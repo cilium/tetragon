@@ -4,6 +4,7 @@
 package helpers
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -11,11 +12,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -95,4 +98,37 @@ func GetMinKernelVersion(t *testing.T, testenv env.Environment) string {
 		}).Feature()
 	testenv.Test(t, feature)
 	return *version
+}
+
+// RunCommand runs a command in a pod and returns the combined stdout and stderr delimited
+// by markers as a byte slice.
+func RunCommand(ctx context.Context, client klient.Client, podNamespace, podName, containerName string, cmd string, args ...string) ([]byte, error) {
+	argv := append([]string{cmd}, args...)
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	if err := e2ehelpers.ExecInPod(ctx,
+		client,
+		podNamespace,
+		podName,
+		containerName,
+		stdout,
+		stderr,
+		argv); err != nil {
+		return nil, fmt.Errorf("failed to run %s: %w", cmd, err)
+	}
+
+	var err error
+	buff := new(bytes.Buffer)
+	buff.WriteString("-------------------- stdout starts here --------------------\n")
+	if _, err = buff.ReadFrom(stdout); err != nil {
+		klog.ErrorS(err, "error reading stdout", "cmd", cmd)
+	}
+	buff.WriteString("-------------------- stderr starts here --------------------\n")
+	if _, err = buff.ReadFrom(stderr); err != nil {
+		klog.ErrorS(err, "error reading stderr", "cmd", cmd)
+	}
+	buff.WriteString("------------------------------------------------------------\n")
+
+	return buff.Bytes(), nil
 }
