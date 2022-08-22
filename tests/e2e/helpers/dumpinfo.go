@@ -73,6 +73,9 @@ func DumpInfo() TestEnvFunc {
 			if err := extractLogs(&pod, exportDir, false); err != nil {
 				klog.ErrorS(err, "Failed to extract tetragon logs")
 			}
+			if err := describeTetragonPod(&pod, exportDir); err != nil {
+				klog.ErrorS(err, "Failed to describe tetragon pods")
+			}
 			dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
 		}
 
@@ -128,6 +131,13 @@ func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
 		prev)
 }
 
+func describeTetragonPod(pod *corev1.Pod, exportDir string) error {
+	fname := fmt.Sprintf("tetragon.%s.describe", pod.Name)
+	return kubectlDescribe(filepath.Join(exportDir, fname),
+		pod.Namespace,
+		pod.Name)
+}
+
 func kubectlCp(podNamespace, podName, containerName, src, dst string) error {
 	args := fmt.Sprintf("cp -c %s %s/%s:%s %s", containerName, podNamespace, podName, src, dst)
 	cmd := exec.Command("kubectl", strings.Fields(args)...)
@@ -154,6 +164,23 @@ func kubectlLogs(fname, podNamespace, podName, containerName string, prev bool) 
 
 	if err := os.WriteFile(fname, stdout.Bytes(), os.FileMode(0o644)); err != nil {
 		return fmt.Errorf("failed to write logs to file %s: %w", fname, err)
+	}
+
+	return nil
+}
+
+func kubectlDescribe(fname, podNamespace, podName string) error {
+	args := fmt.Sprintf("describe -n %s pods/%s", podNamespace, podName)
+	cmd := exec.Command("kubectl", strings.Fields(args)...)
+	stdout := &bytes.Buffer{}
+	cmd.Stdout = stdout
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run kubectl %s: %w", args, err)
+	}
+
+	if err := os.WriteFile(fname, stdout.Bytes(), os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("failed to write describe output to file %s: %w", fname, err)
 	}
 
 	return nil
