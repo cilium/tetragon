@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/cilium/cilium-e2e/pkg/e2ecluster/ciliuminstall"
 	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
@@ -170,6 +171,11 @@ func (r *Runner) Init() *Runner {
 		if err != nil {
 			return ctx, fmt.Errorf("failed to create export dir: %w", err)
 		}
+		exportDir, err := helpers.GetExportDir(ctx)
+		if err != nil {
+			return ctx, fmt.Errorf("failed to get export dir: %w", err)
+		}
+		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
 		return ctx, nil
 	})
 
