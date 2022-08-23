@@ -2781,6 +2781,90 @@ func (checker *KprobeBpfAttrChecker) FromKprobeBpfAttr(event *tetragon.KprobeBpf
 	return checker
 }
 
+// KprobePerfEventChecker implements a checker struct to check a KprobePerfEvent field
+type KprobePerfEventChecker struct {
+	KprobeFunc  *stringmatcher.StringMatcher `json:"KprobeFunc,omitempty"`
+	Type        *stringmatcher.StringMatcher `json:"Type,omitempty"`
+	Config      *uint64                      `json:"Config,omitempty"`
+	ProbeOffset *uint64                      `json:"ProbeOffset,omitempty"`
+}
+
+// NewKprobePerfEventChecker creates a new KprobePerfEventChecker
+func NewKprobePerfEventChecker() *KprobePerfEventChecker {
+	return &KprobePerfEventChecker{}
+}
+
+// Check checks a KprobePerfEvent field
+func (checker *KprobePerfEventChecker) Check(event *tetragon.KprobePerfEvent) error {
+	if event == nil {
+		return fmt.Errorf("KprobePerfEventChecker: KprobePerfEvent field is nil")
+	}
+
+	if checker.KprobeFunc != nil {
+		if err := checker.KprobeFunc.Match(event.KprobeFunc); err != nil {
+			return fmt.Errorf("KprobePerfEventChecker: KprobeFunc check failed: %w", err)
+		}
+	}
+	if checker.Type != nil {
+		if err := checker.Type.Match(event.Type); err != nil {
+			return fmt.Errorf("KprobePerfEventChecker: Type check failed: %w", err)
+		}
+	}
+	if checker.Config != nil {
+		if *checker.Config != event.Config {
+			return fmt.Errorf("KprobePerfEventChecker: Config has value %d which does not match expected value %d", event.Config, *checker.Config)
+		}
+	}
+	if checker.ProbeOffset != nil {
+		if *checker.ProbeOffset != event.ProbeOffset {
+			return fmt.Errorf("KprobePerfEventChecker: ProbeOffset has value %d which does not match expected value %d", event.ProbeOffset, *checker.ProbeOffset)
+		}
+	}
+	return nil
+}
+
+// WithKprobeFunc adds a KprobeFunc check to the KprobePerfEventChecker
+func (checker *KprobePerfEventChecker) WithKprobeFunc(check *stringmatcher.StringMatcher) *KprobePerfEventChecker {
+	checker.KprobeFunc = check
+	return checker
+}
+
+// WithType adds a Type check to the KprobePerfEventChecker
+func (checker *KprobePerfEventChecker) WithType(check *stringmatcher.StringMatcher) *KprobePerfEventChecker {
+	checker.Type = check
+	return checker
+}
+
+// WithConfig adds a Config check to the KprobePerfEventChecker
+func (checker *KprobePerfEventChecker) WithConfig(check uint64) *KprobePerfEventChecker {
+	checker.Config = &check
+	return checker
+}
+
+// WithProbeOffset adds a ProbeOffset check to the KprobePerfEventChecker
+func (checker *KprobePerfEventChecker) WithProbeOffset(check uint64) *KprobePerfEventChecker {
+	checker.ProbeOffset = &check
+	return checker
+}
+
+//FromKprobePerfEvent populates the KprobePerfEventChecker using data from a KprobePerfEvent field
+func (checker *KprobePerfEventChecker) FromKprobePerfEvent(event *tetragon.KprobePerfEvent) *KprobePerfEventChecker {
+	if event == nil {
+		return checker
+	}
+	checker.KprobeFunc = stringmatcher.Full(event.KprobeFunc)
+	checker.Type = stringmatcher.Full(event.Type)
+	{
+		val := event.Config
+		checker.Config = &val
+	}
+	{
+		val := event.ProbeOffset
+		checker.ProbeOffset = &val
+	}
+	return checker
+}
+
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg         *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
@@ -2795,6 +2879,7 @@ type KprobeArgumentChecker struct {
 	CredArg           *KprobeCredChecker           `json:"credArg,omitempty"`
 	LongArg           *int64                       `json:"longArg,omitempty"`
 	BpfAttrArg        *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
+	PerfEventArg      *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -2928,6 +3013,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			return fmt.Errorf("KprobeArgumentChecker: BpfAttrArg check failed: %T is not a BpfAttrArg", event)
 		}
 	}
+	if checker.PerfEventArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_PerfEventArg:
+			if err := checker.PerfEventArg.Check(event.PerfEventArg); err != nil {
+				return fmt.Errorf("KprobeArgumentChecker: PerfEventArg check failed: %w", err)
+			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: PerfEventArg check failed: %T is not a PerfEventArg", event)
+		}
+	}
 	return nil
 }
 
@@ -3000,6 +3095,12 @@ func (checker *KprobeArgumentChecker) WithLongArg(check int64) *KprobeArgumentCh
 // WithBpfAttrArg adds a BpfAttrArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithBpfAttrArg(check *KprobeBpfAttrChecker) *KprobeArgumentChecker {
 	checker.BpfAttrArg = check
+	return checker
+}
+
+// WithPerfEventArg adds a PerfEventArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithPerfEventArg(check *KprobePerfEventChecker) *KprobeArgumentChecker {
+	checker.PerfEventArg = check
 	return checker
 }
 
@@ -3077,6 +3178,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_BpfAttrArg:
 		if event.BpfAttrArg != nil {
 			checker.BpfAttrArg = NewKprobeBpfAttrChecker().FromKprobeBpfAttr(event.BpfAttrArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_PerfEventArg:
+		if event.PerfEventArg != nil {
+			checker.PerfEventArg = NewKprobePerfEventChecker().FromKprobePerfEvent(event.PerfEventArg)
 		}
 	}
 	return checker

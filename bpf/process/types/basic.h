@@ -7,6 +7,7 @@
 #include "sock.h"
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
+#include "perfevent.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -36,6 +37,7 @@ enum {
 	 */
 	const_buf_type = 18,
 	bpf_attr_type = 19,
+	perf_event_type = 20,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -658,6 +660,30 @@ copy_bpf_attr(char *args, unsigned long arg)
 }
 
 static inline __attribute__((always_inline)) long
+copy_perf_event(char *args, unsigned long arg)
+{
+	struct perf_event *p_event = (struct perf_event *)arg;
+	struct perf_event_info_type *event_info =
+		(struct perf_event_info_type *)args;
+
+	/* struct values */
+	__u64 kprobe_func_addr = 0;
+
+	probe_read(&kprobe_func_addr, sizeof(__u64),
+		   _(&p_event->attr.kprobe_func));
+	probe_read_str(&event_info->kprobe_func, 128U,
+		       (char *)kprobe_func_addr);
+
+	probe_read(&event_info->type, sizeof(__u32), _(&p_event->attr.type));
+	probe_read(&event_info->config, sizeof(__u64),
+		   _(&p_event->attr.config));
+	probe_read(&event_info->probe_offset, sizeof(__u64),
+		   _(&p_event->attr.probe_offset));
+
+	return sizeof(struct perf_event_info_type);
+}
+
+static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
@@ -731,6 +757,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return argm;
 	case bpf_attr_type:
 		return sizeof(struct bpf_info_type);
+	case perf_event_type:
+		return sizeof(struct perf_event_info_type);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1296,6 +1324,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case bpf_attr_type: {
 		size = copy_bpf_attr(args, arg);
+		break;
+	}
+	case perf_event_type: {
+		size = copy_perf_event(args, arg);
 		break;
 	}
 	default:

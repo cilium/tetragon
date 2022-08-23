@@ -18,6 +18,7 @@
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
     - [KprobePath](#tetragon-KprobePath)
+    - [KprobePerfEvent](#tetragon-KprobePerfEvent)
     - [KprobeSkb](#tetragon-KprobeSkb)
     - [KprobeSock](#tetragon-KprobeSock)
     - [KprobeTruncatedBytes](#tetragon-KprobeTruncatedBytes)
@@ -274,6 +275,7 @@
 | cred_arg | [KprobeCred](#tetragon-KprobeCred) |  |  |
 | long_arg | [int64](#int64) |  |  |
 | bpf_attr_arg | [KprobeBpfAttr](#tetragon-KprobeBpfAttr) |  |  |
+| perf_event_arg | [KprobePerfEvent](#tetragon-KprobePerfEvent) |  |  |
 
 
 
@@ -342,6 +344,24 @@
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobePerfEvent"></a>
+
+### KprobePerfEvent
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| KprobeFunc | [string](#string) |  |  |
+| Type | [string](#string) |  |  |
+| Config | [uint64](#uint64) |  |  |
+| ProbeOffset | [uint64](#uint64) |  |  |
 
 
 
