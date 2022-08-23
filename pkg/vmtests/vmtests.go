@@ -71,12 +71,13 @@ func copyBugTool(cnf *Conf, res *Result) error {
 }
 
 func printProgress(f *os.File, done <-chan struct{}) {
+	ticker := time.NewTicker(6 * time.Second)
 	for i := 1; ; i++ {
 		select {
 		case <-done:
 			return
 
-		case <-time.After(6 * time.Second):
+		case <-ticker.C:
 			if i%10 == 0 {
 				f.Write([]byte("m"))
 			} else {
