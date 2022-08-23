@@ -832,7 +832,6 @@ func TestGrpcExecPodInfoInOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
 	watcher.SetDummyPod()                                                         // setup some dummy pod to return
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 	checkPodEvents(t, AllEvents)
@@ -877,7 +876,6 @@ func TestGrpcExecPodInfoOutOfOrder(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
 	watcher.SetDummyPod()                                                         // setup some dummy pod to return
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 	checkPodEvents(t, AllEvents)
@@ -927,7 +925,6 @@ func TestGrpcExecPodInfoInOrderAfter(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, len(AllEvents), 0)                                            // as we didn't have pod info both of these events have gone to the cache
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 	checkPodEvents(t, AllEvents)
 }
@@ -976,7 +973,6 @@ func TestGrpcExecPodInfoOutOfOrderAfter(t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, len(AllEvents), 1)                                            // as exit is OOO this goes through the cache (exec have both and expoted immediately)
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * cacheTimerMs)) // wait for cache to do it's work
 	checkPodEvents(t, AllEvents)
 }
