@@ -39,9 +39,6 @@ jobs:
         cd go/src/github.com/cilium/tetragon/
         make verify
 
-    - name: Increase open file descriptors limit
-      run: echo fs.file-max=1048576 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
-
     - name: Run go tests
       env:
         GOPATH: /home/runner/work/tetragon/tetragon/go
