@@ -196,9 +196,17 @@ func writeExecveMap(procs []Procs) {
 			panic(err)
 		}
 	}
+
+	batch := bpf.HasBatchUpdate()
+
+	var (
+		keys   []execvemap.ExecveKey
+		values []execvemap.ExecveValue
+	)
+
 	for _, p := range procs {
-		k := &execvemap.ExecveKey{Pid: p.pid}
-		v := &execvemap.ExecveValue{}
+		k := execvemap.ExecveKey{Pid: p.pid}
+		v := execvemap.ExecveValue{}
 
 		v.Parent.Pid = p.ppid
 		v.Parent.Ktime = p.pktime
@@ -220,8 +228,26 @@ func writeExecveMap(procs []Procs) {
 		v.Namespaces.CgroupInum = p.cgroup_ns
 		v.Namespaces.UserInum = p.user_ns
 
-		m.Update(k, v, 0)
+		if batch {
+			keys = append(keys, k)
+			values = append(values, v)
+		} else {
+			m.Update(&k, &v, 0)
+		}
 	}
+
+	if batch {
+		count, err := m.BatchUpdate(keys, values, nil)
+		if err != nil {
+			logger.GetLogger().Infof("BatchUpdate: %v", err)
+			return
+		}
+		if count != len(keys) {
+			logger.GetLogger().Fatal("BatchUpdate: expected count, %d, to be %d", count, len(keys))
+			return
+		}
+	}
+
 	// In order for kprobe events from kernel ctx to not abort we need the
 	// execve lookup to map to a valid entry. So to simplify the kernel side
 	// and avoid having to add another branch of logic there to handle pid==0
