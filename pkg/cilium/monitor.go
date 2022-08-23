@@ -31,6 +31,7 @@ import (
 
 // HandleMonitorSocket connects to the monitor socket and consumes monitor events.
 func HandleMonitorSocket(ctx context.Context, ciliumState *cilium.State) {
+	ticker := time.NewTicker(10 * time.Second)
 	for {
 		conn, err := net.Dial("unix", defaults.MonitorSockPath1_2)
 		if err != nil {
@@ -45,7 +46,7 @@ func HandleMonitorSocket(ctx context.Context, ciliumState *cilium.State) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(10 * time.Second):
+		case <-ticker.C:
 		}
 	}
 }
