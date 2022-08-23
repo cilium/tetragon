@@ -37,8 +37,10 @@ type Runner struct {
 	installCilium       env.Func
 	installTetragon     env.Func
 	tetragonPortForward PortForwardFunc
-	hasCalledSetup      bool
+	hasCalledInit       bool
 	keepExportFiles     bool
+	cancel              context.CancelFunc
+	env.Environment
 }
 
 var DefaultRunner = Runner{
@@ -63,7 +65,7 @@ var DefaultRunner = Runner{
 	tetragonPortForward: func(testenv env.Environment) env.Func {
 		return helpers.PortForwardTetragonPods(testenv)
 	},
-	hasCalledSetup:  false,
+	hasCalledInit:   false,
 	keepExportFiles: false,
 }
 
@@ -124,11 +126,12 @@ func (r *Runner) NoInstallCilium() *Runner {
 	return r
 }
 
-func (r *Runner) Setup() env.Environment {
-	if r.hasCalledSetup {
-		klog.Fatalf("Cannot call Runner.Setup() twice")
+// Initialize the configured runner. Must be called exactly once.
+func (r *Runner) Init() *Runner {
+	if r.hasCalledInit {
+		klog.Fatalf("Cannot call Runner.Init() twice")
 	}
-	r.hasCalledSetup = true
+	r.hasCalledInit = true
 
 	cfg, err := envconf.NewFromFlags()
 	if err != nil {
@@ -140,26 +143,29 @@ func (r *Runner) Setup() env.Environment {
 	klog.V(2).Infof("Command line flags: %+v", flags.Opts)
 	r.keepExportFiles = flags.Opts.KeepExportData || r.keepExportFiles
 
-	testenv := env.NewWithConfig(cfg)
+	r.Environment = env.NewWithConfig(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	r.cancel = cancel
+	r.Environment = r.Environment.WithContext(ctx)
 
 	if r.setupCluster == nil {
 		klog.Fatalf("Runner.setupCluster cannot be nil")
 	}
-	testenv.Setup(r.setupCluster(testenv))
+	r.Setup(r.setupCluster(r.Environment))
 
-	testenv.Setup(helpers.SetMinKernelVersion())
+	r.Setup(helpers.SetMinKernelVersion())
 
 	if r.installCilium != nil && flags.Opts.InstallCilium {
-		testenv.Setup(r.installCilium)
+		r.Setup(r.installCilium)
 	}
 
 	if r.installTetragon == nil {
 		klog.Fatalf("Runner.installTetragon cannot be nil")
 	}
-	testenv.Setup(r.installTetragon)
+	r.Setup(r.installTetragon)
 
 	// Create the export dir before each test
-	testenv.BeforeEachTest(func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
+	r.BeforeEachTest(func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
 		ctx, err := helpers.CreateExportDir(ctx, t)
 		if err != nil {
 			return ctx, fmt.Errorf("failed to create export dir: %w", err)
@@ -170,7 +176,7 @@ func (r *Runner) Setup() env.Environment {
 	allTestsPassed := true
 
 	// Dump info after each test
-	testenv.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
+	r.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
 		if t.Failed() {
 			allTestsPassed = false
 		}
@@ -180,7 +186,7 @@ func (r *Runner) Setup() env.Environment {
 		return context.WithValue(ctx, state.Test, nil), err
 	})
 
-	testenv.Finish(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+	r.Finish(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		// The test passed and we are not keeping export files, remove the export dir
 		// and return early
 		if !r.keepExportFiles && allTestsPassed {
@@ -196,12 +202,26 @@ func (r *Runner) Setup() env.Environment {
 	})
 
 	if r.tetragonPortForward != nil {
-		testenv.Setup(r.tetragonPortForward(testenv))
+		r.Setup(r.tetragonPortForward(r.Environment))
 	}
 
-	return testenv
+	return r
 }
 
-func (r *Runner) Run(testenv env.Environment, m *testing.M) {
-	os.Exit(testenv.Run(m))
+// Run the tests. Exits with a corresponding status code. Must be called at the end of
+// TestMain().
+func (r *Runner) Run(m *testing.M) {
+	if !r.hasCalledInit {
+		klog.Fatal("runner.Init() must be called")
+	}
+	defer r.cancelContext()
+	os.Exit(r.Environment.Run(m))
+}
+
+func (r *Runner) cancelContext() {
+	if r.cancel != nil {
+		r.cancel()
+	} else {
+		klog.Warning("r.cancel() is nil, refusing to cancel context")
+	}
 }
