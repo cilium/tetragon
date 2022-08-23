@@ -273,7 +273,9 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		option.Config.Verbosity = 1
 	}
 
-	loadExporter(t, ctx, obs, &o.exporter, &o.observer)
+	if err := loadExporter(t, ctx, obs, &o.exporter, &o.observer); err != nil {
+		return nil, ret, err
+	}
 
 	cnf, _ := readConfig(o.observer.config)
 	if cnf != nil {
