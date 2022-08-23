@@ -9,7 +9,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -19,13 +18,12 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/runners"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
 // This holds our test environment which we get from calling runners.NewRunner().Setup()
-var testenv env.Environment
+var runner *runners.Runner
 
 // The namespace where we want to spawn our pods
 const namespace = "skeleton"
@@ -61,7 +59,7 @@ func TestMain(m *testing.M) {
 	//    cluster and running event checkers. This information is only dumped if the test
 	//    fails or if -tetragon.keep-export=true is set on the command line.
 	//
-	testenv = runners.NewRunner().Setup()
+	runner = runners.NewRunner().Init()
 
 	// Any additional setup and cleanup can be performed here if you like.
 	// This would be done using testenv.Setup() and testenv.Finish() respectively.
@@ -70,7 +68,7 @@ func TestMain(m *testing.M) {
 	// used to maniplate the test context and test environment.
 	//
 	// Here we ensure our test namespace doesn't already exist then create it.
-	testenv.Setup(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+	runner.Setup(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		ctx, _ = helpers.DeleteNamespace(namespace, true)(ctx, c)
 
 		ctx, err := helpers.CreateNamespace(namespace, true)(ctx, c)
@@ -82,12 +80,12 @@ func TestMain(m *testing.M) {
 	})
 
 	// Run the tests using the test runner.
-	os.Exit(testenv.Run(m))
+	runner.Run(m)
 }
 
 func TestSkeletonBasic(t *testing.T) {
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
-	kversion := helpers.GetMinKernelVersion(t, testenv)
+	kversion := helpers.GetMinKernelVersion(t, runner.Environment)
 	// Create an curl event checker with a limit or 10 events or 30 seconds, whichever comes first
 	curlChecker := curlEventChecker(kversion).WithEventLimit(100).WithTimeLimit(30 * time.Second)
 
@@ -123,7 +121,7 @@ func TestSkeletonBasic(t *testing.T) {
 	//
 	// This particular testenv.TestInParallel() starts our event checker, waits for it to
 	// start, and then runs our workload.
-	testenv.TestInParallel(t, runEventChecker, runWorkload)
+	runner.TestInParallel(t, runEventChecker, runWorkload)
 }
 
 func curlEventChecker(kernelVersion string) *checker.RPCChecker {

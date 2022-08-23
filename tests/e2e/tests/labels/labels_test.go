@@ -7,7 +7,6 @@ package labels_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -16,14 +15,13 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/runners"
-	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"sigs.k8s.io/e2e-framework/third_party/helm"
 )
 
 // This holds our test environment which we get from calling runners.NewRunner().Setup()
-var testenv env.Environment
+var runner *runners.Runner
 
 // The namespace where we want to spawn our pods
 const namespace = "labels"
@@ -67,10 +65,10 @@ func uninstallDemoApp() features.Func {
 }
 
 func TestMain(m *testing.M) {
-	testenv = runners.NewRunner().Setup()
+	runner = runners.NewRunner().Init()
 
 	// Here we ensure our test namespace doesn't already exist then create it.
-	testenv.Setup(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+	runner.Setup(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		ctx, _ = helpers.DeleteNamespace(namespace, true)(ctx, c)
 
 		ctx, err := helpers.CreateNamespace(namespace, true)(ctx, c)
@@ -82,12 +80,12 @@ func TestMain(m *testing.M) {
 	})
 
 	// Run the tests using the test runner.
-	os.Exit(testenv.Run(m))
+	runner.Run(m)
 }
 
 func TestLabelsDemoApp(t *testing.T) {
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
-	kversion := helpers.GetMinKernelVersion(t, testenv)
+	kversion := helpers.GetMinKernelVersion(t, runner.Environment)
 	labelsChecker := labelsEventChecker(kversion).WithEventLimit(5000).WithTimeLimit(5 * time.Minute)
 
 	// This starts labelsChecker and uses it to run event checks.
@@ -106,8 +104,8 @@ func TestLabelsDemoApp(t *testing.T) {
 		Assess("Uninstall", uninstallDemoApp()).Feature()
 
 	// Spawn workload and run checker
-	testenv.TestInParallel(t, runEventChecker, runWorkload)
-	testenv.Test(t, uninstall)
+	runner.TestInParallel(t, runEventChecker, runWorkload)
+	runner.Test(t, uninstall)
 }
 
 func labelsEventChecker(kernelVersion string) *checker.RPCChecker {
