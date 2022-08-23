@@ -49,6 +49,11 @@ var CiBlacklist = []vmtests.GoTest{
 	// was a previous attempt to fix the test, but failed. Ignore it for
 	// now.
 	{PackageProg: "pkg.exporter"},
+	// pkg.grpc.exec relies on sleep() calls in order to wait for the
+	// eventcache to run. Running them on heavily loaded VM cause flakes.
+	// As they are not kernel-dependant, let's run them only as part of
+	// gotests.
+	{PackageProg: "pkg.grpc.exec"},
 }
 
 func usage() {
