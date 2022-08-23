@@ -702,6 +702,20 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.InsnCnt = output.InsnCnt
 			arg.ProgName = string(output.ProgName[:15]) // don't include last null byte
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericPerfEvent:
+			var output api.MsgGenericKprobePerfEvent
+			var arg api.MsgGenericKprobeArgPerfEvent
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("perf_event type error")
+			}
+			length := bytes.IndexByte(output.KprobeFunc[:], 0) // trim tailing null bytes
+			arg.KprobeFunc = string(output.KprobeFunc[:length])
+			arg.Type = output.Type
+			arg.Config = output.Config
+			arg.ProbeOffset = output.ProbeOffset
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")
 		}

@@ -81,6 +81,7 @@ spec:
                             - path
                             - nop
                             - bpf_attr
+                            - perf_event
                             type: string
                         required:
                         - index
@@ -135,6 +136,7 @@ spec:
                           - path
                           - nop
                           - bpf_attr
+                          - perf_event
                           type: string
                       required:
                       - index
@@ -470,6 +472,7 @@ spec:
                             - path
                             - nop
                             - bpf_attr
+                            - perf_event
                             type: string
                         required:
                         - index

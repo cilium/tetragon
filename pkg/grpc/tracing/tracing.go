@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
+	"github.com/cilium/tetragon/pkg/reader/perfevent"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -142,6 +143,14 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				ProgName: e.ProgName,
 			}
 			a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
+		case api.MsgGenericKprobeArgPerfEvent:
+			perfEventArg := &tetragon.KprobePerfEvent{
+				KprobeFunc:  e.KprobeFunc,
+				Type:        perfevent.GetPerfEventType(e.Type),
+				Config:      e.Config,
+				ProbeOffset: e.ProbeOffset,
+			}
+			a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}
