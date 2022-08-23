@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -185,9 +186,9 @@ func writeExecveMap(procs []Procs) {
 		return
 	}
 
-	m, err := bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))
+	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, execveMap.Name), nil)
 	for i := 0; err != nil; i++ {
-		m, err = bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))
+		m, err = ebpf.LoadPinnedMap(filepath.Join(mapDir, execveMap.Name), nil)
 		if err != nil {
 			time.Sleep(mapRetryDelay * time.Second)
 		}
@@ -219,7 +220,7 @@ func writeExecveMap(procs []Procs) {
 		v.Namespaces.CgroupInum = p.cgroup_ns
 		v.Namespaces.UserInum = p.user_ns
 
-		m.Update(k, v)
+		m.Update(k, v, 0)
 	}
 	// In order for kprobe events from kernel ctx to not abort we need the
 	// execve lookup to map to a valid entry. So to simplify the kernel side
@@ -233,7 +234,7 @@ func writeExecveMap(procs []Procs) {
 			Pid:   kernelPid,
 			Ktime: 1,
 		},
-	})
+	}, 0)
 	m.Close()
 }
 
