@@ -28,6 +28,13 @@
  */
 #define CGROUP_MAX_NESTED_LEVEL 32
 
+/* Represent old kernfs node with the kernfs_node_id
+ * union to read the id in 5.4 kernels and older
+ */
+struct kernfs_node___old {
+	union kernfs_node_id id;
+};
+
 typedef enum {
 	CGROUP_UNTRACKED = 0, /* Cgroup was created but we did not track it */
 	CGROUP_NEW = 1, /* Cgroup was just created */
@@ -114,9 +121,19 @@ static inline __attribute__((always_inline)) __u64
 __get_cgroup_knfs_id(const struct kernfs_node *kn)
 {
 	__u64 id = 0;
+	struct kernfs_node___old *old_kn;
 
-	if (kn)
+	if (!kn)
+		return id;
+
+	/* Kernels prior to 5.5 have the kernfs_node_id */
+	if (!bpf_core_type_exists(union kernfs_node_id)) {
 		probe_read(&id, sizeof(id), _(&kn->id));
+	} else {
+		old_kn = (void *)kn;
+		BPF_CORE_READ_INTO(&id, old_kn, id.id);
+	}
+
 
 	return id;
 }

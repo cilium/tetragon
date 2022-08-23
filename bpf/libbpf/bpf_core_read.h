@@ -19,6 +19,13 @@ enum bpf_field_info_kind {
 	BPF_FIELD_RSHIFT_U64 = 5,
 };
 
+/* second argument to __builtin_preserve_type_info() built-in */
+enum bpf_type_info_kind {
+	BPF_TYPE_EXISTS = 0,		/* type existence in target kernel */
+	BPF_TYPE_SIZE = 1,		/* type size in target kernel */
+	BPF_TYPE_MATCHES = 2,		/* type match in target kernel */
+};
+
 #define __CORE_RELO(src, field, info)					      \
 	__builtin_preserve_field_info((src)->field, BPF_FIELD_##info)
 
@@ -97,6 +104,16 @@ enum bpf_field_info_kind {
  */
 #define bpf_core_field_size(field)					    \
 	__builtin_preserve_field_info(field, BPF_FIELD_BYTE_SIZE)
+
+/*
+ * Convenience macro to check that provided named type
+ * (struct/union/enum/typedef) exists in a target kernel.
+ * Returns:
+ *    1, if such type is present in target kernel's BTF;
+ *    0, if no matching type is found.
+ */
+#define bpf_core_type_exists(type)					    \
+	__builtin_preserve_type_info(*(typeof(type) *)0, BPF_TYPE_EXISTS)
 
 /*
  * bpf_core_read() abstracts away bpf_probe_read() call and captures offset
