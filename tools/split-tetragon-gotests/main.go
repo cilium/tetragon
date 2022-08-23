@@ -49,8 +49,6 @@ var CiBlacklist = []vmtests.GoTest{
 	// was a previous attempt to fix the test, but failed. Ignore it for
 	// now.
 	{PackageProg: "pkg.exporter"},
-	// https://github.com/cilium/tetragon/issues/247
-	{PackageProg: "pkg.sensors.tracing", Test: "TestCopyFd"},
 }
 
 func usage() {
