@@ -168,6 +168,8 @@ func CgroupFsMagicStr(magic uint64) string {
 // in. We need this dynamic behavior since these controllers are
 // compile config.
 func DiscoverSubSysIds() error {
+	var allcontrollers []string
+
 	path := filepath.Join(option.Config.ProcFS, "cgroups")
 	file, err := os.Open(path)
 	if err != nil {
@@ -179,9 +181,12 @@ func DiscoverSubSysIds() error {
 	fscanner := bufio.NewScanner(file)
 	fixed := false
 	idx := 0
+	fscanner.Scan() // ignore first entry
 	for fscanner.Scan() {
 		line := fscanner.Text()
 		fields := strings.Fields(line)
+
+		allcontrollers = append(allcontrollers, fields[0])
 
 		// No need to read enabled field as it can be enabled on
 		// root without having a proper cgroup name to reflect that
@@ -191,11 +196,11 @@ func DiscoverSubSysIds() error {
 				id, err := strconv.ParseUint(fields[1], 10, 32)
 				if err == nil {
 					cgroupControllers[i].id = uint32(id)
-					cgroupControllers[i].idx = uint32(idx - 1)
+					cgroupControllers[i].idx = uint32(idx)
 					fixed = true
 				}
 				// idx here is already > 1
-				if (idx - 1) >= CGROUP_SUBSYS_COUNT {
+				if idx >= CGROUP_SUBSYS_COUNT {
 					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at high value '%d'", controller.str, idx-1)
 				}
 			}
@@ -203,15 +208,22 @@ func DiscoverSubSysIds() error {
 		idx++
 	}
 
+	// Could not find 'memory' and 'pids' controllers, are they compiled in?
 	if fixed == false {
-		return fmt.Errorf("detect Cgroup controllers IDs from '%s' failed", path)
+		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", path)
+		logger.GetLogger().WithFields(logrus.Fields{
+			"Cgroupfs":    cgroupFSPath,
+			"Controllers": strings.Join(allcontrollers, " "),
+		}).WithError(err).Warnf("Cgroup controllers 'memory' and 'pids' are missing")
 	}
+
+	logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debugf("List of available cgroup controllers: '%s'", strings.Join(allcontrollers, " "))
 
 	for _, controller := range cgroupControllers {
 		if controller.id == 0 {
 			continue
 		}
-		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debugf("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.str, controller.id, controller.idx)
+		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Infof("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.str, controller.id, controller.idx)
 	}
 
 	return nil
