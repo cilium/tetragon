@@ -134,7 +134,6 @@ __get_cgroup_knfs_id(const struct kernfs_node *kn)
 		BPF_CORE_READ_INTO(&id, old_kn, id.id);
 	}
 
-
 	return id;
 }
 

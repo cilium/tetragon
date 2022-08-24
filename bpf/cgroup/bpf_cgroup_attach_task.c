@@ -51,7 +51,8 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
 
 	/* Check if target Cgroup matches and it is same hierarchy ID */
-	if (config->tg_cgrp_hierarchy != hierarchy_id || config->tg_cgrpid != cgrpid)
+	if (config->tg_cgrp_hierarchy != hierarchy_id ||
+	    config->tg_cgrpid != cgrpid)
 		return 0;
 
 	/* Let's initialize tetragon itself in execve_value_map here */
@@ -64,7 +65,8 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	if (level > CGROUP_MAX_NESTED_LEVEL) {
 		level = CGROUP_MAX_NESTED_LEVEL;
 		/* Fix up cgroup ID if we are bellow max nested hierarchies */
-		cgrpid = get_ancestor_cgroup_id(cgrp, config->cgrp_fs_magic, level);
+		cgrpid = get_ancestor_cgroup_id(cgrp, config->cgrp_fs_magic,
+						level);
 		config->tg_cgrpid = cgrpid;
 
 		/* Update Tetragon own cgroup id if necessary */
