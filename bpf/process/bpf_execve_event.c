@@ -152,7 +152,6 @@ event_execve(struct sched_execve_args *ctx)
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
 	struct execve_map_value *curr, *parent;
-	struct cgroup_tracking_value *cgrp_data;
 	struct msg_process *execve;
 	uint32_t binary = 0;
 	bool walker = 0;
@@ -223,23 +222,10 @@ event_execve(struct sched_execve_args *ctx)
 			curr->caps.inheritable = event->caps.inheritable;
 		}
 #endif
-		if (curr->cgrpid_tracker) {
-			/* Overwrite the k8s cgrpid here with the tracked one
-			 * that was set during fork only if the tracking cgroup
-			 * id was set. This way we guarantee to always have a
-			 * cgrpid.
-			 */
-			event->kube.cgrpid = curr->cgrpid_tracker;
-
-			cgrp_data = map_lookup_elem(&tg_cgrps_tracking_map,
-						    &curr->cgrpid_tracker);
-			if (cgrp_data && cgrp_data->state != CGROUP_RUNNING)
-				/* Convert the cgroup state to RUNNING as we are able to track it,
-				 * this means probably cgroup/container/process is now running.
-				 */
-				cgrp_data->state = CGROUP_RUNNING;
-		}
 	}
+
+	/* Gather Cgroup information as late as possible */
+	__event_get_current_cgroup_info(event, curr);
 
 	event->common.flags = 0;
 	size = validate_msg_execve_size(

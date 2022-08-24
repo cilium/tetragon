@@ -4,6 +4,8 @@
 #ifndef _BPF_PROCESS_EVENT__
 #define _BPF_PROCESS_EVENT__
 
+#include "bpf_cgroup.h"
+
 #define ENAMETOOLONG 36 /* File name too long */
 
 struct bpf_map_def __attribute__((section("maps"), used)) buffer_heap_map = {
@@ -527,12 +529,8 @@ static inline __attribute__((always_inline)) void
 __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		      bool cwd_always)
 {
-	struct cgroup_subsys_state *subsys;
 	struct msg_process *curr;
 	struct task_struct *task;
-	struct css_set *cgroups;
-	struct cgroup *cgrp;
-	const char *name;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
@@ -579,35 +577,142 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
 	task = (struct task_struct *)get_current_task();
-	probe_read(&cgroups, sizeof(cgroups), _(&task->cgroups));
-	if (cgroups) {
-		probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[0]));
-		if (subsys) {
-			probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
-			if (cgrp) {
-				if (BPF_CORE_READ_INTO(&name, cgrp, kn, name) ==
-				    0) {
-					probe_read_str(msg->kube.docker_id,
-						       DOCKER_ID_LENGTH, name);
-				} else {
-					curr->flags |= EVENT_DOCKER_NAME_ERR;
-				}
-				// else case we do not include error flag because it
-				// indicates there is not a docker id. This is normal
-				// in the case process is in host namespace.
-			} else {
-				curr->flags |= EVENT_DOCKER_SUBSYSCGRP_ERR;
-			}
-		} else {
-			curr->flags |= EVENT_DOCKER_SUBSYS_ERR;
-		}
-	} else {
-		curr->flags |= EVENT_DOCKER_CGROUPS_ERR;
-	}
-#ifdef BPF_FUNC_get_current_cgroup_id
-	msg->kube.cgrpid = get_current_cgroup_id();
-#endif
 	get_caps(&(msg->caps), task);
 	get_namespaces(&(msg->ns), task);
 }
+
+static inline __attribute__((always_inline)) void
+__event_get_current_cgroup_id(struct tetragon_conf *conf,
+			      struct execve_map_value *curr,
+			      struct cgroup *cgrp, struct msg_execve_event *msg)
+{
+	uint64_t cgrpid = 0;
+
+	/* If tracking Cgroup ID is set use it, otherwise use current
+	 * context one. This way we guarantee to always have a cgrpid
+	 * and return cgroup information even if we miss the tracking
+	 * Cgroup ID.
+	 */
+	if (curr && curr->cgrpid_tracker) {
+		/* Gather Cgroup information according to the configuration */
+
+		/* Set the k8s cgrpid here with the the one that used for
+		 * for tracking. It was set during fork, or with
+		 * __set_task_cgrpid_tracker().
+		 */
+		msg->kube.cgrpid = curr->cgrpid_tracker;
+		return;
+	}
+
+	/* Gather Cgroup information using current context */
+
+	/* Try the default hierarchy */
+	if (conf && conf->cgrp_fs_magic == CGROUP2_SUPER_MAGIC) {
+#ifdef BPF_FUNC_get_current_cgroup_id
+		cgrpid = get_current_cgroup_id();
+#endif
+	}
+
+	/* Fallback on the passed cgroup which should point to the
+	 * right controller.
+	 */
+	if (!cgrpid)
+		cgrpid = get_cgroup_id(cgrp);
+
+	msg->kube.cgrpid = cgrpid;
+}
+
+static inline __attribute__((always_inline)) void
+__event_get_current_cgroup_name(struct tetragon_conf *conf, struct cgroup *cgrp,
+				struct msg_execve_event *msg)
+{
+	const char *name;
+	int level;
+	struct kernfs_node *kn;
+	struct msg_process *process;
+
+	process = &msg->process;
+
+	/* Check if we have Teragon cgroup configuration */
+	if (conf) {
+		level = get_cgroup_level(cgrp);
+		/* Are we below the Cgroup tracking level? if so do
+		 * not return a cgroup name, So we do not end up returning
+		 * non valid or unrelated names that can be interpreted
+		 * as Container IDs.
+		 */
+		if (level > conf->tg_cgrp_level) {
+			/* TODO use another flag error value ? */
+			process->flags |= EVENT_DOCKER_NAME_ERR;
+			return;
+		}
+	}
+
+	kn = __get_cgroup_kn(cgrp);
+	name = __get_cgroup_kn_name(kn);
+	if (!name) {
+		process->flags |= EVENT_DOCKER_NAME_ERR;
+		return;
+	}
+
+	/* Get Cgroup name (container id) here, however at user space
+	 * we will first try to lookup the Cgroup name from the
+	 * tg_cgrps_tracking_map and if there is a cgroup name there
+	 * that was captured during cgroup_mkdir tracepoint we will use
+	 * it, if not we fallback to current context cgroup name. This way
+	 * we ensure that we have at a backing name here, especially in
+	 * case of race conditions between walking /proc to get cgroup
+	 * paths and names for processes that started before tetragon and
+	 * where the cgroup_mkdir tracepoint become really effective.
+	 *
+	 * The reason we do not check the tg_cgrps_tracking_map here is
+	 * this allows to have a better logging mechanism at user space
+	 * and trace errors, also ability to fallback easily in user space.
+	 */
+	probe_read_str(msg->kube.docker_id, DOCKER_ID_LENGTH, name);
+}
+
+/* Collect cgroup information from current task */
+static inline __attribute__((always_inline)) void
+__event_get_current_cgroup_info(struct msg_execve_event *msg,
+				struct execve_map_value *curr)
+{
+	struct cgroup *cgrp;
+	int zero = 0, subsys_idx = 0;
+	struct task_struct *task;
+	struct tetragon_conf *conf;
+	struct msg_process *process;
+
+	task = (struct task_struct *)get_current_task();
+
+	process = &msg->process;
+	/* Check if cgroup configuration is set */
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf) {
+		/* Set the tracking cgroup ID for the task if it was
+		 * not already set.
+		 * Do not remove this as following logic depends on it
+		 * when we return the cgroup ID.
+		 */
+		if (conf->tg_cgrp_level > 0)
+			__set_task_cgrpid_tracker(conf, task, curr);
+
+		/* Select the right subsys to use */
+		if (conf->tg_cgrp_hierarchy_idx != 0)
+			subsys_idx = conf->tg_cgrp_hierarchy_idx;
+	}
+
+	cgrp = get_task_cgroup(task, subsys_idx);
+	if (!cgrp) {
+		process->flags |= EVENT_DOCKER_SUBSYSCGRP_ERR;
+		return;
+	}
+
+	/* Collect event cgroup ID */
+	__event_get_current_cgroup_id(conf, curr, cgrp, msg);
+
+	/* Get the Cgroup name now */
+	__event_get_current_cgroup_name(conf, cgrp, msg);
+}
+
 #endif
