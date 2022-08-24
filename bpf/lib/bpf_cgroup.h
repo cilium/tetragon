@@ -23,7 +23,7 @@
 #define KN_NAME_LENGTH 128
 
 /* Max nested cgroups that are tracked. Arbitrary value, nested cgroups
- * that are at a level greater than 32 will be attached to the cgroup
+ * that are at a level deeper than 32 will be tracked to the cgroup
  * at level 32.
  */
 #define CGROUP_MAX_NESTED_LEVEL 32
@@ -152,7 +152,7 @@ get_cgroup_hierarchy_id(const struct cgroup *cgrp)
 }
 
 static inline __attribute__((always_inline)) struct cgroup *
-get_task_cgroup(struct task_struct *task)
+get_task_cgroup(struct task_struct *task, __u32 subsys_idx)
 {
 	struct cgroup_subsys_state *subsys;
 	struct css_set *cgroups;
@@ -162,7 +162,30 @@ get_task_cgroup(struct task_struct *task)
 	if (unlikely(!cgroups))
 		return cgrp;
 
-	probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[0]));
+	/* We are interested only in the cpuset, memory or pids controllers
+	 * which are indexed at 0, 4 and 11 respectively per kernel v5.19
+	 * assuming all controllers are compiled in. Of course when we use
+	 * the controllers indexes we will first discover these indexes
+	 * dynamically in user space which will work on all setups from reading
+	 * file: /proc/cgroups.
+	 *
+	 * Reference: https://elixir.bootlin.com/linux/v5.19/source/include/linux/cgroup_subsys.h
+	 *
+	 * Notes:
+	 * Newer controllers should be appended at the end. controllers
+	 * that are not upstreamed may mess the calculation here
+	 * especially if they happen to be before the desired subsys_idx.
+	 */
+	if (unlikely(subsys_idx >= CGROUP_SUBSYS_COUNT))
+		return cgrp;
+
+	/* Read css from the passed subsys index to ensure that we operate
+	 * on the desired controller. This allows user space to be flexible
+	 * and chose the right per cgroup subsystem to use in order to
+	 * support as much as workload as possible. It also reduces errors
+	 * in a significant way.
+	 */
+	probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[subsys_idx]));
 	if (unlikely(!subsys))
 		return cgrp;
 
@@ -189,12 +212,12 @@ get_cgroup_id(const struct cgroup *cgrp)
 }
 
 static inline __attribute__((always_inline)) __u64
-get_task_cgroup_id(struct task_struct *task)
+get_task_cgroup_id(struct task_struct *task, __u32 subsys_idx)
 {
 	__u64 cgrpid = 0;
 	struct cgroup *cgrp;
 
-	cgrp = get_task_cgroup(task);
+	cgrp = get_task_cgroup(task, subsys_idx);
 	if (cgrp)
 		cgrpid = get_cgroup_id(cgrp);
 
@@ -297,7 +320,7 @@ __set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
 	if (execve_val->cgrpid_tracker != 0)
 		return 0;
 
-	cgrp = get_task_cgroup(task);
+	cgrp = get_task_cgroup(task, conf->tg_cgrp_hierarchy_idx);
 	level = get_cgroup_level(cgrp);
 
 	if (level <= conf->tg_cgrp_level) {

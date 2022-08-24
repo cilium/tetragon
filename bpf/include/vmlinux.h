@@ -17218,8 +17218,12 @@ enum cgroup_subsys_id {
 	net_cls_cgrp_id = 7,
 	perf_event_cgrp_id = 8,
 	net_prio_cgrp_id = 9,
-	pids_cgrp_id = 10,
-	CGROUP_SUBSYS_COUNT = 11,
+	hugetlb_cgrp_id = 10,
+	pids_cgrp_id = 11,
+	rdma_cgrp_id = 12,
+	misc_cgrp_id = 13,
+	debug_cgrp_id = 14,
+	CGROUP_SUBSYS_COUNT = 15,
 };
 
 typedef u8 kprobe_opcode_t;
