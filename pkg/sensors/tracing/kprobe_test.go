@@ -2424,6 +2424,12 @@ func TestLoadKprobeSensor(t *testing.T) {
 		13: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
 		14: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
 		15: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+
+		// cgroups programs part of the base sensor
+		16: tus.SensorProg{Name: "tg_tp_cgrp_mkdir", Type: ebpf.RawTracepoint},
+		17: tus.SensorProg{Name: "tg_tp_cgrp_attach_task", Type: ebpf.RawTracepoint},
+		18: tus.SensorProg{Name: "tg_tp_cgrp_rmdir", Type: ebpf.RawTracepoint},
+		19: tus.SensorProg{Name: "tg_tp_cgrp_release", Type: ebpf.RawTracepoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
@@ -2441,14 +2447,14 @@ func TestLoadKprobeSensor(t *testing.T) {
 		tus.SensorMap{Name: "override_tasks", Progs: []uint{6, 7, 8, 9, 10}},
 
 		// generic_kprobe_filter_arg*,generic_retkprobe_event,base
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 7, 8, 9, 10, 12, 13, 14, 15}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19}},
 
 		// only retkprobe
 		tus.SensorMap{Name: "config_map", Progs: []uint{12}},
 
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{13, 14, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{13, 14, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{13, 14, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19}},
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{13, 14, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19}},
 
 		// generic_kprobe_process_event*,generic_kprobe_filter_arg*,retkprobe
 		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12}},

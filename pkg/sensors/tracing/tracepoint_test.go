@@ -319,18 +319,19 @@ func TestGenericTracepointMeta(t *testing.T) {
 }
 
 // TestRawSyscall checks raw_syscall tracepoints
-//name: sys_enter
-//ID: 346
-//format:
-//        field:unsigned short common_type;       offset:0;       size:2; signed:0;
-//        field:unsigned char common_flags;       offset:2;       size:1; signed:0;
-//        field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
-//        field:int common_pid;   offset:4;   n    size:4; signed:1;
+// name: sys_enter
+// ID: 346
+// format:
 //
-//        field:long id;  offset:8;       size:8; signed:1;
-//        field:unsigned long args[6]
+//	field:unsigned short common_type;       offset:0;       size:2; signed:0;
+//	field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+//	field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+//	field:int common_pid;   offset:4;   n    size:4; signed:1;
 //
-//print fmt: "NR %ld (%lx, %lx, %lx, %lx, %lx, %lx)", REC->id, REC->args[0], REC->args[1], REC->args[2], REC->args[3], REC->args[4], REC->args[5]
+//	field:long id;  offset:8;       size:8; signed:1;
+//	field:unsigned long args[6]
+//
+// print fmt: "NR %ld (%lx, %lx, %lx, %lx, %lx, %lx)", REC->id, REC->args[0], REC->args[1], REC->args[2], REC->args[3], REC->args[4], REC->args[5]
 func TestGenericTracepointRawSyscall(t *testing.T) {
 	tracepointConf := GenericTracepointConf{
 		Subsystem: "raw_syscalls",
@@ -411,6 +412,12 @@ func TestLoadTracepointSensor(t *testing.T) {
 		12: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
 		13: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
 		14: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+
+		// cgroups programs part of the base sensor
+		15: tus.SensorProg{Name: "tg_tp_cgrp_mkdir", Type: ebpf.RawTracepoint},
+		16: tus.SensorProg{Name: "tg_tp_cgrp_attach_task", Type: ebpf.RawTracepoint},
+		17: tus.SensorProg{Name: "tg_tp_cgrp_rmdir", Type: ebpf.RawTracepoint},
+		18: tus.SensorProg{Name: "tg_tp_cgrp_release", Type: ebpf.RawTracepoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
@@ -425,11 +432,11 @@ func TestLoadTracepointSensor(t *testing.T) {
 		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
 		// generic_tracepoint_arg**,base
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 12, 13, 14}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18}},
 
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18}},
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18}},
 	}
 
 	if kernels.EnableLargeProgs() {
