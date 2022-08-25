@@ -82,23 +82,24 @@ const (
 )
 
 type cgroupController struct {
-	id  uint32 // Hierarchy uniq ID
-	idx uint32 // Cgroup SubSys index
-	str string // Controller name
+	id     uint32 // Hierarchy unique ID
+	idx    uint32 // Cgroup SubSys index
+	name   string // Controller name
+	active bool   // Will be set to true if controller is set and active
 }
 
 var (
 	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
 
-	/* Cgroupv1 controllers that we are interested in
+	/* Cgroup controllers that we are interested in
 	 * are usually the ones that are setup by systemd
 	 * or other init programs.
 	 */
 	cgroupControllers = []cgroupController{
-		// Memory first
-		{str: "memory"},
-		{str: "pids"},
+		{name: "memory"}, // Memory first
+		{name: "pids"},   // pids second
+		{name: "cpuset"}, // fallback
 	}
 
 	cgroupv2Hierarchy = "0::"
@@ -192,38 +193,45 @@ func DiscoverSubSysIds() error {
 		// root without having a proper cgroup name to reflect that
 		// or the controller is not active on the unified cgroupv2.
 		for i, controller := range cgroupControllers {
-			if fields[0] == controller.str {
+			if fields[0] == controller.name {
 				id, err := strconv.ParseUint(fields[1], 10, 32)
 				if err == nil {
 					cgroupControllers[i].id = uint32(id)
 					cgroupControllers[i].idx = uint32(idx)
+					cgroupControllers[i].active = true
 					fixed = true
 				}
-				// idx here is already > 1
 				if idx >= CGROUP_SUBSYS_COUNT {
-					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at high value '%d'", controller.str, idx-1)
+					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at high value '%d'", controller.name, idx)
 				}
 			}
 		}
 		idx++
 	}
 
-	// Could not find 'memory' and 'pids' controllers, are they compiled in?
+	logger.GetLogger().WithFields(logrus.Fields{
+		"Cgroupfs":           cgroupFSPath,
+		"cgroup.controllers": fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")),
+	}).Debugf("Cgroup available controllers")
+
+	// Could not find 'memory', 'pids' nor 'cpuset' controllers, are they compiled in?
 	if fixed == false {
 		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", path)
 		logger.GetLogger().WithFields(logrus.Fields{
-			"Cgroupfs":    cgroupFSPath,
-			"Controllers": strings.Join(allcontrollers, " "),
-		}).WithError(err).Warnf("Cgroup controllers 'memory' and 'pids' are missing")
+			"Cgroupfs": cgroupFSPath,
+		}).WithError(err).Warnf("Cgroup controllers 'memory', 'pids' and 'cpuset' are missing")
+		return err
 	}
 
-	logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debugf("List of available cgroup controllers: '%s'", strings.Join(allcontrollers, " "))
-
 	for _, controller := range cgroupControllers {
-		if controller.id == 0 {
-			continue
+		// Print again everything that is available or not
+		if controller.active {
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Infof("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.name, controller.id, controller.idx)
+		} else {
+			// Warn with error
+			err = fmt.Errorf("controller '%s' is not active", controller.name)
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Supported cgroup controller '%s' is not active", controller.name)
 		}
-		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Infof("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.str, controller.id, controller.idx)
 	}
 
 	return nil
@@ -317,15 +325,17 @@ func GetTetragonCgroupID() uint64 {
 // and returns it on success
 func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 	for _, controller := range cgroupControllers {
-		if controller.id == 0 {
-			return "", fmt.Errorf("Cgroup controller '%s' is missing HierarchyID", controller.str)
+		// First lets go again over list of active controllers
+		if controller.active == false {
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.name)
+			continue
 		}
 
 		for _, s := range cgroupPaths {
-			if strings.Contains(s, fmt.Sprintf(":%s:", controller.str)) {
+			if strings.Contains(s, fmt.Sprintf(":%s:", controller.name)) {
 				idx := strings.Index(s, "/")
 				path := s[idx+1:]
-				cgroupPath := filepath.Join(cgroupFSPath, controller.str, path)
+				cgroupPath := filepath.Join(cgroupFSPath, controller.name, path)
 				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 				_, err := os.Stat(finalpath)
 				if err != nil {
@@ -335,7 +345,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 						mode := getDeploymentMode()
 						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 							// Cgroups are namespaced let's try again
-							cgroupPath = filepath.Join(cgroupFSPath, controller.str)
+							cgroupPath = filepath.Join(cgroupFSPath, controller.name)
 							finalpath = filepath.Join(cgroupPath, "cgroup.procs")
 							_, err = os.Stat(finalpath)
 						}
@@ -350,7 +360,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				// Run the deployment mode detection, fine to run it again.
 				err = setDeploymentMode(path)
 				if err != nil {
-					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment from Cgroupv1 path")
+					logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv1 path")
 					continue
 				}
 
@@ -365,7 +375,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				logger.GetLogger().WithFields(logrus.Fields{
 					"Cgroupfs":              cgroupFSPath,
 					"cgroup.path":           cgroupPath,
-					"cgroup.controller":     controller.str,
+					"cgroup.controller":     controller.name,
 					"cgroup.hierarchyID":    controller.id,
 					"cgroup.hierarchyIndex": controller.idx,
 				}).Info("Cgroupv1 hierarchy validated successfully")
@@ -374,6 +384,8 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 		}
 	}
 
+	// Cgroupv1 hierarchy is not properly setup we can not support such systems,
+	// reason should have been logged in above messages.
 	return "", fmt.Errorf("could not validate Cgroupv1 hierarchies")
 }
 
@@ -396,11 +408,17 @@ func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
 	}).Info("Cgroupv2 supported controllers detected successfully")
 
 	for i, controller := range cgroupControllers {
-		if strings.Contains(activeControllers, controller.str) {
+		if controller.active && strings.Contains(activeControllers, controller.name) {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"Cgroupfs":          cgroupFSPath,
+				"cgroup.controller": controller.name,
+			}).Info("Cgroupv2 controller was selected as a fallback of the default hierarchy for cgroup BPF tracking")
 			return &cgroupControllers[i], nil
 		}
 	}
 
+	// Cgroupv2 hierarchy does not have the appropriate controllers.
+	// Maybe init system or any other component failed to prepare cgroups properly.
 	return nil, fmt.Errorf("Cgroupv2 no appropriate active controller")
 }
 
@@ -435,7 +453,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			// Run the deployment mode detection, fine to run it again.
 			err = setDeploymentMode(path)
 			if err != nil {
-				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment from Cgroupv2 path")
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv2 path")
 				break
 			}
 
@@ -443,7 +461,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			// without cgroupv2 default bpf helpers
 			controller, err := getCgroupv2Controller(cgroupPath)
 			if err != nil {
-				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to detect Cgroupv2 active controllers from path '%s'", cgroupPath)
+				logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).WithError(err).Warnf("Failed to detect current Cgroupv2 active controller")
 				break
 			}
 
@@ -458,7 +476,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"Cgroupfs":              cgroupFSPath,
 				"cgroup.path":           cgroupPath,
-				"cgroup.controller":     controller.str,
+				"cgroup.controller":     controller.name,
 				"cgroup.hierarchyID":    controller.id,
 				"cgroup.hierarchyIndex": controller.idx,
 			}).Info("Cgroupv2 hierarchy validated successfully")
@@ -466,6 +484,8 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 		}
 	}
 
+	// Cgroupv2 hierarchy is not properly setup we can not support such systems,
+	// reason should have been logged in above messages.
 	return "", fmt.Errorf("could not validate Cgroupv2 hierarchy")
 }
 
