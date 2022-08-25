@@ -201,3 +201,26 @@ func TestDetectCgroupFSMagicVariant(t *testing.T) {
 		assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	}
 }
+
+func TestDiscoverSubSysIdsDefault(t *testing.T) {
+	fs, err := DetectCgroupFSMagic()
+	assert.NoError(t, err)
+	assert.NotEqual(t, CGROUP_UNDEF, fs)
+
+	err = DiscoverSubSysIds()
+	assert.NoError(t, err)
+
+	for _, controller := range cgroupControllers {
+		if cgroupMode == CGROUP_UNIFIED {
+			assert.EqualValues(t, controller.id, 0, "Cgroup Controller '%s' hierarchy ID should be O as it is Unified Cgroup", controller.name)
+		} else {
+			if controller.active {
+				// Cgroupv1 hierarchy
+				// Id should not be zero but index can be
+				assert.NotEqualValues(t, controller.id, 0, "Could not discover Cgroupv1 Controller '%s' hierarchy ID", controller.name)
+			} else {
+				assert.EqualValues(t, controller.id, 0, "Cgroupv1 Controller '%s' should not be initialized", controller.name)
+			}
+		}
+	}
+}
