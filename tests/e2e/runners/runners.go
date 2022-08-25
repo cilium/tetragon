@@ -10,11 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/cilium-e2e/pkg/e2ecluster/ciliuminstall"
-	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
-	"github.com/cilium/tetragon/tests/e2e/install"
+	"github.com/cilium/tetragon/tests/e2e/install/cilium"
+	"github.com/cilium/tetragon/tests/e2e/install/tetragon"
 	"github.com/cilium/tetragon/tests/e2e/state"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,7 +45,7 @@ type Runner struct {
 
 var DefaultRunner = Runner{
 	setupCluster: func(testenv env.Environment) env.Func {
-		return e2ehelpers.MaybeCreateTempKindCluster(testenv, ClusterPrefix)
+		return helpers.MaybeCreateTempKindCluster(testenv, ClusterPrefix)
 	},
 	installCilium: func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		client, err := c.NewClient()
@@ -56,11 +55,11 @@ var DefaultRunner = Runner{
 		// Only install Cilium if it does not already exist
 		ciliumDs := &appsv1.DaemonSet{}
 		if err := client.Resources("kube-system").Get(ctx, "cilium", "kube-system", ciliumDs); err != nil && apierrors.IsNotFound(err) {
-			return ciliuminstall.Setup(ciliuminstall.WithNamespace("kube-system"))(ctx, c)
+			return cilium.Setup(cilium.WithNamespace("kube-system"))(ctx, c)
 		}
 		return ctx, nil
 	},
-	installTetragon: install.Install(install.WithHelmOptions(map[string]string{
+	installTetragon: tetragon.Install(tetragon.WithHelmOptions(map[string]string{
 		"tetragon.exportAllowList": "",
 	})),
 	tetragonPortForward: func(testenv env.Environment) env.Func {
@@ -100,9 +99,9 @@ func (r *Runner) WithInstallTetragonFn(install env.Func) *Runner {
 	return r
 }
 
-func (r *Runner) WithInstallTetragon(options ...install.Option) *Runner {
+func (r *Runner) WithInstallTetragon(options ...tetragon.Option) *Runner {
 	r.installTetragon = func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		return install.Install(options...)(ctx, cfg)
+		return tetragon.Install(options...)(ctx, cfg)
 	}
 	return r
 }
@@ -112,9 +111,9 @@ func (r *Runner) WithInstallCiliumFn(install env.Func) *Runner {
 	return r
 }
 
-func (r *Runner) WithInstallCilium(options ...ciliuminstall.Option) *Runner {
+func (r *Runner) WithInstallCilium(options ...cilium.Option) *Runner {
 	r.installCilium = func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		return ciliuminstall.Setup(options...)(ctx, cfg)
+		return cilium.Setup(options...)(ctx, cfg)
 	}
 	return r
 }
