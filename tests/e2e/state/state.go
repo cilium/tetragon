@@ -25,4 +25,6 @@ var (
 	Test = Key{slug: "Test"}
 	// Key for storing the export directory for this test
 	ExportDir = Key{slug: "ExportDir"}
+	// Key for storing the cluster name
+	ClusterName = Key{slug: "ClusterName"}
 )

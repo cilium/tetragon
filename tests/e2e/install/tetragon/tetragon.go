@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package install
+package tetragon
 
 import (
 	"context"
@@ -20,8 +20,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/third_party/helm"
 
-	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
 	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
@@ -106,7 +106,7 @@ func Install(opts ...Option) env.Func {
 		var helmArgs strings.Builder
 		for k, v := range o.HelmValues {
 			helmArgs.WriteString(fmt.Sprintf(" --set=%s=%s", k, v))
-			if clusterName := e2ehelpers.GetTempKindClusterName(ctx); clusterName != "" {
+			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
 				switch k {
 				case AgentImageKey:
 					fallthrough
@@ -131,7 +131,7 @@ func Install(opts ...Option) env.Func {
 
 		// Handle BTF option for KinD cluster
 		if o.BTF != "" {
-			if clusterName := e2ehelpers.GetTempKindClusterName(ctx); clusterName != "" {
+			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
 				controlPlaneId := fmt.Sprintf("%s-control-plane", clusterName)
 				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, fmt.Sprintf("%s:/btf", controlPlaneId))
 				err := cmd.Run()
