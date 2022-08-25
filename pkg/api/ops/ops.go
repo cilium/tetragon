@@ -48,6 +48,7 @@ const (
 	CGROUP_NEW          CgroupState = 1    // Cgroup was just created
 	CGROUP_RUNNING      CgroupState = 2    // Cgroup from new => running (fork,exec task inside)
 	CGROUP_RUNNING_PROC CgroupState = 3    // Cgroups that were generated from pids of procfs
+	_CGROUP_STATE_MAX   CgroupState = 4
 )
 
 type OpCode int
