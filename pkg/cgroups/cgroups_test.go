@@ -163,3 +163,41 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 }
+
+// TODO Setup multiple cgroupv1 and cgroupv2 combinations
+func TestDetectCgroupFSMagic(t *testing.T) {
+	fs, err := DetectCgroupFSMagic()
+	assert.NoError(t, err)
+	assert.NotEqual(t, CGROUP_UNDEF, fs)
+	if cgroupMode == CGROUP_UNIFIED {
+		assert.Equal(t, uint64(unix.CGROUP2_SUPER_MAGIC), fs)
+	} else if cgroupMode == CGROUP_HYBRID {
+		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
+		mounted, err := isDirMountFsType(filepath.Join(cgroupFSPath, "unified"), mountinfo.FilesystemTypeCgroup2)
+		assert.NoError(t, err)
+		assert.Equal(t, true, mounted)
+	} else if cgroupMode == CGROUP_LEGACY {
+		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
+	} else {
+		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
+	}
+}
+
+func TestDetectCgroupFSMagicVariant(t *testing.T) {
+	mounted, err := isDirMountFsType(defaults.Cgroup2Dir, mountinfo.FilesystemTypeCgroup2)
+	assert.NoError(t, err)
+
+	fs, err := DetectCgroupFSMagic()
+	assert.NoError(t, err)
+
+	if mounted {
+		assert.NoError(t, err)
+		assert.Equal(t, CGROUP_UNIFIED, cgroupMode)
+		assert.Equal(t, uint64(unix.CGROUP2_SUPER_MAGIC), fs)
+	} else {
+		// Fallback to default
+		assert.NoError(t, err)
+		assert.NotEqual(t, CGROUP_UNDEF, fs)
+		assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
+	}
+}

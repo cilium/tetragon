@@ -700,6 +700,7 @@ func DetectDeploymentMode() (uint32, error) {
 	return uint32(mode), nil
 }
 
+// DetectCgroupFSMagic() runs by default DetectCgroupMode()
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
 func DetectCgroupFSMagic() (uint64, error) {
 	// Run get cgroup mode again in case
