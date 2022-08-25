@@ -160,7 +160,7 @@ lint:
 	golint -set_exit_status $$(go list ./...)
 
 .PHONY: image image-operator image-test image-codegen
-image: image-clang
+image:
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --build-arg TETRAGON_VERSION=$(VERSION) .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
