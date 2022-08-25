@@ -51,6 +51,10 @@ func (v *CgrpTrackingValue) DeepCopyMapValue() bpf.MapValue {
 }
 
 func LookupCgroupTracker(mapPath string, cgrpid uint64) (*CgrpTrackingValue, error) {
+	if cgrpid == 0 {
+		return nil, fmt.Errorf("invalid CgroupIdTracking")
+	}
+
 	m, err := bpf.OpenMap(mapPath)
 	if err != nil {
 		return nil, err
