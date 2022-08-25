@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/cilium/cilium v1.9.16
-	github.com/cilium/cilium-e2e v0.0.0-00010101000000-000000000000
 	github.com/cilium/ebpf v0.9.1
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
 	github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
@@ -25,6 +24,7 @@ require (
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.7.3
 	github.com/vishvananda/netlink v1.1.1-0.20220125195016-0639e7e787ba
+	github.com/vladimirvivien/gexe v0.1.1
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858
@@ -105,7 +105,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
-	github.com/vladimirvivien/gexe v0.1.1 // indirect
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
@@ -132,11 +131,6 @@ require (
 
 // has to be in sync with both cilium and hubble overrides (mostly cilium).
 replace (
-	// Use cilium e2ehelpers from github. TODO: remove this in the future once we:
-	// 1. tag a new cilium release with these helpers
-	// 2. fix tetragon so that it compiles with newer cilium version
-	github.com/cilium/cilium-e2e => github.com/cilium/cilium v1.12.0-rc2.0.20220630043907-91114a9e2d09
-
 	// Use local version of API
 	github.com/cilium/tetragon/api => ./api
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
