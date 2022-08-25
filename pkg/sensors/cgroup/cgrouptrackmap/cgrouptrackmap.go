@@ -17,18 +17,18 @@ type CgrpTrackingKey struct {
 
 type CgrpTrackingValue struct {
 	/* State of cgroup */
-	State uint32
+	State uint32 `align:"state"`
 
 	/* Unique id for the hierarchy this is mostly for cgroupv1 */
-	HierarchyId uint32
+	HierarchyId uint32 `align:"hierarchy_id"`
 
 	/* The depth this cgroup is at - We don't track ancestors as they may change */
-	Level uint32
+	Level uint32 `align:"level"`
 
-	Pad uint32
+	Pad uint32 `align:"pad"`
 
 	/* Cgroup kernfs_node name */
-	Name [processapi.CGROUP_NAME_LENGTH]byte
+	Name [processapi.CGROUP_NAME_LENGTH]byte `align:"name"`
 }
 
 func (k *CgrpTrackingKey) String() string             { return fmt.Sprintf("key=%d", k.CgrpId) }
