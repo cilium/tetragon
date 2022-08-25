@@ -12,6 +12,10 @@ import (
 
 type MsgTetragonReady struct{}
 
+func (msg *MsgTetragonReady) Notify() bool {
+	return false
+}
+
 func (msg *MsgTetragonReady) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return nil, fmt.Errorf("Unsupported cache event MsgTetragonReady")
 }
