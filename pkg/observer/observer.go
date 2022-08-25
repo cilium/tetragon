@@ -274,7 +274,8 @@ func (k *Observer) updateTetragonConf() error {
 	err := confmap.UpdateTetragonConfMap(option.Config.MapDir, pid)
 	if err != nil {
 		// Do not fail
-		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroup tracking will be disabled")
+		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
+		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
 	}
 
 	return nil
@@ -285,7 +286,8 @@ func (k *Observer) probeTetragonCgroups() error {
 	err := cgroups.MigrateSelfToSameCgrp()
 	if err != nil {
 		// Do not fail
-		k.log.WithField("observer", "probe-cgroups").WithError(err).Warn("Migrating Tetragon to same Cgroup failed, advanced Cgroup tracking will be disabled")
+		k.log.WithField("observer", "probe-cgroups").WithError(err).Warn("Migrating Tetragon to same Cgroup failed, advanced Cgroups tracking will be disabled")
+		k.log.WithField("observer", "probe-cgroups").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
 	}
 
 	return nil

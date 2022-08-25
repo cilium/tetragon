@@ -234,7 +234,12 @@ func DiscoverSubSysIds() error {
 	for _, controller := range cgroupControllers {
 		// Print again everything that is available or not
 		if controller.active {
-			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Infof("Cgroup Controller '%s' discovered with HierarchyID=%d and HierarchyIndex=%d", controller.name, controller.id, controller.idx)
+			logger.GetLogger().WithFields(logrus.Fields{
+				"Cgroupfs":                         cgroupFSPath,
+				"cgroup.controller.name":           controller.name,
+				"cgroup.controller.hierarchyID":    controller.id,
+				"cgroup.controller.hierarchyIndex": controller.idx,
+			}).Infof("Supported cgroup controller '%s' is active and will be used", controller.name)
 		} else {
 			// Warn with error
 			err = fmt.Errorf("controller '%s' is not active", controller.name)
@@ -389,11 +394,11 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				SetCgrpHierarchyID(controller.id)
 				SetCgrpHierarchyIdx(controller.idx)
 				logger.GetLogger().WithFields(logrus.Fields{
-					"Cgroupfs":              cgroupFSPath,
-					"cgroup.path":           cgroupPath,
-					"cgroup.controller":     controller.name,
-					"cgroup.hierarchyID":    controller.id,
-					"cgroup.hierarchyIndex": controller.idx,
+					"Cgroupfs":                         cgroupFSPath,
+					"cgroup.path":                      cgroupPath,
+					"cgroup.controller.name":           controller.name,
+					"cgroup.controller.hierarchyID":    controller.id,
+					"cgroup.controller.hierarchyIndex": controller.idx,
 				}).Info("Cgroupv1 hierarchy validated successfully")
 				return finalpath, nil
 			}
@@ -426,8 +431,9 @@ func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
 	for i, controller := range cgroupControllers {
 		if controller.active && strings.Contains(activeControllers, controller.name) {
 			logger.GetLogger().WithFields(logrus.Fields{
-				"Cgroupfs":          cgroupFSPath,
-				"cgroup.controller": controller.name,
+				"Cgroupfs":                         cgroupFSPath,
+				"cgroup.controller":                controller.name,
+				"cgroup.controller.hierarchyIndex": controller.idx,
 			}).Info("Cgroupv2 controller was selected as a fallback of the default hierarchy for cgroup BPF tracking")
 			return &cgroupControllers[i], nil
 		}
@@ -490,11 +496,11 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			SetCgrpHierarchyID(CGROUP_DEFAULT_HIERARCHY)
 			SetCgrpHierarchyIdx(controller.idx)
 			logger.GetLogger().WithFields(logrus.Fields{
-				"Cgroupfs":              cgroupFSPath,
-				"cgroup.path":           cgroupPath,
-				"cgroup.controller":     controller.name,
-				"cgroup.hierarchyID":    controller.id,
-				"cgroup.hierarchyIndex": controller.idx,
+				"Cgroupfs":                         cgroupFSPath,
+				"cgroup.path":                      cgroupPath,
+				"cgroup.controller.name":           controller.name,
+				"cgroup.controller.hierarchyID":    controller.id,
+				"cgroup.controller.hierarchyIndex": controller.idx,
 			}).Info("Cgroupv2 hierarchy validated successfully")
 			return finalpath, nil
 		}
@@ -707,10 +713,10 @@ func DetectCgroupFSMagic() (uint64, error) {
 		switch mode {
 		case CGROUP_LEGACY, CGROUP_HYBRID:
 			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debug("Cgroup BPF helpers will run in raw Cgroup mode")
 			cgroupFSMagic = unix.CGROUP_SUPER_MAGIC
 		case CGROUP_UNIFIED:
-			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
 			cgroupFSMagic = unix.CGROUP2_SUPER_MAGIC
 		}
 	})
