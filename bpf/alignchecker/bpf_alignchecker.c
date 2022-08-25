@@ -34,12 +34,14 @@ int main(void)
 	DECLARE(struct, msg_execve_event, iter);
 	DECLARE(struct, msg_exit, iter);
 	DECLARE(struct, msg_test, iter);
+	DECLARE(struct, msg_cgroup_event, iter);
 
 	// from maps
 	DECLARE(struct, event, iter);
 	DECLARE(struct, msg_execve_key, iter);
 	DECLARE(struct, execve_map_value, iter);
 	DECLARE(struct, event_config, iter);
+	DECLARE(struct, cgroup_tracking_value, iter);
 
 	return 0;
 }

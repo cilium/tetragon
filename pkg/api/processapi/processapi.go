@@ -146,25 +146,25 @@ type MsgExitEvent struct {
 // MsgCgroupData is complementary cgroup data that is collected from
 // BPF side on various cgroup events.
 type MsgCgroupData struct {
-	State     uint32 // State of cgroup
-	Hierarchy uint32 // Unique id for the hierarchy
-	Level     uint32 // The depth this cgroup is at
-	Pad       uint32
-	Name      [CGROUP_NAME_LENGTH]byte // Cgroup kernfs_node name
+	State     uint32                   `align:"state"`        // State of cgroup
+	Hierarchy uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
+	Level     uint32                   `align:"level"`        // The depth this cgroup is at
+	Pad       uint32                   `align:"pad"`
+	Name      [CGROUP_NAME_LENGTH]byte `align:"name"` // Cgroup kernfs_node name
 }
 
 // MsgCgroupEvent is the data that is sent from BPF side on cgroup events
 // into ring buffer.
 type MsgCgroupEvent struct {
-	Common        MsgCommon
-	Parent        MsgExecveKey
-	CgrpOp        uint32 // Current cgroup operation
-	PID           uint32
-	NSPID         uint32
-	Flags         uint32
-	Ktime         uint64
-	CgrpidTracker uint64                   // The tracking cgroup ID
-	Cgrpid        uint64                   // Current cgroup ID
-	CgrpData      MsgCgroupData            // Complementary cgroup data
-	Path          [CGROUP_PATH_LENGTH]byte // Full path of the cgroup on fs
+	Common        MsgCommon                `align:"common"`
+	Parent        MsgExecveKey             `align:"parent"`
+	CgrpOp        uint32                   `align:"cgrp_op"` // Current cgroup operation
+	PID           uint32                   `align:"pid"`
+	NSPID         uint32                   `align:"nspid"`
+	Flags         uint32                   `align:"flags"`
+	Ktime         uint64                   `align:"ktime"`
+	CgrpidTracker uint64                   `align:"cgrpid_tracker"` // The tracking cgroup ID
+	Cgrpid        uint64                   `align:"cgrpid"`         // Current cgroup ID
+	CgrpData      MsgCgroupData            `align:"cgrp_data"`      // Complementary cgroup data
+	Path          [CGROUP_PATH_LENGTH]byte `align:"path"`           // Full path of the cgroup on fs
 }
