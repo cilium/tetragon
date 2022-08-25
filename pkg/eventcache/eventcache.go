@@ -109,13 +109,15 @@ func (ec *Cache) handleEvents() {
 			}
 		}
 
-		processedEvent := &tetragon.GetEventsResponse{
-			Event:    event.event.Encapsulate(),
-			NodeName: nodeName,
-			Time:     ktime.ToProto(event.timestamp),
-		}
+		if event.msg.Notify() {
+			processedEvent := &tetragon.GetEventsResponse{
+				Event:    event.event.Encapsulate(),
+				NodeName: nodeName,
+				Time:     ktime.ToProto(event.timestamp),
+			}
 
-		ec.server.NotifyListeners(event.msg, processedEvent)
+			ec.server.NotifyListeners(event.msg, processedEvent)
+		}
 	}
 	ec.cache = tmp
 }

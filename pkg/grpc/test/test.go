@@ -22,6 +22,10 @@ type MsgTestEventUnix struct {
 	testapi.MsgTestEvent
 }
 
+func (msg *MsgTestEventUnix) Notify() bool {
+	return true
+}
+
 func (msg *MsgTestEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, timestamp)
 }

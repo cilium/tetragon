@@ -193,6 +193,10 @@ type MsgGenericTracepointUnix struct {
 	Args       []tracingapi.MsgGenericTracepointArg
 }
 
+func (msg *MsgGenericTracepointUnix) Notify() bool {
+	return true
+}
+
 func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, timestamp)
 }
@@ -280,6 +284,10 @@ type MsgGenericKprobeUnix struct {
 	Action       uint64
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
+}
+
+func (msg *MsgGenericKprobeUnix) Notify() bool {
+	return true
 }
 
 func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {

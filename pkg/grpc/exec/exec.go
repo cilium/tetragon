@@ -67,6 +67,10 @@ type MsgExecveEventUnix struct {
 	processapi.MsgExecveEventUnix
 }
 
+func (msg *MsgExecveEventUnix) Notify() bool {
+	return true
+}
+
 func (msg *MsgExecveEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return nil, fmt.Errorf("Unreachable state: MsgExecveEventUnix with missing internal")
 }
@@ -142,6 +146,10 @@ type MsgCloneEventUnix struct {
 	processapi.MsgCloneEvent
 }
 
+func (msg *MsgCloneEventUnix) Notify() bool {
+	return false
+}
+
 func (msg *MsgCloneEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return nil, fmt.Errorf("Unreachable state: MsgCloneEventUnix with missing internal")
 }
@@ -205,6 +213,10 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 
 type MsgExitEventUnix struct {
 	tetragonAPI.MsgExitEvent
+}
+
+func (msg *MsgExitEventUnix) Notify() bool {
+	return true
 }
 
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {

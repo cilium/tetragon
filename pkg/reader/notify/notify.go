@@ -12,6 +12,7 @@ type Message interface {
 	HandleMessage() *tetragon.GetEventsResponse
 	RetryInternal(Event, uint64) (*process.ProcessInternal, error)
 	Retry(*process.ProcessInternal, Event) error
+	Notify() bool
 }
 
 type Event interface {
