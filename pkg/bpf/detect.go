@@ -18,6 +18,7 @@ type Feature struct {
 
 var (
 	overrideHelper = Feature{false, false}
+	batchUpdate    = Feature{false, false}
 )
 
 func HasOverrideHelper() bool {
@@ -43,4 +44,33 @@ func HasOverrideHelper() bool {
 	}
 	overrideHelper.detected = true
 	return overrideHelper.detected
+}
+
+func HasBatchUpdate() bool {
+	if batchUpdate.initialized {
+		return batchUpdate.detected
+	}
+	batchUpdate.initialized = true
+	m, err := ebpf.NewMap(&ebpf.MapSpec{
+		Type:       ebpf.Hash,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 10,
+	})
+	if err != nil {
+		return false
+	}
+	defer m.Close()
+
+	var (
+		keys   = []uint32{0, 1}
+		values = []uint32{0, 1}
+	)
+
+	_, err = m.BatchUpdate(keys, values, nil)
+	if err != nil {
+		return false
+	}
+	batchUpdate.detected = true
+	return batchUpdate.detected
 }
