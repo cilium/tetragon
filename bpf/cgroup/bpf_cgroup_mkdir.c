@@ -39,8 +39,12 @@ tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 
 	task = (struct task_struct *)get_current_task();
 	probe_read(&pid, sizeof(pid), _(&task->tgid));
-	cgrpid = get_cgroup_id(cgrp);
 	level = get_cgroup_level(cgrp);
+
+	cgrpid = get_cgroup_id(cgrp);
+	/* This should never happen */
+	if (unlikely(cgrpid == 0))
+		return 0;
 
 	if (level <= config->tg_cgrp_level) {
 		cgrp_heap = __init_cgrp_tracking_val_heap(cgrp, CGROUP_NEW);

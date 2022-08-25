@@ -50,6 +50,12 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	cgrpid = get_cgroup_id(cgrp);
 	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
 
+	/* Do nothing if one of the cgroup IDs is zero, means cgroup hierarchy
+	 * is not properly setup.
+	 */
+	if (config->tg_cgrpid == 0 || cgrpid == 0)
+		return 0;
+
 	/* Check if target Cgroup matches and it is same hierarchy ID */
 	if (config->tg_cgrp_hierarchy != hierarchy_id ||
 	    config->tg_cgrpid != cgrpid)

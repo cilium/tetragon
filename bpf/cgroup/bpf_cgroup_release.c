@@ -25,6 +25,9 @@ tg_tp_cgrp_release(struct bpf_raw_tracepoint_args *ctx)
 
 	cgrp = (struct cgroup *)ctx->args[0];
 	cgrpid = get_cgroup_id(cgrp);
+	/* This should never happen */
+	if (unlikely(cgrpid == 0))
+		return 0;
 
 	cgrp_track = map_lookup_elem(&tg_cgrps_tracking_map, &cgrpid);
 	/* This was never tracked exit now */
