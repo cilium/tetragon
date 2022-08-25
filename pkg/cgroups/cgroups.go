@@ -116,9 +116,9 @@ var (
 		{id: DEPLOY_SD_USER, str: "user.slice"},
 	}
 
-	readCgroupMode sync.Once
-	cgroupMode     CgroupModeCode
-	cgroupFSPath   string
+	detectCgrpModeOnce sync.Once
+	cgroupMode         CgroupModeCode
+	cgroupFSPath       string
 
 	// Cgroup Migration Path
 	findMigPath       sync.Once
@@ -132,6 +132,10 @@ var (
 	tgCgrpID uint64
 
 	deploymentMode DeploymentCode
+	cgroupFSMagic  uint64
+
+	detectDeploymentOnce sync.Once
+	detectCgroupFSOnce   sync.Once
 )
 
 func (code CgroupModeCode) String() string {
@@ -162,6 +166,10 @@ func CgroupFsMagicStr(magic uint64) string {
 	}
 
 	return ""
+}
+
+func GetCgroupFSMagic() uint64 {
+	return cgroupFSMagic
 }
 
 // DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
@@ -265,6 +273,14 @@ func setDeploymentMode(cgroupPath string) error {
 
 func getDeploymentMode() DeploymentCode {
 	return deploymentMode
+}
+
+func GetDeploymentMode() uint32 {
+	return uint32(getDeploymentMode())
+}
+
+func GetCgroupMode() CgroupModeCode {
+	return cgroupMode
 }
 
 func SetCgrpHierarchyID(id uint32) {
@@ -541,7 +557,7 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 	return CGROUP_UNDEF, fmt.Errorf("wrong type '%d' for cgroupfs '%s'", st.Type, cgroupfs)
 }
 
-// GetCgroupMode() Returns the current Cgroup mode that is applied to the system
+// DetectCgroupMode() Returns the current Cgroup mode that is applied to the system
 // This applies to systemd and non-systemd machines, possible values:
 //   - CGROUP_UNDEF: undefined
 //   - CGROUP_LEGACY: Cgroupv1 legacy controllers
@@ -549,8 +565,8 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 //   - CGROUP_UNIFIED: Pure Cgroupv2 hierarchy
 //
 // Reference: https://systemd.io/CGROUP_DELEGATION/
-func GetCgroupMode() (CgroupModeCode, error) {
-	readCgroupMode.Do(func() {
+func DetectCgroupMode() (CgroupModeCode, error) {
+	detectCgrpModeOnce.Do(func() {
 		var err error
 		cgroupFSPath = defaultCgroupRoot
 		cgroupMode, err = detectCgroupMode(cgroupFSPath)
@@ -589,7 +605,7 @@ func findMigrationPath(pid uint32) (string, error) {
 		return "", err
 	}
 
-	mode, err := GetCgroupMode()
+	mode, err := DetectCgroupMode()
 	if err != nil {
 		return "", err
 	}
@@ -637,10 +653,10 @@ func MigrateSelfToSameCgrp() error {
 	return nil
 }
 
-func detectDeploymentMode() (uint32, error) {
+func detectDeploymentMode() (DeploymentCode, error) {
 	mode := getDeploymentMode()
 	if mode != DEPLOY_UNKNOWN {
-		return uint32(mode), nil
+		return mode, nil
 	}
 
 	// Let's call findMigrationPath in case to parse own cgroup
@@ -648,45 +664,62 @@ func detectDeploymentMode() (uint32, error) {
 	pid := os.Getpid()
 	_, err := findMigrationPath(uint32(pid))
 	if err != nil {
-		return uint32(DEPLOY_UNKNOWN), err
+		return DEPLOY_UNKNOWN, err
 	}
 
-	mode = getDeploymentMode()
-	return uint32(mode), nil
+	return getDeploymentMode(), nil
 }
 
 func DetectDeploymentMode() (uint32, error) {
-	mode, err := detectDeploymentMode()
-	if err != nil {
-		return mode, err
+	detectDeploymentOnce.Do(func() {
+		mode, err := detectDeploymentMode()
+		if err != nil {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"Cgroupfs": cgroupFSPath,
+			}).WithError(err).Warn("Detect deployment mode failed")
+			return
+		}
+
+		logger.GetLogger().WithFields(logrus.Fields{
+			"Cgroupfs":       cgroupFSPath,
+			"DeploymentMode": DeploymentCode(mode).String(),
+		}).Info("Deployment mode detection succeeded")
+	})
+
+	mode := getDeploymentMode()
+	if mode == DEPLOY_UNKNOWN {
+		return uint32(mode), fmt.Errorf("failed to detect deployment mode")
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"Cgroupfs":       cgroupFSPath,
-		"DeploymentMode": DeploymentCode(mode).String(),
-	}).Info("Deployment mode detection succeeded")
-
-	return mode, nil
+	return uint32(mode), nil
 }
 
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
-func GetBpfCgroupFS() (uint64, error) {
-	mode, err := GetCgroupMode()
+func DetectCgroupFSMagic() (uint64, error) {
+	// Run get cgroup mode again in case
+	mode, err := DetectCgroupMode()
 	if err != nil {
 		return CGROUP_UNSET_VALUE, err
 	}
 
-	switch mode {
-	case CGROUP_LEGACY, CGROUP_HYBRID:
-		/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
-		return unix.CGROUP_SUPER_MAGIC, nil
-	case CGROUP_UNIFIED:
-		logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
-		return unix.CGROUP2_SUPER_MAGIC, nil
+	// Run this once and log output
+	detectCgroupFSOnce.Do(func() {
+		switch mode {
+		case CGROUP_LEGACY, CGROUP_HYBRID:
+			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
+			cgroupFSMagic = unix.CGROUP_SUPER_MAGIC
+		case CGROUP_UNIFIED:
+			logger.GetLogger().WithField("Cgroupfs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+			cgroupFSMagic = unix.CGROUP2_SUPER_MAGIC
+		}
+	})
+
+	if cgroupFSMagic == CGROUP_UNSET_VALUE {
+		return CGROUP_UNSET_VALUE, fmt.Errorf("could not detect Cgroup filesystem Magic")
 	}
 
-	return CGROUP_UNSET_VALUE, fmt.Errorf("could not detect Cgroup Mode")
+	return cgroupFSMagic, nil
 }
 
 // CgroupNameFromCstr() Returns a Golang string from the passed C language format string.

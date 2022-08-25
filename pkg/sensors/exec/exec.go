@@ -63,13 +63,13 @@ func containerFromBpfCgroup(m *processapi.MsgExecveEvent, exec_id string, filena
 		 *   the tracking cgroup BPF map.
 		 */
 		err := fmt.Errorf("returned BPF cgroup name is empty")
-		fs, _ := cgroups.GetBpfCgroupFS()
-		mode, _ := cgroups.DetectDeploymentMode()
-		cgroupMode, _ := cgroups.GetCgroupMode()
+		fs := cgroups.GetCgroupFSMagic()
+		mode := cgroups.GetDeploymentMode()
+		cgroupMode := cgroups.GetCgroupMode()
 		logger.GetLogger().WithFields(logrus.Fields{
 			"DeploymentMode":  cgroups.DeploymentCode(mode).String(),
 			"Cgroupfs":        cgroups.CgroupFsMagicStr(fs),
-			"CgroupMode":      cgroupMode.String(),
+			"Cgroup.mode":     cgroupMode.String(),
 			"cgroup.id":       cgrpid,
 			"process.exec_id": exec_id,
 			"process.binary":  filename,
@@ -118,14 +118,14 @@ func containerIDFromTrackedCgrp(m *processapi.MsgExecveEvent, exec_id string, fi
 		 */
 		logEmptyCgrpid.Do(func() {
 			err := fmt.Errorf("cgroup.id is zero this should not happen")
-			fs, _ := cgroups.GetBpfCgroupFS()
-			mode, _ := cgroups.DetectDeploymentMode()
-			cgroupMode, _ := cgroups.GetCgroupMode()
+			fs := cgroups.GetCgroupFSMagic()
+			mode := cgroups.GetDeploymentMode()
+			cgroupMode := cgroups.GetCgroupMode()
 			logger.GetLogger().WithFields(logrus.Fields{
 				"bpf-map":         cgroupMap.Name,
 				"Cgroupfs":        cgroups.CgroupFsMagicStr(fs),
-				"CgroupMode":      cgroupMode.String(),
 				"DeploymentMode":  cgroups.DeploymentCode(mode).String(),
+				"Cgroup.mode":     cgroupMode.String(),
 				"cgroup.id":       id,
 				"process.exec_id": exec_id,
 				"process.binary":  filename,

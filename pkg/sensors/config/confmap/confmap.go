@@ -70,7 +70,7 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	defer m.Close()
 
 	// First let's detect cgroupfs magic
-	cgroupFsMagic, err := cgroups.GetBpfCgroupFS()
+	cgroupFsMagic, err := cgroups.DetectCgroupFSMagic()
 	if err != nil {
 		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Cgroupfs version failed")
 		log.WithField("confmap-update", configMap.Name).Warnf("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled")
@@ -88,7 +88,6 @@ func UpdateTetragonConfMap(mapDir string, nspid int) error {
 	// Detect deployment mode
 	deployMode, err := cgroups.DetectDeploymentMode()
 	if err != nil {
-		deployMode = cgroups.CGROUP_UNSET_VALUE
 		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of deployment mode failed")
 		log.WithField("confmap-update", configMap.Name).Warnf("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
 		return nil
