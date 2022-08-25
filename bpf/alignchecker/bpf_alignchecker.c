@@ -42,6 +42,7 @@ int main(void)
 	DECLARE(struct, execve_map_value, iter);
 	DECLARE(struct, event_config, iter);
 	DECLARE(struct, cgroup_tracking_value, iter);
+	DECLARE(struct, tetragon_conf, iter);
 
 	return 0;
 }

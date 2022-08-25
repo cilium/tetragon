@@ -5,6 +5,7 @@ package alignchecker
 import (
 	"reflect"
 
+	"github.com/cilium/tetragon/pkg/api/confapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -35,6 +36,7 @@ func CheckStructAlignments(path string) error {
 		"event_config":          {reflect.TypeOf(tracingapi.EventConfig{})},
 		"cgroup_tracking_value": {reflect.TypeOf(processapi.MsgCgroupData{})},
 		"msg_cgroup_event":      {reflect.TypeOf(processapi.MsgCgroupEvent{})},
+		"tetragon_conf":         {reflect.TypeOf(confapi.TetragonConf{})},
 	}
 
 	cgrpmap := map[string][]reflect.Type{
