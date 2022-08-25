@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -41,6 +42,63 @@ func isDirMountFsType(path string, mntType string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func TestCgroupNameFromCStr(t *testing.T) {
+	type progTest struct {
+		in   []byte
+		want string
+	}
+
+	containerId := "docker-713516e64fa59fc6c7216b29b25d395a606083232bdaf07e53540cd8252ea3f7.scope"
+	cgroupPath := "/system.slice/docker-713516e64fa59fc6c7216b29b25d395a606083232bdaf07e53540cd8252ea3f7.scope"
+	bempty := []byte{0x00}
+	emptycontainerId := []byte(containerId)
+	emptycontainerId[0] = 0x00
+	bcontainerId := []byte(containerId)
+	cidx := strings.Index(containerId, "6e")
+	bcontainerId[cidx] = 0x00
+	pidx := strings.LastIndex(cgroupPath, "/")
+	bcgroupPath := []byte(cgroupPath)
+	bcgroupPath[pidx] = 0x00
+
+	testcases := []progTest{
+		{
+			in:   []byte(""),
+			want: "",
+		},
+		{
+			in:   bempty,
+			want: "",
+		},
+		{
+			in:   emptycontainerId,
+			want: "",
+		},
+		{
+			in:   []byte(containerId),
+			want: containerId,
+		},
+		{
+			in:   []byte(cgroupPath),
+			want: cgroupPath,
+		},
+		{
+			in:   bcontainerId,
+			want: containerId[:cidx],
+		},
+		{
+			in:   bcgroupPath,
+			want: "/system.slice",
+		},
+	}
+
+	for _, test := range testcases {
+		out := CgroupNameFromCStr(test.in)
+		if out != test.want {
+			t.Errorf("CgroupNameFromCStr() mismatch - want:'%s'  -  got:'%s'\n", test.want, out)
+		}
+	}
 }
 
 func TestDetectCgoupModeInvalid(t *testing.T) {
