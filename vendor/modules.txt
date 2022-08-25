@@ -45,10 +45,6 @@ github.com/cilium/cilium/pkg/monitor/payload
 github.com/cilium/cilium/pkg/proxy/accesslog
 github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/cilium-e2e v0.0.0-00010101000000-000000000000 => github.com/cilium/cilium v1.12.0-rc2.0.20220630043907-91114a9e2d09
-## explicit; go 1.18
-github.com/cilium/cilium-e2e/pkg/e2ecluster/ciliuminstall
-github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers
 # github.com/cilium/ebpf v0.9.1
 ## explicit; go 1.17
 github.com/cilium/ebpf
@@ -408,10 +404,8 @@ go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # go.uber.org/atomic v1.9.0
 ## explicit; go 1.13
-go.uber.org/atomic
 # go.uber.org/multierr v1.8.0
 ## explicit; go 1.14
-go.uber.org/multierr
 # golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 ## explicit; go 1.17
 golang.org/x/crypto/ed25519
@@ -1121,7 +1115,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/cilium/cilium-e2e => github.com/cilium/cilium v1.12.0-rc2.0.20220630043907-91114a9e2d09
 # github.com/cilium/tetragon/api => ./api
 # github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
 # github.com/miekg/dns => github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3
