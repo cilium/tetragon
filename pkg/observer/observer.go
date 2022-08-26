@@ -72,23 +72,61 @@ func (k *Observer) RemoveListener(listener Listener) {
 	}
 }
 
+type handlePerfUnknownOp struct {
+	op byte
+}
+
+func (e handlePerfUnknownOp) Error() string {
+	return fmt.Sprintf("unknown op: %s", tetragon.EventType(e.op).String())
+}
+
+type handlePerfHandlerErr struct {
+	op  byte
+	err error
+}
+
+func (e *handlePerfHandlerErr) Error() string {
+	return fmt.Sprintf("handler for op %s failed: %s", tetragon.EventType(e.op).String(), e.err)
+}
+
+func (e *handlePerfHandlerErr) Unwrap() error {
+	return e.err
+}
+
+// HandlePerfData returns the events from raw bytes
+// NB: It is made public so that it can be used in testing.
+func HandlePerfData(data []byte) ([]Event, error) {
+	op := data[0]
+	r := bytes.NewReader(data)
+	// These ops handlers are registered by RegisterEventHandlerAtInit().
+	handler, ok := eventHandler[op]
+	if !ok {
+		return nil, handlePerfUnknownOp{op: op}
+	}
+
+	events, err := handler(r)
+	if err != nil {
+		err = &handlePerfHandlerErr{op: op, err: err}
+	}
+	return events, err
+}
+
 func (k *Observer) receiveEvent(data []byte, cpu int) {
-	var op = data[0]
 
 	k.recvCntr++
-	r := bytes.NewReader(data)
-
-	// These ops handlers are registered by RegisterEventHandlerAtInit().
-	if h, ok := eventHandler[op]; ok {
-		if events, err := h(r); err == nil {
-			for _, event := range events {
-				k.observerListeners(event)
-			}
-		} else {
-			k.log.WithError(err).WithField("event_type", tetragon.EventType(op).String()).Warn("error occurred in event handler")
+	events, err := HandlePerfData(data)
+	if err != nil {
+		switch e := err.(type) {
+		case handlePerfUnknownOp:
+			k.log.WithField("opcode", e.op).WithField("event_type", tetragon.EventType(e.op).String()).Warn("unknown opcode ignored")
+		case *handlePerfHandlerErr:
+			k.log.WithError(e.err).WithField("event_type", tetragon.EventType(e.op).String()).Warn("error occurred in event handler")
+		default:
+			k.log.WithError(err).Warn("error occurred in event handler")
 		}
-	} else {
-		k.log.WithField("opcode", op).WithField("event_type", tetragon.EventType(op).String()).Warn("unknown opcode ignored")
+	}
+	for _, event := range events {
+		k.observerListeners(event)
 	}
 }
 
