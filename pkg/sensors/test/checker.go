@@ -17,7 +17,7 @@ import (
 
 //revive:disable
 
-// TestChecker is a checker that relies on:
+// TestEventChecker is a checker that relies on:
 //  - the test sensor being loaded
 //  - user-space executing hooks that trigger the test sensor on all cores
 //  (see contrib/tester-progs/trigger-test-events).
@@ -27,28 +27,24 @@ import (
 //   2. do some things on user-space
 //   3. check that we get the expected events from tetragon
 //
-// The above approach requires retries for step 3 if the events we are looking
-// for are not there. These retry counts are large so that we can deal with
-// worst case scenarios, and, subsequently, they induce a significant time cost
-// in failing tests. Furthermore, for some tests we also need to check for the
-// absence of events (e.g., when doing filtering), which also requires waiting
-// on timeouts.
+// In such a test there is no way to determine when to stop looking for events.  Hence, we retry
+// step 3 a number of times to gain confidence that all events from step 2 have been processed.
+// These retries induce a significant time cost in failing tests or in tests that check the absence
+// of events (e.g., when doing filtering).
 //
-// The TestChecker enables testing without timeouts. We still use timeouts for
-// robustness, but if the TestChecker works correctly, they are not needed.
-// TestChecker offers a way to end the test even if we have not receive the
-// expected events.
+// TestEventChecker enables testing without timeouts. Timeouts are still used for robustness, but
+// assuming TestEventChecker works correctly they are not needed.
 //
-// The idea is simple: after step 2, we trigger the hook of the test sensor on
-// all CPUs. Once we 've seen all the test events (on all CPUs), then we know
-// that if we expect any events, they are not there.
-type TestChecker struct {
-	checker       ec.MultiEventChecker
-	testDone      map[uint64]bool
-	testDoneCount int
+// After step 2, we trigger the hook of the test sensor (a simple sensor that generates test events)
+// on all CPUs. Once we have seen all the test events (on all CPUs), then we know that if we expect
+// any events, they are not there because events cannot be reordered on the same CPU.
+type TestEventChecker struct {
+	// eventChecker is the underlying event checker
+	eventChecker      ec.MultiEventChecker
+	completionChecker *CompletionChecker
 }
 
-// TestCheckerMarkEnd executes the proper code to mark the end of event stream on all CPUs
+// TestCheckerMarkEnd executes the necessary operations to mark the end of event stream on all CPUs
 func TestCheckerMarkEnd(t *testing.T) {
 	testBin := testutils.ContribPath("tester-progs/trigger-test-events")
 	testCmd := exec.Command(testBin)
@@ -60,57 +56,32 @@ func TestCheckerMarkEnd(t *testing.T) {
 
 //revive:enable
 
-func NewTestChecker(c ec.MultiEventChecker) *TestChecker {
-	ncpus := runtime.NumCPU()
-	ret := TestChecker{
-		checker:  c,
-		testDone: make(map[uint64]bool, ncpus),
-	}
-
-	// NB: We assume CPU ids are consecutive. There are systems where this
-	// is not the caes (e.g., cores getting offline), but we ignore them
-	// for now.
-	ret.testDoneCount = ncpus
-	for i := 0; i < ncpus; i++ {
-		ret.testDone[uint64(i)] = false
+func NewTestChecker(c ec.MultiEventChecker) *TestEventChecker {
+	ret := TestEventChecker{
+		eventChecker:      c,
+		completionChecker: NewCompletionChecker(),
 	}
 
 	return &ret
 }
 
 // update updates the state bsaed on the given event
-func (tc *TestChecker) update(ev ec.Event) {
+func (tc *TestEventChecker) update(ev ec.Event) {
 	switch ev := ev.(type) {
 	case *tetragon.Test:
 		cpu := ev.Arg0
-		prev := tc.testDone[cpu]
-		tc.testDone[cpu] = true
-		if !prev && tc.testDoneCount > 0 {
-			tc.testDoneCount--
-		}
+		tc.completionChecker.Update(cpu)
 	default:
 	}
 }
 
-// reset resets internal state
-func (tc *TestChecker) reset() {
-	for i := range tc.testDone {
-		tc.testDone[i] = false
-	}
-	tc.testDoneCount = len(tc.testDone)
-}
-
-func (tc *TestChecker) seenAllTestEvents() bool {
-	return tc.testDoneCount == 0
-}
-
-func (tc *TestChecker) NextEventCheck(ev ec.Event, l *logrus.Logger) (bool, error) {
-	if tc.seenAllTestEvents() {
+func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *logrus.Logger) (bool, error) {
+	if tc.completionChecker.Done() {
 		l.Info("seen events on all CPUs, finalizing test")
-		return true, tc.checker.FinalCheck(l)
+		return true, tc.eventChecker.FinalCheck(l)
 	}
 
-	done, err := tc.checker.NextEventCheck(ev, l)
+	done, err := tc.eventChecker.NextEventCheck(ev, l)
 	if done {
 		// underlying checker done, just return its values
 		return true, err
@@ -123,9 +94,51 @@ func (tc *TestChecker) NextEventCheck(ev ec.Event, l *logrus.Logger) (bool, erro
 	return false, err
 }
 
-func (tc *TestChecker) FinalCheck(l *logrus.Logger) error {
+func (tc *TestEventChecker) FinalCheck(l *logrus.Logger) error {
 	// this means that we run out of events before seeing all test events.
 	// Just return what the underlying checker returns
-	tc.reset()
-	return tc.checker.FinalCheck(l)
+	tc.completionChecker.Reset()
+	return tc.eventChecker.FinalCheck(l)
+}
+
+type CompletionChecker struct {
+	cpuDone  map[uint64]bool
+	remCount int
+}
+
+func NewCompletionChecker() *CompletionChecker {
+	ncpus := runtime.NumCPU()
+	ret := CompletionChecker{
+		cpuDone:  make(map[uint64]bool, ncpus),
+		remCount: 0,
+	}
+
+	// NB: We assume CPU ids are consecutive. There are systems where this
+	// is not the caes (e.g., cores getting offline), but we ignore them
+	// for now.
+	ret.remCount = ncpus
+	for i := 0; i < ncpus; i++ {
+		ret.cpuDone[uint64(i)] = false
+	}
+
+	return &ret
+}
+
+func (cc *CompletionChecker) Update(cpu uint64) {
+	prev := cc.cpuDone[cpu]
+	cc.cpuDone[cpu] = true
+	if !prev && cc.remCount > 0 {
+		cc.remCount--
+	}
+}
+
+func (cc *CompletionChecker) Reset() {
+	for i := range cc.cpuDone {
+		cc.cpuDone[i] = false
+	}
+	cc.remCount = len(cc.cpuDone)
+}
+
+func (cc *CompletionChecker) Done() bool {
+	return cc.remCount == 0
 }
