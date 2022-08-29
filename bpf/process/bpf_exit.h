@@ -28,8 +28,10 @@ event_exit_send(struct sched_execve_args *ctx, __u64 current)
 	 * and we can skip the lookup/insert/delete cycle that
 	 * would otherwise occur.
 	 */
-	if (pid != tgid)
+	if (pid != tgid) {
+		execve_map_delete(pid);
 		return;
+	}
 
 	/* It is safe to do a map_lookup_event() here because
 	 * we must have captured the execve case in order for an
