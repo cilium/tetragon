@@ -31,7 +31,7 @@ WORKDIR /src/linux/tools/bpf/bpftool
 RUN make -j $(nproc) LDFLAGS=-static
 RUN strip bpftool
 
-FROM docker.io/library/alpine:3.15.4@sha256:a777c9c66ba177ccfea23f2a216ff6721e78a662cd17019488c417135299cd89
+FROM docker.io/library/alpine:3.16.2@sha256:bc41182d7ef5ffc53a40b044e725193bc10142a1243f395ee852a8d9730fc2ad
 RUN apk add iproute2
 RUN addgroup hubble	     && \
     mkdir /var/lib/tetragon/ && \
