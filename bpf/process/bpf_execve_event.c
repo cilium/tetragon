@@ -123,9 +123,14 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 #ifndef __LARGE_BPF_PROG
 		flags |= EVENT_TRUNC_FILENAME;
 #else
-		flags |= EVENT_DATA_FILENAME;
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename, &data_heap);
+		if (size < 0) {
+			flags |= EVENT_ERROR_FILENAME;
+			size = 0;
+		} else {
+			flags |= EVENT_DATA_FILENAME;
+		}
 #endif
 	}
 	curr->flags = flags;
