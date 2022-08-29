@@ -154,7 +154,7 @@ __event_find_parent(struct task_struct *task)
 		if (!task)
 			break;
 		probe_read(&pid, sizeof(pid), _(&task->tgid));
-		value = execve_map_get(pid);
+		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			return value;
 	}
@@ -195,7 +195,7 @@ event_find_curr(__u32 *ppid, struct bpf_map_def *map, bool *walked)
 
 #pragma unroll
 	for (i = 0; i < 4; i++) {
-		value = execve_map_get(pid);
+		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			break;
 		value = 0;
