@@ -12,34 +12,38 @@
 #include "generic_calls.h"
 #include "pfilter.h"
 
-struct bpf_map_def __attribute__((section("maps"), used)) tp_calls = {
-	.type = BPF_MAP_TYPE_PROG_ARRAY,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(__u32),
-	.max_entries = 11,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 11);
+	__type(key, __u32);
+	__type(value, __u32);
+} tp_calls SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) tp_heap = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(struct msg_generic_kprobe),
-	.max_entries = 1,
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_generic_kprobe);
+} tp_heap SEC(".maps");
+
+struct filter_map_value {
+	unsigned char buf[FILTER_SIZE];
 };
 
 /* Arrays of size 1 will be rewritten to direct loads in verifier */
-struct bpf_map_def __attribute__((section("maps"), used)) filter_map = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = FILTER_SIZE,
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct filter_map_value);
+} filter_map SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(struct event_config),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct event_config);
+} config_map SEC(".maps");
 
 struct generic_tracepoint_event_arg {
 	/* common header */
@@ -167,36 +171,46 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint/0"), used)) int
 generic_tracepoint_event0(void *ctx)
 {
-	return generic_process_event0(ctx, &tp_heap, &filter_map, &tp_calls,
-				      &config_map);
+	return generic_process_event0(ctx, (struct bpf_map_def *)&tp_heap,
+				      (struct bpf_map_def *)&filter_map,
+				      (struct bpf_map_def *)&tp_calls,
+				      (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/1"), used)) int
 generic_tracepoint_event1(void *ctx)
 {
-	return generic_process_event1(ctx, &tp_heap, &filter_map, &tp_calls,
-				      &config_map);
+	return generic_process_event1(ctx, (struct bpf_map_def *)&tp_heap,
+				      (struct bpf_map_def *)&filter_map,
+				      (struct bpf_map_def *)&tp_calls,
+				      (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/2"), used)) int
 generic_tracepoint_event2(void *ctx)
 {
-	return generic_process_event2(ctx, &tp_heap, &filter_map, &tp_calls,
-				      &config_map);
+	return generic_process_event2(ctx, (struct bpf_map_def *)&tp_heap,
+				      (struct bpf_map_def *)&filter_map,
+				      (struct bpf_map_def *)&tp_calls,
+				      (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/3"), used)) int
 generic_tracepoint_event3(void *ctx)
 {
-	return generic_process_event3(ctx, &tp_heap, &filter_map, &tp_calls,
-				      &config_map);
+	return generic_process_event3(ctx, (struct bpf_map_def *)&tp_heap,
+				      (struct bpf_map_def *)&filter_map,
+				      (struct bpf_map_def *)&tp_calls,
+				      (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_event4(void *ctx)
 {
-	return generic_process_event4(ctx, &tp_heap, &filter_map, &tp_calls,
-				      &config_map);
+	return generic_process_event4(ctx, (struct bpf_map_def *)&tp_heap,
+				      (struct bpf_map_def *)&filter_map,
+				      (struct bpf_map_def *)&tp_calls,
+				      (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/5"), used)) int
@@ -223,36 +237,46 @@ generic_tracepoint_filter(void *ctx)
 __attribute__((section("tracepoint/6"), used)) int
 generic_tracepoint_arg1(void *ctx)
 {
-	return filter_read_arg(ctx, 0, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0, &config_map);
+	return filter_read_arg(ctx, 0, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/7"), used)) int
 generic_tracepoint_arg2(void *ctx)
 {
-	return filter_read_arg(ctx, 1, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0, &config_map);
+	return filter_read_arg(ctx, 1, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/8"), used)) int
 generic_tracepoint_arg3(void *ctx)
 {
-	return filter_read_arg(ctx, 2, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0, &config_map);
+	return filter_read_arg(ctx, 2, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/9"), used)) int
 generic_tracepoint_arg4(void *ctx)
 {
-	return filter_read_arg(ctx, 3, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0, &config_map);
+	return filter_read_arg(ctx, 3, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/10"), used)) int
 generic_tracepoint_arg5(void *ctx)
 {
-	return filter_read_arg(ctx, 4, &tp_heap, &filter_map, &tp_calls,
-			       (void *)0, &config_map);
+	return filter_read_arg(ctx, 4, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&config_map);
 }
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
