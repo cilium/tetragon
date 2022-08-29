@@ -7,12 +7,12 @@ struct retprobe_info {
 	unsigned long cnt;
 };
 
-struct bpf_map_def __attribute__((section("maps"), used)) retprobe_map = {
-	.type = BPF_MAP_TYPE_HASH,
-	.key_size = sizeof(__u64),
-	.value_size = sizeof(struct retprobe_info),
-	.max_entries = 1024,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1024);
+	__type(key, __u64);
+	__type(value, struct retprobe_info);
+} retprobe_map SEC(".maps");
 
 static inline __attribute__((always_inline)) unsigned long
 retprobe_map_get(__u64 tid, unsigned long *cntp)

@@ -14,19 +14,19 @@
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
-struct bpf_map_def __attribute__((section("maps"), used)) process_call_heap = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(struct msg_generic_kprobe),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_generic_kprobe);
+} process_call_heap SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) config_map = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(struct event_config),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct event_config);
+} config_map SEC(".maps");
 
 __attribute__((section("kprobe/generic_retkprobe"), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
