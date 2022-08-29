@@ -27,6 +27,8 @@ type config struct {
 	EnableProcessCred bool
 	EnableK8s         bool
 
+	GopsAddr string
+
 	CiliumDir string
 	MapDir    string
 	BpfDir    string
