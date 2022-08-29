@@ -38,6 +38,8 @@ var (
 	PidMapMissOnRemove ErrorType = "pid_map_miss_on_remove"
 	// An exec event without parent info.
 	ExecMissingParent ErrorType = "exec_missing_parent"
+	// An event is missing process info.
+	EventMissingProcessInfo ErrorType = "event_missing_process_info"
 )
 
 var (
