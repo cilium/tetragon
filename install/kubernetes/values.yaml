@@ -144,6 +144,13 @@ tetragon:
     # -- The port at which to expose gRPC.
     port: 54321
 
+  gops:
+    # -- The address at which to expose gops.
+    address: "localhost"
+    # -- The port at which to expose gops.
+    port: 8118
+
+
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true
@@ -173,14 +180,14 @@ export:
     #   - name: foo
     #     value: bar
 
-    # * When enabledCommand=true and commandOverride is not set, the command inserted will be hubble-export-stdout. 
+    # * When enabledCommand=true and commandOverride is not set, the command inserted will be hubble-export-stdout.
     #   This supports the default for the current deployment instructions to deploy stdout-export sidecar container.
     # * When enabledCommand=true and commandOverride override is set, the command inserted will be the value of commandOverride.
     #   This is useful for inserting another sidecar container that requires a command override.
     # * When enabledCommand=false, no command will be specified in the manifest and container's default command will take over.
     enabledCommand: true
 
-    # * When enabledArgs=true and argsOverride is not set, the args inserted will be the default ones for export-stdout. 
+    # * When enabledArgs=true and argsOverride is not set, the args inserted will be the default ones for export-stdout.
     # * When enabledArgs=true and argsOverride override is set, the args value inserted will be the value of argsOverride.
     #   This is useful for inserting another sidecar container that requires args override.
     # * When enabledArgs=false, no command will be specified in the manifest and container's default args value will take over.
@@ -194,7 +201,7 @@ export:
 
     # Extra volume mounts to add to stdout export pod
     extraVolumeMounts: [ ]
-    
+
     image:
       override: ~
       repository: quay.io/cilium/hubble-export-stdout
