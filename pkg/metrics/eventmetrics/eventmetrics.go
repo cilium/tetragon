@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -29,13 +30,15 @@ var (
 	}, []string{"type"})
 )
 
-func getProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
+func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
 	if process != nil {
 		binary = process.Binary
 		if process.Pod != nil {
 			namespace = process.Pod.Namespace
 			pod = process.Pod.Name
 		}
+	} else {
+		errormetrics.ErrorTotalInc(errormetrics.EventMissingProcessInfo)
 	}
 	return binary, pod, namespace
 }
@@ -55,7 +58,7 @@ func handleProcessedEvent(processedEvent interface{}) {
 	var eventType, namespace, pod, binary string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
-		binary, pod, namespace = getProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
+		binary, pod, namespace = GetProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
 		var err error
 		eventType, err = helpers.ResponseTypeString(ev)
 		if err != nil {
