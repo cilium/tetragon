@@ -429,7 +429,9 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 		// shared with base sensor
 		tus.SensorMap{Name: "execve_map", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+
+		// base only
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14}},
 	}
 
 	if kernels.EnableLargeProgs() {
