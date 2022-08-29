@@ -7,18 +7,19 @@
 #include "hubble_msg.h"
 #include "bpf_events.h"
 #include "bpf_process_event.h"
+#include "bpf_helpers.h"
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
 #ifdef __LARGE_BPF_PROG
 #include "data_event.h"
 
-struct bpf_map_def __attribute__((section("maps"), used)) data_heap = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(struct msg_data),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_data);
+} data_heap SEC(".maps");
 #endif
 
 /* event_args_builder: copies args into char *buffer
@@ -84,11 +85,11 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 			if (args >= (char *)&event->process + BUFFER)
 				return;
 
-			size = data_event_bytes(ctx,
-						(struct data_event_desc *)args,
-						(unsigned long)start_stack,
-						end_stack - start_stack,
-						&data_heap);
+			size = data_event_bytes(
+				ctx, (struct data_event_desc *)args,
+				(unsigned long)start_stack,
+				end_stack - start_stack,
+				(struct bpf_map_def *)&data_heap);
 			if (size < 0)
 				return;
 			p->size += size;
@@ -124,7 +125,8 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		flags |= EVENT_TRUNC_FILENAME;
 #else
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
-				      (unsigned long)filename, &data_heap);
+				      (unsigned long)filename,
+				      (struct bpf_map_def *)&data_heap);
 		if (size < 0) {
 			flags |= EVENT_ERROR_FILENAME;
 			size = 0;

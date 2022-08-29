@@ -7,12 +7,12 @@
 #include "hubble_msg.h"
 #include "bpf_events.h"
 
-struct bpf_map_def __attribute__((section("maps"), used)) exit_heap_map = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(struct msg_exit),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct msg_exit);
+} exit_heap_map SEC(".maps");
 
 static inline __attribute__((always_inline)) void
 event_exit_send(struct sched_execve_args *ctx, __u64 current)

@@ -4,14 +4,20 @@
 #ifndef _BPF_PROCESS_EVENT__
 #define _BPF_PROCESS_EVENT__
 
+#include "bpf_helpers.h"
+
 #define ENAMETOOLONG 36 /* File name too long */
 
-struct bpf_map_def __attribute__((section("maps"), used)) buffer_heap_map = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = PATH_MAP_SIZE * sizeof(char),
-	.max_entries = 1,
+struct buffer_heap_map_value {
+	unsigned char buf[PATH_MAP_SIZE];
 };
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct buffer_heap_map_value);
+} buffer_heap_map SEC(".maps");
 
 static inline __attribute__((always_inline)) __u64
 __get_auid(struct task_struct *task)
