@@ -275,34 +275,33 @@ struct execve_map_value {
 	struct msg_capabilities caps;
 } __attribute__((packed)) __attribute__((aligned(8)));
 
-struct bpf_map_def __attribute__((section("maps"), used))
-execve_msg_heap_map = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(struct msg_execve_event),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_execve_event);
+} execve_msg_heap_map SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) execve_map = {
-	.type = BPF_MAP_TYPE_HASH,
-	.key_size = sizeof(__u32),
-	.value_size = sizeof(struct execve_map_value),
-	.max_entries = 32768,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 32768);
+	__type(key, __u32);
+	__type(value, struct execve_map_value);
+} execve_map SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) execve_map_stats = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__s32),
-	.value_size = sizeof(__s64),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __s32);
+	__type(value, __s64);
+} execve_map_stats SEC(".maps");
 
-struct bpf_map_def __attribute__((section("maps"), used)) execve_val = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__s32),
-	.value_size = sizeof(struct execve_map_value),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __s32);
+	__type(value, struct execve_map_value);
+} execve_val SEC(".maps");
 
 struct execve_heap {
 	union {
@@ -311,12 +310,12 @@ struct execve_heap {
 	};
 };
 
-struct bpf_map_def __attribute__((section("maps"), used)) execve_heap = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size = sizeof(__s32),
-	.value_size = sizeof(struct execve_heap),
-	.max_entries = 1,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __s32);
+	__type(value, struct execve_heap);
+} execve_heap SEC(".maps");
 
 static inline __attribute__((always_inline)) int64_t
 validate_msg_execve_size(int64_t size)

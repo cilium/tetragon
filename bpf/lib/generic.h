@@ -57,11 +57,16 @@ struct sched_execve_args {
 };
 
 #ifndef ALIGNCHECKER
-struct bpf_map_def __attribute__((section("maps"), used)) names_map = {
-	.type = BPF_MAP_TYPE_HASH,
-	.key_size = sizeof(char) * 256,
-	.value_size = sizeof(__u32),
-	.max_entries = 64,
+struct names_map_key {
+	char path[256];
 };
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 64);
+	__type(key, struct names_map_key);
+	__type(value, __u32);
+} names_map SEC(".maps");
+
 #endif // ALIGNCHECKER
 #endif // _GENERIC__

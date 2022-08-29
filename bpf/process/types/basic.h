@@ -943,12 +943,12 @@ struct fdinstall_value {
 	char file[264]; // 256B paths + 4B length + 4B flags
 };
 
-struct bpf_map_def __attribute__((section("maps"), used)) fdinstall_map = {
-	.type = BPF_MAP_TYPE_LRU_HASH,
-	.key_size = sizeof(struct fdinstall_key),
-	.value_size = sizeof(struct fdinstall_value),
-	.max_entries = 32000,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 32000);
+	__type(key, struct fdinstall_key);
+	__type(value, struct fdinstall_value);
+} fdinstall_map SEC(".maps");
 
 static inline __attribute__((always_inline)) int
 installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)

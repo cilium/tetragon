@@ -18,9 +18,10 @@ struct event {
 	int event;
 };
 
-struct bpf_map_def __attribute__((section("maps"), used)) tcpmon_map = {
-	.type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(struct event),
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+	__type(key, int);
+	__type(value, struct event);
+} tcpmon_map SEC(".maps");
+
 #endif // __HUBBLE_MSG_
