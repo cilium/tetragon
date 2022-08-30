@@ -74,9 +74,9 @@ get_task_from_pid(__u32 pid)
 	return task;
 }
 
-static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
+static inline __attribute__((always_inline)) __u32
+get_task_pid_vnr_task(struct task_struct *task)
 {
-	struct task_struct *task = (struct task_struct *)get_current_task();
 	int thread_pid_exists;
 	unsigned int level;
 	struct upid upid;
@@ -111,6 +111,13 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	probe_read(&upid, upid_sz,
 		   (void *)_(&pid->numbers) + (level * upid_sz));
 	return upid.nr;
+}
+
+static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+
+	return get_task_pid_vnr_task(task);
 }
 
 static inline __attribute__((always_inline)) int64_t
