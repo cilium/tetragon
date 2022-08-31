@@ -556,11 +556,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
 	}
-	spec := v1alpha1.KProbeSpec{
-		Selectors: selectors,
-		Args:      args,
-	}
-	b, _ := InitKernelSelectors(&spec)
+	b, _ := InitKernelSelectors(selectors, args)
 	if bytes.Equal(expected[0:len(expected)], b[0:len(expected)]) == false {
 		t.Errorf("InitKernelSelectors: expected %v bytes %v\n", expected, b[0:len(expected)])
 	}

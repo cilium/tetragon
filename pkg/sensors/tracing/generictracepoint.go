@@ -426,7 +426,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		}
 	}
 
-	kernelSelectors, err := selectors.InitTracepointSelectors(tp.Selectors)
+	kernelSelectors, err := selectors.InitKernelSelectors(tp.Selectors.Selectors, tp.Selectors.Args)
 	if err != nil {
 		return err
 	}
