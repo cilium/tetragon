@@ -642,13 +642,11 @@ func InitTracepointSelectors(spec *v1alpha1.TracepointSpec) ([4096]byte, error) 
 	selectors := spec.Selectors
 	args := spec.Args
 	kernelSelectors := &KernelSelectorState{}
-	totaloff := 2
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
 	for i := range selectors {
 		soff[i] = AdvanceSelectorLength(kernelSelectors)
-		totaloff++
 	}
 	for i, s := range selectors {
 		WriteSelectorLength(kernelSelectors, soff[i])
