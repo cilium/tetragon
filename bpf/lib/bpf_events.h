@@ -106,8 +106,6 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	}
 	upid_sz = bpf_core_field_size(pid->numbers[0]);
 	probe_read(&level, sizeof(level), _(&pid->level));
-	if (level < 1)
-		return 0;
 	probe_read(&upid, upid_sz,
 		   (void *)_(&pid->numbers) + (level * upid_sz));
 	return upid.nr;
