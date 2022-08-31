@@ -617,30 +617,7 @@ func parseSelector(
 // CAn := [type][op][namespacecap][valueInt]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
-func InitKernelSelectors(spec *v1alpha1.KProbeSpec) ([4096]byte, error) {
-	selectors := spec.Selectors
-	args := spec.Args
-	kernelSelectors := &KernelSelectorState{}
-
-	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
-	soff := make([]uint32, len(selectors))
-	for i := range selectors {
-		soff[i] = AdvanceSelectorLength(kernelSelectors)
-	}
-	for i, s := range selectors {
-		WriteSelectorLength(kernelSelectors, soff[i])
-		loff := AdvanceSelectorLength(kernelSelectors)
-		if err := parseSelector(kernelSelectors, &s, args); err != nil {
-			return kernelSelectors.e, err
-		}
-		WriteSelectorLength(kernelSelectors, loff)
-	}
-	return kernelSelectors.e, nil
-}
-
-func InitTracepointSelectors(spec *v1alpha1.TracepointSpec) ([4096]byte, error) {
-	selectors := spec.Selectors
-	args := spec.Args
+func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) ([4096]byte, error) {
 	kernelSelectors := &KernelSelectorState{}
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))

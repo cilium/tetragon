@@ -290,7 +290,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 		}
 
 		// Parse Filters into kernel filter logic
-		kernelSelectors, err := selectors.InitKernelSelectors(f)
+		kernelSelectors, err := selectors.InitKernelSelectors(f.Selectors, f.Args)
 		if err != nil {
 			return nil, err
 		}
