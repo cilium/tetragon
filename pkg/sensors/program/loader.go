@@ -59,16 +59,16 @@ func TracepointAttach(load *Program) AttachFunc {
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint, got: %s", load.Attach)
 		}
-		link, err := link.Tracepoint(parts[0], parts[1], prog, nil)
+		tpLink, err := link.Tracepoint(parts[0], parts[1], prog, nil)
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
-		return unloader.ChainUnloader{
-			unloader.PinUnloader{
-				Prog: prog,
-			},
-			unloader.LinkUnloader{
-				Link: link,
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       tpLink,
+			RelinkFn: func() (link.Link, error) {
+				return link.Tracepoint(parts[0], parts[1], prog, nil)
 			},
 		}, nil
 	}
