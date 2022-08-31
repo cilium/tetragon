@@ -39,7 +39,7 @@ event_exit_send(struct sched_execve_args *ctx, __u64 current)
 	 * will create an empty entry, the ktime check below will
 	 * catch it and we will quickly delete the entry again.
 	 */
-	enter = execve_map_get(tgid);
+	enter = execve_map_get_noinit(tgid);
 	if (!enter)
 		return;
 	if (enter->key.ktime) {
