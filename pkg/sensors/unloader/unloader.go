@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/vishvananda/netlink"
+	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 )
 
@@ -143,4 +144,29 @@ func detachTC(linkName string, ingress bool) error {
 	}
 	return err
 
+}
+
+// RelinkUnloader is an unloader that allows unlinking/relinking as well.
+type RelinkUnloader struct {
+	// UnloadProg unloads the program
+	UnloadProg func() error
+	// IsLinked is true iff the program is linked
+	IsLinked bool
+	// Link is the link object (valid iff IsLinked)
+	Link link.Link
+	// Function to relink (requires calling Unlink first)
+	RelinkFn func() (link.Link, error)
+}
+
+func (u *RelinkUnloader) Unload() error {
+	var ret error
+	if u.IsLinked {
+		if err := u.Link.Close(); err != nil {
+			ret = multierr.Append(ret, err)
+		} else {
+			u.IsLinked = false
+		}
+	}
+	ret = multierr.Append(ret, u.UnloadProg())
+	return ret
 }
