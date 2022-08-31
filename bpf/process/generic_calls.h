@@ -21,7 +21,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	 */
 	long ty, total = 0;
 
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (!enter)
 		return 0;
 
@@ -140,7 +140,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 	__u32 ppid;
 
 	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (!enter)
 		return 0;
 
@@ -190,7 +190,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 	__u32 ppid;
 
 	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (!enter)
 		return 0;
 
@@ -240,7 +240,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 	__u32 ppid;
 
 	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (!enter)
 		return 0;
 
@@ -291,7 +291,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	__u32 ppid;
 
 	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (!enter)
 		return 0;
 

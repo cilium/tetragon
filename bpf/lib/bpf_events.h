@@ -186,7 +186,7 @@ event_minimal_curr(struct execve_map_value *event)
 }
 
 static inline __attribute__((always_inline)) struct execve_map_value *
-event_find_curr(__u32 *ppid, struct bpf_map_def *map, bool *walked)
+event_find_curr(__u32 *ppid, bool *walked)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	__u32 pid = get_current_pid_tgid() >> 32;
@@ -206,23 +206,6 @@ event_find_curr(__u32 *ppid, struct bpf_map_def *map, bool *walked)
 		probe_read(&pid, sizeof(pid), _(&task->tgid));
 	}
 	*ppid = pid;
-
-	if (!value && map) {
-		struct execve_map_value *parent;
-		int zero = 0;
-
-		value = execve_map_get(zero);
-		if (!value)
-			return 0;
-		parent = event_find_parent();
-		if (parent)
-			value->pkey = parent->pkey;
-		else {
-			value->pkey.ktime = 0;
-			value->pkey.pid = 0;
-		}
-		event_minimal_curr(value);
-	}
 	return value;
 }
 #endif // _BPF_EVENTS_H

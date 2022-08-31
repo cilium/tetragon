@@ -78,7 +78,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	}
 
 	/* Complete message header and send */
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 
 	e->common.op = MSG_OP_GENERIC_KPROBE;
 	e->common.flags = 1;

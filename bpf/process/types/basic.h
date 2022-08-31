@@ -829,7 +829,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selector)
 		bool walker = 0;
 		__u32 ppid;
 
-		execve = event_find_curr(&ppid, 0, &walker);
+		execve = event_find_curr(&ppid, &walker);
 		if (!execve)
 			return 0;
 		if (binary->index[0] != execve->binary &&

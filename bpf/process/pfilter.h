@@ -557,7 +557,7 @@ generic_process_filter(struct msg_generic_kprobe *msg, void *fmap, void *heap)
 	__u32 ppid;
 	int curr;
 
-	enter = event_find_curr(&ppid, 0, &walker);
+	enter = event_find_curr(&ppid, &walker);
 	if (enter) {
 		int zero = 0, selectors, pass;
 		__u32 *f = map_lookup_elem(fmap, &zero);
