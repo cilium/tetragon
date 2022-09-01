@@ -96,11 +96,11 @@ func (p *Program) Unload() error {
 		return nil
 	}
 	if err := p.unloader.Unload(); err != nil {
-		return fmt.Errorf("Failed to unload: %s", err)
+		return fmt.Errorf("Failed to unload: %w", err)
 	}
 	if p.unloaderOverride != nil {
 		if err := p.unloaderOverride.Unload(); err != nil {
-			return fmt.Errorf("Failed to unload override: %s", err)
+			return fmt.Errorf("Failed to unload override: %w", err)
 		}
 	}
 	p.unloader = nil
