@@ -229,6 +229,18 @@ static int BPF_FUNC(send_signal, uint32_t sig);
 
 static int BPF_FUNC(override_return, void *regs, uint64_t rc);
 
+static int BPF_FUNC(seq_printf, struct seq_file *m, const char *fmt, uint32_t fmt_size,
+		    const void *data, uint32_t data_len);
+
+static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t len);
+
+static int BPF_FUNC(copy_from_user_task, void *dst, uint32_t size, const void *user_ptr,
+		    struct task_struct *tsk, uint64_t flags);
+
+static uint64_t BPF_FUNC(ktime_get_boot_ns);
+
+static uint64_t BPF_FUNC(d_path, struct path *path, char *buf, uint32_t sz);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef lock_xadd
