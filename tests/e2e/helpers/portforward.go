@@ -45,10 +45,12 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 		const (
 			grpcPort = 54321
 			promPort = 2112
+			gopsPort = 8118
 		)
 
 		grpcPorts := make(map[string]int)
 		promPorts := make(map[string]int)
+		gopsPorts := make(map[string]int)
 		for i, pod := range podList.Items {
 			if ctx, err = e2ehelpers.PortForwardPod(
 				testenv,
@@ -59,17 +61,20 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 				time.Second,
 				fmt.Sprintf("%d:%d", grpcPort+i, grpcPort),
 				fmt.Sprintf("%d:%d", promPort+i, promPort),
+				fmt.Sprintf("%d:%d", gopsPort+i, gopsPort),
 			)(ctx, cfg); err != nil {
 				return ctx, err
 			}
 			grpcPorts[pod.Name] = grpcPort + i
 			promPorts[pod.Name] = promPort + i
+			gopsPorts[pod.Name] = gopsPort + i
 		}
 
 		ctx = context.WithValue(ctx, state.GrpcForwardedPorts, grpcPorts)
 		ctx = context.WithValue(ctx, state.PromForwardedPorts, promPorts)
+		ctx = context.WithValue(ctx, state.GopsForwardedPorts, gopsPorts)
 
-		klog.InfoS("Successfully forwarded ports for Tetragon pods", "grpcPorts", grpcPorts, "promPorts", promPorts)
+		klog.InfoS("Successfully forwarded ports for Tetragon pods", "grpcPorts", grpcPorts, "promPorts", promPorts, "gopsPorts", gopsPorts)
 
 		return ctx, nil
 	}

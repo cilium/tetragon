@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/helpers/gops"
 	"github.com/cilium/tetragon/tests/e2e/state"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -283,6 +285,91 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
+				}
+				return
+			}
+		}
+	}()
+}
+
+// DumpBin dumps the Tetragon binary from gops. We keep this separate from dumpGops
+// because it is a more expensive operation and dumps something that is not expected to
+// change. Therefore we only want to call this once per test.
+func DumpBin(port int, podName string, exportDir string) {
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		klog.ErrorS(err, "failed to resolve gops address")
+		return
+	}
+	klog.V(2).Info("contacting gops agent", "addr", addr)
+
+	out, err := gops.DumpBinary(*addr)
+	if err != nil {
+		klog.ErrorS(err, "failed to dump binary", "addr", addr)
+		return
+	}
+	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.bin", podName))
+	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+		klog.ErrorS(err, "failed to write Tetragon binary to file", "file", fname, "addr", addr)
+	}
+}
+
+// dumpGops dumps the gops heap and and memstats
+func dumpGops(port int, podName string, exportDir string) {
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		klog.ErrorS(err, "failed to resolve gops address")
+		return
+	}
+	klog.V(2).Info("contacting gops agent", "addr", addr)
+
+	// NOTE: We explicitly do not dump binary info here. See DumpBin() for details.
+
+	out, err := gops.DumpHeapProfile(*addr)
+	if err != nil {
+		klog.ErrorS(err, "failed to dump heap profile", "addr", addr)
+		return
+	}
+	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.heap", podName))
+	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+		klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
+	}
+
+	out, err = gops.DumpMemStats(*addr)
+	if err != nil {
+		klog.ErrorS(err, "failed to dump memstats", "addr", addr)
+		return
+	}
+	fname = filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.memstats", podName))
+	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+		klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
+	}
+}
+
+// StartGopsDumper starts a goroutine that dumps gops information at a regular interval
+// until the context is done. We want to do this in case the pod crashes or gets restarted
+// during a failing test. This way we can at least have a snapshot of the gops dumps to look
+// back on.
+func StartGopsDumper(ctx context.Context, exportDir string, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		for {
+			select {
+			case <-ticker.C:
+				if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {
+					for podName, port := range ports {
+						dumpGops(port, podName, exportDir)
+					}
+				} else {
+					klog.V(4).Info("failed to retrieve gops portforward, refusing to dump gops")
+				}
+			case <-ctx.Done():
+				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
+					for podName, port := range ports {
+						dumpGops(port, podName, exportDir)
+					}
+				} else {
+					klog.V(4).Info("failed to retrieve gops portforward, refusing to dump gops")
 				}
 				return
 			}

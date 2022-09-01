@@ -15,6 +15,8 @@ var (
 	GrpcForwardedPorts = Key{slug: "GrpcForwardedPorts"}
 	// Key for storing a list of ports we forwarded for prometheus metics
 	PromForwardedPorts = Key{slug: "PromForwardedPorts"}
+	// Key for storing a list of ports we forwarded for the pprof server
+	GopsForwardedPorts = Key{slug: "GopsForwardedPorts"}
 	// Key for storing the minimum kernel version of all nodes in the cluster
 	MinKernelVersion = Key{slug: "MinKernelVersion"}
 	// Stores a list of event checkers that were used in the test
