@@ -38,7 +38,6 @@ const (
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
 
-	keyRunStandalone      = "run-standalone"
 	keyIgnoreMissingProgs = "ignore-missing-progs"
 	keyCpuProfile         = "cpuprofile"
 	keyMemProfile         = "memprofile"
@@ -66,8 +65,6 @@ var (
 	metricsServer string
 	serverAddress string
 	configFile    string
-
-	runStandalone bool
 
 	exportFilename             string
 	exportFileMaxSizeMB        int
@@ -112,8 +109,6 @@ func readAndSetFlags() {
 	serverAddress = viper.GetString(keyServerAddress)
 	option.Config.CiliumDir = viper.GetString(keyCiliumBPF)
 	configFile = viper.GetString(keyConfigFile)
-
-	runStandalone = viper.GetBool(keyRunStandalone)
 
 	exportFilename = viper.GetString(keyExportFilename)
 	exportFileMaxSizeMB = viper.GetInt(keyExportFileMaxSizeMB)

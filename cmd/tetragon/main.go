@@ -188,13 +188,6 @@ func tetragonExecute() error {
 		return err
 	}
 
-	if runStandalone {
-		if err := base.LoadDefault(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
-			return err
-		}
-		return obs.StartStandalone(ctx)
-	}
-
 	if metricsServer != "" {
 		go metrics.EnableMetrics(metricsServer)
 	}
@@ -435,9 +428,6 @@ func execute() error {
 	flags.String(keyConfigFile, "", "Configuration file to load from")
 
 	// Options for debugging/development, not visible to users
-	flags.Bool(keyRunStandalone, false, "Just start the observer and dump events to stdout")
-	flags.MarkHidden(keyRunStandalone)
-
 	flags.Bool(keyIgnoreMissingProgs, false, "Ignore missing BPF programs")
 	flags.MarkHidden(keyIgnoreMissingProgs)
 
