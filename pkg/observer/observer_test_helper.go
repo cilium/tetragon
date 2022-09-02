@@ -41,7 +41,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
-	"github.com/cilium/tetragon/pkg/sensors/config"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crd"
@@ -253,7 +252,8 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 }
 
 func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
-	var sens, ret []*sensors.Sensor
+	var cnfSensor *sensors.Sensor
+	var ret []*sensors.Sensor
 
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
@@ -280,13 +280,14 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	cnf, _ := readConfig(o.observer.config)
 	if cnf != nil {
 		var err error
-		sens, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf.Name(), &cnf.Spec)
 		if err != nil {
 			return nil, ret, err
 		}
+		ret = append(ret, cnfSensor)
 	}
 
-	if err := loadObserver(t, ctx, base, sens, o.observer.notestfail); err != nil {
+	if err := loadObserver(t, ctx, base, cnfSensor, o.observer.notestfail); err != nil {
 		return nil, ret, err
 	}
 
@@ -313,7 +314,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		testDone(t, obs)
 	})
 
-	ret = append(sens, base)
+	ret = append(ret, base)
 
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
 	obs.perfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
@@ -423,17 +424,12 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	return nil
 }
 
-func loadObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, sens []*sensors.Sensor, notestfail bool) error {
+func loadObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, sens *sensors.Sensor, notestfail bool) error {
 	if err := base.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		t.Fatalf("Load base error: %s\n", err)
 	}
-	if err := config.LoadConfig(
-		ctx,
-		option.Config.BpfDir,
-		option.Config.MapDir,
-		option.Config.CiliumDir,
-		sens,
-	); err != nil {
+
+	if err := sens.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		if notestfail {
 			return err
 		}
