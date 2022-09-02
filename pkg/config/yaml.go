@@ -4,6 +4,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -19,6 +20,10 @@ type GenericTracingConf struct {
 	Kind       string                     `json:"kind"`
 	Metadata   Metadata                   `json:"metadata"`
 	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
+}
+
+func (cnf *GenericTracingConf) Name() string {
+	return fmt.Sprintf("%s", cnf.Metadata.Name)
 }
 
 func ReadConfigYaml(data string) (*GenericTracingConf, error) {

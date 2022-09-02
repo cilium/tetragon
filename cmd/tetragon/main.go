@@ -239,24 +239,32 @@ func tetragonExecute() error {
 		go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
 
-	var startSensors []*sensors.Sensor
+	// load base sensor
+	if err := base.GetInitialSensor().Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
+		return err
+	}
+
+	// load sensor from configuration file
 	if len(configFile) > 0 {
+		var sens *sensors.Sensor
 		cnf, err := readConfig(configFile)
 		if err != nil {
 			return err
 		}
 
-		startSensors, err = sensors.GetSensorsFromParserPolicy(&cnf.Spec)
+		sens, err = sensors.GetMergedSensorFromParserPolicy(cnf.Name(), &cnf.Spec)
 		if err != nil {
+			return err
+		}
+
+		// NB: simlarly to the base sensor we are loading this
+		// statically (instead of the sensor manager).
+		if err := sens.Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
 			return err
 		}
 	}
 
-	if err := base.LoadDefault(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
-		return err
-	}
-
-	return obs.Start(ctx, startSensors)
+	return obs.Start(ctx)
 }
 
 // getObserverDir returns the path to the observer directory based on the BPF

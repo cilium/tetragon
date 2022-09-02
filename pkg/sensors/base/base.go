@@ -4,9 +4,6 @@
 package base
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -117,25 +114,11 @@ func GetDefaultMaps() []*program.Map {
 
 }
 
-// getinitialsensor returns the collection of Sensor that is loaded at
-// initialization time.
+// GetInitialSensor returns the base sensor
 func GetInitialSensor() *sensors.Sensor {
 	return &sensors.Sensor{
-		Name:  "__main__",
+		Name:  "__base__",
 		Progs: GetDefaultPrograms(),
 		Maps:  GetDefaultMaps(),
 	}
-}
-
-// LoadDefault loads the default sensor, including any from the configuration
-// file.
-func LoadDefault(ctx context.Context, bpfDir, mapDir, ciliumDir string) error {
-	// This is technically not a sensor since we are loading this
-	// statically when we start, but it allows us to have a single path for
-	// loading bpf programs.
-	load := GetInitialSensor()
-	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
-		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
-	}
-	return nil
 }

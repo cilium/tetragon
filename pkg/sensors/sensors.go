@@ -177,3 +177,11 @@ func GetSensorsFromParserPolicy(spec interface{}) ([]*Sensor, error) {
 	}
 	return sensors, nil
 }
+
+func GetMergedSensorFromParserPolicy(name string, policy interface{}) (*Sensor, error) {
+	sensors, err := GetSensorsFromParserPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	return SensorCombine(name, sensors...), nil
+}

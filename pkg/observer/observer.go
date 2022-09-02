@@ -22,7 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/config"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 
 	"github.com/sirupsen/logrus"
@@ -285,20 +284,9 @@ func (k *Observer) UpdateRuntimeConf() error {
 	return err
 }
 
-func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
+// Start starts the observer
+func (k *Observer) Start(ctx context.Context) error {
 	k.startUpdateMapMetrics()
-
-	if sens != nil {
-		if err := config.LoadConfig(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir, sens); err != nil {
-			return err
-		}
-	}
-
-	if SensorManager == nil {
-		if err := k.InitSensorManager(); err != nil {
-			return err
-		}
-	}
 
 	k.perfConfig = bpf.DefaultPerfEventConfig()
 
