@@ -251,7 +251,7 @@ func readConfig(file string) (*yaml.GenericTracingConf, error) {
 	return cnf, nil
 }
 
-func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
+func getDefaultObserverSensors(t *testing.T, ctx context.Context, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
 	var cnfSensor *sensors.Sensor
 	var ret []*sensors.Sensor
 
@@ -277,6 +277,8 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		return nil, ret, err
 	}
 
+	baseSensor := base.GetInitialSensor()
+
 	cnf, _ := readConfig(o.observer.config)
 	if cnf != nil {
 		var err error
@@ -287,7 +289,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		ret = append(ret, cnfSensor)
 	}
 
-	if err := loadObserver(t, ctx, base, cnfSensor, o.observer.notestfail); err != nil {
+	if err := loadObserver(t, ctx, baseSensor, cnfSensor, o.observer.notestfail); err != nil {
 		return nil, ret, err
 	}
 
@@ -314,19 +316,19 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		testDone(t, obs)
 	})
 
-	ret = append(ret, base)
+	ret = append(ret, baseSensor)
 
 	obs.perfConfig = bpf.DefaultPerfEventConfig()
 	obs.perfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
 	return obs, ret, nil
 }
 
-func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
-	obs, _, err := getDefaultObserverSensors(t, ctx, base, opts...)
+func getDefaultObserver(t *testing.T, ctx context.Context, opts ...TestOption) (*Observer, error) {
+	obs, _, err := getDefaultObserverSensors(t, ctx, opts...)
 	return obs, err
 }
 
-func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, opts ...TestOption) (*Observer, error) {
 	const (
 		testPod       = "pod-1"
 		testNamespace = "ns-1"
@@ -337,27 +339,20 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 
 	opts = append(opts, withK8sWatcher(w))
 	opts = append(opts, withCiliumState(s))
-	return getDefaultObserver(t, ctx, base, opts...)
-}
-
-func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string) (*Observer, error) {
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	return getDefaultObserver(t, ctx, opts...)
 }
 
 func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string) (*Observer, error) {
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, WithConfig(file), withPretty(), WithLib(lib))
 }
 
 func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string) ([]*sensors.Sensor, error) {
-	b := base.GetInitialSensor()
-	_, sens, err := getDefaultObserverSensors(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	_, sens, err := getDefaultObserverSensors(t, ctx, WithConfig(file), withPretty(), WithLib(lib))
 	return sens, err
 }
 
 func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool) (*Observer, error) {
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib), withNotestfail(fail))
+	return GetDefaultObserverWithWatchers(t, ctx, WithConfig(file), withPretty(), WithLib(lib), withNotestfail(fail))
 }
 
 func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testExporterOptions, oo *testObserverOptions) error {
@@ -550,13 +545,11 @@ func WriteConfigFile(fileName, config string) error {
 }
 
 func GetDefaultObserver(t *testing.T, ctx context.Context, lib string) (*Observer, error) {
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, withPretty(), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, withPretty(), WithLib(lib))
 }
 
 func GetDefaultObserverWithLib(t *testing.T, ctx context.Context, config, lib string) (*Observer, error) {
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(config), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, WithConfig(config), WithLib(lib))
 }
 
 func GetMyPid() uint32 {
