@@ -180,11 +180,6 @@ func writeExecveMap(procs []Procs) {
 
 	execveMap := base.GetExecveMap()
 
-	if execveMap.PinState.IsDisabled() {
-		logger.GetLogger().Infof("tetragon, map %s is disabled, skipping.", execveMap.Name)
-		return
-	}
-
 	m, err := bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))
 	for i := 0; err != nil; i++ {
 		m, err = bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))

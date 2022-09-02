@@ -13,14 +13,13 @@ import (
 )
 
 type config struct {
-	Debug              bool
-	ProcFS             string
-	KernelVersion      string
-	HubbleLib          string
-	BTF                string
-	Verbosity          int
-	IgnoreMissingProgs bool
-	ForceSmallProgs    bool
+	Debug           bool
+	ProcFS          string
+	KernelVersion   string
+	HubbleLib       string
+	BTF             string
+	Verbosity       int
+	ForceSmallProgs bool
 
 	EnableCilium      bool
 	EnableProcessNs   bool

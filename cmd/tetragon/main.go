@@ -428,9 +428,6 @@ func execute() error {
 	flags.String(keyConfigFile, "", "Configuration file to load from")
 
 	// Options for debugging/development, not visible to users
-	flags.Bool(keyIgnoreMissingProgs, false, "Ignore missing BPF programs")
-	flags.MarkHidden(keyIgnoreMissingProgs)
-
 	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")
 	flags.MarkHidden(keyCpuProfile)
 
