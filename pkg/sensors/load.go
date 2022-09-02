@@ -100,11 +100,6 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	}
 
 	for _, p := range s.Progs {
-		if p.LoadState.IsDisabled() {
-			l.WithField("prog", p.Name).Info("BPF prog is disabled, skipping")
-			continue
-		}
-
 		if p.LoadState.IsLoaded() {
 			l.WithField("prog", p.Name).Info("BPF prog is already loaded, incrementing reference count")
 			p.LoadState.RefInc()
@@ -140,12 +135,6 @@ func (s *Sensor) findProgram(p *program.Program) error {
 	}
 	logger.GetLogger().WithField("file", path).Debug("Candidate bpf file does not exist")
 
-	if option.Config.IgnoreMissingProgs {
-		logger.GetLogger().Warningf("Failed to find BPF prog %s, but was told to ignore such errors. Disabling it and moving on.", p.Name)
-		disableBpfLoad(p)
-		return nil
-	}
-
 	return fmt.Errorf("sensor program %q can not be found", p.Name)
 }
 
@@ -172,10 +161,6 @@ func isValidSubdir(dir string) bool {
 func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
-		if m.PinState.IsDisabled() {
-			l.WithField("map", m.Name).Info("map is disabled, skipping.")
-			continue
-		}
 		if m.PinState.IsLoaded() {
 			l.WithFields(logrus.Fields{
 				"sensor": s.Name,
@@ -335,16 +320,6 @@ func observerMinReqs(ctx context.Context) (bool, error) {
 func createDir(bpfDir, mapDir string) {
 	os.Mkdir(bpfDir, os.ModeDir)
 	os.Mkdir(mapDir, os.ModeDir)
-}
-
-func disableBpfLoad(prog *program.Program) {
-	prog.LoadState.SetDisabled()
-	for _, om := range AllMaps {
-		if om.Prog == prog {
-			logger.GetLogger().WithField("map", om.Name).Infof("Disabling map")
-			om.PinState.SetDisabled()
-		}
-	}
 }
 
 func UnloadAll(bpfDir string) {

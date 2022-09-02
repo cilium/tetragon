@@ -38,9 +38,8 @@ const (
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
 
-	keyIgnoreMissingProgs = "ignore-missing-progs"
-	keyCpuProfile         = "cpuprofile"
-	keyMemProfile         = "memprofile"
+	keyCpuProfile = "cpuprofile"
+	keyMemProfile = "memprofile"
 
 	keyExportFilename             = "export-filename"
 	keyExportFileMaxSizeMB        = "export-file-max-size-mb"
@@ -88,7 +87,6 @@ func readAndSetFlags() {
 	option.Config.ProcFS = viper.GetString(keyProcFS)
 	option.Config.KernelVersion = viper.GetString(keyKernelVersion)
 	option.Config.Verbosity = viper.GetInt(keyVerbosity)
-	option.Config.IgnoreMissingProgs = viper.GetBool(keyIgnoreMissingProgs)
 	option.Config.ForceSmallProgs = viper.GetBool(keyForceSmallProgs)
 	option.Config.Debug = viper.GetBool(keyDebug)
 

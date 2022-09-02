@@ -27,8 +27,8 @@ func MapBuilderPin(name, pin string, ld *Program) *Map {
 
 func (m *Map) Unload() error {
 	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinName)
-	if !m.PinState.IsLoaded() || m.PinState.IsDisabled() {
-		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded or is disabled")
+	if !m.PinState.IsLoaded() {
+		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
 	}
 	if count := m.PinState.RefDec(); count > 0 {
