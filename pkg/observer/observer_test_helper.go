@@ -444,7 +444,7 @@ func LoopEvents(ctx context.Context, t *testing.T, doneWG, readyWG *sync.WaitGro
 	go func() {
 		defer doneWG.Done()
 
-		if err := obs.runEventsNew(ctx, func() { readyWG.Done() }); err != nil {
+		if err := obs.runEvents(ctx, func() { readyWG.Done() }); err != nil {
 			t.Errorf("runEvents error: %s", err)
 		}
 	}()
