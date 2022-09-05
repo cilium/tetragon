@@ -432,6 +432,7 @@ func TestLoadInitialSensor(t *testing.T) {
 
 		// event_execve
 		tus.SensorMap{Name: "names_map", Progs: []uint{0}},
+		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 
 		// event_wake_up_new_task
 		tus.SensorMap{Name: "execve_val", Progs: []uint{2}},
