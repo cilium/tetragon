@@ -13,7 +13,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
-	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -132,7 +131,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 			proc.Filename = "enomem"
 			return proc, false, err
 		}
-		data, err := data.Get(desc.Id)
+		data, err := observer.DataGet(desc.Id)
 		if err != nil {
 			return proc, false, err
 		}
@@ -159,7 +158,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 			proc.Filename = "enomem"
 			return proc, false, err
 		}
-		data, err := data.Get(desc.Id)
+		data, err := observer.DataGet(desc.Id)
 		if err != nil {
 			return proc, false, err
 		}
