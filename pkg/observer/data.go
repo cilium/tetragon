@@ -1,4 +1,4 @@
-package data
+package observer
 
 import (
 	"bytes"
@@ -9,11 +9,10 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/observer"
 )
 
 func init() {
-	observer.RegisterEventHandlerAtInit(ops.MSG_OP_DATA, HandleData)
+	RegisterEventHandlerAtInit(ops.MSG_OP_DATA, HandleData)
 }
 
 var (
@@ -42,7 +41,7 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	return nil
 }
 
-func Get(id dataapi.DataEventId) ([]byte, error) {
+func DataGet(id dataapi.DataEventId) ([]byte, error) {
 	data := dataMap[id]
 	if data == nil {
 		return nil, fmt.Errorf("failed to find data for id: %v", id)
@@ -53,7 +52,7 @@ func Get(id dataapi.DataEventId) ([]byte, error) {
 	return data, nil
 }
 
-func HandleData(r *bytes.Reader) ([]observer.Event, error) {
+func HandleData(r *bytes.Reader) ([]Event, error) {
 	m := dataapi.MsgData{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
