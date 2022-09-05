@@ -216,12 +216,17 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	var wg sync.WaitGroup
 
 	processCacheSize := 32768
+	dataCacheSize := 1024
 	enableCiliumAPI := false
 
 	if _, err := cilium.InitCiliumState(ctx, enableCiliumAPI); err != nil {
 		return err
 	}
 	if err := process.InitCache(ctx, watcher.NewFakeK8sWatcher(nil), enableCiliumAPI, processCacheSize); err != nil {
+		return err
+	}
+
+	if err := observer.InitDataCache(dataCacheSize); err != nil {
 		return err
 	}
 
