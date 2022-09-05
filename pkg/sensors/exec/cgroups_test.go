@@ -587,6 +587,16 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 	}
 }
 
+func setupObserver(ctx context.Context, t *testing.T) *tus.TestSensorManager {
+	testManager := tus.StartTestSensorManager(ctx, t)
+	observer.SensorManager = testManager.Manager
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("failed to call observer.InitDataCache %s", err)
+	}
+	return testManager
+}
+
 // Test loading bpf cgroups programs
 func TestLoadCgroupsPrograms(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
@@ -642,8 +652,7 @@ func TestCgroupNoEvents(t *testing.T) {
 
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
-	testManager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = testManager.Manager
+	testManager := setupObserver(ctx, t)
 
 	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 
@@ -695,8 +704,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
-	testManager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = testManager.Manager
+	testManager := setupObserver(ctx, t)
 
 	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 	t.Cleanup(func() {
@@ -875,8 +883,7 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd unified and hybrid mode according to parameter
 func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
-	testManager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = testManager.Manager
+	testManager := setupObserver(ctx, t)
 
 	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 	t.Cleanup(func() {
@@ -1090,8 +1097,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
-	testManager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = testManager.Manager
+	testManager := setupObserver(ctx, t)
 
 	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 

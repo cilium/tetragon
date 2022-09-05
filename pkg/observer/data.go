@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/logger"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 func init() {
@@ -16,8 +17,15 @@ func init() {
 }
 
 var (
-	dataMap map[dataapi.DataEventId][]byte = make(map[dataapi.DataEventId][]byte)
+	dataMap *lru.Cache[dataapi.DataEventId, []byte]
 )
+
+func InitDataCache(size int) error {
+	var err error
+
+	dataMap, err = lru.New[dataapi.DataEventId, []byte](size)
+	return err
+}
 
 func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
@@ -29,12 +37,12 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 		return err
 	}
 
-	data := dataMap[m.Id]
-	if data == nil {
-		dataMap[m.Id] = msgData
+	data, ok := dataMap.Get(m.Id)
+	if !ok {
+		dataMap.Add(m.Id, msgData)
 	} else {
 		data = append(data, msgData...)
-		dataMap[m.Id] = data
+		dataMap.Add(m.Id, data)
 	}
 
 	logger.GetLogger().Debugf("Data message received id %v, size %v, total %v", m.Id, size, len(data))
@@ -42,12 +50,12 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 }
 
 func DataGet(id dataapi.DataEventId) ([]byte, error) {
-	data := dataMap[id]
-	if data == nil {
+	data, ok := dataMap.Get(id)
+	if !ok {
 		return nil, fmt.Errorf("failed to find data for id: %v", id)
 	}
 
-	delete(dataMap, id)
+	dataMap.Remove(id)
 	logger.GetLogger().Debugf("Data message used id %v, data len %v", id, len(data))
 	return data, nil
 }

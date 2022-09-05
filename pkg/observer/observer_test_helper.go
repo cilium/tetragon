@@ -363,6 +363,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	watcher := opts.watcher
 	ciliumState := opts.ciliumState
 	processCacheSize := 32768
+	dataCacheSize := 1024
 
 	if err := obs.InitSensorManager(); err != nil {
 		return err
@@ -377,6 +378,10 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	}
 
 	if err := process.InitCache(ctx, watcher, false, processCacheSize); err != nil {
+		return err
+	}
+
+	if err := InitDataCache(dataCacheSize); err != nil {
 		return err
 	}
 

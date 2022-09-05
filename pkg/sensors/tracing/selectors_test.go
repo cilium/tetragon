@@ -47,6 +47,9 @@ func tpSpecReload(t *testing.T, tpSensor *sensors.Sensor, tpSpec *v1alpha1.Trace
 
 // loadGenericSensorTest loads a tracing sensor for testing
 func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observer.InitDataCache: %s", err)
+	}
 	ret, err := sensors.GetSensorsFromParserPolicy(spec)
 	if err != nil {
 		t.Fatalf("GetSensorsFromParserPolicy failed: %v", err)

@@ -524,6 +524,10 @@ func TestExecPerfring(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observer.InitDataCache: %s", err)
+	}
+
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
