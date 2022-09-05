@@ -6434,6 +6434,21 @@ struct kernfs_node {
 	struct kernfs_iattrs *iattr;
 };
 
+/* Represent old kernfs node present in 5.4 kernels and older */
+union kernfs_node_id {
+	struct {
+		/*
+		 * blktrace will export this struct as a simplified 'struct
+		 * fid' (which is a big data struction), so userspace can use
+		 * it to find kernfs node. The layout must match the first two
+		 * fields of 'struct fid' exactly.
+		 */
+		u32 ino;
+		u32 generation;
+	};
+	u64 id;
+};
+
 struct kernfs_open_file;
 
 struct kernfs_ops {
