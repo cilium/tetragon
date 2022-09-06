@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/cilium/cilium-e2e/pkg/e2ecluster/ciliuminstall"
 	"github.com/cilium/cilium-e2e/pkg/e2ecluster/e2ehelpers"
@@ -177,8 +176,8 @@ func (r *Runner) Init() *Runner {
 		}
 
 		// Start the metrics and gops dumpers
-		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
-		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
+		helpers.StartMetricsDumper(ctx, exportDir, flags.Opts.ExportPollInterval)
+		helpers.StartGopsDumper(ctx, exportDir, flags.Opts.ExportPollInterval)
 
 		// The binary won't change, so dump it now at the beginning
 		if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {
