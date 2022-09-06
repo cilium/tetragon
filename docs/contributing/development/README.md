@@ -126,8 +126,12 @@ You should now have a `./tetragon` binary, which can be run as follows:
 sudo ./tetragon --bpf-lib bpf/objs
 ```
 
-The `--bpf-lib` flag tells Tetragon where to look for its compiled BPF programs
+Notes:
+
+1. The `--bpf-lib` flag tells Tetragon where to look for its compiled BPF programs
 (which were built in the `make` step above).
+
+2. If Tetragon fails with an error `"BTF discovery: candidate btf file does not exist"`, then make sure that your kernel support [BTF](#btf-requirement), otherwise place a BTF file where Tetragon can read it and specify its path with the `--btf` flag.
 
 ### Running Code Generation
 
