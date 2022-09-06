@@ -58,7 +58,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
-            # push to latest when we push to main branch.
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:latest
 
       - name: CI Image Releases digests (main)
