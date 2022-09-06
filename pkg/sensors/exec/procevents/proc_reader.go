@@ -4,7 +4,10 @@
 package procevents
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 const (
@@ -266,10 +270,161 @@ func pushEvents(procs []Procs) {
 
 func GetRunningProcs() []Procs {
 	var procs []Procs
+	var err error
+
+	if kernels.EnableTaskIterProgs() {
+		procs, err = getRunningProcsIter()
+		if err == nil {
+			pushEvents(procs)
+			return procs
+		}
+		// fallback to procfs
+	}
 
 	procs = getRunningProcsFs()
 	pushEvents(procs)
 	return procs
+}
+
+type TaskIter struct {
+	Pid                  uint32
+	Nspid                uint32
+	Ktime                uint64
+	Ppid                 uint32
+	Pnspid               uint32
+	Pktime               uint64
+	Effective            uint64
+	Inheritable          uint64
+	Permitted            uint64
+	Uts_ns               uint32
+	Ipc_ns               uint32
+	Mnt_ns               uint32
+	Pid_ns               uint32
+	Pid_for_children_ns  uint32
+	Net_ns               uint32
+	Time_ns              uint32
+	Time_for_children_ns uint32
+	Cgroup_ns            uint32
+	User_ns              uint32
+	Uid                  uint32
+	Auid                 uint32
+	Size                 uint32
+}
+
+type TaskIterArgs struct {
+	Size  uint32
+	Flags uint32
+}
+
+const (
+	IterArgsLast  = 0x1
+	IterArgsError = 0x2
+	IterArgsFile  = 0x4
+	IterArgsArgs  = 0x8
+)
+
+func getRunningProcsIter() ([]Procs, error) {
+	var procs []Procs
+	var err error
+
+	err = program.LoadIterProgram(bpf.MapPrefixPath(), bpf.MapPrefixPath(), base.Iter, 10)
+	if err != nil {
+		return procs, err
+	}
+
+	dataPath := filepath.Join(bpf.MapPrefixPath(), fmt.Sprintf("%s_data", base.Iter.PinPath))
+
+	var f *os.File
+
+	f, err = os.Open(dataPath)
+	if err != nil {
+		return procs, err
+	}
+
+	defer f.Close()
+
+	for {
+		task := TaskIter{}
+
+		err = binary.Read(f, binary.LittleEndian, &task)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return procs, err
+		}
+
+		var argsData TaskIterArgs
+		var args []byte
+		var file []byte
+
+		for {
+			err = binary.Read(f, binary.LittleEndian, &argsData)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return procs, err
+			}
+
+			data := make([]byte, argsData.Size)
+			if err := binary.Read(f, binary.LittleEndian, &data); err != nil {
+				return procs, err
+			}
+
+			if argsData.Flags&IterArgsFile != 0 {
+				file = data
+			}
+			if argsData.Flags&IterArgsArgs != 0 {
+				args = append(args, data...)
+			}
+			if argsData.Flags&(IterArgsError|IterArgsLast) != 0 {
+				break
+			}
+		}
+
+		n := bytes.Index(args, []byte{0x00})
+		if n != -1 {
+			args = args[n+1:]
+			args = append(file, args...)
+		} else {
+			args = file
+		}
+
+		args = stringToUTF8(args)
+
+		p := Procs{
+			psize:                0,
+			ppid:                 task.Ppid,
+			pnspid:               task.Pnspid,
+			pflags:               0,
+			pktime:               0, // task.Pktime,
+			size:                 0,
+			uid:                  task.Uid,
+			pid:                  task.Pid,
+			nspid:                task.Nspid,
+			auid:                 0, // task.Auid,
+			flags:                0,
+			ktime:                task.Ktime,
+			effective:            task.Effective,
+			inheritable:          task.Inheritable,
+			permitted:            task.Permitted,
+			uts_ns:               task.Uts_ns,
+			ipc_ns:               task.Ipc_ns,
+			mnt_ns:               task.Mnt_ns,
+			pid_ns:               task.Pid_ns,
+			pid_for_children_ns:  task.Pid_for_children_ns,
+			net_ns:               task.Net_ns,
+			time_ns:              task.Time_ns,
+			time_for_children_ns: task.Time_for_children_ns,
+			cgroup_ns:            task.Cgroup_ns,
+			user_ns:              task.User_ns,
+			args:                 args,
+		}
+
+		procs = append(procs, p)
+	}
+	return procs, nil
 }
 
 func getRunningProcsFs() []Procs {
