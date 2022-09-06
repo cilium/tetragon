@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -448,4 +449,52 @@ func TestLoadInitialSensor(t *testing.T) {
 	tus.CheckSensorLoad([]*sensors.Sensor{sensor}, sensorMaps, sensorProgs, t)
 
 	sensors.UnloadAll(tus.Conf().TetragonLib)
+}
+
+func TestDocker(t *testing.T) {
+	if err := exec.Command("docker", "version").Run(); err != nil {
+		t.Skipf("docker not available. skipping test: %s", err)
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+
+	readyWG.Wait()
+	serverDockerID := observer.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:1.0", "-nvlp", "8081", "-s", "0.0.0.0")
+	time.Sleep(1 * time.Second)
+
+	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
+	// match only on the first 24 bytes.
+	fgsServerID := sm.Prefix(serverDockerID[:24])
+
+	selfChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix(tus.Conf().SelfBinary))
+
+	ncSrvChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("/nc")).
+		WithArguments(sm.Full("-nvlp 8081 -s 0.0.0.0")).
+		WithCwd(sm.Full("/")).
+		WithUid(0).
+		WithDocker(fgsServerID)
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker().
+			WithProcess(selfChecker).
+			WithParent(ec.NewProcessChecker()),
+		ec.NewProcessExecChecker().
+			WithProcess(ncSrvChecker),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
