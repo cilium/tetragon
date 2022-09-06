@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/sirupsen/logrus"
 )
 
 var config *Config
@@ -28,20 +29,20 @@ var config *Config
 // function in their TestMain
 type Config struct {
 	TetragonLib         string
-	VerboseLevel        int
 	SelfBinary          string
 	CmdWaitTime         time.Duration
 	DisableTetragonLogs bool
 	Debug               bool
+	Trace               bool
 }
 
 var ConfigDefaults = Config{
 	TetragonLib:         filepath.Join(TetragonBpfPath(), "objs"),
-	VerboseLevel:        0,
 	SelfBinary:          filepath.Base(os.Args[0]),
 	CmdWaitTime:         60000 * time.Millisecond,
 	DisableTetragonLogs: false,
 	Debug:               false,
+	Trace:               false,
 }
 
 func Conf() *Config {
@@ -74,11 +75,6 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		"command-wait",
 		5*time.Minute,
 		"duration to wait for tetragon to gather logs from commands")
-	flag.IntVar(
-		&config.VerboseLevel,
-		"verbosity-level",
-		ConfigDefaults.VerboseLevel,
-		"verbosity level of verbose mode. (Requires verbose mode to be enabled.)")
 	flag.BoolVar(
 		&config.DisableTetragonLogs,
 		"disable-tetragon-logs",
@@ -89,12 +85,20 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		"debug",
 		ConfigDefaults.Debug,
 		"enable debug log output")
+	flag.BoolVar(
+		&config.Trace,
+		"trace",
+		ConfigDefaults.Trace,
+		"enable trace log output. Implies debug. Note that due to a naming conflict this must be passed after -args")
 	flag.Parse()
 
 	if config.Debug {
 		if err := logger.SetupLogging(option.Config.LogOpts, true); err != nil {
 			log.Fatal(err)
 		}
+	}
+	if config.Trace {
+		logger.DefaultLogger.SetLevel(logrus.TraceLevel)
 	}
 
 	// use a sensor-specific name for the bpffs directory for the maps.
