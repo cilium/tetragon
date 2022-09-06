@@ -100,15 +100,7 @@ jobs:
       run: |
         cd go/src/github.com/cilium/tetragon
 
-        go test -p 1 -parallel 1 -timeout 20m -failfast -cover ./tests/e2e/tests/... \
-          -tetragon.helm.set=tetragon.image.override=${{ steps.vars.outputs.agentImage }} \
-          -tetragon.helm.set=tetragonOperator.image.override=${{ steps.vars.outputs.operatorImage }} \
-          -tetragon.helm.url="" \
-          -tetragon.helm.chart="$(realpath ./install/kubernetes)" \
-          -tetragon.install-cilium=false \
-          -cluster-name=${{ env.clusterName }} \
-          -kubeconfig ~/.kube/config \
-          -args -v=4
+        make e2e-test E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-tetragon.install-cilium=false -cluster-name=${{ env.clusterName }} -kubeconfig ~/.kube/config -args -v=4"
 
     - name: Upload Tetragon Logs
       if: failure()
