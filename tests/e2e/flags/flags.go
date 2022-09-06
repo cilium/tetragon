@@ -18,6 +18,7 @@ var Opts = Flags{
 		HelmChartVersion: "9999.9999.9999-dev",
 		Namespace:        "kube-system",
 		ValuesFile:       "",
+		BTF:              "",
 		HelmValues: HelmValues{
 			// Don't stop any events from being exported by default
 			"tetragon.exportAllowList": "",
@@ -31,51 +32,56 @@ func init() {
 	flag.BoolVar(&Opts.Helm.Wait,
 		"tetragon.helm.wait",
 		Opts.Helm.Wait,
-		"set to true if we should wait for Tetragon to be installed before starting the test")
+		"Set to true if we should wait for Tetragon to be installed before starting the test")
 
 	flag.StringVar(&Opts.Helm.DaemonSetName,
 		"tetragon.helm.daemonset",
 		Opts.Helm.DaemonSetName,
-		"name for the Tetragon daemonset + install target")
+		"Name for the Tetragon daemonset + install target")
 
 	flag.StringVar(&Opts.Helm.HelmChart,
 		"tetragon.helm.chart",
 		Opts.Helm.HelmChart,
-		"name of the helm chart from which to install Tetragon")
+		"Name of the helm chart from which to install Tetragon")
 
 	flag.StringVar(&Opts.Helm.HelmRepoUrl,
 		"tetragon.helm.url",
 		Opts.Helm.HelmRepoUrl,
-		"name of the helm repo where we find Tetragon")
+		"Name of the helm repo where we find Tetragon")
 
 	flag.StringVar(&Opts.Helm.HelmChartVersion,
 		"tetragon.helm.version",
 		Opts.Helm.HelmChartVersion,
-		"helm chart version to use")
+		"Helm chart version to use")
 
 	flag.StringVar(&Opts.Helm.Namespace,
 		"tetragon.helm.namespace",
 		Opts.Helm.Namespace,
-		"namespace in which to install Tetragon")
+		"Namespace in which to install Tetragon")
 
 	flag.StringVar(&Opts.Helm.ValuesFile,
 		"tetragon.helm.values",
 		Opts.Helm.ValuesFile,
-		"path to a values.yaml file")
+		"Path to a values.yaml file")
 
 	flag.Var(&Opts.Helm.HelmValues,
 		"tetragon.helm.set",
-		"values to pass directly to helm, of the form k=v")
+		"Values to pass directly to helm, of the form k=v")
 
 	flag.BoolVar(&Opts.KeepExportData,
 		"tetragon.keep-export",
 		Opts.KeepExportData,
-		"should we keep export files regardless of pass/fail?")
+		"Should we keep export files regardless of pass/fail?")
 
 	flag.BoolVar(&Opts.InstallCilium,
 		"tetragon.install-cilium",
 		Opts.InstallCilium,
-		"should we install Cilium in the test?")
+		"Should we install Cilium in the test?")
+
+	flag.StringVar(&Opts.Helm.BTF,
+		"tetragon.btf",
+		Opts.Helm.BTF,
+		"A BTF file on the host that should be loaded into the KinD cluster. Will override helm BTF settings. Only makes sense when testing on a KinD cluster.")
 }
 
 type Flags struct {
@@ -103,6 +109,8 @@ type HelmOptions struct {
 	ValuesFile string
 	// Optional helm values (a map specifying values to set)
 	HelmValues
+	// BTF file to load into the kind cluster
+	BTF string
 }
 
 type HelmValues map[string]string
