@@ -603,15 +603,16 @@ If you observe the output in the first terminal, you can see the container start
 
 ## BTF Requirement
 
-Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
-be use to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
-work as well and many common Linux distributions now ship with BTF and do not require any
-extra work. To check if BTF is enabled on your Linux system check for the BTF file
-in the standard location,
+Many common Linux distributions now ship with BTF enabled and do not require any extra work.
+To check if BTF is enabled on your Linux system, the standard location is:
 
 ```
 $ ls /sys/kernel/btf/
 ```
+
+Otherwise Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
+be used to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
+work as well.
 
 To run with [vagrant](https://learn.hashicorp.com/tutorials/vagrant/getting-started-index?in=vagrant/getting-started)
 we provide a standard VagrantFile with the required components enabled. Simply run,
