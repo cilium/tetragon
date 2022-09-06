@@ -267,6 +267,14 @@ func pushEvents(procs []Procs) {
 func GetRunningProcs() []Procs {
 	var procs []Procs
 
+	procs = getRunningProcsFs()
+	pushEvents(procs)
+	return procs
+}
+
+func getRunningProcsFs() []Procs {
+	var procs []Procs
+
 	procFS, err := os.ReadDir(option.Config.ProcFS)
 	if err != nil {
 		logger.GetLogger().WithError(err).Errorf("Could not read directory %s", option.Config.ProcFS)
@@ -456,7 +464,5 @@ func GetRunningProcs() []Procs {
 		procs = append(procs, p)
 	}
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(procs), len(procFS))
-
-	pushEvents(procs)
 	return procs
 }
