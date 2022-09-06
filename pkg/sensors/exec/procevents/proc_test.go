@@ -5,10 +5,20 @@ package procevents
 
 import (
 	"os"
+	"path"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	ec := tus.TestSensorsRun(m, "ProcReader")
+	os.Exit(ec)
+}
 
 func TestProcsContainerIdOffset(t *testing.T) {
 	test1 := "123456789abcdef"
@@ -169,4 +179,68 @@ func TestProcsFindContainerId(t *testing.T) {
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, d, "", "Expect output '' empty string")
 	assert.Equal(t, i, 0, "Expect ContainerId offset should be zero")
+}
+
+func TestIterator(t *testing.T) {
+	if !kernels.EnableTaskIterProgs() {
+		t.Skip()
+	}
+
+	base.Iter.Name = path.Join(tus.Conf().TetragonLib, base.Iter.Name)
+
+	procsIter, err := getRunningProcsIter()
+	if err != nil {
+		t.Fatalf("failed getRunningProcsIter: %v\n", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+
+	procsFs := getRunningProcsFs()
+
+	for _, fs := range procsFs {
+		for _, iter := range procsIter {
+			if fs.pid != iter.pid {
+				continue
+			}
+
+			match := func(a, b interface{}, field string) {
+				if !assert.Equal(t, a, b, field) {
+					t.Fatalf("failed to match pid %d, field %s\n", fs.pid, field)
+				}
+			}
+
+			match(fs.ppid, iter.ppid, "pnspid")
+			match(fs.pnspid, iter.pnspid, "pnspid")
+
+			// flags do not need to match, they are used internally
+			// match(fs.flags, iter.flags, "flags")
+			// match(fs.pflags, iter.pflags, "pflags")
+
+			// task iter use different source for task time
+			// match(fs.ktime, iter.ktime, "ktime")
+			// match(fs.pktime, iter.pktime, "pktime")
+
+			// size does not need to match, it's used internally
+			// match(fs.size, iter.size, "size")
+
+			match(fs.uid, iter.uid, "uid")
+			match(fs.pid, iter.pid, "pid")
+			match(fs.nspid, iter.nspid, "nspid")
+			match(fs.auid, iter.auid, "auid")
+			match(fs.effective, iter.effective, "effective")
+			match(fs.inheritable, iter.inheritable, "inheritable")
+			match(fs.permitted, iter.permitted, "permitted")
+			match(fs.uts_ns, iter.uts_ns, "uts_ns")
+			match(fs.ipc_ns, iter.ipc_ns, "ipc_ns")
+			match(fs.mnt_ns, iter.mnt_ns, "mnt_ns")
+			match(fs.pid_ns, iter.pid_ns, "pid_ns")
+			match(fs.pid_for_children_ns, iter.pid_for_children_ns, "pid_for_children_ns")
+			match(fs.net_ns, iter.net_ns, "net_ns")
+			match(fs.time_ns, iter.time_ns, "time_ns")
+			match(fs.time_for_children_ns, iter.time_for_children_ns, "time_for_children_ns")
+			match(fs.cgroup_ns, iter.cgroup_ns, "cgroup_ns")
+			match(fs.user_ns, iter.user_ns, "user_ns")
+			match(fs.args, iter.args, "args do not match")
+		}
+	}
 }

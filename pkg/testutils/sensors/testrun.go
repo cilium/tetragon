@@ -112,6 +112,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	bpf.ConfigureResourceLimits()
 
 	bpf.SetMapPrefix(testMapDir)
+	os.MkdirAll(bpf.MapPrefixPath(), 0755)
 	defer func() {
 		log := logger.GetLogger()
 		path := bpf.MapPrefixPath()
