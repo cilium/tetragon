@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"
@@ -25,6 +26,7 @@ import (
 )
 
 var (
+	AgentBTFKey      = "tetragon.btf"
 	AgentImageKey    = "tetragon.image.override"
 	OperatorImageKey = "tetragonOperator.image.override"
 )
@@ -53,6 +55,10 @@ func WithNamespace(namespace string) Option {
 
 func WithValuesFile(file string) Option {
 	return func(o *flags.HelmOptions) { o.ValuesFile = file }
+}
+
+func WithBTF(BTF string) Option {
+	return func(o *flags.HelmOptions) { o.BTF = BTF }
 }
 
 func WithHelmOptions(options map[string]string) Option {
@@ -122,6 +128,25 @@ func Install(opts ...Option) env.Func {
 		if o.ValuesFile != "" {
 			helmArgs.WriteString(fmt.Sprintf(" --values=%s", o.ValuesFile))
 		}
+
+		// Handle BTF option for KinD cluster
+		if o.BTF != "" {
+			if clusterName := e2ehelpers.GetTempKindClusterName(ctx); clusterName != "" {
+				controlPlaneId := fmt.Sprintf("%s-control-plane", clusterName)
+				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, fmt.Sprintf("%s:/btf", controlPlaneId))
+				err := cmd.Run()
+				if err != nil {
+					return ctx, fmt.Errorf("failed to load BTF file into KinD cluster: %w", err)
+				}
+				helmArgs.WriteString(fmt.Sprintf(" --set=%s=/btf", AgentBTFKey))
+				helmArgs.WriteString(" --set=extraHostPathMounts[0].name=btf")
+				helmArgs.WriteString(" --set=extraHostPathMounts[0].mountPath=/btf")
+				helmArgs.WriteString(" --set=extraHostPathMounts[0].readOnly=true")
+			} else {
+				return ctx, fmt.Errorf("option -tetragon.btf only makes sense for KinD clusters")
+			}
+		}
+
 		helmArgs.WriteString(" --install")
 
 		helmOpts := []helm.Option{
