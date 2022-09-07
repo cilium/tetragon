@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y libelf-dev zlib1g-dev
 COPY . ./
 RUN make tetragon-image LOCAL_CLANG=1 VERSION=$TETRAGON_VERSION
 
-FROM docker.io/library/golang:1.18.3-alpine3.15@sha256:f9181168749690bddb6751b004e976bf5d427425e0cfb50522e92c06f761def7 as gops
+FROM docker.io/library/golang:1.19.1-alpine3.15@sha256:45e2989b7c408120fc0fd2ae9de9f48cdd8e17fae327e7f21d472b0f9744f8d4 as gops
 RUN apk add --no-cache binutils git \
  && git clone https://github.com/google/gops /go/src/github.com/google/gops \
  && cd /go/src/github.com/google/gops \
