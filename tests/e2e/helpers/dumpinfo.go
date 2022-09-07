@@ -328,21 +328,21 @@ func dumpGops(port int, podName string, exportDir string) {
 	out, err := gops.DumpHeapProfile(*addr)
 	if err != nil {
 		klog.ErrorS(err, "failed to dump heap profile", "addr", addr)
-		return
-	}
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.heap", podName))
-	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
+	} else {
+		fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.heap", podName))
+		if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+			klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
+		}
 	}
 
 	out, err = gops.DumpMemStats(*addr)
 	if err != nil {
 		klog.ErrorS(err, "failed to dump memstats", "addr", addr)
-		return
-	}
-	fname = filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.memstats", podName))
-	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
+	} else {
+		fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.memstats", podName))
+		if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+			klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
+		}
 	}
 }
 

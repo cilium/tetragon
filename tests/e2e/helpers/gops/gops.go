@@ -52,5 +52,9 @@ func cmd(addr net.TCPAddr, sig byte) ([]byte, error) {
 		return nil, err
 	}
 
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no output from command %d", sig)
+	}
+
 	return out, nil
 }
