@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cilium/cilium v1.9.16
 	github.com/cilium/cilium-e2e v0.0.0-00010101000000-000000000000
-	github.com/cilium/ebpf v0.9.0
+	github.com/cilium/ebpf v0.9.1
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
 	github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
 	github.com/cilium/lumberjack/v2 v2.2.2
@@ -135,8 +135,6 @@ replace (
 	// 1. tag a new cilium release with these helpers
 	// 2. fix tetragon so that it compiles with newer cilium version
 	github.com/cilium/cilium-e2e => github.com/cilium/cilium v1.12.0-rc2.0.20220630043907-91114a9e2d09
-
-	github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20220620135537-093202506da0
 
 	// Use local version of API
 	github.com/cilium/tetragon/api => ./api
