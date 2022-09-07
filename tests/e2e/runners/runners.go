@@ -176,8 +176,8 @@ func (r *Runner) Init() *Runner {
 		}
 
 		// Start the metrics and gops dumpers
-		helpers.StartMetricsDumper(ctx, exportDir, flags.Opts.ExportPollInterval)
-		helpers.StartGopsDumper(ctx, exportDir, flags.Opts.ExportPollInterval)
+		helpers.StartMetricsDumper(ctx, cfg, exportDir, flags.Opts.ExportPollInterval)
+		helpers.StartGopsDumper(ctx, cfg, exportDir, flags.Opts.ExportPollInterval)
 
 		// The binary won't change, so dump it now at the beginning
 		if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {
