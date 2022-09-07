@@ -17,7 +17,7 @@ type TraceBench interface {
 }
 
 var (
-	traceBenches = []string{"rw", "open"}
+	traceBenches = []string{"rw", "open", "custom"}
 )
 
 func TraceBenchSupported() []string {
@@ -55,12 +55,17 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 		bench = newTraceBenchRw()
 	case "open":
 		bench = newTraceBenchOpen()
+	case "custom":
+		bench = newTraceBenchCustom()
 	default:
 		panic("unknown benchmark")
 	}
 
 	configFile := bench.ConfigFilename(ctx, args)
-	defer os.Remove(configFile)
+
+	if args.Trace != "custom" {
+		defer os.Remove(configFile)
+	}
 
 	// Start tetragon if requested.
 	tetragonFinished := make(chan bool, 1)
