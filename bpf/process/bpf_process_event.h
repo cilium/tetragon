@@ -6,6 +6,8 @@
 
 #include "bpf_helpers.h"
 
+#include "bpf_cgroup.h"
+
 #define ENAMETOOLONG 36 /* File name too long */
 
 struct buffer_heap_map_value {
@@ -519,6 +521,74 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	}
 }
 
+/* Gather Cgroup id using current task context */
+static inline __attribute__((always_inline)) void
+__event_get_current_cgroup_id(struct msg_execve_event *msg, struct cgroup *cgrp)
+{
+	/* Try the bpf helper on the default hierarchy */
+#ifdef BPF_FUNC_get_current_cgroup_id
+	msg->kube.cgrpid = get_current_cgroup_id();
+#endif
+
+	/* Fallback on the passed cgroup which should point to the
+	 * right hierarchy.
+	 */
+	if (!msg->kube.cgrpid)
+		msg->kube.cgrpid = get_cgroup_id(cgrp);
+}
+
+/* Gather Cgroup name using current task context */
+static inline __attribute__((always_inline)) void
+__event_get_current_cgroup_name(struct msg_execve_event *msg,
+				struct msg_process *process,
+				struct cgroup *cgrp)
+{
+	const char *name;
+
+	name = get_cgroup_name(cgrp);
+	if (name)
+		probe_read_str(msg->kube.docker_id, KN_NAME_LENGTH, name);
+	else
+		process->flags |= EVENT_DOCKER_NAME_ERR;
+}
+
+/**
+ * __event_get_current_cgroup_info() Collect cgroup info from current task.
+ * @msg: the msg_execve_event where to store collected information.
+ * @process: msg_process part of msg_execve_event to store error into flags.
+ * @task: must be current task.
+ *
+ * Checks the tg_conf_map BPF map for cgroup and runtime configurations then
+ * collects cgroup information from current task. This allows to operate on
+ * different machines and workflows.
+ */
+static inline __attribute__((always_inline)) void
+__event_get_cgroup_info(struct msg_execve_event *msg,
+			struct msg_process *process, struct task_struct *task)
+{
+	struct cgroup *cgrp;
+	int zero = 0, subsys_idx = 0;
+	struct tetragon_conf *conf;
+
+	/* Check if cgroup configuration is set */
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	/* Select the right css to use */
+	if (conf && conf->tg_cgrp_subsys_idx != 0)
+		subsys_idx = conf->tg_cgrp_subsys_idx;
+
+	cgrp = get_task_cgroup(task, subsys_idx);
+	if (!cgrp) {
+		process->flags |= EVENT_DOCKER_SUBSYSCGRP_ERR;
+		return;
+	}
+
+	/* Collect event cgroup ID */
+	__event_get_current_cgroup_id(msg, cgrp);
+
+	/* Get the event cgroup name now */
+	__event_get_current_cgroup_name(msg, process, cgrp);
+}
+
 /* Pahole bug does not convert to btf correctly with arbitrary byte holes not
  * near a cacheline. To work-around this we can specify a define with the
  * CGROUPS_OFFSET we read directly out of debug_info section. Note other
@@ -533,12 +603,8 @@ static inline __attribute__((always_inline)) void
 __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		      bool cwd_always)
 {
-	struct cgroup_subsys_state *subsys;
 	struct msg_process *curr;
 	struct task_struct *task;
-	struct css_set *cgroups;
-	struct cgroup *cgrp;
-	const char *name;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
@@ -584,36 +650,10 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 	task = (struct task_struct *)get_current_task();
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
-	task = (struct task_struct *)get_current_task();
-	probe_read(&cgroups, sizeof(cgroups), _(&task->cgroups));
-	if (cgroups) {
-		probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[0]));
-		if (subsys) {
-			probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
-			if (cgrp) {
-				if (BPF_CORE_READ_INTO(&name, cgrp, kn, name) ==
-				    0) {
-					probe_read_str(msg->kube.docker_id,
-						       DOCKER_ID_LENGTH, name);
-				} else {
-					curr->flags |= EVENT_DOCKER_NAME_ERR;
-				}
-				// else case we do not include error flag because it
-				// indicates there is not a docker id. This is normal
-				// in the case process is in host namespace.
-			} else {
-				curr->flags |= EVENT_DOCKER_SUBSYSCGRP_ERR;
-			}
-		} else {
-			curr->flags |= EVENT_DOCKER_SUBSYS_ERR;
-		}
-	} else {
-		curr->flags |= EVENT_DOCKER_CGROUPS_ERR;
-	}
-#ifdef BPF_FUNC_get_current_cgroup_id
-	msg->kube.cgrpid = get_current_cgroup_id();
-#endif
 	get_caps(&(msg->caps), task);
 	get_namespaces(&(msg->ns), task);
+
+	/* Last operation: gather current cgroup information */
+	__event_get_cgroup_info(msg, curr, task);
 }
 #endif
