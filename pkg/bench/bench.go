@@ -41,6 +41,8 @@ import (
 
 type Arguments struct {
 	Trace       string
+	Crd         string
+	CmdArgs     []string
 	Debug       bool
 	PrintEvents bool
 	JSONEncode  bool
