@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config"
+	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 
 	"github.com/sirupsen/logrus"
 )
@@ -167,18 +169,24 @@ func (k *Observer) __loopEvents(stopCtx context.Context, e *bpf.PerCpuEvents) er
 }
 
 func (k *Observer) runEvents(stopCtx context.Context) error {
+	/* Probe runtime configuration and do not fail on errors */
+	k.UpdateRuntimeConf()
+
 	e, err := k.__runEvents(stopCtx)
 	if err != nil {
 		return err
 	}
 	defer e.CloseAll()
+
 	k.__loopEvents(stopCtx, e)
 	return nil
 }
 
 func (k *Observer) runEventsNew(stopCtx context.Context, ready func()) error {
-	pinOpts := ebpf.LoadPinOptions{}
+	/* Probe runtime configuration and do not fail on errors */
+	k.UpdateRuntimeConf()
 
+	pinOpts := ebpf.LoadPinOptions{}
 	perfMap, err := ebpf.LoadPinnedMap(k.perfConfig.MapName, &pinOpts)
 	if err != nil {
 		return fmt.Errorf("opening pinned map '%s' failed: %w", k.perfConfig.MapName, err)
@@ -252,6 +260,29 @@ type Observer struct {
 
 	/* YAML Configuration File */
 	configFile string
+}
+
+// UpdateRuntimeConf() Gathers information about Tetragon runtime environment and
+// updates BPF map TetragonConfMap
+//
+// The observer needs to do this to discover and properly operate on the right
+// cgroup context. Use this function in your tests to allow Pod and Containers
+// association to work.
+//
+// The environment and cgroup configuration discovery may fail for several reasons,
+// in such cases errors will be logged.
+// Callers can ignore such errors, but we default print a warning that advanced
+// Cgroups tracking will be disabled which might affect process association
+// with kubernetes pods and containers.
+func (k *Observer) UpdateRuntimeConf() error {
+	pid := os.Getpid()
+	err := confmap.UpdateTgRuntimeConf(option.Config.MapDir, pid)
+	if err != nil {
+		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
+		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
+	}
+
+	return err
 }
 
 func (k *Observer) Start(ctx context.Context, sens []*sensors.Sensor) error {
