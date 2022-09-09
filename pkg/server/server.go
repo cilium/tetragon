@@ -131,6 +131,12 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				continue
 			}
 
+			// Filter the GetEventsResponse fields
+			filters := filters.FieldFiltersFromGetEventsRequest(request)
+			for _, filter := range filters {
+				filter.Filter(event)
+			}
+
 			if aggregator != nil {
 				// Send event to aggregator.
 				select {

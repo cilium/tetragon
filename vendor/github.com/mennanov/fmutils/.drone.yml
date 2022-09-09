@@ -1,0 +1,61 @@
+kind: pipeline
+name: go1.16
+type: docker
+
+steps:
+  - name: test
+    image: golang:1.16
+    commands:
+      - go test -v -coverprofile=coverage.txt -covermode=atomic
+
+  - name: coverage
+    image: plugins/codecov
+    settings:
+      token:
+        from_secret: codecov-token
+      files:
+        - coverage.txt
+
+---
+kind: pipeline
+name: go1.15
+type: docker
+
+steps:
+  - name: test
+    image: golang:1.15
+    commands:
+      - go test -v
+
+---
+kind: pipeline
+name: go1.14
+type: docker
+
+steps:
+  - name: test
+    image: golang:1.14
+    commands:
+      - go test -v
+
+---
+kind: pipeline
+name: go1.13
+type: docker
+
+steps:
+  - name: test
+    image: golang:1.13
+    commands:
+      - go test -v
+
+---
+kind: pipeline
+name: go1.12
+type: docker
+
+steps:
+  - name: test
+    image: golang:1.12
+    commands:
+      - go test -v

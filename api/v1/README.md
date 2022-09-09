@@ -40,11 +40,13 @@
 - [tetragon/events.proto](#tetragon_events-proto)
     - [AggregationInfo](#tetragon-AggregationInfo)
     - [AggregationOptions](#tetragon-AggregationOptions)
+    - [FieldFilter](#tetragon-FieldFilter)
     - [Filter](#tetragon-Filter)
     - [GetEventsRequest](#tetragon-GetEventsRequest)
     - [GetEventsResponse](#tetragon-GetEventsResponse)
   
     - [EventType](#tetragon-EventType)
+    - [FieldFilterAction](#tetragon-FieldFilterAction)
   
 - [tetragon/stack.proto](#tetragon_stack-proto)
     - [StackAddress](#tetragon-StackAddress)
@@ -718,6 +720,23 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
+<a name="tetragon-FieldFilter"></a>
+
+### FieldFilter
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| event_set | [EventType](#tetragon-EventType) | repeated | Event types to filter or undefined to filter over all event types. |
+| fields | [google.protobuf.FieldMask](#google-protobuf-FieldMask) |  | Fields to include or exclude. |
+| action | [FieldFilterAction](#tetragon-FieldFilterAction) |  | Whether to include or exclude fields. |
+
+
+
+
+
+
 <a name="tetragon-Filter"></a>
 
 ### Filter
@@ -756,6 +775,7 @@ If both allow_list and deny_list are specified, the results contain the set diff
 | aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated.
 
 Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
+| field_filters | [FieldFilter](#tetragon-FieldFilter) | repeated | Fields to include or exclude for events in the GetEventsResponse. Omitting this field implies that all fields will be included. Exclusion always takes precedence over inclusion in the case of conflicts. |
 
 
 
@@ -804,6 +824,18 @@ GetEventsResponse event oneof.
 | PROCESS_KPROBE | 9 |  |
 | PROCESS_TRACEPOINT | 10 |  |
 | TEST | 40000 |  |
+
+
+
+<a name="tetragon-FieldFilterAction"></a>
+
+### FieldFilterAction
+Determins the behaviour of a field filter
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INCLUDE | 0 |  |
+| EXCLUDE | 1 |  |
 
 
  
