@@ -212,7 +212,7 @@ image-codegen:
 
 .PHONY: image-clang
 image-clang:
-	$(CONTAINER_ENGINE) build -f Dockerfile.clang --build-arg VERSION=1:13.0.1-2ubuntu2 -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang --build-arg VERSION=1:14.0.0-1ubuntu1 -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
