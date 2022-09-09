@@ -20,6 +20,7 @@ import "tetragon/tetragon.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
 
 // Represents the type of a Tetragon event.
 //
@@ -56,6 +57,21 @@ message Filter {
     repeated string labels = 9;
 }
 
+// Determins the behaviour of a field filter
+enum FieldFilterAction {
+    INCLUDE = 0;
+    EXCLUDE = 1;
+}
+
+message FieldFilter {
+    // Event types to filter or undefined to filter over all event types.
+    repeated EventType event_set = 1;
+    // Fields to include or exclude.
+    google.protobuf.FieldMask fields = 2;
+    // Whether to include or exclude fields.
+    FieldFilterAction action = 3;
+}
+
 message GetEventsRequest {
     // allow_list specifies a list of filters to apply to only return certain
     // events. If multiple filters are specified, at least one of them has to
@@ -74,6 +90,10 @@ message GetEventsRequest {
     // Note that currently only process_accept and process_connect events are
     // aggregated. Other events remain unaggregated.
     AggregationOptions aggregation_options = 3;
+    // Fields to include or exclude for events in the GetEventsResponse. Omitting this
+    // field implies that all fields will be included. Exclusion always takes precedence
+    // over inclusion in the case of conflicts.
+    repeated FieldFilter field_filters = 4;
 }
 
 // AggregationOptions defines configuration options for aggregating events.
