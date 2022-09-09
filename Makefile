@@ -7,7 +7,7 @@ LOCAL_CLANG ?= 0
 LOCAL_CLANG_FORMAT ?= 0
 FORMAT_FIND_FLAGS ?= -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*'
 NOOPT ?= 0
-CLANG_IMAGE  = quay.io/cilium/clang:7ea8dd5b610a8864ce7b56e10ffeb61030a0c50e@sha256:02ad7cc1d08d85c027557099b88856945be5124b5c31aeabce326e7983e3913b
+CLANG_IMAGE  = quay.io/cilium/clang:ca424d14eb4326ffc65fccd8049d8a7bfdd06607@sha256:be37c932add0b5f22edd72da3af4ccc4df6dbd54e6e99424fa5190bafc10e55f
 TESTER_PROGS_DIR = "contrib/tester-progs"
 # Extra flags to pass to test binary
 EXTRA_TESTFLAGS ?=
