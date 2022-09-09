@@ -1,9 +1,11 @@
 FROM ubuntu:22.04@sha256:34fea4f31bf187bc915536831fd0afc9d214755bf700b5cdb1336c82516d154e
-ARG VERSION=1:13.0.1-2ubuntu2
+ARG VERSION=1:14.0.0-1ubuntu1
 RUN apt-get update
 RUN apt-get -y upgrade
-RUN apt-get install -y --no-install-recommends clang-13=$VERSION libclang-common-13-dev=$VERSION libclang-cpp13=$VERSION libllvm13=$VERSION llvm-13-linker-tools=$VERSION libclang1-13=$VERSION llvm-13=$VERSION llvm-13-runtime=$VERSION llvm-13-linker-tools=$VERSION make
-RUN ln -vsnf /usr/lib/llvm-13/bin/clang /usr/bin/clang
-RUN ln -vsnf /usr/lib/llvm-13/bin/llc /usr/bin/llc
+RUN apt-cache search clang
+RUN apt show clang-14
+RUN apt-get install -y --no-install-recommends clang-14=$VERSION libclang-common-14-dev=$VERSION libclang-cpp14=$VERSION libllvm14=$VERSION llvm-14-linker-tools=$VERSION libclang1-14=$VERSION llvm-14=$VERSION llvm-14-runtime=$VERSION llvm-14-linker-tools=$VERSION make
+RUN ln -vsnf /usr/lib/llvm-14/bin/clang /usr/bin/clang
+RUN ln -vsnf /usr/lib/llvm-14/bin/llc /usr/bin/llc
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
