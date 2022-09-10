@@ -24,7 +24,7 @@ FLAGS := -I. \
 	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
 	 -O2
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(ARCH)
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(ARCH) -fdebug-default-version=4
 LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
 LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
 
