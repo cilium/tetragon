@@ -1,0 +1,27 @@
+# test for the sigkill action
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill_unprivileged_user_namespace"
+spec:
+  kprobes:
+  - call: "create_user_ns"
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    selectors:
+      - matchPids:
+        - operator: In
+          values:
+          - {{.MatchedPID}}
+          isNamespacePID: false
+          followForks: true
+        matchCapabilities:
+          - type: Effective
+            operator: NotIn
+            isNamespaceCapability: false
+            values:
+            - "CAP_SYS_ADMIN"
+        matchActions:
+        - action: Sigkill
