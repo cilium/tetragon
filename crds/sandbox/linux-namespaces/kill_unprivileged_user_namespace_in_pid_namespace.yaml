@@ -1,0 +1,56 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill_unprivileged_user_namespace_in_pid_namespace"
+
+#
+# Adds ability to sandbox access to unprivileged user namespaces.
+#
+# Restricts access to Linux user namespace functionality. Any unprivileged
+# (without CAP_SYS_ADMIN) process that is inside a pid namespace that
+# tries to create a user namespace will be killed.
+#
+# This CRD requires a 5.3.0 kernel to perform a sigkill.
+#
+# To test load Tetragon with this CRD:
+#   sudo ./tetragon --bpf-lib bpf/objs/ --config-file crds/sandbox/linux-namespaces/kill_unprivileged_user_namespace_in_pid_namespace.yaml
+#
+# Then run:
+#   sudo ./contrib/tester-progs/sigkill-unprivileged-user-ns-tester pidns
+#   306627
+#   Parent: (pid:306627) checking capability CAP_SYS_ADMIN: is set
+#   Parent: (pid:306627) unsharing pid namespace
+#   Parent: (pid:306627) clearing capability CAP_SYS_ADMIN
+#   Parent: (pid:306627) checking capability CAP_SYS_ADMIN: not set
+#   Parent: (pid:306627) waiting for input in stdin
+#
+#   Parent: (pid:306627) waking up child1 (pid:306628)
+#   Parent: (pid:306627) reading messages from child1 (pid:306628)
+#   Parent: (pid:306627) waiting for child1 (pid:306628)
+#   Wait() for pid=306628  child got signal 9. All good.
+#   Parent: (pid:306627) restoring capability CAP_SYS_ADMIN
+#   Parent: (pid:306627) clone(CLONE_NEWUSER) TEST SUCCEEDED
+#
+
+spec:
+  kprobes:
+  - call: "create_user_ns"
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    selectors:
+      - matchNamespaces:
+        - namespace: Pid
+          operator: NotIn
+          values:
+          - "host_ns"
+        matchCapabilities:
+          - type: Effective
+            operator: NotIn
+            isNamespaceCapability: false
+            values:
+             - "CAP_SYS_ADMIN"
+        matchActions:
+        - action: Sigkill
+          argError: -1
