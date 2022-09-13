@@ -17,6 +17,18 @@
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
 
+struct msg_selector_data {
+	__u64 curr;
+	__u64 pass;
+	bool active[MAX_CONFIGURED_SELECTORS];
+#ifdef __NS_CHANGES_FILTER
+	__u64 match_ns;
+#endif
+#ifdef __CAP_CHANGES_FILTER
+	__u64 match_cap;
+#endif
+};
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;
@@ -29,15 +41,7 @@ struct msg_generic_kprobe {
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
-	__u64 curr;
-	__u64 pass;
-	bool active[MAX_CONFIGURED_SELECTORS];
-#ifdef __NS_CHANGES_FILTER
-	__u64 match_ns;
-#endif
-#ifdef __CAP_CHANGES_FILTER
-	__u64 match_cap;
-#endif
+	struct msg_selector_data sel;
 };
 
 static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()

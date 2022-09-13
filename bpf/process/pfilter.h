@@ -109,7 +109,8 @@ next_pid_value(__u32 off, __u32 *f, __u32 ty)
 
 static inline __attribute__((always_inline)) int
 process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
-		   struct execve_map_value *enter, void *heap)
+		   struct execve_map_value *enter, struct msg_ns *n,
+		   struct msg_capabilities *c)
 {
 	__u32 sel;
 	__u64 pid;
@@ -133,11 +134,10 @@ process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 
 static inline __attribute__((always_inline)) int
 process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
-			 struct execve_map_value *enter, void *heap)
+			 struct execve_map_value *enter, struct msg_ns *n,
+			 struct msg_capabilities *c)
 {
 	__u32 sel, inum = 0;
-	struct msg_generic_kprobe *msg;
-	int zero = 0;
 
 	if (off > 1000)
 		sel = 0;
@@ -148,12 +148,8 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 		sel = f[o];
 	}
 
-	msg = map_lookup_elem(heap, &zero);
-	if (!msg)
-		return PFILTER_REJECT;
-
 	nsid &= 0xf;
-	inum = msg->ns.inum[nsid];
+	inum = n->inum[nsid];
 
 	/* doing this check before the previous assignment results in for 4.19 kernels:
 	 * "math between map_value pointer and register with unbounded min value is not allowed"
@@ -177,17 +173,13 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
  */
 static inline __attribute__((always_inline)) int
 process_filter_namespace_change(__u64 ty, __u64 val,
-				struct execve_map_value *enter, void *heap)
+				struct execve_map_value *enter,
+				struct msg_ns *n, struct msg_capabilities *c,
+				struct msg_selector_data *sel)
 {
 	struct execve_map_value *init;
-	struct msg_generic_kprobe *curr;
 	__u32 pid;
-	__u64 n;
-	int zero = 0;
-
-	curr = map_lookup_elem(heap, &zero);
-	if (!curr)
-		return PFILTER_REJECT;
+	__u64 i;
 
 	pid = (get_current_pid_tgid() >> 32);
 	init = execve_map_get_noinit(
@@ -196,38 +188,38 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 		return PFILTER_REJECT;
 
 	if (ty == op_filter_in) { // For the op_filter_in
-		for (n = 0; n < ns_max_types;
-		     n++) { // ... check all possible namespaces
+		for (i = 0; i < ns_max_types;
+		     i++) { // ... check all possible namespaces
 			if (val &
 			    (1
-			     << n)) { // ... if the appropriate bit is set (bit positions defined in ns_* enum)
-				if (init->ns.inum[n] ==
+			     << i)) { // ... if the appropriate bit is set (bit positions defined in ns_* enum)
+				if (init->ns.inum[i] ==
 				    0) { // namespace not set so just ignore
-					curr->match_ns =
+					sel->match_ns =
 						1; // ... but need to setup the correct values at the end
 					continue;
 				}
-				if (init->ns.inum[n] !=
-				    curr->ns.inum[n]) { // does the namespace value changed?
-					curr->match_ns = 1;
+				if (init->ns.inum[i] !=
+				    n->inum[i]) { // does the namespace value changed?
+					sel->match_ns = 1;
 					return PFILTER_ACCEPT;
 				}
 			}
 		}
 	} else if (ty == op_filter_notin) { // For the op_filter_notin
-		for (n = 0; n < ns_max_types;
-		     n++) { // ... check all possible namespaces
-			if ((val & (1 << n)) ==
+		for (i = 0; i < ns_max_types;
+		     i++) { // ... check all possible namespaces
+			if ((val & (1 << i)) ==
 			    0) { // ... if the appropriate bit is *NOT* set (bit positions defined in ns_* enum)
-				if (init->ns.inum[n] ==
+				if (init->ns.inum[i] ==
 				    0) { // namespace not set so just ignore
-					curr->match_ns =
+					sel->match_ns =
 						1; // ... but need to setup the correct values at the end
 					continue;
 				}
-				if (init->ns.inum[n] !=
-				    curr->ns.inum[n]) { // does the namespace value changed?
-					curr->match_ns = 1;
+				if (init->ns.inum[i] !=
+				    n->inum[i]) { // does the namespace value changed?
+					sel->match_ns = 1;
 					return PFILTER_ACCEPT;
 				}
 			}
@@ -239,25 +231,20 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 #endif
 
 static inline __attribute__((always_inline)) int
-process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val, void *heap)
+process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
+			    struct msg_ns *n, struct msg_capabilities *c)
 {
-	struct msg_generic_kprobe *msg;
-	int zero = 0;
 	__u64 caps;
 
-	msg = map_lookup_elem(heap, &zero);
-	if (!msg)
-		return PFILTER_REJECT;
-
 	/* if ns != 0 we care only for events in different than the host user namespace */
-	if ((ns != 0) && (msg->ns.user_inum == ns))
+	if (ns != 0 && n->user_inum == ns)
 		return PFILTER_REJECT;
 
 	if (ty >
 	    caps_inheritable) /* We should not reach that. Userspace checks that. */
 		return PFILTER_REJECT;
 
-	caps = msg->caps.c[ty];
+	caps = c->c[ty];
 
 	if (op == op_filter_in)
 		return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
@@ -268,18 +255,13 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val, void *heap)
 #ifdef __CAP_CHANGES_FILTER
 static inline __attribute__((always_inline)) int
 process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
-				 void *heap)
+				 struct msg_ns *n, struct msg_capabilities *c,
+				 struct msg_selector_data *sel)
 {
 	struct execve_map_value *init;
-	struct msg_generic_kprobe *curr;
-	int zero = 0;
 	bool match = false;
 	__u64 icaps, ccaps;
 	__u32 pid;
-
-	curr = map_lookup_elem(heap, &zero);
-	if (!curr)
-		return PFILTER_REJECT;
 
 	pid = (get_current_pid_tgid() >> 32);
 	init = execve_map_get_noinit(
@@ -288,7 +270,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 		return PFILTER_REJECT;
 
 	/* if ns != 0 we care only for events in different than the host user namespace */
-	if ((ns != 0) && (curr->ns.user_inum == ns))
+	if (ns != 0 && n->user_inum == ns)
 		return PFILTER_REJECT;
 
 	if (ty >
@@ -296,7 +278,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 		return PFILTER_REJECT;
 
 	icaps = init->caps.c[ty];
-	ccaps = curr->caps.c[ty];
+	ccaps = c->c[ty];
 
 	/* we have a change in the capabilities that we care */
 	if ((icaps & val) != (ccaps & val))
@@ -306,7 +288,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 
 	if (match) {
 		/* this will update our internal metadata of the processe's caps */
-		curr->match_cap = 1;
+		sel->match_cap = 1;
 	}
 	return match ? PFILTER_ACCEPT : PFILTER_REJECT;
 }
@@ -316,9 +298,11 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 
 static inline __attribute__((always_inline)) int
 selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
-	       struct execve_map_value *enter, void *heap,
+	       struct execve_map_value *enter, struct msg_ns *n,
+	       struct msg_capabilities *c,
 	       int (*process_filter)(__u32, __u32, __u32 *, __u64, __u64,
-				     struct execve_map_value *, void *))
+				     struct execve_map_value *, struct msg_ns *,
+				     struct msg_capabilities *))
 {
 	int res1 = 0, res2 = 0, res3 = 0, res4 = 0;
 
@@ -343,16 +327,16 @@ selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
 	else if (len == 1)
 		goto one;
 four:
-	res4 = process_filter(3, index, f, ty, flags, enter, heap);
+	res4 = process_filter(3, index, f, ty, flags, enter, n, c);
 	index = next_pid_value(index, f, ty);
 three:
-	res3 = process_filter(2, index, f, ty, flags, enter, heap);
+	res3 = process_filter(2, index, f, ty, flags, enter, n, c);
 	index = next_pid_value(index, f, ty);
 two:
-	res2 = process_filter(1, index, f, ty, flags, enter, heap);
+	res2 = process_filter(1, index, f, ty, flags, enter, n, c);
 	index = next_pid_value(index, f, ty);
 one:
-	res1 = process_filter(0, index, f, ty, flags, enter, heap);
+	res1 = process_filter(0, index, f, ty, flags, enter, n, c);
 	index = next_pid_value(index, f, ty);
 
 	if (ty == op_filter_notin)
@@ -396,7 +380,8 @@ struct nc_filter {
 
 static inline __attribute__((always_inline)) int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
-			void *heap)
+			struct msg_selector_data *sel, struct msg_ns *n,
+			struct msg_capabilities *c)
 {
 	int res = PFILTER_ACCEPT;
 	struct pid_filter *pid;
@@ -428,7 +413,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		pid = (struct pid_filter *)((u64)f + index);
 		index += sizeof(struct pid_filter); /* 12: op, flags, length */
 		res = selector_match(f, index, pid->op, pid->flags, pid->len,
-				     enter, heap, &process_filter_pid);
+				     enter, n, c, &process_filter_pid);
 		index +=
 			((pid->len * sizeof(pid->val[0])) &
 			 VALUES_MASK); /* now index points at the end of PID filter */
@@ -456,7 +441,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			index += sizeof(
 				struct ns_filter); /* 12: namespace, op, length */
 			res = selector_match(f, index, ns->op, ns->ty, ns->len,
-					     enter, heap,
+					     enter, n, c,
 					     &process_filter_namespace);
 			index +=
 				((ns->len * sizeof(ns->val[0])) &
@@ -479,7 +464,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
 		res = process_filter_capabilities(caps->ty, caps->op, caps->ns,
-						  caps->val, heap);
+						  caps->val, n, c);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
@@ -496,7 +481,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		nc = (struct nc_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct nc_filter); /* 8: op, val */
 		res = process_filter_namespace_change(nc->op, nc->value, enter,
-						      heap);
+						      n, c, sel);
 		/* now index points at the end of namespace change filter */
 	}
 	if (res == PFILTER_REJECT)
@@ -515,7 +500,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
 		res = process_filter_capability_change(
-			caps->ty, caps->op, caps->ns, caps->val, heap);
+			caps->ty, caps->op, caps->ns, caps->val, n, c, sel);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
@@ -527,15 +512,14 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 #define MAX_SELECTORS 8
 
 static inline __attribute__((always_inline)) int
-process_filter_done(struct msg_generic_kprobe *msg,
+process_filter_done(struct msg_selector_data *sel,
 		    struct execve_map_value *enter,
 		    struct msg_execve_key *current)
 {
 	current->pid = enter->key.pid;
 	current->ktime = enter->key.ktime;
-	if (msg->pass) {
+	if (sel->pass)
 		return PFILTER_ACCEPT;
-	}
 	return PFILTER_REJECT;
 }
 
@@ -549,9 +533,10 @@ process_filter_done(struct msg_generic_kprobe *msg,
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
 static inline __attribute__((always_inline)) int
-generic_process_filter(struct msg_generic_kprobe *msg, void *fmap, void *heap)
+generic_process_filter(struct msg_selector_data *sel,
+		       struct msg_execve_key *current, struct msg_ns *ns,
+		       struct msg_capabilities *caps, void *fmap)
 {
-	struct msg_execve_key *current = &msg->current;
 	struct execve_map_value *enter;
 	bool walker = 0;
 	__u32 ppid;
@@ -565,35 +550,35 @@ generic_process_filter(struct msg_generic_kprobe *msg, void *fmap, void *heap)
 		if (!f)
 			return PFILTER_ERROR;
 
-		curr = msg->curr;
+		curr = sel->curr;
 		if (curr > MAX_SELECTORS)
-			return process_filter_done(msg, enter, current);
+			return process_filter_done(sel, enter, current);
 
 		selectors = f[0];
 		/* If no selectors accept process */
 		if (!selectors) {
-			msg->pass = true;
-			return process_filter_done(msg, enter, current);
+			sel->pass = true;
+			return process_filter_done(sel, enter, current);
 		}
 
 		/* If we get here with reference to uninitialized selector drop */
 		if (selectors <= curr)
-			return process_filter_done(msg, enter, current);
+			return process_filter_done(sel, enter, current);
 
 		pass = selector_process_filter(
-			f, curr, enter,
-			heap); /* matches the PID and Namespace */
+			f, curr, enter, sel, ns,
+			caps); /* matches the PID and Namespace */
 		if (pass) {
 			/* Verify lost that msg is not null here so recheck */
 			asm volatile("%[curr] &= 0x1f;\n" ::[curr] "r+"(curr)
 				     :);
-			msg->active[curr] = true;
-			msg->active[SELECTORS_ACTIVE] = true;
-			msg->pass |= true;
+			sel->active[curr] = true;
+			sel->active[SELECTORS_ACTIVE] = true;
+			sel->pass |= true;
 		}
-		msg->curr++;
-		if (msg->curr > selectors)
-			return process_filter_done(msg, enter, current);
+		sel->curr++;
+		if (sel->curr > selectors)
+			return process_filter_done(sel, enter, current);
 		return PFILTER_CONTINUE; /* will iterate to the next selector */
 	}
 	return PFILTER_CURR_NOT_FOUND;
