@@ -15,8 +15,10 @@
 package filters
 
 import (
+	"context"
 	"testing"
 
+	v1 "github.com/cilium/hubble/pkg/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -55,4 +57,42 @@ func TestParseFilterList(t *testing.T) {
 	filterProto, err = ParseFilterList("")
 	assert.NoError(t, err)
 	assert.Empty(t, filterProto)
+}
+
+func TestEventTypeFilterMatch(t *testing.T) {
+	f := []*tetragon.Filter{{
+		EventSet: []tetragon.EventType{
+			tetragon.EventType_PROCESS_EXEC,
+		},
+	}}
+
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&EventTypeFilter{}})
+	assert.NoError(t, err)
+	ev := v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "kube-system"}}},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+}
+
+func TestEventTypeFilterNoMatch(t *testing.T) {
+	f := []*tetragon.Filter{{
+		EventSet: []tetragon.EventType{
+			tetragon.EventType_PROCESS_EXIT,
+		},
+	}}
+
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&EventTypeFilter{}})
+	assert.NoError(t, err)
+	ev := v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Namespace: "kube-system"}}},
+			},
+		},
+	}
+	assert.False(t, fl.MatchOne(&ev))
 }
