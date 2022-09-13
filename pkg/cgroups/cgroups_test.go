@@ -98,3 +98,17 @@ func TestDetectCgroupModeCustomLocation(t *testing.T) {
 		assert.Equal(t, CGROUP_UNDEF, mode)
 	}
 }
+
+// Test cgroup mode detection. This will try to find the default
+// location, perform the detection then asserts that corresponding
+// variables 'cgroupMode' and 'cgroupFSPath' are properly set. These
+// are set only once when we run the detection first time, further
+// calls to DetectCgroupMode() will just return cgroupMode, so ensure
+// they are properly set.
+func TestDetectCgroupMode(t *testing.T) {
+	mode, err := DetectCgroupMode()
+	assert.NoError(t, err)
+	assert.NotEqual(t, CGROUP_UNDEF, mode)
+	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
+	assert.NotEmpty(t, cgroupFSPath)
+}
