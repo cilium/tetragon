@@ -136,3 +136,45 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
 	}
 }
+
+// Test discovery of compiled-in Cgroups controllers
+// This will ensure that:
+// - We properly discover compiled-in cgroup controllers
+// - Their hierarchy IDs
+// - Their css index
+func TestDiscoverSubSysIdsDefault(t *testing.T) {
+	fs, err := DetectCgroupFSMagic()
+	assert.NoError(t, err)
+	assert.NotEqual(t, CGROUP_UNDEF, fs)
+
+	err = DiscoverSubSysIds()
+	assert.NoError(t, err)
+
+	accessFs := false
+	fixed := false
+	var st syscall.Statfs_t
+	err = syscall.Statfs(defaultCgroupRoot, &st)
+	if err == nil {
+		accessFs = true
+	}
+	for _, controller := range cgroupControllers {
+		if accessFs {
+			if cgroupMode == CGROUP_UNIFIED {
+				assert.EqualValues(t, 0, controller.id, "Cgroupv2 Controller '%s' hierarchy ID should be O as it is Unified Cgroup", controller.name)
+			} else {
+				assert.NotEqualValues(t, 0, controller.id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.name)
+			}
+		}
+
+		if controller.active {
+			fixed = true
+
+			// If those controllers are active let's check their css index
+			if controller.name == "memory" || controller.name == "pids" {
+				assert.NotEqualValues(t, 0, controller.idx, "Cgroup Controller '%s' css index should not be zero", controller.name)
+			}
+		}
+	}
+
+	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
+}
