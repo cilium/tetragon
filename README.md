@@ -75,7 +75,13 @@ For getting started with local development, you can refer to the [Development Gu
 
 [dev-guide]: ./docs/contributing/development/README.md
 
-## Quickstart Guide
+## Docker deployment
+
+For getting started without having to deploy on a Kubernetes cluster, please refer to the [Docker deployment guide][docker-deployment].
+
+[docker-deployment]: ./docs/deployment/docker/README.md
+
+## Kubernetes Quickstart Guide
 
 This Quickstart guide uses a Kind cluster and a helm-based installation to
 provide a simple way to get a hands on experience with Tetragon and
