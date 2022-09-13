@@ -6,7 +6,7 @@ package procevents
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -44,7 +44,9 @@ func ProcsContainerIdOffset(subdir string) (string, int) {
 // cgroup argument is the full cgroup path
 // bpfSource is set to true if cgroup was obtained from BPF, otherwise false.
 // walkParent if set then walk the parent hierarchy subdirs and try to find the container ID of the process,
-//    this will allow to return the container id of services running inside, example: init.service etc.
+//
+//	this will allow to return the container id of services running inside, example: init.service etc.
+//
 // Returns the container ID as a string of 31 characters and its offset on the full cgroup path,
 // otherwise on errors an empty string and 0 as offset.
 func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, int) {
@@ -145,7 +147,7 @@ func procsFindDockerId(cgroups string) (string, int) {
 // returned.
 func procsDockerId(pid uint32) (string, error) {
 	pidstr := fmt.Sprint(pid)
-	cgroups, err := ioutil.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
+	cgroups, err := os.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
 	if err != nil {
 		return "", err
 	}

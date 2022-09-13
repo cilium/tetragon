@@ -4,7 +4,7 @@
 package kernels
 
 import (
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -60,7 +60,7 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 		version = int(KernelStringToNumeric(kernelVersion))
 		verStr = kernelVersion
 	} else {
-		if versionSig, err := ioutil.ReadFile(procfs + "/version_signature"); err == nil {
+		if versionSig, err := os.ReadFile(procfs + "/version_signature"); err == nil {
 			versionStrings := strings.Fields(string(versionSig))
 			version = int(KernelStringToNumeric(versionStrings[len(versionStrings)-1]))
 			verStr = versionStrings[len(versionStrings)-1]

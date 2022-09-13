@@ -6,7 +6,6 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sync"
 	"syscall"
@@ -460,7 +459,7 @@ spec:
 	var err error
 
 	readConfigHook := []byte(readHook)
-	err = ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err = os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}

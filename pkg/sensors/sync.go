@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -245,7 +244,7 @@ func RemoveProgram(bpfDir string, prog *program.Program) {
 			coreFile = splitProg[1]
 		}
 		logger.GetLogger().Debugf("remove strings: %s", coreFile)
-		files, err := ioutil.ReadDir(bpfDir)
+		files, err := os.ReadDir(bpfDir)
 		if err == nil {
 			for _, f := range files {
 				if strings.Contains(f.Name(), coreFile) {

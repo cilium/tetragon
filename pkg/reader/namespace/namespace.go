@@ -4,7 +4,6 @@
 package namespace
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -41,12 +40,12 @@ func GetPidNsInode(pid uint32, nsStr string) uint32 {
 func GetMyPidG() uint32 {
 	selfBinary := filepath.Base(os.Args[0])
 	if procfs := os.Getenv("TETRAGON_PROCFS"); procfs != "" {
-		procFS, _ := ioutil.ReadDir(procfs)
+		procFS, _ := os.ReadDir(procfs)
 		for _, d := range procFS {
 			if d.IsDir() == false {
 				continue
 			}
-			cmdline, err := ioutil.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
+			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
 			if err != nil {
 				continue
 			}

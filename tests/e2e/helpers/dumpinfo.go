@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -95,7 +94,7 @@ func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error)
 		return ctx, nil
 	}
 
-	dir, err = ioutil.TempDir("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
+	dir, err = os.MkdirTemp("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
 	if err != nil {
 		return ctx, err
 	}

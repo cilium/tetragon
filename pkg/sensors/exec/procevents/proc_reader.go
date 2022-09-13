@@ -5,7 +5,6 @@ package procevents
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -247,7 +246,7 @@ func pushEvents(procs []Procs) {
 func GetRunningProcs() []Procs {
 	var procs []Procs
 
-	procFS, err := ioutil.ReadDir(option.Config.ProcFS)
+	procFS, err := os.ReadDir(option.Config.ProcFS)
 	if err != nil {
 		logger.GetLogger().WithError(err).Errorf("Could not read directory %s", option.Config.ProcFS)
 		return nil
@@ -270,7 +269,7 @@ func GetRunningProcs() []Procs {
 
 		pathName := filepath.Join(option.Config.ProcFS, d.Name())
 
-		cmdline, err := ioutil.ReadFile(filepath.Join(pathName, "cmdline"))
+		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
 		if err != nil {
 			continue
 		}
@@ -328,7 +327,7 @@ func GetRunningProcs() []Procs {
 			var err error
 			parentPath := filepath.Join(option.Config.ProcFS, ppid)
 
-			pcmdline, err = ioutil.ReadFile(filepath.Join(parentPath, "cmdline"))
+			pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
 			if err != nil {
 				logger.GetLogger().WithError(err).WithField("path", parentPath).Warn("parent cmdline error")
 				continue

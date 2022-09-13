@@ -4,19 +4,20 @@
 package bugtool
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSaveAndLoad(t *testing.T) {
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "tetragon-bugtool-test-")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "tetragon-bugtool-test-")
 	if err != nil {
 		t.Error("failed to create temporary file")
 	}
-	defer os.Remove(tmpFile.Name())
+	defer assert.NoError(t, tmpFile.Close())
 
 	info1 := InitInfo{
 		ExportFname: "1",

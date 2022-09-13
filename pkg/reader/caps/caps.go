@@ -5,7 +5,7 @@ package caps
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -359,7 +359,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 		return uint32(pid), err
 	}
 
-	file, err := ioutil.ReadFile(filename)
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("ReadFile failed: %s", filename)
 		return 0, 0, 0, 0
