@@ -112,3 +112,27 @@ func TestDetectCgroupMode(t *testing.T) {
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	assert.NotEmpty(t, cgroupFSPath)
 }
+
+// Test cgroup FS magic detection. This will run DetectCgroupFSMagic()
+// ensures that we properly get the cgroup filesystem magic number
+// but also the cgroupMode is properly set, since DetectCgroupFSMagic()
+// will automatically call DetectCgroupMode().
+//
+// TODO Setup multiple cgroupv1 and cgroupv2 combinations
+func TestDetectCgroupFSMagic(t *testing.T) {
+	fs, err := DetectCgroupFSMagic()
+	assert.NoError(t, err)
+	assert.NotEqual(t, CGROUP_UNDEF, fs)
+	if cgroupMode == CGROUP_UNIFIED {
+		assert.Equal(t, uint64(unix.CGROUP2_SUPER_MAGIC), fs)
+	} else if cgroupMode == CGROUP_HYBRID {
+		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
+		mounted, err := isDirMountFsType(filepath.Join(cgroupFSPath, "unified"), mountinfo.FilesystemTypeCgroup2)
+		assert.NoError(t, err)
+		assert.Equal(t, true, mounted)
+	} else if cgroupMode == CGROUP_LEGACY {
+		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
+	} else {
+		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
+	}
+}
