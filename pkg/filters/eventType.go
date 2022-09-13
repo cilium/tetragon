@@ -5,20 +5,31 @@ package filters
 
 import (
 	"context"
-	"reflect"
 
 	v1 "github.com/cilium/hubble/pkg/api/v1"
 	hubbleFilters "github.com/cilium/hubble/pkg/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func filterByEventType(types []reflect.Type) hubbleFilters.FilterFunc {
+func filterByEventType(types []tetragon.EventType) hubbleFilters.FilterFunc {
 	return func(ev *v1.Event) bool {
 		switch event := ev.Event.(type) {
 		case *tetragon.GetEventsResponse:
-			r := reflect.TypeOf(event.Event)
+			eventProtoNum := tetragon.EventType_UNDEF
+
+			rft := event.ProtoReflect()
+			rft.Range(func(eventDesc protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
+					return true
+				}
+
+				eventProtoNum = tetragon.EventType(eventDesc.Number())
+				return false
+			})
+
 			for _, t := range types {
-				if t == r {
+				if t == eventProtoNum {
 					return true
 				}
 			}
@@ -32,12 +43,7 @@ type EventTypeFilter struct{}
 func (f *EventTypeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.EventSet != nil {
-		var types []reflect.Type
-
-		for _, s := range ff.EventSet {
-			types = append(types, reflect.TypeOf(s))
-		}
-		fs = append(fs, filterByEventType(types))
+		fs = append(fs, filterByEventType(ff.EventSet))
 	}
 	return fs, nil
 }
