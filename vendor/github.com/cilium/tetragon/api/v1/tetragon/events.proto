@@ -21,15 +21,19 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
-// EventType constants are based on the ones from pkg/api/client
+// Represents the type of a Tetragon event.
+//
+// NOTE: EventType constants must be in sync with the numbers used in the
+// GetEventsResponse event oneof.
 enum EventType {
 	UNDEF = 0;
-	PROCESS_EXEC = 5;
-	PROCESS_EXIT = 7;
-	PROCESS_KPROBE = 13;
-	PROCESS_TRACEPOINT = 14;
 
-	TEST = 254;
+    PROCESS_EXEC = 1;
+    PROCESS_EXIT = 5;
+    PROCESS_KPROBE = 9;
+    PROCESS_TRACEPOINT = 10;
+
+    TEST = 40000;
 }
 
 message Filter {
@@ -89,7 +93,12 @@ message AggregationInfo {
 }
 
 message GetEventsResponse {
+    // The type-specific fields of an event.
+    //
+    // NOTE: Numbers must stay in sync with enum EventType.
     oneof event {
+        // Numbers must be in sync with
+
         ProcessExec process_exec = 1;
         ProcessExit process_exit = 5;
         ProcessKprobe process_kprobe = 9;
