@@ -791,16 +791,19 @@ For an aggregated response, this field to set to the timestamp at which the even
 <a name="tetragon-EventType"></a>
 
 ### EventType
-EventType constants are based on the ones from pkg/api/client
+Represents the type of a Tetragon event.
+
+NOTE: EventType constants must be in sync with the numbers used in the
+GetEventsResponse event oneof.
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
 | UNDEF | 0 |  |
-| PROCESS_EXEC | 5 |  |
-| PROCESS_EXIT | 7 |  |
-| PROCESS_KPROBE | 13 |  |
-| PROCESS_TRACEPOINT | 14 |  |
-| TEST | 254 |  |
+| PROCESS_EXEC | 1 |  |
+| PROCESS_EXIT | 5 |  |
+| PROCESS_KPROBE | 9 |  |
+| PROCESS_TRACEPOINT | 10 |  |
+| TEST | 40000 |  |
 
 
  
