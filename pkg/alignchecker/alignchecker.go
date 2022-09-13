@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 
 	check "github.com/cilium/cilium/pkg/alignchecker"
@@ -35,5 +36,15 @@ func CheckStructAlignments(path string) error {
 		"event_config":     {reflect.TypeOf(tracingapi.EventConfig{})},
 		"tetragon_conf":    {reflect.TypeOf(confapi.TetragonConf{})},
 	}
-	return check.CheckStructAlignments(path, toCheck, true)
+
+	confMap := map[string][]reflect.Type{
+		"tetragon_conf": {reflect.TypeOf(confmap.TetragonConfValue{})},
+	}
+
+	err := check.CheckStructAlignments(path, toCheck, true)
+	if err != nil {
+		return err
+	}
+
+	return check.CheckStructAlignments(path, confMap, true)
 }
