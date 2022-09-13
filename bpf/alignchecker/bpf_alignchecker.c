@@ -40,6 +40,7 @@ int main(void)
 	DECLARE(struct, msg_execve_key, iter);
 	DECLARE(struct, execve_map_value, iter);
 	DECLARE(struct, event_config, iter);
+	DECLARE(struct, tetragon_conf, iter);
 
 	return 0;
 }
