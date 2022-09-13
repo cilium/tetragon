@@ -5,7 +5,7 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"sigs.k8s.io/yaml"
@@ -37,7 +37,7 @@ func ReadConfigYaml(data string) (*GenericTracingConf, error) {
 }
 
 func fileConfig(fileName string) (*GenericTracingConf, error) {
-	config, err := ioutil.ReadFile(fileName)
+	config, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}

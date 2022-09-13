@@ -4,7 +4,7 @@ package proc
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -59,7 +59,7 @@ func getProcStatStrings(procStat string) []string {
 }
 
 func GetProcStatStrings(file string) ([]string, error) {
-	statline, err := ioutil.ReadFile(filepath.Join(file, "stat"))
+	statline, err := os.ReadFile(filepath.Join(file, "stat"))
 	if err != nil {
 		return nil, fmt.Errorf("ReadFile: %s /stat error", file)
 	}

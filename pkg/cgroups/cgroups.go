@@ -9,7 +9,6 @@ package cgroups
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -389,7 +388,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 // Lookup Cgroupv2 active controllers and returns one that we support
 func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
 	file := filepath.Join(cgroupPath, "cgroup.controllers")
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %v", file, err)
 	}
@@ -482,7 +481,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 func getPidCgroupPaths(pid uint32) ([]string, error) {
 	file := filepath.Join(option.Config.ProcFS, fmt.Sprint(pid), "cgroup")
 
-	cgroups, err := ioutil.ReadFile(file)
+	cgroups, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %v", file, err)
 	}

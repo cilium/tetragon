@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -86,7 +85,7 @@ spec:
 	defer cancel()
 
 	writeConfigHook := []byte(writeReadHook)
-	err := ioutil.WriteFile(testConfigFile, writeConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -131,7 +130,7 @@ spec:
         - ` + pidStr
 
 	lseekConfigHook := []byte(lseekConfigHook_)
-	err := ioutil.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -173,7 +172,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	defer cancel()
 
 	writeConfigHook := []byte(writeReadHook)
-	err := ioutil.WriteFile(testConfigFile, writeConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -426,7 +425,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
-	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -605,7 +604,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	syscall.Close(fd)
 
 	readConfigHook := []byte(readHook)
-	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1051,7 +1050,7 @@ spec:
         - 1
 `
 	writeConfigHook := []byte(writeReadHook)
-	err := ioutil.WriteFile(testConfigFile, writeConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1309,7 +1308,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	syscall.Close(fd)
 
 	readConfigHook := []byte(readHook)
-	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1555,7 +1554,7 @@ spec:
 	defer cancel()
 
 	readConfigHook := []byte(readHook)
-	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1608,7 +1607,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 	defer cancel()
 
 	configHook := []byte(hook)
-	err := ioutil.WriteFile(testConfigFile, configHook, 0644)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1640,11 +1639,11 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 func TestKprobeOverride(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 
-	file, err := ioutil.TempFile("/tmp", "kprobe-override-")
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer os.Remove(file.Name())
+	defer assert.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1715,7 +1714,7 @@ spec:
 `
 
 	configHook := []byte(closeFdHook)
-	err := ioutil.WriteFile(testConfigFile, configHook, 0644)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -1736,7 +1735,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	defer cancel()
 
 	testConfigHook := []byte(configHook)
-	err := ioutil.WriteFile(testConfigFile, testConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, testConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -2072,7 +2071,7 @@ func createReadChecker(filename string) *ec.ProcessKprobeChecker {
 
 func createCrdFile(t *testing.T, readHook string) {
 	readConfigHook := []byte(readHook)
-	err := ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
@@ -2477,7 +2476,7 @@ spec:
 	var err error
 
 	readConfigHook := []byte(readHook)
-	err = ioutil.WriteFile(testConfigFile, readConfigHook, 0644)
+	err = os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}

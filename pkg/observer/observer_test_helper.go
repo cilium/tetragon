@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -519,11 +518,11 @@ func WaitForProcess(process string) error {
 	if procfs == "" {
 		procfs = "/proc/"
 	}
-	procDir, _ := ioutil.ReadDir(procfs)
+	procDir, _ := os.ReadDir(procfs)
 	for i := 0; i < 120; i++ {
 		for _, d := range procDir {
 
-			cmdline, err := ioutil.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
+			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
 			if err != nil {
 				continue
 			}

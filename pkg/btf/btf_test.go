@@ -6,7 +6,6 @@ package btf
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,9 +44,7 @@ func setupfiles() func(*testing.T, string, ...string) {
 func TestObserverFindBTF(t *testing.T) {
 	ctx := context.Background()
 
-	tmpdir, err := ioutil.TempDir("/tmp", fmt.Sprintf("tetragon-%s-*", t.Name()))
-	assert.NoError(t, err, "failed to create temporary directory")
-	defer os.RemoveAll(tmpdir)
+	tmpdir := t.TempDir()
 
 	old := os.Getenv("TETRAGON_BTF")
 	defer os.Setenv("TETRAGON_BTF", old)
