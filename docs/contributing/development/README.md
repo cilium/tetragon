@@ -154,6 +154,32 @@ Finally, should you wish to modify any of the resulting codegen files (ending in
 do not modify them directly. Instead, you can edit the files in
 `cmd/protoc-gen-go-tetragon` and then re-run `make codegen`.
 
+### Building and running a Docker image
+
+The base kernel should support [BTF](../../../README.md#btf-requirement) or a BTF file should
+be bind mounted on top of `/var/lib/tetragon/btf` inside container.
+
+To build Tetragon image:
+```
+make image
+```
+
+To run the image:
+```
+docker run --name tetragon \
+   --rm -it -d --pid=host \
+   --cgroupns=host --privileged \
+   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
+   cilium/tetragon:latest \
+   bash -c "/usr/bin/tetragon"
+```
+
+Run the `tetra` binary to get Tetragon events:
+```
+docker exec -it tetragon \
+   bash -c "/usr/bin/tetra getevents -o compact"
+```
+
 ### Running Tetragon in kind
 
 The scripts in contrib/localdev will help you run Tetragon locally in a kind cluster.
