@@ -159,11 +159,11 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	});
 
 	msg->common.op = MSG_OP_GENERIC_TRACEPOINT;
-	msg->curr = 0;
+	msg->sel.curr = 0;
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
-		msg->active[i] = 0;
-	msg->pass = 0;
+		msg->sel.active[i] = 0;
+	msg->sel.pass = 0;
 	tail_call(ctx, &tp_calls, 5);
 	return 0;
 }
@@ -223,7 +223,8 @@ generic_tracepoint_filter(void *ctx)
 	if (!msg)
 		return 0;
 
-	ret = generic_process_filter(msg, &filter_map, &tp_heap);
+	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
+				     &msg->caps, &filter_map);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &tp_calls, 5);
 	else if (ret == PFILTER_ACCEPT)

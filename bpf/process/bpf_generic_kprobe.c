@@ -67,22 +67,22 @@ generic_kprobe_start_process_filter(void *ctx)
 	if (!msg)
 		return 0;
 	/* Initialize selector index to 0 */
-	msg->curr = 0;
+	msg->sel.curr = 0;
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
-		msg->active[i] = 0;
+		msg->sel.active[i] = 0;
 	/* Initialize accept field to reject */
-	msg->pass = 0;
+	msg->sel.pass = 0;
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&(msg->ns), task);
 	/* Initialize capabilities to apply filters on them */
 	get_caps(&(msg->caps), task);
 #ifdef __NS_CHANGES_FILTER
-	msg->match_ns = 0;
+	msg->sel.match_ns = 0;
 #endif
 #ifdef __CAP_CHANGES_FILTER
-	msg->match_cap = 0;
+	msg->sel.match_cap = 0;
 #endif
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
@@ -178,8 +178,8 @@ generic_kprobe_process_filter(void *ctx)
 	if (!msg)
 		return 0;
 
-	ret = generic_process_filter(msg, (struct bpf_map_def *)&filter_map,
-				     (struct bpf_map_def *)&process_call_heap);
+	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
+				     &msg->caps, &filter_map);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &kprobe_calls, 5);
 	else if (ret == PFILTER_ACCEPT)

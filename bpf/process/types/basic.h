@@ -914,9 +914,8 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 	}
 
 	/* No selectors, accept by default */
-	if (!e->active[SELECTORS_ACTIVE]) {
+	if (!e->sel.active[SELECTORS_ACTIVE])
 		return 1;
-	}
 
 	/* We ran process filters early as a prefilter to drop unrelated
 	 * events early. Now we need to ensure that active pid sselectors
@@ -925,7 +924,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 	if (index > SELECTORS_ACTIVE)
 		return filter_args_reject();
 
-	if (e->active[index]) {
+	if (e->sel.active[index]) {
 		int pass = selector_arg_offset(f, e, index);
 		if (pass)
 			return pass;
@@ -1134,7 +1133,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	pass = filter_args(e, index, filter);
 	if (!pass) {
 		index++;
-		if (index > MAX_SELECTORS || !e->active[index])
+		if (index > MAX_SELECTORS || !e->sel.active[index])
 			return filter_args_reject();
 		tail_call(ctx, tailcalls, index + 5);
 		return 2;
@@ -1172,7 +1171,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */
-	if (e->match_ns) {
+	if (e->sel.match_ns) {
 		__u32 pid = (get_current_pid_tgid() >> 32);
 		struct task_struct *task =
 			(struct task_struct *)get_current_task();
@@ -1184,7 +1183,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 #endif
 #ifdef __CAP_CHANGES_FILTER
 	/* update the capabilities if we matched a change on that */
-	if (e->match_cap) {
+	if (e->sel.match_cap) {
 		__u32 pid = (get_current_pid_tgid() >> 32);
 		struct task_struct *task =
 			(struct task_struct *)get_current_task();
