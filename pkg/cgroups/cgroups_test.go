@@ -4,13 +4,44 @@
 package cgroups
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/mountinfo"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
+
+func isDirMountFsType(path string, mntType string) (bool, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return false, nil
+	}
+
+	if !st.IsDir() {
+		return false, fmt.Errorf("%s is not a directory", path)
+	}
+
+	infos, err := mountinfo.GetMountInfo()
+	if err != nil {
+		return false, err
+	}
+
+	mounted, instance := mountinfo.IsMountFS(infos, mntType, path)
+	if !mounted {
+		return false, fmt.Errorf("%s directory exists but not mounted as %s! left-over?", path, mntType)
+	}
+
+	if !instance {
+		return false, fmt.Errorf("%s has different mount system than %s", path, mntType)
+	}
+
+	return true, nil
+}
 
 // Test cgroup mode detection on an invalid directory
 func TestDetectCgroupModeInvalid(t *testing.T) {
@@ -49,5 +80,21 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 	} else {
 		t.Errorf("TestDetectCgroupModeDefault() failed Cgroupfs %s type failed:  want:%d or %d -  got:%d",
 			defaultCgroupRoot, unix.CGROUP2_SUPER_MAGIC, unix.TMPFS_MAGIC, st.Type)
+	}
+}
+
+// Test cgroup mode detection on our custom location /run/tetragon/cgroup2
+func TestDetectCgroupModeCustomLocation(t *testing.T) {
+	// We also mount cgroup2 on /run/tetragon/cgroup2 let's test it
+	mounted, err := isDirMountFsType(defaults.Cgroup2Dir, mountinfo.FilesystemTypeCgroup2)
+	assert.NoError(t, err)
+
+	mode, err := detectCgroupMode(defaults.Cgroup2Dir)
+	if mounted {
+		assert.NoError(t, err)
+		assert.Equal(t, CGROUP_UNIFIED, mode)
+	} else {
+		assert.Error(t, err)
+		assert.Equal(t, CGROUP_UNDEF, mode)
 	}
 }
