@@ -271,13 +271,15 @@ type KprobeArgs struct {
 	Args4 []byte
 }
 
+const EventConfigMaxArgs = 5
+
 type EventConfig struct {
-	FuncId        uint32    `align:"func_id"`
-	Arg           [5]int32  `align:"arg0"`
-	ArgM          [5]uint32 `align:"arg0m"`
-	ArgTpCtxOff   [5]uint32 `align:"t_arg0_ctx_off"`
-	Sigkill       uint32    `align:"sigkill"`
-	Syscall       uint32    `align:"syscall"`
-	ArgReturnCopy int32     `align:"argreturncopy"`
-	ArgReturn     int32     `align:"argreturn"`
+	FuncId        uint32                     `align:"func_id"`
+	Arg           [EventConfigMaxArgs]int32  `align:"arg0"`
+	ArgM          [EventConfigMaxArgs]uint32 `align:"arg0m"`
+	ArgTpCtxOff   [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`
+	Sigkill       uint32                     `align:"sigkill"`
+	Syscall       uint32                     `align:"syscall"`
+	ArgReturnCopy int32                      `align:"argreturncopy"`
+	ArgReturn     int32                      `align:"argreturn"`
 }
