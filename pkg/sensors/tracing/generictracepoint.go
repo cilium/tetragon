@@ -133,15 +133,9 @@ func (t *tracepointTable) getTracepoint(idx int) (*genericTracepoint, error) {
 // a caller-defined structure that configures a tracepoint.
 type GenericTracepointConf = v1alpha1.TracepointSpec
 
-// GenericTracepointConfArg represents an argument of a generic tracepoint
-//
-// This points to the index of the argument.
-// (Another option might be to specify this by name)
-type GenericTracepointConfArg v1alpha1.KProbeArg
-
 // getTracepointMetaArg is a temporary helper to find meta values while tracepoint
 // converts into new CRD and config formats.
-func getTracepointMetaValue(arg *GenericTracepointConfArg) int {
+func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	if arg.SizeArgIndex > 0 {
 		return int(arg.SizeArgIndex)
 	}
@@ -149,28 +143,6 @@ func getTracepointMetaValue(arg *GenericTracepointConfArg) int {
 		return -1
 	}
 	return 0
-}
-
-func (tp *genericTracepoint) configureAndAddArg(conf *GenericTracepointConfArg) error {
-	if conf.Index >= uint32(len(tp.Info.Format.Fields)) {
-		return fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested",
-			tp.Info.Subsys, tp.Info.Event, len(tp.Info.Format.Fields), conf.Index)
-	}
-	field := tp.Info.Format.Fields[conf.Index]
-
-	metaTp := getTracepointMetaValue(conf)
-
-	argIdx := uint32(len(tp.args))
-	tp.args = append(tp.args, genericTracepointArg{
-		CtxOffset:     int(field.Offset),
-		ArgIdx:        argIdx,
-		TpIdx:         int(conf.Index),
-		MetaTp:        metaTp,
-		nopTy:         false,
-		format:        &field,
-		genericTypeId: gt.GenericInvalidType,
-	})
-	return nil
 }
 
 func (out *genericTracepointArg) String() string {
@@ -246,6 +218,73 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 	return gt.GenericInvalidType, fmt.Errorf("Unknown type: %T", out.format.Field.Type)
 }
 
+func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
+	ret := make([]genericTracepointArg, 0, len(specArgs))
+	nfields := uint32(len(info.Format.Fields))
+
+	for argIdx := range specArgs {
+		specArg := &specArgs[argIdx]
+		if specArg.Index >= nfields {
+			return nil, fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested", info.Subsys, info.Event, nfields, specArg.Index)
+		}
+		field := info.Format.Fields[specArg.Index]
+		ret = append(ret, genericTracepointArg{
+			CtxOffset:     int(field.Offset),
+			ArgIdx:        uint32(argIdx),
+			TpIdx:         int(specArg.Index),
+			MetaTp:        getTracepointMetaValue(specArg),
+			nopTy:         false,
+			format:        &field,
+			genericTypeId: gt.GenericInvalidType,
+		})
+	}
+
+	// getOrAppendMeta is a helper function for meta arguments now that we
+	// have the configured arguments, we also need to configure meta
+	// arguments. Some of them will exist already, but others we will have
+	// to create with a nop type so that they will be fetched, but not be
+	// part of the output
+	getOrAppendMeta := func(metaTp int) (*genericTracepointArg, error) {
+		tpIdx := metaTp - 1
+		for i := range ret {
+			if ret[i].TpIdx == tpIdx {
+				return &ret[i], nil
+			}
+		}
+
+		if tpIdx >= int(nfields) {
+			return nil, fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested in a metadata argument", info.Subsys, info.Event, len(info.Format.Fields), tpIdx)
+		}
+		field := info.Format.Fields[tpIdx]
+		argIdx := uint32(len(ret))
+		ret = append(ret, genericTracepointArg{
+			CtxOffset:     int(field.Offset),
+			ArgIdx:        argIdx,
+			TpIdx:         tpIdx,
+			MetaTp:        0,
+			MetaArg:       0,
+			nopTy:         true,
+			format:        &field,
+			genericTypeId: gt.GenericInvalidType,
+		})
+		return &ret[argIdx], nil
+	}
+
+	for idx := 0; idx < len(ret); idx++ {
+		meta := ret[idx].MetaTp
+		if meta == 0 || meta == -1 {
+			ret[idx].MetaArg = meta
+			continue
+		}
+		a, err := getOrAppendMeta(meta)
+		if err != nil {
+			return nil, err
+		}
+		ret[idx].MetaArg = int(a.ArgIdx) + 1
+	}
+	return ret, nil
+}
+
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
 func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, error) {
@@ -258,61 +297,15 @@ func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, e
 		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
 	}
 
+	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args)
+	if err != nil {
+		return nil, err
+	}
+
 	ret := &genericTracepoint{
 		Info: &tp,
 		Spec: conf,
-	}
-
-	for i := range conf.Args {
-		arg := GenericTracepointConfArg{
-			Index:        conf.Args[i].Index,
-			SizeArgIndex: conf.Args[i].SizeArgIndex,
-			ReturnCopy:   conf.Args[i].ReturnCopy,
-		}
-		if err := ret.configureAndAddArg(&arg); err != nil {
-			return nil, err
-		}
-	}
-
-	getOrAppend := func(metaTp int) (*genericTracepointArg, error) {
-		tpIdx := metaTp - 1
-		for i := range ret.args {
-			if ret.args[i].TpIdx == tpIdx {
-				return &ret.args[i], nil
-			}
-		}
-
-		if tpIdx >= len(ret.Info.Format.Fields) {
-			return nil, fmt.Errorf(
-				"tracepoint %s/%s has %d fields but field %d was requested in a metadata argument",
-				ret.Info.Subsys, ret.Info.Event, len(ret.Info.Format.Fields), tpIdx)
-		}
-		field := ret.Info.Format.Fields[tpIdx]
-		argIdx := uint32(len(ret.args))
-		ret.args = append(ret.args, genericTracepointArg{
-			CtxOffset:     int(field.Offset),
-			ArgIdx:        argIdx,
-			TpIdx:         tpIdx,
-			MetaTp:        0,
-			MetaArg:       0,
-			nopTy:         true,
-			format:        &field,
-			genericTypeId: gt.GenericInvalidType,
-		})
-		return &ret.args[argIdx], nil
-	}
-
-	for idx := 0; idx < len(ret.args); idx++ {
-		meta := ret.args[idx].MetaTp
-		if meta == 0 || meta == -1 {
-			ret.args[idx].MetaArg = meta
-			continue
-		}
-		a, err := getOrAppend(meta)
-		if err != nil {
-			return nil, err
-		}
-		ret.args[idx].MetaArg = int(a.ArgIdx) + 1
+		args: tpArgs,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
