@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -83,6 +84,8 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 			for _, event := range events {
 				k.observerListeners(event)
 			}
+		} else {
+			k.log.WithError(err).WithField("event_type", tetragon.EventType(op).String()).Warn("error occurred in event handler")
 		}
 	} else {
 		k.log.Infof("unknown op ignored: %v", op)
