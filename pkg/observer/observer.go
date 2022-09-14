@@ -88,7 +88,7 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 			k.log.WithError(err).WithField("event_type", tetragon.EventType(op).String()).Warn("error occurred in event handler")
 		}
 	} else {
-		k.log.Infof("unknown op ignored: %v", op)
+		k.log.WithField("opcode", op).WithField("event_type", tetragon.EventType(op).String()).Warn("unknown opcode ignored")
 	}
 }
 
