@@ -125,6 +125,16 @@ func KprobeAttach(load *Program) AttachFunc {
 	}
 }
 
+func NoAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+		}, nil
+	}
+}
+
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
@@ -143,6 +153,10 @@ func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int)
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
 	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+}
+
+func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(load), nil, verbose)
 }
 
 func slimVerifierError(errStr string) string {
