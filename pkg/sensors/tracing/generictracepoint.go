@@ -68,7 +68,7 @@ type genericTracepoint struct {
 	Info *tracepoint.Tracepoint
 	args []genericTracepointArg
 
-	Selectors *v1alpha1.TracepointSpec
+	Spec *v1alpha1.TracepointSpec
 
 	// index to access this on genericTracepointTable
 	tableIdx int
@@ -259,8 +259,8 @@ func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, e
 	}
 
 	ret := &genericTracepoint{
-		Info:      &tp,
-		Selectors: conf,
+		Info: &tp,
+		Spec: conf,
 	}
 
 	for i := range conf.Args {
@@ -417,25 +417,25 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 
-		if len(tp.Selectors.Args) > i && tp.Selectors.Args[i].Type == "" {
-			tp.Selectors.Args[i].Type = selectors.ArgTypeToString(uint32(ty))
+		if len(tp.Spec.Args) > i && tp.Spec.Args[i].Type == "" {
+			tp.Spec.Args[i].Type = selectors.ArgTypeToString(uint32(ty))
 		}
 
-		for j, arg := range tp.Selectors.Args {
+		for j, arg := range tp.Spec.Args {
 			if arg.Index == uint32(tpArg.TpIdx) {
-				tp.Selectors.Args[j].Index = tpArg.ArgIdx
+				tp.Spec.Args[j].Index = tpArg.ArgIdx
 			}
 		}
-		for j, s := range tp.Selectors.Selectors {
+		for j, s := range tp.Spec.Selectors {
 			for k, match := range s.MatchArgs {
 				if match.Index == uint32(tpArg.TpIdx) {
-					tp.Selectors.Selectors[j].MatchArgs[k].Index = uint32(tpArg.ArgIdx)
+					tp.Spec.Selectors[j].MatchArgs[k].Index = uint32(tpArg.ArgIdx)
 				}
 			}
 		}
 	}
 
-	kernelSelectors, err := selectors.InitKernelSelectors(tp.Selectors.Selectors, tp.Selectors.Args)
+	kernelSelectors, err := selectors.InitKernelSelectors(tp.Spec.Selectors, tp.Spec.Args)
 	if err != nil {
 		return err
 	}
