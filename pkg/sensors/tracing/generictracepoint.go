@@ -359,6 +359,44 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 	}, nil
 }
 
+func (tp *genericTracepoint) KernelSelectors() ([4096]byte, error) {
+	// rewrite arg index
+	selArgs := make([]v1alpha1.KProbeArg, 0, len(tp.args))
+	selSelectors := make([]v1alpha1.KProbeSelector, 0, len(tp.Spec.Selectors))
+	for i := range tp.Spec.Selectors {
+		origSel := &tp.Spec.Selectors[i]
+		selSelectors = append(selSelectors, *origSel.DeepCopy())
+	}
+
+	for i := range tp.args {
+		tpArg := &tp.args[i]
+		ty, err := tpArg.setGenericTypeId()
+		if err != nil {
+			return [4096]byte{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+		selType := selectors.ArgTypeToString(uint32(ty))
+
+		// NB: this a selector argument, meant to be passed to InitKernelSelectors.
+		// The only fields needed for the latter are Index and Type
+		selArg := v1alpha1.KProbeArg{
+			Index: tpArg.ArgIdx,
+			Type:  selType,
+		}
+		selArgs = append(selArgs, selArg)
+
+		// update selectors
+		for j, s := range selSelectors {
+			for k, match := range s.MatchArgs {
+				if match.Index == uint32(tpArg.TpIdx) {
+					selSelectors[j].MatchArgs[k].Index = uint32(tpArg.ArgIdx)
+				}
+			}
+		}
+	}
+
+	return selectors.InitKernelSelectors(selSelectors, selArgs)
+}
+
 func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 
 	if len(tp.args) > api.EventConfigMaxArgs {
@@ -406,43 +444,14 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
-	// rewrite arg index
-	for i := range tp.args {
-		tpArg := &tp.args[i]
-
-		ty, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
-
-		if len(tp.Spec.Args) > i && tp.Spec.Args[i].Type == "" {
-			tp.Spec.Args[i].Type = selectors.ArgTypeToString(uint32(ty))
-		}
-
-		for j, arg := range tp.Spec.Args {
-			if arg.Index == uint32(tpArg.TpIdx) {
-				tp.Spec.Args[j].Index = tpArg.ArgIdx
-			}
-		}
-		for j, s := range tp.Spec.Selectors {
-			for k, match := range s.MatchArgs {
-				if match.Index == uint32(tpArg.TpIdx) {
-					tp.Spec.Selectors[j].MatchArgs[k].Index = uint32(tpArg.ArgIdx)
-				}
-			}
-		}
-	}
-
-	kernelSelectors, err := selectors.InitKernelSelectors(tp.Spec.Selectors, tp.Spec.Args)
+	kernelSelectors, err := tp.KernelSelectors()
 	if err != nil {
 		return err
 	}
-
 	filter := &program.MapLoad{Name: "filter_map", Data: kernelSelectors[:]}
 	load.MapLoad = append(load.MapLoad, filter)
 
 	var bin_buf bytes.Buffer
-
 	config, err := tp.EventConfig()
 	if err != nil {
 		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
