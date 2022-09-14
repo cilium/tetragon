@@ -35,8 +35,6 @@ const (
 	// nolint We probably want to keep this even though it's unused at the moment
 	// NB: this should match the size of ->args[] of the output message
 	genericTP_OutputSize = 9000
-	// maximum arguments that bpf-side supports
-	genericTP_MaxArgs = 5
 )
 
 var (
@@ -361,8 +359,40 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 	}, nil
 }
 
-func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
+
+	if len(tp.args) > api.EventConfigMaxArgs {
+		return api.EventConfig{}, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
+	}
+
 	config := api.EventConfig{}
+	config.FuncId = uint32(tp.tableIdx)
+	// iterate over output arguments
+	for i := range tp.args {
+		tpArg := &tp.args[i]
+		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
+		_, err := tpArg.setGenericTypeId()
+		if err != nil {
+			return api.EventConfig{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+
+		config.Arg[i] = int32(tpArg.genericTypeId)
+		config.ArgM[i] = uint32(tpArg.MetaArg)
+
+		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+	}
+
+	// nop args
+	for i := len(tp.args); i < api.EventConfigMaxArgs; i++ {
+		config.ArgTpCtxOff[i] = uint32(0)
+		config.Arg[i] = int32(gt.GenericNopType)
+		config.ArgM[i] = uint32(0)
+	}
+
+	return config, nil
+}
+
+func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
 
 	tracepointLog = logger.GetLogger()
 
@@ -374,31 +404,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	tp, err := genericTracepointTable.getTracepoint(tpIdx)
 	if err != nil {
 		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
-	}
-
-	config.FuncId = uint32(tp.tableIdx)
-
-	// iterate over output arguments
-	for i := range tp.args {
-		tpArg := &tp.args[i]
-
-		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
-		_, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
-
-		config.Arg[i] = int32(tpArg.genericTypeId)
-		config.ArgM[i] = uint32(tpArg.MetaArg)
-
-		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
-	}
-
-	// nop args
-	for i := len(tp.args); i < genericTP_MaxArgs; i++ {
-		config.ArgTpCtxOff[i] = uint32(0)
-		config.Arg[i] = int32(gt.GenericNopType)
-		config.ArgM[i] = uint32(0)
 	}
 
 	// rewrite arg index
@@ -438,6 +443,10 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 
 	var bin_buf bytes.Buffer
 
+	config, err := tp.EventConfig()
+	if err != nil {
+		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
+	}
 	binary.Write(&bin_buf, binary.LittleEndian, config)
 	cfg := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
 	load.MapLoad = append(load.MapLoad, cfg)
