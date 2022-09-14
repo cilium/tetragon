@@ -151,9 +151,7 @@ func getTracepointMetaValue(arg *GenericTracepointConfArg) int {
 	return 0
 }
 
-// NB: making this a method of GenericTracepointConfArg means that we can have
-// this as an interface (e.g,. for implementing output by name)
-func (conf *GenericTracepointConfArg) configureTracepointArg(tp *genericTracepoint) error {
+func (tp *genericTracepoint) configureAndAddArg(conf *GenericTracepointConfArg) error {
 	if conf.Index >= uint32(len(tp.Info.Format.Fields)) {
 		return fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested",
 			tp.Info.Subsys, tp.Info.Event, len(tp.Info.Format.Fields), conf.Index)
@@ -271,7 +269,7 @@ func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, e
 			SizeArgIndex: conf.Args[i].SizeArgIndex,
 			ReturnCopy:   conf.Args[i].ReturnCopy,
 		}
-		if err := arg.configureTracepointArg(ret); err != nil {
+		if err := ret.configureAndAddArg(&arg); err != nil {
 			return nil, err
 		}
 	}
