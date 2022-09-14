@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path"
 	"reflect"
+	"sync"
 	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -104,12 +105,15 @@ type genericTracepointArg struct {
 
 // tracepointTable is, for now, an array.
 type tracepointTable struct {
+	mu  sync.Mutex
 	arr []*genericTracepoint
 }
 
 // addTracepoint adds a tracepoint to the table, and sets its .tableIdx field
 // to be the index to retrieve it from the table.
 func (t *tracepointTable) addTracepoint(tp *genericTracepoint) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	idx := len(t.arr)
 	t.arr = append(t.arr, tp)
 	tp.tableIdx = idx
@@ -117,6 +121,8 @@ func (t *tracepointTable) addTracepoint(tp *genericTracepoint) {
 
 // getTracepoint retrieves a tracepoint from the table using its id
 func (t *tracepointTable) getTracepoint(idx int) (*genericTracepoint, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if idx < len(t.arr) {
 		return t.arr[idx], nil
 	}
