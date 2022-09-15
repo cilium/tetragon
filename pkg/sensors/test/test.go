@@ -8,6 +8,9 @@ package test
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+
+	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/testapi"
@@ -18,18 +21,16 @@ import (
 )
 
 var (
-	ObserverLseekTest = program.Builder(
-		"bpf_lseek.o",
-		"syscalls/sys_enter_lseek",
-		"tracepoint/sys_enter_lseek",
-		"test_lseek",
-		"tracepoint",
-	)
 
 	// BogusFd is the fd value required to trigger the lseek test probe
 	BogusFd = -1
 	// BogusWhenceVal is the whence value required to trigger the lseek test probe
 	BogusWhenceVal = 4729
+)
+
+var (
+	// (atomic) counter for sensor names. Initialized at 0 so that first sensor is "1"
+	sensorCounter uint64
 )
 
 func init() {
@@ -56,8 +57,14 @@ func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 
 // GetTestSensor creates a new test sensor.
 func GetTestSensor() *sensors.Sensor {
-	sensorName := "lseekTest"
-	progs := []*program.Program{ObserverLseekTest}
+	sensorName := fmt.Sprintf("test-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+	progs := []*program.Program{program.Builder(
+		"bpf_lseek.o",
+		"syscalls/sys_enter_lseek",
+		"tracepoint/sys_enter_lseek",
+		sensors.PathJoin(sensorName, "test_lseek_prog"),
+		"tracepoint",
+	)}
 	maps := []*program.Map{}
 	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
 	return sensor
