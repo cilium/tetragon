@@ -26,10 +26,28 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func tpSpecReload(t *testing.T, tpSensor *sensors.Sensor, tpSpec *v1alpha1.TracepointSpec) {
+	if len(tpSensor.Progs) != 1 {
+		t.Fatalf("unexpected progs size: %d", len(tpSensor.Progs))
+	}
+
+	tpProg := tpSensor.Progs[0]
+	if err := ReloadGenericTracepointSelectors(tpProg, tpSpec); err != nil {
+		t.Fatalf("failed to reload tracepoint prog: %s", err)
+	}
+	if len(tpSensor.Progs) != 1 {
+		t.Fatalf("unexpected progs size: %d", len(tpSensor.Progs))
+	}
+}
+
 // TestTracepointSelectors tests the tracepoint selectors.
 //
 // It is different from the tests in tracepioint_test.go in that:
 //   - it directly reads from the ringbuffer
+//   - it test different configurations by detaching (unlinking) the tracepoint hook, update the
+//   cosnfiguration, and relinking. This means that verification for every test happens only once,
+//   significantly reducing test time.
+//
 // As other tracepoint tests, it uses the lseek system call with a bogus whence value.
 func TestTracepointSelectors(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
@@ -155,12 +173,19 @@ func TestTracepointSelectors(t *testing.T) {
 	}
 
 	t0 := time.Now()
-	loadSensor(t, makeSpec(t, []int{4443}))
+	tpSensor := loadSensor(t, makeSpec(t, []int{4443}))
 	loadElapsed := time.Since(t0)
 	t.Logf("loading sensors took: %s\n", loadElapsed)
 
 	t.Run("initial sensor", func(t *testing.T) {
 		testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 		runAndCheck(t, "two events", lseekOps([]int{4444, 4443}), map[uint64]int{4443: 1})
+	})
+
+	t.Run("sensor with filter for 4443", func(t *testing.T) {
+		testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+		spec := makeSpec(t, []int{4444})
+		tpSpecReload(t, tpSensor, &spec.Tracepoints[0])
+		runAndCheck(t, "one event", lseekOps([]int{4444, 4443}), map[uint64]int{4444: 1})
 	})
 }
