@@ -2390,6 +2390,9 @@ spec:
 }
 
 func TestKprobePerfEvent(t *testing.T) {
+	if v := "5.5.0"; !kernels.MinKernelVersion(v) {
+		t.Skipf("Minimum kernel version (%v) not met, skipping", v)
+	}
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
