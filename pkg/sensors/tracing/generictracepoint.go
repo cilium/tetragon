@@ -9,13 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"sync/atomic"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -350,6 +353,9 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 
 		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
 		maps = append(maps, tailCalls)
+
+		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), prog0)
+		maps = append(maps, filterMap)
 	}
 
 	return &sensors.Sensor{
@@ -428,6 +434,66 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 	}
 
 	return config, nil
+}
+
+// ReloadGenericTracepointSelectors will reload a tracepoint by unlinking it, generating new
+// selector data and updating filter_map, and then relinking the tracepoint.
+//
+// This is intentended for speeding up testing, so DO NOT USE elswhere without checking its
+// implementation first because limitations may exist (e.g,. the config map is not updated).
+func ReloadGenericTracepointSelectors(p *program.Program, conf *v1alpha1.TracepointSpec) error {
+	tpIdx, ok := p.LoaderData.(int)
+	if !ok {
+		return fmt.Errorf("loaderData for genericTracepoint %s is %T (%v) (not an int)", p.Name, p.LoaderData, p.LoaderData)
+	}
+
+	tp, err := genericTracepointTable.getTracepoint(tpIdx)
+	if err != nil {
+		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", p.Attach, err)
+	}
+
+	if err := p.Unlink(); err != nil {
+		return fmt.Errorf("unlinking %v failed: %s", p, err)
+	}
+
+	tp.Info.Subsys = conf.Subsystem
+	tp.Info.Event = conf.Event
+	if err := tp.Info.LoadFormat(); err != nil {
+		return fmt.Errorf("tracepoint %s/%s not supported: %w", conf.Subsystem, conf.Event, err)
+	}
+
+	tp.Spec = conf
+	tp.args, err = buildGenericTracepointArgs(tp.Info, conf.Args)
+	if err != nil {
+		return err
+	}
+
+	filterName, ok := p.PinMap["filter_map"]
+	if !ok {
+		return fmt.Errorf("cannot find pinned filter_map")
+	}
+
+	kernelSelectors, err := tp.KernelSelectors()
+	if err != nil {
+		return err
+	}
+
+	filterMapPath := filepath.Join(bpf.MapPrefixPath(), filterName)
+	filterMap, err := ebpf.LoadPinnedMap(filterMapPath, nil)
+	if err != nil {
+		return fmt.Errorf("failed to open filter map: %w", err)
+	}
+	defer filterMap.Close()
+
+	if err := filterMap.Update(uint32(0), kernelSelectors, ebpf.UpdateAny); err != nil {
+		return fmt.Errorf("failed to update filter data: %w", err)
+	}
+
+	if err := p.Relink(); err != nil {
+		return fmt.Errorf("failed relinking %v: %w", p, err)
+	}
+
+	return nil
 }
 
 func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
