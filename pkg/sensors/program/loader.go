@@ -313,8 +313,8 @@ func doLoadProgram(
 		if err != nil {
 			// Log the error directly using the logger so that the verifier log
 			// gets properly pretty-printed.
-			logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
 			if verbose != 0 {
+				logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
 				fmt.Println(slimVerifierError(err.Error()))
 			}
 
