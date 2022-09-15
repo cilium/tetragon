@@ -6,6 +6,7 @@ package testutils
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -21,11 +22,15 @@ type ExportFile struct {
 	keep  bool   // should we keep the file at the end?
 }
 
+func fixupTestName(t *testing.T) string {
+	return strings.ReplaceAll(t.Name(), "/", "-")
+}
+
 func (f *ExportFile) Close() error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 
-	tName := f.t.Name()
+	tName := fixupTestName(f.t)
 	ef, ok := exportFiles[tName]
 	if !ok {
 		f.t.Logf("could not find ourself in exportFiles: testName=%s fname=%s", tName, f.fName)
@@ -52,11 +57,13 @@ func CreateExportFile(t *testing.T) (*ExportFile, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 
-	testName := t.Name()
+	testName := fixupTestName(t)
 	if _, ok := exportFiles[testName]; ok {
 		return nil, fmt.Errorf("unexpected error: t.Name() %s already exists", testName)
 	}
 
+	// Test names with / (e.g. subtests) will be rejected by os.CreateTemp due to path
+	// separator in the template string. Replace / with - to avoid this.
 	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
 	f, err := os.CreateTemp("/tmp", fname)
 	if err != nil {
@@ -79,7 +86,7 @@ func CreateExportFile(t *testing.T) (*ExportFile, error) {
 func GetExportFilename(t *testing.T) (string, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
-	testName := t.Name()
+	testName := fixupTestName(t)
 	ef, ok := exportFiles[testName]
 	if !ok {
 		return "", fmt.Errorf("file for test %s does not exist", testName)
@@ -91,7 +98,7 @@ func GetExportFilename(t *testing.T) (string, error) {
 func KeepExportFile(t *testing.T) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
-	testName := t.Name()
+	testName := fixupTestName(t)
 	ef, ok := exportFiles[testName]
 	if !ok {
 		return fmt.Errorf("file for test %s does not exist", testName)
@@ -106,7 +113,7 @@ func KeepExportFile(t *testing.T) error {
 func DontKeepExportFile(t *testing.T) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
-	testName := t.Name()
+	testName := fixupTestName(t)
 	ef, ok := exportFiles[testName]
 	if !ok {
 		return fmt.Errorf("file for test %s does not exist", testName)
