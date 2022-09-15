@@ -82,6 +82,7 @@ spec:
                             - nop
                             - bpf_attr
                             - perf_event
+                            - bpf_map
                             type: string
                         required:
                         - index
@@ -137,6 +138,7 @@ spec:
                           - nop
                           - bpf_attr
                           - perf_event
+                          - bpf_map
                           type: string
                       required:
                       - index
@@ -474,6 +476,7 @@ spec:
                             - nop
                             - bpf_attr
                             - perf_event
+                            - bpf_map
                             type: string
                         required:
                         - index

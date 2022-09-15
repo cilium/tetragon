@@ -173,6 +173,14 @@ message KprobePerfEvent {
     uint64	ProbeOffset = 4;
 }
 
+message KprobeBpfMap {
+    string  MapType = 1;
+    uint32  KeySize = 2;
+    uint32  ValueSize = 3;
+    uint32  MaxEntries = 4;
+    string  MapName = 5;
+}
+
 message KprobeArgument {
     oneof arg {
 	string    string_arg = 1;
@@ -188,6 +196,7 @@ message KprobeArgument {
 	int64 long_arg = 11;
 	KprobeBpfAttr bpf_attr_arg = 12;
 	KprobePerfEvent perf_event_arg = 13;
+        KprobeBpfMap bpf_map_arg = 14;
     }
 }
 

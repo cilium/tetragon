@@ -27,6 +27,7 @@ const (
 	GenericConstBuffer = 18
 	GenericBpfAttr     = 19
 	GenericPerfEvent   = 20
+	GenericBpfMap      = 21
 
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -74,6 +75,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericBpfAttr
 	case "perf_event":
 		return GenericPerfEvent
+	case "bpf_map":
+		return GenericBpfMap
 	default:
 		return GenericInvalidType
 	}

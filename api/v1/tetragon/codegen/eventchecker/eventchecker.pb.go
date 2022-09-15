@@ -2865,6 +2865,106 @@ func (checker *KprobePerfEventChecker) FromKprobePerfEvent(event *tetragon.Kprob
 	return checker
 }
 
+// KprobeBpfMapChecker implements a checker struct to check a KprobeBpfMap field
+type KprobeBpfMapChecker struct {
+	MapType    *stringmatcher.StringMatcher `json:"MapType,omitempty"`
+	KeySize    *uint32                      `json:"KeySize,omitempty"`
+	ValueSize  *uint32                      `json:"ValueSize,omitempty"`
+	MaxEntries *uint32                      `json:"MaxEntries,omitempty"`
+	MapName    *stringmatcher.StringMatcher `json:"MapName,omitempty"`
+}
+
+// NewKprobeBpfMapChecker creates a new KprobeBpfMapChecker
+func NewKprobeBpfMapChecker() *KprobeBpfMapChecker {
+	return &KprobeBpfMapChecker{}
+}
+
+// Check checks a KprobeBpfMap field
+func (checker *KprobeBpfMapChecker) Check(event *tetragon.KprobeBpfMap) error {
+	if event == nil {
+		return fmt.Errorf("KprobeBpfMapChecker: KprobeBpfMap field is nil")
+	}
+
+	if checker.MapType != nil {
+		if err := checker.MapType.Match(event.MapType); err != nil {
+			return fmt.Errorf("KprobeBpfMapChecker: MapType check failed: %w", err)
+		}
+	}
+	if checker.KeySize != nil {
+		if *checker.KeySize != event.KeySize {
+			return fmt.Errorf("KprobeBpfMapChecker: KeySize has value %d which does not match expected value %d", event.KeySize, *checker.KeySize)
+		}
+	}
+	if checker.ValueSize != nil {
+		if *checker.ValueSize != event.ValueSize {
+			return fmt.Errorf("KprobeBpfMapChecker: ValueSize has value %d which does not match expected value %d", event.ValueSize, *checker.ValueSize)
+		}
+	}
+	if checker.MaxEntries != nil {
+		if *checker.MaxEntries != event.MaxEntries {
+			return fmt.Errorf("KprobeBpfMapChecker: MaxEntries has value %d which does not match expected value %d", event.MaxEntries, *checker.MaxEntries)
+		}
+	}
+	if checker.MapName != nil {
+		if err := checker.MapName.Match(event.MapName); err != nil {
+			return fmt.Errorf("KprobeBpfMapChecker: MapName check failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// WithMapType adds a MapType check to the KprobeBpfMapChecker
+func (checker *KprobeBpfMapChecker) WithMapType(check *stringmatcher.StringMatcher) *KprobeBpfMapChecker {
+	checker.MapType = check
+	return checker
+}
+
+// WithKeySize adds a KeySize check to the KprobeBpfMapChecker
+func (checker *KprobeBpfMapChecker) WithKeySize(check uint32) *KprobeBpfMapChecker {
+	checker.KeySize = &check
+	return checker
+}
+
+// WithValueSize adds a ValueSize check to the KprobeBpfMapChecker
+func (checker *KprobeBpfMapChecker) WithValueSize(check uint32) *KprobeBpfMapChecker {
+	checker.ValueSize = &check
+	return checker
+}
+
+// WithMaxEntries adds a MaxEntries check to the KprobeBpfMapChecker
+func (checker *KprobeBpfMapChecker) WithMaxEntries(check uint32) *KprobeBpfMapChecker {
+	checker.MaxEntries = &check
+	return checker
+}
+
+// WithMapName adds a MapName check to the KprobeBpfMapChecker
+func (checker *KprobeBpfMapChecker) WithMapName(check *stringmatcher.StringMatcher) *KprobeBpfMapChecker {
+	checker.MapName = check
+	return checker
+}
+
+//FromKprobeBpfMap populates the KprobeBpfMapChecker using data from a KprobeBpfMap field
+func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMap) *KprobeBpfMapChecker {
+	if event == nil {
+		return checker
+	}
+	checker.MapType = stringmatcher.Full(event.MapType)
+	{
+		val := event.KeySize
+		checker.KeySize = &val
+	}
+	{
+		val := event.ValueSize
+		checker.ValueSize = &val
+	}
+	{
+		val := event.MaxEntries
+		checker.MaxEntries = &val
+	}
+	checker.MapName = stringmatcher.Full(event.MapName)
+	return checker
+}
+
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg         *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
@@ -2880,6 +2980,7 @@ type KprobeArgumentChecker struct {
 	LongArg           *int64                       `json:"longArg,omitempty"`
 	BpfAttrArg        *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
 	PerfEventArg      *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
+	BpfMapArg         *KprobeBpfMapChecker         `json:"bpfMapArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -3023,6 +3124,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			return fmt.Errorf("KprobeArgumentChecker: PerfEventArg check failed: %T is not a PerfEventArg", event)
 		}
 	}
+	if checker.BpfMapArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_BpfMapArg:
+			if err := checker.BpfMapArg.Check(event.BpfMapArg); err != nil {
+				return fmt.Errorf("KprobeArgumentChecker: BpfMapArg check failed: %w", err)
+			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: BpfMapArg check failed: %T is not a BpfMapArg", event)
+		}
+	}
 	return nil
 }
 
@@ -3101,6 +3212,12 @@ func (checker *KprobeArgumentChecker) WithBpfAttrArg(check *KprobeBpfAttrChecker
 // WithPerfEventArg adds a PerfEventArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithPerfEventArg(check *KprobePerfEventChecker) *KprobeArgumentChecker {
 	checker.PerfEventArg = check
+	return checker
+}
+
+// WithBpfMapArg adds a BpfMapArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithBpfMapArg(check *KprobeBpfMapChecker) *KprobeArgumentChecker {
+	checker.BpfMapArg = check
 	return checker
 }
 
@@ -3184,6 +3301,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_PerfEventArg:
 		if event.PerfEventArg != nil {
 			checker.PerfEventArg = NewKprobePerfEventChecker().FromKprobePerfEvent(event.PerfEventArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_BpfMapArg:
+		if event.BpfMapArg != nil {
+			checker.BpfMapArg = NewKprobeBpfMapChecker().FromKprobeBpfMap(event.BpfMapArg)
 		}
 	}
 	return checker

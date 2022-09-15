@@ -8,6 +8,7 @@
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
 #include "perfevent.h"
+#include "bpfmap.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -38,6 +39,7 @@ enum {
 	const_buf_type = 18,
 	bpf_attr_type = 19,
 	perf_event_type = 20,
+	bpf_map_type = 21,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -684,6 +686,24 @@ copy_perf_event(char *args, unsigned long arg)
 }
 
 static inline __attribute__((always_inline)) long
+copy_bpf_map(char *args, unsigned long arg)
+{
+	struct bpf_map *bpfmap = (struct bpf_map *)arg;
+	struct bpf_map_info_type *map_info = (struct bpf_map_info_type *)args;
+
+	/* struct values */
+	probe_read(&map_info->map_type, sizeof(__u32), _(&bpfmap->map_type));
+	probe_read(&map_info->key_size, sizeof(__u32), _(&bpfmap->key_size));
+	probe_read(&map_info->value_size, sizeof(__u32),
+		   _(&bpfmap->value_size));
+	probe_read(&map_info->max_entries, sizeof(__u32),
+		   _(&bpfmap->max_entries));
+	probe_read(&map_info->map_name, 16U, _(&bpfmap->name));
+
+	return sizeof(struct bpf_map_info_type);
+}
+
+static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
@@ -759,6 +779,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct bpf_info_type);
 	case perf_event_type:
 		return sizeof(struct perf_event_info_type);
+	case bpf_map_type:
+		return sizeof(struct bpf_map_info_type);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1327,6 +1349,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case perf_event_type: {
 		size = copy_perf_event(args, arg);
+		break;
+	}
+	case bpf_map_type: {
+		size = copy_bpf_map(args, arg);
 		break;
 	}
 	default:
