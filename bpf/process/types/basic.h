@@ -9,6 +9,7 @@
 #include "bpfattr.h"
 #include "perfevent.h"
 #include "bpfmap.h"
+#include "../argfilter_maps.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -705,8 +706,9 @@ copy_bpf_map(char *args, unsigned long arg)
 	return sizeof(struct bpf_map_info_type);
 }
 
+// filter on values provided in the selector itself
 static inline __attribute__((always_inline)) long
-filter_64ty(struct selector_arg_filter *filter, char *args)
+filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
 	int i, j = 0;
@@ -727,8 +729,47 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+// use the selector value to determine a hash map, and do a lookup to determine whether the argument
+// is in the defined set.
 static inline __attribute__((always_inline)) long
-filter_32ty(struct selector_arg_filter *filter, char *args)
+filter_64ty_map(struct selector_arg_filter *filter, char *args)
+{
+	void *argmap;
+	__u32 map_idx = filter->value;
+
+	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	if (!argmap)
+		return 0;
+
+	__u64 arg = *((__u64 *)args);
+	__u8 *pass = map_lookup_elem(argmap, &arg);
+
+	switch (filter->op) {
+	case op_filter_inmap:
+		return !!pass;
+	case op_filter_notinmap:
+		return !pass;
+	}
+	return 0;
+}
+
+static inline __attribute__((always_inline)) long
+filter_64ty(struct selector_arg_filter *filter, char *args)
+{
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		return filter_64ty_selector_val(filter, args);
+	case op_filter_inmap:
+	case op_filter_notinmap:
+		return filter_64ty_map(filter, args);
+	}
+
+	return 0;
+}
+
+static inline __attribute__((always_inline)) long
+filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u32 *v = (__u32 *)&filter->value;
 	int i, j = 0;
@@ -747,6 +788,45 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 		if (j + 8 >= filter->vallen)
 			break;
 	}
+	return 0;
+}
+
+// use the selector value to determine a hash map, and do a lookup to determine whether the argument
+// is in the defined set.
+static inline __attribute__((always_inline)) long
+filter_32ty_map(struct selector_arg_filter *filter, char *args)
+{
+	void *argmap;
+	__u32 map_idx = filter->value;
+
+	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	if (!argmap)
+		return 0;
+
+	__u64 arg = *((__u32 *)args);
+	__u8 *pass = map_lookup_elem(argmap, &arg);
+
+	switch (filter->op) {
+	case op_filter_inmap:
+		return !!pass;
+	case op_filter_notinmap:
+		return !pass;
+	}
+	return 0;
+}
+
+static inline __attribute__((always_inline)) long
+filter_32ty(struct selector_arg_filter *filter, char *args)
+{
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		return filter_32ty_selector_val(filter, args);
+	case op_filter_inmap:
+	case op_filter_notinmap:
+		return filter_32ty_map(filter, args);
+	}
+
 	return 0;
 }
 

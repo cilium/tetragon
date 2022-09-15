@@ -17,6 +17,9 @@ enum {
 	op_filter_str_contains = 7,
 	op_filter_str_prefix = 8,
 	op_filter_str_postfix = 9,
+	// map membership ops
+	op_filter_inmap = 10,
+	op_filter_notinmap = 11,
 };
 
 #endif // __OPERATIONS_H__
