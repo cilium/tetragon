@@ -32,11 +32,12 @@ var (
 )
 
 type CacheObj struct {
-	internal  *process.ProcessInternal
-	event     notify.Event
-	timestamp uint64
-	color     int
-	msg       notify.Message
+	internal        *process.ProcessInternal
+	internal_parent *process.ProcessInternal
+	event           notify.Event
+	timestamp       uint64
+	color           int
+	msg             notify.Message
 }
 
 type Cache struct {
@@ -48,22 +49,32 @@ type Cache struct {
 }
 
 var (
-	ErrFailedToGetPodInfo     = errors.New("failed to get pod info")
-	ErrFailedToGetProcessInfo = errors.New("failed to get process info")
-	ErrFailedToGetParentInfo  = errors.New("failed to get parent info")
+	ErrFailedToGetPodInfo           = errors.New("failed to get pod info")
+	ErrFailedToGetProcessInfo       = errors.New("failed to get process info")
+	ErrFailedToGetParentInfo        = errors.New("failed to get parent info")
+	ErrFailedToGetProcessParentInfo = errors.New("failed to get process and parent info")
 )
 
 // Generic internal lookup happens when events are received out of order and
 // this event was handled before an exec event so it wasn't able to populate
 // the process info yet.
-func HandleGenericInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+func HandleGenericInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
+	var err error
 	p := ev.GetProcess()
-	internal, _ := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+	internal, internal_parent := process.GetParentProcessInternal(p.Pid.Value, timestamp)
 	if internal == nil {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-		return nil, ErrFailedToGetProcessInfo
+		err = ErrFailedToGetProcessInfo
 	}
-	return internal, nil
+	if internal_parent == nil {
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
+		if internal == nil {
+			err = ErrFailedToGetProcessParentInfo
+		} else {
+			err = ErrFailedToGetParentInfo
+		}
+	}
+	return internal, internal_parent, err
 }
 
 // Generic Event handler without any extra msg specific details or debugging
@@ -90,8 +101,8 @@ func (ec *Cache) handleEvents() {
 		// the execve event was processed after this event, lets look it up
 		// now because it should be available. Otherwise we have a valid
 		// process and lets copy it across.
-		if event.internal == nil {
-			event.internal, err = event.msg.RetryInternal(event.event, event.timestamp)
+		if event.internal == nil || event.internal_parent == nil {
+			event.internal, event.internal_parent, err = event.msg.RetryInternal(event.event, event.timestamp)
 		}
 		if err == nil {
 			err = event.msg.Retry(event.internal, event.event)
@@ -108,6 +119,8 @@ func (ec *Cache) handleEvents() {
 				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
 			}
 		}
+
+		event.msg.DoRefCnt(event.event, event.internal, event.internal_parent)
 
 		if event.msg.Notify() {
 			processedEvent := &tetragon.GetEventsResponse{
@@ -173,11 +186,11 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	return false
 }
 
-func (ec *Cache) Add(internal *process.ProcessInternal,
+func (ec *Cache) Add(internal *process.ProcessInternal, internal_parent *process.ProcessInternal,
 	e notify.Event,
 	t uint64,
 	msg notify.Message) {
-	ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, msg: msg}
+	ec.objsChan <- CacheObj{internal: internal, internal_parent: internal_parent, event: e, timestamp: t, msg: msg}
 }
 
 func NewWithTimer(s *server.Server, dur time.Duration) *Cache {

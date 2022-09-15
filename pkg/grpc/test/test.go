@@ -26,7 +26,7 @@ func (msg *MsgTestEventUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgTestEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+func (msg *MsgTestEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, timestamp)
 }
 
@@ -52,4 +52,7 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		logger.GetLogger().WithField("message", msg).Warn("HandleTestMessage: Unhandled event")
 	}
 	return res
+}
+
+func (msg *MsgTestEventUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
 }

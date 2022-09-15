@@ -27,7 +27,7 @@ var (
 )
 
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
-func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
+func GetProcessExec(proc *process.ProcessInternal) (*tetragon.ProcessExec, *process.ProcessInternal) {
 	var tetragonParent *tetragon.Process
 
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -60,7 +60,7 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 	return &tetragon.ProcessExec{
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
-	}
+	}, parent
 }
 
 type MsgExecveEventUnix struct {
@@ -71,8 +71,8 @@ func (msg *MsgExecveEventUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgExecveEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("Unreachable state: MsgExecveEventUnix with missing internal")
+func (msg *MsgExecveEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
+	return nil, nil, fmt.Errorf("Unreachable state: MsgExecveEventUnix with missing internal")
 }
 
 func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -117,17 +117,20 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	return nil
 }
 
+func (msg *MsgExecveEventUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
+}
+
 func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXECVE:
 		proc := process.AddExecEvent(&msg.MsgExecveEventUnix)
-		procEvent := GetProcessExec(proc)
+		procEvent, parent := GetProcessExec(proc)
 		ec := eventcache.Get()
 		if ec != nil &&
 			(ec.Needed(procEvent.Process) ||
 				(procEvent.Process.Pid.Value > 1 && ec.Needed(procEvent.Parent))) {
-			ec.Add(proc, procEvent, msg.MsgExecveEventUnix.Process.Ktime, msg)
+			ec.Add(proc, parent, procEvent, msg.MsgExecveEventUnix.Process.Ktime, msg)
 		} else {
 			procEvent.Process = proc.GetProcessCopy()
 			res = &tetragon.GetEventsResponse{
@@ -150,21 +153,25 @@ func (msg *MsgCloneEventUnix) Notify() bool {
 	return false
 }
 
-func (msg *MsgCloneEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return nil, process.AddCloneEvent(&msg.MsgCloneEvent)
+func (msg *MsgCloneEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
+	parent, err := process.AddCloneEvent(&msg.MsgCloneEvent)
+	return nil, parent, err
 }
 
 func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	return nil
 }
 
+func (msg *MsgCloneEventUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
+}
+
 func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	switch msg.Common.Op {
 	case ops.MSG_OP_CLONE:
-		if err := process.AddCloneEvent(&msg.MsgCloneEvent); err != nil {
+		if parent, err := process.AddCloneEvent(&msg.MsgCloneEvent); err != nil {
 			ec := eventcache.Get()
 			if ec != nil {
-				ec.Add(nil, nil, msg.MsgCloneEvent.Ktime, msg)
+				ec.Add(nil, parent, nil, msg.MsgCloneEvent.Ktime, msg)
 			}
 		}
 	default:
@@ -203,7 +210,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	if ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
+		ec.Add(process, parent, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}
 	if parent != nil {
@@ -224,31 +231,23 @@ func (msg *MsgExitEventUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	p := ev.GetProcess()
-	internal, parent := process.GetParentProcessInternal(p.Pid.Value, timestamp)
-	var err error
-
-	if parent != nil {
-		ev.SetParent(parent.GetProcessCopy())
-		parent.RefDec()
-	} else {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
-		err = eventcache.ErrFailedToGetParentInfo
-	}
-
-	if internal != nil {
-		internal.RefDec()
-	} else {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-		err = eventcache.ErrFailedToGetProcessInfo
-	}
-
-	return internal, err
+func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, timestamp)
 }
 
 func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	return eventcache.HandleGenericEvent(internal, ev)
+}
+
+func (msg *MsgExitEventUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
+	if internal_parent != nil {
+		ev.SetParent(internal_parent.GetProcessCopy())
+		internal_parent.RefDec()
+	}
+
+	if internal != nil {
+		internal.RefDec()
+	}
 }
 
 func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {

@@ -16,8 +16,8 @@ func (msg *MsgTetragonReady) Notify() bool {
 	return false
 }
 
-func (msg *MsgTetragonReady) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("Unsupported cache event MsgTetragonReady")
+func (msg *MsgTetragonReady) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
+	return nil, nil, fmt.Errorf("Unsupported cache event MsgTetragonReady")
 }
 
 func (msg *MsgTetragonReady) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -26,4 +26,7 @@ func (msg *MsgTetragonReady) Retry(internal *process.ProcessInternal, ev notify.
 
 func (msg *MsgTetragonReady) HandleMessage() *tetragon.GetEventsResponse {
 	return nil
+}
+
+func (msg *MsgTetragonReady) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
 }

@@ -174,7 +174,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	if ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
+		ec.Add(process, parent, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}
 
@@ -197,12 +197,15 @@ func (msg *MsgGenericTracepointUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, timestamp)
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	return eventcache.HandleGenericEvent(internal, ev)
+}
+
+func (msg *MsgGenericTracepointUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
 }
 
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -261,7 +264,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	if ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, msg.ProcessKey.Ktime, msg)
+		ec.Add(process, parent, tetragonEvent, msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 	if process != nil {
@@ -290,12 +293,15 @@ func (msg *MsgGenericKprobeUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, *process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, timestamp)
 }
 
 func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	return eventcache.HandleGenericEvent(internal, ev)
+}
+
+func (msg *MsgGenericKprobeUnix) DoRefCnt(ev notify.Event, internal *process.ProcessInternal, internal_parent *process.ProcessInternal) {
 }
 
 func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {

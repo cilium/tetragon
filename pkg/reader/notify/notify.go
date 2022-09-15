@@ -10,8 +10,9 @@ import (
 
 type Message interface {
 	HandleMessage() *tetragon.GetEventsResponse
-	RetryInternal(Event, uint64) (*process.ProcessInternal, error)
+	RetryInternal(Event, uint64) (*process.ProcessInternal, *process.ProcessInternal, error)
 	Retry(*process.ProcessInternal, Event) error
+	DoRefCnt(Event, *process.ProcessInternal, *process.ProcessInternal)
 	Notify() bool
 }
 
