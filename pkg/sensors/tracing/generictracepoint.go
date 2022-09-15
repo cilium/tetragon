@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path"
 	"reflect"
+	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -44,6 +45,8 @@ var (
 	genericTracepointTable = tracepointTable{}
 
 	tracepointLog logrus.FieldLogger
+
+	sensorCounter uint64
 )
 
 type observerTracepointSensor struct {
@@ -313,7 +316,7 @@ func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, e
 }
 
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
-func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sensor, error) {
+func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for _, conf := range confs {
@@ -329,31 +332,33 @@ func createGenericTracepointSensor(confs []GenericTracepointConf) (*sensors.Sens
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 
+	sensorDir := name
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
-		pinFile := fmt.Sprintf("tracepoint-%s-%s", tp.Info.Subsys, tp.Info.Event)
+		pinPath := sensors.PathJoin(sensorDir, fmt.Sprintf("gtp-%d", tp.tableIdx))
+		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s:%s_prog", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
 		prog0 := program.Builder(
 			path.Join(option.Config.HubbleLib, progName),
 			attach,
 			"tracepoint/generic_tracepoint",
-			pinFile,
+			pinProg,
 			"generic_tracepoint",
 		)
 
 		prog0.LoaderData = tp.tableIdx
 		progs = append(progs, prog0)
 
-		fdinstall := program.MapBuilder("fdinstall_map", prog0)
+		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(pinPath, "fdinstall_map"), prog0)
 		maps = append(maps, fdinstall)
 
-		tailCalls := program.MapBuilderPin("tp_calls", fmt.Sprintf("%s-tp-calls", pinFile), prog0)
+		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
 		maps = append(maps, tailCalls)
 	}
 
 	return &sensors.Sensor{
-		Name:  "generic_tracepoint_sensor",
+		Name:  name,
 		Progs: progs,
 		Maps:  maps,
 	}, nil
@@ -546,12 +551,13 @@ func (t *observerTracepointSensor) SpecHandler(raw interface{}) (*sensors.Sensor
 		}
 		spec = &s
 	}
+	name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 
 	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
 		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
 	}
 	if len(spec.Tracepoints) > 0 {
-		return createGenericTracepointSensor(spec.Tracepoints)
+		return createGenericTracepointSensor(name, spec.Tracepoints)
 	}
 	return nil, nil
 }
