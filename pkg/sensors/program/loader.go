@@ -126,7 +126,13 @@ func KprobeAttach(load *Program) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-tp-calls", load.PinPath), "tracepoint"}
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "tp_calls" {
+			ci = &customInstall{mPath, "tracepoint"}
+			break
+		}
+	}
 	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
 }
 
