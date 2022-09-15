@@ -107,7 +107,7 @@ func TestKprobeLseek(t *testing.T) {
 	defer cancel()
 
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
-	fmt.Printf("pid=%s\n", pidStr)
+	t.Logf("tester pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
 apiVersion: cilium.io/v1alpha1
