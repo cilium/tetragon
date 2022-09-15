@@ -601,8 +601,17 @@ func parseSelector(
 	return nil
 }
 
-// array := [number][filter1][filter2][...][filtern]
-// filter := [length][matchPIDs][matchBinaries][matchArgs][matchNamespaces][matchCapabilities][matchNamespaceChanges][matchCapabilityChanges]
+// array :=
+// [number][filter1_offset][filter2_offset][...][filtern_offset][filter1][filter2][...][filtern]
+// filter := [length]
+//           [matchPIDs]
+//           [matchNamespaces]
+//           [matchCapabilities]
+//           [matchNamespaceChanges]
+//           [matchCapabilityChanges]
+//           [matchBinaries]
+//           [matchArgs]
+//           [matchActions]
 // matchPIDs := [num][PID1][PID2]...[PIDn]
 // matchBinaries := [num][op][Index]...[Index]
 // matchArgs := [num][ARGx][ARGy]...[ARGn]
