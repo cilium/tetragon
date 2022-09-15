@@ -107,3 +107,19 @@ func (p *Program) Unload() error {
 	p.unloaderOverride = nil
 	return nil
 }
+
+func (p *Program) Unlink() error {
+	ul, ok := p.unloader.(interface{ Unlink() error })
+	if !ok {
+		return fmt.Errorf("Unlink failed: unloader type %T of program %p does not support it", p.unloader, p)
+	}
+	return ul.Unlink()
+}
+
+func (p *Program) Relink() error {
+	rl, ok := p.unloader.(interface{ Relink() error })
+	if !ok {
+		return fmt.Errorf("Relink failed: unloader type %T of program %p does not support it", p.unloader, p)
+	}
+	return rl.Relink()
+}
