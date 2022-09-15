@@ -1,0 +1,29 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "bpf"
+spec:
+ kprobes:
+ # Bpf verifier check during program loads
+ # int bpf_check(struct bpf_prog **prog, union bpf_attr *attr, bpfptr_t uattr)
+ - call: "bpf_check"
+   syscall: false
+   args:
+   - index: 1
+     type: "bpf_attr"
+ # First step of kprobe attach process: open perf event
+ # int security_perf_event_alloc(struct perf_event *event)
+ - call: "security_perf_event_alloc"
+   syscall: false
+   args:
+   - index: 0
+     type: "perf_event"
+ # Second step of kprobe attach process: attach bpf program to perf event: todo
+ # Called during bpf map create
+ # int security_bpf_map_alloc(struct bpf_map *map)
+ - call: "security_bpf_map_alloc"
+   syscall: false
+   args:
+   - index: 0
+     type: "bpf_map"
+ # Bpf map lookups/updates: todo
