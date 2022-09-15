@@ -3,6 +3,7 @@
 package unloader
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -169,4 +170,32 @@ func (u *RelinkUnloader) Unload() error {
 	}
 	ret = multierr.Append(ret, u.UnloadProg())
 	return ret
+}
+
+func (u *RelinkUnloader) Unlink() error {
+	if !u.IsLinked {
+		return errors.New("Unlink failed: program not linked")
+	}
+
+	if err := u.Link.Close(); err != nil {
+		return fmt.Errorf("Unlink failed: %w", err)
+	}
+
+	u.IsLinked = false
+	return nil
+}
+
+func (u *RelinkUnloader) Relink() error {
+	if u.IsLinked {
+		return errors.New("Relink failed: program already linked")
+	}
+
+	link, err := u.RelinkFn()
+	if err != nil {
+		return fmt.Errorf("Relink failed: %w", err)
+	}
+
+	u.Link = link
+	u.IsLinked = true
+	return nil
 }
