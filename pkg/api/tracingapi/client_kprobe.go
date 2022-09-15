@@ -247,6 +247,31 @@ func (m MsgGenericKprobeArgPerfEvent) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeBpfMap struct {
+	MapType    uint32
+	KeySize    uint32
+	ValueSize  uint32
+	MaxEntries uint32
+	MapName    [16]byte
+}
+
+type MsgGenericKprobeArgBpfMap struct {
+	MapType    uint32
+	Index      uint64
+	KeySize    uint32
+	ValueSize  uint32
+	MaxEntries uint32
+	MapName    string
+}
+
+func (m MsgGenericKprobeArgBpfMap) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgBpfMap) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeArg interface {
 	GetIndex() uint64
 	IsReturnArg() bool

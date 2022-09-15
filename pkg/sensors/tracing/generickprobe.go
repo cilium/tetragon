@@ -154,8 +154,9 @@ func argReturnCopy(meta int) bool {
 
 // meta value format:
 // bits
-//  0-3 : SizeArgIndex
-//    4 : ReturnCopy
+//
+//	0-3 : SizeArgIndex
+//	  4 : ReturnCopy
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -715,6 +716,22 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Type = output.Type
 			arg.Config = output.Config
 			arg.ProbeOffset = output.ProbeOffset
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericBpfMap:
+			var output api.MsgGenericKprobeBpfMap
+			var arg api.MsgGenericKprobeArgBpfMap
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("bpf_map type error")
+			}
+
+			arg.MapType = output.MapType
+			arg.KeySize = output.KeySize
+			arg.ValueSize = output.ValueSize
+			arg.MaxEntries = output.MaxEntries
+			length := bytes.IndexByte(output.MapName[:], 0) // trim tailing null bytes
+			arg.MapName = string(output.MapName[:length])
 			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")

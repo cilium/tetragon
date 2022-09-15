@@ -12,13 +12,12 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
-	"github.com/cilium/tetragon/pkg/reader/bpfattr"
+	"github.com/cilium/tetragon/pkg/reader/bpf"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
-	"github.com/cilium/tetragon/pkg/reader/perfevent"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -138,7 +137,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
 		case api.MsgGenericKprobeArgBpfAttr:
 			bpfAttrArg := &tetragon.KprobeBpfAttr{
-				ProgType: bpfattr.GetProgType(e.ProgType),
+				ProgType: bpf.GetProgType(e.ProgType),
 				InsnCnt:  e.InsnCnt,
 				ProgName: e.ProgName,
 			}
@@ -146,11 +145,20 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		case api.MsgGenericKprobeArgPerfEvent:
 			perfEventArg := &tetragon.KprobePerfEvent{
 				KprobeFunc:  e.KprobeFunc,
-				Type:        perfevent.GetPerfEventType(e.Type),
+				Type:        bpf.GetPerfEventType(e.Type),
 				Config:      e.Config,
 				ProbeOffset: e.ProbeOffset,
 			}
 			a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
+		case api.MsgGenericKprobeArgBpfMap:
+			bpfMapArg := &tetragon.KprobeBpfMap{
+				MapType:    bpf.GetBpfMapType(e.MapType),
+				KeySize:    e.KeySize,
+				ValueSize:  e.ValueSize,
+				MaxEntries: e.MaxEntries,
+				MapName:    e.MapName,
+			}
+			a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}

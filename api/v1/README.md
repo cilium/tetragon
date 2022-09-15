@@ -15,6 +15,7 @@
     - [Image](#tetragon-Image)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
+    - [KprobeBpfMap](#tetragon-KprobeBpfMap)
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
     - [KprobePath](#tetragon-KprobePath)
@@ -276,6 +277,7 @@
 | long_arg | [int64](#int64) |  |  |
 | bpf_attr_arg | [KprobeBpfAttr](#tetragon-KprobeBpfAttr) |  |  |
 | perf_event_arg | [KprobePerfEvent](#tetragon-KprobePerfEvent) |  |  |
+| bpf_map_arg | [KprobeBpfMap](#tetragon-KprobeBpfMap) |  |  |
 
 
 
@@ -293,6 +295,25 @@
 | ProgType | [string](#string) |  |  |
 | InsnCnt | [uint32](#uint32) |  |  |
 | ProgName | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeBpfMap"></a>
+
+### KprobeBpfMap
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| MapType | [string](#string) |  |  |
+| KeySize | [uint32](#uint32) |  |  |
+| ValueSize | [uint32](#uint32) |  |  |
+| MaxEntries | [uint32](#uint32) |  |  |
+| MapName | [string](#string) |  |  |
 
 
 
