@@ -230,8 +230,10 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	var err error
 
 	if parent != nil {
-		ev.SetParent(parent.GetProcessCopy())
-		parent.RefDec()
+		if ev.GetParent() == nil {
+			ev.SetParent(parent.GetProcessCopy())
+			parent.RefDec()
+		}
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
 		err = eventcache.ErrFailedToGetParentInfo
