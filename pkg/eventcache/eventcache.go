@@ -58,12 +58,24 @@ var (
 // the process info yet.
 func HandleGenericInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	p := ev.GetProcess()
-	internal, _ := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+	internal, parent := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+	var err error
+
+	if parent != nil {
+		if ev.GetParent() == nil {
+			ev.SetParent(parent.GetProcessCopy())
+		}
+	} else {
+		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
+		err = ErrFailedToGetParentInfo
+	}
+
 	if internal == nil {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
-		return nil, ErrFailedToGetProcessInfo
+		err = ErrFailedToGetProcessInfo
 	}
-	return internal, nil
+
+	return internal, err
 }
 
 // Generic Event handler without any extra msg specific details or debugging
