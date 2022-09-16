@@ -33,13 +33,13 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
+	struct retprobe_info info;
 	struct event_config *config;
 	bool walker = false;
 	int zero = 0;
 	__u32 ppid;
 	long total = 0;
 	long size = 0;
-	unsigned long retprobe_buffer, cnt = 0;
 	long ty_arg, do_copy;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -52,8 +52,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	retprobe_buffer = retprobe_map_get(e->thread_id, &cnt);
-	if (!retprobe_buffer)
+	if (!retprobe_map_get(e->thread_id, &info))
 		return 0;
 
 	ty_arg = config->argreturn;
@@ -69,10 +68,10 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(size, retprobe_buffer, ret, e);
+		size += __copy_char_buf(size, info.ptr, ret, e);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, retprobe_buffer, cnt, ret, e);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
 	default:
 		break;
 	}
