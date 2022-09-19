@@ -676,6 +676,14 @@ func parseSelector(
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) ([4096]byte, error) {
+	kernelSelectors, err := InitKernelSelectorState(selectors, args)
+	if err != nil {
+		return [4096]byte{}, err
+	}
+	return kernelSelectors.e, nil
+}
+
+func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) (*KernelSelectorState, error) {
 	kernelSelectors := &KernelSelectorState{}
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
@@ -687,11 +695,11 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 		WriteSelectorLength(kernelSelectors, soff[i])
 		loff := AdvanceSelectorLength(kernelSelectors)
 		if err := parseSelector(kernelSelectors, &s, args); err != nil {
-			return kernelSelectors.e, err
+			return nil, err
 		}
 		WriteSelectorLength(kernelSelectors, loff)
 	}
-	return kernelSelectors.e, nil
+	return kernelSelectors, nil
 }
 
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
