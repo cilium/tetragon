@@ -55,10 +55,13 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!retprobe_map_get(e->thread_id, &info))
 		return 0;
 
+	*(unsigned long *)e->args = info.ktime_enter;
+	size += sizeof(info.ktime_enter);
+
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg)
-		size += read_call_arg(ctx, e, 0, ty_arg, 0, ret, 0, 0);
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, 0);
 
 	/*
 	 * 0x1000 should be maximum argument length, so masking
