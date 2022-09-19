@@ -5,6 +5,7 @@ package program
 import (
 	"fmt"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -35,7 +36,7 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 
 type MapLoad struct {
 	Name string
-	Data []byte
+	Load func(m *ebpf.Map) error
 }
 
 // Program reprents a BPF program.

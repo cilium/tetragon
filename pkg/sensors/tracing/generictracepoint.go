@@ -514,16 +514,26 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	if err != nil {
 		return err
 	}
-	filter := &program.MapLoad{Name: "filter_map", Data: kernelSelectors[:]}
+	filter := &program.MapLoad{
+		Name: "filter_map",
+		Load: func(m *ebpf.Map) error {
+			return m.Update(uint32(0), kernelSelectors[:], ebpf.UpdateAny)
+		},
+	}
 	load.MapLoad = append(load.MapLoad, filter)
 
-	var bin_buf bytes.Buffer
 	config, err := tp.EventConfig()
 	if err != nil {
 		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
 	}
-	binary.Write(&bin_buf, binary.LittleEndian, config)
-	cfg := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, config)
+	cfg := &program.MapLoad{
+		Name: "config_map",
+		Load: func(m *ebpf.Map) error {
+			return m.Update(uint32(0), binBuf.Bytes()[:], ebpf.UpdateAny)
+		},
+	}
 	load.MapLoad = append(load.MapLoad, cfg)
 
 	return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
