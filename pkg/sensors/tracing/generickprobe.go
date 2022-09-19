@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -443,15 +444,26 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 		return err
 	}
 
-	var bin_buf bytes.Buffer
-
 	if !load.RetProbe {
-		filter := &program.MapLoad{Name: "filter_map", Data: gk.loadArgs.filters[:]}
+		loadData := make([]byte, len(gk.loadArgs.filters))
+		copy(loadData, gk.loadArgs.filters[:])
+		filter := &program.MapLoad{
+			Name: "filter_map",
+			Load: func(m *ebpf.Map) error {
+				return m.Update(uint32(0), loadData, ebpf.UpdateAny)
+			},
+		}
 		load.MapLoad = append(load.MapLoad, filter)
 	}
 
-	binary.Write(&bin_buf, binary.LittleEndian, gk.loadArgs.config)
-	config := &program.MapLoad{Name: "config_map", Data: bin_buf.Bytes()[:]}
+	var configData bytes.Buffer
+	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
+	config := &program.MapLoad{
+		Name: "config_map",
+		Load: func(m *ebpf.Map) error {
+			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+		},
+	}
 	load.MapLoad = append(load.MapLoad, config)
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
