@@ -872,6 +872,8 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 		return nil, nil
 	}
 
+	kprobemetrics.MergeOkTotalInc()
+
 	for _, retArg := range retEv.Args {
 		index := retArg.GetIndex()
 		if uint64(len(enterEv.Args)) > index {
