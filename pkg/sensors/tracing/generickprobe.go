@@ -79,6 +79,11 @@ type argPrinters struct {
 	index int
 }
 
+type pendingEventKey struct {
+	threadId   uint64
+	ktimeEnter uint64
+}
+
 // internal genericKprobe info
 type genericKprobe struct {
 	loadArgs          kprobeLoadArgs
@@ -94,8 +99,8 @@ type genericKprobe struct {
 	// for kprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
 	// generated. The events are maintained in the map below, using
-	// ThreadId as the key.
-	pendingEvents map[uint64]pendingEvent
+	// the thread_id and the enter ktime as the key.
+	pendingEvents map[pendingEventKey]pendingEvent
 
 	tableId idtable.EntryID
 }
@@ -350,7 +355,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 			argReturnPrinters: argReturnPrinters,
 			userReturnFilters: userReturnFilters,
 			funcName:          funcName,
-			pendingEvents:     map[uint64]pendingEvent{},
+			pendingEvents:     map[pendingEventKey]pendingEvent{},
 			tableId:           idtable.UninitializedEntryID,
 		}
 		genericKprobeTable.AddEntry(&kprobeEntry)
@@ -537,12 +542,20 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 
 	returnEvent := m.Common.Flags > 0
 
+	var ktimeEnter uint64
 	var printers []argPrinters
 	if returnEvent {
+		// if this a return event, also read the ktime of the enter event
+		err := binary.Read(r, binary.LittleEndian, &ktimeEnter)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read ktimeEnter")
+		}
 		printers = gk.argReturnPrinters
 	} else {
+		ktimeEnter = m.Common.Ktime
 		printers = gk.argSigPrinters
 	}
+
 	for _, a := range printers {
 		switch a.ty {
 		case gt.GenericIntType:
@@ -748,11 +761,12 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		// if an event exist already, try to merge them. Otherwise, add
 		// the one we have in the map.
 		curr := pendingEvent{ev: unix, returnEvent: returnEvent}
-		if prev, exists := gk.pendingEvents[m.ThreadId]; exists {
-			delete(gk.pendingEvents, m.ThreadId)
+		key := pendingEventKey{threadId: m.ThreadId, ktimeEnter: ktimeEnter}
+		if prev, exists := gk.pendingEvents[key]; exists {
+			delete(gk.pendingEvents, key)
 			unix, retArg = retprobeMerge(prev, curr)
 		} else {
-			gk.pendingEvents[m.ThreadId] = curr
+			gk.pendingEvents[key] = curr
 			kprobemetrics.MergePushedInc()
 			unix = nil
 		}

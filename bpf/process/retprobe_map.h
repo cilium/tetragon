@@ -3,6 +3,7 @@
 #include "bpf_tracing.h"
 
 struct retprobe_info {
+	unsigned long ktime_enter;
 	unsigned long ptr;
 	unsigned long cnt;
 };
@@ -37,9 +38,10 @@ static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 tid)
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set(__u64 tid, unsigned long ptr)
+retprobe_map_set(__u64 tid, __u64 ktime, unsigned long ptr)
 {
 	struct retprobe_info info = {
+		.ktime_enter = ktime,
 		.ptr = ptr,
 	};
 
@@ -47,9 +49,11 @@ retprobe_map_set(__u64 tid, unsigned long ptr)
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set_iovec(__u64 tid, unsigned long ptr, unsigned long cnt)
+retprobe_map_set_iovec(__u64 tid, __u64 ktime, unsigned long ptr,
+		       unsigned long cnt)
 {
 	struct retprobe_info info = {
+		.ktime_enter = ktime,
 		.ptr = ptr,
 		.cnt = cnt,
 	};
