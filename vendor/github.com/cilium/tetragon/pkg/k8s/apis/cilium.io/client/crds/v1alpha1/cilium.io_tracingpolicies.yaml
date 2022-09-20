@@ -163,6 +163,7 @@ spec:
                                   - UnfollowFD
                                   - Sigkill
                                   - CopyFD
+                                  - Override
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -503,6 +504,7 @@ spec:
                                   - UnfollowFD
                                   - Sigkill
                                   - CopyFD
+                                  - Override
                                   type: string
                                 argError:
                                   description: error value for override action
