@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/fatih/color"
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,6 +57,12 @@ func getGaugeValue(gauge prometheus.Gauge) int {
 	return int(*d.Gauge.Value)
 }
 
+func getMetricValue(counter prometheus.Counter) int {
+	var d dto.Metric
+	counter.Write(&d)
+	return int(*d.Counter.Value)
+}
+
 func (s *Summary) PrettyPrint() {
 	color.Set(color.FgBlue)
 	fmt.Println("Benchmark summary")
@@ -74,10 +81,15 @@ func (s *Summary) PrettyPrint() {
 	fmt.Printf("Tetragon cpu usage: %s\n", s.TetragonCPUUsage)
 
 	if !s.Args.Baseline {
-		fmt.Printf("Ring buffer:       received=%d, lost=%d, errors=%d\n",
+		fmt.Printf("Ring buffer:        received=%d, lost=%d, errors=%d\n",
 			getGaugeValue(ringbufmetrics.PerfEventReceived.WithLabelValues()),
 			getGaugeValue(ringbufmetrics.PerfEventLost.WithLabelValues()),
 			getGaugeValue(ringbufmetrics.PerfEventErrors.WithLabelValues()))
+
+		mergePushed := getMetricValue(kprobemetrics.MergePushed)
+		mergeOkTotal := getMetricValue(kprobemetrics.MergeOkTotal)
+		fmt.Printf("Merged events:      pushed=%d, ok=%d, errors=%d\n",
+			mergePushed, mergeOkTotal, mergePushed-mergeOkTotal)
 	}
 
 	fmt.Println("BPF statistics:")
