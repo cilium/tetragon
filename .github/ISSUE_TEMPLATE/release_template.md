@@ -45,7 +45,7 @@ assignees: ''
 
 - [ ] Publish Helm chart
       - Follow [cilium/charts RELEASE.md] to publish the Helm chart.
-      - Once the chart is published, go to [cilium/charts GKE workflow] and wait for the
+      - Once the pull request is merged and the chart is published, go to [cilium/charts GKE workflow] and wait for the
         CI run to pass.
 
 [release blockers]: https://github.com/cilium/tetragon/issues?q=is%3Aissue+is%3Aopen+label%3Arelease-blocker
