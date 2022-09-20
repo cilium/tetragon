@@ -196,6 +196,9 @@ const (
 	// String ops
 	selectorOpPrefix  = 8
 	selectorOpPostfix = 9
+	// Map ops
+	selectorInMap    = 10
+	selectorNotInMap = 11
 )
 
 func selectorOp(op string) (uint32, error) {
@@ -216,6 +219,10 @@ func selectorOp(op string) (uint32, error) {
 		return selectorOpPrefix, nil
 	case "postfix", "Postfix":
 		return selectorOpPostfix, nil
+	case "InMap":
+		return selectorInMap, nil
+	case "NotInMap":
+		return selectorNotInMap, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -294,7 +301,35 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 	return 0, fmt.Errorf("argFilter for unknown index")
 }
 
-func parseMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
+func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) error {
+	mid, m := k.newValueMap()
+	for _, v := range values {
+		var val [8]byte
+		switch ty {
+		case argTypeS64:
+			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+			}
+			binary.LittleEndian.PutUint64(val[:], uint64(i))
+		case argTypeU64:
+			i, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+			}
+			binary.LittleEndian.PutUint64(val[:], uint64(i))
+		default:
+			return fmt.Errorf("Unknown type: %d", ty)
+		}
+		m[val] = struct{}{}
+
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
+	return nil
+}
+
+func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
 	for _, v := range values {
 		switch ty {
 		case argTypeFd, argTypeFile:
@@ -350,12 +385,21 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		return fmt.Errorf("argSelector error: %w", err)
 	}
 	WriteSelectorUint32(k, ty)
-	err = parseMatchValues(k, arg.Values, ty)
-	if err != nil {
-		return fmt.Errorf("parseMatchValues error: %w", err)
+	switch op {
+	case selectorInMap, selectorNotInMap:
+		err := writeMatchValuesInMap(k, arg.Values, ty)
+		if err != nil {
+			return fmt.Errorf("writeMatchValuesInMap error: %w", err)
+		}
+	default:
+		err = writeMatchValues(k, arg.Values, ty)
+		if err != nil {
+			return fmt.Errorf("writeMatchValues error: %w", err)
+		}
 	}
+
 	WriteSelectorLength(k, moff)
-	return err
+	return nil
 }
 func parseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	loff := AdvanceSelectorLength(k)
