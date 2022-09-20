@@ -199,6 +199,21 @@ get_cgroup_name(const struct cgroup *cgrp)
 }
 
 /**
+ * get_cgroup_level() Returns the cgroup level
+ * @cgrp: target cgroup
+ *
+ * Returns the cgroup level, or 0 if it can not be retrieved.
+ */
+static inline __attribute__((always_inline)) __u32
+get_cgroup_level(const struct cgroup *cgrp)
+{
+	__u32 level = 0;
+
+	probe_read(&level, sizeof(level), _(&cgrp->level));
+	return level;
+}
+
+/**
  * get_cgroup_id() Returns cgroup id
  * @cgrp: target cgroup
  *
@@ -225,7 +240,7 @@ get_cgroup_id(const struct cgroup *cgrp)
  *
  * To get cgroup and kernfs node information we want to operate on the right
  * cgroup hierarchy which is setup by user space. However due to the
- * incompatiblity between cgroup v1 and v2; how user space initialize and
+ * incompatibility between cgroup v1 and v2; how user space initialize and
  * install cgroup controllers, etc, it can be difficult.
  *
  * Use this helper and pass the css index that you consider accurate and
@@ -276,6 +291,103 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx)
 
 	probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
 	return cgrp;
+}
+
+/**
+ * get_ancestor_cgroup_id() Returns the ancestor cgroup id of the
+ *    passed cgroup that is at level ancestor_level.
+ * @cgrp: target cgroup
+ * @cgrpfs_ver: Cgroupfs Magic number either Cgroupv1 or Cgroupv2
+ * @ancestor_level: the cgroup ancestor level
+ *
+ * Return id of the cgroup that is the ancestor of the passed cgroup
+ * and is at level ancestor_level, or 0 in case the id could not
+ * be retrieved or the passed cgroup does not have an ancestor at
+ * that level.
+ *
+ * This helper works for both Cgroupv1 and Cgroupv2. The root
+ * cgroup is at ancestor_level zero and each step down the
+ * hierarchy increments the level.
+ *
+ * If ancestor_level == level of passed cgroup, then return value
+ * will be the same as that of get_cgroup_id().
+ */
+static inline __attribute__((always_inline)) __u64
+get_ancestor_cgroup_id(const struct cgroup *cgrp, __u64 cgrpfs_ver,
+		       __u32 ancestor_level)
+{
+	__u32 level;
+	__u64 id = 0;
+
+	if (unlikely(ancestor_level == 0))
+		return id;
+
+#ifdef BPF_FUNC_get_current_ancestor_cgroup_id
+	if (cgrpfs_ver == CGROUP2_SUPER_MAGIC)
+		id = get_current_ancestor_cgroup_id(ancestor_level);
+#endif
+
+	if (id > 0)
+		return id;
+
+	level = get_cgroup_level(cgrp);
+	if (level > ancestor_level)
+		probe_read(&id, sizeof(id),
+			   _(&cgrp->ancestor_ids[ancestor_level]));
+	else if (level == ancestor_level)
+		id = get_cgroup_id(cgrp);
+
+	return id;
+}
+
+/**
+ * __get_cgrp_tracking_val_heap() Get a cgroup_tracking_val from the
+ * tg_cgrps_tracking_heap map while setting its fields.
+ */
+static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+__get_cgrp_tracking_val_heap(cgroup_state state, __u32 hierarchy_id,
+			     __u32 level)
+{
+	int zero = 0;
+	struct cgroup_tracking_value *heap;
+
+	heap = map_lookup_elem(&tg_cgrps_tracking_heap, &zero);
+	if (!heap)
+		return heap;
+
+	memset(heap, 0, sizeof(struct cgroup_tracking_value));
+	heap->state = state;
+	heap->hierarchy_id = hierarchy_id;
+	heap->level = level;
+
+	return heap;
+}
+
+/**
+ * __init_cgrp_tracking_val_heap() Initialize a cgroup_tracking_val that is
+ * obtained with __get_cgrp_tracking_val_heap(). It will initialize and
+ * set the cgroup name too.
+ */
+static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+__init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
+{
+	const char *name;
+	struct kernfs_node *kn;
+	__u32 level, hierarchy_id;
+	struct cgroup_tracking_value *heap;
+
+	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
+	level = get_cgroup_level(cgrp);
+	heap = __get_cgrp_tracking_val_heap(state, hierarchy_id, level);
+	if (!heap)
+		return heap;
+
+	kn = __get_cgroup_kn(cgrp);
+	name = __get_cgroup_kn_name(kn);
+	if (name)
+		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
+
+	return heap;
 }
 
 #endif // __BPF_CGROUP_
