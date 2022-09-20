@@ -358,6 +358,9 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), prog0)
 		maps = append(maps, filterMap)
+
+		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), prog0)
+		maps = append(maps, argFilterMaps)
 	}
 
 	return &sensors.Sensor{
@@ -367,7 +370,7 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 	}, nil
 }
 
-func (tp *genericTracepoint) KernelSelectors() ([4096]byte, error) {
+func (tp *genericTracepoint) KernelSelectors() (*selectors.KernelSelectorState, error) {
 	// rewrite arg index
 	selArgs := make([]v1alpha1.KProbeArg, 0, len(tp.args))
 	selSelectors := make([]v1alpha1.KProbeSelector, 0, len(tp.Spec.Selectors))
@@ -380,7 +383,7 @@ func (tp *genericTracepoint) KernelSelectors() ([4096]byte, error) {
 		tpArg := &tp.args[i]
 		ty, err := tpArg.setGenericTypeId()
 		if err != nil {
-			return [4096]byte{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 		selType := selectors.ArgTypeToString(uint32(ty))
 
@@ -402,7 +405,7 @@ func (tp *genericTracepoint) KernelSelectors() ([4096]byte, error) {
 		}
 	}
 
-	return selectors.InitKernelSelectors(selSelectors, selArgs)
+	return selectors.InitKernelSelectorState(selSelectors, selArgs)
 }
 
 func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
@@ -487,8 +490,23 @@ func ReloadGenericTracepointSelectors(p *program.Program, conf *v1alpha1.Tracepo
 	}
 	defer filterMap.Close()
 
-	if err := filterMap.Update(uint32(0), kernelSelectors, ebpf.UpdateAny); err != nil {
+	selBuff := kernelSelectors.Buffer()
+	if err := filterMap.Update(uint32(0), selBuff[:], ebpf.UpdateAny); err != nil {
 		return fmt.Errorf("failed to update filter data: %w", err)
+	}
+
+	argfilterMapsName, ok := p.PinMap["argfilter_maps"]
+	if !ok {
+		return fmt.Errorf("cannot find pinned argfilter_maps")
+	}
+	argfilterMapsName = filepath.Join(bpf.MapPrefixPath(), argfilterMapsName)
+	argfilterMaps, err := ebpf.LoadPinnedMap(argfilterMapsName, nil)
+	if err != nil {
+		return fmt.Errorf("failed to open argfilter_map map %s: %w", argfilterMapsName, err)
+	}
+	defer argfilterMaps.Close()
+	if err := populateArgFilterMaps(kernelSelectors, tp, argfilterMaps); err != nil {
+		return fmt.Errorf("failed to populate argfilter_maps: %w", err)
 	}
 
 	if err := p.Relink(); err != nil {
@@ -516,10 +534,11 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	if err != nil {
 		return err
 	}
+	selBuff := kernelSelectors.Buffer()
 	filter := &program.MapLoad{
 		Name: "filter_map",
 		Load: func(m *ebpf.Map) error {
-			return m.Update(uint32(0), kernelSelectors[:], ebpf.UpdateAny)
+			return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, filter)
@@ -537,6 +556,13 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		},
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
+
+	load.MapLoad = append(load.MapLoad, &program.MapLoad{
+		Name: "argfilter_maps",
+		Load: func(outerMap *ebpf.Map) error {
+			return populateArgFilterMaps(kernelSelectors, tp, outerMap)
+		},
+	})
 
 	return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
 }
@@ -657,4 +683,55 @@ func (t *observerTracepointSensor) SpecHandler(raw interface{}) (*sensors.Sensor
 
 func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return LoadGenericTracepointSensor(args.BPFDir, args.MapDir, args.Load, args.Version, args.Verbose)
+}
+
+func populateArgFilterMaps(
+	k *selectors.KernelSelectorState,
+	tp *genericTracepoint,
+	outerMap *ebpf.Map,
+) error {
+	for i, vm := range k.ValueMaps() {
+		err := populateArgFilterMap(tp, outerMap, uint32(i), vm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func populateArgFilterMap(
+	tp *genericTracepoint,
+	outerMap *ebpf.Map,
+	innerID uint32,
+	innerData map[[8]byte]struct{},
+) error {
+	innerName := fmt.Sprintf("argfilter_map_%d", innerID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       innerName,
+		Type:       ebpf.Hash,
+		KeySize:    8, // NB: hardcoded to 64 bits for now
+		ValueSize:  uint32(1),
+		MaxEntries: uint32(len(innerData)),
+	}
+	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+		PinPath: sensors.PathJoin(tp.pinPathPrefix, innerName),
+	})
+	if err != nil {
+		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+	}
+	defer innerMap.Close()
+
+	one := uint8(1)
+	for val := range innerData {
+		err := innerMap.Update(val[:], one, 0)
+		if err != nil {
+			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+		}
+	}
+
+	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
+		return fmt.Errorf("failed to insert %s: %w", innerName, err)
+	}
+
+	return nil
 }
