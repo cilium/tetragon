@@ -753,6 +753,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			unix, retArg = retprobeMerge(prev, curr)
 		} else {
 			gk.pendingEvents[m.ThreadId] = curr
+			kprobemetrics.MergePushedInc()
 			unix = nil
 		}
 	}
