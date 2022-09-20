@@ -134,6 +134,32 @@ func NoAttach(load *Program) AttachFunc {
 	}
 }
 
+func IterAttach(load *Program, bpfDir string) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		iter, err := link.AttachIter(link.IterOptions{
+			Program: prog,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+
+		dataPath := filepath.Join(bpfDir, fmt.Sprintf("%s_data", load.PinPath))
+		err = iter.Pin(dataPath)
+		if err != nil {
+			return nil, fmt.Errorf("pinning '%s' failed: %w", dataPath, err)
+		}
+
+		return unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+			unloader.IterUnloader{
+				Iter: iter,
+			},
+		}, nil
+	}
+}
+
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
@@ -162,6 +188,10 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 
 func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(load), nil, verbose)
+}
+
+func LoadIterProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{mapDir}, load, IterAttach(load, bpfDir), nil, verbose)
 }
 
 func slimVerifierError(errStr string) string {
