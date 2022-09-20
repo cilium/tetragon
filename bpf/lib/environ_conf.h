@@ -6,8 +6,16 @@
 
 /* Tetragon runtime configuration */
 struct tetragon_conf {
+	__u32 mode; /* Tetragon deployment mode */
+	__u32 loglevel; /* Tetragon log level */
+	__u32 pid; /* Tetragon pid for debugging purpose */
+	__u32 nspid; /* Tetragon pid in namespace for debugging purpose */
 	__u32 tg_cgrp_hierarchy; /* Tetragon tracked hierarchy ID */
 	__u32 tg_cgrp_subsys_idx; /* Tetragon tracked cgroup subsystem state index at compile time */
+	__u32 tg_cgrp_level; /* Tetragon cgroup level */
+	__u32 pad;
+	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */
+	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
 };
 
 struct {
