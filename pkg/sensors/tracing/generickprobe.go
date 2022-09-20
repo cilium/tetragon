@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
@@ -100,7 +101,7 @@ type genericKprobe struct {
 	// the map, so that we can merge them when the return event is
 	// generated. The events are maintained in the map below, using
 	// the thread_id and the enter ktime as the key.
-	pendingEvents map[pendingEventKey]pendingEvent
+	pendingEvents *lru.Cache
 
 	tableId idtable.EntryID
 }
@@ -355,9 +356,15 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 			argReturnPrinters: argReturnPrinters,
 			userReturnFilters: userReturnFilters,
 			funcName:          funcName,
-			pendingEvents:     map[pendingEventKey]pendingEvent{},
+			pendingEvents:     nil,
 			tableId:           idtable.UninitializedEntryID,
 		}
+
+		kprobeEntry.pendingEvents, err = lru.New(4096)
+		if err != nil {
+			return nil, err
+		}
+
 		genericKprobeTable.AddEntry(&kprobeEntry)
 
 		config.FuncId = uint32(kprobeEntry.tableId.ID)
@@ -762,11 +769,16 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		// the one we have in the map.
 		curr := pendingEvent{ev: unix, returnEvent: returnEvent}
 		key := pendingEventKey{threadId: m.ThreadId, ktimeEnter: ktimeEnter}
-		if prev, exists := gk.pendingEvents[key]; exists {
-			delete(gk.pendingEvents, key)
+
+		if data, exists := gk.pendingEvents.Get(key); exists {
+			prev, ok := data.(pendingEvent)
+			if !ok {
+				return nil, fmt.Errorf("Internal error: wrong type in pendingEvents")
+			}
+			gk.pendingEvents.Remove(key)
 			unix, retArg = retprobeMerge(prev, curr)
 		} else {
-			gk.pendingEvents[key] = curr
+			gk.pendingEvents.Add(key, curr)
 			kprobemetrics.MergePushedInc()
 			unix = nil
 		}
