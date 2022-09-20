@@ -202,6 +202,21 @@ get_cgroup_name(const struct cgroup *cgrp)
 }
 
 /**
+ * get_cgroup_level() Returns the cgroup level
+ * @cgrp: target cgroup
+ *
+ * Returns the cgroup level, or 0 if it can not be retrieved.
+ */
+static inline __attribute__((always_inline)) __u32
+get_cgroup_level(const struct cgroup *cgrp)
+{
+	__u32 level = 0;
+
+	probe_read(&level, sizeof(level), _(&cgrp->level));
+	return level;
+}
+
+/**
  * get_cgroup_id() Returns cgroup id
  * @cgrp: target cgroup
  *
@@ -228,7 +243,7 @@ get_cgroup_id(const struct cgroup *cgrp)
  *
  * To get cgroup and kernfs node information we want to operate on the right
  * cgroup hierarchy which is setup by user space. However due to the
- * incompatiblity between cgroup v1 and v2; how user space initialize and
+ * incompatibility between cgroup v1 and v2; how user space initialize and
  * install cgroup controllers, etc, it can be difficult.
  *
  * Use this helper and pass the css index that you consider accurate and
@@ -279,6 +294,56 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx)
 
 	probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
 	return cgrp;
+}
+
+/**
+ * __get_cgrp_tracking_val_heap() Get a cgroup_tracking_val from the
+ * tg_cgrps_tracking_heap map while setting its fields.
+ */
+static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+__get_cgrp_tracking_val_heap(cgroup_state state, __u32 hierarchy_id,
+			     __u32 level)
+{
+	int zero = 0;
+	struct cgroup_tracking_value *heap;
+
+	heap = map_lookup_elem(&tg_cgrps_tracking_heap, &zero);
+	if (!heap)
+		return heap;
+
+	memset(heap, 0, sizeof(struct cgroup_tracking_value));
+	heap->state = state;
+	heap->hierarchy_id = hierarchy_id;
+	heap->level = level;
+
+	return heap;
+}
+
+/**
+ * __init_cgrp_tracking_val_heap() Initialize a cgroup_tracking_val that is
+ * obtained with __get_cgrp_tracking_val_heap(). It will initialize and
+ * set the cgroup name too.
+ */
+static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+__init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
+{
+	const char *name;
+	struct kernfs_node *kn;
+	__u32 level, hierarchy_id;
+	struct cgroup_tracking_value *heap;
+
+	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
+	level = get_cgroup_level(cgrp);
+	heap = __get_cgrp_tracking_val_heap(state, hierarchy_id, level);
+	if (!heap)
+		return heap;
+
+	kn = __get_cgroup_kn(cgrp);
+	name = __get_cgroup_kn_name(kn);
+	if (name)
+		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
+
+	return heap;
 }
 
 #endif // __BPF_CGROUP_
