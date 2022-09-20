@@ -10,10 +10,17 @@ import (
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
+
+	// valueMaps are used to populate value maps for InMap and NotInMap operators
+	valueMaps []map[[8]byte]struct{}
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {
 	return k.e
+}
+
+func (k *KernelSelectorState) ValueMaps() []map[[8]byte]struct{} {
+	return k.valueMaps
 }
 
 func WriteSelectorInt32(k *KernelSelectorState, v int32) {
@@ -57,4 +64,10 @@ func AdvanceSelectorLength(k *KernelSelectorState) uint32 {
 func ArgSelectorValue(v string) ([]byte, uint32) {
 	b := []byte(v)
 	return b, uint32(len(b))
+}
+
+func (k *KernelSelectorState) newValueMap() (uint32, map[[8]byte]struct{}) {
+	mapid := len(k.valueMaps)
+	k.valueMaps = append(k.valueMaps, map[[8]byte]struct{}{})
+	return uint32(mapid), k.valueMaps[mapid]
 }
