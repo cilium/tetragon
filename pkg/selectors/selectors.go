@@ -12,7 +12,7 @@ type KernelSelectorState struct {
 	e   [4096]byte // kernel encoding of selectors
 }
 
-func GetSelectorBuffer(k *KernelSelectorState) [4096]byte {
+func (k *KernelSelectorState) Buffer() [4096]byte {
 	return k.e
 }
 
