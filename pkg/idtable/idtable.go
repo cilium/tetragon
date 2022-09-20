@@ -5,13 +5,16 @@ package idtable
 
 import (
 	"fmt"
+	"sync"
 )
 
-// idtable implements a simple id table. Any required synchronization needs to
-// happen on the caller.
+// idtable implements a simple id table. Accesess to the table are guarded by a
+// mutex.
 
 var (
-	// UninitializedEntryID provides an invalid value for EntryID (since its default value is valid)
+	// UninitializedEntryID provides an invalid value for EntryID (since
+	// its default value is valid). Entries removed from the table will be
+	// set to this ID.
 	UninitializedEntryID = EntryID{-1}
 )
 
@@ -30,13 +33,14 @@ type Entry interface {
 }
 
 // invalidEntry is a special internal type to indicate invalid entries on the
-// table so that the can be re-used.
+// table so that they can be re-used.
 type invalidEntry struct{}
 
 func (invalidEntry) SetID(_ EntryID) {}
 
 // Table is the id table
 type Table struct {
+	mu  sync.Mutex
 	arr []Entry
 }
 
@@ -63,6 +67,8 @@ func (t *Table) findEmpty() int {
 // AddEntry will add an entry to the table. The SetID() method will be called
 // with the id for the entry.
 func (t *Table) AddEntry(entry Entry) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	idx := t.findEmpty()
 	t.arr[idx] = entry
 	entry.SetID(EntryID{idx})
@@ -85,6 +91,8 @@ func (t *Table) getValidEntryIndex(id EntryID) (int, error) {
 
 // GetEntry returns an entry or an error
 func (t *Table) GetEntry(id EntryID) (Entry, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	idx, err := t.getValidEntryIndex(id)
 	if err != nil {
 		return nil, err
@@ -93,7 +101,10 @@ func (t *Table) GetEntry(id EntryID) (Entry, error) {
 }
 
 // RemoveEntry removes an entry and returns it (or an error if entry does not exist)
+// before returned, SetID(UninitializedEntryID) is called
 func (t *Table) RemoveEntry(id EntryID) (Entry, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	idx, err := t.getValidEntryIndex(id)
 	if err != nil {
 		return nil, err
@@ -106,6 +117,8 @@ func (t *Table) RemoveEntry(id EntryID) (Entry, error) {
 
 // Len returns the number of entries
 func (t *Table) Len() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	count := 0
 	for i := range t.arr {
 		if _, invalid := t.arr[i].(invalidEntry); !invalid {
