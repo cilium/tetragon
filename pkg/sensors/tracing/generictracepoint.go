@@ -73,6 +73,8 @@ type genericTracepoint struct {
 
 	// index to access this on genericTracepointTable
 	tableIdx int
+
+	pinPathPrefix string
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -288,7 +290,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
-func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, error) {
+func createGenericTracepoint(sensorName string, conf *GenericTracepointConf) (*genericTracepoint, error) {
 	tp := tracepoint.Tracepoint{
 		Subsys: conf.Subsystem,
 		Event:  conf.Event,
@@ -310,6 +312,7 @@ func createGenericTracepoint(conf *GenericTracepointConf) (*genericTracepoint, e
 	}
 
 	genericTracepointTable.addTracepoint(ret)
+	ret.pinPathPrefix = sensors.PathJoin(sensorName, fmt.Sprintf("gtp-%d", ret.tableIdx))
 	return ret, nil
 }
 
@@ -318,7 +321,7 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for _, conf := range confs {
-		tp, err := createGenericTracepoint(&conf)
+		tp, err := createGenericTracepoint(name, &conf)
 		if err != nil {
 			return nil, err
 		}
@@ -330,11 +333,10 @@ func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 
-	sensorDir := name
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
-		pinPath := sensors.PathJoin(sensorDir, fmt.Sprintf("gtp-%d", tp.tableIdx))
+		pinPath := tp.pinPathPrefix
 		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s:%s_prog", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
 		prog0 := program.Builder(
