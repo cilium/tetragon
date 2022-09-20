@@ -20,6 +20,11 @@ var (
 		Help:        "The total number of successful attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
 	})
+	MergePushed = promauto.NewCounter(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_pushed",
+		Help:        "The total number of pushed events for later merge.",
+		ConstLabels: nil,
+	})
 )
 
 // Get a new handle on the mergeErrors metric for a current and previous function
@@ -36,4 +41,8 @@ func MergeErrorsInc(currFn, currType, prevFn, prevType string) {
 
 func MergeOkTotalInc() {
 	MergeOkTotal.Inc()
+}
+
+func MergePushedInc() {
+	MergePushed.Inc()
 }
