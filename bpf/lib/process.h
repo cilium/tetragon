@@ -262,6 +262,10 @@ struct msg_execve_event {
 		struct msg_process process;
 		char buffer[PADDED_BUFFER];
 	};
+	/* below fields are not part of the event, serve just as
+	 * heap for execve programs
+	 */
+	__u32 binary;
 }; // All fields aligned so no 'packed' attribute.
 
 struct execve_map_value {
