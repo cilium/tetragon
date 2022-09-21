@@ -103,24 +103,23 @@ func RawTracepointAttach(load *Program) AttachFunc {
 
 func KprobeAttach(load *Program) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-		var lnk link.Link
-		var err error
+		var linkFn func() (link.Link, error)
 
 		if load.RetProbe {
-			lnk, err = link.Kretprobe(load.Attach, prog, nil)
+			linkFn = func() (link.Link, error) { return link.Kretprobe(load.Attach, prog, nil) }
 		} else {
-			lnk, err = link.Kprobe(load.Attach, prog, nil)
+			linkFn = func() (link.Link, error) { return link.Kprobe(load.Attach, prog, nil) }
 		}
+
+		lnk, err := linkFn()
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
-		return unloader.ChainUnloader{
-			unloader.PinUnloader{
-				Prog: prog,
-			},
-			unloader.LinkUnloader{
-				Link: lnk,
-			},
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       lnk,
+			RelinkFn:   linkFn,
 		}, nil
 	}
 }
