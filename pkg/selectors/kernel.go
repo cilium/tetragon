@@ -23,6 +23,7 @@ const (
 	ActionTypeOverride   = 4
 	ActionTypeCopyFd     = 5
 	ActionTypeGetUrl     = 6
+	ActionTypeDnsLookup  = 7
 )
 
 var actionTypeTable = map[string]uint32{
@@ -33,6 +34,7 @@ var actionTypeTable = map[string]uint32{
 	"override":   ActionTypeOverride,
 	"copyfd":     ActionTypeCopyFd,
 	"geturl":     ActionTypeGetUrl,
+	"dnslookup":  ActionTypeDnsLookup,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -43,6 +45,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeOverride:   "override",
 	ActionTypeCopyFd:     "copyfd",
 	ActionTypeGetUrl:     "geturl",
+	ActionTypeDnsLookup:  "dnslookup",
 }
 
 func MatchActionSigKill(spec *v1alpha1.KProbeSpec) bool {
@@ -70,6 +73,21 @@ func GetUrls(spec *v1alpha1.KProbeSpec) []string {
 		}
 	}
 	return urls
+}
+
+func GetDnsFQDNs(spec *v1alpha1.KProbeSpec) []string {
+	var fqdns []string
+	sels := spec.Selectors
+	for _, s := range sels {
+		for _, act := range s.MatchActions {
+			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeDnsLookup] {
+				if len(act.ArgFqdn) > 0 {
+					fqdns = append(fqdns, act.ArgFqdn)
+				}
+			}
+		}
+	}
+	return fqdns
 }
 
 const (
@@ -127,7 +145,8 @@ const (
 	argTypeFile = 16
 	argTypeFd   = 17
 
-	argTypeUrl = 18
+	argTypeUrl  = 18
+	argTypeFqdn = 19
 )
 
 var argTypeTable = map[string]uint32{
@@ -145,6 +164,7 @@ var argTypeTable = map[string]uint32{
 	"file":       argTypeFile,
 	"sock":       argTypeSock,
 	"url":        argTypeUrl,
+	"fqdn":       argTypeFqdn,
 }
 
 var argTypeStringTable = map[uint32]string{
@@ -162,6 +182,7 @@ var argTypeStringTable = map[uint32]string{
 	argTypeFile:      "file",
 	argTypeSock:      "sock",
 	argTypeUrl:       "url",
+	argTypeFqdn:      "fqdn",
 }
 
 const (
@@ -361,6 +382,8 @@ func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector) e
 		WriteSelectorInt32(k, action.ArgError)
 	case ActionTypeGetUrl:
 		WriteSelectorByteArray(k, []byte(action.ArgUrl), uint32(len(action.ArgUrl)))
+	case ActionTypeDnsLookup:
+		WriteSelectorByteArray(k, []byte(action.ArgFqdn), uint32(len(action.ArgFqdn)))
 	}
 	return nil
 }

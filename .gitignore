@@ -19,3 +19,4 @@ cscope.in.out
 strange.txt
 .vagrant/
 .vscode
+contrib/tester-progs/sigkill-unprivileged-user-ns-tester

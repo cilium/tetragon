@@ -63,6 +63,7 @@ enum {
 	ACTION_OVERRIDE = 4,
 	ACTION_COPYFD = 5,
 	ACTION_GETURL = 6,
+	ACTION_DNSLOOKUP = 7,
 };
 
 enum {

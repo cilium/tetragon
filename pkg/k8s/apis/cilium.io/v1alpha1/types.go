@@ -202,6 +202,9 @@ type ActionSelector struct {
 	// A URL for the getUrl action
 	ArgUrl string `json:"argUrl"`
 	// +kubebuilder:validation:Optional
+	// A FQDN to lookup for the dnsLookup action
+	ArgFqdn string `json:"argFqdn"`
+	// +kubebuilder:validation:Optional
 	// error value for override action
 	ArgError int32 `json:"argError"`
 }

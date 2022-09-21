@@ -176,6 +176,10 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -521,6 +525,10 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
