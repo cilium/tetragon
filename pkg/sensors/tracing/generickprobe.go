@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -103,6 +104,10 @@ type genericKprobe struct {
 	// for kprobes that have a GetUrl action, we store the list of URLs
 	// to get.
 	urls []string
+
+	// for kprobes that have a DnsRequest action, we store the list of
+	// FQDNs to request.
+	fqdns []string
 }
 
 // pendingEvent is an event waiting to be merged with another event.
@@ -343,6 +348,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 		}
 
 		urls := selectors.GetUrls(f)
+		fqdns := selectors.GetDnsFQDNs(f)
 
 		// create a new entry on the table, and pass its id to BPF-side
 		// so that we can do the matching at event-generation time
@@ -360,6 +366,7 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 			pendingEvents:     map[uint64]pendingEvent{},
 			tableId:           idtable.UninitializedEntryID,
 			urls:              urls,
+			fqdns:             fqdns,
 		}
 		genericKprobeTable.AddEntry(&kprobeEntry)
 
@@ -525,6 +532,11 @@ func getUrl(url string) {
 	http.Get(url)
 }
 
+func dnsLookup(fqdn string) {
+	// We fire and forget DNS lookups, and we don't care if they hit or not.
+	net.LookupIP(fqdn)
+}
+
 func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := binary.Read(r, binary.LittleEndian, &m)
@@ -544,6 +556,11 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		for _, url := range gk.urls {
 			logger.GetLogger().WithField("URL", url).Trace("Get URL Action")
 			getUrl(url)
+		}
+	case selectors.ActionTypeDnsLookup:
+		for _, fqdn := range gk.fqdns {
+			logger.GetLogger().WithField("FQDN", fqdn).Trace("DNS lookup")
+			dnsLookup(fqdn)
 		}
 	}
 
