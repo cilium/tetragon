@@ -99,7 +99,7 @@ func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 
 func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 	ret := []images.Action{
-		{Op: &images.CopyInCommand{LocalPath: TetragonTesterBin, RemoteDir: "/sbin"}},
+		{Op: &images.CopyInCommand{LocalPath: TetragonTesterBin, RemoteDir: "/sbin/"}},
 	}
 
 	// NB: need to do this before we marshal the configuration
@@ -164,8 +164,6 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 
 	actions := []images.Action{
 		{Op: &images.SetHostnameCommand{Hostname: hostname}},
-		// NB: some of the tetragon tests expect a /usr/bin/cp
-		{Op: &images.RunCommand{Cmd: "cp /bin/cp /usr/bin/cp"}},
 		{Op: &images.AppendLineCommand{
 			File: "/etc/sysctl.d/local.conf",
 			Line: "kernel.panic_on_rcu_stall=1",
