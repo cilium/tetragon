@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -24,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
@@ -174,6 +176,23 @@ func pushExecveEvents(p Procs) {
 	observer.AllListeners(&m)
 }
 
+func updateExecveMapStats(procs int64) {
+
+	execveMapStats := base.GetExecveMapStats()
+
+	m, err := ebpf.LoadPinnedMap(filepath.Join(bpf.MapPrefixPath(), execveMapStats.Name), nil)
+	if err != nil {
+		logger.GetLogger().WithError(err).Errorf("Could not open execve_map_stats")
+		return
+	}
+	defer m.Close()
+
+	if err := sensors.UpdateStatsMap(m, procs); err != nil {
+		logger.GetLogger().WithError(err).
+			Errorf("Failed to update execve_map_stats with procfs stats: %s", err)
+	}
+}
+
 func writeExecveMap(procs []Procs) {
 	mapDir := bpf.MapPrefixPath()
 
@@ -229,6 +248,8 @@ func writeExecveMap(procs []Procs) {
 		},
 	})
 	m.Close()
+
+	updateExecveMapStats(int64(len(procs)))
 }
 
 func pushEvents(procs []Procs) {
