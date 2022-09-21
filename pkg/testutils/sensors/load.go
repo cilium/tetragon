@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -117,12 +118,13 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 		0: SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
 		1: SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
 		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
 	}
+
 	var baseMaps = []SensorMap{
 		// all programs
-		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
-		SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
-		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
+		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3}},
+		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 3}},
 
 		// event_execve
 		SensorMap{Name: "names_map", Progs: []uint{0}},
@@ -130,6 +132,12 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},
+	}
+
+	if kernels.EnableLargeProgs() {
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}})
+	} else {
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3}})
 	}
 
 	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)

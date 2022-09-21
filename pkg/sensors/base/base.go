@@ -50,6 +50,9 @@ var (
 	ExecveMap    = program.MapBuilder("execve_map", Execve)
 	ExecveMapV53 = program.MapBuilder("execve_map", ExecveV53)
 
+	ExecveTailCallsMap    = program.MapBuilderPin("execve_calls", "execve_calls", Execve)
+	ExecveTailCallsMapV53 = program.MapBuilderPin("execve_calls", "execve_calls", ExecveV53)
+
 	/* Policy maps populated from base programs */
 	NamesMap    = program.MapBuilder("names_map", Execve)
 	NamesMapV53 = program.MapBuilder("names_map", ExecveV53)
@@ -104,6 +107,7 @@ func GetDefaultMaps() []*program.Map {
 		maps = append(maps,
 			ExecveMapV53,
 			ExecveStatsV53,
+			ExecveTailCallsMapV53,
 			NamesMapV53,
 			TCPMonMapV53,
 			TetragonConfMapV53,
@@ -112,6 +116,7 @@ func GetDefaultMaps() []*program.Map {
 		maps = append(maps,
 			ExecveMap,
 			ExecveStats,
+			ExecveTailCallsMap,
 			NamesMap,
 			TCPMonMap,
 			TetragonConfMap,

@@ -11,6 +11,13 @@
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u32);
+} execve_calls SEC(".maps");
+
 #ifdef __LARGE_BPF_PROG
 #include "data_event.h"
 
@@ -157,17 +164,13 @@ event_execve(struct sched_execve_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
-	struct execve_map_value *curr, *parent;
+	struct execve_map_value *parent;
 	struct msg_process *execve;
 	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
-	uint64_t size;
 	__u32 pid;
 	unsigned short fileoff;
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-	bool init_curr = 0;
-#endif
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -185,9 +188,36 @@ event_execve(struct sched_execve_args *ctx)
 	fileoff = ctx->filename & 0xFFFF;
 	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
 					(char *)ctx + fileoff);
+	event->binary = binary;
+
 	event_args_builder(ctx, event);
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
+
+	tail_call(ctx, &execve_calls, 0);
+	return 0;
+}
+
+__attribute__((section("tracepoint/0"), used)) int
+execve_send(struct sched_execve_args *ctx)
+{
+	struct msg_execve_event *event;
+	struct execve_map_value *curr;
+	struct msg_process *execve;
+	__u32 zero = 0;
+	uint64_t size;
+	__u32 pid;
+#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
+	bool init_curr = 0;
+#endif
+
+	event = map_lookup_elem(&execve_msg_heap_map, &zero);
+	if (!event)
+		return 0;
+
+	execve = &event->process;
+
+	pid = (get_current_pid_tgid() >> 32);
 
 	curr = execve_map_get(pid);
 	if (curr) {
@@ -215,7 +245,7 @@ event_execve(struct sched_execve_args *ctx)
 			curr->key.ktime = execve->ktime;
 		}
 		curr->flags = 0;
-		curr->binary = binary;
+		curr->binary = event->binary;
 #ifdef __NS_CHANGES_FILTER
 		if (init_curr)
 			memcpy(&(curr->ns), &(event->ns),
