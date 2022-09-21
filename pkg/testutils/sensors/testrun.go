@@ -113,12 +113,20 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 
 	bpf.SetMapPrefix(testMapDir)
 	defer func() {
+		log := logger.GetLogger()
 		path := bpf.MapPrefixPath()
 		_, err := os.Stat(path)
 		if os.IsNotExist(err) {
 			return
 		}
-		fmt.Printf("map dir `%s` still exists after test. Removing it.\n", path)
+
+		if entries, err := os.ReadDir(path); err == nil {
+			for _, entry := range entries {
+				log.Printf("`%s` still exists after test", entry.Name())
+			}
+		}
+
+		log.Printf("map dir `%s` still exists after test. Removing it.", path)
 		os.RemoveAll(path)
 	}()
 	if err := btf.InitCachedBTF(context.Background(), config.TetragonLib, ""); err != nil {
