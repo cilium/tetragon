@@ -62,6 +62,7 @@ enum {
 	ACTION_UNFOLLOWFD = 3,
 	ACTION_OVERRIDE = 4,
 	ACTION_COPYFD = 5,
+	ACTION_GETURL = 6,
 };
 
 enum {

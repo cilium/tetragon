@@ -199,6 +199,9 @@ type ActionSelector struct {
 	// An arg index for the filename for fdInstall action
 	ArgName uint32 `json:"argName"`
 	// +kubebuilder:validation:Optional
+	// A URL for the getUrl action
+	ArgUrl string `json:"argUrl"`
+	// +kubebuilder:validation:Optional
 	// error value for override action
 	ArgError int32 `json:"argError"`
 }

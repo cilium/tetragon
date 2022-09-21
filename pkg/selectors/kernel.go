@@ -16,42 +16,60 @@ import (
 )
 
 const (
-	actionTypePost       = 0
-	actionTypeFollowFd   = 1
-	actionTypeSigKill    = 2
-	actionTypeUnfollowFd = 3
-	actionTypeOverride   = 4
-	actionTypeCopyFd     = 5
+	ActionTypePost       = 0
+	ActionTypeFollowFd   = 1
+	ActionTypeSigKill    = 2
+	ActionTypeUnfollowFd = 3
+	ActionTypeOverride   = 4
+	ActionTypeCopyFd     = 5
+	ActionTypeGetUrl     = 6
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":       actionTypePost,
-	"followfd":   actionTypeFollowFd,
-	"unfollowfd": actionTypeUnfollowFd,
-	"sigkill":    actionTypeSigKill,
-	"override":   actionTypeOverride,
-	"copyfd":     actionTypeCopyFd,
+	"post":       ActionTypePost,
+	"followfd":   ActionTypeFollowFd,
+	"unfollowfd": ActionTypeUnfollowFd,
+	"sigkill":    ActionTypeSigKill,
+	"override":   ActionTypeOverride,
+	"copyfd":     ActionTypeCopyFd,
+	"geturl":     ActionTypeGetUrl,
 }
 
 var actionTypeStringTable = map[uint32]string{
-	actionTypePost:       "post",
-	actionTypeFollowFd:   "followfd",
-	actionTypeUnfollowFd: "unfollowfd",
-	actionTypeSigKill:    "sigkill",
-	actionTypeOverride:   "override",
-	actionTypeCopyFd:     "copyfd",
+	ActionTypePost:       "post",
+	ActionTypeFollowFd:   "followfd",
+	ActionTypeUnfollowFd: "unfollowfd",
+	ActionTypeSigKill:    "sigkill",
+	ActionTypeOverride:   "override",
+	ActionTypeCopyFd:     "copyfd",
+	ActionTypeGetUrl:     "geturl",
 }
 
 func MatchActionSigKill(spec *v1alpha1.KProbeSpec) bool {
 	sels := spec.Selectors
 	for _, s := range sels {
 		for _, act := range s.MatchActions {
-			if strings.ToLower(act.Action) == actionTypeStringTable[actionTypeSigKill] {
+			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeSigKill] {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func GetUrls(spec *v1alpha1.KProbeSpec) []string {
+	var urls []string
+	sels := spec.Selectors
+	for _, s := range sels {
+		for _, act := range s.MatchActions {
+			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeGetUrl] {
+				if len(act.ArgUrl) > 0 {
+					urls = append(urls, act.ArgUrl)
+				}
+			}
+		}
+	}
+	return urls
 }
 
 const (
@@ -108,6 +126,8 @@ const (
 
 	argTypeFile = 16
 	argTypeFd   = 17
+
+	argTypeUrl = 18
 )
 
 var argTypeTable = map[string]uint32{
@@ -124,6 +144,7 @@ var argTypeTable = map[string]uint32{
 	"fd":         argTypeFd,
 	"file":       argTypeFile,
 	"sock":       argTypeSock,
+	"url":        argTypeUrl,
 }
 
 var argTypeStringTable = map[uint32]string{
@@ -140,6 +161,7 @@ var argTypeStringTable = map[uint32]string{
 	argTypeFd:        "fd",
 	argTypeFile:      "file",
 	argTypeSock:      "sock",
+	argTypeUrl:       "url",
 }
 
 const (
@@ -328,15 +350,17 @@ func parseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
-		return fmt.Errorf("parseMatchAction: actionType %s unknown", action.Action)
+		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
 	WriteSelectorUint32(k, act)
 	switch act {
-	case actionTypeFollowFd, actionTypeCopyFd:
+	case ActionTypeFollowFd, ActionTypeCopyFd:
 		WriteSelectorUint32(k, action.ArgFd)
 		WriteSelectorUint32(k, action.ArgName)
-	case actionTypeOverride:
+	case ActionTypeOverride:
 		WriteSelectorInt32(k, action.ArgError)
+	case ActionTypeGetUrl:
+		WriteSelectorByteArray(k, []byte(action.ArgUrl), uint32(len(action.ArgUrl)))
 	}
 	return nil
 }
@@ -604,14 +628,16 @@ func parseSelector(
 // array :=
 // [number][filter1_offset][filter2_offset][...][filtern_offset][filter1][filter2][...][filtern]
 // filter := [length]
-//           [matchPIDs]
-//           [matchNamespaces]
-//           [matchCapabilities]
-//           [matchNamespaceChanges]
-//           [matchCapabilityChanges]
-//           [matchBinaries]
-//           [matchArgs]
-//           [matchActions]
+//
+//	[matchPIDs]
+//	[matchNamespaces]
+//	[matchCapabilities]
+//	[matchNamespaceChanges]
+//	[matchCapabilityChanges]
+//	[matchBinaries]
+//	[matchArgs]
+//	[matchActions]
+//
 // matchPIDs := [num][PID1][PID2]...[PIDn]
 // matchBinaries := [num][op][Index]...[Index]
 // matchArgs := [num][ARGx][ARGy]...[ARGn]
@@ -649,7 +675,7 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	for _, s := range spec.Selectors {
 		for _, action := range s.MatchActions {
 			act, _ := actionTypeTable[strings.ToLower(action.Action)]
-			if act == actionTypeOverride {
+			if act == ActionTypeOverride {
 				return true
 			}
 		}

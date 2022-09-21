@@ -181,6 +181,9 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
                               required:
                               - action
                               type: object
@@ -523,6 +526,9 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
                               required:
                               - action
                               type: object
