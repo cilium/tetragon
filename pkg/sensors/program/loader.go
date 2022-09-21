@@ -137,7 +137,7 @@ func NoAttach(load *Program) AttachFunc {
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
-		if mName == "tp_calls" {
+		if mName == "tp_calls" || mName == "execve_calls" {
 			ci = &customInstall{mPath, "tracepoint"}
 			break
 		}
