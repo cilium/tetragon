@@ -506,14 +506,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	if err != nil {
 		return err
 	}
-	selBuff := kernelSelectors.Buffer()
-	filter := &program.MapLoad{
-		Name: "filter_map",
-		Load: func(m *ebpf.Map) error {
-			return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
-		},
-	}
-	load.MapLoad = append(load.MapLoad, filter)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(kernelSelectors, tp.pinPathPrefix)...)
 
 	config, err := tp.EventConfig()
 	if err != nil {
@@ -528,13 +521,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		},
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
-
-	load.MapLoad = append(load.MapLoad, &program.MapLoad{
-		Name: "argfilter_maps",
-		Load: func(outerMap *ebpf.Map) error {
-			return populateArgFilterMaps(kernelSelectors, tp, outerMap)
-		},
-	})
 
 	return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
 }

@@ -56,6 +56,23 @@ func updateSelectors(
 	return nil
 }
 
+func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string) []*program.MapLoad {
+	selBuff := ks.Buffer()
+	return []*program.MapLoad{
+		{
+			Name: "filter_map",
+			Load: func(m *ebpf.Map) error {
+				return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
+			},
+		}, {
+			Name: "argfilter_maps",
+			Load: func(outerMap *ebpf.Map) error {
+				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
+			},
+		},
+	}
+}
+
 func populateArgFilterMaps(
 	k *selectors.KernelSelectorState,
 	pinPathPrefix string,
