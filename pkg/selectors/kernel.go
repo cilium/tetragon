@@ -306,7 +306,7 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 	for _, v := range values {
 		var val [8]byte
 		switch ty {
-		case argTypeS64:
+		case argTypeS64, argTypeInt:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
