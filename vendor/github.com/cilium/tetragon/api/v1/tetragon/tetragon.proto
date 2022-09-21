@@ -208,6 +208,7 @@ enum KprobeAction {
 	KPROBE_ACTION_UNFOLLOWFD = 4;
 	KPROBE_ACTION_OVERRIDE   = 5;
 	KPROBE_ACTION_COPYFD     = 6;
+    KPROBE_ACTION_GETURL     = 7;
 }
 
 message ProcessKprobe {
