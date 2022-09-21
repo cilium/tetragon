@@ -181,6 +181,8 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
+#else
+#pragma nounroll
 #endif
 	for (i = 0; i < PROBE_CWD_READ_ITERATIONS;
 	     ++i) { // maximum number of path compoments
