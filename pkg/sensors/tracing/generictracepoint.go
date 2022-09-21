@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"path/filepath"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -18,7 +17,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -444,8 +442,9 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 // ReloadGenericTracepointSelectors will reload a tracepoint by unlinking it, generating new
 // selector data and updating filter_map, and then relinking the tracepoint.
 //
-// This is intentended for speeding up testing, so DO NOT USE elswhere without checking its
-// implementation first because limitations may exist (e.g,. the config map is not updated).
+// This is intended for speeding up testing, so DO NOT USE elsewhere without checking its
+// implementation first because limitations may exist (e.g., the config map is not updated).
+// TODO: pass the sensor here
 func ReloadGenericTracepointSelectors(p *program.Program, conf *v1alpha1.TracepointSpec) error {
 	tpIdx, ok := p.LoaderData.(int)
 	if !ok {
@@ -473,40 +472,13 @@ func ReloadGenericTracepointSelectors(p *program.Program, conf *v1alpha1.Tracepo
 		return err
 	}
 
-	filterName, ok := p.PinMap["filter_map"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned filter_map")
-	}
-
 	kernelSelectors, err := tp.KernelSelectors()
 	if err != nil {
 		return err
 	}
 
-	filterMapPath := filepath.Join(bpf.MapPrefixPath(), filterName)
-	filterMap, err := ebpf.LoadPinnedMap(filterMapPath, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open filter map: %w", err)
-	}
-	defer filterMap.Close()
-
-	selBuff := kernelSelectors.Buffer()
-	if err := filterMap.Update(uint32(0), selBuff[:], ebpf.UpdateAny); err != nil {
-		return fmt.Errorf("failed to update filter data: %w", err)
-	}
-
-	argfilterMapsName, ok := p.PinMap["argfilter_maps"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned argfilter_maps")
-	}
-	argfilterMapsName = filepath.Join(bpf.MapPrefixPath(), argfilterMapsName)
-	argfilterMaps, err := ebpf.LoadPinnedMap(argfilterMapsName, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open argfilter_map map %s: %w", argfilterMapsName, err)
-	}
-	defer argfilterMaps.Close()
-	if err := populateArgFilterMaps(kernelSelectors, tp, argfilterMaps); err != nil {
-		return fmt.Errorf("failed to populate argfilter_maps: %w", err)
+	if err := updateSelectors(kernelSelectors, p.PinMap, tp.pinPathPrefix); err != nil {
+		return err
 	}
 
 	if err := p.Relink(); err != nil {
@@ -683,55 +655,4 @@ func (t *observerTracepointSensor) SpecHandler(raw interface{}) (*sensors.Sensor
 
 func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return LoadGenericTracepointSensor(args.BPFDir, args.MapDir, args.Load, args.Version, args.Verbose)
-}
-
-func populateArgFilterMaps(
-	k *selectors.KernelSelectorState,
-	tp *genericTracepoint,
-	outerMap *ebpf.Map,
-) error {
-	for i, vm := range k.ValueMaps() {
-		err := populateArgFilterMap(tp, outerMap, uint32(i), vm)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func populateArgFilterMap(
-	tp *genericTracepoint,
-	outerMap *ebpf.Map,
-	innerID uint32,
-	innerData map[[8]byte]struct{},
-) error {
-	innerName := fmt.Sprintf("argfilter_map_%d", innerID)
-	innerSpec := &ebpf.MapSpec{
-		Name:       innerName,
-		Type:       ebpf.Hash,
-		KeySize:    8, // NB: hardcoded to 64 bits for now
-		ValueSize:  uint32(1),
-		MaxEntries: uint32(len(innerData)),
-	}
-	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
-		PinPath: sensors.PathJoin(tp.pinPathPrefix, innerName),
-	})
-	if err != nil {
-		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
-	}
-	defer innerMap.Close()
-
-	one := uint8(1)
-	for val := range innerData {
-		err := innerMap.Update(val[:], one, 0)
-		if err != nil {
-			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
-		}
-	}
-
-	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
-		return fmt.Errorf("failed to insert %s: %w", innerName, err)
-	}
-
-	return nil
 }

@@ -460,11 +460,10 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 // ReloadGenericKprobeSelectors will reload a kprobe by unlinking it, generating new
 // selector data and updating filter_map, and then relinking the kprobe (entry).
 //
-// This is intentended for speeding up testing, so DO NOT USE elswhere without
+// This is intended for speeding up testing, so DO NOT USE elsewhere without
 // checking its implementation first because limitations may exist (e.g,. the
 // config map is not updated, the retprobe is not reloaded, userspace return filters are not updated, etc.).
 func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProbeSpec) error {
-
 	// The first program should be the (entry) kprobe, and that's the only
 	// one we will reload. We could reload the retprobe, but the assumption
 	// is that we don't need to, because it will never be executed if the
@@ -472,6 +471,11 @@ func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProb
 	kprobeProg := kpSensor.Progs[0]
 	if kprobeProg.Label != "kprobe/generic_kprobe" {
 		return fmt.Errorf("first program %+v does not seem to be the entry kprobe", kprobeProg)
+	}
+
+	gk, err := genericKprobeFromBpfLoad(kprobeProg)
+	if err != nil {
+		return err
 	}
 
 	if err := kprobeProg.Unlink(); err != nil {
@@ -483,20 +487,8 @@ func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProb
 		return err
 	}
 
-	filterName, ok := kprobeProg.PinMap["filter_map"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned filter_map")
-	}
-	filterMapPath := filepath.Join(bpf.MapPrefixPath(), filterName)
-	filterMap, err := ebpf.LoadPinnedMap(filterMapPath, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open filter map: %w", err)
-	}
-	defer filterMap.Close()
-
-	selBuff := kState.Buffer()
-	if err := filterMap.Update(uint32(0), selBuff[:], ebpf.UpdateAny); err != nil {
-		return fmt.Errorf("failed to update filter data: %w", err)
+	if err := updateSelectors(kState, kprobeProg.PinMap, gk.pinPathPrefix); err != nil {
+		return err
 	}
 
 	if err := kprobeProg.Relink(); err != nil {
