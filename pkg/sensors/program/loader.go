@@ -151,7 +151,13 @@ func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-kp-calls", load.PinPath), "kprobe"}
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "kprobe_calls" {
+			ci = &customInstall{mPath, "kprobe"}
+			break
+		}
+	}
 	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
 }
 

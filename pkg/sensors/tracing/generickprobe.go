@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -115,6 +116,8 @@ type genericKprobe struct {
 	// for kprobes that have a DnsRequest action, we store the list of
 	// FQDNs to request.
 	fqdns []string
+
+	pinPathPrefix string
 }
 
 // pendingEvent is an event waiting to be merged with another event.
@@ -124,10 +127,6 @@ type genericKprobe struct {
 type pendingEvent struct {
 	ev          *tracing.MsgGenericKprobeUnix
 	returnEvent bool
-}
-
-func (g *genericKprobe) getMapDir() string {
-	return fmt.Sprintf("generickprobe_id:%d_fn:%s", g.tableId.ID, g.funcName)
 }
 
 func (g *genericKprobe) SetID(id idtable.EntryID) {
@@ -200,10 +199,11 @@ func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
 	return nil
 }
 
-func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
+func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
+	sensorPath := name
 	for i := range kprobes {
 		f := &kprobes[i]
 		var argSigPrinters []argPrinters
@@ -382,8 +382,9 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 		}
 
 		genericKprobeTable.AddEntry(&kprobeEntry)
-
-		config.FuncId = uint32(kprobeEntry.tableId.ID)
+		tidx := kprobeEntry.tableId.ID
+		kprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("gkp-%d", tidx))
+		config.FuncId = uint32(tidx)
 
 		loadProgName := "bpf_generic_kprobe.o"
 		loadProgRetName := "bpf_generic_retkprobe.o"
@@ -392,47 +393,65 @@ func addGenericKprobeSensors(kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, er
 			loadProgRetName = "bpf_generic_retkprobe_v53.o"
 		}
 
-		pinFile := fmt.Sprintf("kprobe_%s", funcName)
+		pinPath := kprobeEntry.pinPathPrefix
+		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
 
 		load := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgName),
 			funcName,
 			"kprobe/generic_kprobe",
-			pinFile,
+			pinProg,
 			"generic_kprobe").
 			SetLoaderData(kprobeEntry.tableId)
 		load.Override = hasOverride
 		progs = append(progs, load)
 
-		fdinstall := program.MapBuilder("fdinstall_map", load)
+		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
 		maps = append(maps, fdinstall)
 
-		tailCalls := program.MapBuilderPin("kprobe_calls", fmt.Sprintf("%s-kp-calls", pinFile), load)
+		configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+		maps = append(maps, configMap)
+
+		tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
 		maps = append(maps, tailCalls)
 
-		retProbe := program.MapBuilderPin("retprobe_map", fmt.Sprintf("%s/retprobe_map", kprobeEntry.getMapDir()), load)
+		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+		maps = append(maps, filterMap)
+
+		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 		maps = append(maps, retProbe)
 
+		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+		maps = append(maps, callHeap)
+
 		if setRetprobe {
+			pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
 			loadret := program.Builder(
 				path.Join(option.Config.HubbleLib, loadProgRetName),
 				funcName,
 				"kprobe/generic_retkprobe",
-				"kretprobe"+"_"+funcName,
+				pinRetProg,
 				"generic_kprobe").
 				SetRetProbe(true).
 				SetLoaderData(kprobeEntry.tableId)
 			progs = append(progs, loadret)
 
-			retProbe := program.MapBuilderPin("retprobe_map", fmt.Sprintf("%s/retprobe_map", kprobeEntry.getMapDir()), loadret)
+			retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
 			maps = append(maps, retProbe)
+
+			retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
+			maps = append(maps, retConfigMap)
+
+			// add maps with non-default paths (pins) to the retprobe
+			program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+			program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
 		}
 
 		logger.GetLogger().Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	}
 
 	return &sensors.Sensor{
-		Name:  "__generic_kprobe_sensors__",
+		Name:  name,
 		Progs: progs,
 		Maps:  maps,
 	}, nil
@@ -469,7 +488,7 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 
 	if err := program.LoadKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+		logger.GetLogger().Infof("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
 	}
@@ -972,12 +991,13 @@ func (k *observerKprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, er
 		}
 		spec = &s
 	}
+	name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 
 	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
 		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
 	}
 	if len(spec.KProbes) > 0 {
-		return addGenericKprobeSensors(spec.KProbes)
+		return createGenericKprobeSensor(name, spec.KProbes)
 	}
 	return nil, nil
 }
