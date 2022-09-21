@@ -1,5 +1,3 @@
-//  Copyright (C) Isovalent, Inc. - All Rights Reserved.
-//
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
