@@ -701,7 +701,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 			arg.ProgType = output.ProgType
 			arg.InsnCnt = output.InsnCnt
-			arg.ProgName = string(output.ProgName[:15]) // don't include last null byte
+			length := bytes.IndexByte(output.ProgName[:], 0) // trim tailing null bytes
+			arg.ProgName = string(output.ProgName[:length])
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericPerfEvent:
 			var output api.MsgGenericKprobePerfEvent

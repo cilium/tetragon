@@ -20,6 +20,11 @@ const (
 	ActionCopyFd     = 5
 )
 
+const (
+	BPF_OBJ_NAME_LEN = 16
+	KSYM_NAME_LEN    = 128
+)
+
 type MsgGenericKprobe struct {
 	Common       processapi.MsgCommon
 	ProcessKey   processapi.MsgExecveKey
@@ -206,7 +211,7 @@ func (m MsgGenericKprobeArgCred) IsReturnArg() bool {
 type MsgGenericKprobeBpfAttr struct {
 	ProgType uint32
 	InsnCnt  uint32
-	ProgName [16]byte
+	ProgName [BPF_OBJ_NAME_LEN]byte
 }
 
 type MsgGenericKprobeArgBpfAttr struct {
@@ -225,7 +230,7 @@ func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
 }
 
 type MsgGenericKprobePerfEvent struct {
-	KprobeFunc  [128]byte
+	KprobeFunc  [KSYM_NAME_LEN]byte
 	Type        uint32
 	Config      uint64
 	ProbeOffset uint64
@@ -252,7 +257,7 @@ type MsgGenericKprobeBpfMap struct {
 	KeySize    uint32
 	ValueSize  uint32
 	MaxEntries uint32
-	MapName    [16]byte
+	MapName    [BPF_OBJ_NAME_LEN]byte
 }
 
 type MsgGenericKprobeArgBpfMap struct {
