@@ -73,10 +73,10 @@ func kprobeCharBufErrorToString(e int32) string {
 }
 
 type kprobeLoadArgs struct {
-	filters  [4096]byte
-	retprobe bool
-	syscall  bool
-	config   *api.EventConfig
+	selectors *selectors.KernelSelectorState
+	retprobe  bool
+	syscall   bool
+	config    *api.EventConfig
 }
 
 type argPrinters struct {
@@ -308,7 +308,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		}
 
 		// Parse Filters into kernel filter logic
-		kernelSelectors, err := selectors.InitKernelSelectors(f.Selectors, f.Args)
+		kernelSelectorState, err := selectors.InitKernelSelectorState(f.Selectors, f.Args)
 		if err != nil {
 			return nil, err
 		}
@@ -361,10 +361,10 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		// so that we can do the matching at event-generation time
 		kprobeEntry := genericKprobe{
 			loadArgs: kprobeLoadArgs{
-				filters:  kernelSelectors,
-				retprobe: setRetprobe,
-				syscall:  is_syscall,
-				config:   config,
+				selectors: kernelSelectorState,
+				retprobe:  setRetprobe,
+				syscall:   is_syscall,
+				config:    config,
 			},
 			argSigPrinters:    argSigPrinters,
 			argReturnPrinters: argReturnPrinters,
@@ -417,6 +417,9 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 		maps = append(maps, filterMap)
+
+		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+		maps = append(maps, argFilterMaps)
 
 		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 		maps = append(maps, retProbe)
@@ -505,15 +508,7 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	}
 
 	if !load.RetProbe {
-		loadData := make([]byte, len(gk.loadArgs.filters))
-		copy(loadData, gk.loadArgs.filters[:])
-		filter := &program.MapLoad{
-			Name: "filter_map",
-			Load: func(m *ebpf.Map) error {
-				return m.Update(uint32(0), loadData, ebpf.UpdateAny)
-			},
-		}
-		load.MapLoad = append(load.MapLoad, filter)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix)...)
 	}
 
 	var configData bytes.Buffer
