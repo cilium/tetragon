@@ -291,7 +291,8 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 			bpfDir,
 			mapDir,
 			ciliumDir,
-			load)
+			load,
+			verbose)
 		return err
 	} else {
 		if s, ok := registeredProbeLoad[load.Type]; ok {
