@@ -656,7 +656,7 @@ copy_bpf_attr(char *args, unsigned long arg)
 	/* struct values */
 	probe_read(&bpf_info->prog_type, sizeof(__u32), _(&ba->prog_type));
 	probe_read(&bpf_info->insn_cnt, sizeof(__u32), _(&ba->insn_cnt));
-	probe_read(&bpf_info->prog_name, 16U, _(&ba->prog_name));
+	probe_read(&bpf_info->prog_name, BPF_OBJ_NAME_LEN, _(&ba->prog_name));
 
 	return sizeof(struct bpf_info_type);
 }
@@ -673,7 +673,7 @@ copy_perf_event(char *args, unsigned long arg)
 
 	probe_read(&kprobe_func_addr, sizeof(__u64),
 		   _(&p_event->attr.kprobe_func));
-	probe_read_str(&event_info->kprobe_func, 128U,
+	probe_read_str(&event_info->kprobe_func, KSYM_NAME_LEN,
 		       (char *)kprobe_func_addr);
 
 	probe_read(&event_info->type, sizeof(__u32), _(&p_event->attr.type));
@@ -698,7 +698,7 @@ copy_bpf_map(char *args, unsigned long arg)
 		   _(&bpfmap->value_size));
 	probe_read(&map_info->max_entries, sizeof(__u32),
 		   _(&bpfmap->max_entries));
-	probe_read(&map_info->map_name, 16U, _(&bpfmap->name));
+	probe_read(&map_info->map_name, BPF_OBJ_NAME_LEN, _(&bpfmap->name));
 
 	return sizeof(struct bpf_map_info_type);
 }
