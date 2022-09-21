@@ -450,6 +450,7 @@ func LoadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
+	verbose int,
 ) error {
-	return loadProgram(bpfDir, mapDirs, load, withProgram, nil, 0)
+	return loadProgram(bpfDir, mapDirs, load, withProgram, nil, verbose)
 }
