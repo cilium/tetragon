@@ -6,8 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -99,7 +97,6 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 			case *sensorRemove:
 				sensors, exists := availableSensors[op.name]
 				if !exists {
-					fmt.Printf("delete failed !exists: %s\n", op.name)
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
@@ -230,40 +227,8 @@ func RemoveProgram(bpfDir string, prog *program.Program) {
 		return
 	}
 
-	path := filepath.Join(bpfDir, prog.PinPath)
-	if prog.Type == "generic_kprobe" {
-		coreFile := ""
-		splitProg := strings.Split(prog.PinPath, "__")
-		if (len(splitProg)) > 1 {
-			coreFile = splitProg[1]
-		} else {
-			splitProg = strings.Split(prog.PinPath, "kprobe_")
-			if len(splitProg) < 2 {
-				splitProg = strings.Split(prog.PinPath, "kretprobe_")
-			}
-			coreFile = splitProg[1]
-		}
-		logger.GetLogger().Debugf("remove strings: %s", coreFile)
-		files, err := os.ReadDir(bpfDir)
-		if err == nil {
-			for _, f := range files {
-				if strings.Contains(f.Name(), coreFile) {
-					if f.IsDir() {
-						os.RemoveAll(filepath.Join(bpfDir, f.Name()))
-					} else {
-						os.Remove(filepath.Join(bpfDir, f.Name()))
-					}
-				}
-			}
-		}
-		os.Remove(path + "-kp-calls")
-		if err := os.Remove(path); err != nil {
-			logger.GetLogger().Debugf("Failed to remove program '%s': %w", path, err)
-		}
-	} else {
-		if err := prog.Unload(); err != nil {
-			logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")
-		}
+	if err := prog.Unload(); err != nil {
+		logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")
 	}
 
 	log.Info("BPF prog was unloaded")
