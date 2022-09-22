@@ -48,8 +48,17 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeDnsLookup:  "dnslookup",
 }
 
-func MatchActionSigKill(spec *v1alpha1.KProbeSpec) bool {
-	sels := spec.Selectors
+func MatchActionSigKill(spec interface{}) bool {
+	var sels []v1alpha1.KProbeSelector
+	switch s := spec.(type) {
+	case *v1alpha1.KProbeSpec:
+		sels = s.Selectors
+	case *v1alpha1.TracepointSpec:
+		sels = s.Selectors
+	default:
+		return false
+	}
+
 	for _, s := range sels {
 		for _, act := range s.MatchActions {
 			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeSigKill] {
