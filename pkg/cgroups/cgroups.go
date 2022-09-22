@@ -493,6 +493,26 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
+// Migrate Pid to the corresponding cgroup path
+func migratePidtoCgrp(cgrpPath string, pid uint32) error {
+	f, err := os.OpenFile(cgrpPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("open '%s' failed", cgrpPath)
+		return err
+	}
+
+	_, err = f.Write([]byte(fmt.Sprint(pid)))
+	f.Close()
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("migrating pid=%d to '%s' failed", pid, cgrpPath)
+		return err
+	}
+
+	return nil
+}
+
+// findMigrationPath() Find the appropriate cgroup path for the pid so
+// it can migrate itself. Handles both Cgroup v1 and v2
 func findMigrationPath(pid uint32) (string, error) {
 	if cgrpMigrationPath != "" {
 		return cgrpMigrationPath, nil
@@ -633,6 +653,34 @@ func DetectDeploymentMode() (uint32, error) {
 	return uint32(mode), nil
 }
 
+// MigrateSelfToSameCgrp() Migrates self PID to its own same cgroup
+// Returns nil or error on failures
+//
+// Use this to generate a cgroup_attach_task trace event that is used
+// to discover Cgroup configurations of Tetragon dynamically
+func MigrateSelfToSameCgrp() error {
+	pid := os.Getpid()
+
+	// Find an appropriate migration path
+	path, err := findMigrationPath(uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	err = migratePidtoCgrp(path, uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":   cgroupFSPath,
+		"PID":         pid,
+		"cgroup.path": path,
+	}).Info("Migrated Tetragon to its own Cgroup path succeeded")
+
+	return nil
+}
+
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
 func DetectCgroupFSMagic() (uint64, error) {
@@ -660,4 +708,14 @@ func DetectCgroupFSMagic() (uint64, error) {
 	}
 
 	return cgroupFSMagic, nil
+}
+
+// CgroupNameFromCstr() Returns a Golang string from the passed C language format string.
+func CgroupNameFromCStr(cstr []byte) string {
+	for i, c := range cstr {
+		if c == 0 {
+			return string(cstr[:i])
+		}
+	}
+	return string(cstr)
 }
