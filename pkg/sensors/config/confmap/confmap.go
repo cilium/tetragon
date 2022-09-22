@@ -105,6 +105,14 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
+	tetragonCgrpId := cgroups.GetTetragonCgroupID()
+	if tetragonCgrpId == 0 {
+		err = fmt.Errorf("unable to read Tetragon own Cgroup ID")
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Tetragon Cgroup ID failed")
+		log.WithField("confmap-update", configMap.Name).Warnf("Tetragon own Cgroup ID is unknown, advanced Cgroups tracking will be disabled")
+		return err
+	}
+
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
 		Mode:            deployMode,
@@ -112,6 +120,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
 		NSPID:           uint32(nspid),
+		TgCgrpId:        tetragonCgrpId,
 		CgrpFsMagic:     cgroupFsMagic,
 	}
 
@@ -130,6 +139,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
 		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
 		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
+		"cgroup.ID":                     v.TgCgrpId,
 		"NSPID":                         nspid,
 	}).Info("Updated TetragonConf map successfully")
 
