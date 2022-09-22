@@ -67,5 +67,21 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		}
 	}
 
+	// Generate UnwrapGetEventsResponse
+	g.P(`// UnwrapGetEventsResponse gets the inner event type from a GetEventsResponse
+    func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
+        event := response.GetEvent()
+        if event == nil {
+            return nil
+        }
+        switch ev := event.(type) {`)
+	for _, event := range events {
+		g.P(`case *GetEventsResponse_` + event.GoIdent.GoName + `:
+            return ev.` + event.GoIdent.GoName)
+	}
+	g.P(`}
+        return nil
+    }`)
+
 	return nil
 }
