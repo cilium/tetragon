@@ -402,6 +402,24 @@ var syscallNames = map[int]string{
 	// unix.SYS_SET_MEMPOLICY_HOME_NODE: "sys_set_mempolicy_home_node",
 }
 
+var syscallIDs = func() map[string]int {
+	ret := make(map[string]int, len(syscallNames))
+	for k, v := range syscallNames {
+		ret[v] = k
+	}
+	return ret
+}()
+
+// GetSyscallID returns the id of a syscall based on its name
+// returns -1, if no system call was found
+func GetSyscallID(sysName string) int {
+	k := fmt.Sprintf("sys_%s", sysName)
+	if id, ok := syscallIDs[k]; ok {
+		return id
+	}
+	return -1
+}
+
 // GetSyscallName returns the name of a syscall based on its i d
 func GetSyscallName(sysID int) string {
 	if name, ok := syscallNames[sysID]; ok {
