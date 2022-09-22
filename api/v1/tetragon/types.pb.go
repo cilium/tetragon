@@ -112,3 +112,24 @@ func (event *Test) Encapsulate() IsGetEventsResponse_Event {
 		Test: event,
 	}
 }
+
+// UnwrapGetEventsResponse gets the inner event type from a GetEventsResponse
+func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
+	event := response.GetEvent()
+	if event == nil {
+		return nil
+	}
+	switch ev := event.(type) {
+	case *GetEventsResponse_ProcessExec:
+		return ev.ProcessExec
+	case *GetEventsResponse_ProcessExit:
+		return ev.ProcessExit
+	case *GetEventsResponse_ProcessKprobe:
+		return ev.ProcessKprobe
+	case *GetEventsResponse_ProcessTracepoint:
+		return ev.ProcessTracepoint
+	case *GetEventsResponse_Test:
+		return ev.Test
+	}
+	return nil
+}
