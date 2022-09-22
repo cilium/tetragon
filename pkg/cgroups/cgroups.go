@@ -8,6 +8,8 @@ package cgroups
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -116,6 +118,9 @@ var (
 	findMigPath       sync.Once
 	cgrpMigrationPath string
 
+	// Tetragon own Cgroup ID depends on Cgroup hierarchies
+	tgCgrpID uint64
+
 	// Cgroup Tracking Hierarchy
 	cgrpHierarchy    uint32
 	cgrpSubsystemIdx uint32
@@ -154,6 +159,39 @@ func CgroupFsMagicStr(magic uint64) string {
 
 func GetCgroupFSMagic() uint64 {
 	return cgroupFSMagic
+}
+
+type FileHandle struct {
+	Id uint64
+}
+
+func setTetragonCgroupID(cgroupPath string) error {
+	if tgCgrpID != 0 {
+		return nil
+	}
+
+	var fh FileHandle
+	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
+	if err != nil {
+		return fmt.Errorf("decoding NameToHandleAt data failed: %v", err)
+	}
+
+	tgCgrpID = fh.Id
+
+	return nil
+}
+
+// GetTetragonCgroupID() Returns own Tetragon Cgroup ID based on the cgroup path
+// This can be controller cgroup ID in case of multiple hierarchies under cgroupv1
+// which depends on the selected hierarchy either 'memory' or 'pids'.
+// Or the unique cgroup ID of the unified hierarchy under cgroupv2.
+func GetTetragonCgroupID() uint64 {
+	return tgCgrpID
 }
 
 // DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
@@ -362,6 +400,12 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 					continue
 				}
 
+				err = setTetragonCgroupID(cgroupPath)
+				if err != nil {
+					logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv1 path")
+					continue
+				}
+
 				logger.GetLogger().WithFields(logrus.Fields{
 					"cgroup.fs":                     cgroupFSPath,
 					"cgroup.controller.name":        controller.name,
@@ -453,6 +497,12 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			controller, err := getCgroupv2Controller(cgroupPath)
 			if err != nil {
 				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to detect current Cgroupv2 active controller")
+				break
+			}
+
+			err = setTetragonCgroupID(cgroupPath)
+			if err != nil {
+				logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv2 path")
 				break
 			}
 
