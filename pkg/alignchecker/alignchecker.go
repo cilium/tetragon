@@ -29,12 +29,14 @@ func CheckStructAlignments(path string) error {
 	// Validate alignments of C and Go equivalent structs
 	toCheck := map[string][]reflect.Type{
 		// from perf_event_output
-		"msg_exit":         {reflect.TypeOf(processapi.MsgExitEvent{})},
-		"msg_test":         {reflect.TypeOf(testapi.MsgTestEvent{})},
-		"msg_execve_key":   {reflect.TypeOf(processapi.MsgExecveKey{})},
-		"execve_map_value": {reflect.TypeOf(execvemap.ExecveValue{})},
-		"event_config":     {reflect.TypeOf(tracingapi.EventConfig{})},
-		"tetragon_conf":    {reflect.TypeOf(confapi.TetragonConf{})},
+		"msg_exit":              {reflect.TypeOf(processapi.MsgExitEvent{})},
+		"msg_test":              {reflect.TypeOf(testapi.MsgTestEvent{})},
+		"msg_execve_key":        {reflect.TypeOf(processapi.MsgExecveKey{})},
+		"execve_map_value":      {reflect.TypeOf(execvemap.ExecveValue{})},
+		"event_config":          {reflect.TypeOf(tracingapi.EventConfig{})},
+		"tetragon_conf":         {reflect.TypeOf(confapi.TetragonConf{})},
+		"cgroup_tracking_value": {reflect.TypeOf(processapi.MsgCgroupData{})},
+		"msg_cgroup_event":      {reflect.TypeOf(processapi.MsgCgroupEvent{})},
 	}
 
 	confMap := map[string][]reflect.Type{
