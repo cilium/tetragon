@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -23,6 +24,7 @@ var (
 	rwCount   *uint
 	rwThreads *uint
 	rwSleep   *uint
+	rwRandom  *bool
 )
 
 func init() {
@@ -31,6 +33,7 @@ func init() {
 	rwCount = flag.Uint("bench-rw-count", 100, "bench rw read/write count")
 	rwThreads = flag.Uint("bench-rw-threads", 4, "bench rw number of threads")
 	rwSleep = flag.Uint("bench-rw-sleep", 1, "bench rw sleep in ms")
+	rwRandom = flag.Bool("bench-rw-random", false, "use random rw size")
 }
 
 type traceBenchRw struct {
@@ -48,11 +51,18 @@ func (src traceBenchRw) benchRwWorker(ctx context.Context) {
 
 	buffer := make([]byte, *rwSize)
 
+	size := func() uint {
+		if *rwRandom {
+			return uint(rand.Intn(int(*rwSize)-1) + 1)
+		}
+		return *rwSize
+	}
+
 	for ctx.Err() == nil {
 		syscall = 0
 
 		for {
-			n, errno := f.Write(buffer)
+			n, errno := f.Write(buffer[:size()])
 			if n < 0 {
 				log.Fatalf("syscall.Write failed: %s\n", errno)
 			}
@@ -70,7 +80,7 @@ func (src traceBenchRw) benchRwWorker(ctx context.Context) {
 		syscall = 0
 
 		for {
-			n, errno := f.Read(buffer)
+			n, errno := f.Read(buffer[:size()])
 			if n < 0 {
 				log.Fatalf("syscall.Read failed: %s\n", errno)
 			}
