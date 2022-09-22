@@ -405,6 +405,7 @@ __set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
 {
 	int subsys_idx = 0;
 	struct cgroup *cgrp;
+	__u64 cgrpid_tracker = 0;
 	struct cgroup_tracking_value *cgrp_data;
 	u32 level = 0, hierarchy_id = 0, tracking_level = 0, flags = 0;
 
@@ -437,15 +438,20 @@ __set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
 		 * tracked level. This means this is probably a Pod or Container level
 		 * Anything below will be attached to this tracker
 		 */
-		execve_val->cgrpid_tracker = get_cgroup_id(cgrp);
+		cgrpid_tracker = get_cgroup_id(cgrp);
 		tracking_level = level;
 	} else {
 		/* Set the ancestor that is at the tracked level as the tracking cgroup */
-		execve_val->cgrpid_tracker = get_ancestor_cgroup_id(
+		cgrpid_tracker = get_ancestor_cgroup_id(
 			cgrp, conf->cgrp_fs_magic, conf->tg_cgrp_level);
 		tracking_level = conf->tg_cgrp_level;
 	}
 
+	/* Failed to get cgrpid_tracker do nothing. This should never happen */
+	if (!cgrpid_tracker)
+		return 0;
+
+	execve_val->cgrpid_tracker = cgrpid_tracker;
 	cgrp_data = map_lookup_elem(&tg_cgrps_tracking_map,
 				    &execve_val->cgrpid_tracker);
 	if (!cgrp_data) {
