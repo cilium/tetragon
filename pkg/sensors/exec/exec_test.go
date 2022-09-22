@@ -499,3 +499,46 @@ func TestDocker(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestUpdateStatsMap(t *testing.T) {
+	m, err := ebpf.NewMap(&ebpf.MapSpec{
+		Type:       ebpf.PerCPUArray,
+		KeySize:    4,
+		ValueSize:  8,
+		MaxEntries: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		m.Close()
+	})
+
+	lookup := func() int64 {
+		var sum int64
+		var v []int64
+
+		if err := m.Lookup(uint32(0), &v); err != nil {
+			t.Fatalf("lookup error: %s", err)
+		}
+
+		for _, val := range v {
+			sum += val
+		}
+		return sum
+	}
+
+	before := lookup()
+	if before != 0 {
+		t.Fatalf("wrong initial lookup value '%d'", before)
+	}
+
+	if err := sensors.UpdateStatsMap(m, 100); err != nil {
+		t.Fatalf("UpdateMap failed: %s", err)
+	}
+
+	after := lookup()
+	if after != 100 {
+		t.Fatalf("wrong final lookup value '%d'", after)
+	}
+}
