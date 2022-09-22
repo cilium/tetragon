@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -44,6 +45,7 @@ type Arguments struct {
 	Crd         string
 	CmdArgs     []string
 	Debug       bool
+	StoreEvents bool
 	PrintEvents bool
 	JSONEncode  bool
 	Baseline    bool
@@ -233,7 +235,14 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	}
 
 	var encoder exporter.ExportEncoder
-	if summary.Args.PrintEvents {
+	var writer *lumberjack.Logger
+
+	if summary.Args.StoreEvents {
+		writer = &lumberjack.Logger{
+			Filename: "output.json",
+		}
+		encoder = json.NewEncoder(writer)
+	} else if summary.Args.PrintEvents {
 		encoder = json.NewEncoder(os.Stdout)
 	} else {
 		encoder = json.NewEncoder(&summary.ExportStats)
@@ -248,7 +257,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	}()
 
 	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil, AggregationOptions: nil}
-	exporter := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, nil, nil)
+	exporter := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, writer, nil)
 	exporter.Start()
 	obs.AddListener(processManager)
 	return nil

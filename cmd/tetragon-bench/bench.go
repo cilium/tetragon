@@ -20,6 +20,7 @@ var (
 	jsonEncode  *bool
 	baseline    *bool
 	printEvents *bool
+	storeEvents *bool
 
 	traceBench *string
 	crd        *string
@@ -30,6 +31,7 @@ func init() {
 	jsonEncode = flag.Bool("json-encode", false, "JSON encode the events and measure overhead")
 	baseline = flag.Bool("baseline", false, "run a baseline benchmark without tetragon")
 	printEvents = flag.Bool("print", false, "print events in JSON to stdout")
+	storeEvents = flag.Bool("store", false, "store events in JSON to stdout")
 	traceBench = flag.String("trace", "none", "trace benchmark to run, one of: "+strings.Join(bench.TraceBenchSupported(), ", "))
 	crd = flag.String("crd", "none", "crd to start tetragon with")
 }
@@ -74,10 +76,15 @@ func main() {
 		*traceBench = "custom"
 	}
 
+	if *printEvents && *storeEvents {
+		log.Fatalf("Can't specify together -print and -store options.")
+	}
+
 	args := &bench.Arguments{
 		Debug:       *debug,
-		JSONEncode:  *jsonEncode || *printEvents,
+		JSONEncode:  *jsonEncode || *printEvents || *storeEvents,
 		PrintEvents: *printEvents,
+		StoreEvents: *storeEvents,
 		Baseline:    *baseline,
 		Trace:       bench.TraceBenchNameOrPanic(*traceBench),
 		Crd:         *crd,
