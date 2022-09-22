@@ -45,8 +45,8 @@ github.com/cilium/cilium/pkg/monitor/payload
 github.com/cilium/cilium/pkg/proxy/accesslog
 github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/ebpf v0.9.1
-## explicit; go 1.17
+# github.com/cilium/ebpf v0.9.2
+## explicit; go 1.18
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/btf
@@ -449,7 +449,7 @@ golang.org/x/oauth2/jwt
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
+# golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
 ## explicit; go 1.17
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
