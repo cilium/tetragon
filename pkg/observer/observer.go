@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -146,6 +147,9 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
 
+	/* Probe Tetragon cgroup and do not fail on errors */
+	k.probeTetragonCgroups()
+
 	// Inform caller that we're about to start processing events.
 	k.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
@@ -217,17 +221,38 @@ type Observer struct {
 // cgroup context. Use this function in your tests to allow Pod and Containers
 // association to work.
 //
-// The environment and cgroup configuration discovery may fail for several reasons,
-// in such cases errors will be logged.
-// Callers can ignore such errors, but we default print a warning that advanced
-// Cgroups tracking will be disabled which might affect process association
-// with kubernetes pods and containers.
+// The environment and cgroup configuration discovery may fail for several
+// reasons, in such cases errors will be logged.
+// On errors we also print a warning that advanced Cgroups tracking will be
+// disabled which might affect process association with kubernetes pods and
+// containers.
 func (k *Observer) UpdateRuntimeConf() error {
 	pid := os.Getpid()
 	err := confmap.UpdateTgRuntimeConf(option.Config.MapDir, pid)
 	if err != nil {
 		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
 		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
+	}
+
+	return err
+}
+
+// probeTetragonCgroups() Migrate Tetragon to its own cgroup to generate a
+// cgroup_attach_task tracepoint, which allows to discover Tetragon Cgroup
+// configuration dynamically.
+//
+// The discovered Cgroup configuration contains the Cgroup level at which
+// Tetragon has been deployed. This make it easy to guess Kubernetes and
+// containers Cgroup hierarchies.
+//
+// Errors will be logged but we do not fail. We default print a warning that
+// advanced Cgroups tracking will be disabled which might affect process
+// association with kubernetes pods and containers.
+func (k *Observer) probeTetragonCgroups() error {
+	err := cgroups.MigrateSelfToSameCgrp()
+	if err != nil {
+		k.log.WithField("observer", "probe-cgroups").WithError(err).Warn("Probe Tetragon Cgroup failed, advanced Cgroups tracking will be disabled")
+		k.log.WithField("observer", "probe-cgroups").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
 	}
 
 	return err
