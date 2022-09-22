@@ -422,17 +422,21 @@ func TestLoadInitialSensor(t *testing.T) {
 		0: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
 		1: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
 		2: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+		3: tus.SensorProg{Name: "tg_tp_cgrp_mkdir", Type: ebpf.RawTracepoint},
+		4: tus.SensorProg{Name: "tg_tp_cgrp_attach_task", Type: ebpf.RawTracepoint},
+		5: tus.SensorProg{Name: "tg_tp_cgrp_rmdir", Type: ebpf.RawTracepoint},
+		6: tus.SensorProg{Name: "tg_tp_cgrp_release", Type: ebpf.RawTracepoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all programs
-		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
 
 		// event_execve
 		tus.SensorMap{Name: "names_map", Progs: []uint{0}},
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 3, 4, 5, 6}},
 
 		// event_wake_up_new_task
 		tus.SensorMap{Name: "execve_val", Progs: []uint{2}},
