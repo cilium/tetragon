@@ -118,11 +118,11 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 	if err != nil {
 		switch e := err.(type) {
 		case handlePerfUnknownOp:
-			k.log.WithField("opcode", e.op).WithField("event_type", tetragon.EventType(e.op).String()).Warn("unknown opcode ignored")
+			k.log.WithField("opcode", e.op).WithField("event_type", tetragon.EventType(e.op).String()).Debug("unknown opcode ignored")
 		case *handlePerfHandlerErr:
-			k.log.WithError(e.err).WithField("event_type", tetragon.EventType(e.op).String()).Warn("error occurred in event handler")
+			k.log.WithError(e.err).WithField("event_type", tetragon.EventType(e.op).String()).Debug("error occurred in event handler")
 		default:
-			k.log.WithError(err).Warn("error occurred in event handler")
+			k.log.WithError(err).Debug("error occurred in event handler")
 		}
 	}
 	for _, event := range events {
