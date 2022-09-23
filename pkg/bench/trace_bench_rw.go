@@ -129,6 +129,7 @@ spec:
       type: "int"
   - call: "__x64_sys_read"
     syscall: true
+    return: true
     args:
     - index: 0
       type: "int"
@@ -136,6 +137,8 @@ spec:
       type: "char_buf"
       returnCopy: true
     - index: 2
+      type: "size_t"
+    returnArg:
       type: "size_t"
     selectors:
     - matchPIDs:
