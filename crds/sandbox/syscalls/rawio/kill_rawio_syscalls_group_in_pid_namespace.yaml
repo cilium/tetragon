@@ -1,0 +1,57 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  # Raw IO access
+  name: "kill_rawio_syscalls_group_in_pid_namespace"
+spec:
+  kprobes:
+  - call: "__x64_sys_ioperm"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_iopl"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_pciconfig_iobase"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_pciconfig_read"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_pciconfig_write"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
