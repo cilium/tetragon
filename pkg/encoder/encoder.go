@@ -252,6 +252,31 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				bytes = kprobe.Args[1].GetIntArg()
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s bytes %d", event, processInfo, args, bytes), caps), nil
+		case "bpf_check":
+			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "bpf_check")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				ba := kprobe.Args[0].GetBpfAttrArg()
+				attr = p.Colorer.Cyan.Sprintf("%s %s instruction count %d", ba.ProgType, ba.ProgName, ba.InsnCnt)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_perf_event_alloc":
+			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "perf_event_alloc")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				p_event := kprobe.Args[0].GetPerfEventArg()
+				attr = p.Colorer.Cyan.Sprintf("%s %s", p_event.Type, p_event.KprobeFunc)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_bpf_map_alloc":
+			event := p.Colorer.Blue.Sprintf("🗺 %-7s", "bpf_map_alloc")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				bpfmap := kprobe.Args[0].GetBpfMapArg()
+				attr = p.Colorer.Cyan.Sprintf("%s %s key size %d value size %d max entries %d", bpfmap.MapType,
+					bpfmap.MapName, bpfmap.KeySize, bpfmap.ValueSize, bpfmap.MaxEntries)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
 			event := p.Colorer.Blue.Sprintf("⁉️ %-7s", "syscall")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
