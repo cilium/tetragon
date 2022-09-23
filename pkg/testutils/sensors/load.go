@@ -112,7 +112,32 @@ func mergeSensorMaps(t *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []Se
 	return mapsReturn, progsReturn
 }
 
+func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []SensorProg) ([]SensorMap, []SensorProg) {
+	var baseProgs = []SensorProg{
+		0: SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
+		1: SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
+		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+	}
+	var baseMaps = []SensorMap{
+		// all programs
+		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
+		SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
+		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
+
+		// event_execve
+		SensorMap{Name: "names_map", Progs: []uint{0}},
+		SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+
+		// event_wake_up_new_task
+		SensorMap{Name: "execve_val", Progs: []uint{2}},
+	}
+
+	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)
+}
+
 func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorProgs []SensorProg, t *testing.T) {
+
+	sensorMaps, sensorProgs = mergeInBaseSensorMaps(t, sensorMaps, sensorProgs)
 
 	var cache []*prog
 
