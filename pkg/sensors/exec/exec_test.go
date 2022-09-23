@@ -423,25 +423,8 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 func TestLoadInitialSensor(t *testing.T) {
 
-	var sensorProgs = []tus.SensorProg{
-		0: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
-		1: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
-		2: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
-	}
-
-	var sensorMaps = []tus.SensorMap{
-		// all programs
-		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
-
-		// event_execve
-		tus.SensorMap{Name: "names_map", Progs: []uint{0}},
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
-
-		// event_wake_up_new_task
-		tus.SensorMap{Name: "execve_val", Progs: []uint{2}},
-	}
+	var sensorProgs = []tus.SensorProg{}
+	var sensorMaps = []tus.SensorMap{}
 
 	sensor := base.GetInitialSensor()
 
