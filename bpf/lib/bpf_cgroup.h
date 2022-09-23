@@ -47,18 +47,22 @@ static inline __attribute__((always_inline)) __u64
 __get_cgroup_kn_id(const struct kernfs_node *kn)
 {
 	__u64 id = 0;
-	struct kernfs_node___old *old_kn;
 
 	if (!kn)
 		return id;
 
-	/* Kernels prior to 5.5 have the kernfs_node_id */
-	if (!bpf_core_type_exists(union kernfs_node_id)) {
-		probe_read(&id, sizeof(id), _(&kn->id));
-	} else {
+	/* Kernels prior to 5.5 have the kernfs_node_id, but distros (RHEL)
+	 * seem to have kernfs_node_id defined for UAPI reasons even though
+	 * its not used here directly. To resolve this walk struct for id.id
+	 */
+	if (bpf_core_field_exists(((struct kernfs_node___old *)0)->id.id)) {
+		struct kernfs_node___old *old_kn;
+
 		old_kn = (void *)kn;
 		if (BPF_CORE_READ_INTO(&id, old_kn, id.id) != 0)
 			return 0;
+	} else {
+		probe_read(&id, sizeof(id), _(&kn->id));
 	}
 
 	return id;
