@@ -12,7 +12,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -77,7 +76,7 @@ type handlePerfUnknownOp struct {
 }
 
 func (e handlePerfUnknownOp) Error() string {
-	return fmt.Sprintf("unknown op: %s", tetragon.EventType(e.op).String())
+	return fmt.Sprintf("unknown op: %d", e.op)
 }
 
 type handlePerfHandlerErr struct {
@@ -86,7 +85,7 @@ type handlePerfHandlerErr struct {
 }
 
 func (e *handlePerfHandlerErr) Error() string {
-	return fmt.Sprintf("handler for op %s failed: %s", tetragon.EventType(e.op).String(), e.err)
+	return fmt.Sprintf("handler for op %d failed: %s", e.op, e.err)
 }
 
 func (e *handlePerfHandlerErr) Unwrap() error {
@@ -118,9 +117,9 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 	if err != nil {
 		switch e := err.(type) {
 		case handlePerfUnknownOp:
-			k.log.WithField("opcode", e.op).WithField("event_type", tetragon.EventType(e.op).String()).Debug("unknown opcode ignored")
+			k.log.WithField("opcode", e.op).Debug("unknown opcode ignored")
 		case *handlePerfHandlerErr:
-			k.log.WithError(e.err).WithField("event_type", tetragon.EventType(e.op).String()).Debug("error occurred in event handler")
+			k.log.WithError(e.err).WithField("opcode", e.op).Debug("error occurred in event handler")
 		default:
 			k.log.WithError(err).Debug("error occurred in event handler")
 		}
