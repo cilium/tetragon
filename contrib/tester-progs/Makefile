@@ -8,6 +8,7 @@ PROGS = sigkill-tester \
 	dup-tester \
 	trigger-test-events \
 	sigkill-unprivileged-user-ns-tester \
+	sigkill-rawio-syscalls-group-tester \
 	nop
 
 all: $(PROGS)
@@ -19,6 +20,9 @@ capabilities-tester: capabilities-tester.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 sigkill-unprivileged-user-ns-tester: sigkill-unprivileged-user-ns-tester.c
+	$(GCC) -Wall $< -o $@ -lcap
+
+sigkill-rawio-syscalls-group-tester: sigkill-rawio-syscalls-group-tester.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 .PHONY: clean
