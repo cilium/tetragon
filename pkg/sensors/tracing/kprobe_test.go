@@ -2389,6 +2389,75 @@ spec:
 	assert.NoError(t, err)
 }
 
+func TestKprobeTraceCapabilityChecks(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	t.Logf("tester pid=%s\n", pidStr)
+
+	capabilityhook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "trace-capability-checks"
+spec:
+  kprobes:
+  - call: "cap_capable"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "cred"
+    - index: 1
+      type: "user_namespace"
+    - index: 2
+      type: "capability"
+    - index: 3
+      type: "nop"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        values:
+        - ` + pidStr
+
+	createCrdFile(t, capabilityhook_)
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("cap_capable")).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	io_delay := 0x80
+	// probe IO_DELAY to trigger a CAP_SYS_RAWIO check, this is for x86
+	err = syscall.Ioperm(io_delay, 1, 1)
+	if err != nil {
+		t.Logf("Failed to ioperm(0x%02x): %v\n", io_delay, err)
+		t.Fatal()
+	}
+
+	t.Logf("ioperm() enabling 0x%02x succeeded", io_delay)
+
+	// disable port
+	syscall.Ioperm(io_delay, 1, 0)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 func TestLoadKprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// kprobe
