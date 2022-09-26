@@ -5,6 +5,10 @@
 
 package tetragon
 
+import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+)
+
 // IsGetEventsResponse_Event encapulates isGetEventsResponse_Event
 type IsGetEventsResponse_Event = isGetEventsResponse_Event
 
@@ -132,4 +136,52 @@ func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 		return ev.Test
 	}
 	return nil
+}
+
+// ResponseIsType checks whether the GetEventsResponse is of the type specified by this EventType
+func (type_ EventType) ResponseIsType(response *GetEventsResponse) bool {
+	if response == nil {
+		return false
+	}
+
+	eventProtoNum := response.EventType()
+	return eventProtoNum == type_
+}
+
+// EventIsType checks whether the Event is of the type specified by this EventType
+func (type_ EventType) EventIsType(event Event) bool {
+	if event == nil {
+		return false
+	}
+
+	eventWrapper := event.Encapsulate()
+	ger := GetEventsResponse{
+		Event: eventWrapper,
+	}
+
+	return type_.ResponseIsType(&ger)
+}
+
+// EventType gets the EventType for a GetEventsResponse
+func (response *GetEventsResponse) EventType() EventType {
+	eventProtoNum := EventType_UNDEF
+
+	if response == nil {
+		return eventProtoNum
+	}
+
+	// Find the protobuf number for the set oneof field, if it exists.
+	// Later on, we use this number to figure out if the set oneof field matches
+	// our expected event type.
+	rft := response.ProtoReflect()
+	rft.Range(func(eventDesc protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
+			return true
+		}
+
+		eventProtoNum = EventType(eventDesc.Number())
+		return false
+	})
+
+	return eventProtoNum
 }

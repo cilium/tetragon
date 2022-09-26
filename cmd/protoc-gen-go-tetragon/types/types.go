@@ -83,5 +83,59 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
         return nil
     }`)
 
+	fdIdent := common.GoIdent(g, "google.golang.org/protobuf/reflect/protoreflect", "FieldDescriptor")
+	valIdent := common.GoIdent(g, "google.golang.org/protobuf/reflect/protoreflect", "Value")
+
+	g.P(`// ResponseIsType checks whether the GetEventsResponse is of the type specified by this EventType
+    func (type_ EventType) ResponseIsType(response *GetEventsResponse) bool {
+        if response == nil {
+            return false
+        }
+
+        eventProtoNum := response.EventType()
+        return eventProtoNum == type_
+    }
+    `)
+
+	g.P(`// EventIsType checks whether the Event is of the type specified by this EventType
+    func (type_ EventType) EventIsType(event Event) bool {
+        if event == nil {
+            return false
+        }
+
+        eventWrapper := event.Encapsulate()
+        ger := GetEventsResponse {
+            Event: eventWrapper,
+        }
+
+        return type_.ResponseIsType(&ger)
+    }
+    `)
+
+	g.P(`// EventType gets the EventType for a GetEventsResponse
+    func (response *GetEventsResponse) EventType() EventType {
+        eventProtoNum := EventType_UNDEF
+
+        if response == nil {
+            return eventProtoNum
+        }
+
+        // Find the protobuf number for the set oneof field, if it exists.
+        // Later on, we use this number to figure out if the set oneof field matches
+        // our expected event type.
+        rft := response.ProtoReflect()
+        rft.Range(func(eventDesc ` + fdIdent + `, v ` + valIdent + `) bool {
+            if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
+                return true
+            }
+
+            eventProtoNum = EventType(eventDesc.Number())
+            return false
+        })
+
+        return eventProtoNum
+    }
+    `)
+
 	return nil
 }
