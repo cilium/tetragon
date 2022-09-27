@@ -670,7 +670,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 
 	for _, a := range printers {
 		switch a.ty {
-		case gt.GenericIntType:
+		case gt.GenericIntType, gt.GenericS32Type:
 			var output int32
 			var arg api.MsgGenericKprobeArgInt
 
@@ -802,7 +802,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Sport = uint32(network.SwapByte(sock.Sport))
 			arg.Dport = uint32(network.SwapByte(sock.Dport))
 			unix.Args = append(unix.Args, arg)
-		case gt.GenericSizeType:
+		case gt.GenericSizeType, gt.GenericU64Type:
 			var output uint64
 			var arg api.MsgGenericKprobeArgSize
 
@@ -859,8 +859,20 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			length := bytes.IndexByte(output.MapName[:], 0) // trim tailing null bytes
 			arg.MapName = string(output.MapName[:length])
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericU32Type:
+			var output uint32
+			var arg api.MsgGenericKprobeArgUInt
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Int type error")
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Value = output
+			unix.Args = append(unix.Args, arg)
 		default:
-			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")
+			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 		}
 	}
 

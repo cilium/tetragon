@@ -73,6 +73,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		switch e := arg.(type) {
 		case api.MsgGenericKprobeArgInt:
 			a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
+		case api.MsgGenericKprobeArgUInt:
+			a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
 		case api.MsgGenericKprobeArgSize:
 			a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
 		case api.MsgGenericKprobeArgString:
