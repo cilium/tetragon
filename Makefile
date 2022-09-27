@@ -214,6 +214,10 @@ image-clang:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
+image-clang-arm:
+	# to compile bpf programs for arm, put 'docker.io/cilium/clang.arm:latest' to CLANG_IMAGE
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang.arm -t "cilium/clang.arm:${DOCKER_IMAGE_TAG}" .
+
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
