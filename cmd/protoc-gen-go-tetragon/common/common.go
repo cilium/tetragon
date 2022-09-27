@@ -243,10 +243,15 @@ func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
 
 var fieldsCache []*protogen.Message
 
+// isReservedField marks message types that we don't want to generate event checkers for
 var isReservedField = map[string]struct{}{
-	"Timestamp":   struct{}{},
-	"UInt32Value": struct{}{},
-	"Duration":    struct{}{},
+	"Timestamp":   {},
+	"UInt32Value": {},
+	"Int32Value":  {},
+	"UInt64Value": {},
+	"Int64Value":  {},
+	"StringValue": {},
+	"Duration":    {},
 }
 
 // GetFields returns a list of all messages that are fields
