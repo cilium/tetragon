@@ -103,6 +103,19 @@ func (m MsgGenericKprobeArgInt) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeArgUInt struct {
+	Index uint64
+	Value uint32
+}
+
+func (m MsgGenericKprobeArgUInt) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgUInt) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeArgSize struct {
 	Index uint64
 	Value uint64

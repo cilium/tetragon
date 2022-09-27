@@ -280,6 +280,7 @@
 | bpf_attr_arg | [KprobeBpfAttr](#tetragon-KprobeBpfAttr) |  |  |
 | perf_event_arg | [KprobePerfEvent](#tetragon-KprobePerfEvent) |  |  |
 | bpf_map_arg | [KprobeBpfMap](#tetragon-KprobeBpfMap) |  |  |
+| uint_arg | [uint32](#uint32) |  |  |
 
 
 

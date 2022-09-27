@@ -2981,6 +2981,7 @@ type KprobeArgumentChecker struct {
 	BpfAttrArg        *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
 	PerfEventArg      *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
 	BpfMapArg         *KprobeBpfMapChecker         `json:"bpfMapArg,omitempty"`
+	UintArg           *uint32                      `json:"uintArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -3134,6 +3135,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			return fmt.Errorf("KprobeArgumentChecker: BpfMapArg check failed: %T is not a BpfMapArg", event)
 		}
 	}
+	if checker.UintArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_UintArg:
+			if *checker.UintArg != event.UintArg {
+				return fmt.Errorf("KprobeArgumentChecker: UintArg has value %d which does not match expected value %d", event.UintArg, *checker.UintArg)
+			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: UintArg check failed: %T is not a UintArg", event)
+		}
+	}
 	return nil
 }
 
@@ -3218,6 +3229,12 @@ func (checker *KprobeArgumentChecker) WithPerfEventArg(check *KprobePerfEventChe
 // WithBpfMapArg adds a BpfMapArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithBpfMapArg(check *KprobeBpfMapChecker) *KprobeArgumentChecker {
 	checker.BpfMapArg = check
+	return checker
+}
+
+// WithUintArg adds a UintArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithUintArg(check uint32) *KprobeArgumentChecker {
+	checker.UintArg = &check
 	return checker
 }
 
@@ -3307,6 +3324,13 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_BpfMapArg:
 		if event.BpfMapArg != nil {
 			checker.BpfMapArg = NewKprobeBpfMapChecker().FromKprobeBpfMap(event.BpfMapArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_UintArg:
+		{
+			val := event.UintArg
+			checker.UintArg = &val
 		}
 	}
 	return checker

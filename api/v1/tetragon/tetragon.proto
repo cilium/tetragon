@@ -196,7 +196,8 @@ message KprobeArgument {
 	int64 long_arg = 11;
 	KprobeBpfAttr bpf_attr_arg = 12;
 	KprobePerfEvent perf_event_arg = 13;
-        KprobeBpfMap bpf_map_arg = 14;
+	KprobeBpfMap bpf_map_arg = 14;
+	uint32 uint_arg = 15;
     }
 }
 
