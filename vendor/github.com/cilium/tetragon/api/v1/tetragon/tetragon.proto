@@ -160,6 +160,13 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeUserNamespace {
+	int32 level = 1;
+	google.protobuf.UInt32Value owner = 2;
+	google.protobuf.UInt32Value group = 3;
+	Namespace ns = 4;
+}
+
 message KprobeBpfAttr {
     string  ProgType = 1;
     uint32  InsnCnt = 2;
@@ -196,7 +203,8 @@ message KprobeArgument {
 	int64 long_arg = 11;
 	KprobeBpfAttr bpf_attr_arg = 12;
 	KprobePerfEvent perf_event_arg = 13;
-        KprobeBpfMap bpf_map_arg = 14;
+	KprobeBpfMap bpf_map_arg = 14;
+	KprobeUserNamespace user_namespace_arg = 15;
     }
 }
 

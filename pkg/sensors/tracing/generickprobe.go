@@ -859,6 +859,19 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			length := bytes.IndexByte(output.MapName[:], 0) // trim tailing null bytes
 			arg.MapName = string(output.MapName[:length])
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericUserNamespace:
+			var output api.MsgGenericKprobeUserNamespace
+			var arg api.MsgGenericKprobeArgUserNamespace
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("user_namespace type error")
+			}
+			arg.Level = output.Level
+			arg.Owner = output.Owner
+			arg.Group = output.Group
+			arg.NsInum = output.NsInum
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event", a).Warnf("Unknown type event")
 		}
