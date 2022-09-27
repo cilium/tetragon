@@ -107,6 +107,7 @@ __attribute__((section("tracepoint/generic_tracepoint"), used)) int
 generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 {
 	struct msg_generic_kprobe *msg;
+	struct task_struct *task;
 	struct event_config *config;
 	int zero = 0, i;
 
@@ -164,6 +165,18 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;
 	msg->sel.pass = 0;
+	task = (struct task_struct *)get_current_task();
+	/* Initialize namespaces to apply filters on them */
+	get_namespaces(&msg->ns, task);
+	/* Initialize capabilities to apply filters on them */
+	get_caps(&msg->caps, task);
+#ifdef __NS_CHANGES_FILTER
+	msg->sel.match_ns = 0;
+#endif
+#ifdef __CAP_CHANGES_FILTER
+	msg->sel.match_cap = 0;
+#endif
+	/* Tail call into filters. */
 	tail_call(ctx, &tp_calls, 5);
 	return 0;
 }
