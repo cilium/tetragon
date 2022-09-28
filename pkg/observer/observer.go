@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -92,29 +93,36 @@ func (e *handlePerfHandlerErr) Unwrap() error {
 	return e.err
 }
 
+func (e *handlePerfHandlerErr) Cause() error {
+	return e.err
+}
+
 // HandlePerfData returns the events from raw bytes
 // NB: It is made public so that it can be used in testing.
-func HandlePerfData(data []byte) ([]Event, error) {
+func HandlePerfData(data []byte) (byte, []Event, error) {
 	op := data[0]
 	r := bytes.NewReader(data)
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	handler, ok := eventHandler[op]
 	if !ok {
-		return nil, handlePerfUnknownOp{op: op}
+		return op, nil, handlePerfUnknownOp{op: op}
 	}
 
 	events, err := handler(r)
 	if err != nil {
 		err = &handlePerfHandlerErr{op: op, err: err}
 	}
-	return events, err
+	return op, events, err
 }
 
 func (k *Observer) receiveEvent(data []byte, cpu int) {
 
 	k.recvCntr++
-	events, err := HandlePerfData(data)
+	op, events, err := HandlePerfData(data)
 	if err != nil {
+		// Increment error metrics
+		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
+		errormetrics.HandlerErrorsInc(int(op), err)
 		switch e := err.(type) {
 		case handlePerfUnknownOp:
 			k.log.WithField("opcode", e.op).Debug("unknown opcode ignored")
