@@ -33,12 +33,22 @@ func getRequest(namespaces []string, host bool, processes []string, pods []strin
 		// Host events can be matched by an empty namespace string.
 		namespaces = append(namespaces, "")
 	}
+	// Only set these filters if they are not empty. We currently rely on Protobuf to
+	// marshal empty lists as nil for filters to function properly. It doesn't work with
+	// stdin mode since it doesn't go over the wire, causing all events to get filtered
+	// out because empty allowlist does not match anything.
+	filter := tetragon.Filter{}
+	if len(processes) > 0 {
+		filter.BinaryRegex = processes
+	}
+	if len(namespaces) > 0 {
+		filter.Namespace = namespaces
+	}
+	if len(pods) > 0 {
+		filter.PodRegex = pods
+	}
 	return &tetragon.GetEventsRequest{
-		AllowList: []*tetragon.Filter{{
-			BinaryRegex: processes,
-			Namespace:   namespaces,
-			PodRegex:    pods,
-		}},
+		AllowList: []*tetragon.Filter{&filter},
 	}
 }
 
@@ -60,7 +70,7 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
 	for {
 		res, err := stream.Recv()
 		if err != nil {
-			if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
+			if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled && !errors.Is(err, io.EOF) {
 				logger.GetLogger().WithError(err).Fatal("Failed to receive events")
 			}
 			return
@@ -76,6 +86,13 @@ func New() *cobra.Command {
 		Use:   "getevents",
 		Short: "Print events",
 		Run: func(cmd *cobra.Command, args []string) {
+			fi, _ := os.Stdin.Stat()
+			if fi.Mode()&os.ModeNamedPipe != 0 {
+				// read events from stdin
+				getEvents(context.Background(), newIOReaderClient(os.Stdin, viper.GetBool("debug")))
+				return
+			}
+			// connect to server
 			common.CliRun(getEvents)
 		},
 	}
