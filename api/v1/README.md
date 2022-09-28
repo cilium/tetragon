@@ -16,6 +16,7 @@
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
     - [KprobeBpfMap](#tetragon-KprobeBpfMap)
+    - [KprobeCapability](#tetragon-KprobeCapability)
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
     - [KprobePath](#tetragon-KprobePath)
@@ -283,6 +284,7 @@
 | bpf_map_arg | [KprobeBpfMap](#tetragon-KprobeBpfMap) |  |  |
 | uint_arg | [uint32](#uint32) |  |  |
 | user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
+| capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
 
 
 
@@ -319,6 +321,22 @@
 | ValueSize | [uint32](#uint32) |  |  |
 | MaxEntries | [uint32](#uint32) |  |  |
 | MapName | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeCapability"></a>
+
+### KprobeCapability
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| value | [google.protobuf.Int32Value](#google-protobuf-Int32Value) |  |  |
+| name | [string](#string) |  |  |
 
 
 

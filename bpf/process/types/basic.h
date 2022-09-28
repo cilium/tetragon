@@ -10,6 +10,7 @@
 #include "perfevent.h"
 #include "bpfmap.h"
 #include "user_namespace.h"
+#include "capabilities.h"
 #include "../argfilter_maps.h"
 
 /* Type IDs form API with user space generickprobe.go */
@@ -43,6 +44,7 @@ enum {
 	perf_event_type = 20,
 	bpf_map_type = 21,
 	user_namespace_type = 22,
+	capability_type = 23,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -440,6 +442,18 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	probe_read(&caps->permitted, sizeof(__u64), _(&cred->cap_permitted));
 
 	return sizeof(struct msg_capabilities);
+}
+
+static inline __attribute__((always_inline)) long
+copy_capability(char *args, unsigned long arg)
+{
+	int cap = (int)arg;
+	struct capability_info_type *info = (struct capability_info_type *)args;
+
+	info->pad = 0;
+	info->cap = cap;
+
+	return sizeof(struct capability_info_type);
 }
 
 #define ARGM_INDEX_MASK	 ((1 << 4) - 1)
@@ -882,6 +896,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct bpf_map_info_type);
 	case user_namespace_type:
 		return sizeof(struct user_namespace_info_type);
+	case capability_type:
+		return sizeof(struct capability_info_type);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1458,6 +1474,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case user_namespace_type: {
 		size = copy_user_namespace(args, arg);
+		break;
+	}
+	case capability_type: {
+		size = copy_capability(args, arg);
 		break;
 	}
 	default:

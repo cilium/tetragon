@@ -174,6 +174,12 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				nsArg.Ns.IsHost = true
 			}
 			a.Arg = &tetragon.KprobeArgument_UserNamespaceArg{UserNamespaceArg: nsArg}
+		case api.MsgGenericKprobeArgCapability:
+			cArg := &tetragon.KprobeCapability{
+				Value: &wrapperspb.Int32Value{Value: e.Value},
+			}
+			cArg.Name, _ = caps.GetCapability(e.Value)
+			a.Arg = &tetragon.KprobeArgument_CapabilityArg{CapabilityArg: cArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}
