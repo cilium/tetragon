@@ -4,7 +4,11 @@
 package errormetrics
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -40,6 +44,8 @@ var (
 	ExecMissingParent ErrorType = "exec_missing_parent"
 	// An event is missing process info.
 	EventMissingProcessInfo ErrorType = "event_missing_process_info"
+	// An error occurred in an event handler.
+	HandlerError ErrorType = "handler_error"
 )
 
 var (
@@ -48,14 +54,30 @@ var (
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
+
+	HandlerErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "handler_errors",
+		Help:        "The total number of event handler errors. For internal use only.",
+		ConstLabels: nil,
+	}, []string{"opcode", "error_type"})
 )
 
-// Get a new handle on an errorsTotal metric for an ErrorType
+// Get a new handle on an ErrorTotal metric for an ErrorType
 func GetErrorTotal(t ErrorType) prometheus.Counter {
 	return ErrorTotal.WithLabelValues(string(t))
 }
 
-// Increment an errorsTotal for an ErrorType
+// Increment an ErrorTotal for an ErrorType
 func ErrorTotalInc(t ErrorType) {
 	GetErrorTotal(t).Inc()
+}
+
+// Get a new handle on the HandlerErrors metric
+func GetHandlerErrors(opcode int, err error) prometheus.Counter {
+	return HandlerErrors.WithLabelValues(fmt.Sprint(opcode), strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""))
+}
+
+// Increment the HandlerErrors metric
+func HandlerErrorsInc(opcode int, err error) {
+	GetHandlerErrors(opcode, err).Inc()
 }
