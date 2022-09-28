@@ -84,6 +84,7 @@ spec:
                             - perf_event
                             - bpf_map
                             - user_namespace
+                            - capability
                             type: string
                         required:
                         - index
@@ -141,6 +142,7 @@ spec:
                           - perf_event
                           - bpf_map
                           - user_namespace
+                          - capability
                           type: string
                       required:
                       - index
@@ -487,6 +489,7 @@ spec:
                             - perf_event
                             - bpf_map
                             - user_namespace
+                            - capability
                             type: string
                         required:
                         - index

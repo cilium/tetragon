@@ -884,6 +884,16 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Group = output.Group
 			arg.NsInum = output.NsInum
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericCapability:
+			var output api.MsgGenericKprobeCapability
+			var arg api.MsgGenericKprobeArgCapability
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("capability type error")
+			}
+			arg.Value = output.Value
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 		}

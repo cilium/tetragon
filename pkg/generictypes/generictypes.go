@@ -29,6 +29,7 @@ const (
 	GenericPerfEvent     = 20
 	GenericBpfMap        = 21
 	GenericUserNamespace = 22
+	GenericCapability    = 23
 
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -80,6 +81,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericBpfMap
 	case "user_namespace":
 		return GenericUserNamespace
+	case "capability":
+		return GenericCapability
 	default:
 		return GenericInvalidType
 	}
