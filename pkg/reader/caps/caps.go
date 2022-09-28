@@ -15,7 +15,29 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"golang.org/x/sys/unix"
 )
+
+func isCapValid(capInt int32) bool {
+	if capInt >= 0 && capInt <= unix.CAP_LAST_CAP {
+		return true
+	}
+
+	return false
+}
+
+func GetCapability(capInt int32) (string, error) {
+	if !isCapValid(capInt) {
+		return "", fmt.Errorf("invalid capability value %d", capInt)
+	}
+
+	str, ok := capabilitiesString[uint64(capInt)]
+	if !ok {
+		return "", fmt.Errorf("could not map capability value %d", capInt)
+	}
+
+	return str, nil
+}
 
 func GetCapabilities(capInt uint64) string {
 	var caps []string
