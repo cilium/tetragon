@@ -355,7 +355,7 @@ func doLoadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m); err != nil {
+			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
 				return nil, err
 			}
 		} else {
