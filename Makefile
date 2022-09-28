@@ -39,6 +39,7 @@ help:
 	@echo '    tetragon-bpf      - compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env)'
 	@echo '    test-compile      - compile unit tests'
 	@echo '    tester-progs      - compile helper programs for unit testing'
+	@echo '    compile-commands  - generate a compile_commands.json with bear for bpf programs'
 	@echo 'Container images:'
 	@echo '    image             - build the Tetragon agent container image'
 	@echo '    image-operator    - build the Tetragon operator container image'
@@ -50,6 +51,12 @@ help:
 	@echo '    clang-format      - run code formatter on BPF code'
 	@echo '    go-format         - run code formatter on Go code'
 	@echo '    format            - convenience alias for clang-format and go-format'
+
+# Generate compile-commands.json using bear
+.PHONY: compile-commands
+compile-commands:
+	$(MAKE) -C ./bpf clean
+	bear -- $(MAKE) -C ./bpf
 
 .PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container
 ifeq (1,$(LOCAL_CLANG))
