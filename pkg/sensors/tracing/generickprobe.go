@@ -514,9 +514,10 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
 	config := &program.MapLoad{
-		Name: "config_map",
-		Load: func(m *ebpf.Map) error {
-			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+		Index: 0,
+		Name:  "config_map",
+		Load: func(m *ebpf.Map, index uint32) error {
+			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, config)
