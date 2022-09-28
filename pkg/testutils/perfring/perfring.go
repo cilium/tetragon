@@ -68,7 +68,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 			t.Fatalf("error reading perfring buffer: %v", err)
 		}
 
-		events, err := observer.HandlePerfData(record.RawSample)
+		_, events, err := observer.HandlePerfData(record.RawSample)
 		if err != nil {
 			t.Fatalf("error handling perfring data: %v", err)
 		}
