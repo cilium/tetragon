@@ -865,11 +865,24 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 
 			err := binary.Read(r, binary.LittleEndian, &output)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Int type error")
+				logger.GetLogger().WithError(err).Warnf("UInt type error")
 			}
 
 			arg.Index = uint64(a.index)
 			arg.Value = output
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericUserNamespace:
+			var output api.MsgGenericKprobeUserNamespace
+			var arg api.MsgGenericKprobeArgUserNamespace
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("user_namespace type error")
+			}
+			arg.Level = output.Level
+			arg.Owner = output.Owner
+			arg.Group = output.Group
+			arg.NsInum = output.NsInum
 			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")

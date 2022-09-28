@@ -83,6 +83,7 @@ spec:
                             - bpf_attr
                             - perf_event
                             - bpf_map
+                            - user_namespace
                             type: string
                         required:
                         - index
@@ -139,6 +140,7 @@ spec:
                           - bpf_attr
                           - perf_event
                           - bpf_map
+                          - user_namespace
                           type: string
                       required:
                       - index
@@ -484,6 +486,7 @@ spec:
                             - bpf_attr
                             - perf_event
                             - bpf_map
+                            - user_namespace
                             type: string
                         required:
                         - index

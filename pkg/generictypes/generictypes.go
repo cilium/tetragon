@@ -24,10 +24,11 @@ const (
 	GenericFdType       = 17
 
 	// GenericConstBuffer is a buffer type whose size is static (and known).
-	GenericConstBuffer = 18
-	GenericBpfAttr     = 19
-	GenericPerfEvent   = 20
-	GenericBpfMap      = 21
+	GenericConstBuffer   = 18
+	GenericBpfAttr       = 19
+	GenericPerfEvent     = 20
+	GenericBpfMap        = 21
+	GenericUserNamespace = 22
 
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -77,6 +78,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericPerfEvent
 	case "bpf_map":
 		return GenericBpfMap
+	case "user_namespace":
+		return GenericUserNamespace
 	default:
 		return GenericInvalidType
 	}

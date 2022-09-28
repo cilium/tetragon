@@ -2713,6 +2713,104 @@ func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *Kp
 	return checker
 }
 
+// KprobeUserNamespaceChecker implements a checker struct to check a KprobeUserNamespace field
+type KprobeUserNamespaceChecker struct {
+	Level *int32            `json:"level,omitempty"`
+	Owner *uint32           `json:"owner,omitempty"`
+	Group *uint32           `json:"group,omitempty"`
+	Ns    *NamespaceChecker `json:"ns,omitempty"`
+}
+
+// NewKprobeUserNamespaceChecker creates a new KprobeUserNamespaceChecker
+func NewKprobeUserNamespaceChecker() *KprobeUserNamespaceChecker {
+	return &KprobeUserNamespaceChecker{}
+}
+
+// Check checks a KprobeUserNamespace field
+func (checker *KprobeUserNamespaceChecker) Check(event *tetragon.KprobeUserNamespace) error {
+	if event == nil {
+		return fmt.Errorf("KprobeUserNamespaceChecker: KprobeUserNamespace field is nil")
+	}
+
+	if checker.Level != nil {
+		if event.Level == nil {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Level is nil and does not match expected value %v", *checker.Level)
+		}
+		if *checker.Level != event.Level.Value {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Level has value %v which does not match expected value %v", event.Level.Value, *checker.Level)
+		}
+	}
+	if checker.Owner != nil {
+		if event.Owner == nil {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Owner is nil and does not match expected value %v", *checker.Owner)
+		}
+		if *checker.Owner != event.Owner.Value {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Owner has value %v which does not match expected value %v", event.Owner.Value, *checker.Owner)
+		}
+	}
+	if checker.Group != nil {
+		if event.Group == nil {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Group is nil and does not match expected value %v", *checker.Group)
+		}
+		if *checker.Group != event.Group.Value {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Group has value %v which does not match expected value %v", event.Group.Value, *checker.Group)
+		}
+	}
+	if checker.Ns != nil {
+		if err := checker.Ns.Check(event.Ns); err != nil {
+			return fmt.Errorf("KprobeUserNamespaceChecker: Ns check failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// WithLevel adds a Level check to the KprobeUserNamespaceChecker
+func (checker *KprobeUserNamespaceChecker) WithLevel(check int32) *KprobeUserNamespaceChecker {
+	checker.Level = &check
+	return checker
+}
+
+// WithOwner adds a Owner check to the KprobeUserNamespaceChecker
+func (checker *KprobeUserNamespaceChecker) WithOwner(check uint32) *KprobeUserNamespaceChecker {
+	checker.Owner = &check
+	return checker
+}
+
+// WithGroup adds a Group check to the KprobeUserNamespaceChecker
+func (checker *KprobeUserNamespaceChecker) WithGroup(check uint32) *KprobeUserNamespaceChecker {
+	checker.Group = &check
+	return checker
+}
+
+// WithNs adds a Ns check to the KprobeUserNamespaceChecker
+func (checker *KprobeUserNamespaceChecker) WithNs(check *NamespaceChecker) *KprobeUserNamespaceChecker {
+	checker.Ns = check
+	return checker
+}
+
+//FromKprobeUserNamespace populates the KprobeUserNamespaceChecker using data from a KprobeUserNamespace field
+func (checker *KprobeUserNamespaceChecker) FromKprobeUserNamespace(event *tetragon.KprobeUserNamespace) *KprobeUserNamespaceChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Level != nil {
+		val := event.Level.Value
+		checker.Level = &val
+	}
+	if event.Owner != nil {
+		val := event.Owner.Value
+		checker.Owner = &val
+	}
+	if event.Group != nil {
+		val := event.Group.Value
+		checker.Group = &val
+	}
+	if event.Ns != nil {
+		checker.Ns = NewNamespaceChecker().FromNamespace(event.Ns)
+	}
+	return checker
+}
+
 // KprobeBpfAttrChecker implements a checker struct to check a KprobeBpfAttr field
 type KprobeBpfAttrChecker struct {
 	ProgType *stringmatcher.StringMatcher `json:"ProgType,omitempty"`
@@ -2982,6 +3080,7 @@ type KprobeArgumentChecker struct {
 	PerfEventArg      *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
 	BpfMapArg         *KprobeBpfMapChecker         `json:"bpfMapArg,omitempty"`
 	UintArg           *uint32                      `json:"uintArg,omitempty"`
+	UserNamespaceArg  *KprobeUserNamespaceChecker  `json:"userNamespaceArg,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -3145,6 +3244,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 			return fmt.Errorf("KprobeArgumentChecker: UintArg check failed: %T is not a UintArg", event)
 		}
 	}
+	if checker.UserNamespaceArg != nil {
+		switch event := event.Arg.(type) {
+		case *tetragon.KprobeArgument_UserNamespaceArg:
+			if err := checker.UserNamespaceArg.Check(event.UserNamespaceArg); err != nil {
+				return fmt.Errorf("KprobeArgumentChecker: UserNamespaceArg check failed: %w", err)
+			}
+		default:
+			return fmt.Errorf("KprobeArgumentChecker: UserNamespaceArg check failed: %T is not a UserNamespaceArg", event)
+		}
+	}
 	return nil
 }
 
@@ -3235,6 +3344,12 @@ func (checker *KprobeArgumentChecker) WithBpfMapArg(check *KprobeBpfMapChecker) 
 // WithUintArg adds a UintArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithUintArg(check uint32) *KprobeArgumentChecker {
 	checker.UintArg = &check
+	return checker
+}
+
+// WithUserNamespaceArg adds a UserNamespaceArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithUserNamespaceArg(check *KprobeUserNamespaceChecker) *KprobeArgumentChecker {
+	checker.UserNamespaceArg = check
 	return checker
 }
 
@@ -3331,6 +3446,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 		{
 			val := event.UintArg
 			checker.UintArg = &val
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_UserNamespaceArg:
+		if event.UserNamespaceArg != nil {
+			checker.UserNamespaceArg = NewKprobeUserNamespaceChecker().FromKprobeUserNamespace(event.UserNamespaceArg)
 		}
 	}
 	return checker

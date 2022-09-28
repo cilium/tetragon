@@ -161,6 +161,19 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				MapName:    e.MapName,
 			}
 			a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
+		case api.MsgGenericKprobeArgUserNamespace:
+			nsArg := &tetragon.KprobeUserNamespace{
+				Level: &wrapperspb.Int32Value{Value: e.Level},
+				Owner: &wrapperspb.UInt32Value{Value: e.Owner},
+				Group: &wrapperspb.UInt32Value{Value: e.Group},
+				Ns: &tetragon.Namespace{
+					Inum: e.NsInum,
+				},
+			}
+			if e.Level == 0 {
+				nsArg.Ns.IsHost = true
+			}
+			a.Arg = &tetragon.KprobeArgument_UserNamespaceArg{UserNamespaceArg: nsArg}
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}

@@ -23,6 +23,7 @@
     - [KprobeSkb](#tetragon-KprobeSkb)
     - [KprobeSock](#tetragon-KprobeSock)
     - [KprobeTruncatedBytes](#tetragon-KprobeTruncatedBytes)
+    - [KprobeUserNamespace](#tetragon-KprobeUserNamespace)
     - [Namespace](#tetragon-Namespace)
     - [Namespaces](#tetragon-Namespaces)
     - [Pod](#tetragon-Pod)
@@ -281,6 +282,7 @@
 | perf_event_arg | [KprobePerfEvent](#tetragon-KprobePerfEvent) |  |  |
 | bpf_map_arg | [KprobeBpfMap](#tetragon-KprobeBpfMap) |  |  |
 | uint_arg | [uint32](#uint32) |  |  |
+| user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
 
 
 
@@ -450,6 +452,24 @@
 | ----- | ---- | ----- | ----------- |
 | bytes_arg | [bytes](#bytes) |  |  |
 | orig_size | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeUserNamespace"></a>
+
+### KprobeUserNamespace
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [google.protobuf.Int32Value](#google-protobuf-Int32Value) |  |  |
+| owner | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| group | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| ns | [Namespace](#tetragon-Namespace) |  |  |
 
 
 
