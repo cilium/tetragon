@@ -221,6 +221,29 @@ func (m MsgGenericKprobeArgCred) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeUserNamespace struct {
+	Level  int32
+	Owner  uint32
+	Group  uint32
+	NsInum uint32
+}
+
+type MsgGenericKprobeArgUserNamespace struct {
+	Index  uint64
+	Level  int32
+	Owner  uint32
+	Group  uint32
+	NsInum uint32
+}
+
+func (m MsgGenericKprobeArgUserNamespace) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgUserNamespace) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeBpfAttr struct {
 	ProgType uint32
 	InsnCnt  uint32

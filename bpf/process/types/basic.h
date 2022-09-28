@@ -9,6 +9,7 @@
 #include "bpfattr.h"
 #include "perfevent.h"
 #include "bpfmap.h"
+#include "user_namespace.h"
 #include "../argfilter_maps.h"
 
 /* Type IDs form API with user space generickprobe.go */
@@ -41,6 +42,7 @@ enum {
 	bpf_attr_type = 19,
 	perf_event_type = 20,
 	bpf_map_type = 21,
+	user_namespace_type = 22,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -754,6 +756,21 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
+copy_user_namespace(char *args, unsigned long arg)
+{
+	struct user_namespace *ns = (struct user_namespace *)arg;
+	struct user_namespace_info_type *u_ns_info =
+		(struct user_namespace_info_type *)args;
+
+	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
+	probe_read(&u_ns_info->owner, sizeof(__u32), _(&ns->owner));
+	probe_read(&u_ns_info->group, sizeof(__u32), _(&ns->group));
+	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
+
+	return sizeof(struct user_namespace_info_type);
+}
+
+static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
@@ -863,6 +880,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct perf_event_info_type);
 	case bpf_map_type:
 		return sizeof(struct bpf_map_info_type);
+	case user_namespace_type:
+		return sizeof(struct user_namespace_info_type);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1435,6 +1454,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case bpf_map_type: {
 		size = copy_bpf_map(args, arg);
+		break;
+	}
+	case user_namespace_type: {
+		size = copy_user_namespace(args, arg);
 		break;
 	}
 	default:

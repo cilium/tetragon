@@ -220,6 +220,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct bpf_map *":
 			return true
 		}
+	case "user_namespace":
+		switch kernelTy {
+		case "struct user_namespace *":
+			return true
+		}
 	}
 
 	return false
