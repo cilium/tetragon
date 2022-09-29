@@ -84,14 +84,16 @@ type testCase struct {
 var testCases = []struct {
 	// specOperator is the operator that will be used in the generated spec
 	specOperator string
-	// specFilterVals is the values that will be used in the generated spec
-	specFilterVals []int
+	// specFilterVals is the values that will be used in the generated
+	// spec. The first dimension is the selector and the second is the
+	// values to set for the lseek whence value.
+	specFilterVals [][]int
 	// the cases to actually test given the above spec properties
 	tests []testCase
 }{
 	{
 		specOperator:   "Equal",
-		specFilterVals: []int{4443},
+		specFilterVals: [][]int{{4443}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4443: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4443: 2}},
@@ -99,7 +101,7 @@ var testCases = []struct {
 	},
 	{
 		specOperator:   "Equal",
-		specFilterVals: []int{4444},
+		specFilterVals: [][]int{{4444}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
@@ -107,7 +109,7 @@ var testCases = []struct {
 	},
 	{
 		specOperator:   "InMap",
-		specFilterVals: []int{4443},
+		specFilterVals: [][]int{{4443}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4443: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4443: 2}},
@@ -115,7 +117,7 @@ var testCases = []struct {
 	},
 	{
 		specOperator:   "InMap",
-		specFilterVals: []int{4444},
+		specFilterVals: [][]int{{4444}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
@@ -157,31 +159,8 @@ func TestTracepointSelectors(t *testing.T) {
 	// It will create filters:
 	//  - for our pid, to get more predictable events
 	//  - for the whence values provided as argument (if any)
-	makeSpec := func(t *testing.T, filterWhenceVals []int, filterOperator string) *v1alpha1.TracingPolicySpec {
-		mypid := int(observer.GetMyPid())
-		t.Logf("filtering for my pid (%d)", mypid)
-		sels := []v1alpha1.KProbeSelector{{
-			MatchPIDs: []v1alpha1.PIDSelector{{
-				Operator:       "In",
-				IsNamespacePID: false,
-				FollowForks:    true,
-				Values:         []uint32{uint32(mypid)},
-			}}}}
-
-		if len(filterWhenceVals) > 0 {
-			whences := make([]string, len(filterWhenceVals))
-			for i := range filterWhenceVals {
-				whences[i] = fmt.Sprintf("%d", filterWhenceVals[i])
-			}
-			sels[0].MatchArgs = []v1alpha1.ArgSelector{
-				{
-					Index:    whenceIdx,
-					Operator: filterOperator,
-					Values:   whences,
-				},
-			}
-		}
-
+	makeSpec := func(t *testing.T, filterWhenceVals [][]int, filterOperator string) *v1alpha1.TracingPolicySpec {
+		sels := selectorsFromWhenceVals(t, filterWhenceVals, whenceIdx, filterOperator)
 		spec := v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
@@ -250,36 +229,50 @@ func TestTracepointSelectors(t *testing.T) {
 
 }
 
+func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx uint32, filterOperator string) []v1alpha1.KProbeSelector {
+	sels := []v1alpha1.KProbeSelector{}
+	mypid := int(observer.GetMyPid())
+	t.Logf("filtering for my pid (%d)", mypid)
+	myPidMatchPIDs := []v1alpha1.PIDSelector{{
+		Operator:       "In",
+		IsNamespacePID: false,
+		FollowForks:    true,
+		Values:         []uint32{uint32(mypid)},
+	}}
+
+	for _, whenceVals := range filterWhenceVals {
+		whences := make([]string, len(whenceVals))
+		for i := range whenceVals {
+			whences[i] = fmt.Sprintf("%d", whenceVals[i])
+		}
+		sels = append(sels, v1alpha1.KProbeSelector{
+			MatchPIDs: myPidMatchPIDs,
+			MatchArgs: []v1alpha1.ArgSelector{{
+				Index:    whenceIdx,
+				Operator: filterOperator,
+				Values:   whences,
+			}},
+		})
+	}
+
+	if len(sels) == 0 {
+		sel := v1alpha1.KProbeSelector{
+			MatchPIDs: myPidMatchPIDs,
+		}
+
+		sels = append(sels, sel)
+	}
+
+	return sels
+}
+
 func TestKprobeSelectors(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	makeSpec := func(t *testing.T, filterWhenceVals []int, filterOperator string) *v1alpha1.TracingPolicySpec {
-		mypid := int(observer.GetMyPid())
-		t.Logf("filtering for my pid (%d)", mypid)
-		sels := []v1alpha1.KProbeSelector{{
-			MatchPIDs: []v1alpha1.PIDSelector{{
-				Operator:       "In",
-				IsNamespacePID: false,
-				FollowForks:    true,
-				Values:         []uint32{uint32(mypid)},
-			}}}}
-
-		if len(filterWhenceVals) > 0 {
-			whences := make([]string, len(filterWhenceVals))
-			for i := range filterWhenceVals {
-				whences[i] = fmt.Sprintf("%d", filterWhenceVals[i])
-			}
-			sels[0].MatchArgs = []v1alpha1.ArgSelector{
-				{
-					Index:    2,
-					Operator: filterOperator,
-					Values:   whences,
-				},
-			}
-		}
-
+	makeSpec := func(t *testing.T, filterWhenceVals [][]int, filterOperator string) *v1alpha1.TracingPolicySpec {
+		sels := selectorsFromWhenceVals(t, filterWhenceVals, 2 /* whenceIdx */, filterOperator)
 		spec := v1alpha1.TracingPolicySpec{
 			KProbes: []v1alpha1.KProbeSpec{{
 				Call:    "__x64_sys_lseek",
