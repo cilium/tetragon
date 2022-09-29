@@ -1254,7 +1254,11 @@ out:
 	return i > 0 ? true : 0;
 }
 
-#define MAX_SELECTORS 8
+// Filter tailcalls are {kprobe,tracepoint}/{6,7,8,9,10}
+// We do one tail-call per selector, so we can have up to 5 selectors.
+#define MIN_FILTER_TAILCALL 6
+#define MAX_FILTER_TAILCALL 10
+#define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
 
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
@@ -1272,10 +1276,10 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	pass = filter_args(e, index, filter);
 	if (!pass) {
 		index++;
-		if (index > MAX_SELECTORS || !e->sel.active[index])
-			return filter_args_reject();
-		tail_call(ctx, tailcalls, index + 5);
-		return 2;
+		if (index <= MAX_SELECTORS && e->sel.active[index])
+			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL + index);
+		// reject if we did not attempt to tailcall, or if tailcall failed.
+		return filter_args_reject();
 	}
 
 	// If pass >1 then we need to consult the selector actions

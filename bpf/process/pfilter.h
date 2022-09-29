@@ -509,8 +509,6 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	return res;
 }
 
-#define MAX_SELECTORS 8
-
 static inline __attribute__((always_inline)) int
 process_filter_done(struct msg_selector_data *sel,
 		    struct execve_map_value *enter,
