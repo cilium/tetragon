@@ -93,34 +93,49 @@ var testCases = []struct {
 }{
 	{
 		specOperator:   "Equal",
-		specFilterVals: [][]int{{4443}},
+		specFilterVals: [][]int{{4443}, {9999}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4443: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4443: 2}},
+			{lseekOpsVals: []int{9999, 4443}, expectedArgs: map[uint64]int{4443: 1, 9999: 1}},
+			{lseekOpsVals: []int{9999, 4444}, expectedArgs: map[uint64]int{9999: 1}},
 		},
 	},
 	{
 		specOperator:   "Equal",
-		specFilterVals: [][]int{{4444}},
+		specFilterVals: [][]int{{4444}, {9999}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
+			{lseekOpsVals: []int{9999, 4443}, expectedArgs: map[uint64]int{9999: 1}},
+			{lseekOpsVals: []int{9999, 4444}, expectedArgs: map[uint64]int{9999: 1, 4444: 1}},
 		},
 	},
 	{
 		specOperator:   "InMap",
-		specFilterVals: [][]int{{4443}},
+		specFilterVals: [][]int{{4443}, {9999}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4443: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4443: 2}},
+			{lseekOpsVals: []int{9999, 4443}, expectedArgs: map[uint64]int{4443: 1, 9999: 1}},
+			{lseekOpsVals: []int{9999, 4444}, expectedArgs: map[uint64]int{9999: 1}},
 		},
 	},
 	{
 		specOperator:   "InMap",
-		specFilterVals: [][]int{{4444}},
+		specFilterVals: [][]int{{4444}, {9999}},
 		tests: []testCase{
 			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
+			{lseekOpsVals: []int{9999, 4443}, expectedArgs: map[uint64]int{9999: 1}},
+			{lseekOpsVals: []int{9999, 4444}, expectedArgs: map[uint64]int{9999: 1, 4444: 1}},
+		},
+	},
+	{
+		specOperator:   "Equal",
+		specFilterVals: [][]int{{8888}, {8889}, {4443}},
+		tests: []testCase{
+			{lseekOpsVals: []int{4444, 4443}, expectedArgs: map[uint64]int{4443: 1}},
 		},
 	},
 }
