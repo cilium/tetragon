@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -116,9 +117,9 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 }
 
 func (k *Observer) receiveEvent(data []byte, cpu int) {
-
 	k.recvCntr++
 	op, events, err := HandlePerfData(data)
+	opcodemetrics.OpTotalInc(int(op))
 	if err != nil {
 		// Increment error metrics
 		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
