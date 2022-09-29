@@ -248,6 +248,9 @@ generic_tracepoint_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
+// Filter tailcalls: tracepoint/6...tracepoint/10
+// see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
+
 __attribute__((section("tracepoint/6"), used)) int
 generic_tracepoint_arg1(void *ctx)
 {

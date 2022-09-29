@@ -190,6 +190,9 @@ generic_kprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
+// Filter tailcalls: kprobe/6...kprobe/10
+// see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
+
 __attribute__((section("kprobe/6"), used)) int
 generic_kprobe_filter_arg1(void *ctx)
 {
