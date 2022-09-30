@@ -907,58 +907,37 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 #define INDEX_MASK 0x3ff
 
 static inline __attribute__((always_inline)) int
-selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selector)
+selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 {
 	struct selector_arg_filter *filter;
 	struct selector_binary_filter *binary;
 	long seloff, argoff, pass;
-	__u32 len, index;
+	__u32 index;
 	char *args;
 
-	/* Find selector offset byte index */
-	selector *= 4;
-	selector += 4;
+	seloff = 4; /* start of the relative offsets */
+	seloff += (selidx * 4); /* relative offset for this selector */
 
-	/* read the start offset of the corresponding selector */
-	selector = *(__u32 *)((__u64)f + (selector & INDEX_MASK));
+	/* selector section offset by reading the relative offset in the array */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
-	selector &= INDEX_MASK;
-	selector += 8; /* 8: selector value and selector header */
-
-	/* matchPid */
-	len = *(__u32 *)((__u64)f +
-			 (selector &
-			  INDEX_MASK)); /* (sizeof(pid1) + sizeof(pid2) + ... + 4) */
-	selector += len;
-
-	/* matchNamespace */
-	len = *(__u32 *)((__u64)f +
-			 (selector &
-			  INDEX_MASK)); /* (sizeof(ns1) + sizeof(ns2) + ... + 4) */
-	selector += len;
-
-	/* matchCapabilities */
-	len = *(__u32 *)((__u64)f +
-			 (selector &
-			  INDEX_MASK)); /* (sizeof(cap1) + sizeof(cap2) + ... + 4) */
-	selector += len;
-
-	/* matchNamespaceChanges */
-	len = *(__u32 *)((__u64)f +
-			 (selector &
-			  INDEX_MASK)); /* (sizeof(nc1) + sizeof(nc2) + ... + 4) */
-	selector += len;
-
-	/* matchCapabilityChanges */
-	len = *(__u32 *)((__u64)f +
-			 (selector &
-			  INDEX_MASK)); /* (sizeof(cap1) + sizeof(cap1) + ... + 4) */
-	selector += len;
+	/* skip the selector size field */
+	seloff += 4;
+	/* skip the matchPids section by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchNamespaces section by reading its length*/
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip matchCapabilitiess section by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchNamespaceChanges by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchCapabilityChanges by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	/* seloff must leave space for verifier to walk strings
 	 * so we set inside 4k maximum. Advance to binary matches.
 	 */
-	seloff = (selector & INDEX_MASK);
+	seloff &= INDEX_MASK;
 	binary = (struct selector_binary_filter *)&f[seloff];
 
 	/* Run binary name filters
