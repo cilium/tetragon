@@ -701,33 +701,41 @@ func parseSelector(
 	return nil
 }
 
-// array :=
-// [number][filter1_offset][filter2_offset][...][filtern_offset][filter1][filter2][...][filtern]
-// filter := [length]
+// The byte array storing the selector configuration has the following format
+// array := [N][S1_off][S2_off]...[SN_off][S1][S2][...][SN]
 //
-//	[matchPIDs]
-//	[matchNamespaces]
-//	[matchCapabilities]
-//	[matchNamespaceChanges]
-//	[matchCapabilityChanges]
-//	[matchBinaries]
-//	[matchArgs]
-//	[matchActions]
+//  N: is the number of selectors (u32)
+//  Sx_off: is the relative offset of  selector x (diff of Sx to Sx_off)
+//  Sx: holds the data for the selector
 //
-// matchPIDs := [num][PID1][PID2]...[PIDn]
-// matchBinaries := [num][op][Index]...[Index]
-// matchArgs := [num][ARGx][ARGy]...[ARGn]
-// matchNamespaces := [num][NSx][NSy]...[NSn]
-// matchNamespaceChanges := [num][NCx][NCy]...[NCn]
-// matchCapabilities := [num][CAx][CAy]...[CAn]
-// matchCapabilityChanges := [num][CAx][CAy]...[CAn]
-// PIDn := [op][flags][valueInt]
+// Each selector x starts with its length in bytes, and then stores a number of sections for the
+// different matchers. Each section will typically starts with its length in bytes.
+//
+// Sx := [length]
+//	 [matchPIDs]
+//	 [matchNamespaces]
+//	 [matchCapabilities]
+//	 [matchNamespaceChanges]
+//	 [matchCapabilityChanges]
+//	 [matchBinaries]
+//	 [matchArgs]
+//	 [matchActions]
+// matchPIDs := [length][PID1][PID2]...[PIDn]
+// matchNamespaces := [length][NSx][NSy]...[NSn]
+// matchCapabilities := [length][CAx][CAy]...[CAn]
+// matchNamespaceChanges := [length][NCx][NCy]...[NCn]
+// matchCapabilityChanges := [length][CAx][CAy]...[CAn]
+// matchBinaries := [length][op][Index]...[Index]
+// matchArgs := [length][ARGx][ARGy]...[ARGn]
+// PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
 // NSn := [namespace][op][valueInt]
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
+//
+// For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) ([4096]byte, error) {
 	kernelSelectors, err := InitKernelSelectorState(selectors, args)
 	if err != nil {
