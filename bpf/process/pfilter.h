@@ -398,10 +398,10 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	index += 4;
 
 	/* read the start offset of the corresponding selector */
-	index = *(__u32 *)((__u64)f + (index & INDEX_MASK));
-
+	/* selector section offset by reading the relative offset in the array */
+	index += *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index &= INDEX_MASK;
-	index += 8; /* 8: selector value and selector header */
+	index += 4; /* skip selector size field */
 
 	/* matchPid */
 	len = *(__u32 *)((__u64)f +
