@@ -286,8 +286,8 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
 			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 		}
+		procCache.Add(pi)
 	}
-	procCache.Add(pi)
 	return nil
 }
 
