@@ -56,6 +56,8 @@ const (
 	keyExportDenylist  = "export-denylist"
 
 	keyNetnsDir = "netns-dir"
+
+	keyDisableKprobeMulti = "disable-kprobe-multi"
 )
 
 var (
@@ -94,6 +96,8 @@ func readAndSetFlags() {
 	option.Config.EnableProcessNs = viper.GetBool(keyEnableProcessNs)
 	option.Config.EnableCilium = viper.GetBool(keyEnableCiliumAPI)
 	option.Config.EnableK8s = viper.GetBool(keyEnableK8sAPI)
+
+	option.Config.DisableKprobeMulti = viper.GetBool(keyDisableKprobeMulti)
 
 	option.Config.GopsAddr = viper.GetString(keyGopsAddr)
 

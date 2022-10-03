@@ -276,9 +276,11 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 	}
 
 	// use multi kprobe only if:
+	// - it's not disabled by user
 	// - there's support detected
 	// - multiple kprobes are defined
-	useMulti = bpf.HasKprobeMulti() &&
+	useMulti = !option.Config.DisableKprobeMulti &&
+		bpf.HasKprobeMulti() &&
 		len(kprobes) > 1 && len(kprobes) < MaxKprobesMulti
 
 	for i := range kprobes {

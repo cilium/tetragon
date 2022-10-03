@@ -26,6 +26,8 @@ type config struct {
 	EnableProcessCred bool
 	EnableK8s         bool
 
+	DisableKprobeMulti bool
+
 	GopsAddr string
 
 	CiliumDir string
