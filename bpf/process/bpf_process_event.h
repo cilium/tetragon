@@ -523,12 +523,36 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 
 /* Gather Cgroup id using current task context */
 static inline __attribute__((always_inline)) void
-__event_get_current_cgroup_id(struct msg_execve_event *msg, struct cgroup *cgrp)
+__event_get_current_cgroup_id(struct tetragon_conf *conf, struct cgroup *cgrp,
+			      struct msg_execve_event *msg,
+			      struct execve_map_value *curr)
 {
-	/* Try the bpf helper on the default hierarchy */
+	msg->kube.cgrpid = 0;
+
+	/* If tracking Cgroup ID is set use it, otherwise use current
+	 * context one. This way we guarantee to always have a cgrpid
+	 * and return cgroup information even if we miss the tracking
+	 * Cgroup ID.
+	 */
+	if (curr && curr->cgrpid_tracker) {
+		/* Gather Cgroup information according to the configuration */
+
+		/* Set the k8s cgrpid here with the the one that used for
+		 * for tracking. It was set during fork, or with
+		 * __set_task_cgrpid_tracker().
+		 */
+		msg->kube.cgrpid = curr->cgrpid_tracker;
+		return;
+	}
+
+	/* Gather Cgroup information using current context */
+
+	/* Try the default hierarchy */
+	if (conf && conf->cgrp_fs_magic == CGROUP2_SUPER_MAGIC) {
 #ifdef BPF_FUNC_get_current_cgroup_id
-	msg->kube.cgrpid = get_current_cgroup_id();
+		msg->kube.cgrpid = get_current_cgroup_id();
 #endif
+	}
 
 	/* Fallback on the passed cgroup which should point to the
 	 * right hierarchy.
@@ -539,12 +563,42 @@ __event_get_current_cgroup_id(struct msg_execve_event *msg, struct cgroup *cgrp)
 
 /* Gather Cgroup name using current task context */
 static inline __attribute__((always_inline)) void
-__event_get_current_cgroup_name(struct msg_execve_event *msg,
-				struct msg_process *process,
-				struct cgroup *cgrp)
+__event_get_current_cgroup_name(struct tetragon_conf *conf, struct cgroup *cgrp,
+				struct msg_execve_event *msg,
+				struct msg_process *process)
 {
 	const char *name;
 
+	/* Check if we have Tetragon cgroup configuration */
+	if (conf && conf->tg_cgrp_level > 0) {
+		/* Are we nested than the Cgroup tracking level? if so do
+		 * not return a cgroup name. We want to avoid returning
+		 * nested cgroup names or unrelated names that can be
+		 * interpreted as Container IDs. User space will try to
+		 * lookup the cgroup name from the tracking cgroups map.
+		 *
+		 * Do not set an error code.
+		 */
+		if (conf->tg_cgrp_level < get_cgroup_level(cgrp))
+			return;
+	}
+
+	/* Gather Cgroup information using current context */
+
+	/* Get Cgroup name (container id) here, however at user space
+	 * we will first try to lookup the Cgroup name from the
+	 * tg_cgrps_tracking_map and if there is a cgroup name there
+	 * that was captured during cgroup_mkdir tracepoint we will use
+	 * it, if not we fallback to current context cgroup name. This way
+	 * we ensure that we have at a backing name here, especially in
+	 * case of race conditions between walking /proc to get cgroup
+	 * paths and names for processes that started before tetragon and
+	 * where the cgroup_mkdir tracepoint become really effective.
+	 *
+	 * The reason we do not check the tg_cgrps_tracking_map here is
+	 * this allows to have a better logging mechanism at user space
+	 * and trace errors, also ability to fallback easily in user space.
+	 */
 	name = get_cgroup_name(cgrp);
 	if (name)
 		probe_read_str(msg->kube.docker_id, KN_NAME_LENGTH, name);
@@ -553,7 +607,7 @@ __event_get_current_cgroup_name(struct msg_execve_event *msg,
 }
 
 /**
- * __event_get_current_cgroup_info() Collect cgroup info from current task.
+ * __event_get_cgroup_info() Collect cgroup info from current task.
  * @msg: the msg_execve_event where to store collected information.
  * @process: msg_process part of msg_execve_event to store error into flags.
  * @task: must be current task.
@@ -564,7 +618,8 @@ __event_get_current_cgroup_name(struct msg_execve_event *msg,
  */
 static inline __attribute__((always_inline)) void
 __event_get_cgroup_info(struct msg_execve_event *msg,
-			struct msg_process *process, struct task_struct *task)
+			struct msg_process *process,
+			struct execve_map_value *curr, struct task_struct *task)
 {
 	struct cgroup *cgrp;
 	int zero = 0, subsys_idx = 0;
@@ -573,8 +628,19 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 	/* Check if cgroup configuration is set */
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	/* Select the right css to use */
-	if (conf && conf->tg_cgrp_subsys_idx != 0)
-		subsys_idx = conf->tg_cgrp_subsys_idx;
+	if (conf) {
+		/* Set the tracking cgroup ID for the task if it was
+		 * not already set.
+		 * Do not remove this as following logic depends on it
+		 * when we return the cgroup ID.
+		 */
+		if (conf->tg_cgrp_level > 0)
+			__set_task_cgrpid_tracker(conf, task, curr);
+
+		/* Select the right css to use */
+		if (conf->tg_cgrp_subsys_idx != 0)
+			subsys_idx = conf->tg_cgrp_subsys_idx;
+	}
 
 	cgrp = get_task_cgroup(task, subsys_idx);
 	if (!cgrp) {
@@ -583,10 +649,10 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 	}
 
 	/* Collect event cgroup ID */
-	__event_get_current_cgroup_id(msg, cgrp);
+	__event_get_current_cgroup_id(conf, cgrp, msg, curr);
 
 	/* Get the event cgroup name now */
-	__event_get_current_cgroup_name(msg, process, cgrp);
+	__event_get_current_cgroup_name(conf, cgrp, msg, process);
 }
 
 /* Pahole bug does not convert to btf correctly with arbitrary byte holes not
@@ -652,8 +718,5 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 
 	get_caps(&(msg->caps), task);
 	get_namespaces(&(msg->ns), task);
-
-	/* Last operation: gather current cgroup information */
-	__event_get_cgroup_info(msg, curr, task);
 }
 #endif
