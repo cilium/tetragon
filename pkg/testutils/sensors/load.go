@@ -119,25 +119,29 @@ func mergeInBaseSensorMaps(sensorMaps []SensorMap, sensorProgs []SensorProg, t *
 		1: SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
 		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
 		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
+		4: SensorProg{Name: "tg_tp_cgrp_mkdir", Type: ebpf.RawTracepoint},
+		5: SensorProg{Name: "tg_tp_cgrp_attach_task", Type: ebpf.RawTracepoint},
+		6: SensorProg{Name: "tg_tp_cgrp_rmdir", Type: ebpf.RawTracepoint},
+		7: SensorProg{Name: "tg_tp_cgrp_release", Type: ebpf.RawTracepoint},
 	}
 
 	var baseMaps = []SensorMap{
 		// all programs
-		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3}},
-		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 3}},
+		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
+		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 3, 4, 5, 6, 7}},
 
 		// event_execve
 		SensorMap{Name: "names_map", Progs: []uint{0}},
-		SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		SensorMap{Name: "tg_conf_map", Progs: []uint{2, 3, 4, 5, 6, 7}},
 
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},
 	}
 
 	if kernels.EnableLargeProgs() {
-		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}})
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
 	} else {
-		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3}})
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7}})
 	}
 
 	return mergeSensorMaps(sensorMaps, baseMaps, sensorProgs, baseProgs, t)
