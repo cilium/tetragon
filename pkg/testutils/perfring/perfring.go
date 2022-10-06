@@ -108,6 +108,45 @@ func RunTest(t *testing.T, ctx context.Context, selfOperations func(), eventFn E
 	wgDone.Wait()
 }
 
+func filterTestMessages(n notify.Message) bool {
+	_, ok := n.(*testapi.MsgTestEventUnix)
+	return !ok
+}
+
+// RunTestEvents: returns a list of events after running the test with selfOperations (see RunTest)
+// MsgTestEventUnix events are filtered out.
+func RunTestEvents(t *testing.T, ctx context.Context, selfOperations func()) []notify.Message {
+	return runTestEventReduce(t, ctx, selfOperations,
+		filterTestMessages,
+		func(x notify.Message) notify.Message {
+			return x
+		},
+		func(arr []notify.Message, m notify.Message) []notify.Message {
+			return append(arr, m)
+		},
+	)
+}
+
+func runTestEventReduce[K any, V any](
+	t *testing.T,
+	ctx context.Context,
+	selfOperations func(),
+	filterFn func(notify.Message) bool,
+	mapFn func(notify.Message) K,
+	reduceFn func(val V, key K) V,
+) V {
+	var ret V
+	RunTest(t, ctx, selfOperations, func(ev notify.Message) error {
+		if !filterFn(ev) {
+			return nil
+		}
+		key := mapFn(ev)
+		ret = reduceFn(ret, key)
+		return nil
+	})
+	return ret
+}
+
 // similar to RunTest, but uses t.Run()
 func RunSubTest(t *testing.T, ctx context.Context, name string, selfOperations func(t *testing.T), eventFn EventFn) bool {
 	return t.Run(name, func(t *testing.T) {
