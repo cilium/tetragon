@@ -100,7 +100,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
+event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 curr_pid,
 		       __u32 flags, __u32 bin, void *filename)
 {
 	struct execve_heap *heap;
@@ -110,11 +110,11 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	char *earg;
 
 	/* This is a bit parnoid but was previously having trouble on
-	 * 4.14 kernels tracking offset of curr through filename_builder
+	 * 4.14 kernels tracking offset of msg_proc through filename_builder
 	 * resulting in a a verifier error. We can optimize this a bit
 	 * later perhaps and push as an argument.
 	 */
-	earg = (void *)curr + offsetof(struct msg_process, args);
+	earg = (void *)msg_proc + offsetof(struct msg_process, args);
 
 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
 	if (size < 0) {
@@ -135,11 +135,11 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		}
 #endif
 	}
-	curr->flags = flags;
-	curr->pid = curr_pid;
-	curr->nspid = get_task_pid_vnr();
-	curr->ktime = ktime_get_ns();
-	curr->size = size + offsetof(struct msg_process, args);
+	msg_proc->flags = flags;
+	msg_proc->pid = curr_pid;
+	msg_proc->nspid = get_task_pid_vnr();
+	msg_proc->ktime = ktime_get_ns();
+	msg_proc->size = size + offsetof(struct msg_process, args);
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
@@ -158,7 +158,7 @@ event_execve(struct sched_execve_args *ctx)
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
 	struct execve_map_value *curr, *parent;
-	struct msg_process *execve;
+	struct msg_process *msg_proc;
 	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
@@ -181,9 +181,9 @@ event_execve(struct sched_execve_args *ctx)
 		event_minimal_parent(event, task);
 	}
 
-	execve = &event->process;
+	msg_proc = &event->process;
 	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
+	binary = event_filename_builder(ctx, msg_proc, pid, EVENT_EXECVE, binary,
 					(char *)ctx + fileoff);
 	event_args_builder(ctx, event);
 	compiler_barrier();
@@ -198,12 +198,12 @@ event_execve(struct sched_execve_args *ctx)
 		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
 			init_curr = 1;
 #endif
-		curr->key.pid = execve->pid;
-		curr->key.ktime = execve->ktime;
-		curr->nspid = execve->nspid;
+		curr->key.pid = msg_proc->pid;
+		curr->key.ktime = msg_proc->ktime;
+		curr->nspid = msg_proc->nspid;
 		curr->pkey = event->parent;
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
-			event_set_clone(execve);
+			event_set_clone(msg_proc);
 		}
 		curr->flags = 0;
 		curr->binary = binary;
@@ -226,7 +226,7 @@ event_execve(struct sched_execve_args *ctx)
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
-		execve->size);
+		msg_proc->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
 }
