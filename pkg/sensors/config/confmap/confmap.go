@@ -21,8 +21,16 @@ type TetragonConfKey struct {
 }
 
 type TetragonConfValue struct {
+	Mode            int32  `align:"mode"`               // Deployment mode
+	LogLevel        uint32 `align:"loglevel"`           // Tetragon log level
+	PID             uint32 `align:"pid"`                // Tetragon PID for debugging purpose
+	NSPID           uint32 `align:"nspid"`              // Tetragon PID in namespace for debugging purpose
 	TgCgrpHierarchy uint32 `align:"tg_cgrp_hierarchy"`  // Tetragon Cgroup tracking hierarchy ID
 	TgCgrpSubsysIdx uint32 `align:"tg_cgrp_subsys_idx"` // Tracking Cgroup css idx at compile time
+	TgCgrpLevel     uint32 `align:"tg_cgrp_level"`      // Tetragon cgroup level
+	Pad             uint32 `align:"pad"`                // Padded value
+	TgCgrpId        uint64 `align:"tg_cgrpid"`          // Tetragon cgroup ID
+	CgrpFsMagic     uint64 `align:"cgrp_fs_magic"`      // Cgroupv1 or cgroupv2
 }
 
 var (
@@ -97,10 +105,23 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
+	tetragonCgrpId := cgroups.GetTetragonCgroupID()
+	if tetragonCgrpId == 0 {
+		err = fmt.Errorf("unable to read Tetragon own Cgroup ID")
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Tetragon Cgroup ID failed")
+		log.WithField("confmap-update", configMap.Name).Warnf("Tetragon own Cgroup ID is unknown, advanced Cgroups tracking will be disabled")
+		return err
+	}
+
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
+		Mode:            int32(deployMode),
+		LogLevel:        uint32(logger.GetLogLevel()),
 		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
+		NSPID:           uint32(nspid),
+		TgCgrpId:        tetragonCgrpId,
+		CgrpFsMagic:     cgroupFsMagic,
 	}
 
 	err = m.Update(k, v)
@@ -112,11 +133,14 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 
 	log.WithFields(logrus.Fields{
 		"confmap-update":                configMap.Name,
-		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
-		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(cgroupFsMagic),
+		"deployment.mode":               cgroups.DeploymentCode(v.Mode).String(),
+		"log.level":                     logrus.Level(v.LogLevel).String(),
+		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
 		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
 		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
+		"cgroup.ID":                     v.TgCgrpId,
+		"NSPID":                         nspid,
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil

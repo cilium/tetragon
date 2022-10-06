@@ -8,6 +8,8 @@ package cgroups
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -116,6 +118,9 @@ var (
 	findMigPath       sync.Once
 	cgrpMigrationPath string
 
+	// Tetragon own Cgroup ID depends on Cgroup hierarchies
+	tgCgrpID uint64
+
 	// Cgroup Tracking Hierarchy
 	cgrpHierarchy    uint32
 	cgrpSubsystemIdx uint32
@@ -154,6 +159,39 @@ func CgroupFsMagicStr(magic uint64) string {
 
 func GetCgroupFSMagic() uint64 {
 	return cgroupFSMagic
+}
+
+type FileHandle struct {
+	Id uint64
+}
+
+func setTetragonCgroupID(cgroupPath string) error {
+	if tgCgrpID != 0 {
+		return nil
+	}
+
+	var fh FileHandle
+	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
+	if err != nil {
+		return fmt.Errorf("decoding NameToHandleAt data failed: %v", err)
+	}
+
+	tgCgrpID = fh.Id
+
+	return nil
+}
+
+// GetTetragonCgroupID() Returns own Tetragon Cgroup ID based on the cgroup path
+// This can be controller cgroup ID in case of multiple hierarchies under cgroupv1
+// which depends on the selected hierarchy either 'memory' or 'pids'.
+// Or the unique cgroup ID of the unified hierarchy under cgroupv2.
+func GetTetragonCgroupID() uint64 {
+	return tgCgrpID
 }
 
 // DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
@@ -362,6 +400,12 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 					continue
 				}
 
+				err = setTetragonCgroupID(cgroupPath)
+				if err != nil {
+					logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv1 path")
+					continue
+				}
+
 				logger.GetLogger().WithFields(logrus.Fields{
 					"cgroup.fs":                     cgroupFSPath,
 					"cgroup.controller.name":        controller.name,
@@ -456,6 +500,12 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 				break
 			}
 
+			err = setTetragonCgroupID(cgroupPath)
+			if err != nil {
+				logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv2 path")
+				break
+			}
+
 			// Run the deployment mode detection last again, fine to rerun.
 			err = setDeploymentMode(path)
 			if err != nil {
@@ -493,6 +543,26 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
+// Migrate Pid to the corresponding cgroup path
+func migratePidtoCgrp(cgrpPath string, pid uint32) error {
+	f, err := os.OpenFile(cgrpPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("open '%s' failed", cgrpPath)
+		return err
+	}
+
+	_, err = f.Write([]byte(fmt.Sprint(pid)))
+	f.Close()
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("migrating pid=%d to '%s' failed", pid, cgrpPath)
+		return err
+	}
+
+	return nil
+}
+
+// findMigrationPath() Find the appropriate cgroup path for the pid so
+// it can migrate itself. Handles both Cgroup v1 and v2
 func findMigrationPath(pid uint32) (string, error) {
 	if cgrpMigrationPath != "" {
 		return cgrpMigrationPath, nil
@@ -609,7 +679,7 @@ func detectDeploymentMode() (DeploymentCode, error) {
 	return getDeploymentMode(), nil
 }
 
-func DetectDeploymentMode() (uint32, error) {
+func DetectDeploymentMode() (DeploymentCode, error) {
 	detectDeploymentOnce.Do(func() {
 		mode, err := detectDeploymentMode()
 		if err != nil {
@@ -627,10 +697,38 @@ func DetectDeploymentMode() (uint32, error) {
 
 	mode := getDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
-		return uint32(mode), fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
+		return mode, fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
 	}
 
-	return uint32(mode), nil
+	return mode, nil
+}
+
+// MigrateSelfToSameCgrp() Migrates self PID to its own same cgroup
+// Returns nil or error on failures
+//
+// Use this to generate a cgroup_attach_task trace event that is used
+// to discover Cgroup configurations of Tetragon dynamically
+func MigrateSelfToSameCgrp() error {
+	pid := os.Getpid()
+
+	// Find an appropriate migration path
+	path, err := findMigrationPath(uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	err = migratePidtoCgrp(path, uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":   cgroupFSPath,
+		"PID":         pid,
+		"cgroup.path": path,
+	}).Info("Migrated Tetragon to its own Cgroup path succeeded")
+
+	return nil
 }
 
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
@@ -660,4 +758,14 @@ func DetectCgroupFSMagic() (uint64, error) {
 	}
 
 	return cgroupFSMagic, nil
+}
+
+// CgroupNameFromCstr() Returns a Golang string from the passed C language format string.
+func CgroupNameFromCStr(cstr []byte) string {
+	for i, c := range cstr {
+		if c == 0 {
+			return string(cstr[:i])
+		}
+	}
+	return string(cstr)
 }

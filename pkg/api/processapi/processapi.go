@@ -12,6 +12,12 @@ const (
 	// cgroup of the task
 	DOCKER_ID_LENGTH = 128
 
+	// Length of the cgroup name as it is returned from BPF side
+	CGROUP_NAME_LENGTH = 128
+
+	// Length of the cgroup path as it is returned from BPF side
+	CGROUP_PATH_LENGTH = 4096
+
 	MSG_SIZEOF_MAXARG = 100
 	MSG_SIZEOF_EXECVE = 32
 	MSG_SIZEOF_CWD    = 256
@@ -135,4 +141,30 @@ type MsgExitEvent struct {
 	Common     MsgCommon    `align:"common"`
 	ProcessKey MsgExecveKey `align:"current"`
 	Info       MsgExitInfo  `align:"info"`
+}
+
+// MsgCgroupData is complementary cgroup data that is collected from
+// BPF side on various cgroup events.
+type MsgCgroupData struct {
+	State     uint32                   `align:"state"`        // State of cgroup
+	Hierarchy uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
+	Level     uint32                   `align:"level"`        // The depth this cgroup is at
+	Pad       uint32                   `align:"pad"`
+	Name      [CGROUP_NAME_LENGTH]byte `align:"name"` // Cgroup kernfs_node name
+}
+
+// MsgCgroupEvent is the data that is sent from BPF side on cgroup events
+// into ring buffer.
+type MsgCgroupEvent struct {
+	Common        MsgCommon                `align:"common"`
+	Parent        MsgExecveKey             `align:"parent"`
+	CgrpOp        uint32                   `align:"cgrp_op"` // Current cgroup operation
+	PID           uint32                   `align:"pid"`
+	NSPID         uint32                   `align:"nspid"`
+	Flags         uint32                   `align:"flags"`
+	Ktime         uint64                   `align:"ktime"`
+	CgrpidTracker uint64                   `align:"cgrpid_tracker"` // The tracking cgroup ID
+	Cgrpid        uint64                   `align:"cgrpid"`         // Current cgroup ID
+	CgrpData      MsgCgroupData            `align:"cgrp_data"`      // Complementary cgroup data
+	Path          [CGROUP_PATH_LENGTH]byte `align:"path"`           // Full path of the cgroup on fs
 }

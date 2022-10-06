@@ -5,6 +5,7 @@
 #include "api.h"
 
 #include "hubble_msg.h"
+#include "bpf_cgroup.h"
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
@@ -229,6 +230,9 @@ event_execve(struct sched_execve_args *ctx)
 		}
 #endif
 	}
+
+	/* Gather Cgroup information as late as possible */
+	__event_get_cgroup_info(event, execve, curr, task);
 
 	event->common.flags = 0;
 	size = validate_msg_execve_size(
