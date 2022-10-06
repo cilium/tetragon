@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -189,6 +190,10 @@ func tetragonExecute() error {
 
 	err := btf.InitCachedBTF(ctx, option.Config.HubbleLib, option.Config.BTF)
 	if err != nil {
+		return err
+	}
+
+	if err := buildid.InitCache(); err != nil {
 		return err
 	}
 
