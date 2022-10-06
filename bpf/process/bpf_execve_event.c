@@ -160,16 +160,15 @@ event_execve(struct sched_execve_args *ctx)
 	bool walker = 0;
 	__u32 zero = 0;
 	uint64_t size;
-	__u32 pid;
+	__u32 pid, ppid;
 	unsigned short fileoff;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
 	pid = (get_current_pid_tgid() >> 32);
-	parent = event_find_parent();
+	parent = __event_find_parent(task, &ppid);
 	curr = execve_map_get(pid);
-
 	// if curr is a valid (not zero) entry use its key as the parent id.
 	// The curr entry should be always valid, because we initialize it from fork().
 	// To be robust, however, we also try to handle the case where curr is invalid by getting
@@ -218,6 +217,7 @@ event_execve(struct sched_execve_args *ctx)
 		curr->key.ktime = msg_proc->ktime;
 		curr->nspid = msg_proc->nspid;
 		curr->pkey = event->parent;
+		curr->ppid = ppid;
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
 			event_set_clone(msg_proc);
 		}

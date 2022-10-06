@@ -19,7 +19,7 @@ __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
-	u32 pid = 0;
+	u32 pid, ppid;
 
 	if (!task)
 		return 0;
@@ -34,13 +34,14 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		return 0;
 
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
-	parent = __event_find_parent(task);
+	parent = __event_find_parent(task, &ppid);
 	if (parent) {
 		curr->key.pid = pid;
 		curr->key.ktime = ktime_get_ns();
 		curr->nspid = get_task_pid_vnr();
 		curr->binary = parent->binary;
 		curr->pkey = parent->key;
+		curr->ppid = ppid;
 
 		u64 size = sizeof(struct msg_clone_event);
 		struct msg_clone_event msg = (struct msg_clone_event){
