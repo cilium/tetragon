@@ -100,8 +100,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 curr_pid,
-		       __u32 flags, __u32 bin, void *filename)
+event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 bin, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
@@ -116,6 +115,7 @@ event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 curr_pid,
 	 */
 	earg = (void *)msg_proc + offsetof(struct msg_process, args);
 
+	__u32 flags = 0;
 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
 	if (size < 0) {
 		flags |= EVENT_ERROR_FILENAME;
@@ -135,10 +135,7 @@ event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 curr_pid,
 		}
 #endif
 	}
-	msg_proc->flags = flags;
-	msg_proc->pid = curr_pid;
-	msg_proc->nspid = get_task_pid_vnr();
-	msg_proc->ktime = ktime_get_ns();
+	msg_proc->flags |= flags;
 	msg_proc->size = size + offsetof(struct msg_process, args);
 
 	heap = map_lookup_elem(&execve_heap, &zero);
@@ -182,9 +179,12 @@ event_execve(struct sched_execve_args *ctx)
 	}
 
 	msg_proc = &event->process;
+	msg_proc->pid = pid;
+	msg_proc->nspid = get_task_pid_vnr();
+	msg_proc->ktime = ktime_get_ns();
+	msg_proc->flags = EVENT_EXECVE;
 	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, msg_proc, pid, EVENT_EXECVE, binary,
-					(char *)ctx + fileoff);
+	binary = event_filename_builder(ctx, msg_proc, binary, (char *)ctx + fileoff);
 	event_args_builder(ctx, event);
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
