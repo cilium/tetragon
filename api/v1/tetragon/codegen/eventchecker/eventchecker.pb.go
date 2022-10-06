@@ -1850,6 +1850,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	BuildId      *bytesmatcher.BytesMatcher         `json:"buildId,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -1947,6 +1948,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Ns check failed: %w", err)
 		}
 	}
+	if checker.BuildId != nil {
+		if err := checker.BuildId.Match(event.BuildId); err != nil {
+			return fmt.Errorf("ProcessChecker: BuildId check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -2040,6 +2046,12 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
+// WithBuildId adds a BuildId check to the ProcessChecker
+func (checker *ProcessChecker) WithBuildId(check *bytesmatcher.BytesMatcher) *ProcessChecker {
+	checker.BuildId = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2079,6 +2091,7 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
 	}
+	checker.BuildId = bytesmatcher.Full(event.BuildId)
 	return checker
 }
 
