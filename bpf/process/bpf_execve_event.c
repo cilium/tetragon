@@ -168,7 +168,16 @@ event_execve(struct sched_execve_args *ctx)
 		return 0;
 	pid = (get_current_pid_tgid() >> 32);
 	parent = event_find_parent();
-	if (parent) {
+	curr = execve_map_get(pid);
+
+	// if curr is a valid (not zero) entry use its key as the parent id.
+	// The curr entry should be always valid, because we initialize it from fork().
+	// To be robust, however, we also try to handle the case where curr is invalid by getting
+	// information from the parent.
+	if (curr && curr->key.ktime) {
+		event->parent = curr->key;
+		binary = curr->binary;
+	} else if (parent) {
 		event->parent = parent->key;
 		binary = parent->binary;
 	} else {
@@ -186,7 +195,6 @@ event_execve(struct sched_execve_args *ctx)
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
 
-	curr = execve_map_get(pid);
 	if (curr) {
 		/* if this exec precedes a clone:
 		 *  - set the appropriate flags
