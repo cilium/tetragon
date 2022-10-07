@@ -179,6 +179,8 @@ func GetProcess(
 	var parentExecID string
 	if parent.Pid != 0 {
 		parentExecID = GetExecIDFromKey(&parent)
+	} else {
+		parentExecID = GetProcessID(0, 1)
 	}
 	execID := GetExecID(&process)
 	protoPod, endpoint := k8s.GetPodInfo(containerID, process.Filename, args, process.NSPID)
