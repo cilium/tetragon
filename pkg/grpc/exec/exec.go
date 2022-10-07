@@ -26,6 +26,11 @@ var (
 	nodeName = node.GetNodeNameForExport()
 )
 
+const (
+	ParentRefCnt  = 0
+	ProcessRefCnt = 1
+)
+
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
 func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessExec {
 	var tetragonParent *tetragon.Process
@@ -218,7 +223,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	if ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}
 	if parent != nil {
@@ -234,6 +239,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 
 type MsgExitEventUnix struct {
 	tetragonAPI.MsgExitEvent
+	RefCntDone [2]bool
 }
 
 func (msg *MsgExitEventUnix) Notify() bool {
@@ -241,28 +247,35 @@ func (msg *MsgExitEventUnix) Notify() bool {
 }
 
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	p := ev.GetProcess()
-	internal, parent := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+	internal, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp)
 	var err error
 
 	if parent != nil {
-		if ev.GetParent() == nil {
-			ev.SetParent(parent.GetProcessCopy())
+		if !msg.RefCntDone[ParentRefCnt] {
 			parent.RefDec()
+			msg.RefCntDone[ParentRefCnt] = true
 		}
+		ev.SetParent(parent.GetProcessCopy())
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
 		err = eventcache.ErrFailedToGetParentInfo
 	}
 
 	if internal != nil {
-		internal.RefDec()
+		if !msg.RefCntDone[ProcessRefCnt] {
+			internal.RefDec()
+			msg.RefCntDone[ProcessRefCnt] = true
+		}
+		ev.SetProcess(internal.GetProcessCopy())
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		err = eventcache.ErrFailedToGetProcessInfo
 	}
 
-	return internal, err
+	if err == nil {
+		return internal, err
+	}
+	return nil, err
 }
 
 func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -274,6 +287,7 @@ func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXIT:
+		msg.RefCntDone = [2]bool{false, false}
 		e := GetProcessExit(msg)
 		if e != nil {
 			res = &tetragon.GetEventsResponse{
