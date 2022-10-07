@@ -27,9 +27,10 @@ var (
 )
 
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
-func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
+func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessExec {
 	var tetragonParent *tetragon.Process
 
+	proc := process.AddExecEvent(&event.MsgExecveEventUnix)
 	tetragonProcess := proc.UnsafeGetProcess()
 
 	parentId := tetragonProcess.ParentExecId
@@ -37,15 +38,12 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 
 	parent, err := process.Get(parentId)
 	if err == nil {
-		parent.RefInc()
+		tetragonParent = parent.UnsafeGetProcess()
 	}
 
 	// Set the cap field only if --enable-process-cred flag is set.
 	if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
-	}
-	if parent != nil {
-		tetragonParent = parent.GetProcessCopy()
 	}
 
 	// If this is not a clone we need to decrement parent refcnt because
@@ -57,10 +55,25 @@ func GetProcessExec(proc *process.ProcessInternal) *tetragon.ProcessExec {
 		parent.RefDec()
 	}
 
-	return &tetragon.ProcessExec{
+	tetragonEvent := &tetragon.ProcessExec{
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
 	}
+
+	if useCache {
+		if ec := eventcache.Get(); ec != nil &&
+			(ec.Needed(tetragonEvent.Process) || (tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonEvent.Parent))) {
+			ec.Add(proc, tetragonEvent, event.Common.Ktime, event)
+			return nil
+		}
+	}
+
+	if parent != nil {
+		parent.RefInc()
+		tetragonEvent.Parent = parent.GetProcessCopy()
+	}
+
+	return tetragonEvent
 }
 
 type MsgExecveEventUnix struct {
@@ -121,17 +134,9 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
 	switch msg.Common.Op {
 	case ops.MSG_OP_EXECVE:
-		proc := process.AddExecEvent(&msg.MsgExecveEventUnix)
-		procEvent := GetProcessExec(proc)
-		ec := eventcache.Get()
-		if ec != nil &&
-			(ec.Needed(procEvent.Process) ||
-				(procEvent.Process.Pid.Value > 1 && ec.Needed(procEvent.Parent))) {
-			ec.Add(proc, procEvent, msg.MsgExecveEventUnix.Process.Ktime, msg)
-		} else {
-			procEvent.Process = proc.GetProcessCopy()
+		if e := GetProcessExec(msg, true); e != nil {
 			res = &tetragon.GetEventsResponse{
-				Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: procEvent},
+				Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
 				NodeName: nodeName,
 				Time:     ktime.ToProto(msg.Common.Ktime),
 			}
