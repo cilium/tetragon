@@ -202,7 +202,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		}
 	}
 	if parent != nil {
-		tetragonParent = parent.GetProcessCopy()
+		tetragonParent = parent.UnsafeGetProcess()
 	}
 
 	code := event.Info.Code >> 8
@@ -223,6 +223,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 	if parent != nil {
 		parent.RefDec()
+		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
 	if process != nil {
 		process.RefDec()
