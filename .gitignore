@@ -21,3 +21,4 @@ strange.txt
 .vscode
 compile_commands.json
 contrib/tester-progs/sigkill-unprivileged-user-ns-tester
+/release
