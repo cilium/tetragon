@@ -18,13 +18,11 @@ int _version __attribute__((section(("version")), used)) =
 __attribute__((section(("raw_tracepoint/cgroup_mkdir")), used)) int
 tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 {
-	pid_t pid;
-	int level, zero = 0;
 	uint64_t cgrpid;
+	int level, hierarchy_id, zero = 0;
 	struct cgroup *cgrp;
 	struct cgroup_tracking_value *cgrp_heap;
 	struct tetragon_conf *config;
-	struct task_struct *task;
 
 	config = map_lookup_elem(&tg_conf_map, &zero);
 	if (!config || config->tg_cgrp_level == 0)
@@ -32,8 +30,10 @@ tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 
 	cgrp = (struct cgroup *)ctx->args[0];
 
-	task = (struct task_struct *)get_current_task();
-	probe_read(&pid, sizeof(pid), _(&task->tgid));
+	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
+	/* Are we operating on the corresponding hierarchy? if no exit */
+	if (config->tg_cgrp_hierarchy != hierarchy_id)
+		return 0;
 
 	level = get_cgroup_level(cgrp);
 	/* This should never happen */
