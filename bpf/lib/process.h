@@ -270,7 +270,7 @@ struct execve_map_value {
 	__u32 flags;
 	__u32 nspid;
 	__u32 binary;
-	__u32 pad;
+	__u32 ppid;
 	struct msg_ns ns;
 	struct msg_capabilities caps;
 } __attribute__((packed)) __attribute__((aligned(8)));

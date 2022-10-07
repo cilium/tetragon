@@ -21,7 +21,7 @@
 				goto accept;                                   \
 			}                                                      \
 		}                                                              \
-		filter = map_lookup_elem(&execve_map, &filter->pkey.pid);      \
+		filter = map_lookup_elem(&execve_map, &filter->ppid);          \
 	}
 
 #define FIND_PIDSET10(VAL, ISNS)                                               \

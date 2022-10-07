@@ -142,7 +142,7 @@ event_find_parent_pid(struct task_struct *t)
 }
 
 static inline __attribute__((always_inline)) struct execve_map_value *
-__event_find_parent(struct task_struct *task)
+__event_find_parent(struct task_struct *task, __u32 *ppid)
 {
 	__u32 pid;
 	struct execve_map_value *value = 0;
@@ -154,6 +154,8 @@ __event_find_parent(struct task_struct *task)
 		if (!task)
 			break;
 		probe_read(&pid, sizeof(pid), _(&task->tgid));
+		if (ppid)
+			*ppid = pid;
 		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			return value;
@@ -166,7 +168,7 @@ event_find_parent(void)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 
-	return __event_find_parent(task);
+	return __event_find_parent(task, 0);
 }
 
 static inline __attribute__((always_inline)) void

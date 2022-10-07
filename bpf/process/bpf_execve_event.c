@@ -100,8 +100,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
-		       __u32 flags, __u32 bin, void *filename)
+event_filename_builder(void *ctx, struct msg_process *msg_proc, __u32 bin, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
@@ -110,12 +109,13 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	char *earg;
 
 	/* This is a bit parnoid but was previously having trouble on
-	 * 4.14 kernels tracking offset of curr through filename_builder
+	 * 4.14 kernels tracking offset of msg_proc through filename_builder
 	 * resulting in a a verifier error. We can optimize this a bit
 	 * later perhaps and push as an argument.
 	 */
-	earg = (void *)curr + offsetof(struct msg_process, args);
+	earg = (void *)msg_proc + offsetof(struct msg_process, args);
 
+	__u32 flags = 0;
 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
 	if (size < 0) {
 		flags |= EVENT_ERROR_FILENAME;
@@ -135,11 +135,8 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		}
 #endif
 	}
-	curr->flags = flags;
-	curr->pid = curr_pid;
-	curr->nspid = get_task_pid_vnr();
-	curr->ktime = ktime_get_ns();
-	curr->size = size + offsetof(struct msg_process, args);
+	msg_proc->flags |= flags;
+	msg_proc->size = size + offsetof(struct msg_process, args);
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
@@ -158,76 +155,74 @@ event_execve(struct sched_execve_args *ctx)
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
 	struct execve_map_value *curr, *parent;
-	struct msg_process *execve;
+	struct msg_process *msg_proc;
 	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
 	uint64_t size;
-	__u32 pid;
+	__u32 pid, ppid;
 	unsigned short fileoff;
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-	bool init_curr = 0;
-#endif
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
 	pid = (get_current_pid_tgid() >> 32);
-	parent = event_find_parent();
-	if (parent) {
+	parent = __event_find_parent(task, &ppid);
+	curr = execve_map_get(pid);
+	// if curr is a valid (not zero) entry use its key as the parent id.
+	// The curr entry should be always valid, because we initialize it from fork().
+	// To be robust, however, we also try to handle the case where curr is invalid by getting
+	// information from the parent.
+	if (curr && curr->key.ktime) {
+		event->parent = curr->key;
+		binary = curr->binary;
+	} else if (parent) {
 		event->parent = parent->key;
 		binary = parent->binary;
 	} else {
 		event_minimal_parent(event, task);
 	}
 
-	execve = &event->process;
+	msg_proc = &event->process;
+	msg_proc->pid = pid;
+	msg_proc->nspid = get_task_pid_vnr();
+	msg_proc->ktime = ktime_get_ns();
+	msg_proc->flags = EVENT_EXECVE;
 	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
-					(char *)ctx + fileoff);
+	binary = event_filename_builder(ctx, msg_proc, binary, (char *)ctx + fileoff);
 	event_args_builder(ctx, event);
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
 
-	curr = execve_map_get(pid);
 	if (curr) {
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-		/* if this exec event preceds a clone, initialize  capabilities
-		 * and namespaces as well.
-		 */
-		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
-			init_curr = 1;
-#endif
-		curr->key.pid = execve->pid;
-		curr->nspid = execve->nspid;
-		curr->pkey = event->parent;
-		/* If this event was preceded by a clone event use the ktime
-		 * of when the clone happened. This allows us to build a single
-		 * execId for the clone+exec common path. The execId can then
-		 * be used for the procCache. If we are running exec without
-		 * a clone() then we need a new entry and user space will
-		 * learn that we smashed the current stack with exec.
+		/* if this exec precedes a clone:
+		 *  - set the appropriate flags
+		 *  - store namespaces
+		 *  - store capabilities
 		 */
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
-			event_set_clone(execve);
-			execve->ktime = curr->key.ktime;
-		} else {
-			curr->key.ktime = execve->ktime;
-		}
-		curr->flags = 0;
-		curr->binary = binary;
+			event_set_clone(msg_proc);
 #ifdef __NS_CHANGES_FILTER
-		if (init_curr)
 			memcpy(&(curr->ns), &(event->ns),
 			       sizeof(struct msg_ns));
-#endif
+#endif /* __NS_CHANGES_FILTER */
 #ifdef __CAP_CHANGES_FILTER
-		if (init_curr) {
 			curr->caps.permitted = event->caps.permitted;
 			curr->caps.effective = event->caps.effective;
 			curr->caps.inheritable = event->caps.inheritable;
+#endif /* __CAP_CHANGES_FILTER */
+
 		}
-#endif
+		curr->key.pid = msg_proc->pid;
+		curr->key.ktime = msg_proc->ktime;
+		curr->nspid = msg_proc->nspid;
+		curr->pkey = event->parent;
+		curr->ppid = ppid;
+		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
+			event_set_clone(msg_proc);
+		}
+		curr->flags = 0;
+		curr->binary = binary;
 	}
 
 	event->common.flags = 0;
@@ -235,7 +230,7 @@ event_execve(struct sched_execve_args *ctx)
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
-		execve->size);
+		msg_proc->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
 }
