@@ -275,6 +275,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		logger.GetLogger().WithField("parent-exec-id", parentExecId).Debug("AddCloneEvent: process not found in cache")
 		return err
 	}
+	parent.RefInc()
 	pi := parent.GetProcessInternalCopy()
 	if pi.process != nil {
 		pi.process.ParentExecId = parentExecId
