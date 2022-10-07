@@ -27,6 +27,7 @@ GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
 -include Makefile.docker
+-include Makefile.cli
 
 .PHONY: help
 help:
@@ -40,6 +41,7 @@ help:
 	@echo '    test-compile      - compile unit tests'
 	@echo '    tester-progs      - compile helper programs for unit testing'
 	@echo '    compile-commands  - generate a compile_commands.json with bear for bpf programs'
+	@echo '    cli-release       - compile tetra CLI release binaries'
 	@echo 'Container images:'
 	@echo '    image             - build the Tetragon agent container image'
 	@echo '    image-operator    - build the Tetragon operator container image'
@@ -124,7 +126,7 @@ vendor:
 	$(GO) mod verify
 
 .PHONY: clean
-clean:
+clean: cli-clean
 	$(MAKE) -C ./bpf clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps

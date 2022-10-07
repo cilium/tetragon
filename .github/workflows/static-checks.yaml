@@ -48,4 +48,6 @@ jobs:
           if [ $? != 0 ]; then
             echo "clang-format checks failed. Please run 'make format' and submit your changes."; exit 1
           fi
-
+      - name: Build CLI release binaries
+        run: |
+          make cli-release
