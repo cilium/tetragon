@@ -256,6 +256,7 @@ struct msg_execve_event {
 	__u64 parent_flags;
 	struct msg_capabilities caps;
 	struct msg_ns ns;
+	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of
 	 * validate_msg_execve_size() in bpf_execve_event.c */
 	union {

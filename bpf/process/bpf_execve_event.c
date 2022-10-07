@@ -221,6 +221,7 @@ execve_send(struct sched_execve_args *ctx)
 
 	curr = execve_map_get(pid);
 	if (curr) {
+		event->cleanup_key = curr->key;
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
 		/* if this exec event preceds a clone, initialize  capabilities
 		 * and namespaces as well.
@@ -256,7 +257,7 @@ execve_send(struct sched_execve_args *ctx)
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
-		execve->size);
+		sizeof(struct msg_execve_key) + execve->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
 }
