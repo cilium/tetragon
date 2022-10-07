@@ -369,6 +369,23 @@ func GetEvents(t *testing.T, events []*tetragon.GetEventsResponse) (*tetragon.Pr
 	return execEv, exitEv
 }
 
+func CheckProcessEqual(t *testing.T, p1, p2 *tetragon.Process) {
+	assert.Equal(t, p1.ExecId, p2.ExecId)
+	assert.Equal(t, p1.Pid, p2.Pid)
+	assert.Equal(t, p1.Uid, p2.Uid)
+	assert.Equal(t, p1.Cwd, p2.Cwd)
+	assert.Equal(t, p1.Binary, p2.Binary)
+	assert.Equal(t, p1.Arguments, p2.Arguments)
+	assert.Equal(t, p1.Flags, p2.Flags)
+	assert.Equal(t, p1.StartTime, p2.StartTime)
+	assert.Equal(t, p1.Auid, p2.Auid)
+	assert.Equal(t, p1.Pod, p2.Pod)
+	assert.Equal(t, p1.Docker, p2.Docker)
+	assert.Equal(t, p1.ParentExecId, p2.ParentExecId)
+	assert.Equal(t, p1.Cap, p2.Cap)
+	assert.Equal(t, p1.Ns, p2.Ns)
+}
+
 func CheckExecEvents(t *testing.T, events []*tetragon.GetEventsResponse, parentPid uint32, currentPid uint32) {
 	assert.Equal(t, len(events), 4)
 
@@ -407,14 +424,10 @@ func CheckExecEvents(t *testing.T, events []*tetragon.GetEventsResponse, parentP
 	assert.NotNil(t, exitEv.Parent)
 
 	// success
-	execEv.Process.Refcnt = 0
-	exitEv.Process.Refcnt = 0
-	assert.Equal(t, execEv.Process, exitEv.Process)
+	CheckProcessEqual(t, execEv.Process, exitEv.Process)
 
 	// success
-	execEv.Parent.Refcnt = 0
-	exitEv.Parent.Refcnt = 0
-	assert.Equal(t, execEv.Parent, exitEv.Parent)
+	CheckProcessEqual(t, execEv.Parent, exitEv.Parent)
 }
 
 func GrpcExecOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
@@ -582,14 +595,10 @@ func GrpcExecParentOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testi
 	ev1, ev2 := GetEvents(t, AllEvents)
 
 	// success
-	ev1.Process.Refcnt = 0
-	ev2.Process.Refcnt = 0
-	assert.Equal(t, ev1.Process, ev2.Process)
+	CheckProcessEqual(t, ev1.Process, ev2.Process)
 
 	// success
-	ev1.Parent.Refcnt = 0
-	ev2.Parent.Refcnt = 0
-	assert.Equal(t, ev1.Parent, ev2.Parent)
+	CheckProcessEqual(t, ev1.Parent, ev2.Parent)
 }
 
 func CheckCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, currentPid uint32, clonePid uint32) {
