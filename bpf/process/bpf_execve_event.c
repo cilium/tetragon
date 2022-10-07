@@ -162,9 +162,6 @@ event_execve(struct sched_execve_args *ctx)
 	uint64_t size;
 	__u32 pid;
 	unsigned short fileoff;
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-	bool init_curr = 0;
-#endif
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -191,13 +188,24 @@ event_execve(struct sched_execve_args *ctx)
 
 	curr = execve_map_get(pid);
 	if (curr) {
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-		/* if this exec event preceds a clone, initialize  capabilities
-		 * and namespaces as well.
+		/* if this exec precedes a clone:
+		 *  - set the appropriate flags
+		 *  - store namespaces
+		 *  - store capabilities
 		 */
-		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
-			init_curr = 1;
-#endif
+		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
+			event_set_clone(msg_proc);
+#ifdef __NS_CHANGES_FILTER
+			memcpy(&(curr->ns), &(event->ns),
+			       sizeof(struct msg_ns));
+#endif /* __NS_CHANGES_FILTER */
+#ifdef __CAP_CHANGES_FILTER
+			curr->caps.permitted = event->caps.permitted;
+			curr->caps.effective = event->caps.effective;
+			curr->caps.inheritable = event->caps.inheritable;
+#endif /* __CAP_CHANGES_FILTER */
+
+		}
 		curr->key.pid = msg_proc->pid;
 		curr->key.ktime = msg_proc->ktime;
 		curr->nspid = msg_proc->nspid;
@@ -207,18 +215,6 @@ event_execve(struct sched_execve_args *ctx)
 		}
 		curr->flags = 0;
 		curr->binary = binary;
-#ifdef __NS_CHANGES_FILTER
-		if (init_curr)
-			memcpy(&(curr->ns), &(event->ns),
-			       sizeof(struct msg_ns));
-#endif
-#ifdef __CAP_CHANGES_FILTER
-		if (init_curr) {
-			curr->caps.permitted = event->caps.permitted;
-			curr->caps.effective = event->caps.effective;
-			curr->caps.inheritable = event->caps.inheritable;
-		}
-#endif
 	}
 
 	event->common.flags = 0;
