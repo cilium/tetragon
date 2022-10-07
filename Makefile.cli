@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Authors of Tetragon
 
-GO_BUILD = CGO_ENABLED=0 $(GO) build
+GO_BUILD = CGO_ENABLED=0 $(GO) build -tags standalone
 TARGET=tetra
 
 RELEASE_UID ?= $(shell id -u)
@@ -17,10 +17,9 @@ cli-release:
 			adduser -u $(RELEASE_UID) -D -G release release && \
 			su release -c 'make cli-local-release VERSION=${VERSION}'"
 
-# TODO: Build darwin / windows / linux arm64 binaries
 cli-local-release: cli-clean
 	set -o errexit; \
-	for OS in darwin linux; do \
+	for OS in darwin linux windows; do \
 		EXT=; \
 		ARCHS=; \
 		case $$OS in \
@@ -28,7 +27,10 @@ cli-local-release: cli-clean
 				ARCHS='arm64 amd64'; \
 				;; \
 			linux) \
-				ARCHS='amd64'; \
+				ARCHS='arm64 amd64'; \
+				;; \
+			windows) \
+				ARCHS='arm64 amd64'; \
 				;; \
 		esac; \
 		for ARCH in $$ARCHS; do \
