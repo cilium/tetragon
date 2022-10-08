@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
 )
@@ -131,6 +132,9 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	}()
 	if err := btf.InitCachedBTF(context.Background(), config.TetragonLib, ""); err != nil {
 		fmt.Printf("InitCachedBTF failed: %v", err)
+	}
+	if err := buildid.InitCache(); err != nil {
+		log.Fatalf("Failed to init buildid cache: %v", err)
 	}
 	return m.Run()
 }

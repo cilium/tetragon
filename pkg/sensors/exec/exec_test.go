@@ -23,6 +23,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -554,4 +555,38 @@ func TestExecPerfring(t *testing.T) {
 		}
 	}
 	t.Fatalf("failed to find exec event")
+}
+
+func TestParseBuildId(t *testing.T) {
+	testNop := testutils.ContribPath("tester-progs/nop")
+
+	var id1, id2 []byte
+	var err error
+
+	// get build id from readelf
+	cmd := `readelf -n ` + testNop + ` 2>/dev/null | grep 'Build ID' | awk '{print $3}'`
+	id1, err = exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		t.Fatalf("Failed to execute command %s: %v", cmd, err)
+	}
+
+	// get buildid from build.ParseBuildId
+	id2, err = buildid.ParseBuildId(testNop)
+	if err != nil {
+		t.Fatalf("Failed to ParseBuildId: %v\n", err)
+	}
+
+	// convert both to string, becase we have string byte array
+	// from readelf and raw []byte from build.ParseBuildId
+
+	strId1 := strings.TrimSuffix(string(id1), "\n")
+	strId2 := fmt.Sprintf("%x", id2)
+
+	t.Logf("readelf : %s\n", strId1)
+	t.Logf("parsed  : %s\n", strId2)
+
+	// and believe..
+	if strId1 != strId2 {
+		t.Errorf("Failed compare id1 != id2 - %x / %x", id1, id2)
+	}
 }

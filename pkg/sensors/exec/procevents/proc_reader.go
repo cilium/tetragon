@@ -22,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
@@ -388,6 +389,10 @@ func GetRunningProcs() []Procs {
 		} else {
 			pexecPath = ""
 		}
+
+		// try to store builds for binaries, if we have access to them
+		buildid.Store(execPath)
+		buildid.Store(pexecPath)
 
 		pcmdsUTF := stringToUTF8(pcmdline)
 		cmdsUTF := stringToUTF8(cmdline)
