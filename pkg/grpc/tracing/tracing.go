@@ -61,11 +61,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
-
-	if parent == nil {
-		tetragonParent = &tetragon.Process{}
-	} else {
-		tetragonParent = parent.GetProcessCopy()
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
 	}
 
 	for _, arg := range event.Args {
@@ -199,17 +196,20 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Action:       kprobeAction(event.Action),
 	}
 
-	ec := eventcache.Get()
-	if ec != nil &&
+	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, event.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, event.ProcessKey.Ktime, event)
 		return nil
 	}
 
 	if process != nil {
 		tetragonEvent.Process = process.GetProcessCopy()
 	}
+	if parent != nil {
+		tetragonEvent.Parent = parent.GetProcessCopy()
+	}
+
 	return tetragonEvent
 }
 
@@ -227,7 +227,7 @@ func (msg *MsgGenericTracepointUnix) Notify() bool {
 }
 
 func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -246,10 +246,8 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
-	if parent == nil {
-		tetragonParent = &tetragon.Process{}
-	} else {
-		tetragonParent = parent.GetProcessCopy()
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
 	}
 
 	var tetragonArgs []*tetragon.KprobeArgument
@@ -286,15 +284,18 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		Args:    tetragonArgs,
 	}
 
-	ec := eventcache.Get()
-	if ec != nil &&
+	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(process, tetragonEvent, msg.ProcessKey.Ktime, msg)
+		ec.Add(nil, tetragonEvent, msg.ProcessKey.Ktime, msg)
 		return nil
 	}
+
 	if process != nil {
 		tetragonEvent.Process = process.GetProcessCopy()
+	}
+	if parent != nil {
+		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
 
 	return &tetragon.GetEventsResponse{
@@ -325,7 +326,7 @@ func (msg *MsgGenericKprobeUnix) Notify() bool {
 }
 
 func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
 }
 
 func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
