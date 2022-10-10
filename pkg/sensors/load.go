@@ -282,30 +282,29 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 
 func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
+	probe, ok := registeredProbeLoad[load.Type]
+	if ok {
+		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading registered BPF probe")
+	} else {
+		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading BPF program")
+	}
 	if load.Type == "tracepoint" {
 		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
 		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
 	} else if load.Type == "cgrp_socket" {
-		err := cgroup.LoadCgroupProgram(
-			bpfDir,
-			mapDir,
-			ciliumDir,
-			load,
-			verbose)
-		return err
+		return cgroup.LoadCgroupProgram(bpfDir, mapDir, ciliumDir, load, verbose)
+	} else if probe != nil {
+		// Registered probes need extra setup
+		return probe.LoadProbe(LoadProbeArgs{
+			BPFDir:    bpfDir,
+			MapDir:    mapDir,
+			CiliumDir: ciliumDir,
+			Load:      load,
+			Version:   version,
+			Verbose:   verbose,
+		})
 	} else {
-		if s, ok := registeredProbeLoad[load.Type]; ok {
-			logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Infof("Load probe")
-			return s.LoadProbe(LoadProbeArgs{
-				BPFDir:    bpfDir,
-				MapDir:    mapDir,
-				CiliumDir: ciliumDir,
-				Load:      load,
-				Version:   version,
-				Verbose:   verbose,
-			})
-		}
 		return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
 	}
 }
