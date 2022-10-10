@@ -63,6 +63,21 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	if (level == 0)
 		return 0;
 
+	/* Set level to max cgroup nested */
+	if (level > CGROUP_MAX_NESTED_LEVEL) {
+		level = CGROUP_MAX_NESTED_LEVEL;
+		/* Fix up cgroup ID if we are bellow max nested sub cgroups,
+		 * we use ancestor at the corresponding level as the tracking
+		 * cgroup.
+		 */
+		cgrpid = get_ancestor_cgroup_id(cgrp, config->cgrp_fs_magic,
+						level);
+		if (cgrpid == 0)
+			return 0;
+
+		config->tg_cgrpid = cgrpid;
+	}
+
 	/* Let's initialize tetragon itself in execve_value_map here */
 	curr = execve_map_get(pid);
 	if (curr)
@@ -71,6 +86,8 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 	/* Update config, pids are used for debugging */
 	config->pid = pid;
 	config->nspid = get_task_pid_vnr();
+
+	/* Set now the tracking cgroup level */
 	config->tg_cgrp_level = level;
 
 	/* Match later all cgroups level where tasks are being migrated to */
