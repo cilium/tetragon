@@ -56,6 +56,10 @@ for obj in "$TETRAGONDIR"/*.o; do
 	if [[ "$B" == bpf_generic_tracepoint* ]]; then
 		continue
 	fi
+    # sleepable iters support is still not widely around, skip the object
+	if [[ "$B" == bpf_task_iterator* ]]; then
+		continue
+	fi
 
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
 	OUT="/tmp/tetragon-verify-$B"

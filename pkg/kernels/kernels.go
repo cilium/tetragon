@@ -128,6 +128,13 @@ func EnableLargeProgs() bool {
 	return (int64(kernelVer) >= KernelStringToNumeric("5.3.0"))
 }
 
+// bpf_copy_from_user_task was introduced in 5.18
+// and we use that in task iterator
+func EnableTaskIterProgs() bool {
+	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= KernelStringToNumeric("5.18.0"))
+}
+
 func IsKernelVersionLessThan(version string) bool {
 	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < KernelStringToNumeric(version))

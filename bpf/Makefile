@@ -10,7 +10,7 @@ BPFTESTDIR := test/
 ALIGNCHECKER = bpf_alignchecker.o
 PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_generic_kprobe.o \
 	  bpf_generic_kprobe_v53.o bpf_generic_retkprobe.o bpf_generic_retkprobe_v53.o \
-	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o
+	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o bpf_task_iterator.o
 BPFTEST = bpf_lseek.o bpf_globals.o
 
 IDIR = ./include/

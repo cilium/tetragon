@@ -42,6 +42,14 @@ var (
 		"kprobe",
 	)
 
+	Iter = program.Builder(
+		"bpf_task_iterator.o",
+		"task_iter",
+		"iter.s/task",
+		"task_iter",
+		"iter",
+	)
+
 	/* Event Ring map */
 	TCPMonMap    = program.MapBuilder("tcpmon_map", Execve)
 	TCPMonMapV53 = program.MapBuilder("tcpmon_map", ExecveV53)
