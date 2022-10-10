@@ -105,8 +105,11 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 
 	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
+		LogLevel:        uint32(logger.GetLogLevel()),
 		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
+		NSPID:           uint32(nspid),
+		CgrpFsMagic:     cgroupFsMagic,
 	}
 
 	err = m.Update(k, v)
@@ -119,10 +122,12 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	log.WithFields(logrus.Fields{
 		"confmap-update":                configMap.Name,
 		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
-		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(cgroupFsMagic),
+		"log.level":                     logrus.Level(v.LogLevel).String(),
+		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
 		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
 		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
+		"NSPID":                         nspid,
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
