@@ -179,6 +179,8 @@ func GetProcess(
 	var parentExecID string
 	if parent.Pid != 0 {
 		parentExecID = GetExecIDFromKey(&parent)
+	} else {
+		parentExecID = GetProcessID(0, 1)
 	}
 	execID := GetExecID(&process)
 	protoPod, endpoint := k8s.GetPodInfo(containerID, process.Filename, args, process.NSPID)
@@ -275,6 +277,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		logger.GetLogger().WithField("parent-exec-id", parentExecId).Debug("AddCloneEvent: process not found in cache")
 		return err
 	}
+	parent.RefInc()
 	pi := parent.GetProcessInternalCopy()
 	if pi.process != nil {
 		pi.process.ParentExecId = parentExecId
@@ -286,8 +289,8 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
 			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 		}
+		procCache.Add(pi)
 	}
-	procCache.Add(pi)
 	return nil
 }
 

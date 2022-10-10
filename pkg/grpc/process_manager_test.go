@@ -162,7 +162,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		cilium.GetFakeCiliumState(),
 		nil)
 	assert.NoError(t, err)
-	procInternal := process.AddExecEvent(&processapi.MsgExecveEventUnix{
+	pi := &exec.MsgExecveEventUnix{MsgExecveEventUnix: processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{
 			Ktime: 1234,
 		},
@@ -174,9 +174,9 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		Process: processapi.MsgProcess{
 			PID: 5678,
 		},
-	})
+	}}
 
-	assert.Nil(t, exec.GetProcessExec(procInternal).Process.Cap)
+	assert.Nil(t, exec.GetProcessExec(pi, false).Process.Cap)
 
 	// cap field should be set with enable-process-cred flag.
 	option.Config.EnableProcessCred = true
@@ -186,7 +186,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 			Effective:   []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 			Inheritable: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 		},
-		exec.GetProcessExec(procInternal).Process.Cap)
+		exec.GetProcessExec(pi, false).Process.Cap)
 }
 
 func Test_getNodeNameForExport(t *testing.T) {

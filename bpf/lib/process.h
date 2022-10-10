@@ -256,12 +256,17 @@ struct msg_execve_event {
 	__u64 parent_flags;
 	struct msg_capabilities caps;
 	struct msg_ns ns;
+	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of
 	 * validate_msg_execve_size() in bpf_execve_event.c */
 	union {
 		struct msg_process process;
 		char buffer[PADDED_BUFFER];
 	};
+	/* below fields are not part of the event, serve just as
+	 * heap for execve programs
+	 */
+	__u32 binary;
 }; // All fields aligned so no 'packed' attribute.
 
 struct execve_map_value {

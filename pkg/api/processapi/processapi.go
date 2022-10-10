@@ -67,22 +67,24 @@ type MsgK8sUnix struct {
 }
 
 type MsgExecveEvent struct {
-	Common       MsgCommon
-	Kube         MsgK8s
-	Parent       MsgExecveKey
-	ParentFlags  uint64
-	Capabilities MsgCapabilities
-	Namespaces   MsgNamespaces
+	Common         MsgCommon
+	Kube           MsgK8s
+	Parent         MsgExecveKey
+	ParentFlags    uint64
+	Capabilities   MsgCapabilities
+	Namespaces     MsgNamespaces
+	CleanupProcess MsgExecveKey
 }
 
 type MsgExecveEventUnix struct {
-	Common       MsgCommon
-	Kube         MsgK8sUnix
-	Parent       MsgExecveKey
-	ParentFlags  uint64
-	Capabilities MsgCapabilities
-	Namespaces   MsgNamespaces
-	Process      MsgProcess
+	Common         MsgCommon
+	Kube           MsgK8sUnix
+	Parent         MsgExecveKey
+	ParentFlags    uint64
+	Capabilities   MsgCapabilities
+	Namespaces     MsgNamespaces
+	CleanupProcess MsgExecveKey
+	Process        MsgProcess
 }
 
 type MsgCloneEvent struct {

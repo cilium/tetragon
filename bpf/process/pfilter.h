@@ -533,7 +533,7 @@ process_filter_done(struct msg_selector_data *sel,
 static inline __attribute__((always_inline)) int
 generic_process_filter(struct msg_selector_data *sel,
 		       struct msg_execve_key *current, struct msg_ns *ns,
-		       struct msg_capabilities *caps, void *fmap)
+		       struct msg_capabilities *caps, void *fmap, int idx)
 {
 	struct execve_map_value *enter;
 	bool walker = 0;
@@ -542,8 +542,8 @@ generic_process_filter(struct msg_selector_data *sel,
 
 	enter = event_find_curr(&ppid, &walker);
 	if (enter) {
-		int zero = 0, selectors, pass;
-		__u32 *f = map_lookup_elem(fmap, &zero);
+		int selectors, pass;
+		__u32 *f = map_lookup_elem(fmap, &idx);
 
 		if (!f)
 			return PFILTER_ERROR;

@@ -405,11 +405,6 @@ func TestLoadTracepointSensor(t *testing.T) {
 		9:  tus.SensorProg{Name: "generic_tracepoint_event3", Type: ebpf.TracePoint},
 		10: tus.SensorProg{Name: "generic_tracepoint_event4", Type: ebpf.TracePoint},
 		11: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
-
-		// base sensor
-		12: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
-		13: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
-		14: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
@@ -424,13 +419,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
 		// generic_tracepoint_arg**,base
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 12, 13, 14}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5}},
 
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{12, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-
-		// base only
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{12, 13, 14}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{1, 2, 3, 4, 5, 11}},
 	}
 
 	if kernels.EnableLargeProgs() {

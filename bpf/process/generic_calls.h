@@ -9,28 +9,21 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	unsigned long a0;
-	bool walker = 0;
-	__u32 ppid;
 	int zero = 0;
 	/* total is used as a pointer offset so we want type to match
 	 * pointer type in order to avoid bit shifts.
 	 */
 	long ty, total = 0;
 
-	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return 0;
-
 	// get e again to help verifier
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -54,7 +47,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 #ifdef GENERIC_KPROBE
 	ty = config->argreturn;
 	if (ty > 0)
-		retprobe_map_set(e->thread_id, e->common.ktime, 1);
+		retprobe_map_set(e->func_id, e->thread_id, e->common.ktime, 1);
 #endif
 
 	/* Read out args1-5 */
@@ -75,7 +68,7 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		 * do it where it makes most sense.
 		 */
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.flags = 0;
 	e->common.size = total;
@@ -99,7 +92,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -130,25 +123,17 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	unsigned long a1;
 	int zero = 0;
-	bool walker = 0;
 	long ty, total;
-	__u32 ppid;
-
-	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return 0;
 
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -168,7 +153,7 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 2);
@@ -180,25 +165,17 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	unsigned long a2;
 	int zero = 0;
-	bool walker = 0;
 	long ty, total;
-	__u32 ppid;
-
-	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return 0;
 
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -218,7 +195,7 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 3);
@@ -230,25 +207,17 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	unsigned long a3;
 	int zero = 0;
-	bool walker = 0;
 	long ty, total;
-	__u32 ppid;
-
-	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return 0;
 
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -269,7 +238,7 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	tail_call(ctx, tailcals, 4);
@@ -281,25 +250,17 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		       struct bpf_map_def *map, struct bpf_map_def *tailcals,
 		       struct bpf_map_def *config_map)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	unsigned long a4;
 	int zero = 0;
-	bool walker = 0;
 	long ty, total;
-	__u32 ppid;
-
-	/* Preamble to setup context */
-	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return 0;
 
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &zero);
+	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -319,7 +280,7 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		if (errv > 0)
 			total += errv;
 		if (errv < 0)
-			return filter_args_reject();
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	/* Post event */

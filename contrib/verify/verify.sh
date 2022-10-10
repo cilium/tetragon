@@ -57,6 +57,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+    # Multi kprobe support is still not widely around, skip the object
+	if [[ "$B" == bpf_multi_* ]]; then
+		continue
+	fi
+
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
 	OUT="/tmp/tetragon-verify-$B"
 

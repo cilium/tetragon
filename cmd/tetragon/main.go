@@ -454,6 +454,9 @@ func execute() error {
 	// Network namespace options
 	flags.String(keyNetnsDir, "/var/run/docker/netns/", "Network namespace dir")
 
+	// Allow to disable kprobe multi interface
+	flags.Bool(keyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }

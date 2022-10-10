@@ -35,8 +35,9 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 }
 
 type MapLoad struct {
-	Name string
-	Load func(m *ebpf.Map) error
+	Index uint32
+	Name  string
+	Load  func(m *ebpf.Map, index uint32) error
 }
 
 // Program reprents a BPF program.
@@ -80,6 +81,9 @@ type Program struct {
 
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
+
+	MultiSymbols []string
+	MultiCookies []uint64
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {

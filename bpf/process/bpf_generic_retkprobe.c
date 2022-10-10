@@ -23,12 +23,18 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, MAX_ENTRIES_CONFIG);
 	__type(key, int);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
-__attribute__((section("kprobe/generic_retkprobe"), used)) int
+#ifdef __MULTI_KPROBE
+#define MAIN "kprobe.multi/generic_retkprobe"
+#else
+#define MAIN "kprobe/generic_retkprobe"
+#endif
+
+__attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
@@ -46,13 +52,15 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &zero);
+	setup_index(ctx, e, (struct bpf_map_def *)&config_map);
+
+	config = map_lookup_elem(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	if (!retprobe_map_get(e->thread_id, &info))
+	if (!retprobe_map_get(e->func_id, e->thread_id, &info))
 		return 0;
 
 	*(unsigned long *)e->args = info.ktime_enter;

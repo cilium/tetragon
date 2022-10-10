@@ -56,26 +56,28 @@ var (
 // Generic internal lookup happens when events are received out of order and
 // this event was handled before an exec event so it wasn't able to populate
 // the process info yet.
-func HandleGenericInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	p := ev.GetProcess()
-	internal, parent := process.GetParentProcessInternal(p.Pid.Value, timestamp)
+func HandleGenericInternal(ev notify.Event, pid uint32, timestamp uint64) (*process.ProcessInternal, error) {
+	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
 
 	if parent != nil {
-		if ev.GetParent() == nil {
-			ev.SetParent(parent.GetProcessCopy())
-		}
+		ev.SetParent(parent.GetProcessCopy())
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
 		err = ErrFailedToGetParentInfo
 	}
 
-	if internal == nil {
+	if internal != nil {
+		ev.SetProcess(internal.GetProcessCopy())
+	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		err = ErrFailedToGetProcessInfo
 	}
 
-	return internal, err
+	if err == nil {
+		return internal, err
+	}
+	return nil, err
 }
 
 // Generic Event handler without any extra msg specific details or debugging

@@ -58,6 +58,8 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
+
+	MaxKprobesMulti = 100 // MAX_ENTRIES_CONFIG in bpf code
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -199,11 +201,88 @@ func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
 	return nil
 }
 
-func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
+func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
 	var progs []*program.Program
 	var maps []*program.Map
 
+	pinPath := sensors.PathJoin(sensorPath, "multi_kprobe")
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, "bpf_multi_kprobe_v53.o"),
+		"",
+		"kprobe.multi/generic_kprobe",
+		pinPath,
+		"generic_kprobe").
+		SetLoaderData(multiIDs)
+	progs = append(progs, load)
+	logger.GetLogger().Infof("Added multi kprobe sensor: %s (%d functions)", load.Name, len(multiIDs))
+
+	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
+	maps = append(maps, fdinstall)
+
+	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	maps = append(maps, configMap)
+
+	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
+	maps = append(maps, tailCalls)
+
+	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	maps = append(maps, filterMap)
+
+	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	maps = append(maps, argFilterMaps)
+
+	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	maps = append(maps, retProbe)
+
+	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	maps = append(maps, callHeap)
+
+	if len(multiRetIDs) != 0 {
+		loadret := program.Builder(
+			path.Join(option.Config.HubbleLib, "bpf_multi_retkprobe_v53.o"),
+			"",
+			"kprobe.multi/generic_retkprobe",
+			"multi_retkprobe",
+			"generic_kprobe").
+			SetRetProbe(true).
+			SetLoaderData(multiRetIDs)
+		progs = append(progs, loadret)
+		logger.GetLogger().Infof("Added multi retkprobe sensor: %s (%d functions)", loadret.Name, len(multiRetIDs))
+
+		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
+		maps = append(maps, retProbe)
+
+		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
+		maps = append(maps, retConfigMap)
+	}
+
+	return progs, maps
+}
+
+func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+	var multiIDs, multiRetIDs []idtable.EntryID
+	var useMulti bool
+
 	sensorPath := name
+
+	loadProgName := "bpf_generic_kprobe.o"
+	loadProgRetName := "bpf_generic_retkprobe.o"
+	if kernels.EnableLargeProgs() {
+		loadProgName = "bpf_generic_kprobe_v53.o"
+		loadProgRetName = "bpf_generic_retkprobe_v53.o"
+	}
+
+	// use multi kprobe only if:
+	// - it's not disabled by user
+	// - there's support detected
+	// - multiple kprobes are defined
+	useMulti = !option.Config.DisableKprobeMulti &&
+		bpf.HasKprobeMulti() &&
+		len(kprobes) > 1 && len(kprobes) < MaxKprobesMulti
+
 	for i := range kprobes {
 		f := &kprobes[i]
 		var argSigPrinters []argPrinters
@@ -386,11 +465,12 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		kprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("gkp-%d", tidx))
 		config.FuncId = uint32(tidx)
 
-		loadProgName := "bpf_generic_kprobe.o"
-		loadProgRetName := "bpf_generic_retkprobe.o"
-		if kernels.EnableLargeProgs() {
-			loadProgName = "bpf_generic_kprobe_v53.o"
-			loadProgRetName = "bpf_generic_retkprobe_v53.o"
+		if useMulti {
+			if setRetprobe {
+				multiRetIDs = append(multiRetIDs, kprobeEntry.tableId)
+			}
+			multiIDs = append(multiIDs, kprobeEntry.tableId)
+			continue
 		}
 
 		pinPath := kprobeEntry.pinPathPrefix
@@ -453,6 +533,10 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		logger.GetLogger().Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	}
 
+	if len(multiIDs) != 0 {
+		progs, maps = createMultiKprobeSensor(sensorPath, multiIDs, multiRetIDs)
+	}
+
 	return &sensors.Sensor{
 		Name:  name,
 		Progs: progs,
@@ -501,22 +585,23 @@ func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProb
 	return nil
 }
 
-func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
-	gk, err := genericKprobeFromBpfLoad(load)
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
 	}
 
 	if !load.RetProbe {
-		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix)...)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix, 0)...)
 	}
 
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
 	config := &program.MapLoad{
-		Name: "config_map",
-		Load: func(m *ebpf.Map) error {
-			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+		Index: 0,
+		Name:  "config_map",
+		Load: func(m *ebpf.Map, index uint32) error {
+			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, config)
@@ -540,6 +625,65 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, versi
 	}
 
 	return err
+}
+
+func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	sensors.AllPrograms = append(sensors.AllPrograms, load)
+
+	bin_buf := make([]bytes.Buffer, len(ids))
+
+	for index, id := range ids {
+		gk, err := genericKprobeTableGet(id)
+		if err != nil {
+			return err
+		}
+
+		if !load.RetProbe {
+			load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix, uint32(index))...)
+		}
+
+		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
+		config := &program.MapLoad{
+			Index: uint32(index),
+			Name:  "config_map",
+			Load: func(m *ebpf.Map, index uint32) error {
+				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+			},
+		}
+		load.MapLoad = append(load.MapLoad, config)
+
+		load.MultiSymbols = append(load.MultiSymbols, gk.funcName)
+		load.MultiCookies = append(load.MultiCookies, uint64(index))
+	}
+
+	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
+		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	} else {
+		return err
+	}
+
+	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
+	if err != nil {
+		return err
+	}
+	for i, b := range binaryNames {
+		for _, path := range b.Values {
+			writeBinaryMap(i+1, path, m)
+		}
+	}
+
+	return err
+}
+
+func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+	if id, ok := load.LoaderData.(idtable.EntryID); ok {
+		return loadSingleKprobeSensor(id, bpfDir, mapDir, load, version, verbose)
+	}
+	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
+		return loadMultiKprobeSensor(ids, bpfDir, mapDir, load, version, verbose)
+	}
+	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
+		load.LoaderData, load.LoaderData)
 }
 
 func handleGenericKprobeString(r *bytes.Reader) string {

@@ -44,14 +44,14 @@ struct filter_map_value {
 /* Arrays of size 1 will be rewritten to direct loads in verifier */
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, MAX_ENTRIES_CONFIG);
 	__type(key, int);
 	__type(value, struct filter_map_value);
 } filter_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, MAX_ENTRIES_CONFIG);
 	__type(key, int);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
@@ -84,10 +84,17 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
+	setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;
 }
+
+#ifdef __MULTI_KPROBE
+#define MAIN "kprobe.multi/generic_kprobe"
+#else
+#define MAIN "kprobe/generic_kprobe"
+#endif
 
 /* Generic kprobe pseudocode is the following
  *
@@ -112,7 +119,7 @@ generic_kprobe_start_process_filter(void *ctx)
  * to get below 4k insns. For 5.x+ kernels with 1m.insns its not
  * an issue.
  */
-__attribute__((section("kprobe/generic_kprobe"), used)) int
+__attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
 	return generic_kprobe_start_process_filter(ctx);
@@ -179,7 +186,7 @@ generic_kprobe_process_filter(void *ctx)
 		return 0;
 
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
-				     &msg->caps, &filter_map);
+				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &kprobe_calls, 5);
 	else if (ret == PFILTER_ACCEPT)

@@ -43,17 +43,16 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		curr->pkey = parent->key;
 
 		u64 size = sizeof(struct msg_clone_event);
-		struct msg_clone_event msg = (struct msg_clone_event){
+		struct msg_clone_event msg = {
 			.common.op = MSG_OP_CLONE,
 			.common.size = size,
 			.common.ktime = curr->key.ktime,
 			.parent = curr->pkey,
+			.pid = curr->key.pid,
+			.ktime = curr->key.ktime,
+			.nspid = curr->nspid,
+			.flags = curr->flags,
 		};
-		msg.parent = curr->pkey;
-		msg.pid = pid;
-		msg.nspid = get_task_pid_vnr();
-		msg.flags = curr->flags;
-		msg.ktime = curr->key.ktime;
 
 		perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, &msg,
 				  size);

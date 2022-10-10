@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -55,7 +56,96 @@ func findProgram(cache []*prog, name string, typ ebpf.ProgramType, t *testing.T)
 	return nil
 }
 
+func mergeSensorMaps(t *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []SensorProg) ([]SensorMap, []SensorProg) {
+	// we take maps1,progs1 and merge in maps2,progs2
+	mapsReturn := maps1
+	progsReturn := progs1
+
+	var idxList []uint
+	idx := uint(len(progsReturn))
+
+	// merge in progs2
+	for _, p2 := range progs2 {
+		// do maps share the same program
+		for _, p := range progsReturn {
+			if p.Name == p2.Name && p.Type == p2.Type {
+				t.Fatalf("merge fail: program '%s' in both maps", p.Name)
+			}
+		}
+
+		progsReturn = append(progsReturn, p2)
+		idxList = append(idxList, idx)
+		idx++
+	}
+
+	// merge in maps2
+	for _, m2 := range maps2 {
+		shared := false
+
+		// do we have shared map
+		for i1, m1 := range maps1 {
+			// shared map, add progs2 into it
+			if m1.Name == m2.Name {
+				for _, ip := range m2.Progs {
+					mapsReturn[i1].Progs = append(mapsReturn[i1].Progs, idxList[ip])
+				}
+				shared = true
+				break
+			}
+		}
+
+		if shared {
+			continue
+		}
+
+		// new map, merge it in with proper indexes
+		var newProgs []uint
+
+		m := m2
+		for _, i := range m.Progs {
+			newProgs = append(newProgs, idxList[i])
+		}
+
+		m.Progs = newProgs
+		mapsReturn = append(mapsReturn, m)
+	}
+
+	return mapsReturn, progsReturn
+}
+
+func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []SensorProg) ([]SensorMap, []SensorProg) {
+	var baseProgs = []SensorProg{
+		0: SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
+		1: SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
+		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
+	}
+
+	var baseMaps = []SensorMap{
+		// all programs
+		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3}},
+		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 3}},
+
+		// event_execve
+		SensorMap{Name: "names_map", Progs: []uint{0}},
+		SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+
+		// event_wake_up_new_task
+		SensorMap{Name: "execve_val", Progs: []uint{2}},
+	}
+
+	if kernels.EnableLargeProgs() {
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}})
+	} else {
+		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3}})
+	}
+
+	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)
+}
+
 func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorProgs []SensorProg, t *testing.T) {
+
+	sensorMaps, sensorProgs = mergeInBaseSensorMaps(t, sensorMaps, sensorProgs)
 
 	var cache []*prog
 

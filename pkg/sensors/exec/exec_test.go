@@ -16,8 +16,10 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	api "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -25,8 +27,11 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
+	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -418,25 +423,8 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 func TestLoadInitialSensor(t *testing.T) {
 
-	var sensorProgs = []tus.SensorProg{
-		0: tus.SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
-		1: tus.SensorProg{Name: "event_exit", Type: ebpf.TracePoint},
-		2: tus.SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
-	}
-
-	var sensorMaps = []tus.SensorMap{
-		// all programs
-		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2}},
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
-
-		// event_execve
-		tus.SensorMap{Name: "names_map", Progs: []uint{0}},
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
-
-		// event_wake_up_new_task
-		tus.SensorMap{Name: "execve_val", Progs: []uint{2}},
-	}
+	var sensorProgs = []tus.SensorProg{}
+	var sensorMaps = []tus.SensorMap{}
 
 	sensor := base.GetInitialSensor()
 
@@ -541,4 +529,30 @@ func TestUpdateStatsMap(t *testing.T) {
 	if after != 100 {
 		t.Fatalf("wrong final lookup value '%d'", after)
 	}
+}
+
+func TestExecPerfring(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
+
+	ops := func() {
+		if err := exec.Command("/bin/true").Run(); err != nil {
+			t.Logf("command failed: %s", err)
+		}
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+	for _, ev := range events {
+		if exec, ok := ev.(*grpcexec.MsgExecveEventUnix); ok {
+			if exec.Process.Filename == "/bin/true" {
+				return
+			}
+		}
+	}
+	t.Fatalf("failed to find exec event")
 }

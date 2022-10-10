@@ -2,6 +2,11 @@
 /* Copyright Authors of Cilium */
 #include "bpf_tracing.h"
 
+struct retprobe_key {
+	u64 id;
+	u64 tid;
+};
+
 struct retprobe_info {
 	unsigned long ktime_enter;
 	unsigned long ptr;
@@ -11,45 +16,58 @@ struct retprobe_info {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1024);
-	__type(key, __u64);
+	__type(key, struct retprobe_key);
 	__type(value, struct retprobe_info);
 } retprobe_map SEC(".maps");
 
 static inline __attribute__((always_inline)) bool
-retprobe_map_get(__u64 tid, struct retprobe_info *bufp)
+retprobe_map_get(__u64 id, __u64 tid, struct retprobe_info *bufp)
 {
 	struct retprobe_info *info;
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	info = map_lookup_elem(&retprobe_map, &tid);
+	info = map_lookup_elem(&retprobe_map, &key);
 	if (!info)
 		return false;
 	if (bufp)
 		*bufp = *info;
-	map_delete_elem(&retprobe_map, &tid);
+	map_delete_elem(&retprobe_map, &key);
 	return true;
 }
 
-static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 tid)
+static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 id,
+								     __u64 tid)
 {
-	struct retprobe_info *info = map_lookup_elem(&retprobe_map, &tid);
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
+	struct retprobe_info *info = map_lookup_elem(&retprobe_map, &key);
 
 	if (info)
-		map_delete_elem(&retprobe_map, &tid);
+		map_delete_elem(&retprobe_map, &key);
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set(__u64 tid, __u64 ktime, unsigned long ptr)
+retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 {
 	struct retprobe_info info = {
 		.ktime_enter = ktime,
 		.ptr = ptr,
 	};
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
+	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set_iovec(__u64 tid, __u64 ktime, unsigned long ptr,
+retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
 		       unsigned long cnt)
 {
 	struct retprobe_info info = {
@@ -57,8 +75,12 @@ retprobe_map_set_iovec(__u64 tid, __u64 ktime, unsigned long ptr,
 		.ptr = ptr,
 		.cnt = cnt,
 	};
+	struct retprobe_key key = {
+		.id = id,
+		.tid = tid,
+	};
 
-	map_update_elem(&retprobe_map, &tid, &info, BPF_ANY);
+	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
 }
 
 /**

@@ -50,6 +50,8 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix.Namespaces.CgroupInum = m.Namespaces.CgroupInum
 	unix.Namespaces.UserInum = m.Namespaces.UserInum
 
+	unix.CleanupProcess = m.CleanupProcess
+
 	return unix
 }
 

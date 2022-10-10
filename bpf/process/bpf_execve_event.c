@@ -11,6 +11,13 @@
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u32);
+} execve_calls SEC(".maps");
+
 #ifdef __LARGE_BPF_PROG
 #include "data_event.h"
 
@@ -157,17 +164,13 @@ event_execve(struct sched_execve_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
-	struct execve_map_value *curr, *parent;
+	struct execve_map_value *parent;
 	struct msg_process *execve;
 	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
-	uint64_t size;
 	__u32 pid;
 	unsigned short fileoff;
-#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
-	bool init_curr = 0;
-#endif
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -185,12 +188,40 @@ event_execve(struct sched_execve_args *ctx)
 	fileoff = ctx->filename & 0xFFFF;
 	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
 					(char *)ctx + fileoff);
+	event->binary = binary;
+
 	event_args_builder(ctx, event);
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
 
+	tail_call(ctx, &execve_calls, 0);
+	return 0;
+}
+
+__attribute__((section("tracepoint/0"), used)) int
+execve_send(struct sched_execve_args *ctx)
+{
+	struct msg_execve_event *event;
+	struct execve_map_value *curr;
+	struct msg_process *execve;
+	__u32 zero = 0;
+	uint64_t size;
+	__u32 pid;
+#if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
+	bool init_curr = 0;
+#endif
+
+	event = map_lookup_elem(&execve_msg_heap_map, &zero);
+	if (!event)
+		return 0;
+
+	execve = &event->process;
+
+	pid = (get_current_pid_tgid() >> 32);
+
 	curr = execve_map_get(pid);
 	if (curr) {
+		event->cleanup_key = curr->key;
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
 		/* if this exec event preceds a clone, initialize  capabilities
 		 * and namespaces as well.
@@ -199,23 +230,14 @@ event_execve(struct sched_execve_args *ctx)
 			init_curr = 1;
 #endif
 		curr->key.pid = execve->pid;
+		curr->key.ktime = execve->ktime;
 		curr->nspid = execve->nspid;
 		curr->pkey = event->parent;
-		/* If this event was preceded by a clone event use the ktime
-		 * of when the clone happened. This allows us to build a single
-		 * execId for the clone+exec common path. The execId can then
-		 * be used for the procCache. If we are running exec without
-		 * a clone() then we need a new entry and user space will
-		 * learn that we smashed the current stack with exec.
-		 */
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
 			event_set_clone(execve);
-			execve->ktime = curr->key.ktime;
-		} else {
-			curr->key.ktime = execve->ktime;
 		}
 		curr->flags = 0;
-		curr->binary = binary;
+		curr->binary = event->binary;
 #ifdef __NS_CHANGES_FILTER
 		if (init_curr)
 			memcpy(&(curr->ns), &(event->ns),
@@ -235,7 +257,7 @@ event_execve(struct sched_execve_args *ctx)
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
-		execve->size);
+		sizeof(struct msg_execve_key) + execve->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
 }
