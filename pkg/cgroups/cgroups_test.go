@@ -236,3 +236,15 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 
 	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
 }
+
+func TestMigrateSelfToSameCgrp(t *testing.T) {
+	err := DiscoverSubSysIds()
+	assert.NoError(t, err)
+
+	err = MigrateSelfToSameCgrp()
+	assert.NoError(t, err)
+
+	assert.NotEmpty(t, cgrpMigrationPath)
+	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
+	assert.NotEmpty(t, cgroupFSPath)
+}
