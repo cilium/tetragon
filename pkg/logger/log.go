@@ -96,6 +96,10 @@ func ResetLogOutput() {
 	DefaultLogger.SetOutput(os.Stdout)
 }
 
+func GetLogLevel() logrus.Level {
+	return DefaultLogger.GetLevel()
+}
+
 func setLogLevel(logLevel logrus.Level) {
 	DefaultLogger.SetLevel(logLevel)
 }
