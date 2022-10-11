@@ -161,6 +161,10 @@ func GetCgroupFSMagic() uint64 {
 	return cgroupFSMagic
 }
 
+func GetCgroupFSPath() string {
+	return cgroupFSPath
+}
+
 type FileHandle struct {
 	Id uint64
 }
