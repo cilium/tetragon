@@ -193,6 +193,10 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 	} else {
 		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
 	}
+
+	assert.NotEqual(t, uint64(CGROUP_UNDEF), GetCgroupFSMagic())
+	assert.NotEmpty(t, CgroupFsMagicStr(fs))
+	assert.NotEmpty(t, GetCgroupFSPath())
 }
 
 // Test discovery of compiled-in Cgroups controllers
