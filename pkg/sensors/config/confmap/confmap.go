@@ -48,7 +48,17 @@ func (v *TetragonConfValue) String() string {
 }
 func (v *TetragonConfValue) GetValuePtr() unsafe.Pointer { return unsafe.Pointer(v) }
 func (v *TetragonConfValue) DeepCopyMapValue() bpf.MapValue {
-	return &TetragonConfValue{}
+	val := &TetragonConfValue{}
+	val.Mode = v.Mode
+	val.LogLevel = v.LogLevel
+	val.PID = v.PID
+	val.NSPID = v.NSPID
+	val.TgCgrpHierarchy = v.TgCgrpHierarchy
+	val.TgCgrpSubsysIdx = v.TgCgrpSubsysIdx
+	val.TgCgrpLevel = v.TgCgrpLevel
+	val.TgCgrpId = v.TgCgrpId
+	val.CgrpFsMagic = v.CgrpFsMagic
+	return val
 }
 
 // UpdateTgRuntimeConf() Gathers information about Tetragon runtime environment and
@@ -144,4 +154,25 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
+}
+
+func ReadTgRuntimeConf(mapDir string) (*TetragonConfValue, error) {
+	configMap := base.GetTetragonConfMap()
+	mapPath := filepath.Join(mapDir, configMap.Name)
+
+	m, err := bpf.OpenMap(mapPath)
+	if err != nil {
+		return nil, err
+	}
+
+	defer m.Close()
+
+	k := &TetragonConfKey{Key: 0}
+	v, err := m.Lookup(k)
+	if err != nil {
+		return nil, err
+	}
+
+	val := v.DeepCopyMapValue().(*TetragonConfValue)
+	return val, nil
 }
