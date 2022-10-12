@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -264,6 +265,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		pi.process.Refcnt = 1
 		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
 			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
+		}
+		if option.Config.EnableK8s && pi.process.Docker != "" && pi.process.Pod == nil {
+			if podInfo, _ := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
+				pi.AddPodInfo(podInfo)
+			}
 		}
 		procCache.Add(pi)
 	}
