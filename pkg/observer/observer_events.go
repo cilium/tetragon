@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"golang.org/x/sys/unix"
 )
 
@@ -25,6 +26,20 @@ type perfEventSample struct {
 type perfEventLost struct {
 	ID   uint64
 	Lost uint64
+}
+
+type perfEventMmap2 struct {
+	Pid         uint32
+	Tid         uint32
+	Start       uint64
+	Len         uint64
+	Pgoff       uint64
+	BuildIdSize uint8
+	Reserved1   uint8
+	Reserved2   uint16
+	BuildId     [20]uint8
+	Prot        uint32
+	Flags       uint32
 }
 
 func readLostRecords(rd io.Reader) (uint64, error) {
@@ -46,6 +61,27 @@ func readRawSample(rd io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("read sample: %v", err)
 	}
 	return data, nil
+}
+
+func readMmap2Event(rd *bytes.Reader, cpu int, header perfEventHeader) (string, []byte, error) {
+	var mmap2 perfEventMmap2
+
+	if err := binary.Read(rd, binary.LittleEndian, &mmap2); err != nil {
+		return "", []byte{}, err
+	}
+
+	if mmap2.BuildIdSize == 0 {
+		return "", []byte{}, nil
+	}
+
+	pathSz := int(header.Size) - (binary.Size(perfEventMmap2{}) + perfEventHeaderSize)
+	path := make([]byte, pathSz)
+	if _, err := io.ReadFull(rd, path); err != nil {
+		return "", []byte{}, err
+	}
+	path = bytes.Trim(path, "\x00")
+
+	return string(path), mmap2.BuildId[:], nil
 }
 
 func (k *Observer) receiveRawEvent(data []byte, cpu int) error {
@@ -72,6 +108,20 @@ func (k *Observer) receiveRawEvent(data []byte, cpu int) error {
 		}
 		k.receiveEvent(sample, cpu)
 		ringbufmetrics.ReceivedSet(float64(k.recvCntr))
+
+	case unix.PERF_RECORD_MMAP2:
+		path, id, err := readMmap2Event(rd, cpu, header)
+		if err != nil {
+			return err
+		}
+		if path != "" {
+			buildid.Set(path, id)
+		}
+
+	case unix.PERF_RECORD_EXIT:
+	case unix.PERF_RECORD_FORK:
+		// mmap2 enables exit/fork events, ignore them for now
+
 	default:
 		k.unknownCntr++
 		ringbufmetrics.UnknownSet(float64(k.unknownCntr))

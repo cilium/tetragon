@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -134,6 +135,14 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		}
 		parent.RefInc()
 		ev.SetParent(parent.GetProcessCopy())
+	}
+
+	if len(proc.BuildId) == 0 {
+		id, err := buildid.Get(proc.Binary)
+		if err != nil {
+			return err
+		}
+		proc.BuildId = id
 	}
 
 	// do we need to cleanup anything?

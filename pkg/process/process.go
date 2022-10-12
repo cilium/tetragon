@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/buildid"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -184,6 +185,7 @@ func GetProcess(
 	protoPod, endpoint := k8s.GetPodInfo(containerID, process.Filename, args, process.NSPID)
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
+	buildId, _ := buildid.Get(process.Filename)
 	return &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
@@ -199,6 +201,7 @@ func GetProcess(
 			Docker:       containerID,
 			ParentExecId: parentExecID,
 			Refcnt:       0,
+			BuildId:      buildId,
 		},
 		capabilities: caps,
 		namespaces:   ns,
