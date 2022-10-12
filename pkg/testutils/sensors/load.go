@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -124,6 +123,9 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 	var baseMaps = []SensorMap{
 		// all programs
 		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3}},
+		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}},
+
+		// all but event_execve
 		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 3}},
 
 		// event_execve
@@ -132,12 +134,6 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},
-	}
-
-	if kernels.EnableLargeProgs() {
-		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}})
-	} else {
-		baseMaps = append(baseMaps, SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3}})
 	}
 
 	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)
