@@ -715,3 +715,13 @@ func DetectCgroupFSMagic() (uint64, error) {
 
 	return cgroupFSMagic, nil
 }
+
+// CgroupNameFromCstr() Returns a Golang string from the passed C language format string.
+func CgroupNameFromCStr(cstr []byte) string {
+	for i, c := range cstr {
+		if c == 0 {
+			return string(cstr[:i])
+		}
+	}
+	return string(cstr)
+}

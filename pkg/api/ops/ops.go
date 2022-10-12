@@ -21,8 +21,33 @@ const (
 
 	MSG_OP_DATA = 24
 
+	MSG_OP_CGROUP = 25
+
 	// just for testing
 	MSG_OP_TEST = 254
+)
+
+type CgroupOpCode int
+
+// Cgroup Operation that are sent from BPF side. Right now
+// they are used only for logging and debugging.
+const (
+	MSG_OP_CGROUP_UNDEF       CgroupOpCode = iota
+	MSG_OP_CGROUP_MKDIR       CgroupOpCode = 1
+	MSG_OP_CGROUP_RMDIR       CgroupOpCode = 2
+	MSG_OP_CGROUP_RELEASE     CgroupOpCode = 3
+	MSG_OP_CGROUP_ATTACH_TASK CgroupOpCode = 10
+)
+
+type CgroupState int
+
+// Different cgroup states. Right now they are used for
+// logging and debugging.
+const (
+	CGROUP_UNTRACKED    CgroupState = iota // Cgroup was created but we did not track it
+	CGROUP_NEW          CgroupState = 1    // Cgroup was just created
+	CGROUP_RUNNING      CgroupState = 2    // Cgroup from new => running (fork,exec task inside)
+	CGROUP_RUNNING_PROC CgroupState = 3    // Cgroups that were generated from pids of procfs
 )
 
 type OpCode int
@@ -46,6 +71,26 @@ func (op OpCode) String() string {
 		14:  "GenericTracepoint",
 		23:  "Clone",
 		24:  "Data",
+		25:  "Cgroup",
 		254: "Test",
 	}[op]
+}
+
+func (op CgroupOpCode) String() string {
+	return [...]string{
+		MSG_OP_CGROUP_UNDEF:       "Undef",
+		MSG_OP_CGROUP_MKDIR:       "CgroupMkdir",
+		MSG_OP_CGROUP_RMDIR:       "CgroupRmdir",
+		MSG_OP_CGROUP_RELEASE:     "CgroupRelease",
+		MSG_OP_CGROUP_ATTACH_TASK: "CgroupAttachTask",
+	}[op]
+}
+
+func (st CgroupState) String() string {
+	return [...]string{
+		CGROUP_UNTRACKED:    "Untracked",
+		CGROUP_NEW:          "New",
+		CGROUP_RUNNING:      "Running",
+		CGROUP_RUNNING_PROC: "RunningProc",
+	}[st]
 }
