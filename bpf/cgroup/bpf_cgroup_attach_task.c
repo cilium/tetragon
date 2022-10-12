@@ -5,6 +5,7 @@
 #include "api.h"
 
 #include "hubble_msg.h"
+#include "environ_conf.h"
 #include "bpf_cgroup.h"
 #include "bpf_events.h"
 #include "bpf_cgroup_events.h"
@@ -32,6 +33,10 @@ tg_tp_cgrp_attach_task(struct bpf_raw_tracepoint_args *ctx)
 
 	config = map_lookup_elem(&tg_conf_map, &zero);
 	if (!config)
+		return 0;
+
+	/* Tetragon deployment mode is unknown, ignore advanced cgroups tracking. */
+	if (config->mode == DEPLOY_UNKNOWN)
 		return 0;
 
 	/* Tetragon cgroup level was already set let's exit */

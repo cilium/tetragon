@@ -3,7 +3,7 @@
 package confapi
 
 type TetragonConf struct {
-	Mode            uint32 `align:"mode"`               // Deployment mode
+	Mode            int32  `align:"mode"`               // Deployment mode
 	LogLevel        uint32 `align:"loglevel"`           // Tetragon log level
 	PID             uint32 `align:"pid"`                // Tetragon PID for debugging purpose
 	NSPID           uint32 `align:"nspid"`              // Tetragon PID in namespace for debugging purpose

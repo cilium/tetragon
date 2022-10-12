@@ -15,9 +15,17 @@ enum {
 	LOG_TRACE_LEVEL = 6,
 };
 
+typedef enum {
+	DEPLOY_UNKNOWN = 0,
+	DEPLOY_K8S = 1, // K8s deployment
+	DEPLOY_CONTAINER = 2, // Container docker, podman, etc
+	DEPLOY_SD_SERVICE = 10, // Systemd service
+	DEPLOY_SD_USER = 11, // Systemd user session
+} deploy_mode;
+
 /* Tetragon runtime configuration */
 struct tetragon_conf {
-	__u32 mode; /* Tetragon deployment mode */
+	deploy_mode mode; /* Tetragon deployment mode */
 	__u32 loglevel; /* Tetragon log level */
 	__u32 pid; /* Tetragon pid for debugging purpose */
 	__u32 nspid; /* Tetragon pid in namespace for debugging purpose */
