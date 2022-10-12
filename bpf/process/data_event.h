@@ -32,8 +32,8 @@ b:
 	return -1;
 }
 
-static long do_bytes(void *ctx, struct msg_data *msg, unsigned long arg,
-		     size_t bytes)
+static inline __attribute__((always_inline)) long
+do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 {
 	size_t rd_bytes = 0;
 	int err, i __maybe_unused;
@@ -100,8 +100,9 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 	return err == max ? 0 : 1;
 }
 
-static long do_str(void *ctx, struct msg_data *msg, unsigned long arg,
-		   size_t bytes __maybe_unused)
+static inline __attribute__((always_inline)) long
+do_str(void *ctx, struct msg_data *msg, unsigned long arg,
+       size_t bytes __maybe_unused)
 {
 	size_t rd_bytes = 0;
 	int err, i;
