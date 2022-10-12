@@ -169,7 +169,7 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
 		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
 	}
-	process, _ := entry.(*ProcessInternal)
+	process, ok := entry.(*ProcessInternal)
 	if !ok {
 		logger.GetLogger().WithField("process entry", entry).Debug("invalid entry in process cache")
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
