@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
+	"golang.org/x/sys/unix"
 
 	"github.com/sirupsen/logrus"
 )
@@ -186,8 +187,16 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 	defer perfMap.Close()
 
 	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
-	perfReader, err := perf.NewReader(perfMap, rbSize)
 
+	attr := &unix.PerfEventAttr{
+		Type:        unix.PERF_TYPE_SOFTWARE,
+		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
+		Bits:        unix.PerfBitWatermark,
+		Sample_type: unix.PERF_SAMPLE_RAW,
+		Wakeup:      1,
+	}
+
+	perfReader, err := perf.NewReaderFromAttr(perfMap, rbSize, attr)
 	if err != nil {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
@@ -208,23 +217,14 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 		defer wg.Done()
 		for stopCtx.Err() == nil {
 			record, err := perfReader.Read()
-			if err != nil {
-				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
-				if stopCtx.Err() == nil {
-					k.errorCntr++
-					ringbufmetrics.ErrorsSet(float64(k.errorCntr))
-					k.log.WithError(err).Warn("kprobe events read failed")
-				}
-			} else {
-				if len(record.RawSample) > 0 {
-					k.receiveEvent(record.RawSample, record.CPU)
-					ringbufmetrics.ReceivedSet(float64(k.recvCntr))
-				}
-
-				if record.LostSamples > 0 {
-					k.lostCntr += int(record.LostSamples)
-					ringbufmetrics.LostSet(float64(k.lostCntr))
-				}
+			if err == nil {
+				err = k.receiveRawEvent(record.RawEvent, record.CPU)
+			}
+			// NOTE(JM): Keeping the old behaviour for now and just counting the errors without stopping
+			if err != nil && stopCtx.Err() == nil {
+				k.errorCntr++
+				ringbufmetrics.ErrorsSet(float64(k.errorCntr))
+				k.log.WithError(err).Warn("kprobe events read failed")
 			}
 		}
 		k.log.WithError(stopCtx.Err()).Info("Listening for events completed.")
