@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
@@ -220,4 +221,95 @@ func TestCgroupNoEvents(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Test Tetragon if it can discover cgroup configuration by using the
+// cgroup_attach_task BPF tracepoint
+func TestTetragonCgroupDiscovery(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	loadedSensors := []*sensors.Sensor{
+		testsensor.GetTestSensor(),
+		testsensor.GetCgroupSensor(),
+	}
+
+	registerSensors(loadedSensors)
+
+	mapDir := bpf.MapPrefixPath()
+	smanager, err := sensors.StartSensorManager(mapDir, mapDir, "")
+	if err != nil {
+		t.Fatalf("startSensorController failed: %s", err)
+	}
+	observer.SensorManager = smanager
+	defer func() {
+		err := smanager.StopSensorManager(ctx)
+		if err != nil {
+			fmt.Printf("stopSensorController failed: %s\n", err)
+		}
+	}()
+
+	err = enableSensors(ctx, smanager, loadedSensors)
+	if err != nil {
+		t.Fatalf("enableSensors error: %s", err)
+	}
+
+	defer func() {
+		disableSensors(ctx, smanager, loadedSensors)
+		if err != nil {
+			fmt.Printf("disableSensor failed: %s\n", err)
+		}
+	}()
+
+	trigger := func() {
+		err = obs.UpdateRuntimeConf(mapDir)
+		if err != nil {
+			t.Fatalf("UpdateRuntimeConf() failed with: %v", err)
+		}
+
+		err = obs.ProbeTetragonCgroups()
+		if err != nil {
+			t.Fatalf("ProbeTetragonCgroups() failed with: %v", err)
+		}
+	}
+
+	events := perfring.RunTestEvents(t, ctx, trigger)
+	for _, ev := range events {
+		if msg, ok := ev.(*grpcexec.MsgCgroupEventUnix); ok {
+			if msg.Common.Op == ops.MSG_OP_CGROUP {
+				op := ops.CgroupOpCode(msg.CgrpOp)
+				st := ops.CgroupState(msg.CgrpData.State).String()
+				if op == ops.MSG_OP_CGROUP_ATTACH_TASK {
+					t.Logf("Test received  cgroup.event=%s  cgroup.state=%s  cgroup.IDTracker=%d  cgroup.id=%d  cgroup.level=%d",
+						op.String(),
+						st,
+						msg.CgrpidTracker,
+						msg.Cgrpid,
+						msg.CgrpData.Level)
+					assert.NotZero(t, msg.PID)
+					assert.NotZero(t, msg.CgrpidTracker)
+					assert.NotZero(t, msg.Cgrpid)
+					assert.Equal(t, uint32(ops.CGROUP_RUNNING), msg.CgrpData.State)
+					assert.NotZero(t, msg.CgrpData.Level)
+					assert.NotEmpty(t, cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH]))
+					assert.NotEmpty(t, cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
+					return
+				} else {
+					t.Fatalf("Test failed expecting a cgroup.event=%s  received cgroup.event=%s",
+						ops.MSG_OP_CGROUP_ATTACH_TASK, op)
+				}
+			}
+		}
+	}
+
+	t.Fatalf("Test failed we did not receive a cgroup event")
 }
