@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -18,6 +19,7 @@ import (
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -84,6 +86,66 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	return tetragonEvent
+}
+
+type MsgCgroupEventUnix struct {
+	processapi.MsgCgroupEvent
+}
+
+func (msg *MsgCgroupEventUnix) Notify() bool {
+	return false
+}
+
+func (msg *MsgCgroupEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return nil, fmt.Errorf("Unreachable state: MsgCgroupEventUnix RetryInternal() was called")
+}
+
+func (msg *MsgCgroupEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return fmt.Errorf("Unreachable state: MsgCgroupEventUnix Retry() was called")
+}
+
+func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
+	switch msg.Common.Op {
+	case ops.MSG_OP_CGROUP:
+		op := ops.CgroupOpCode(msg.CgrpOp)
+		st := ops.CgroupState(msg.CgrpData.State).String()
+		switch op {
+		case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.event":     op.String(),
+				"PID":              msg.PID,
+				"NSPID":            msg.NSPID,
+				"cgroup.IDTracker": msg.CgrpidTracker,
+				"cgroup.ID":        msg.Cgrpid,
+				"cgroup.state":     st,
+				"cgroup.level":     msg.CgrpData.Level,
+				"cgroup.path":      cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+			}).Debug("Received Cgroup event")
+		case ops.MSG_OP_CGROUP_ATTACH_TASK:
+			// Here we should get notification when Tetragon migrate itself
+			// and discovers cgroups configuration
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.event":     op.String(),
+				"PID":              msg.PID,
+				"NSPID":            msg.NSPID,
+				"cgroup.IDTracker": msg.CgrpidTracker,
+				"cgroup.ID":        msg.Cgrpid,
+				"cgroup.state":     st,
+				"cgroup.level":     msg.CgrpData.Level,
+				"cgroup.path":      cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+			}).Info("Received Cgroup event")
+		default:
+			logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
+		}
+	default:
+		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled event")
+	}
+	return nil
+}
+
+func (msg *MsgCgroupEventUnix) Cast(o interface{}) notify.Message {
+	t := o.(processapi.MsgCgroupEvent)
+	return &MsgCgroupEventUnix{MsgCgroupEvent: t}
 }
 
 type MsgExecveEventUnix struct {
