@@ -39,7 +39,7 @@ var (
 	CgroupsTrackingMapV53 = program.MapBuilder("tg_cgrps_tracking_map", CgroupMkdir)
 )
 
-func getCgroupsTrackingMap() *program.Map {
+func GetCgroupsTrackingMap() *program.Map {
 	if kernels.EnableLargeProgs() {
 		return CgroupsTrackingMapV53
 	}
@@ -57,7 +57,7 @@ func getCgroupPrograms() []*program.Program {
 
 func getCgroupMaps() []*program.Map {
 	maps := []*program.Map{
-		getCgroupsTrackingMap(),
+		GetCgroupsTrackingMap(),
 	}
 	return maps
 }
