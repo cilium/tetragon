@@ -67,6 +67,9 @@ func (k *Observer) receiveRawEvent(data []byte, cpu int) error {
 		}
 		k.receiveEvent(sample, cpu)
 		ringbufmetrics.ReceivedSet(float64(k.recvCntr))
+	default:
+		k.unknownCntr++
+		ringbufmetrics.UnknownSet(float64(k.unknownCntr))
 	}
 
 	return nil
