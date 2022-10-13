@@ -7,9 +7,12 @@
 package bpf
 
 import (
+	"unsafe"
+
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/link"
+	"golang.org/x/sys/unix"
 )
 
 type Feature struct {
@@ -20,6 +23,7 @@ type Feature struct {
 var (
 	overrideHelper = Feature{false, false}
 	kprobeMulti    = Feature{false, false}
+	buildid        = Feature{false, false}
 )
 
 func HasOverrideHelper() bool {
@@ -78,4 +82,32 @@ func HasKprobeMulti() bool {
 	kprobeMulti.detected = detectKprobeMulti()
 	kprobeMulti.initialized = true
 	return kprobeMulti.detected
+}
+
+func detectBuildId() bool {
+	attr := &unix.PerfEventAttr{
+		Type:        unix.PERF_TYPE_SOFTWARE,
+		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
+		Bits:        unix.PerfBitWatermark | unix.PerfBitMmap | unix.PerfBitMmap2 | PerfBitBuildId,
+		Sample_type: unix.PERF_SAMPLE_RAW,
+		Wakeup:      1,
+	}
+
+	attr.Size = uint32(unsafe.Sizeof(*attr))
+	fd, err := unix.PerfEventOpen(attr, -1, 0, -1, unix.PERF_FLAG_FD_CLOEXEC)
+	if err == nil {
+		unix.Close(fd)
+		return true
+	}
+	return false
+}
+
+func HasBuildId() bool {
+	if buildid.initialized {
+		return buildid.detected
+	}
+
+	buildid.detected = detectBuildId()
+	buildid.initialized = true
+	return buildid.detected
 }
