@@ -176,7 +176,7 @@ func (k *Observer) getRBSize(cpus int) int {
 
 func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 	/* Probe runtime configuration and do not fail on errors */
-	k.UpdateRuntimeConf()
+	k.UpdateRuntimeConf(option.Config.MapDir)
 
 	pinOpts := ebpf.LoadPinOptions{}
 	perfMap, err := ebpf.LoadPinnedMap(k.perfConfig.MapName, &pinOpts)
@@ -263,14 +263,14 @@ type Observer struct {
 // cgroup context. Use this function in your tests to allow Pod and Containers
 // association to work.
 //
-// The environment and cgroup configuration discovery may fail for several reasons,
-// in such cases errors will be logged.
-// Callers can ignore such errors, but we default print a warning that advanced
-// Cgroups tracking will be disabled which might affect process association
-// with kubernetes pods and containers.
-func (k *Observer) UpdateRuntimeConf() error {
+// The environment and cgroup configuration discovery may fail for several
+// reasons, in such cases errors will be logged.
+// On errors we also print a warning that advanced Cgroups tracking will be
+// disabled which might affect process association with kubernetes pods and
+// containers.
+func (k *Observer) UpdateRuntimeConf(mapDir string) error {
 	pid := os.Getpid()
-	err := confmap.UpdateTgRuntimeConf(option.Config.MapDir, pid)
+	err := confmap.UpdateTgRuntimeConf(mapDir, pid)
 	if err != nil {
 		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
 		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
