@@ -140,9 +140,11 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	if len(proc.BuildId) == 0 {
 		id, err := buildid.Get(proc.Binary)
 		if err != nil {
+			buildid.BIDMetricInc(buildid.BIDTypeRetryFail)
 			return err
 		}
 		proc.BuildId = id
+		buildid.BIDMetricInc(buildid.BIDTypeRetryOk)
 	}
 
 	// do we need to cleanup anything?

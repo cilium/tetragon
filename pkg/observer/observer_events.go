@@ -66,6 +66,8 @@ func readRawSample(rd io.Reader) ([]byte, error) {
 func readMmap2Event(rd *bytes.Reader, cpu int, header perfEventHeader) (string, []byte, error) {
 	var mmap2 perfEventMmap2
 
+	buildid.BIDMetricInc(buildid.BIDTypeMmap2Rcvd)
+
 	if err := binary.Read(rd, binary.LittleEndian, &mmap2); err != nil {
 		return "", []byte{}, err
 	}
@@ -81,6 +83,7 @@ func readMmap2Event(rd *bytes.Reader, cpu int, header perfEventHeader) (string, 
 	}
 	path = bytes.Trim(path, "\x00")
 
+	buildid.BIDMetricInc(buildid.BIDTypeMmap2Parsed)
 	return string(path), mmap2.BuildId[:], nil
 }
 

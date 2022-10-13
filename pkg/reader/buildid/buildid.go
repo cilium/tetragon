@@ -36,6 +36,9 @@ func Set(filename string, buildid []byte) error {
 			buildid: buildid,
 		}
 		cache.Add(filename, data)
+		BIDMetricInc(BIDTypeSetOk)
+	} else {
+		BIDMetricInc(BIDTypeSetDup)
 	}
 	return nil
 }
@@ -51,8 +54,10 @@ func Get(filename string) ([]byte, error) {
 		if !ok {
 			return []byte{}, fmt.Errorf("Data message internal error (add)")
 		}
+		BIDMetricInc(BIDTypeGetOk)
 		return data.buildid, nil
 	}
+	BIDMetricInc(BIDTypeGetFail)
 	return []byte{}, fmt.Errorf("buildid not found")
 }
 
