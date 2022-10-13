@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -589,4 +590,44 @@ func TestParseBuildId(t *testing.T) {
 	if strId1 != strId2 {
 		t.Errorf("Failed compare id1 != id2 - %x / %x", id1, id2)
 	}
+}
+
+func TestEventExecveBuildId(t *testing.T) {
+	if !bpf.HasBuildId() {
+		t.Skip("no build id perf event support")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.ContribPath("tester-progs/nop")
+
+	id, err := buildid.ParseBuildId(testNop)
+	if err != nil {
+		t.Fatalf("Failed to ParseBuildId: %v\n", err)
+	}
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithBuildId(bytesmatcher.Full(id))
+
+	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
