@@ -10,6 +10,7 @@ package perfring
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -25,8 +26,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//  EventFn is the type of function called by ProcessEvents for each event.
+// EventFn is the type of function called by ProcessEvents for each event.
 type EventFn func(ev notify.Message) error
+
+func loopEvents(events []observer.Event, eventFn EventFn, complChecker *testsensor.CompletionChecker) error {
+	for _, ev := range events {
+		switch xev := ev.(type) {
+		case *testapi.MsgTestEventUnix:
+			cpu := xev.Arg0
+			complChecker.Update(cpu)
+		}
+
+		if err := eventFn(ev); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 // ProcessEvents will open the perf ringbuffer and process events.
 //
@@ -35,9 +52,10 @@ type EventFn func(ev notify.Message) error
 // before they call it or use the ctx to cancel its operation.
 //
 // Example code to load the test sensor:
-//     import testsensor "github.com/cilium/tetragon/pkg/sensors/test"
-//     import tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-//     tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
+//
+//	import testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+//	import tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+//	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
 //
 // If the test sensor is loaded, users can use TestCheckerMarkEnd to generate
 // the appropriate MsgTestEventUnix.
@@ -55,37 +73,69 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 	if err != nil {
 		t.Fatalf("creating perf array reader failed: %v", err)
 	}
+
 	wgStarted.Done()
 
-	complChecker := testsensor.NewCompletionChecker()
+	errChan := make(chan error)
+	defer close(errChan)
+
+	complChan := make(chan bool)
+	defer close(complChan)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	defer wg.Wait()
+
+	go func() {
+		defer wg.Done()
+
+		complChecker := testsensor.NewCompletionChecker()
+
+		for {
+			if ctx.Err() != nil {
+				break
+			}
+
+			record, err := perfReader.Read()
+			if err != nil {
+				if ctx.Err() == nil {
+					errChan <- fmt.Errorf("error reading perfring data: %v", err)
+				}
+				break
+			}
+
+			_, events, err := observer.HandlePerfData(record.RawSample)
+			if err != nil {
+				errChan <- fmt.Errorf("error handling perfring data: %v", err)
+				break
+			}
+			err = loopEvents(events, eventFn, complChecker)
+			if err != nil {
+				errChan <- fmt.Errorf("error loop event function returned: %s", err)
+				break
+			}
+
+			if complChecker.Done() {
+				complChan <- true
+				break
+			}
+		}
+	}()
+
 	for {
-		if ctx.Err() != nil {
-			break
-		}
-
-		record, err := perfReader.Read()
-		if err != nil {
-			t.Fatalf("error reading perfring buffer: %v", err)
-		}
-
-		_, events, err := observer.HandlePerfData(record.RawSample)
-		if err != nil {
-			t.Fatalf("error handling perfring data: %v", err)
-		}
-		for _, ev := range events {
-			switch xev := ev.(type) {
-			case *testapi.MsgTestEventUnix:
-				cpu := xev.Arg0
-				complChecker.Update(cpu)
-			}
-			if err := eventFn(ev); err != nil {
-				t.Fatalf("event handling function returned: %s", err)
-			}
-		}
-		if complChecker.Done() {
-			break
+		select {
+		case err := <-errChan:
+			t.Fatal(err)
+		case <-complChan:
+			perfReader.Close()
+			return
+		case <-ctx.Done():
+			// Wait for context cancel.
+			perfReader.Close()
+			return
 		}
 	}
+
 }
 
 // RunTest is a convinience wrapper around ProcessEvents
