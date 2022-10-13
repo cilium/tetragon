@@ -25,6 +25,11 @@ var (
 		Help:        "The total number of Tetragon ringbuf perf event error count.",
 		ConstLabels: nil,
 	}, nil)
+	PerfEventUnknown = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_unknown",
+		Help:        "The total number of Tetragon ringbuf perf event unknown events.",
+		ConstLabels: nil,
+	}, nil)
 )
 
 // Get a new handle on the metric for received events
@@ -55,4 +60,14 @@ func GetErrors() prometheus.Gauge {
 // Get a new handle on the metric for ringbuf errors
 func ErrorsSet(val float64) {
 	GetErrors().Set(val)
+}
+
+// Get a new handle on the metric for ringbuf unknown events
+func GetUnknown() prometheus.Gauge {
+	return PerfEventUnknown.WithLabelValues()
+}
+
+// Get a new handle on the metric for ringbuf unknown events
+func UnknownSet(val float64) {
+	GetUnknown().Set(val)
 }

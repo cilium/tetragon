@@ -244,11 +244,12 @@ type Observer struct {
 	listeners  map[Listener]struct{}
 	perfConfig *bpf.PerfEventConfig
 	/* Statistics */
-	lostCntr   int
-	errorCntr  int
-	recvCntr   int
-	filterPass int
-	filterDrop int
+	lostCntr    int
+	errorCntr   int
+	recvCntr    int
+	unknownCntr int
+	filterPass  int
+	filterDrop  int
 	/* Filters */
 	log logrus.FieldLogger
 
