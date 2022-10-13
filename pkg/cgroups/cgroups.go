@@ -157,6 +157,10 @@ func GetCgroupFSMagic() uint64 {
 	return cgroupFSMagic
 }
 
+func GetCgroupFSPath() string {
+	return cgroupFSPath
+}
+
 // DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
 // of the corresponding controllers that we are interested
 // in. We need this dynamic behavior since these controllers are
