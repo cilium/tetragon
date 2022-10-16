@@ -35,6 +35,9 @@ type config struct {
 	BpfDir    string
 
 	LogOpts map[string]string
+
+	RBSize      int
+	RBSizeTotal int
 }
 
 var (
