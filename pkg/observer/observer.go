@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 
@@ -138,6 +139,41 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 	}
 }
 
+// Gets final size for single perf ring buffer rounded from
+// passed size argument (kindly borrowed from ebpf/cilium)
+func perfBufferSize(perCPUBuffer int) int {
+	pageSize := os.Getpagesize()
+
+	// Smallest whole number of pages
+	nPages := (perCPUBuffer + pageSize - 1) / pageSize
+
+	// Round up to nearest power of two number of pages
+	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
+
+	// Add one for metadata
+	nPages++
+
+	return nPages * pageSize
+}
+
+func (k *Observer) getRBSize(cpus int) int {
+	var size int
+
+	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
+		size = perCPUBufferBytes
+	} else if option.Config.RBSize != 0 {
+		size = option.Config.RBSize
+	} else {
+		size = option.Config.RBSizeTotal / int(cpus)
+	}
+
+	cpuSize := perfBufferSize(size)
+	totalSize := cpuSize * cpus
+
+	k.log.WithField("percpu", cpuSize).WithField("total", totalSize).Info("Perf ring buffer size (bytes)")
+	return size
+}
+
 func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 	/* Probe runtime configuration and do not fail on errors */
 	k.UpdateRuntimeConf()
@@ -149,7 +185,9 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 	}
 	defer perfMap.Close()
 
-	perfReader, err := perf.NewReader(perfMap, perCPUBufferBytes)
+	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
+	perfReader, err := perf.NewReader(perfMap, rbSize)
+
 	if err != nil {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}

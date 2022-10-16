@@ -127,6 +127,10 @@ func tetragonExecute() error {
 		log.Fatal(err)
 	}
 
+	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
+		log.Fatalf("Can't specify --rb-size and --rb-size-total together")
+	}
+
 	// enable extra programs/maps loading debug output
 	if logger.DefaultLogger.IsLevelEnabled(logrus.DebugLevel) {
 		program.KeepCollection = true
@@ -456,6 +460,10 @@ func execute() error {
 
 	// Allow to disable kprobe multi interface
 	flags.Bool(keyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
+
+	// Allow to specify perf ring buffer size
+	flags.Int(keyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
+	flags.Int(keyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
