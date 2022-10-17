@@ -159,18 +159,19 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	return bin;
 }
 
-__attribute__((section("tracepoint/sys_execve"), used)) int
-event_execve(struct sched_execve_args *ctx)
+__attribute__((section("raw_tracepoint/sys_execve"), used)) int
+event_execve(struct bpf_raw_tracepoint_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *execve;
 	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
+	char *filename;
 	__u32 pid;
-	unsigned short fileoff;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -185,9 +186,8 @@ event_execve(struct sched_execve_args *ctx)
 	}
 
 	execve = &event->process;
-	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
-					(char *)ctx + fileoff);
+	probe_read(&filename, sizeof(filename), _(&bprm->filename));
+	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary, filename);
 	event->binary = binary;
 
 	event_args_builder(ctx, event);
@@ -198,8 +198,8 @@ event_execve(struct sched_execve_args *ctx)
 	return 0;
 }
 
-__attribute__((section("tracepoint/0"), used)) int
-execve_send(struct sched_execve_args *ctx)
+__attribute__((section("raw_tracepoint/0"), used)) int
+execve_send(void *ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
@@ -210,6 +210,7 @@ execve_send(struct sched_execve_args *ctx)
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
 	bool init_curr = 0;
 #endif
+
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
