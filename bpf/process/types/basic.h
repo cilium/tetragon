@@ -73,6 +73,7 @@ enum {
 
 enum {
 	FGS_SIGKILL = 9,
+	FGS_SIGSTOP = 19,
 };
 
 struct selector_action {
@@ -1183,7 +1184,7 @@ __do_action_sigkill(struct bpf_map_def *config_map, int idx)
 
 	config = map_lookup_elem(config_map, &idx);
 	if (config && config->sigkill)
-		send_signal(FGS_SIGKILL);
+		send_signal(FGS_SIGSTOP);
 }
 #else
 static inline __attribute__((always_inline)) void

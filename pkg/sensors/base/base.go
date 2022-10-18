@@ -64,6 +64,14 @@ var (
 	/* Internal statistics for debugging */
 	ExecveStats    = program.MapBuilder("execve_map_stats", Execve)
 	ExecveStatsV53 = program.MapBuilder("execve_map_stats", ExecveV53)
+
+	/* Exec Allow policy map */
+	ExecAllowMap = program.MapBuilder("execve_allow_policy", Execve)
+	ExecAllowMapV53 = program.MapBuilder("execve_allow_policy", ExecveV53)
+
+	/* Cgroup allow policy enabled map */
+	CgroupEnabledMap = program.MapBuilder("execve_cgroup_enabled", Execve)
+	CgroupEnabledMapV53 = program.MapBuilder("execve_cgroup_enabled", ExecveV53)
 )
 
 func GetExecveMap() *program.Map {
@@ -111,6 +119,8 @@ func GetDefaultMaps() []*program.Map {
 			NamesMapV53,
 			TCPMonMapV53,
 			TetragonConfMapV53,
+			ExecAllowMapV53,
+			CgroupEnabledMapV53,
 		)
 	} else {
 		maps = append(maps,
@@ -120,6 +130,8 @@ func GetDefaultMaps() []*program.Map {
 			NamesMap,
 			TCPMonMap,
 			TetragonConfMap,
+			ExecAllowMap,
+			CgroupEnabledMap,
 		)
 	}
 	return maps

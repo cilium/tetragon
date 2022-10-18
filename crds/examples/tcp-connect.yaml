@@ -21,3 +21,11 @@ spec:
        type: "sock"
      - index: 2
        type: int
+  execAllow:
+    - namespace: iperf
+      idDigest: 18504332fba14bd85d829564318fdfa142506e6a98f57613f43f70f6260ef9ef
+      parentDigest: 6673c15911326061bd65abe69ba1fdbdecebf9306eaad972ffa662a5115acfa6
+    - namespace: iperf
+      idDigest: 59b55ffbd96dd0716b710d8e236f2ff60b8286cb65a7fe9dd11a443f6f8a42fd
+    - namespace: iperf
+      idDigest: 6673c15911326061bd65abe69ba1fdbdecebf9306eaad972ffa662a5115acfa6

@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -14,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/process"
@@ -21,6 +24,10 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	sensorCounter uint64
 )
 
 func fromCString(cstr []byte) string {
@@ -249,7 +256,28 @@ func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return err
 }
 
-func (e *execSensor) SpecHandler(spec interface{}) (*sensors.Sensor, error) {
+func createExecAllowList(name string, s []v1alpha1.ExecSpec) (*sensors.Sensor, error) {
+	for i, allow := range s {
+		fmt.Printf("%d: namespace %s allow id %s parent %s\n", i, allow.Namespace, allow.IdDigest, allow.ParentDigest)
+		writeAllowPolicy(allow.Namespace, allow.IdDigest, allow.ParentDigest)
+	}
+	return nil, nil
+}
+
+func (e *execSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
+	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
+	if !ok {
+		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
+		if !ok {
+			return nil, nil
+		}
+		spec = &s
+	}
+	name := fmt.Sprintf("exec-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+
+	if len(spec.ExecAllow) > 0 {
+		return createExecAllowList(name, spec.ExecAllow)
+	}
 	return nil, nil
 }
 
@@ -262,6 +290,7 @@ func AddExec() {
 		name: "exec base sensor",
 	}
 	sensors.RegisterProbeType("execve", execveProbe)
+	sensors.RegisterTracingSensorsAtInit("execve", execveProbe)
 
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXECVE, handleExecve)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXIT, handleExit)

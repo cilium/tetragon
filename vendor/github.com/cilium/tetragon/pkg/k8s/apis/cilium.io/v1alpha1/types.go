@@ -43,6 +43,21 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of tracepoint specs.
 	Tracepoints []TracepointSpec `json:"tracepoints"`
+	// +kubebuilder:validation:Optional
+	// A list of kprobe specs.
+	ExecAllow []ExecSpec `json:"execAllow"`
+}
+
+type ExecSpec struct {
+	// +kubebuilder:validation:Optional
+	// Digest of current process
+	Namespace string `json:"namespace"`
+	// +kubebuilder:validation:Optional
+	// Digest of current process
+	IdDigest string `json:"idDigest"`
+	// +kubebuilder:validation:Optional
+	// Digest of parent process
+	ParentDigest string `json:"parentDigest"`
 }
 
 type KProbeSpec struct {
