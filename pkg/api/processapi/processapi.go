@@ -34,6 +34,7 @@ type MsgExec struct {
 	Flags uint32
 	Inode uint64
 	Ktime uint64
+	Digest [64]uint8
 }
 
 type MsgExecveKey struct {
@@ -126,6 +127,7 @@ type MsgProcess struct {
 	Flags    uint32
 	Inode    uint64
 	Ktime    uint64
+	Digest   string
 	Filename string
 	Args     string
 }

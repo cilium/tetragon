@@ -593,6 +593,7 @@
 | cap | [Capabilities](#tetragon-Capabilities) |  |  |
 | ns | [Namespaces](#tetragon-Namespaces) |  |  |
 | inode | [uint64](#uint64) |  |  |
+| digest | [string](#string) |  |  |
 
 
 

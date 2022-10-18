@@ -96,6 +96,7 @@ message Process {
     Capabilities cap = 14;
     Namespaces ns = 15;
     uint64 inode = 16;
+    string digest = 17;
 }
 
 message ProcessExec {

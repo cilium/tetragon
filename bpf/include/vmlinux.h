@@ -4367,6 +4367,10 @@ struct cdev;
 
 struct fsnotify_mark_connector;
 
+struct fsverity_info {
+	u8 file_digest[64];
+};
+
 struct inode {
 	umode_t i_mode;
 	short unsigned int i_opflags;
@@ -4435,6 +4439,7 @@ struct inode {
 	__u32 i_fsnotify_mask;
 	struct fsnotify_mark_connector *i_fsnotify_marks;
 	void *i_private;
+	struct fsverity_info *i_verity_info;
 };
 
 struct dentry_operations {

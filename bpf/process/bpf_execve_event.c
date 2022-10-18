@@ -106,16 +106,22 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 	}
 }
 
+#define MAX_DIGEST_SIZE 64
+
 static inline __attribute__((always_inline)) void
 event_inode_builder(void *ctx,  struct linux_binprm *bprm, struct msg_process *curr)
 {
 	struct inode *f_inode;
 	struct file *file;
+	struct fsverity_info *i_verity_info;
 
 	probe_read(&file, sizeof(file), _(&bprm->file));
 	probe_read(&f_inode, sizeof(f_inode), _(&file->f_inode));
 
 	probe_read(&curr->i_ino, sizeof(curr->i_ino), _(&f_inode->i_ino));
+
+	probe_read(&i_verity_info, sizeof(i_verity_info), _(&f_inode->i_verity_info));
+	probe_read(&curr->digest, MAX_DIGEST_SIZE, _(&i_verity_info->file_digest));
 }
 
 static inline __attribute__((always_inline)) uint32_t
@@ -269,7 +275,7 @@ execve_send(void *ctx)
 	event->common.flags = 0;
 	size = validate_msg_execve_size(
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
-		sizeof(struct msg_execve_key) + sizeof(__u64) + sizeof(__u64) +
+		sizeof(struct msg_execve_key) + sizeof(__u64) + sizeof(__u64) + 64*sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + execve->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);

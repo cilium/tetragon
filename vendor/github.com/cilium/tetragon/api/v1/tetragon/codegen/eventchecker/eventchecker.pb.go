@@ -1851,6 +1851,7 @@ type ProcessChecker struct {
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
 	Inode        *uint64                            `json:"inode,omitempty"`
+	Digest       *stringmatcher.StringMatcher       `json:"digest,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -1953,6 +1954,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Inode has value %d which does not match expected value %d", event.Inode, *checker.Inode)
 		}
 	}
+	if checker.Digest != nil {
+		if err := checker.Digest.Match(event.Digest); err != nil {
+			return fmt.Errorf("ProcessChecker: Digest check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -2052,6 +2058,12 @@ func (checker *ProcessChecker) WithInode(check uint64) *ProcessChecker {
 	return checker
 }
 
+// WithDigest adds a Digest check to the ProcessChecker
+func (checker *ProcessChecker) WithDigest(check *stringmatcher.StringMatcher) *ProcessChecker {
+	checker.Digest = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2095,6 +2107,7 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 		val := event.Inode
 		checker.Inode = &val
 	}
+	checker.Digest = stringmatcher.Full(event.Digest)
 	return checker
 }
 

@@ -202,6 +202,7 @@ func GetProcess(
 			ParentExecId: parentExecID,
 			Refcnt:       0,
 			Inode:        process.Inode,
+			Digest:       process.Digest,
 		},
 		capabilities: caps,
 		namespaces:   ns,
