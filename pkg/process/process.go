@@ -247,16 +247,17 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
-func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
+func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
 	parent, err := Get(parentExecId)
 	if err != nil {
 		logger.GetLogger().WithField("parent-exec-id", parentExecId).Debug("AddCloneEvent: process not found in cache")
-		return err
+		return nil, err
 	}
-	parent.RefInc()
+
 	pi := parent.GetProcessInternalCopy()
 	if pi.process != nil {
+		parent.RefInc()
 		pi.process.ParentExecId = parentExecId
 		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 		pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
@@ -272,8 +273,9 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 			}
 		}
 		procCache.Add(pi)
+		return pi, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func Get(execId string) (*ProcessInternal, error) {

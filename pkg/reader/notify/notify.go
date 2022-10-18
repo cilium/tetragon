@@ -5,15 +5,30 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/process"
 )
 
+type CacheActions struct {
+	NeedProcess    bool
+	NeedProcessPod bool
+	NeedParent     bool
+	NeedParentPod  bool
+}
+
+// Message is what messages need to implement.
+// Moreover, messages may opt to implement the CacheRetry and PostProcessing interfaces (see below).
 type Message interface {
 	HandleMessage() *tetragon.GetEventsResponse
-	RetryInternal(Event, uint64) (*process.ProcessInternal, error)
-	Retry(*process.ProcessInternal, Event) error
 	Notify() bool
 	Cast(o interface{}) Message
+}
+
+// CacheRetry may (optionaly) be implemented by messages that requiring custom cache retry functionality.
+type CacheRetry interface {
+	Retry(Event, *CacheActions, uint32, uint64) error
+}
+
+type PostProcessing interface {
+	PostProcessing(*tetragon.GetEventsResponse)
 }
 
 type Event interface {
