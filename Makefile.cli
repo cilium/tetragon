@@ -20,10 +20,13 @@ cli-release:
 # TODO: Build darwin / windows / linux arm64 binaries
 cli-local-release: cli-clean
 	set -o errexit; \
-	for OS in linux; do \
+	for OS in darwin linux; do \
 		EXT=; \
 		ARCHS=; \
 		case $$OS in \
+			darwin) \
+				ARCHS='arm64 amd64'; \
+				;; \
 			linux) \
 				ARCHS='amd64'; \
 				;; \
