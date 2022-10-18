@@ -95,6 +95,7 @@ message Process {
     uint32 refcnt = 13;
     Capabilities cap = 14;
     Namespaces ns = 15;
+    uint64 inode = 16;
 }
 
 message ProcessExec {

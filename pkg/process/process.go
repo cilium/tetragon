@@ -201,6 +201,7 @@ func GetProcess(
 			Docker:       containerID,
 			ParentExecId: parentExecID,
 			Refcnt:       0,
+			Inode:        process.Inode,
 		},
 		capabilities: caps,
 		namespaces:   ns,

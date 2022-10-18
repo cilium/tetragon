@@ -32,6 +32,7 @@ type MsgExec struct {
 	UID   uint32
 	AUID  uint32
 	Flags uint32
+	Inode uint64
 	Ktime uint64
 }
 
@@ -123,6 +124,7 @@ type MsgProcess struct {
 	UID      uint32
 	AUID     uint32
 	Flags    uint32
+	Inode    uint64
 	Ktime    uint64
 	Filename string
 	Args     string

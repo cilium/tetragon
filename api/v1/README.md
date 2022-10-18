@@ -592,6 +592,7 @@
 | refcnt | [uint32](#uint32) |  |  |
 | cap | [Capabilities](#tetragon-Capabilities) |  |  |
 | ns | [Namespaces](#tetragon-Namespaces) |  |  |
+| inode | [uint64](#uint64) |  |  |
 
 
 

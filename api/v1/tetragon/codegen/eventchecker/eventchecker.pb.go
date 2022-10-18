@@ -1850,6 +1850,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	Inode        *uint64                            `json:"inode,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -1947,6 +1948,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Ns check failed: %w", err)
 		}
 	}
+	if checker.Inode != nil {
+		if *checker.Inode != event.Inode {
+			return fmt.Errorf("ProcessChecker: Inode has value %d which does not match expected value %d", event.Inode, *checker.Inode)
+		}
+	}
 	return nil
 }
 
@@ -2040,6 +2046,12 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
+// WithInode adds a Inode check to the ProcessChecker
+func (checker *ProcessChecker) WithInode(check uint64) *ProcessChecker {
+	checker.Inode = &check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2078,6 +2090,10 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
+	}
+	{
+		val := event.Inode
+		checker.Inode = &val
 	}
 	return checker
 }

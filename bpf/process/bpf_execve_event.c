@@ -106,6 +106,18 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 	}
 }
 
+static inline __attribute__((always_inline)) void
+event_inode_builder(void *ctx,  struct linux_binprm *bprm, struct msg_process *curr)
+{
+	struct inode *f_inode;
+	struct file *file;
+
+	probe_read(&file, sizeof(file), _(&bprm->file));
+	probe_read(&f_inode, sizeof(f_inode), _(&file->f_inode));
+
+	probe_read(&curr->i_ino, sizeof(curr->i_ino), _(&f_inode->i_ino));
+}
+
 static inline __attribute__((always_inline)) uint32_t
 event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 		       __u32 flags, __u32 bin, void *filename)
@@ -186,6 +198,7 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 	}
 
 	execve = &event->process;
+	event_inode_builder(ctx, bprm, execve);
 	probe_read(&filename, sizeof(filename), _(&bprm->filename));
 	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary, filename);
 	event->binary = binary;
@@ -256,7 +269,7 @@ execve_send(void *ctx)
 	event->common.flags = 0;
 	size = validate_msg_execve_size(
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
-		sizeof(struct msg_execve_key) + sizeof(__u64) +
+		sizeof(struct msg_execve_key) + sizeof(__u64) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + execve->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
