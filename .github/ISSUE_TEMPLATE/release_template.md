@@ -37,11 +37,11 @@ assignees: ''
       - https://quay.io/repository/cilium/tetragon?tab=tags
       - https://quay.io/repository/cilium/tetragon-operator?tab=tags
 
-- [ ] After creating the tag, [create the release] using the GitHub UI
-      - Click the link above to draft a new release
-      - Select the tag you created in the previous step
-      - Click on "Generate Release Notes" on the right-hand side
-      - Click on "Publish Release" at the bottom
+- [ ] When a tag is pushed, a GitHub Action job takes care of creating a new GitHub
+      draft release, building artifacts and attaching them to the draft release. Once
+      the draft is available in the [releases page]:
+  - [ ] Use the "Auto-generate release notes" button to generate the release notes.
+  - [ ] Review the release notes and click on "Publish Release" at the bottom.
 
 - [ ] Publish Helm chart
       - Follow [cilium/charts RELEASE.md] to publish the Helm chart.
@@ -52,5 +52,5 @@ assignees: ''
 [Image CI Releases workflow]: https://github.com/cilium/tetragon/actions/workflows/build-images-releases.yml
 [cilium/charts RELEASE.md]: https://github.com/cilium/charts/blob/master/RELEASE.md
 [cilium/charts GKE workflow]: https://github.com/cilium/charts/actions/workflows/conformance-tetragon-gke.yaml
-[create the release]: https://github.com/cilium/tetragon/releases/new
+[releases page]: https://github.com/cilium/tetragon/releases
 [a Tetragon maintainer]: https://github.com/orgs/cilium/teams/tetragon-maintainers/members
