@@ -176,11 +176,6 @@ the security and observability events produced by Tetragon in different ways.
 The first way is to observe the raw json output from the stdout container log:
 
 ```
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f
-```
-
-**NOTE**: If you're running more than one `tetragon` pod then the command above will only print the logs from one of those pods. To print out the logs on all `tetragon` pods, you will need to use a filter/selector such as `-l app.kubernetes.io/name=tetragon`:
-```
 kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f
 ```
 
@@ -188,10 +183,10 @@ The raw JSON events provide Kubernetes API, identity metadata, and OS
 level process visibility about the executed binary, its parent and the execution
 time.
 
-#### Tetragon CLI
+#### `tetra` CLI
 
 A second way is to pretty print the events using the
-[Tetragon CLI](https://github.com/cilium/tetragon/releases/tag/tetragon-cli).
+[`tetra` CLI](https://github.com/cilium/tetragon/releases/latest).
 The tool also allows filtering by process, pod, and other fields.
 
 You can download and install it by the following command:
@@ -199,18 +194,24 @@ You can download and install it by the following command:
 ```
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
-curl -L --remote-name-all https://github.com/cilium/tetragon/releases/download/tetragon-cli/tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
-sha256sum --check tetragon-${GOOS}-${GOARCH}.tar.gz.sha256sum
-sudo tar -C /usr/local/bin -xzvf tetragon-${GOOS}-${GOARCH}.tar.gz
-rm tetragon-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
+curl -L --remote-name-all https://github.com/cilium/tetragon/releases/latest/download/tetra-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
+sha256sum --check tetra-${GOOS}-${GOARCH}.tar.gz.sha256sum
+sudo tar -C /usr/local/bin -xzvf tetra-${GOOS}-${GOARCH}.tar.gz
+rm tetra-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
 ```
 
-(see https://github.com/cilium/tetragon/releases/tag/tetragon-cli for supported `GOOS`/`GOARCH` binary releases)
+(see https://github.com/cilium/tetragon/releases/latest for supported `GOOS`/`GOARCH` binary releases)
 
 To start printing events run:
 
 ```
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact
+```
+
+The `tetra` CLI is also available inside `tetragon` container.
+
+```
+kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact
 ```
 
 Tetragon is able to observe several events, here we provide a few small
@@ -233,7 +234,7 @@ exit, including metadata such as:
 As a first step, let's start monitoring the events from the `xwing` pod:
 
 ```bash
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe --namespace default --pod xwing
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --namespace default --pod xwing
 ```
 
 Then in another terminal, let's `kubectl exec` into the `xwing` pod and execute
@@ -259,7 +260,7 @@ For more details use the raw JSON events to get detailed information, you can st
 the Tetragon CLI by `Crl-C` and parse the `tetragon.log` file by executing:
 
 ```bash
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | jq 'select(.process_exec.process.pod.name=="xwing" or .process_exit.process.pod.name=="xwing")'
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | jq 'select(.process_exec.process.pod.name=="xwing" or .process_exit.process.pod.name=="xwing")'
 ```
 
 Example `process_exec` and `process_exit` events can be:
@@ -430,7 +431,7 @@ kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/exa
 
 As a second step, let's start monitoring the events from the `xwing` pod:
 ```bash
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe --namespace default --pod xwing
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --namespace default --pod xwing
 ```
 
 In another terminal, `kubectl exec` into the `xwing` pod:
@@ -545,7 +546,7 @@ kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/exa
 To start monitoring events in the `xwing` pod run the Tetragon CLI:
 
 ```bash
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe --namespace default --pod xwing
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --namespace default --pod xwing
 ```
 
 In another terminal, start generate a TCP connection. Here we use
@@ -586,7 +587,7 @@ kubectl rollout restart -n kube-system ds/tetragon
 
 As a second step, let's start monitoring the Security Observability events from the privileged `test-pod` workload:
 ```bash
-kubectl logs -n kube-system ds/tetragon -c export-stdout -f | tetragon observe --namespace default --pod test-pod
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents --namespace default --pod test-pod
 ```
 
 In another terminal let's apply the privileged PodSpec:
