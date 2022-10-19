@@ -278,3 +278,7 @@ cscope:
 tester-progs:
 	$(MAKE) -C $(TESTER_PROGS_DIR)
 .PHONY: tester-progs
+
+.PHONY: version
+version:
+	@echo $(VERSION)

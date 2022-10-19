@@ -38,6 +38,10 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Get version
+        run: |
+          echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
+
       - name: Release Build ${{ matrix.name }}
         uses: docker/build-push-action@c84f38281176d4c9cdb1626ffafcd6b3911b5d94
         id: docker_build_release
@@ -46,6 +50,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
           platforms: linux/amd64
+          build-args: |
+            TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.tag.outputs.tag }}
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ github.sha }}
