@@ -97,6 +97,7 @@ jobs:
   draft-github-release:
     name: Create Release
     if: github.repository == 'cilium/tetragon'
+    environment: release
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
