@@ -19,15 +19,12 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/watcher"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -236,36 +233,15 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 
 // AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it
 func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
-	proc, _ := GetProcess(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
+	var proc *ProcessInternal
+	if event.CleanupProcess.Ktime == 0 {
+		// there is a case where we cannot find this entry in execve_map
+		// in that case we use as parent what Linux knows
+		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
+	} else {
+		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
+	}
 	procCache.Add(proc)
-
-	var parentExecID string
-	if proc.process.Pid != nil {
-		parentExecID = procCache.getFromPidMap(proc.process.Pid.Value)
-		procCache.AddToPidMap(proc.process.Pid.Value, proc.process.ExecId)
-	}
-	if strings.Contains(proc.process.Flags, "clone") || strings.Contains(proc.process.Flags, "procFS") {
-		return proc
-	}
-	// This means the exec didn't clone. Look up the most recent exec ID for this PID
-	// and use that as the parent.
-	parent, err := procCache.get(parentExecID)
-	if err != nil {
-		errormetrics.ErrorTotalInc(errormetrics.NoParentNoClone)
-		logger.GetLogger().WithFields(logrus.Fields{
-			"parent exec id": parentExecID,
-			"process":        proc,
-		}).Debug("parent not found in cache")
-		return proc
-	}
-	if parent.process.ExecId == proc.process.ExecId {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"exec_id": parent.process.ExecId,
-		}).Debug("Parent and current process have the same exec ID")
-		processexecmetrics.SameExecIdInc(parent.process.ExecId)
-		return proc
-	}
-	proc.process.ParentExecId = parent.process.ExecId
 	return proc
 }
 
