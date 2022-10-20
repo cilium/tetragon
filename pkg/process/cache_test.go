@@ -32,19 +32,15 @@ func TestProcessCache(t *testing.T) {
 	}
 	cache.Add(&proc)
 	assert.Equal(t, cache.len(), 1)
-	cache.AddToPidMap(pid.Value, execID)
 
 	result, err := cache.get(proc.process.ExecId)
 	assert.NoError(t, err)
 	assert.Equal(t, proc.process.ExecId, result.process.ExecId)
 	assert.Equal(t, proc.capabilities, result.capabilities)
-	assert.Equal(t, cache.getFromPidMap(pid.Value), execID)
 
 	// remove the entry from cache.
 	assert.True(t, cache.remove(proc.process))
 	assert.Equal(t, cache.len(), 0)
-	assert.Equal(t, cache.pidMap.Len(), 0)
 	_, err = cache.get(proc.process.ExecId)
 	assert.Error(t, err)
-	assert.Equal(t, cache.getFromPidMap(pid.Value), "")
 }

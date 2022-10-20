@@ -34,12 +34,6 @@ var (
 	EventCacheProcessInfoFailed ErrorType = "event_cache_process_info_failed"
 	// Event cache failed to set parent information for an event.
 	EventCacheParentInfoFailed ErrorType = "event_cache_parent_info_failed"
-	// There was an invalid entry in the pid map.
-	PidMapInvalidEntry ErrorType = "pid_map_invalid_entry"
-	// An entry was evicted from the pid map because the map was full.
-	PidMapEvicted ErrorType = "pid_map_evicted"
-	// PID not found in the pid map on remove() call.
-	PidMapMissOnRemove ErrorType = "pid_map_miss_on_remove"
 	// An exec event without parent info.
 	ExecMissingParent ErrorType = "exec_missing_parent"
 	// An event is missing process info.

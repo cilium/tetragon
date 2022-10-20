@@ -13,17 +13,12 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/sirupsen/logrus"
 )
 
 type Cache struct {
 	cache      *lru.Cache
 	deleteChan chan *ProcessInternal
 	stopChan   chan bool
-
-	// pidMap is a map from PID to the most recent exec ID for the PID. This is used to find the parent
-	// of exec events without clone flag.
-	pidMap *lru.Cache
 }
 
 // garbage collection states
@@ -52,7 +47,6 @@ func (pc *Cache) cacheGarbageCollector() {
 			case <-pc.stopChan:
 				ticker.Stop()
 				pc.cache.Purge()
-				pc.pidMap.Purge()
 			case <-ticker.C:
 				newQueue = newQueue[:0]
 				for _, p := range deleteQueue {
@@ -137,17 +131,11 @@ func NewCache(
 	if err != nil {
 		return nil, err
 	}
-	pidMap, err := lru.New(processCacheSize)
-	if err != nil {
-		return nil, err
-	}
 	pm := &Cache{
-		cache:  lruCache,
-		pidMap: pidMap,
+		cache: lruCache,
 	}
 	update := func() {
 		mapmetrics.MapSizeSet("processLru", processCacheSize, float64(pm.cache.Len()))
-		mapmetrics.MapSizeSet("pidMap", processCacheSize, float64(pm.pidMap.Len()))
 	}
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {
@@ -191,39 +179,9 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 	if !present {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnRemove)
 	}
-	if process.Pid != nil {
-		pidFound := pc.pidMap.Remove(process.Pid.Value)
-		if !pidFound {
-			errormetrics.ErrorTotalInc(errormetrics.PidMapMissOnRemove)
-		}
-	}
 	return present
 }
 
 func (pc *Cache) len() int {
 	return pc.cache.Len()
-}
-
-// Get the exec ID for a given PID. If PID is not found, it returns an empty string.
-func (pc *Cache) getFromPidMap(pid uint32) string {
-	entry, ok := pc.pidMap.Get(pid)
-	if !ok {
-		return ""
-	}
-	execID, ok := entry.(string)
-	if !ok {
-		logger.GetLogger().WithFields(logrus.Fields{"pid": pid, "execID": execID}).Warn("Invalid entry in pidMap")
-		errormetrics.ErrorTotalInc(errormetrics.PidMapInvalidEntry)
-		return ""
-	}
-	return execID
-}
-
-func (pc *Cache) AddToPidMap(pid uint32, execID string) bool {
-	evicted := pc.pidMap.Add(pid, execID)
-	if evicted {
-		logger.GetLogger().Warn("Entry evicted from pidMap")
-		errormetrics.ErrorTotalInc(errormetrics.PidMapEvicted)
-	}
-	return evicted
 }
