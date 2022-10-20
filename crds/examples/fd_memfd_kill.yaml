@@ -4,23 +4,24 @@ metadata:
   name: "demo-memfd"
 spec:
   kprobes:
-  - call: "fd_install"
-    syscall: false
+# int close(int fd);
+  - call: "__x64_sys_close"
+    syscall: true
     args:
     - index: 0
-      type: int
-    - index: 1
-      type: "file"
+      type: "int"
     selectors:
-    - matchArgs:
-      - index: 1
-        operator: "Prefix"
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
         values:
-        - "/proc/self/fd/"
+        - 0
+        - 1
       matchActions:
-      - action: FollowFD
+      - action: UnfollowFD
         argFd: 0
-        argName: 1
+        argName: 0
   # int memfd_create(const char *name, unsigned int flags);
   - call: "__x64_sys_memfd_create"
     syscall: true
@@ -29,6 +30,32 @@ spec:
       type: "string"
     - index: 1
       type: "int"
-    # selectors:
-    # - matchActions:
-    #   - action: Sigkill
+    selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0
+        - 1
+# int execve(const char *pathname, char *const argv[],char *const envp[]);
+  - call: "__x64_sys_execve"
+    syscall: true
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: false
+        isNamespacePID: true
+        values:
+        - 0
+        - 1
+      matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/proc/self/fd/"
+      matchActions:
+      - action: Sigkill
