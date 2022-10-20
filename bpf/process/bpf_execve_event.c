@@ -45,11 +45,19 @@ struct {
 } execve_allow_policy SEC(".maps");
 
 
+struct cgroup_key {
+	char docker_id[DOCKER_ID_LENGTH];
+};
+
+struct cgroup_value {
+	__u32 enabled;
+};
+
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 4096);
-	__type(key, __u64);
-	__type(value, __u32);
+	__type(key, struct cgroup_key);
+	__type(value, struct cgroup_value);
 } execve_cgroup_enabled SEC(".maps");
 
 /* event_args_builder: copies args into char *buffer
@@ -133,12 +141,16 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 #define DIGEST_SHA256 32
 
 static inline __attribute__((always_inline)) int
-event_digest_policy(struct msg_process *curr)
+event_digest_policy(struct msg_process *curr, struct msg_execve_event *event)
 {
 	struct exec_policy_value *allowed;
+	__u32 *cgroup_enabled;
 	int i;
 
-	// enable gate on cgroup id
+	// Check if namespace has allow policy enabled
+	cgroup_enabled = map_lookup_elem(&execve_cgroup_enabled, event->kube.docker_id);
+	if (!cgroup_enabled)
+		return 0;
 
 	// ah check i_flag through IS_VERITY
 	for (i = 0; i < DIGEST_SHA256; i++) {
@@ -148,6 +160,9 @@ event_digest_policy(struct msg_process *curr)
 	if (i == 32)
 		return 0;
 
+	// Need to also check file has not been modified otherwise
+	// overlayfs may not be same file as lowerfs and seems we
+	// don't break the link on write.
 	allowed = map_lookup_elem(&execve_allow_policy, &curr->digest);
 	if (!allowed) {
 		for (i = 0; i < DIGEST_SHA256; i++)
@@ -339,8 +354,8 @@ execve_send(void *ctx)
 #endif
 	}
 
-	verdict = event_digest_policy(execve);
-	bpf_printk("verdict %d\n", verdict);
+	verdict = event_digest_policy(execve, event);
+	bpf_printk("verdict netns %d -- %d\n", event->kube.net_ns, verdict);
 
 	event->common.flags = 0;
 	size = validate_msg_execve_size(

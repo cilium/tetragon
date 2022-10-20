@@ -30,6 +30,7 @@ import (
 const (
 	containerIDLen = 15
 	containerIdx   = "containers-ids"
+	namespaceIdx   = "namespace-ids"
 )
 
 var (
@@ -38,6 +39,9 @@ var (
 
 // K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
 type K8sResourceWatcher interface {
+	// Find Namespace
+	FindNamespace(namespace string) []*corev1.Pod
+
 	// Find a pod/container pair for the given container ID.
 	FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
 
@@ -97,6 +101,63 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
+func GetPodIds(pods []*corev1.Pod) ([]string, error) {
+	var containerIDs []string
+	putContainer := func(fullContainerID string) error {
+		if fullContainerID == "" {
+			// This is expected if the container hasn't been started. This function
+			// will get called again after the container starts, so we just need to
+			// be patient.
+			return nil
+		}
+		parts := strings.Split(fullContainerID, "//")
+		if len(parts) != 2 {
+			return fmt.Errorf("unexpected containerID format, expecting 'docker://<name>', got %q", fullContainerID)
+		}
+		cid := parts[1]
+		if len(cid) > containerIDLen {
+			cid = cid[:containerIDLen]
+		}
+		containerIDs = append(containerIDs, cid)
+		return nil
+	}
+
+	for _, pod := range pods {
+		for _, container := range pod.Status.InitContainerStatuses {
+			err := putContainer(container.ContainerID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for _, container := range pod.Status.ContainerStatuses {
+			err := putContainer(container.ContainerID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for _, container := range pod.Status.EphemeralContainerStatuses {
+			err := putContainer(container.ContainerID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return containerIDs, nil
+	}
+	return containerIDs, nil
+}
+
+// namespaceIndexFunc index pod by namespaces.
+func namespaceIndexFunc(obj interface{}) ([]string, error) {
+	var names []string
+
+	switch t := obj.(type) {
+	case *corev1.Pod:
+		names = append(names, t.Namespace)
+		return names, nil
+	}
+	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
+}
+
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
 func NewK8sWatcher(k8sClient *kubernetes.Clientset, stateSyncIntervalSec time.Duration) *K8sWatcher {
 	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
@@ -114,10 +175,37 @@ func NewK8sWatcher(k8sClient *kubernetes.Clientset, stateSyncIntervalSec time.Du
 		// developer mistake.
 		panic(err)
 	}
+
+	err = podInformer.AddIndexers(map[string]cache.IndexFunc{
+		namespaceIdx: namespaceIndexFunc,
+	})
+	if err != nil {
+		// Panic during setup since this should never fail, if it fails is a
+		// developer mistake.
+		panic(err)
+	}
+
 	k8sInformerFactory.Start(wait.NeverStop)
 	k8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	logger.GetLogger().WithField("num_pods", len(podInformer.GetStore().ListKeys())).Info("Initialized pod cache")
 	return &K8sWatcher{podInformer: podInformer}
+}
+
+func (watcher *K8sWatcher) FindNamespace(ns string) []*corev1.Pod {
+	var pods []*corev1.Pod
+
+	indexedNamespaceID := ns
+	objs, err := watcher.podInformer.GetIndexer().ByIndex(namespaceIdx, indexedNamespaceID)
+	if err != nil {
+		return pods
+	}
+	for _, obj := range objs {
+		pod, ok := obj.(*corev1.Pod)
+		if ok {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
 }
 
 // FindPod implements K8sResourceWatcher.FindPod.
@@ -199,6 +287,13 @@ type FakeK8sWatcher struct {
 // NewK8sWatcher returns a pointer to an initialized FakeK8sWatcher struct.
 func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
 	return &FakeK8sWatcher{pods: pods}
+}
+
+// FindNamespace impelements K8sResourceWatcher.FindNamespace
+func (watcher *FakeK8sWatcher) FindNamespace(ns string) []*corev1.Pod {
+	var pods []*corev1.Pod
+
+	return pods
 }
 
 // FindPod implements K8sResourceWatcher.FindPod.

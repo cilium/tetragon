@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/sirupsen/logrus"
 )
 
@@ -260,6 +261,23 @@ func createExecAllowList(name string, s []v1alpha1.ExecSpec) (*sensors.Sensor, e
 	for i, allow := range s {
 		fmt.Printf("%d: namespace %s allow id %s parent %s\n", i, allow.Namespace, allow.IdDigest, allow.ParentDigest)
 		writeAllowPolicy(allow.Namespace, allow.IdDigest, allow.ParentDigest)
+
+		pods := process.FindNamespace(allow.Namespace)
+		if len(pods) > 0 {
+			containerIds, err := watcher.GetPodIds(pods)
+			if err != nil {
+				fmt.Printf("GetPodIds error %s\n", err)
+				return nil, nil
+			}
+			for i, id := range containerIds {
+				var b [128]byte
+				fmt.Printf("enable %d/%d containerId %s\n", i, len(containerIds), id)
+				for i := 0; i < len(id) && i < 128; i++ {
+					b[i] = id[i];
+				}
+				enableNs(b, uint32(1))
+			}
+		}
 	}
 	return nil, nil
 }

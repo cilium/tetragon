@@ -200,6 +200,42 @@ func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
 		OnGetPodInfo: func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 			return nil, nil
 		},
+		OnFindNamespace: func(namespace string) ([]*corev1.Pod) {
+			var pods []*corev1.Pod
+
+			if testNamespace == namespace {
+
+				container := corev1.ContainerStatus{
+					Name:        "container-abc",
+					Image:       "image",
+					ImageID:     "id",
+					ContainerID: "docker://" + "container-abc",
+					State: corev1.ContainerState{
+						Running: &corev1.ContainerStateRunning{
+							StartedAt: v1.Time{
+								Time: time.Unix(1, 2),
+							},
+						},
+					},
+				}
+
+				pod := corev1.Pod{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      testPod,
+						Namespace: testNamespace,
+					},
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							container,
+						},
+					},
+				}
+
+				pods = append(pods, &pod)
+				return pods
+			}
+			return pods
+		},
 	}
 }
 
@@ -490,8 +526,9 @@ func DockerRun(t *testing.T, args ...string) (containerId string) {
 }
 
 type fakeK8sWatcher struct {
-	OnFindPod    func(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
-	OnGetPodInfo func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
+	OnFindNamespace func(namespace string) ([]*corev1.Pod)
+	OnFindPod       func(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
+	OnGetPodInfo    func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
 }
 
 func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
@@ -507,6 +544,14 @@ func (f *fakeK8sWatcher) GetPodInfo(containerID, binary, args string, nspid uint
 	}
 	return f.OnGetPodInfo(containerID, binary, args, nspid)
 }
+
+func (f *fakeK8sWatcher) FindNamespace(namespace string) []*corev1.Pod {
+	if f.OnFindNamespace == nil {
+		panic("FindPod not implemented")
+	}
+	return f.OnFindNamespace(namespace)
+}
+
 
 // Used to wait for a process to start, we do a lookup on PROCFS because this
 // may be called before obs is created.

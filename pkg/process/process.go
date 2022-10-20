@@ -210,6 +210,10 @@ func GetProcess(
 	}, endpoint
 }
 
+func FindNamespace(namespace string) ([]*corev1.Pod) {
+	return k8s.FindNamespace(namespace)
+}
+
 func FindPod(containerId string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return k8s.FindPod(containerId)
 }
