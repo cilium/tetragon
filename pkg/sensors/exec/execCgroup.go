@@ -56,5 +56,6 @@ func enableNs(dockerId [128]byte, enable uint32) {
 	value := &ExecveCgroupValue{
 		Enable: enable,
 	}
+	fmt.Printf("Cgroup Update: %v %v\n", key, value);
 	err = m.Update(key, value)
 }

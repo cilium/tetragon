@@ -264,6 +264,8 @@ func createExecAllowList(name string, s []v1alpha1.ExecSpec) (*sensors.Sensor, e
 
 		pods := process.FindNamespace(allow.Namespace)
 		if len(pods) > 0 {
+			fmt.Printf("FindNamespace(%s): pods %v\n", 
+			allow.Namespace, pods);
 			containerIds, err := watcher.GetPodIds(pods)
 			if err != nil {
 				fmt.Printf("GetPodIds error %s\n", err)

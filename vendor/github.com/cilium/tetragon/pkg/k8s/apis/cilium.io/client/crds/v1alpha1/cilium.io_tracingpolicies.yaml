@@ -35,6 +35,21 @@ spec:
           spec:
             description: Tracing policy specification.
             properties:
+              execAllow:
+                description: A list of exec specs.
+                items:
+                  properties:
+                    idDigest:
+                      description: Digest of current process
+                      type: string
+                    namespace:
+                      description: Digest of current process
+                      type: string
+                    parentDigest:
+                      description: Digest of parent process
+                      type: string
+                  type: object
+                type: array
               kprobes:
                 description: A list of kprobe specs.
                 items:

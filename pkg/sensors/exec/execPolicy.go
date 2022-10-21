@@ -62,7 +62,6 @@ func writeAllowPolicy(ns, id, parent string) {
 	if id != "" {
 		cookie, _ := hex.DecodeString(id)
 		copy(key.Cookie[:32], cookie[:32])
-		fmt.Printf("key %s\n", key)
 	}
 
 	if parent != "" {
@@ -71,5 +70,4 @@ func writeAllowPolicy(ns, id, parent string) {
 	}
 
 	err = m.Update(key, value)
-	//fmt.Printf("Update(% x % x) -> %v\n", key.Cookie, value.Parent, err)
 }

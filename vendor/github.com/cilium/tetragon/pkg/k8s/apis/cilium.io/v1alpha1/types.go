@@ -44,7 +44,7 @@ type TracingPolicySpec struct {
 	// A list of tracepoint specs.
 	Tracepoints []TracepointSpec `json:"tracepoints"`
 	// +kubebuilder:validation:Optional
-	// A list of kprobe specs.
+	// A list of exec specs.
 	ExecAllow []ExecSpec `json:"execAllow"`
 }
 

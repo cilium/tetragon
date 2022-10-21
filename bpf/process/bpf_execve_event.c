@@ -144,10 +144,9 @@ static inline __attribute__((always_inline)) int
 event_digest_policy(struct msg_process *curr, struct msg_execve_event *event)
 {
 	struct exec_policy_value *allowed;
-	__u32 *cgroup_enabled;
+	__u32 *cgroup_enabled = 0;
 	int i;
 
-	// Check if namespace has allow policy enabled
 	cgroup_enabled = map_lookup_elem(&execve_cgroup_enabled, event->kube.docker_id);
 	if (!cgroup_enabled)
 		return 0;
@@ -165,9 +164,7 @@ event_digest_policy(struct msg_process *curr, struct msg_execve_event *event)
 	// don't break the link on write.
 	allowed = map_lookup_elem(&execve_allow_policy, &curr->digest);
 	if (!allowed) {
-		for (i = 0; i < DIGEST_SHA256; i++)
-			bpf_printk("%d: %d\n", i, curr->digest[i]);
-		//send_signal(9);
+		send_signal(9);
 		return 1;
 	}
 	return 0;
@@ -355,7 +352,6 @@ execve_send(void *ctx)
 	}
 
 	verdict = event_digest_policy(execve, event);
-	bpf_printk("verdict netns %d -- %d\n", event->kube.net_ns, verdict);
 
 	event->common.flags = 0;
 	size = validate_msg_execve_size(

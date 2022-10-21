@@ -29,6 +29,7 @@ import (
 
 const (
 	containerIDLen = 15
+	nsContainerIDLen = 128
 	containerIdx   = "containers-ids"
 	namespaceIdx   = "namespace-ids"
 )
@@ -115,8 +116,8 @@ func GetPodIds(pods []*corev1.Pod) ([]string, error) {
 			return fmt.Errorf("unexpected containerID format, expecting 'docker://<name>', got %q", fullContainerID)
 		}
 		cid := parts[1]
-		if len(cid) > containerIDLen {
-			cid = cid[:containerIDLen]
+		if len(cid) > nsContainerIDLen {
+			cid = cid[:nsContainerIDLen]
 		}
 		containerIDs = append(containerIDs, cid)
 		return nil
@@ -126,22 +127,21 @@ func GetPodIds(pods []*corev1.Pod) ([]string, error) {
 		for _, container := range pod.Status.InitContainerStatuses {
 			err := putContainer(container.ContainerID)
 			if err != nil {
-				return nil, err
+				fmt.Printf("putContainerId err %s\n", err);
 			}
 		}
 		for _, container := range pod.Status.ContainerStatuses {
 			err := putContainer(container.ContainerID)
 			if err != nil {
-				return nil, err
+				fmt.Printf("putContainerId err %s\n", err);
 			}
 		}
 		for _, container := range pod.Status.EphemeralContainerStatuses {
 			err := putContainer(container.ContainerID)
 			if err != nil {
-				return nil, err
+				fmt.Printf("putContainerId err %s\n", err);
 			}
 		}
-		return containerIDs, nil
 	}
 	return containerIDs, nil
 }
