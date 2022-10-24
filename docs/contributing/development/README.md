@@ -120,6 +120,12 @@ CONTAINER_ENGINE='sudo podman' make
 ```
 You can ignore `/bin/sh: docker: command not found` in the output.
 
+To build using the local clang, you can use:
+```
+CONTAINER_ENGINE='sudo podman' LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1 make
+```
+See [Dockerfile.clang](https://github.com/cilium/tetragon/blob/main/Dockerfile.clang) for the minimal required version of `clang`.
+
 You should now have a `./tetragon` binary, which can be run as follows:
 
 ```
