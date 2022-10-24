@@ -537,7 +537,6 @@ func TestExecPerfring(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
 

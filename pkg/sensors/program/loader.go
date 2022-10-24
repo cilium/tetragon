@@ -1,6 +1,7 @@
 package program
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -374,10 +375,19 @@ func doLoadProgram(
 			// gets properly pretty-printed.
 			if verbose != 0 {
 				logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
-				fmt.Println(slimVerifierError(err.Error()))
+				var ve *ebpf.VerifierError
+				if errors.As(err, &ve) {
+					// Print a truncated version if we have verbose=1, otherwise dump the
+					// full log.
+					if verbose < 2 {
+						fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
+					} else {
+						fmt.Println(fmt.Sprintf("%+v", ve))
+					}
+				}
 			}
 
-			return nil, fmt.Errorf("opening collection '%s' failed", load.Name)
+			return nil, fmt.Errorf("opening collection '%s' failed: %w", load.Name, err)
 		}
 	}
 	defer coll.Close()
