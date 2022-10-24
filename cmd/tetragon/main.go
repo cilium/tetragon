@@ -415,7 +415,7 @@ func execute() error {
 
 	flags.String(keyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
 	flags.String(keyKernelVersion, "", "Kernel version")
-	flags.Int(keyVerbosity, 0, "set verbosity level")
+	flags.Int(keyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(keyProcessCacheSize, 65536, "Size of the process cache")
 	flags.Bool(keyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
 	flags.String(keyExportFilename, "", "Filename for JSON export. Disabled by default")

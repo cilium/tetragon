@@ -55,7 +55,6 @@ func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.Tra
 	}
 	tpSensor := ret[0]
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
 	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
 	tus.LoadSensor(ctx, t, tpSensor)
@@ -145,8 +144,8 @@ var testCases = []struct {
 // It is different from the tests in tracepioint_test.go in that:
 //   - it directly reads from the ringbuffer
 //   - it test different configurations by detaching (unlinking) the tracepoint hook, update the
-//   cosnfiguration, and relinking. This means that verification for every test happens only once,
-//   significantly reducing test time.
+//     cosnfiguration, and relinking. This means that verification for every test happens only once,
+//     significantly reducing test time.
 //
 // As other tracepoint tests, it uses the lseek system call with a bogus whence value.
 func TestTracepointSelectors(t *testing.T) {
