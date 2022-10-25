@@ -152,6 +152,7 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	if (!heap)
 		return bin;
 
+	memset(heap->pathname, 0, 255);
 	probe_read_str(heap->pathname, 255, filename);
 	value = map_lookup_elem(&names_map, heap->pathname);
 	if (value)
