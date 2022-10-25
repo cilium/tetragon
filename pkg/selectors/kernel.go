@@ -636,34 +636,46 @@ func parseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
-func parseMatchBinary(k *KernelSelectorState, index uint32, b *v1alpha1.BinarySelector) error {
-	op, err := selectorOp(b.Operator)
-	if err != nil {
-		return fmt.Errorf("matchpid error: %w", err)
+var binaryNames []string
+
+func addBinaryNames(k *KernelSelectorState, spec *v1alpha1.BinarySelector) error {
+	offset := uint32(len(binaryNames))
+	for _, s := range spec.Values {
+		offset++
+		binaryNames = append(binaryNames, s)
+		WriteSelectorUint32(k, offset)
+		WriteBinaryMap(offset, s)
 	}
-	WriteSelectorUint32(k, op)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
+	for l := len(spec.Values); l < 4; l++ {
+		WriteSelectorUint32(k, ^uint32(0))
+	}
 	return nil
 }
 
 func parseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector) error {
 	loff := AdvanceSelectorLength(k)
-	if len(binarys) > 1 {
+	if len(binarys) > 4 {
 		return fmt.Errorf("Only support single binary selector")
 	} else if len(binarys) == 0 {
-		// To aid verifier we always zero in binary fields to allow
-		// BPF to assume the values exist.
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
+		// To aid verifier we always mark fields as -1 to to allow
+		// BPF to assume the values exist, but avoid matching a
+		// binary id.
+		WriteSelectorUint32(k, ^uint32(0))
+		WriteSelectorUint32(k, ^uint32(0))
+		WriteSelectorUint32(k, ^uint32(0))
+		WriteSelectorUint32(k, ^uint32(0))
+		WriteSelectorUint32(k, ^uint32(0))
 	} else {
-		if err := parseMatchBinary(k, 1, &binarys[0]); err != nil {
-			return err
+		for _, bin := range binarys {
+			op, err := selectorOp(bin.Operator)
+			if err != nil {
+				return fmt.Errorf("matchpid error: %w", err)
+			}
+			WriteSelectorUint32(k, op)
+
+			if err := addBinaryNames(k, &bin); err != nil {
+				return err
+			}
 		}
 	}
 	WriteSelectorLength(k, loff)

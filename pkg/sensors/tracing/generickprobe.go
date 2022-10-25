@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"sync/atomic"
@@ -32,7 +31,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
@@ -188,17 +186,6 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 		meta = meta | argReturnCopyBit
 	}
 	return meta, nil
-}
-
-var binaryNames []v1alpha1.BinarySelector
-
-func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
-	for _, s := range spec.Selectors {
-		for _, b := range s.MatchBinaries {
-			binaryNames = append(binaryNames, b)
-		}
-	}
-	return nil
 }
 
 func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
@@ -389,11 +376,6 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		// Parse Filters into kernel filter logic
 		kernelSelectorState, err := selectors.InitKernelSelectorState(f.Selectors, f.Args)
 		if err != nil {
-			return nil, err
-		}
-
-		// Parse Binary Name into kernel data structures
-		if err := initBinaryNames(f); err != nil {
 			return nil, err
 		}
 
@@ -610,20 +592,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 
 	if err := program.LoadKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach)
-	} else {
-		return err
 	}
-
-	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
-	if err != nil {
-		return err
-	}
-	for i, b := range binaryNames {
-		for _, path := range b.Values {
-			writeBinaryMap(i+1, path, m)
-		}
-	}
-
 	return err
 }
 
@@ -656,23 +625,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		load.MultiCookies = append(load.MultiCookies, uint64(index))
 	}
 
-	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
-	} else {
+	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err != nil {
 		return err
 	}
-
-	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
-	if err != nil {
-		return err
-	}
-	for i, b := range binaryNames {
-		for _, path := range b.Values {
-			writeBinaryMap(i+1, path, m)
-		}
-	}
-
-	return err
+	logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	return nil
 }
 
 func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
