@@ -254,7 +254,7 @@ If you observe, the output in the first terminal should be:
 ```
 
 Here you can see the binary names along with its arguments, the pod info, and
-return codes. For a compact one line view of the events.
+return codes in a compact one-line view of the events.
 
 For more details use the raw JSON events to get detailed information, you can stop
 the Tetragon CLI by `Crl-C` and parse the `tetragon.log` file by executing:
@@ -532,7 +532,7 @@ the arguments of the observed system call. In the above case they are
 To disable the `TracingPolicy` run:
 
 ```bash
-kubectl delete -f ./crds/examples/sys_write_follow_fd_prefix.yaml
+kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/sys_write_follow_fd_prefix.yaml
 ```
 
 ### Network Observability
@@ -565,7 +565,7 @@ The output in the first terminal will capture the new connect and write,
 
 To disable the TracingPolicy run:
 ```bash
-kubectl delete -f ./crds/examples/tcp-connect.yaml
+kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/tcp-connect.yaml
 ```
 
 ### Privileged Execution
