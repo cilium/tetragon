@@ -141,7 +141,7 @@ helm install tetragon cilium/tetragon -n kube-system
 kubectl rollout status -n kube-system ds/tetragon -w
 ```
 
-By default, kube-system pods are filtered for the examples below we use the demo
+By default, kube-system pods are filtered. For the examples below, we use the demo
 deployment from [Cilium](https://docs.cilium.io/en/v1.11/gettingstarted/http/#gs-http)
 to generate events.
 
