@@ -28,6 +28,11 @@ var (
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
+	NotifyOverflowedEvents = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name:        consts.MetricNamePrefix + "notify_overflowed_events",
+		Help:        "The total number of events dropped because listener buffer was full",
+		ConstLabels: nil,
+	}, nil)
 )
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {

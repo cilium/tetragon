@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/version"
 )
@@ -69,7 +70,12 @@ func newListener() *getEventsListener {
 }
 
 func (l *getEventsListener) Notify(res *tetragon.GetEventsResponse) {
-	l.events <- res
+	select {
+	case l.events <- res:
+	default:
+		// events channel is full: drop the event so that we do not block everything
+		eventmetrics.NotifyOverflowedEvents.WithLabelValues().Inc()
+	}
 }
 
 func (s *Server) NotifyListeners(original interface{}, processed *tetragon.GetEventsResponse) {
