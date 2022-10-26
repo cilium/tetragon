@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
@@ -28,7 +29,7 @@ var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool,
 	return json.NewEncoder(w)
 }
 
-func getRequest(namespaces []string, host bool, processes []string, pods []string) *tetragon.GetEventsRequest {
+func getRequest(includeFields, excludeFields []string, namespaces []string, host bool, processes []string, pods []string) *tetragon.GetEventsRequest {
 	if host {
 		// Host events can be matched by an empty namespace string.
 		namespaces = append(namespaces, "")
@@ -47,8 +48,30 @@ func getRequest(namespaces []string, host bool, processes []string, pods []strin
 	if len(pods) > 0 {
 		filter.PodRegex = pods
 	}
+
+	var fieldFilters []*tetragon.FieldFilter
+	if len(includeFields) > 0 {
+		fieldFilters = append(fieldFilters, &tetragon.FieldFilter{
+			EventSet: []tetragon.EventType{},
+			Fields: &fieldmaskpb.FieldMask{
+				Paths: includeFields,
+			},
+			Action: tetragon.FieldFilterAction_INCLUDE,
+		})
+	}
+	if len(excludeFields) > 0 {
+		fieldFilters = append(fieldFilters, &tetragon.FieldFilter{
+			EventSet: []tetragon.EventType{},
+			Fields: &fieldmaskpb.FieldMask{
+				Paths: excludeFields,
+			},
+			Action: tetragon.FieldFilterAction_EXCLUDE,
+		})
+	}
+
 	return &tetragon.GetEventsRequest{
-		AllowList: []*tetragon.Filter{&filter},
+		FieldFilters: fieldFilters,
+		AllowList:    []*tetragon.Filter{&filter},
 	}
 }
 
@@ -60,8 +83,10 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
 	timestamps := viper.GetBool("timestamps")
 	compact := viper.GetString(common.KeyOutput) == "compact"
 	colorMode := encoder.ColorMode(viper.GetString(common.KeyColor))
+	includeFields := viper.GetStringSlice("include-fields")
+	excludeFields := viper.GetStringSlice("exclude-fields")
 
-	request := getRequest(namespaces, host, processes, pods)
+	request := getRequest(includeFields, excludeFields, namespaces, host, processes, pods)
 	stream, err := client.GetEvents(ctx, request)
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
@@ -100,6 +125,8 @@ func New() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringP("output", "o", "json", "Output format. json or compact")
 	flags.String("color", "auto", "Colorize compact output. auto, always, or never")
+	flags.StringSliceP("include-fields", "f", nil, "Include fields in events")
+	flags.StringSliceP("exclude-fields", "F", nil, "Exclude fields from events")
 	flags.StringSliceP("namespace", "n", nil, "Get events by Kubernetes namespaces")
 	flags.StringSlice("process", nil, "Get events by process name regex")
 	flags.StringSlice("pod", nil, "Get events by pod name regex")
