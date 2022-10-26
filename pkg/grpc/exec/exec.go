@@ -30,13 +30,13 @@ const (
 	ProcessRefCnt = 1
 )
 
-func execCleanup(msg *MsgExecveEventUnix) {
-	if msg.CleanupProcess.Ktime != 0 {
-		ev := &MsgProcessCleanupEventUnix{
-			PID:   msg.CleanupProcess.Pid,
-			Ktime: msg.CleanupProcess.Ktime,
-		}
-		ev.HandleMessage()
+func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
+	if msg.CleanupProcess.Ktime == 0 {
+		return nil
+	}
+	return &MsgProcessCleanupEventUnix{
+		PID:   msg.CleanupProcess.Pid,
+		Ktime: msg.CleanupProcess.Ktime,
 	}
 }
 
@@ -79,7 +79,9 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	// do we need to cleanup anything?
-	execCleanup(event)
+	if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
+		cleanupEvent.HandleMessage()
+	}
 
 	return tetragonEvent
 }
@@ -135,7 +137,12 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	}
 
 	// do we need to cleanup anything?
-	execCleanup(msg)
+	if cleanupEvent := msg.getCleanupEvent(); cleanupEvent != nil {
+		// Retry() is going to be executed in the cache loop handling function, but
+		// HandleMessage may enqueue something in the cache channel. To avoid a deadlock,
+		// execute the cleanup message handling in a separate goroutine.
+		go cleanupEvent.HandleMessage()
+	}
 
 	return nil
 }
