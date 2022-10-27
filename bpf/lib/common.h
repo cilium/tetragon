@@ -23,12 +23,6 @@ struct msg_test {
 #define BPF_F_INDEX_MASK  0xffffffffULL
 #define BPF_F_CURRENT_CPU BPF_F_INDEX_MASK
 
-#define bpf_printk(fmt, ...)                                                   \
-	({                                                                     \
-		char ____fmt[] = fmt;                                          \
-		trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__);         \
-	})
-
 #ifndef bpf_ntohs
 #define bpf_ntohs(x) __builtin_bswap16(x)
 #endif
