@@ -121,12 +121,8 @@ static uint64_t BPF_FUNC(get_socket_cookie, void *ctx);
 __attribute__((__format__(__printf__, 1, 3)))
 static void BPF_FUNC(trace_printk, const char *fmt, int fmt_size, ...);
 
-#ifndef printt
-# define printt(fmt, ...)						\
-	({								\
-		trace_printk(____fmt, ##__VA_ARGS__);			\
-	})
-#endif
+static long BPF_FUNC(trace_vprintk, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len);
+
 
 /* Random numbers */
 static uint32_t BPF_FUNC(get_prandom_u32);
