@@ -1,0 +1,10 @@
+[Unit]
+Description=Tetragon eBPF-based Security Observability and Runtime Enforcement Service
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/tetragon
+
+[Install]
+WantedBy=multi-user.target
