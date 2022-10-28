@@ -1,0 +1,6 @@
+NAME="Tetragon Linux Image"
+ID=tetragon
+VERSION_ID=0.1
+PRETTY_NAME="Tetragon Linux Image v0.1"
+HOME_URL="https://github.com/cilium/tetragon"
+BUG_REPORT_URL="https://github.com/cilium/tetragon/issues"
