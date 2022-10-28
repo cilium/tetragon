@@ -22,6 +22,8 @@ data:
 {{- .Values.tetragon.exportAllowList | trim | nindent 4 }}
   export-denylist: |-
 {{- .Values.tetragon.exportDenyList | trim | nindent 4 }}
+  field-filters: |-
+{{- .Values.tetragon.fieldFilters | trim | nindent 4 }}
   export-rate-limit: {{ .Values.tetragon.exportRateLimit | quote }}
 {{- end }}
 {{- if .Values.tetragon.enableK8sAPI }}

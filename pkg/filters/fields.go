@@ -4,12 +4,34 @@
 package filters
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/mennanov/fmutils"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
+	if filters == "" {
+		return nil, nil
+	}
+	dec := json.NewDecoder(strings.NewReader(filters))
+	var results []*tetragon.FieldFilter
+	for {
+		var result tetragon.FieldFilter
+		if err := dec.Decode(&result); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		results = append(results, &result)
+	}
+	return results, nil
+}
 
 // FieldFilter is a helper for filtering fields in events
 type FieldFilter struct {

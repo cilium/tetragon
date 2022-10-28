@@ -61,6 +61,7 @@ Helm chart for Tetragon
 | tetragon.extraArgs | object | `{}` |  |
 | tetragon.extraEnv | list | `[]` |  |
 | tetragon.extraVolumeMounts | list | `[]` |  |
+| tetragon.fieldFilters | string | `"{}"` |  |
 | tetragon.gops.address | string | `"localhost"` | The address at which to expose gops. |
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
 | tetragon.grpc.address | string | `"localhost"` | The address at which to expose gRPC. Set it to "" to listen on all available interfaces. |
