@@ -1,0 +1,23 @@
+FROM cilium/tetragon:latest as tetragon-latest
+
+RUN mkdir -p /usr/lib/systemd/system/ && \
+    mkdir -p /etc/systemd/system/ && \
+    mkdir -p /{/proc,/root,/sys/fs,/sys/kernel/debug,/dev,/run,/tmp,/var/tmp/}
+
+FROM scratch as stage-1
+
+COPY contrib/systemd/tetragon.service /usr/lib/systemd/system/
+COPY contrib/systemd/machine-id /etc/
+COPY contrib/systemd/resolv.conf /etc/
+COPY contrib/systemd/os-release /usr/lib/
+
+COPY --from=tetragon-latest /root /root
+COPY --from=tetragon-latest /usr/bin/bpftool /usr/bin/
+COPY --from=tetragon-latest /usr/bin/tetragon /usr/bin/
+COPY --from=tetragon-latest /usr/bin/tetra /usr/bin/
+COPY --from=tetragon-latest /usr/bin/gops /usr/bin/
+COPY --from=tetragon-latest /var/lib/tetragon /var/lib/tetragon
+
+FROM scratch as stage-2
+
+COPY --from=stage-1 / /
