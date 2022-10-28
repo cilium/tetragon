@@ -12,6 +12,8 @@ TESTER_PROGS_DIR = "contrib/tester-progs"
 # Extra flags to pass to test binary
 EXTRA_TESTFLAGS ?=
 
+PKG_BUILD_DIR ?= ./build/pkgs
+
 VERSION ?= $(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
@@ -45,6 +47,8 @@ help:
 	@echo 'Container images:'
 	@echo '    image             - build the Tetragon agent container image'
 	@echo '    image-operator    - build the Tetragon operator container image'
+	@echo 'Packages:'
+	@echo '    systemd-pkg       - build Tetragon systemd portable-service image'
 	@echo 'Generated files:'
 	@echo '    codegen           - generate code based on .proto files'
 	@echo '    generate          - generate kubebuilder files'
@@ -128,7 +132,7 @@ vendor:
 .PHONY: clean
 clean: cli-clean
 	$(MAKE) -C ./bpf clean
-	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
+	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker $(PKG_BUILD_DIR)
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
@@ -216,9 +220,24 @@ image-clang:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-clang-arm
 image-clang-arm:
 	# to compile bpf programs for arm, put 'docker.io/cilium/clang.arm:latest' to CLANG_IMAGE
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang.arm -t "cilium/clang.arm:${DOCKER_IMAGE_TAG}" .
+
+.PHONY: systemd-pkg
+systemd-pkg: image
+	$(CONTAINER_ENGINE) build -f Dockerfile.pkg.systemd -t "cilium/tetragon-systemd-pkg:${DOCKER_IMAGE_TAG}" --build-arg TETRAGON_VERSION=$(VERSION) .
+	$(QUIET)mkdir -p $(PKG_BUILD_DIR)
+	$(CONTAINER_ENGINE) save cilium/tetragon-systemd-pkg:$(DOCKER_IMAGE_TAG) -o $(PKG_BUILD_DIR)/tetragon-systemd-pkg.tar
+	$(QUIET)rm -fr $(PKG_BUILD_DIR)/exports/
+	$(QUIET)mkdir -p $(PKG_BUILD_DIR)/exports/docker/
+	$(QUIET)mkdir -p $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION)
+	tar xC $(PKG_BUILD_DIR)/exports/docker/ -f $(PKG_BUILD_DIR)/tetragon-systemd-pkg.tar
+	find $(PKG_BUILD_DIR)/exports/docker/ -name 'layer.tar' -exec cp '{}' $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION).tar \;
+	tar xC $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION) -f $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION).tar
+	$(QUIET)echo "systemd portable image is ready: $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION)"
+	$(QUIET)echo "systemd portable tarball image is ready: $(PKG_BUILD_DIR)/exports/tetragon_$(VERSION).tar"
 
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
