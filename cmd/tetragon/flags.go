@@ -55,6 +55,8 @@ const (
 	keyExportAllowlist = "export-allowlist"
 	keyExportDenylist  = "export-denylist"
 
+	keyFieldFilters = "field-filters"
+
 	keyNetnsDir = "netns-dir"
 
 	keyDisableKprobeMulti = "disable-kprobe-multi"

@@ -70,6 +70,17 @@ func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 	return allowList, denyList, nil
 }
 
+func getFieldFilters() ([]*tetragon.FieldFilter, error) {
+	fieldFilters := viper.GetString(keyFieldFilters)
+
+	filters, err := filters.ParseFieldFilterList(fieldFilters)
+	if err != nil {
+		return nil, err
+	}
+
+	return filters, nil
+}
+
 func saveInitInfo() error {
 	info := bugtool.InitInfo{
 		ExportFname: exportFilename,
@@ -295,6 +306,10 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	if err != nil {
 		return err
 	}
+	fieldFilters, err := getFieldFilters()
+	if err != nil {
+		return err
+	}
 	writer := &lumberjack.Logger{
 		Filename:   exportFilename,
 		MaxSize:    exportFileMaxSizeMB,
@@ -331,7 +346,8 @@ func startExporter(ctx context.Context, server *server.Server) error {
 			ChannelBufferSize: exportAggregationBufferSize,
 		}
 	}
-	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions}
+	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
+	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Debug("Configured field filters")
 	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
 	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 	exporter.Start()
@@ -466,6 +482,9 @@ func execute() error {
 	// JSON export filter options
 	flags.String(keyExportAllowlist, "", "JSON export allowlist")
 	flags.String(keyExportDenylist, "", "JSON export denylist")
+
+	// Field filters options for export
+	flags.String(keyFieldFilters, "", "Field filters for event exports")
 
 	// Network namespace options
 	flags.String(keyNetnsDir, "/var/run/docker/netns/", "Network namespace dir")
