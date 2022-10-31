@@ -102,10 +102,17 @@ jobs:
 
         make e2e-test E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-tetragon.install-cilium=false -cluster-name=${{ env.clusterName }} -kubeconfig ~/.kube/config -args -v=4"
 
+    - name: Copy out e2e test logs
+      if: ${{ failure() || cancelled() }}
+      run: |
+        rm -rf logs/e2e
+        mkdir -p logs/e2e
+        scp -r -P 2222 'root@localhost:/tmp/tetragon.e2e.*' logs/e2e/
+
     - name: Upload Tetragon Logs
       if: failure()
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: tetragon-logs
-        path: /tmp/tetragon.gotest*
+        path: logs/e2e
         retention-days: 5
