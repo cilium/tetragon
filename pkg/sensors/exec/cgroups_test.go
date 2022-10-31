@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -20,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
@@ -203,4 +205,115 @@ func TestCgroupNoEvents(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Ensure that we get cgroup_{mkdir|rmdir} events
+func TestCgroupEventMkdirRmdir(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	testManager := tus.StartTestSensorManager(ctx, t)
+	observer.SensorManager = testManager.Manager
+
+	testManager.EnableSensors(ctx, t, loadedSensors)
+
+	// Set Tracking level to 3 so we receive notifcations about
+	// /sys/fs/cgroup/$1/$2/$3 all cgroups that are at level <=3
+	trackingCgrpLevel := uint32(3)
+	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel))
+
+	cgroupFSPath := cgroups.GetCgroupFSPath()
+	assert.NotEmpty(t, cgroupFSPath)
+
+	dir, hierarchy := getTestCgroupDirAndHierarchy(t)
+	cgroupRmdir(t, cgroupFSPath, hierarchy, tetragonCgrpRoot)
+
+	matchedPath := dir
+	finalPath := filepath.Join(cgroupFSPath, hierarchy, dir)
+	_, err = os.Stat(finalPath)
+	if err == nil {
+		t.Fatalf("Test %s failed cgroup test hierarchy should not exist '%s'", t.Name(), finalPath)
+	}
+
+	t.Cleanup(func() {
+		cgroupRmdir(t, cgroupFSPath, hierarchy, dir)
+	})
+
+	trigger := func() {
+		err = cgroupMkdir(t, cgroupFSPath, hierarchy, dir)
+		assert.NoError(t, err)
+
+		err = cgroupRmdir(t, cgroupFSPath, hierarchy, dir)
+		assert.NoError(t, err)
+	}
+
+	mkdir := false
+	rmdir := false
+	cgrpMap := testsensor.GetCgroupsTrackingMap()
+	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), cgrpMap.Name)
+	cgrpTrackingId := uint64(0)
+	events := perfring.RunTestEvents(t, ctx, trigger)
+	for _, ev := range events {
+		if msg, ok := ev.(*grpcexec.MsgCgroupEventUnix); ok {
+			if msg.Common.Op == ops.MSG_OP_CGROUP {
+				cgrpPath := cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH])
+				op := ops.CgroupOpCode(msg.CgrpOp)
+				st := ops.CgroupState(msg.CgrpData.State).String()
+				logger.GetLogger().WithFields(logrus.Fields{
+					"cgroup.event":     op.String(),
+					"PID":              msg.PID,
+					"NSPID":            msg.NSPID,
+					"cgroup.IDTracker": msg.CgrpidTracker,
+					"cgroup.ID":        msg.Cgrpid,
+					"cgroup.state":     st,
+					"cgroup.level":     msg.CgrpData.Level,
+					"cgroup.path":      cgrpPath,
+				}).Info("Received Cgroup event")
+
+				assert.NotZero(t, msg.PID)
+				assert.NotZero(t, msg.Cgrpid)
+				assert.NotZero(t, msg.CgrpidTracker)
+				assert.NotEqualValues(t, msg.CgrpData.State, ops.CGROUP_UNTRACKED)
+				assert.NotZero(t, msg.CgrpData.Level)
+
+				switch op {
+				case ops.MSG_OP_CGROUP_MKDIR:
+					assert.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
+					// Match only our test
+					if cgrpPath == matchedPath {
+						cgrpName := cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH])
+						assert.EqualValues(t, t.Name(), cgrpName)
+
+						mkdir = true
+						cgrpTrackingId = msg.CgrpidTracker
+					}
+				case ops.MSG_OP_CGROUP_RMDIR:
+					// Match only our test
+					if cgrpPath == matchedPath {
+						cgrpName := cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH])
+						assert.EqualValues(t, t.Name(), cgrpName)
+						rmdir = true
+					}
+				}
+			}
+		}
+	}
+
+	// Ensure that we received proper events
+	assert.Equal(t, true, mkdir)
+	assert.Equal(t, true, rmdir)
+	assert.NotZero(t, true, cgrpTrackingId)
+
+	// Should be removed from the tracking map
+	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingId)
+	assert.Error(t, err)
 }
