@@ -10,6 +10,12 @@ on:
     branches:
       - main
 
+permissions:
+  # To be able to access the repository with `actions/checkout`
+  contents: read
+  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+  id-token: write
+
 jobs:
   build-and-push-prs:
     runs-on: ubuntu-20.04
@@ -50,6 +56,9 @@ jobs:
         run: |
           echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
+
       # main branch pushes
       - name: CI Build (main)
         if: ${{ github.event_name != 'pull_request_target' }}
@@ -65,6 +74,13 @@ jobs:
           tags: |
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:latest
+
+      - name: Sign Container Image
+        if: ${{ github.event_name != 'pull_request_target' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
 
       - name: CI Image Releases digests (main)
         if: ${{ github.event_name != 'pull_request_target' }}
@@ -87,6 +103,13 @@ jobs:
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
+
+      - name: Sign Container Image
+        if: ${{ github.event_name == 'pull_request_target' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
 
       - name: CI Image Releases digests (PR)
         if: ${{ github.event_name == 'pull_request_target' }}

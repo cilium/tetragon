@@ -625,6 +625,30 @@ we provide a standard VagrantFile with the required components enabled. Simply r
 
 This should be sufficient to create a Kind cluster and run Tetragon. For more information on the vagrant builds, see the [Development Guide](docs/contributing/development/README.md#local-development-in-vagrant-box).
 
+## Verify Tetragon Image Signatures
+
+### Prerequisites
+
+You will need to [install cosign](https://docs.sigstore.dev/cosign/installation/).
+
+### Verify Signed Container Images
+
+Since version 0.8.4, all Tetragon container images are signed using cosign.
+
+Let's verify a Tetragon image's signature using the `cosign verify` command:
+
+```bash
+$ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-github-workflow-name "Image CI Releases" --certificate-github-workflow-ref refs/tags/[RELEASE TAG] quay.io/cilium/tetragon:v0.8.4 | jq
+```
+
+**Note**
+
+`COSIGN_EXPERIMENTAL=1` is used to allow verification of images signed in KEYLESS mode. To learn more about keyless signing, please refer to [Keyless Signatures](https://github.com/sigstore/cosign/blob/main/KEYLESS.md#keyless-signatures).
+
+`--certificate-github-workflow-name string` contains the workflow claim from the GitHub OIDC Identity token that contains the name of the executed workflow. For the names of workflows used to build Tetragon images, see the build image workflows under [Tetragon workflows](https://github.com/cilium/tetragon/tree/main/.github/workflows).
+
+`--certificate-github-workflow-ref string` contains the ref claim from the GitHub OIDC Identity token that contains the git ref that the workflow run was based upon.
+
 # FAQ
 
 **Q:** Can I install and use Tetragon in standalone mode (outside of k8s)?
