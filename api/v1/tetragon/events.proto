@@ -70,6 +70,8 @@ message FieldFilter {
     google.protobuf.FieldMask fields = 2;
     // Whether to include or exclude fields.
     FieldFilterAction action = 3;
+    // Whether or not the event set filter should be inverted.
+    google.protobuf.BoolValue invert_event_set = 4;
 }
 
 message GetEventsRequest {

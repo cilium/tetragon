@@ -123,19 +123,19 @@ func TestFieldFilterByEventType(t *testing.T) {
 		},
 	}
 
-	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXIT}, []string{"process.pid"})
+	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXIT}, []string{"process.pid"}, false)
 	filter.Filter(ev)
 
 	assert.NotEmpty(t, ev.GetProcessExec().Process.Pid)
 
-	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process.pid"})
+	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process.pid"}, false)
 	filter.Filter(ev)
 
 	assert.Empty(t, ev.GetProcessExec().Process.Pid)
 }
 
 func TestEmptyFieldFilter(t *testing.T) {
-	filter := NewIncludeFieldFilter([]tetragon.EventType{}, []string{})
+	filter := NewIncludeFieldFilter([]tetragon.EventType{}, []string{}, false)
 
 	ev := &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -224,6 +224,51 @@ func TestEmptyFieldFilter(t *testing.T) {
 	}
 
 	assert.True(t, proto.Equal(ev, expected), "events are equal before filter")
+	filter.Filter(ev)
+	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
+}
+
+func TestFieldFilterInvertedEventSet(t *testing.T) {
+	ev := &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{},
+				Parent:  &tetragon.Process{},
+			},
+		},
+	}
+
+	expected := &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{},
+				Parent:  &tetragon.Process{},
+			},
+		},
+	}
+
+	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process", "parent"}, true)
+	assert.True(t, proto.Equal(ev, expected), "events are equal before filter")
+	filter.Filter(ev)
+	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
+
+	ev = &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{},
+				Parent:  &tetragon.Process{},
+			},
+		},
+	}
+
+	expected = &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{},
+		},
+	}
+
+	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_KPROBE}, []string{"process", "parent"}, true)
+	assert.False(t, proto.Equal(ev, expected), "events are not equal before filter")
 	filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
 }
