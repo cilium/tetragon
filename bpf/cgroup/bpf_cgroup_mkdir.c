@@ -18,8 +18,8 @@ int _version __attribute__((section(("version")), used)) =
 __attribute__((section(("raw_tracepoint/cgroup_mkdir")), used)) int
 tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 {
-	int level, zero = 0;
 	uint64_t cgrpid;
+	int level, hierarchy_id, zero = 0;
 	struct cgroup *cgrp;
 	struct cgroup_tracking_value *cgrp_heap;
 	struct tetragon_conf *config;
@@ -29,6 +29,15 @@ tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 		return 0;
 
 	cgrp = (struct cgroup *)ctx->args[0];
+
+	hierarchy_id = get_cgroup_hierarchy_id(cgrp);
+	/*
+	 * In a cgroupv1 setup, there can be multiple cgroup hierarchies but
+	 * we want to track only one If this is not the hierarchy we care
+	 * about, exit.
+	 */
+	if (config->tg_cgrp_hierarchy != hierarchy_id)
+		return 0;
 
 	level = get_cgroup_level(cgrp);
 	/* This should never happen as the cgroup hierarchy has already been
