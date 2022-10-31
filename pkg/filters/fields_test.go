@@ -4,6 +4,7 @@
 package filters
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -271,4 +272,341 @@ func TestFieldFilterInvertedEventSet(t *testing.T) {
 	assert.False(t, proto.Equal(ev, expected), "events are not equal before filter")
 	filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
+}
+
+func TestSlimExecEventsFieldFilterExample(t *testing.T) {
+	evs := []*tetragon.GetEventsResponse{
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						ExecId:       "foo",
+						ParentExecId: "",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 1,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+					Parent: &tetragon.Process{
+						ExecId:       "foo",
+						ParentExecId: "",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 1,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+					Parent: &tetragon.Process{
+						ExecId:       "foo",
+						ParentExecId: "",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 1,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+					FunctionName: "baz",
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExit{
+				ProcessExit: &tetragon.ProcessExit{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+					Parent: &tetragon.Process{
+						ExecId:       "foo",
+						ParentExecId: "",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 1,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+				},
+			},
+		},
+	}
+
+	expected := []*tetragon.GetEventsResponse{
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						ExecId:       "foo",
+						ParentExecId: "",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 1,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+						Pid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Cwd:       "/",
+						Binary:    "/bin/bash",
+						Arguments: "-c hello.sh",
+						Flags:     "procFS",
+						StartTime: &timestamppb.Timestamp{
+							Seconds: 1337,
+							Nanos:   100,
+						},
+						Auid: &wrapperspb.UInt32Value{
+							Value: 2,
+						},
+						Pod: &tetragon.Pod{
+							Namespace: "foo",
+							Name:      "bar",
+						},
+						Docker: "qux",
+						Refcnt: 12,
+						Cap:    &tetragon.Capabilities{},
+						Ns:     &tetragon.Namespaces{},
+					},
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+					},
+					FunctionName: "baz",
+				},
+			},
+		},
+
+		{
+			Event: &tetragon.GetEventsResponse_ProcessExit{
+				ProcessExit: &tetragon.ProcessExit{
+					Process: &tetragon.Process{
+						ExecId:       "bar",
+						ParentExecId: "foo",
+					},
+				},
+			},
+		},
+	}
+
+	filters := []*FieldFilter{
+		NewExcludeFieldFilter([]tetragon.EventType{}, []string{"parent"}, false),
+		NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{
+			"process.pid",
+			"process.uid",
+			"process.cwd",
+			"process.binary",
+			"process.arguments",
+			"process.flags",
+			"process.start_time",
+			"process.auid",
+			"process.pod",
+			"process.docker",
+			"process.refcnt",
+			"process.cap",
+			"process.ns",
+		}, true),
+	}
+
+	for _, filter := range filters {
+		for _, ev := range evs {
+			filter.Filter(ev)
+		}
+	}
+	for i := range evs {
+		if !assert.True(t, proto.Equal(evs[i], expected[i]), fmt.Sprintf("event %d should be equal after filter", i)) {
+			fmt.Println("expected: ", expected[i])
+			fmt.Println("actual: ", evs[i])
+		}
+	}
 }
