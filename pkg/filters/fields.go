@@ -35,28 +35,30 @@ func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
 
 // FieldFilter is a helper for filtering fields in events
 type FieldFilter struct {
-	eventSet []tetragon.EventType
-	fields   fmutils.NestedMask
-	action   tetragon.FieldFilterAction
+	eventSet       []tetragon.EventType
+	fields         fmutils.NestedMask
+	action         tetragon.FieldFilterAction
+	invertEventSet bool
 }
 
 // NewFieldFilter constructs a new FieldFilter from a set of fields.
-func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetragon.FieldFilterAction) *FieldFilter {
+func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetragon.FieldFilterAction, invertEventSet bool) *FieldFilter {
 	return &FieldFilter{
-		eventSet: eventSet,
-		fields:   fmutils.NestedMaskFromPaths(fields),
-		action:   action,
+		eventSet:       eventSet,
+		fields:         fmutils.NestedMaskFromPaths(fields),
+		action:         action,
+		invertEventSet: invertEventSet,
 	}
 }
 
 // NewIncludeFieldFilter constructs a new inclusion FieldFilter from a set of fields.
-func NewIncludeFieldFilter(eventSet []tetragon.EventType, fields []string) *FieldFilter {
-	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_INCLUDE)
+func NewIncludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) *FieldFilter {
+	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_INCLUDE, invertEventSet)
 }
 
 // NewExcludeFieldFilter constructs a new exclusion FieldFilter from a set of fields.
-func NewExcludeFieldFilter(eventSet []tetragon.EventType, fields []string) *FieldFilter {
-	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_EXCLUDE)
+func NewExcludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) *FieldFilter {
+	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_EXCLUDE, invertEventSet)
 }
 
 // FieldFilterFromProto constructs a new FieldFilter from a Tetragon API field filter.
@@ -69,10 +71,16 @@ func FieldFilterFromProto(filter *tetragon.FieldFilter) *FieldFilter {
 		fields = make(fmutils.NestedMask)
 	}
 
+	invert := false
+	if filter.InvertEventSet != nil {
+		invert = filter.InvertEventSet.Value
+	}
+
 	return &FieldFilter{
-		eventSet: filter.EventSet,
-		fields:   fields,
-		action:   filter.Action,
+		eventSet:       filter.EventSet,
+		fields:         fields,
+		action:         filter.Action,
+		invertEventSet: invert,
 	}
 }
 
@@ -96,7 +104,9 @@ func FieldFiltersFromGetEventsRequest(request *tetragon.GetEventsRequest) []*Fie
 // takes precedence over inclusion and an empty filter set will keep all remaining fields.
 func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) error {
 	if len(f.eventSet) > 0 {
-		skipFiltering := true
+		// skip filtering by default unless the event set is inverted, in which case we
+		// want to filter by default and skip only if we have a match
+		skipFiltering := !f.invertEventSet
 		eventProtoNum := tetragon.EventType_UNDEF
 
 		rft := event.ProtoReflect()
@@ -111,7 +121,9 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) error {
 
 		for _, t := range f.eventSet {
 			if t == eventProtoNum {
-				skipFiltering = false
+				// skip filtering if event set is inverted and we have a match, otherwise
+				// don't skip filtering
+				skipFiltering = f.invertEventSet
 			}
 		}
 

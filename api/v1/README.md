@@ -793,6 +793,7 @@ AggregationOptions defines configuration options for aggregating events.
 | event_set | [EventType](#tetragon-EventType) | repeated | Event types to filter or undefined to filter over all event types. |
 | fields | [google.protobuf.FieldMask](#google-protobuf-FieldMask) |  | Fields to include or exclude. |
 | action | [FieldFilterAction](#tetragon-FieldFilterAction) |  | Whether to include or exclude fields. |
+| invert_event_set | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | Whether or not the event set filter should be inverted. |
 
 
 
