@@ -131,7 +131,7 @@ func LogRegisteredSensorsAndProbes() {
 	log.WithField("sensors", strings.Join(names, ", ")).Info("Registered tracing sensors")
 
 	names = []string{}
-	for n := range registeredTracingSensors {
+	for n := range registeredProbeLoad {
 		names = append(names, n)
 	}
 	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
