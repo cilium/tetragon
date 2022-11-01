@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/data"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -240,7 +241,14 @@ type execSensor struct {
 }
 
 func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+	var err error
+
+	if bpf.HasRawTpBtf() {
+		err = program.LoadTracingProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+	} else {
+		err = program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+	}
+
 	if err == nil {
 		procevents.GetRunningProcs()
 	}

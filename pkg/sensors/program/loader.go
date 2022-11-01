@@ -220,7 +220,14 @@ func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) e
 }
 
 func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(load), nil, verbose)
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "execve_calls" {
+			ci = &customInstall{mPath, "", "execve_"}
+			break
+		}
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(load), ci, verbose)
 }
 
 func slimVerifierError(errStr string) string {
