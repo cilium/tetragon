@@ -119,6 +119,9 @@ func stopProfile() {
 }
 
 func tetragonExecute() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -143,6 +146,12 @@ func tetragonExecute() error {
 		defaults.NetnsDir = viper.GetString(keyNetnsDir)
 	}
 
+	// Setup file system mounts
+	bpf.CheckOrMountFS("")
+	bpf.CheckOrMountDebugFS()
+	bpf.CheckOrMountCgroup2()
+
+	// Start profilers first as we have to capture them in signal handling
 	if memProfile != "" {
 		log.WithField("file", memProfile).Info("Starting mem profiling")
 	}
@@ -160,24 +169,34 @@ func tetragonExecute() error {
 		log.WithField("file", cpuProfile).Info("Starting cpu profiling")
 	}
 
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.CheckOrMountCgroup2()
+	defer stopProfile()
 
-	sensors.LogRegisteredSensorsAndProbes()
-
+	// Raise memory resource
 	bpf.ConfigureResourceLimits()
+
+	// Get observer bpf maps and programs directory
 	observerDir := getObserverDir()
 	option.Config.BpfDir = observerDir
 	option.Config.MapDir = observerDir
+
+	// Get observer from configFile
 	obs := observer.NewObserver(configFile)
+	defer func() {
+		obs.PrintStats()
+		obs.RemovePrograms()
+	}()
+
+	go func() {
+		s := <-sigs
+		log.Infof("Received signal %s, shutting down...", s)
+		cancel()
+	}()
+
+	sensors.LogRegisteredSensorsAndProbes()
+
 	if err := obs.InitSensorManager(); err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	var cancelWg sync.WaitGroup
 
 	/* Remove any stale programs, otherwise feature set change can cause
 	 * old programs to linger resulting in undefined behavior. And because
@@ -209,6 +228,9 @@ func tetragonExecute() error {
 		return err
 	}
 
+	var cancelWg sync.WaitGroup
+	defer cancelWg.Wait()
+
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cancelWg,
@@ -225,16 +247,6 @@ func tetragonExecute() error {
 			return err
 		}
 	}
-
-	go func() {
-		<-sigs
-		obs.PrintStats()
-		obs.RemovePrograms()
-		stopProfile()
-		cancel()
-		cancelWg.Wait()
-		os.Exit(1)
-	}()
 
 	log.WithField("enabled", exportFilename != "").WithField("fileName", exportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)

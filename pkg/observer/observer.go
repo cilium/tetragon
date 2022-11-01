@@ -209,7 +209,7 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 		for stopCtx.Err() == nil {
 			record, err := perfReader.Read()
 			if err != nil {
-				// NOTE(JM): Keeping the old behaviour for now and just counting the errors without stopping
+				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
 					k.errorCntr++
 					ringbufmetrics.ErrorsSet(float64(k.errorCntr))
