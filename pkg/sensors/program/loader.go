@@ -26,6 +26,7 @@ type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error
 type customInstall struct {
 	mapName   string
 	secPrefix string
+	prgPrefix string
 }
 
 func RawAttach(targetFD int) AttachFunc {
@@ -168,7 +169,7 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			ci = &customInstall{mPath, "tracepoint"}
+			ci = &customInstall{mPath, "tracepoint", ""}
 			break
 		}
 	}
@@ -183,7 +184,7 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			ci = &customInstall{mPath, "kprobe", ""}
 			break
 		}
 	}
@@ -195,7 +196,7 @@ func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) erro
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
+	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe", ""}
 	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
 }
 
@@ -242,7 +243,7 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		secToProgName[prog.SectionName] = name
 	}
 
-	install := func(mapName string, secPrefix string) error {
+	installSection := func(mapName string, secPrefix string) error {
 		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, mapName), nil)
 		if err != nil {
 			return nil
@@ -263,18 +264,43 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return nil
 	}
 
-	if err := install("http1_calls", "sk_msg"); err != nil {
+	installProgram := func(mapName string, prgPrefix string) error {
+		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, mapName), nil)
+		if err != nil {
+			return nil
+		}
+		defer tailCallsMap.Close()
+
+		for i := 0; i < 11; i++ {
+			progName := fmt.Sprintf("%s%d", prgPrefix, i)
+			if prog, ok := coll.Programs[progName]; ok {
+				err := tailCallsMap.Update(uint32(i), uint32(prog.FD()), ebpf.UpdateAny)
+				if err != nil {
+					return fmt.Errorf("update of tail-call map '%s' failed: %w", mapName, err)
+				}
+			}
+		}
+		return nil
+	}
+
+	if err := installSection("http1_calls", "sk_msg"); err != nil {
 		return err
 	}
-	if err := install("http1_calls_skb", "sk_skb/stream_verdict"); err != nil {
+	if err := installSection("http1_calls_skb", "sk_skb/stream_verdict"); err != nil {
 		return err
 	}
-	if err := install("tls_calls", "classifier"); err != nil {
+	if err := installSection("tls_calls", "classifier"); err != nil {
 		return err
 	}
 	if ci != nil {
-		if err := install(ci.mapName, ci.secPrefix); err != nil {
-			return err
+		if ci.secPrefix != "" {
+			if err := installSection(ci.mapName, ci.secPrefix); err != nil {
+				return err
+			}
+		} else {
+			if err := installProgram(ci.mapName, ci.prgPrefix); err != nil {
+				return err
+			}
 		}
 	}
 
