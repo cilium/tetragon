@@ -119,7 +119,7 @@ func (gf *GoFormatter) writeTypeLit(typ Type, depth int) error {
 	var err error
 	switch v := skipQualifiers(typ).(type) {
 	case *Int:
-		gf.writeIntLit(v)
+		err = gf.writeIntLit(v)
 
 	case *Enum:
 		if !v.Signed {
@@ -166,19 +166,36 @@ func (gf *GoFormatter) writeTypeLit(typ Type, depth int) error {
 	return nil
 }
 
-func (gf *GoFormatter) writeIntLit(i *Int) {
-	// NB: Encoding.IsChar is ignored.
-	if i.Encoding.IsBool() && i.Size == 1 {
-		gf.w.WriteString("bool")
-		return
-	}
-
+func (gf *GoFormatter) writeIntLit(i *Int) error {
 	bits := i.Size * 8
-	if i.Encoding.IsSigned() {
-		fmt.Fprintf(&gf.w, "int%d", bits)
-	} else {
-		fmt.Fprintf(&gf.w, "uint%d", bits)
+	switch i.Encoding {
+	case Bool:
+		if i.Size != 1 {
+			return fmt.Errorf("bool with size %d", i.Size)
+		}
+		gf.w.WriteString("bool")
+	case Char:
+		if i.Size != 1 {
+			return fmt.Errorf("char with size %d", i.Size)
+		}
+		// BTF doesn't have a way to specify the signedness of a char. Assume
+		// we are dealing with unsigned, since this works nicely with []byte
+		// in Go code.
+		fallthrough
+	case Unsigned, Signed:
+		stem := "uint"
+		if i.Encoding == Signed {
+			stem = "int"
+		}
+		if i.Size > 8 {
+			fmt.Fprintf(&gf.w, "[%d]byte /* %s%d */", i.Size, stem, i.Size*8)
+		} else {
+			fmt.Fprintf(&gf.w, "%s%d", stem, bits)
+		}
+	default:
+		return fmt.Errorf("can't encode %s", i.Encoding)
 	}
+	return nil
 }
 
 func (gf *GoFormatter) writeStructLit(size uint32, members []Member, depth int) error {

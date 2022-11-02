@@ -26,8 +26,8 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 11);
-	__type(key, __u32);
-	__type(value, __u32);
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u32));
 } kprobe_calls SEC(".maps");
 
 struct {
