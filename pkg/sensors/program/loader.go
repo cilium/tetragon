@@ -308,9 +308,24 @@ func doLoadProgram(
 	// the ones used.
 	var progSpec *ebpf.ProgramSpec
 
+	matchProg := func(prog *ebpf.ProgramSpec, load *Program) bool {
+		// there's no program name, match just the section name
+		if load.ProgName == "" && prog.SectionName == load.Label {
+			return true
+		}
+		// match section name and program name
+		if prog.SectionName == load.Label && load.ProgName == prog.Name {
+			return true
+		}
+		return false
+	}
+
 	refMaps := make(map[string]bool)
 	for _, prog := range spec.Programs {
-		if prog.SectionName == load.Label {
+		if matchProg(prog, load) {
+			progSpec = prog
+		}
+		if matchProg(prog, load) {
 			progSpec = prog
 		}
 		for _, inst := range prog.Instructions {

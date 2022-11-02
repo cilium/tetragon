@@ -17,6 +17,7 @@ func Builder(
 		Name:       objFile,
 		Attach:     attach,
 		Label:      label,
+		ProgName:   "",
 		PinPath:    pinFile,
 		RetProbe:   false,
 		ErrorFatal: true,
@@ -48,6 +49,9 @@ type Program struct {
 	Attach string
 	// Label is the program section name to load from program.
 	Label string
+	// program name
+	ProgName string
+
 	// PinPath is the pinned path to this program. Note this is a relative path
 	// based on the BPF directory FGS is running under.
 	PinPath string
@@ -93,6 +97,11 @@ func (p *Program) SetRetProbe(ret bool) *Program {
 
 func (p *Program) SetLoaderData(d interface{}) *Program {
 	p.LoaderData = d
+	return p
+}
+
+func (p *Program) SetProgName(name string) *Program {
+	p.ProgName = name
 	return p
 }
 
