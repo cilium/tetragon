@@ -123,9 +123,9 @@ type ProgramSpec struct {
 	// detect this value automatically.
 	KernelVersion uint32
 
-	// The BTF associated with this program. Changing Instructions
-	// will most likely invalidate the contained data, and may
-	// result in errors when attempting to load it into the kernel.
+	// The BTF associated with this program.
+	//
+	// Deprecated: use [CollectionSpec.Types] instead.
 	BTF *btf.Spec
 
 	// The byte order this program was compiled for, may be nil.
@@ -151,6 +151,10 @@ func (ps *ProgramSpec) Tag() (string, error) {
 	return ps.Instructions.Tag(internal.NativeEndian)
 }
 
+// VerifierError is returned by [NewProgram] and [NewProgramWithOptions] if a
+// program is rejected by the verifier.
+//
+// Use [errors.As] to access the error.
 type VerifierError = internal.VerifierError
 
 // Program represents BPF program loaded into the kernel.
@@ -179,24 +183,20 @@ func NewProgram(spec *ProgramSpec) (*Program, error) {
 // Loading a program for the first time will perform
 // feature detection by loading small, temporary programs.
 //
-// Returns an error wrapping VerifierError if the program or its BTF is rejected
-// by the kernel.
+// Returns a wrapped [VerifierError] if the program is rejected by the kernel.
 func NewProgramWithOptions(spec *ProgramSpec, opts ProgramOptions) (*Program, error) {
 	if spec == nil {
 		return nil, errors.New("can't load a program from a nil spec")
 	}
 
-	handles := newHandleCache()
-	defer handles.close()
-
-	prog, err := newProgramWithOptions(spec, opts, handles)
+	prog, err := newProgramWithOptions(spec, opts)
 	if errors.Is(err, asm.ErrUnsatisfiedMapReference) {
 		return nil, fmt.Errorf("cannot load program without loading its whole collection: %w", err)
 	}
 	return prog, err
 }
 
-func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions, handles *handleCache) (*Program, error) {
+func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions) (*Program, error) {
 	if len(spec.Instructions) == 0 {
 		return nil, errors.New("instructions cannot be empty")
 	}
@@ -241,34 +241,27 @@ func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions, handles *hand
 	insns := make(asm.Instructions, len(spec.Instructions))
 	copy(insns, spec.Instructions)
 
-	var btfDisabled bool
-	if spec.BTF != nil {
-		if err := applyRelocations(insns, spec.BTF, opts.KernelTypes); err != nil {
-			return nil, fmt.Errorf("apply CO-RE relocations: %w", err)
-		}
+	handle, fib, lib, err := btf.MarshalExtInfos(insns)
+	btfDisabled := errors.Is(err, btf.ErrNotSupported)
+	if err != nil && !btfDisabled {
+		return nil, fmt.Errorf("load ext_infos: %w", err)
+	}
+	if handle != nil {
+		defer handle.Close()
 
-		handle, err := handles.btfHandle(spec.BTF)
-		btfDisabled = errors.Is(err, btf.ErrNotSupported)
-		if err != nil && !btfDisabled {
-			return nil, fmt.Errorf("load BTF: %w", err)
-		}
+		attr.ProgBtfFd = uint32(handle.FD())
 
-		if handle != nil {
-			attr.ProgBtfFd = uint32(handle.FD())
+		attr.FuncInfoRecSize = btf.FuncInfoSize
+		attr.FuncInfoCnt = uint32(len(fib)) / btf.FuncInfoSize
+		attr.FuncInfo = sys.NewSlicePointer(fib)
 
-			fib, lib, err := btf.MarshalExtInfos(insns, spec.BTF.TypeID)
-			if err != nil {
-				return nil, err
-			}
+		attr.LineInfoRecSize = btf.LineInfoSize
+		attr.LineInfoCnt = uint32(len(lib)) / btf.LineInfoSize
+		attr.LineInfo = sys.NewSlicePointer(lib)
+	}
 
-			attr.FuncInfoRecSize = btf.FuncInfoSize
-			attr.FuncInfoCnt = uint32(len(fib)) / btf.FuncInfoSize
-			attr.FuncInfo = sys.NewSlicePointer(fib)
-
-			attr.LineInfoRecSize = btf.LineInfoSize
-			attr.LineInfoCnt = uint32(len(lib)) / btf.LineInfoSize
-			attr.LineInfo = sys.NewSlicePointer(lib)
-		}
+	if err := applyRelocations(insns, opts.KernelTypes, spec.ByteOrder); err != nil {
+		return nil, fmt.Errorf("apply CO-RE relocations: %w", err)
 	}
 
 	if err := fixupAndValidate(insns); err != nil {
@@ -276,7 +269,7 @@ func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions, handles *hand
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, insns.Size()))
-	err := insns.Marshal(buf, internal.NativeEndian)
+	err = insns.Marshal(buf, internal.NativeEndian)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +470,8 @@ func (p *Program) Clone() (*Program, error) {
 // Calling Pin on a previously pinned program will overwrite the path, except when
 // the new path already exists. Re-pinning across filesystems is not supported.
 //
-// This requires bpffs to be mounted above fileName. See https://docs.cilium.io/en/k8s-doc/admin/#admin-mount-bpffs
+// This requires bpffs to be mounted above fileName.
+// See https://docs.cilium.io/en/stable/concepts/kubernetes/configuration/#mounting-bpffs-with-systemd
 func (p *Program) Pin(fileName string) error {
 	if err := internal.Pin(p.pinnedPath, fileName, p.fd); err != nil {
 		return err
