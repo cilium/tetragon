@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
@@ -176,8 +175,8 @@ func (r *Runner) Init() *Runner {
 		}
 
 		// Start the metrics and gops dumpers
-		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
-		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
+		helpers.StartMetricsDumper(ctx, cfg, exportDir, flags.Opts.ExportPollInterval)
+		helpers.StartGopsDumper(ctx, cfg, exportDir, flags.Opts.ExportPollInterval)
 
 		// The binary won't change, so dump it now at the beginning
 		if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {

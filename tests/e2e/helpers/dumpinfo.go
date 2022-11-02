@@ -236,7 +236,7 @@ func dumpCheckers(ctx context.Context, exportDir string) {
 }
 
 // dumpMetrics dumps the metrics for a port
-func dumpMetrics(port string, podName string, exportDir string) {
+func dumpMetrics(port string, podName string, exportDir string, restartCount int32) {
 	// contact metrics server
 	metricsAddr := fmt.Sprintf("http://localhost:%s/metrics", port)
 	klog.V(2).Info("contacting metrics server", "addr", metricsAddr)
@@ -254,7 +254,7 @@ func dumpMetrics(port string, podName string, exportDir string) {
 		return
 	}
 
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.metrics", podName))
+	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.%d.metrics", podName, restartCount))
 	if err := os.WriteFile(fname, buff.Bytes(), os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to metrics file", "file", fname, "addr", metricsAddr)
 	}
@@ -264,7 +264,7 @@ func dumpMetrics(port string, podName string, exportDir string) {
 // the context is done. We want to do this in case the pod crashes or gets restarted
 // during a failing test. This way we can at least have a snapshot of the metrics to look
 // back on.
-func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Duration) {
+func StartMetricsDumper(ctx context.Context, cfg *envconf.Config, exportDir string, interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		for {
@@ -272,7 +272,11 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 			case <-ticker.C:
 				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+						restartCount, err := podRestartCount(ctx, cfg, podName)
+						if err != nil {
+							klog.ErrorS(err, "failed to get pod restart count", "name", podName)
+						}
+						dumpMetrics(fmt.Sprint(port), podName, exportDir, restartCount)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
@@ -280,7 +284,11 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 			case <-ctx.Done():
 				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+						restartCount, err := podRestartCount(ctx, cfg, podName)
+						if err != nil {
+							klog.ErrorS(err, "failed to get pod restart count", "name", podName)
+						}
+						dumpMetrics(fmt.Sprint(port), podName, exportDir, restartCount)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
@@ -314,7 +322,7 @@ func DumpBin(port int, podName string, exportDir string) {
 }
 
 // dumpGops dumps the gops heap and and memstats
-func dumpGops(port int, podName string, exportDir string) {
+func dumpGops(port int, podName string, exportDir string, restartCount int32) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		klog.ErrorS(err, "failed to resolve gops address")
@@ -327,21 +335,21 @@ func dumpGops(port int, podName string, exportDir string) {
 	out, err := gops.DumpHeapProfile(*addr)
 	if err != nil {
 		klog.ErrorS(err, "failed to dump heap profile", "addr", addr)
-		return
-	}
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.heap", podName))
-	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
+	} else {
+		fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.%d.heap", podName, restartCount))
+		if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+			klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
+		}
 	}
 
 	out, err = gops.DumpMemStats(*addr)
 	if err != nil {
 		klog.ErrorS(err, "failed to dump memstats", "addr", addr)
-		return
-	}
-	fname = filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.memstats", podName))
-	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
+	} else {
+		fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.%d.memstats", podName, restartCount))
+		if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
+			klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
+		}
 	}
 }
 
@@ -349,7 +357,7 @@ func dumpGops(port int, podName string, exportDir string) {
 // until the context is done. We want to do this in case the pod crashes or gets restarted
 // during a failing test. This way we can at least have a snapshot of the gops dumps to look
 // back on.
-func StartGopsDumper(ctx context.Context, exportDir string, interval time.Duration) {
+func StartGopsDumper(ctx context.Context, cfg *envconf.Config, exportDir string, interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		for {
@@ -357,7 +365,11 @@ func StartGopsDumper(ctx context.Context, exportDir string, interval time.Durati
 			case <-ticker.C:
 				if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpGops(port, podName, exportDir)
+						restartCount, err := podRestartCount(ctx, cfg, podName)
+						if err != nil {
+							klog.ErrorS(err, "failed to get pod restart count", "name", podName)
+						}
+						dumpGops(port, podName, exportDir, restartCount)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve gops portforward, refusing to dump gops")
@@ -365,7 +377,11 @@ func StartGopsDumper(ctx context.Context, exportDir string, interval time.Durati
 			case <-ctx.Done():
 				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpGops(port, podName, exportDir)
+						restartCount, err := podRestartCount(ctx, cfg, podName)
+						if err != nil {
+							klog.ErrorS(err, "failed to get pod restart count", "name", podName)
+						}
+						dumpGops(port, podName, exportDir, restartCount)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve gops portforward, refusing to dump gops")
@@ -403,4 +419,31 @@ func runBpftool(ctx context.Context, client klient.Client, exportDir, fname, pod
 	}
 
 	return nil
+}
+
+// podRestartCount get the restart count for a pod
+func podRestartCount(ctx context.Context, cfg *envconf.Config, podName string) (int32, error) {
+	opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
+	if !ok {
+		return 0, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
+	}
+
+	client, err := cfg.NewClient()
+	if err != nil {
+		return 0, err
+	}
+	r := client.Resources(opts.Namespace)
+
+	pod := &corev1.Pod{}
+	if err := r.Get(ctx, podName, opts.Namespace, pod); err != nil {
+		return 0, err
+	}
+
+	restartCount := int32(0)
+
+	for _, status := range pod.Status.ContainerStatuses {
+		restartCount += status.RestartCount
+	}
+
+	return restartCount, nil
 }

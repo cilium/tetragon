@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var Opts = Flags{
@@ -24,8 +25,9 @@ var Opts = Flags{
 			"tetragon.exportAllowList": "",
 		},
 	},
-	KeepExportData: false,
-	InstallCilium:  true,
+	ExportPollInterval: 10 * time.Second,
+	KeepExportData:     false,
+	InstallCilium:      true,
 }
 
 func init() {
@@ -73,6 +75,11 @@ func init() {
 		Opts.KeepExportData,
 		"Should we keep export files regardless of pass/fail?")
 
+	flag.DurationVar(&Opts.ExportPollInterval,
+		"tetragon.export-poll",
+		Opts.ExportPollInterval,
+		"how often should we poll for export data? This operation can be expensive but lower delays are helpful to debug frequent crashes.")
+
 	flag.BoolVar(&Opts.InstallCilium,
 		"tetragon.install-cilium",
 		Opts.InstallCilium,
@@ -90,6 +97,8 @@ type Flags struct {
 	KeepExportData bool
 	// Should we install Cilium in the test?
 	InstallCilium bool
+	// How often should we poll for export data?
+	ExportPollInterval time.Duration
 }
 
 type HelmOptions struct {
