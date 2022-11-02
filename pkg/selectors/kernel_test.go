@@ -406,11 +406,11 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)               // off: 48      selector1: MatchNamespaceChanges: len
 	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
 	expU32Push(4 + 5*4)         // off: 56      selector1: matchBinaries: len
-	expU32Push(0)               // off: 60      selector1: matchBinaries: 0
-	expU32Push(0)               // off: 64      selector1: matchBinaries: 1
-	expU32Push(0)               // off: 68      selector1: matchBinaries: 2
-	expU32Push(0)               // off: 72      selector1: matchBinaries: 3
-	expU32Push(0)               // off: 76      selector1: matchBinaries: 4
+	expU32Push(-1)              // off: 60      selector1: matchBinaries: op
+	expU32Push(-1)              // off: 64      selector1: matchBinaries: 0
+	expU32Push(-1)              // off: 68      selector1: matchBinaries: 1
+	expU32Push(-1)              // off: 72      selector1: matchBinaries: 2
+	expU32Push(-1)              // off: 76      selector1: matchBinaries: 3
 	expU32Push(28)              // off: 80      selector1: matchArgs: len
 	expU32Push(1)               // off: 84      selector1: matchArgs: arg0: index
 	expU32Push(selectorOpEQ)    // off: 88      selector1: matchArgs: arg0: operator
@@ -528,12 +528,12 @@ func TestInitKernelSelectors(t *testing.T) {
 		24, 0x00, 0x00, 0x00, // size = sizeof(uint32) * 4
 
 		// binaryNames Ids, always has 4 to ease verify complexity and
-		// zeroes unused entries.
-		0x00, 0x00, 0x00, 0x00, // op
-		0x00, 0x00, 0x00, 0x00, // index0
-		0x00, 0x00, 0x00, 0x00, // index1
-		0x00, 0x00, 0x00, 0x00, // index2
-		0x00, 0x00, 0x00, 0x00, // index3
+		// -1 unused entries.
+		0xff, 0xff, 0xff, 0xff, // op
+		0xff, 0xff, 0xff, 0xff, // index0
+		0xff, 0xff, 0xff, 0xff, // index1
+		0xff, 0xff, 0xff, 0xff, // index2
+		0xff, 0xff, 0xff, 0xff, // index3
 
 		// arg header
 		54, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
