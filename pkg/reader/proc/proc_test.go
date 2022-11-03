@@ -3,8 +3,11 @@
 package proc
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,4 +21,40 @@ func TestGetProcStatStrings(t *testing.T) {
 	assert.Equal(t, statStrings[50], "140729040986095", "Incorrect 51st field")
 	assert.Equal(t, statStrings[51], "0", "Incorrect 52nd field")
 	assert.Equal(t, len(statStrings), 52, "Incorrect number of entries")
+}
+
+func TestGetStatus(t *testing.T) {
+	self := filepath.Join(option.Config.ProcFS, "self")
+
+	status, err := GetStatus(self)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, status.Uids)
+	for i := range status.Uids {
+		assert.NotEmpty(t, status.Uids[i])
+	}
+}
+
+func TestGetPid1Status(t *testing.T) {
+	pid1 := filepath.Join(option.Config.ProcFS, "1")
+
+	// Is pid 1 available for reading
+	file, err := os.OpenFile(filepath.Join(pid1, "status"), os.O_RDONLY, 0444)
+	if err != nil {
+		t.Skipf("Skipping test %s failed to open %s/status: %v", t.Name(), pid1, err)
+	}
+	file.Close()
+
+	status, err := GetStatus(pid1)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, status.Uids)
+
+	ruid, euid, err := GetUids(status)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(0), ruid)
+	assert.Equal(t, uint32(0), euid)
+
+	// PID 1 does not have a loginuid
+	loginuid, err := GetLoginUid(status)
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(4294967295), loginuid)
 }
