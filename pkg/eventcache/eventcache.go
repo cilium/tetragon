@@ -164,14 +164,17 @@ func (ec *Cache) loop() {
 // a Tetragon execve event and the other -- much more common -- where we
 // race with K8s watcher
 // case 1 (execve race):
-//  Its possible to receive this Tetragon event before the process event cache
-//  has been populated with a Tetragon execve event. In this case we need to
-//  cache the event until the process cache is populated.
+//
+//	Its possible to receive this Tetragon event before the process event cache
+//	has been populated with a Tetragon execve event. In this case we need to
+//	cache the event until the process cache is populated.
+//
 // case 2 (k8s watcher race):
-//  Its possible to receive an event before the k8s watcher receives the
-//  podInfo event and populates the local cache. If we expect podInfo,
-//  indicated by having a nonZero dockerID we cache the event until the
-//  podInfo arrives.
+//
+//	Its possible to receive an event before the k8s watcher receives the
+//	podInfo event and populates the local cache. If we expect podInfo,
+//	indicated by having a nonZero dockerID we cache the event until the
+//	podInfo arrives.
 func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	if proc == nil {
 		return true
