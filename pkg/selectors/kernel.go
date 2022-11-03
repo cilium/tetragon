@@ -704,22 +704,24 @@ func parseSelector(
 // The byte array storing the selector configuration has the following format
 // array := [N][S1_off][S2_off]...[SN_off][S1][S2][...][SN]
 //
-//  N: is the number of selectors (u32)
-//  Sx_off: is the relative offset of  selector x (diff of Sx to Sx_off)
-//  Sx: holds the data for the selector
+//	N: is the number of selectors (u32)
+//	Sx_off: is the relative offset of  selector x (diff of Sx to Sx_off)
+//	Sx: holds the data for the selector
 //
 // Each selector x starts with its length in bytes, and then stores a number of sections for the
 // different matchers. Each section will typically starts with its length in bytes.
 //
 // Sx := [length]
-//	 [matchPIDs]
-//	 [matchNamespaces]
-//	 [matchCapabilities]
-//	 [matchNamespaceChanges]
-//	 [matchCapabilityChanges]
-//	 [matchBinaries]
-//	 [matchArgs]
-//	 [matchActions]
+//
+//	[matchPIDs]
+//	[matchNamespaces]
+//	[matchCapabilities]
+//	[matchNamespaceChanges]
+//	[matchCapabilityChanges]
+//	[matchBinaries]
+//	[matchArgs]
+//	[matchActions]
+//
 // matchPIDs := [length][PID1][PID2]...[PIDn]
 // matchNamespaces := [length][NSx][NSy]...[NSn]
 // matchCapabilities := [length][CAx][CAy]...[CAn]

@@ -170,6 +170,8 @@ spec:
                                   - Sigkill
                                   - CopyFD
                                   - Override
+                                  - GetUrl
+                                  - DnsLookup
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -521,6 +523,8 @@ spec:
                                   - Sigkill
                                   - CopyFD
                                   - Override
+                                  - GetUrl
+                                  - DnsLookup
                                   type: string
                                 argError:
                                   description: error value for override action

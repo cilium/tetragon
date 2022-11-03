@@ -18,14 +18,14 @@ import (
 //revive:disable
 
 // TestEventChecker is a checker that relies on:
-//  - the test sensor being loaded
-//  - user-space executing hooks that trigger the test sensor on all cores
-//  (see contrib/tester-progs/trigger-test-events).
+//   - the test sensor being loaded
+//   - user-space executing hooks that trigger the test sensor on all cores
+//     (see contrib/tester-progs/trigger-test-events).
 //
 // The typical structure of a test is:
-//   1. start observer
-//   2. do some things on user-space
-//   3. check that we get the expected events from tetragon
+//  1. start observer
+//  2. do some things on user-space
+//  3. check that we get the expected events from tetragon
 //
 // In such a test there is no way to determine when to stop looking for events.  Hence, we retry
 // step 3 a number of times to gain confidence that all events from step 2 have been processed.

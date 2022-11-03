@@ -68,15 +68,16 @@ func (gt *Tracepoint) LoadFormat() error {
 // name: sys_enter_lseek
 // ID: 682
 // format:
-//         field:unsigned short common_type;       offset:0;       size:2; signed:0;
-//         field:unsigned char common_flags;       offset:2;       size:1; signed:0;
-//         field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
-//         field:int common_pid;   offset:4;       size:4; signed:1;
 //
-//         field:int __syscall_nr; offset:8;       size:4; signed:1;
-//         field:unsigned int fd;  offset:16;      size:8; signed:0;
-//         field:off_t offset;     offset:24;      size:8; signed:0;
-//         field:unsigned int whence;      offset:32;      size:8; signed:0;
+//	field:unsigned short common_type;       offset:0;       size:2; signed:0;
+//	field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+//	field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+//	field:int common_pid;   offset:4;       size:4; signed:1;
+//
+//	field:int __syscall_nr; offset:8;       size:4; signed:1;
+//	field:unsigned int fd;  offset:16;      size:8; signed:0;
+//	field:off_t offset;     offset:24;      size:8; signed:0;
+//	field:unsigned int whence;      offset:32;      size:8; signed:0;
 func tracepointLoadFormat(subsys string, event string) (*Format, error) {
 	fname := fmt.Sprintf("%s/%s/%s/format", tracepointsPath, subsys, event)
 	f, err := os.Open(fname)

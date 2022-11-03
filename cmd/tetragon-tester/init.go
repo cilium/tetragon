@@ -62,9 +62,9 @@ func printInfo() {
 }
 
 // tester performs the following
-//  - reads the configuration from the configuration file
-//  - runs the tests
-//  - marshalls the results in results.json
+//   - reads the configuration from the configuration file
+//   - runs the tests
+//   - marshalls the results in results.json
 func tester() int {
 	var err error
 	var data []byte
