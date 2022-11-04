@@ -342,6 +342,17 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 				Index: 5, /* args */
 			},
 		},
+		Selectors: []v1alpha1.KProbeSelector{
+			{
+				MatchArgs: []v1alpha1.ArgSelector{
+					{
+						Index:    4,
+						Operator: "Equal",
+						Values:   []string{fmt.Sprintf("%d", unix.SYS_LSEEK)},
+					},
+				},
+			},
+		},
 	}
 	op := func() {
 		t.Logf("Calling lseek...\n")
