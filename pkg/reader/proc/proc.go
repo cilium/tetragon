@@ -16,6 +16,9 @@ import (
 type Status struct {
 	// Real, effective, saved, and filesystem.
 	Uids []string
+
+	// /proc/[pid]/loginuid
+	LoginUid string
 }
 
 const (
@@ -114,9 +117,26 @@ func fillStatus(file string, status *Status) error {
 	return nil
 }
 
+func fillLoginUid(file string, status *Status) error {
+	path := filepath.Join(file, "loginuid")
+	auid, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("ReadFile %s failed: %v", path, err)
+	}
+
+	status.LoginUid = strings.TrimRight(string(auid), "\n")
+
+	return nil
+}
+
 func GetStatus(file string) (*Status, error) {
 	var status Status
 	err := fillStatus(file, &status)
+	if err != nil {
+		return nil, err
+	}
+
+	err = fillLoginUid(file, &status)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +181,18 @@ func GetUids(status *Status) (uint32, uint32, error) {
 	}
 
 	return uint32(ruid), uint32(euid), nil
+}
+
+// Returns the task loginuid on success, if we fail we return
+// the invalid uid 4294967295 that is same value of tasks
+// without loginuid.
+func GetLoginUid(status *Status) (uint32, error) {
+	auid, err := strconv.ParseUint(status.LoginUid, 10, 32)
+	if err != nil {
+		return InvalidUid, err
+	}
+
+	return uint32(auid), nil
 }
 
 func PrependPath(s string, b []byte) []byte {
