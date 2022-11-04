@@ -321,6 +321,19 @@ func GetRunningProcs() []Procs {
 			logger.GetLogger().WithError(err).Warnf("ktime read error")
 		}
 
+		// Initialize with invalid uid
+		euid := proc.InvalidUid
+		// Get process status
+		status, err := proc.GetStatus(pathName)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading process status error")
+		} else {
+			_, euid, err = proc.GetUids(status)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(euid))
+			}
+		}
+
 		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, d.Name(), "status"))
 
 		uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
@@ -396,6 +409,7 @@ func GetRunningProcs() []Procs {
 			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
 			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			pktime: pktime,
+			uid:    euid, // use euid to be compatible with ps
 			pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
 			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			ktime:                ktime,
