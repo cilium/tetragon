@@ -115,35 +115,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 	return nil
 }
 
-// JsonTestCheck checks a JSON file using the new eventchecker library.
-func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
-	var err error
-
-	jsonFname, err := testutils.GetExportFilename(t)
-	if err != nil {
-		return err
-	}
-
-	// cleanup function: if test fails, mark export file to be kept
-	defer func() {
-		if err != nil {
-			err := testutils.KeepExportFile(t)
-			if err == nil {
-				t.Log("test failed, marked export file to be kept")
-			} else {
-				t.Logf("test failed, but failed to mark export file to be kept: %v", err)
-			}
-		}
-	}()
-
-	// attempt to open the export file
-	t.Logf("jsonTestCheck: opening: %s\n", jsonFname)
-	jsonFile, err := os.Open(jsonFname)
-	if err != nil {
-		return fmt.Errorf("opening json file failed: %w", err)
-	}
-	t.Cleanup(func() { jsonFile.Close() })
-
+func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
 	fieldLogger := logger.GetLogger()
 	log, ok := fieldLogger.(*logrus.Logger)
 	if !ok {
@@ -152,8 +124,12 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 
 	cnt := 0
 	prevEvents := 0
+	var err error
 	for {
+		t0 := time.Now()
 		err = JsonCheck(jsonFile, checker, log)
+		elapsed := time.Since(t0)
+		t.Logf("JsonCheck (retry=%d) took %s", cnt, elapsed)
 		if err == nil {
 			break
 		}
@@ -183,4 +159,47 @@ func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	}
 
 	return err
+}
+
+func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure bool) error {
+	var err error
+
+	jsonFname, err := testutils.GetExportFilename(t)
+	if err != nil {
+		return err
+	}
+
+	// attempt to open the export file
+	t.Logf("jsonTestCheck: opening: %s\n", jsonFname)
+	jsonFile, err := os.Open(jsonFname)
+	if err != nil {
+		return fmt.Errorf("opening json file failed: %w", err)
+	}
+	defer jsonFile.Close()
+
+	err = doJsonTestCheck(t, jsonFile, checker)
+	if expectCheckerFailure {
+		if err == nil {
+			err = errors.New("tester expected to fail, but succeeded")
+		} else {
+			err = nil
+		}
+	}
+
+	if err == nil {
+		// mark the file to be deleted
+		if xerr := testutils.DoneWithExportFile(t); xerr != nil {
+			// We failed to mark the file as deleted. This will happen if we hit a
+			// timeout and .Close() already ran. Since we succeeded, let's just log a
+			// message and delete the file.
+			t.Logf("DoneWithExportFile failed: manually deleting file")
+			os.Remove(jsonFname)
+		}
+	}
+	return err
+}
+
+// JsonTestCheck checks a JSON file
+func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
+	return JsonTestCheckExpect(t, checker, false)
 }

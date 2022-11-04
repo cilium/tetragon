@@ -58,8 +58,6 @@ func TestTestChecker(t *testing.T) {
 	if !errors.Is(err, dummyErr) {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// NB: we expect a failure, so mark the file to be removed.
-	if err := testutils.DontKeepExportFile(t); err != nil {
-		t.Logf("failed to mark the file export file for deletion: %v", err)
-	}
+	// NB: we expect the dummyErr, now that we got it mark the file to be deleted
+	testutils.DoneWithExportFile(t)
 }
