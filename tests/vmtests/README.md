@@ -21,14 +21,14 @@ make: Leaving directory '/home/kkourt/src/tetragon/tests/vmtests'
 
 Download rootfs images and kernels in `tests/vmtests/test-data`
 ```
-$ ./tests/vmtests/fetch-data.sh 5.4  bpf-next
+$ ./tests/vmtests/fetch-data.sh 4.19 5.4 bpf-next
 ...
 $ ls tests/vmtests/test-data/images tests/vmtests/test-data/kernels
 tests/vmtests/test-data/images:
 base.qcow2
 
 tests/vmtests/test-data/kernels:
-5.4/  bpf-next/
+4.19/ 5.4/  bpf-next/
 ```
 
 Run tests on 5.4:
@@ -49,6 +49,16 @@ $ ./tests/vmtests/tetragon-vmtests-run \
 	--base tests/vmtests/test-data/images/base.qcow2 \
 	--qemu-disable-kvm
 ```
+
+Run a single test 20 times on 4.19 and fail fast
+
+$ seq 20 | xargs -I {} echo pkg.sensors.tracing:TestGenericTracepointRawSyscall > tests/vmtests/repeat-raw-syscall
+$ ./tests/vmtests/tetragon-vmtests-run \
+	--kernel tests/vmtests/test-data/kernels/4.19/boot/vmlinuz-4.19.262 \
+	--btf-file tests/vmtests/test-data/kernels/4.19/boot/btf-4.19.262 \
+	--base tests/vmtests/test-data/images/base.qcow2  \
+	--testsfile tests/vmtests/repeat-raw-syscall \
+	--fail-fast
 
 Just Boot the VM. User
 
