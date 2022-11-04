@@ -3,12 +3,20 @@
 package proc
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
+
+// Status reflects fields of `/proc/[pid]/status` and other
+// fields that we want
+type Status struct {
+	// Real, effective, saved, and filesystem.
+	Uids []string
+}
 
 const (
 	nanoPerSeconds = 1000000000
@@ -18,6 +26,23 @@ const (
 	// https://lore.kernel.org/lkml/agtlq6$iht$1@penguin.transmeta.com/ and
 	// https://github.com/containerd/cgroups/pull/12
 	clktck = uint64(100)
+
+	// Linux UIDs range from 0..4294967295, the initial mapping of user IDs is 0:0:4294967295.
+	//
+	// If Tetragon is not run in this initial mapping due to user namespaces or runtime
+	// modifications then reading uids of pids from /proc may return the overflow UID 65534
+	// if the mapping config where Tetragon is running does not have a mapping of the
+	// the uid of the target pid.
+	// The overflow UID is runtime config at /proc/sys/kernel/{overflowuid,overflowgid}.
+	//
+	// The overflow UID historically is also the "nobody" UID, so there is some confusion
+	// there. Tetragon may get overflowuid from kernel but users could confuse this with
+	// the "nobody" user that some distributions use.
+	//
+	// The UID 4294967295 (-1 as an unsigned integer) is an invalid UID, the kernel
+	// ignores and return it in some cases where there is no mapping or to indicate an
+	// an invalid UID. So we use it to initialize our UIDs and return it on errors.
+	InvalidUid = ^uint32(0) // 4294967295 (2^32 - 1)
 )
 
 // The /proc/PID/stat file consists of a single line of space-separated strings, where
@@ -58,6 +83,47 @@ func getProcStatStrings(procStat string) []string {
 	return output
 }
 
+// fillStatus returns the content of /proc/pid/status as Status
+func fillStatus(file string, status *Status) error {
+	path := filepath.Join(file, "status")
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("Open %s failed: %v", path, err)
+	}
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+
+		if len(fields) < 2 {
+			continue
+		}
+
+		if fields[0] == "Uid:" {
+			if len(fields) != 5 {
+				return fmt.Errorf("Reading Uid from %s failed: malformed input", path)
+			}
+			status.Uids = []string{fields[1], fields[2], fields[3], fields[4]}
+			break
+		}
+	}
+
+	return nil
+}
+
+func GetStatus(file string) (*Status, error) {
+	var status Status
+	err := fillStatus(file, &status)
+	if err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
 func GetProcStatStrings(file string) ([]string, error) {
 	statline, err := os.ReadFile(filepath.Join(file, "stat"))
 	if err != nil {
@@ -76,6 +142,25 @@ func GetStatsKtime(s []string) (uint64, error) {
 
 func GetProcPid(pid string) (uint64, error) {
 	return strconv.ParseUint(pid, 10, 32)
+}
+
+// Returns real uid and effective uid on success. If we fail we do not
+// return the overflow ID, we return the invalid UID 4294967295
+// (-1 as an unsigned integer).
+// The overflow ID is returned when the kernel decides and pass it back,
+// as it can be a valid indication of UID mapping error.
+func GetUids(status *Status) (uint32, uint32, error) {
+	ruid, err := strconv.ParseUint(status.Uids[0], 10, 32)
+	if err != nil {
+		return InvalidUid, InvalidUid, err
+	}
+
+	euid, err := strconv.ParseUint(status.Uids[1], 10, 32)
+	if err != nil {
+		return InvalidUid, InvalidUid, err
+	}
+
+	return uint32(ruid), uint32(euid), nil
 }
 
 func PrependPath(s string, b []byte) []byte {
