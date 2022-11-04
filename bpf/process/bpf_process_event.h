@@ -452,12 +452,44 @@ event_set_clone(struct msg_process *pid)
 	pid->flags |= EVENT_CLONE;
 }
 
+/* @get_current_subj_caps:
+ * Retrieve current task capabilities from the subjective credentials and
+ * return it into @msg.
+ *
+ * Use this function to report current task capabilities that will be used to
+ * calculate the security access when acting upon other objects.
+ *
+ * Special care must be taken to ensure that @task is "current".
+ *
+ * From: https://github.com/torvalds/linux/blob/v6.0/include/linux/cred.h#L88
+ * "
+ * The security context of a task
+ *
+ * The parts of the context break down into two categories:
+ *
+ *  (1) The objective context of a task.  These parts are used when some other
+ *	task is attempting to affect this one.
+ *
+ *  (2) The subjective context.  These details are used when the task is acting
+ *	upon another object, be that a file, a task, a key or whatever.
+ *
+ * A task has two security pointers.  task->real_cred points to the objective
+ * context that defines that task's actual details.  The objective part of this
+ * context is used whenever that task is acted upon.
+ *
+ * task->cred points to the subjective context that defines the details of how
+ * that task is going to act upon another object.  This may be overridden
+ * temporarily to point to another security context, but normally points to the
+ * same context as task->real_cred.
+ * "
+ */
 static inline __attribute__((always_inline)) void
-get_caps(struct msg_capabilities *msg, struct task_struct *task)
+get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 {
 	const struct cred *cred;
 
-	probe_read(&cred, sizeof(cred), _(&task->real_cred));
+	/* Get the task's subjective creds */
+	probe_read(&cred, sizeof(cred), _(&task->cred));
 	probe_read(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
 	probe_read(&msg->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
 	probe_read(&msg->permitted, sizeof(__u64), _(&cred->cap_permitted));
@@ -650,7 +682,7 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 	task = (struct task_struct *)get_current_task();
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
-	get_caps(&(msg->caps), task);
+	get_current_subj_caps(&msg->caps, task);
 	get_namespaces(&(msg->ns), task);
 
 	/* Last operation: gather current cgroup information */
