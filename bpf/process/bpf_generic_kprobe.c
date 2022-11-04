@@ -77,7 +77,7 @@ generic_kprobe_start_process_filter(void *ctx)
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&(msg->ns), task);
 	/* Initialize capabilities to apply filters on them */
-	get_caps(&(msg->caps), task);
+	get_current_subj_caps(&msg->caps, task);
 #ifdef __NS_CHANGES_FILTER
 	msg->sel.match_ns = 0;
 #endif

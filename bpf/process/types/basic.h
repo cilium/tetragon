@@ -1339,7 +1339,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct execve_map_value *enter = execve_map_get_noinit(
 			pid); // we don't want to init that if it does not exist
 		if (enter)
-			get_caps(&(enter->caps), task);
+			get_current_subj_caps(&enter->caps, task);
 	}
 #endif
 
