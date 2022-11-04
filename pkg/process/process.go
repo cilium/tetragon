@@ -235,7 +235,7 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 // AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it
 func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	var proc *ProcessInternal
-	if event.CleanupProcess.Ktime == 0 {
+	if event.CleanupProcess.Ktime == 0 || event.Process.Flags&api.EventClone != 0 {
 		// there is a case where we cannot find this entry in execve_map
 		// in that case we use as parent what Linux knows
 		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
