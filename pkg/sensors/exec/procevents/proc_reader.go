@@ -323,6 +323,7 @@ func GetRunningProcs() []Procs {
 
 		// Initialize with invalid uid
 		euid := proc.InvalidUid
+		auid := proc.InvalidUid
 		// Get process status
 		status, err := proc.GetStatus(pathName)
 		if err != nil {
@@ -331,6 +332,11 @@ func GetRunningProcs() []Procs {
 			_, euid, err = proc.GetUids(status)
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(euid))
+			}
+
+			auid, err = proc.GetLoginUid(status)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid))
 			}
 		}
 
@@ -410,6 +416,7 @@ func GetRunningProcs() []Procs {
 			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			pktime: pktime,
 			uid:    euid, // use euid to be compatible with ps
+			auid:   auid,
 			pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
 			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			ktime:                ktime,
