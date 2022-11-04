@@ -37,8 +37,9 @@ type Config struct {
 }
 
 var ConfigDefaults = Config{
-	TetragonLib:         filepath.Join(TetragonBpfPath(), "objs"),
-	SelfBinary:          filepath.Base(os.Args[0]),
+	TetragonLib: filepath.Join(TetragonBpfPath(), "objs"),
+	SelfBinary:  filepath.Base(os.Args[0]),
+	// NB: for sensor tests, CmdWaitTime is initialized by TestSensorsRun to 5min
 	CmdWaitTime:         60000 * time.Millisecond,
 	DisableTetragonLogs: false,
 	Debug:               false,
