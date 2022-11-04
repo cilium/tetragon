@@ -30,7 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -625,16 +624,8 @@ func testKprobeObjectFiltered(t *testing.T,
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	assert.NoError(t, err)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	if expectFailure {
-		t.Logf("Expecting failure")
-		if err := testutils.DontKeepExportFile(t); err != nil {
-			t.Logf("failed to mark the file export file for deletion: %v", err)
-		}
-		assert.Error(t, err)
-	} else {
-		assert.NoError(t, err)
-	}
+	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	assert.NoError(t, err)
 }
 
 func testKprobeObjectOpenHook(pidStr string, path string) string {

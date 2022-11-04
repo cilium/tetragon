@@ -17,15 +17,16 @@ var exportFilesLock sync.Mutex
 
 type ExportFile struct {
 	*os.File
-	t     *testing.T
-	fName string // file name
-	keep  bool   // should we keep the file at the end?
+	t          *testing.T
+	fName      string // file name
+	deleteFile bool   // should we delete the file at the end?
 }
 
 func fixupTestName(t *testing.T) string {
 	return strings.ReplaceAll(t.Name(), "/", "-")
 }
 
+// Close() is called by the observer loop when it exits, and is responsible for deleting the file.
 func (f *ExportFile) Close() error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
@@ -42,7 +43,7 @@ func (f *ExportFile) Close() error {
 	defer delete(exportFiles, tName)
 
 	err := f.File.Close()
-	if f.keep {
+	if !f.deleteFile {
 		f.t.Logf("keeping export file for %s (%s)", tName, ef.fName)
 	} else {
 		f.t.Logf("deleting export file for %s (%s)", tName, ef.fName)
@@ -52,7 +53,9 @@ func (f *ExportFile) Close() error {
 }
 
 // CreateExportFile creates an export file for a test.
-// a callback will be registered at t.Cleanup() for closing the file, and removing the file
+// It returns an ExportFile that has a .Close() method, that will be called by the observer loop.
+// This function is responsible to delete the file.
+// For a file to be deleted, the tester should call DoneWithExportFile() if the test was successful.
 func CreateExportFile(t *testing.T) (*ExportFile, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
@@ -72,10 +75,10 @@ func CreateExportFile(t *testing.T) (*ExportFile, error) {
 	os.Chmod(f.Name(), 0644)
 
 	ret := &ExportFile{
-		File:  f,
-		t:     t,
-		fName: f.Name(),
-		keep:  false,
+		File:       f,
+		t:          t,
+		fName:      f.Name(),
+		deleteFile: false,
 	}
 
 	exportFiles[testName] = ret
@@ -94,8 +97,9 @@ func GetExportFilename(t *testing.T) (string, error) {
 	return ef.fName, nil
 }
 
-// KeepExportFile marks export file to be kept
-func KeepExportFile(t *testing.T) error {
+// DoneWithExportFile: marks the export file to be deleted
+// It is the tester's responsibility to call this function
+func DoneWithExportFile(t *testing.T) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := fixupTestName(t)
@@ -103,22 +107,7 @@ func KeepExportFile(t *testing.T) error {
 	if !ok {
 		return fmt.Errorf("file for test %s does not exist", testName)
 	}
-	ef.keep = true
-	exportFiles[testName] = ef
-	return nil
-}
-
-// DontKeepExportFile: unmarks export file to be kept. This is meant for tests
-// that are expected to fail.
-func DontKeepExportFile(t *testing.T) error {
-	exportFilesLock.Lock()
-	defer exportFilesLock.Unlock()
-	testName := fixupTestName(t)
-	ef, ok := exportFiles[testName]
-	if !ok {
-		return fmt.Errorf("file for test %s does not exist", testName)
-	}
-	ef.keep = false
+	ef.deleteFile = true
 	exportFiles[testName] = ef
 	return nil
 }
