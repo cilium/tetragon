@@ -160,10 +160,19 @@ prepend(char **buffer, int *buflen, const char *str, int namelen)
 	return 0;
 }
 
+struct cwd_read_data {
+	const struct path *root;
+	char *bf;
+};
+
 static inline __attribute__((always_inline)) int
 prepend_path(const struct path *path, const struct path *root, char *bf,
 	     char **buffer, int *buflen)
 {
+	struct cwd_read_data data = {
+		.root = root,
+		.bf = bf,
+	};
 	struct dentry *dentry;
 	struct vfsmount *vfsmnt;
 	struct mount *mnt;
@@ -190,6 +199,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		struct dentry *vfsmnt_mnt_root;
 		struct vfsmount *root_mnt;
 		struct dentry *root_dentry;
+		const struct path *root = data.root;
 
 		probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
 		probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
@@ -223,7 +233,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		}
 		probe_read(&parent, sizeof(parent), _(&dentry->d_parent));
 		probe_read(&d_name, sizeof(d_name), _(&dentry->d_name));
-		error = prepend_name(bf, &bptr, &blen,
+		error = prepend_name(data.bf, &bptr, &blen,
 				     (const char *)d_name.name, d_name.len);
 		// This will happen where the dentry name does not fit in the buffer.
 		// We will stop the loop with resolved == false and later we will
