@@ -168,6 +168,7 @@ struct cwd_read_data {
 	struct mount *mnt;
 	char *bptr;
 	int blen;
+	bool resolved;
 };
 
 static inline __attribute__((always_inline)) int
@@ -183,7 +184,6 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	struct qstr d_name;
 	int error = 0;
 	int i;
-	bool resolved = false;
 
 	probe_read(&data.dentry, sizeof(data.dentry), _(&path->dentry));
 	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
@@ -208,7 +208,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
 		probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
 		if (!(dentry != root_dentry || vfsmnt != root_mnt)) {
-			resolved =
+			data.resolved =
 				true; // resolved all path components successfully
 			break;
 		}
@@ -231,7 +231,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 				continue;
 			}
 
-			resolved =
+			data.resolved =
 				true; // resolved all path components successfully
 			break;
 		}
@@ -251,7 +251,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		*buflen = 0;
 		return 0;
 	}
-	if (!resolved)
+	if (!data.resolved)
 		error = UNRESOLVED_PATH_COMPONENTS;
 	*buffer = data.bptr;
 	*buflen = data.blen;
