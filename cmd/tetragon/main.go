@@ -463,6 +463,7 @@ func execute() error {
 	flags.String(keyCiliumBPF, "", "Cilium BPF directory")
 	flags.Bool(keyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(keyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
+	flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
 
 	// Config files
 	flags.String(keyConfigFile, "", "Configuration file to load from")

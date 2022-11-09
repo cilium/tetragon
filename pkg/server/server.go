@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/version"
 )
@@ -64,8 +65,12 @@ func NewServer(ctx context.Context, wg *sync.WaitGroup, notifier notifier, obser
 }
 
 func newListener() *getEventsListener {
+	var chanSize uint = 10000
+	if option.Config.EventQueueSize > 0 {
+		chanSize = option.Config.EventQueueSize
+	}
 	return &getEventsListener{
-		events: make(chan *tetragon.GetEventsResponse, 100),
+		events: make(chan *tetragon.GetEventsResponse, chanSize),
 	}
 }
 

@@ -63,6 +63,8 @@ const (
 
 	keyRBSize      = "rb-size"
 	keyRBSizeTotal = "rb-size-total"
+
+	keyEventQueueSize = "event-queue-size"
 )
 
 var (
@@ -133,4 +135,6 @@ func readAndSetFlags() {
 
 	cpuProfile = viper.GetString(keyCpuProfile)
 	memProfile = viper.GetString(keyMemProfile)
+
+	option.Config.EventQueueSize = viper.GetUint(keyEventQueueSize)
 }
