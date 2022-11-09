@@ -40,6 +40,8 @@ type config struct {
 	RBSizeTotal int
 
 	ReleasePinned bool
+
+	EventQueueSize uint
 }
 
 var (
