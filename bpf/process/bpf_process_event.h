@@ -164,6 +164,7 @@ struct cwd_read_data {
 	const struct path *root;
 	char *bf;
 	struct dentry *dentry;
+	struct vfsmount *vfsmnt;
 };
 
 static inline __attribute__((always_inline)) int
@@ -174,7 +175,6 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		.root = root,
 		.bf = bf,
 	};
-	struct vfsmount *vfsmnt;
 	struct mount *mnt;
 	struct qstr d_name;
 	int error = 0;
@@ -185,8 +185,8 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	bptr = *buffer;
 	blen = *buflen;
 	probe_read(&data.dentry, sizeof(data.dentry), _(&path->dentry));
-	probe_read(&vfsmnt, sizeof(vfsmnt), _(&path->mnt));
-	mnt = real_mount(vfsmnt);
+	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
+	mnt = real_mount(data.vfsmnt);
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
@@ -201,6 +201,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		struct dentry *root_dentry;
 		const struct path *root = data.root;
 		struct dentry *dentry = data.dentry;
+		struct vfsmount *vfsmnt = data.vfsmnt;
 
 		probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
 		probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
@@ -223,7 +224,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 				probe_read(&data.dentry, sizeof(data.dentry),
 					   _(&mnt->mnt_mountpoint));
 				mnt = parent;
-				probe_read(&vfsmnt, sizeof(vfsmnt),
+				probe_read(&data.vfsmnt, sizeof(data.vfsmnt),
 					   _(&mnt->mnt));
 				continue;
 			}
