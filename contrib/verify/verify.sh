@@ -62,6 +62,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+    # skip v6.0 objects check, because it is still not widely around
+	if [[ "$B" == *60.o ]]; then
+		continue
+	fi
+
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
 	OUT="/tmp/tetragon-verify-$B"
 
