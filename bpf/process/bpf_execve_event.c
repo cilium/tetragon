@@ -8,6 +8,7 @@
 #include "bpf_events.h"
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
+#include "bpf_tracing.h"
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
@@ -159,8 +160,8 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 	return bin;
 }
 
-__attribute__((section("tracepoint/sys_execve"), used)) int
-event_execve(struct sched_execve_args *ctx)
+static inline __attribute__((always_inline)) int
+common_execve(void *ctx, void *filename)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_execve_event *event;
@@ -170,7 +171,6 @@ event_execve(struct sched_execve_args *ctx)
 	bool walker = 0;
 	__u32 zero = 0;
 	__u32 pid;
-	unsigned short fileoff;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -185,9 +185,7 @@ event_execve(struct sched_execve_args *ctx)
 	}
 
 	execve = &event->process;
-	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
-					(char *)ctx + fileoff);
+	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary, filename);
 	event->binary = binary;
 
 	event_args_builder(ctx, event);
@@ -198,8 +196,8 @@ event_execve(struct sched_execve_args *ctx)
 	return 0;
 }
 
-__attribute__((section("tracepoint/0"), used)) int
-execve_send(struct sched_execve_args *ctx)
+static inline __attribute__((always_inline)) int
+common_send(void *ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
@@ -261,3 +259,32 @@ execve_send(struct sched_execve_args *ctx)
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
 }
+
+#ifdef __BTFTP
+__attribute__((section("tp_btf/sched_process_exec"), used)) int
+BPF_PROG(event_execve, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
+{
+	return common_execve(ctx, (void*) bprm->filename);
+}
+
+__attribute__((section("tp_btf/sched_process_exec"), used)) int
+BPF_PROG(execve_0, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
+{
+	return common_send(ctx);
+}
+#else
+__attribute__((section("tracepoint/sys_execve"), used)) int
+event_execve(struct sched_execve_args *ctx)
+{
+	unsigned short fileoff;
+
+	fileoff = ctx->filename & 0xFFFF;
+	return common_execve(ctx, (char *) ctx + fileoff);
+}
+
+__attribute__((section("tracepoint/0"), used)) int
+execve_send(struct sched_execve_args *ctx)
+{
+	return common_send(ctx);
+}
+#endif /* __BTFTP */

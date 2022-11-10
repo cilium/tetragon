@@ -20,6 +20,7 @@ type Feature struct {
 var (
 	overrideHelper = Feature{false, false}
 	kprobeMulti    = Feature{false, false}
+	rawtpbtf       = Feature{false, false}
 )
 
 func HasOverrideHelper() bool {
@@ -78,4 +79,30 @@ func HasKprobeMulti() bool {
 	kprobeMulti.detected = detectKprobeMulti()
 	kprobeMulti.initialized = true
 	return kprobeMulti.detected
+}
+
+func detectRawTpBtf() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "test",
+		Type: ebpf.Tracing,
+		Instructions: asm.Instructions{
+			asm.LoadImm(asm.R0, 0, asm.DWord),
+			asm.Return(),
+		},
+		AttachTo:   "kfree_skb",
+		AttachType: ebpf.AttachTraceRawTp,
+		License:    "GPL",
+	})
+	prog.Close()
+	return err == nil
+}
+
+func HasRawTpBtf() bool {
+	if rawtpbtf.initialized {
+		return rawtpbtf.detected
+	}
+
+	rawtpbtf.detected = detectRawTpBtf()
+	rawtpbtf.initialized = true
+	return rawtpbtf.detected
 }
