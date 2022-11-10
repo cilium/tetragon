@@ -205,10 +205,17 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	var progs []*program.Program
 	var maps []*program.Map
 
+	loadProgName := "bpf_multi_kprobe_v53.o"
+	loadProgRetName := "bpf_multi_retkprobe_v53.o"
+	if kernels.EnableV60Progs() {
+		loadProgName = "bpf_multi_kprobe_v60.o"
+		loadProgRetName = "bpf_multi_retkprobe_v60.o"
+	}
+
 	pinPath := sensors.PathJoin(sensorPath, "multi_kprobe")
 
 	load := program.Builder(
-		path.Join(option.Config.HubbleLib, "bpf_multi_kprobe_v53.o"),
+		path.Join(option.Config.HubbleLib, loadProgName),
 		"",
 		"kprobe.multi/generic_kprobe",
 		pinPath,
@@ -240,7 +247,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
-			path.Join(option.Config.HubbleLib, "bpf_multi_retkprobe_v53.o"),
+			path.Join(option.Config.HubbleLib, loadProgRetName),
 			"",
 			"kprobe.multi/generic_retkprobe",
 			"multi_retkprobe",
@@ -270,7 +277,10 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 
 	loadProgName := "bpf_generic_kprobe.o"
 	loadProgRetName := "bpf_generic_retkprobe.o"
-	if kernels.EnableLargeProgs() {
+	if kernels.EnableV60Progs() {
+		loadProgName = "bpf_generic_kprobe_v60.o"
+		loadProgRetName = "bpf_generic_retkprobe_v60.o"
+	} else if kernels.EnableLargeProgs() {
 		loadProgName = "bpf_generic_kprobe_v53.o"
 		loadProgRetName = "bpf_generic_retkprobe_v53.o"
 	}
