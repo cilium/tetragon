@@ -33,6 +33,7 @@ enum EventType {
     PROCESS_EXIT = 5;
     PROCESS_KPROBE = 9;
     PROCESS_TRACEPOINT = 10;
+    PROCESS_LOADER = 11;
 
     TEST = 40000;
 }
@@ -125,6 +126,7 @@ message GetEventsResponse {
         ProcessExit process_exit = 5;
         ProcessKprobe process_kprobe = 9;
         ProcessTracepoint process_tracepoint = 10;
+        ProcessLoader process_loader = 11;
 
         Test test = 40000;
     }
