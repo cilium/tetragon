@@ -175,8 +175,6 @@ github.com/cilium/customvet v0.0.0-20201209211516-9852765c1ac4/go.mod h1:MEn5V1C
 github.com/cilium/deepequal-gen v0.0.0-20200406125435-ad6a9003139e/go.mod h1:c4R5wxGyXhbM6zyKeRKNIc9aab5EZi4z4oOSZvUMvZA=
 github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3 h1:wenYMyWJ08dgEUUj0Ija8qdK/V9vL3ThAD5sjOYlFlg=
 github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3/go.mod h1:cXN7jgo+gsGlNvQ7Vqu2ELdc3f7i7PPgupHqSkLzzBo=
-github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d h1:PSm7+LTukHRhKht7/KXBUCZ2a2MIR92mFr2P1xlItZk=
-github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d/go.mod h1:w27N4UjpaQ9X/DGrSugxUG+H+NhgntDuPb5lCzxCn8A=
 github.com/cilium/hubble v0.0.0-20200304205543-565cbe60f7fb/go.mod h1:GYdTLWzzpzgp2ptyEp0LccPotGo4BxPX9SJRGL4pI5c=
 github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567 h1:mMXLbLGCFu1EX22QLC9cVPITfEzY7ZQIHHeKO6p/iuw=
 github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567/go.mod h1:Y522N+KaBBcaZRfmb/wo6xn3M0jNQb4lz/S+YA99+VE=
@@ -763,6 +761,8 @@ github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
+github.com/olsajiri/ebpf v0.9.1-0.20221112111837-a51121fcdcbb h1:qMcbm1QEf0TFKgwnzqy/9SXMoN6hLYvqbI7qmJiO1uk=
+github.com/olsajiri/ebpf v0.9.1-0.20221112111837-a51121fcdcbb/go.mod h1:w27N4UjpaQ9X/DGrSugxUG+H+NhgntDuPb5lCzxCn8A=
 github.com/onsi/ginkgo v0.0.0-20151202141238-7f8ab55aaf3b/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v0.0.0-20170829012221-11459a886d9c/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

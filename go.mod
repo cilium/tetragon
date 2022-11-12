@@ -153,4 +153,4 @@ replace (
 
 // Needed for now to resolve BTF issues in newer kernels. When we have 0.9.4 we can remove
 // this.
-replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d
+replace github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20221112111837-a51121fcdcbb
