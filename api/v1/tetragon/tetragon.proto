@@ -278,3 +278,10 @@ message HealthStatus {
 message GetHealthStatusResponse {
 	repeated HealthStatus health_status = 1;
 }
+
+// loader sensor event triggered for loaded binary/library
+message ProcessLoader {
+	Process process = 1;
+	string path = 2;
+	bytes buildid = 3;
+}
