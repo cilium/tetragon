@@ -65,7 +65,11 @@ func (k *Observer) receiveRawEvent(data []byte, cpu int) error {
 		if err != nil {
 			return err
 		}
-		k.receiveEvent(sample, cpu)
+		k.receiveSample(sample, cpu)
+		ringbufmetrics.ReceivedSet(float64(k.recvCntr))
+
+	case unix.PERF_RECORD_MMAP2:
+		k.receiveEvent(&header, rd, cpu)
 		ringbufmetrics.ReceivedSet(float64(k.recvCntr))
 	default:
 		k.unknownCntr++

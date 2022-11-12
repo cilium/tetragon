@@ -33,7 +33,8 @@ const (
 )
 
 var (
-	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
+	eventHandler     = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
+	perfEventHandler = make(map[uint32]func(header *bpf.PerfEventHeader, rd *bytes.Reader, cpu int) ([]Event, error))
 
 	observerList []*Observer
 
@@ -45,6 +46,10 @@ type Event notify.Message
 
 func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event, error)) {
 	eventHandler[ev] = handler
+}
+
+func RegisterPerfEventHandler(ty uint32, handler func(header *bpf.PerfEventHeader, rd *bytes.Reader, cpu int) ([]Event, error)) {
+	perfEventHandler[ty] = handler
 }
 
 func (k *Observer) observerListeners(msg notify.Message) {
@@ -100,9 +105,9 @@ func (e *handlePerfHandlerErr) Cause() error {
 	return e.err
 }
 
-// HandlePerfData returns the events from raw bytes
+// HandleSampleData returns the events from raw bytes
 // NB: It is made public so that it can be used in testing.
-func HandlePerfData(data []byte) (byte, []Event, error) {
+func HandleSampleData(data []byte) (byte, []Event, error) {
 	op := data[0]
 	r := bytes.NewReader(data)
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
@@ -118,9 +123,9 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 	return op, events, err
 }
 
-func (k *Observer) receiveEvent(data []byte, cpu int) {
+func (k *Observer) receiveSample(data []byte, cpu int) {
 	k.recvCntr++
-	op, events, err := HandlePerfData(data)
+	op, events, err := HandleSampleData(data)
 	opcodemetrics.OpTotalInc(int(op))
 	if err != nil {
 		// Increment error metrics
@@ -134,6 +139,25 @@ func (k *Observer) receiveEvent(data []byte, cpu int) {
 		default:
 			k.log.WithError(err).Debug("error occurred in event handler")
 		}
+	}
+	for _, event := range events {
+		k.observerListeners(event)
+	}
+}
+
+func handlePerfData(header *bpf.PerfEventHeader, rd *bytes.Reader, cpu int) ([]Event, error) {
+	handler, ok := perfEventHandler[header.Type]
+	if !ok {
+		return nil, nil
+	}
+	return handler(header, rd, cpu)
+}
+
+func (k *Observer) receiveEvent(header *bpf.PerfEventHeader, rd *bytes.Reader, cpu int) {
+	k.recvCntr++
+	events, err := handlePerfData(header, rd, cpu)
+	if err != nil {
+		// count errors
 	}
 	for _, event := range events {
 		k.observerListeners(event)
