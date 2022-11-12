@@ -8,6 +8,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -347,5 +348,106 @@ func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 func (msg *MsgGenericKprobeUnix) Cast(o interface{}) notify.Message {
 	t := o.(MsgGenericKprobeUnix)
+	return &t
+}
+
+type MsgProcessLoaderUnix struct {
+	Pid     uint32
+	Tid     uint32
+	Path    string
+	Ktime   uint64
+	Buildid []byte
+}
+
+type MsgProcessBinary struct {
+	Path    string
+	Buildid []byte
+}
+
+type MsgProcessLoader struct {
+	Pid      uint32
+	Tid      uint32
+	Binaries []MsgProcessBinary
+}
+
+func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
+	var tetragonParent, tetragonProcess *tetragon.Process
+
+	binary := &tetragon.ProcessBinary{
+		Path:    msg.Path,
+		Buildid: msg.Buildid,
+	}
+
+	processId := exec.GetExecId(msg.Pid, msg.Ktime)
+	pi, err := process.Get(processId)
+	if err == nil {
+		tetragonProcess = pi.UnsafeGetProcess()
+	}
+
+	if tetragonProcess != nil {
+		pi, err := process.Get(tetragonProcess.ParentExecId)
+		if err == nil {
+			tetragonParent = pi.UnsafeGetProcess()
+		}
+	}
+
+	tetragonEvent := &tetragon.ProcessLoader{
+		Process: tetragonProcess,
+		Parent:  tetragonParent,
+		Binary:  []*tetragon.ProcessBinary{binary},
+	}
+
+	if ec := eventcache.Get(); ec != nil && processId == "" {
+		ec.Add(nil, tetragonEvent, 0, msg)
+		return nil
+	}
+
+	return tetragonEvent
+}
+
+func (msg *MsgProcessLoaderUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return nil, nil
+}
+
+func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	processId := exec.GetExecId(msg.Pid, msg.Ktime)
+	if processId == "" {
+		return eventcache.ErrFailedToGetProcessInfo
+	}
+
+	var tetragonProcess *tetragon.Process
+
+	pi, err := process.Get(processId)
+	if err == nil {
+		tetragonProcess = pi.GetProcessCopy()
+		ev.SetProcess(tetragonProcess)
+
+		pi, err := process.Get(tetragonProcess.ParentExecId)
+		if err == nil {
+			ev.SetParent(pi.GetProcessCopy())
+			return nil
+		}
+	}
+
+	return eventcache.ErrFailedToGetProcessInfo
+}
+
+func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessLoader(msg)
+	if k == nil {
+		return nil
+	}
+	return &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
+		NodeName: nodeName,
+	}
+}
+
+func (msg *MsgProcessLoaderUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgProcessLoaderUnix)
 	return &t
 }

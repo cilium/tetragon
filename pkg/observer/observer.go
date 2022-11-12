@@ -216,8 +216,13 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 		Type:        unix.PERF_TYPE_SOFTWARE,
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
 		Bits:        unix.PerfBitWatermark,
-		Sample_type: unix.PERF_SAMPLE_RAW,
+		Sample_type: unix.PERF_SAMPLE_RAW | unix.PERF_SAMPLE_TIME,
 		Wakeup:      1,
+	}
+
+	if bpf.HasBuildId() {
+		attr.Clockid = unix.CLOCK_MONOTONIC
+		attr.Bits |= unix.PerfBitSampleIDAll | unix.PerfBitMmap | unix.PerfBitMmap2 | bpf.PerfBitBuildId
 	}
 
 	perfReader, err := perf.NewReaderFromAttr(perfMap, rbSize, attr)

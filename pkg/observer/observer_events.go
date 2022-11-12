@@ -31,6 +31,12 @@ func readLostRecords(rd io.Reader) (uint64, error) {
 }
 
 func readRawSample(rd io.Reader) ([]byte, error) {
+	var time uint64
+
+	if err := binary.Read(rd, binary.LittleEndian, &time); err != nil {
+		return nil, fmt.Errorf("read sample size: %v", err)
+	}
+
 	sample := perfEventSample{}
 	if err := binary.Read(rd, binary.LittleEndian, &sample); err != nil {
 		return nil, fmt.Errorf("read sample size: %v", err)
