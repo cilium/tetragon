@@ -63,6 +63,8 @@ const (
 
 	keyRBSize      = "rb-size"
 	keyRBSizeTotal = "rb-size-total"
+
+	keyReleasePinnedBPF = "release-pinned-bpf"
 )
 
 var (
@@ -133,4 +135,6 @@ func readAndSetFlags() {
 
 	cpuProfile = viper.GetString(keyCpuProfile)
 	memProfile = viper.GetString(keyMemProfile)
+
+	option.Config.ReleasePinned = viper.GetBool(keyReleasePinnedBPF)
 }

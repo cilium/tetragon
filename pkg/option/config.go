@@ -38,6 +38,8 @@ type config struct {
 
 	RBSize      int
 	RBSizeTotal int
+
+	ReleasePinned bool
 }
 
 var (
