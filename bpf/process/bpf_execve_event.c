@@ -158,6 +158,16 @@ event_execve(struct sched_execve_args *ctx)
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
+
+	/*
+	 * The event we allocate above includes uninitiated data, which is
+	 * zeroed out or initialized in __event_get_task_info. If code
+	 * changes so that we return before __event_get_task_info is called,
+	 * ensure that:
+	 *  1. The necessary fields are zeroed out or properly initialized.
+	 *  2. Set the event->process.flags to properly reflect errors.
+	 */
+
 	pid = (get_current_pid_tgid() >> 32);
 	parent = event_find_parent();
 	if (parent) {
@@ -181,6 +191,13 @@ event_execve(struct sched_execve_args *ctx)
 	return 0;
 }
 
+/**
+ * execve_send() sends the collected execve event data.
+ *
+ * This function is the last tail call of the execve event, its sole purpose
+ * is to update the pid execve_map entry to reflect the new execve event that
+ * has already been collected, then send it to the perf buffer.
+ */
 __attribute__((section("tracepoint/0"), used)) int
 execve_send(struct sched_execve_args *ctx)
 {
