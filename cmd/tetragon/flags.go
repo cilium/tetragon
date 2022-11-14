@@ -65,6 +65,8 @@ const (
 	keyRBSizeTotal = "rb-size-total"
 
 	keyEventQueueSize = "event-queue-size"
+
+	keyReleasePinnedBPF = "release-pinned-bpf"
 )
 
 var (
@@ -137,4 +139,6 @@ func readAndSetFlags() {
 	memProfile = viper.GetString(keyMemProfile)
 
 	option.Config.EventQueueSize = viper.GetUint(keyEventQueueSize)
+
+	option.Config.ReleasePinned = viper.GetBool(keyReleasePinnedBPF)
 }

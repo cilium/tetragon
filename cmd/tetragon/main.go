@@ -190,6 +190,11 @@ func tetragonExecute() error {
 	option.Config.BpfDir = observerDir
 	option.Config.MapDir = observerDir
 
+	// Check if option to remove old BPF and maps is enabled.
+	if option.Config.ReleasePinned {
+		os.RemoveAll(observerDir)
+	}
+
 	// Get observer from configFile
 	obs := observer.NewObserver(configFile)
 	defer func() {
@@ -496,6 +501,10 @@ func execute() error {
 	// Allow to specify perf ring buffer size
 	flags.Int(keyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
 	flags.Int(keyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
+
+	// Provide option to remove existing pinned BPF programs and maps in
+	// Tetragon's observer dir. Useful for doing upgrades/downgrades.
+	flags.Bool(keyReleasePinnedBPF, false, "Release all pinned BPF programs and maps in Tetragon BPF directory")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
