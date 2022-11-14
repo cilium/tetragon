@@ -87,8 +87,19 @@ func (tsm *TestSensorManager) EnableSensors(
 		if err := tsm.Manager.EnableSensor(ctx, s.Name); err != nil {
 			t.Fatalf("EnableSensor error: %s", err)
 		}
-		t.Cleanup(func() {
-			tsm.Manager.DisableSensor(ctx, s.Name)
-		})
+	}
+}
+
+// EnableSensors is a helper function that enables a list of sensors
+func (tsm *TestSensorManager) DisableSensors(
+	ctx context.Context,
+	t *testing.T,
+	targets []*sensors.Sensor,
+) {
+	for _, s := range targets {
+		err := tsm.Manager.DisableSensor(ctx, s.Name)
+		if err != nil {
+			t.Logf("DisableSensor failed: %s", err)
+		}
 	}
 }
