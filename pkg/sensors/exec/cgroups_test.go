@@ -169,6 +169,9 @@ func TestCgroupNoEvents(t *testing.T) {
 	observer.SensorManager = testManager.Manager
 
 	testManager.EnableSensors(ctx, t, loadedSensors)
+	t.Cleanup(func() {
+		testManager.DisableSensors(ctx, t, loadedSensors)
+	})
 
 	// Set Cgroup Tracking level to Zero means no tracking and no
 	// cgroup events, all bpf cgroups related programs have no effect
@@ -225,6 +228,9 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	observer.SensorManager = testManager.Manager
 
 	testManager.EnableSensors(ctx, t, loadedSensors)
+	t.Cleanup(func() {
+		testManager.DisableSensors(ctx, t, loadedSensors)
+	})
 
 	// Set Tracking level to 3 so we receive notifcations about
 	// /sys/fs/cgroup/$1/$2/$3 all cgroups that are at level <=3
