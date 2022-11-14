@@ -560,6 +560,9 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 	int zero = 0, subsys_idx = 0;
 	struct tetragon_conf *conf;
 
+	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
+	memset(&msg->kube, 0, sizeof(struct msg_k8s));
+
 	/* Check if cgroup configuration is set */
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	/* Select the right css to use */
