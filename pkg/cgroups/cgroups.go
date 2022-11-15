@@ -161,15 +161,10 @@ func GetCgroupFSPath() string {
 	return cgroupFSPath
 }
 
-// DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
-// of the corresponding controllers that we are interested
-// in. We need this dynamic behavior since these controllers are
-// compile config.
-func DiscoverSubSysIds() error {
+func parseCgroupSubSysIds(filePath string) error {
 	var allcontrollers []string
 
-	path := filepath.Join(option.Config.ProcFS, "cgroups")
-	file, err := os.Open(path)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
@@ -208,7 +203,7 @@ func DiscoverSubSysIds() error {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"cgroup.fs":              cgroupFSPath,
 						"cgroup.controller.name": controller.name,
-					}).WithError(err).Warnf("parsing controller line from '%s' failed", path)
+					}).WithError(err).Warnf("parsing controller line from '%s' failed", filePath)
 				}
 			}
 		}
@@ -222,7 +217,7 @@ func DiscoverSubSysIds() error {
 
 	// Could not find 'memory', 'pids' nor 'cpuset' controllers, are they compiled in?
 	if fixed == false {
-		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", path)
+		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", filePath)
 		logger.GetLogger().WithFields(logrus.Fields{
 			"cgroup.fs": cgroupFSPath,
 		}).WithError(err).Warnf("Cgroup controllers 'memory', 'pids' and 'cpuset' are missing")
@@ -246,6 +241,14 @@ func DiscoverSubSysIds() error {
 	}
 
 	return nil
+}
+
+// DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
+// of the corresponding controllers that we are interested
+// in. We need this dynamic behavior since these controllers are
+// compile config.
+func DiscoverSubSysIds() error {
+	return parseCgroupSubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
 }
 
 func setDeploymentMode(cgroupPath string) error {
