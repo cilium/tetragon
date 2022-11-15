@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/mountinfo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -97,6 +98,48 @@ func TestCgroupNameFromCStr(t *testing.T) {
 		out := CgroupNameFromCStr(test.in)
 		if out != test.want {
 			t.Errorf("CgroupNameFromCStr() mismatch - want:'%s'  -  got:'%s'\n", test.want, out)
+		}
+	}
+}
+
+func TestParseCgroupSubSysIds(t *testing.T) {
+
+	testDir := t.TempDir()
+
+	d := struct {
+		used string
+		data string
+	}{"memory,cpuset",
+		`
+#subsys_name	hierarchy	num_cgroups	enabled
+cpuset	7	2	1
+cpu	6	78	1
+cpuacct	6	78	1
+blkio	4	78	1
+memory	13	106	1
+devices	11	81	1
+freezer	5	5	1
+net_cls	2	2	1
+perf_event	8	2	1
+net_prio	2	2	1
+hugetlb	12	2	1
+rdma	9	2	1
+misc	10	1	1
+`}
+
+	file := filepath.Join(testDir, "testfile")
+	err := os.WriteFile(file, []byte(d.data), 0644)
+	require.NoError(t, err)
+
+	err = parseCgroupSubSysIds(file)
+	require.NoError(t, err)
+	for _, c := range cgroupControllers {
+		if strings.Contains(d.used, c.name) {
+			require.Equal(t, true, c.active)
+			require.NotZero(t, c.id)
+		} else {
+			require.Equal(t, false, c.active)
+			require.Zero(t, c.id)
 		}
 	}
 }
