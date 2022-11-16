@@ -68,11 +68,11 @@ const (
 	DEPLOY_SD_USER    DeploymentCode = 11 // Systemd user session
 )
 
-type cgroupController struct {
-	id     uint32 // Hierarchy unique ID
-	idx    uint32 // Cgroup SubSys index
-	name   string // Controller name
-	active bool   // Will be set to true if controller is set and active
+type CgroupController struct {
+	Id     uint32 // Hierarchy unique ID
+	Idx    uint32 // Cgroup SubSys index
+	Name   string // Controller name
+	Active bool   // Will be set to true if controller is set and active
 }
 
 var (
@@ -83,10 +83,10 @@ var (
 	 * are usually the ones that are setup by systemd
 	 * or other init programs.
 	 */
-	cgroupControllers = []cgroupController{
-		{name: "memory"}, // Memory first
-		{name: "pids"},   // pids second
-		{name: "cpuset"}, // fallback
+	CgroupControllers = []CgroupController{
+		{Name: "memory"}, // Memory first
+		{Name: "pids"},   // pids second
+		{Name: "cpuset"}, // fallback
 	}
 
 	cgroupv2Hierarchy = "0::"
@@ -184,8 +184,8 @@ func parseCgroupSubSysIds(filePath string) error {
 		// No need to read enabled field as it can be enabled on
 		// root without having a proper cgroup name to reflect that
 		// or the controller is not active on the unified cgroupv2.
-		for i, controller := range cgroupControllers {
-			if fields[0] == controller.name {
+		for i, controller := range CgroupControllers {
+			if fields[0] == controller.Name {
 				/* We care only for the controllers that we want */
 				if idx >= CGROUP_SUBSYS_COUNT {
 					/* Maybe some cgroups are not upstream? */
@@ -195,14 +195,14 @@ func parseCgroupSubSysIds(filePath string) error {
 
 				id, err := strconv.ParseUint(fields[1], 10, 32)
 				if err == nil {
-					cgroupControllers[i].id = uint32(id)
-					cgroupControllers[i].idx = uint32(idx)
-					cgroupControllers[i].active = true
+					CgroupControllers[i].Id = uint32(id)
+					CgroupControllers[i].Idx = uint32(idx)
+					CgroupControllers[i].Active = true
 					fixed = true
 				} else {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"cgroup.fs":              cgroupFSPath,
-						"cgroup.controller.name": controller.name,
+						"cgroup.controller.name": controller.Name,
 					}).WithError(err).Warnf("parsing controller line from '%s' failed", filePath)
 				}
 			}
@@ -224,19 +224,19 @@ func parseCgroupSubSysIds(filePath string) error {
 		return err
 	}
 
-	for _, controller := range cgroupControllers {
+	for _, controller := range CgroupControllers {
 		// Print again everything that is available or not
-		if controller.active {
+		if controller.Active {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgroup.fs":                     cgroupFSPath,
-				"cgroup.controller.name":        controller.name,
-				"cgroup.controller.hierarchyID": controller.id,
-				"cgroup.controller.index":       controller.idx,
-			}).Infof("Supported cgroup controller '%s' is active on the system", controller.name)
+				"cgroup.controller.name":        controller.Name,
+				"cgroup.controller.hierarchyID": controller.Id,
+				"cgroup.controller.index":       controller.Idx,
+			}).Infof("Supported cgroup controller '%s' is active on the system", controller.Name)
 		} else {
 			// Warn with error
-			err = fmt.Errorf("controller '%s' is not active", controller.name)
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Supported cgroup controller '%s' is not active", controller.name)
+			err = fmt.Errorf("controller '%s' is not active", controller.Name)
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Supported cgroup controller '%s' is not active", controller.Name)
 		}
 	}
 
@@ -290,16 +290,16 @@ func GetCgroupMode() CgroupModeCode {
 	return cgroupMode
 }
 
-func setCgrpHierarchyID(controller *cgroupController) {
-	cgrpHierarchy = controller.id
+func setCgrpHierarchyID(controller *CgroupController) {
+	cgrpHierarchy = controller.Id
 }
 
 func setCgrp2HierarchyID() {
 	cgrpHierarchy = CGROUP_DEFAULT_HIERARCHY
 }
 
-func setCgrpSubsystemIdx(controller *cgroupController) {
-	cgrpSubsystemIdx = controller.idx
+func setCgrpSubsystemIdx(controller *CgroupController) {
+	cgrpSubsystemIdx = controller.Idx
 }
 
 // GetCgrpHierarchyID() returns the ID of the Cgroup hierarchy
@@ -319,9 +319,9 @@ func GetCgrpSubsystemIdx() uint32 {
 // being used as fallback from the css to get cgroup information and
 // track processes.
 func GetCgrpControllerName() string {
-	for _, controller := range cgroupControllers {
-		if controller.active && controller.idx == cgrpSubsystemIdx {
-			return controller.name
+	for _, controller := range CgroupControllers {
+		if controller.Active && controller.Idx == cgrpSubsystemIdx {
+			return controller.Name
 		}
 	}
 	return ""
@@ -330,18 +330,18 @@ func GetCgrpControllerName() string {
 // Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv1
 // and returns it on success
 func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
-	for _, controller := range cgroupControllers {
+	for _, controller := range CgroupControllers {
 		// First lets go again over list of active controllers
-		if controller.active == false {
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.name)
+		if controller.Active == false {
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.Name)
 			continue
 		}
 
 		for _, s := range cgroupPaths {
-			if strings.Contains(s, fmt.Sprintf(":%s:", controller.name)) {
+			if strings.Contains(s, fmt.Sprintf(":%s:", controller.Name)) {
 				idx := strings.Index(s, "/")
 				path := s[idx+1:]
-				cgroupPath := filepath.Join(cgroupFSPath, controller.name, path)
+				cgroupPath := filepath.Join(cgroupFSPath, controller.Name, path)
 				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 				_, err := os.Stat(finalpath)
 				if err != nil {
@@ -351,7 +351,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 						mode := getDeploymentMode()
 						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 							// Cgroups are namespaced let's try again
-							cgroupPath = filepath.Join(cgroupFSPath, controller.name)
+							cgroupPath = filepath.Join(cgroupFSPath, controller.Name)
 							finalpath = filepath.Join(cgroupPath, "cgroup.procs")
 							_, err = os.Stat(finalpath)
 						}
@@ -372,10 +372,10 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 
 				logger.GetLogger().WithFields(logrus.Fields{
 					"cgroup.fs":                     cgroupFSPath,
-					"cgroup.controller.name":        controller.name,
-					"cgroup.controller.hierarchyID": controller.id,
-					"cgroup.controller.index":       controller.idx,
-				}).Infof("Cgroupv1 controller '%s' will be used", controller.name)
+					"cgroup.controller.name":        controller.Name,
+					"cgroup.controller.hierarchyID": controller.Id,
+					"cgroup.controller.index":       controller.Idx,
+				}).Infof("Cgroupv1 controller '%s' will be used", controller.Name)
 
 				setCgrpHierarchyID(&controller)
 				setCgrpSubsystemIdx(&controller)
@@ -394,7 +394,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 }
 
 // Lookup Cgroupv2 active controllers and returns one that we support
-func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
+func getCgroupv2Controller(cgroupPath string) (*CgroupController, error) {
 	file := filepath.Join(cgroupPath, "cgroup.controllers")
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -411,15 +411,15 @@ func getCgroupv2Controller(cgroupPath string) (*cgroupController, error) {
 		"cgroup.controllers": strings.Fields(activeControllers),
 	}).Info("Cgroupv2 supported controllers detected successfully")
 
-	for i, controller := range cgroupControllers {
-		if controller.active && strings.Contains(activeControllers, controller.name) {
+	for i, controller := range CgroupControllers {
+		if controller.Active && strings.Contains(activeControllers, controller.Name) {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgroup.fs":                     cgroupFSPath,
-				"cgroup.controller.name":        controller.name,
-				"cgroup.controller.hierarchyID": controller.id,
-				"cgroup.controller.index":       controller.idx,
-			}).Infof("Cgroupv2 controller '%s' will be used as a fallback for the default hierarchy", controller.name)
-			return &cgroupControllers[i], nil
+				"cgroup.controller.name":        controller.Name,
+				"cgroup.controller.hierarchyID": controller.Id,
+				"cgroup.controller.index":       controller.Idx,
+			}).Infof("Cgroupv2 controller '%s' will be used as a fallback for the default hierarchy", controller.Name)
+			return &CgroupControllers[i], nil
 		}
 	}
 
