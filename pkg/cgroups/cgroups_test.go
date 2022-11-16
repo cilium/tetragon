@@ -240,6 +240,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 	assert.NotEqual(t, uint64(CGROUP_UNDEF), GetCgroupFSMagic())
 	assert.NotEmpty(t, CgroupFsMagicStr(fs))
 	assert.NotEmpty(t, GetCgroupFSPath())
+	assert.Equal(t, true, filepath.IsAbs(GetCgroupFSPath()))
 }
 
 // Test discovery of compiled-in Cgroups controllers
