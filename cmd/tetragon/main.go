@@ -34,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -280,11 +281,14 @@ func tetragonExecute() error {
 	ctx, cancel2 := context.WithCancel(ctx)
 	defer cancel2()
 
+	hookRunner := rthooks.GlobalRunner().WithWatcher(watcher)
+
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
 		ciliumState,
-		observer.SensorManager)
+		observer.SensorManager,
+		hookRunner)
 	if err != nil {
 		return err
 	}

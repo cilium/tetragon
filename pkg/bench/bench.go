@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -222,19 +223,23 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	if _, err := cilium.InitCiliumState(ctx, enableCiliumAPI); err != nil {
 		return err
 	}
-	if err := process.InitCache(ctx, watcher.NewFakeK8sWatcher(nil), enableCiliumAPI, processCacheSize); err != nil {
+
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	if err := process.InitCache(ctx, watcher, enableCiliumAPI, processCacheSize); err != nil {
 		return err
 	}
 
 	if err := observer.InitDataCache(dataCacheSize); err != nil {
 		return err
 	}
+	hookRunner := rthooks.GlobalRunner().WithWatcher(watcher)
 
 	processManager, err := grpc.NewProcessManager(
 		ctx,
 		&wg,
 		cilium.GetFakeCiliumState(),
-		observer.SensorManager)
+		observer.SensorManager,
+		hookRunner)
 	if err != nil {
 		return err
 	}

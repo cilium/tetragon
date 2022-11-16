@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -160,7 +161,8 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		context.Background(),
 		&wg,
 		cilium.GetFakeCiliumState(),
-		nil)
+		nil,
+		&rthooks.Runner{})
 	assert.NoError(t, err)
 	pi := &exec.MsgExecveEventUnix{MsgExecveEventUnix: processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{
