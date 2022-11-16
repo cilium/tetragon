@@ -1056,3 +1056,15 @@ func TestCgroupv1K8sHierarchyInHybridPids(t *testing.T) {
 func TestCgroupv1K8sHierarchyInHybridCpuset(t *testing.T) {
 	testCgroupv1K8sHierarchyInHybrid(t, "cpuset")
 }
+
+// This test will not use the blkio, it will fallback to the
+// best cgroup controller if available
+func TestCgroupv1K8sHierarchyInHybridBlkio(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "blkio")
+}
+
+// This test will not use the invalid cgroup controller, it will
+// fallback to the best cgroup controller if available
+func TestCgroupv1K8sHierarchyInHybridInvalid(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "invalid-cgroup-controller")
+}
