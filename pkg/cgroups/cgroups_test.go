@@ -133,13 +133,13 @@ misc	10	1	1
 
 	err = parseCgroupSubSysIds(file)
 	require.NoError(t, err)
-	for _, c := range cgroupControllers {
-		if strings.Contains(d.used, c.name) {
-			require.Equal(t, true, c.active)
-			require.NotZero(t, c.id)
+	for _, c := range CgroupControllers {
+		if strings.Contains(d.used, c.Name) {
+			require.Equal(t, true, c.Active)
+			require.NotZero(t, c.Id)
 		} else {
-			require.Equal(t, false, c.active)
-			require.Zero(t, c.id)
+			require.Equal(t, false, c.Active)
+			require.Zero(t, c.Id)
 		}
 	}
 }
@@ -263,21 +263,21 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 	if err == nil {
 		accessFs = true
 	}
-	for _, controller := range cgroupControllers {
+	for _, controller := range CgroupControllers {
 		if accessFs {
 			if cgroupMode == CGROUP_UNIFIED {
-				assert.EqualValues(t, 0, controller.id, "Cgroupv2 Controller '%s' hierarchy ID should be O as it is Unified Cgroup", controller.name)
+				assert.EqualValues(t, 0, controller.Id, "Cgroupv2 Controller '%s' hierarchy ID should be O as it is Unified Cgroup", controller.Name)
 			} else {
-				assert.NotEqualValues(t, 0, controller.id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.name)
+				assert.NotEqualValues(t, 0, controller.Id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
 			}
 		}
 
-		if controller.active {
+		if controller.Active {
 			fixed = true
 
 			// If those controllers are active let's check their css index
-			if controller.name == "memory" || controller.name == "pids" {
-				assert.NotEqualValues(t, 0, controller.idx, "Cgroup Controller '%s' css index should not be zero", controller.name)
+			if controller.Name == "memory" || controller.Name == "pids" {
+				assert.NotEqualValues(t, 0, controller.Idx, "Cgroup Controller '%s' css index should not be zero", controller.Name)
 			}
 		}
 	}
