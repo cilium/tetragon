@@ -161,7 +161,8 @@ prepend(char **buffer, int *buflen, const char *str, int namelen)
 }
 
 struct cwd_read_data {
-	const struct path *root;
+	struct dentry *root_dentry;
+	struct vfsmount *root_mnt;
 	char *bf;
 	struct dentry *dentry;
 	struct vfsmount *vfsmnt;
@@ -177,17 +178,12 @@ cwd_read(struct cwd_read_data *data)
 	struct qstr d_name;
 	struct dentry *parent;
 	struct dentry *vfsmnt_mnt_root;
-	struct vfsmount *root_mnt;
-	struct dentry *root_dentry;
-	const struct path *root = data->root;
 	struct dentry *dentry = data->dentry;
 	struct vfsmount *vfsmnt = data->vfsmnt;
 	struct mount *mnt = data->mnt;
 	int error;
 
-	probe_read(&root_dentry, sizeof(root_dentry), _(&root->dentry));
-	probe_read(&root_mnt, sizeof(root_mnt), _(&root->mnt));
-	if (!(dentry != root_dentry || vfsmnt != root_mnt)) {
+	if (!(dentry != data->root_dentry || vfsmnt != data->root_mnt)) {
 		data->resolved =
 			true; // resolved all path components successfully
 		return 1;
@@ -239,13 +235,15 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	     char **buffer, int *buflen)
 {
 	struct cwd_read_data data = {
-		.root = root,
 		.bf = bf,
 		.bptr = *buffer,
 		.blen = *buflen,
 	};
 	int error = 0;
 
+	probe_read(&data.root_dentry, sizeof(data.root_dentry),
+		   _(&root->dentry));
+	probe_read(&data.root_mnt, sizeof(data.root_mnt), _(&root->mnt));
 	probe_read(&data.dentry, sizeof(data.dentry), _(&path->dentry));
 	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
 	data.mnt = real_mount(data.vfsmnt);
