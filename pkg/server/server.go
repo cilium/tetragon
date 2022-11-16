@@ -44,23 +44,29 @@ type observer interface {
 	RemoveSensor(ctx context.Context, sensorName string) error
 }
 
+type hookRunner interface {
+	RunHooks(ctx context.Context, req *tetragon.RuntimeHookRequest) error
+}
+
 type Server struct {
 	ctx          context.Context
 	ctxCleanupWG *sync.WaitGroup
 	notifier     notifier
 	observer     observer
+	hookRunner   hookRunner
 }
 
 type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner) *Server {
 	return &Server{
 		ctx:          ctx,
 		ctxCleanupWG: cleanupWg,
 		notifier:     notifier,
 		observer:     observer,
+		hookRunner:   hookRunner,
 	}
 }
 
@@ -280,5 +286,9 @@ func (s *Server) GetVersion(ctx context.Context, req *tetragon.GetVersionRequest
 }
 
 func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookRequest) (*tetragon.RuntimeHookResponse, error) {
+	err := s.hookRunner.RunHooks(ctx, req)
+	if err != nil {
+		logger.GetLogger().WithField("request", req).WithError(err).Warn("runtime hooks failure")
+	}
 	return &tetragon.RuntimeHookResponse{}, nil
 }

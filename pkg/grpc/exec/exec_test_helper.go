@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
 
@@ -276,7 +277,8 @@ func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *s
 	}
 
 	dn := DummyNotifier[EXEC, EXIT]{t}
-	lServer := server.NewServer(ctx, cancelWg, dn, &server.FakeObserver{})
+	dr := rthooks.DummyHookRunner{}
+	lServer := server.NewServer(ctx, cancelWg, dn, &server.FakeObserver{}, dr)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.NewWithTimer(lServer, time.Millisecond*CacheTimerMs)

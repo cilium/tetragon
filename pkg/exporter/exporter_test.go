@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/stretchr/testify/assert"
 )
@@ -82,7 +83,8 @@ func TestExporter_Send(t *testing.T) {
 
 	eventNotifier := newFakeNotifier()
 	ctx, cancel := context.WithCancel(context.Background())
-	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{})
+	dr := rthooks.DummyHookRunner{}
+	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
 	numRecords := 2
 	results := newArrayWriter(numRecords)
 	encoder := json.NewEncoder(results)
@@ -186,7 +188,8 @@ func Test_rateLimitExport(t *testing.T) {
 		t.Run(fmt.Sprintf("%s (%d events, %d rate limit)", tt.name, tt.totalEvents, tt.rateLimit), func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			eventNotifier := newFakeNotifier()
-			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{})
+			dr := rthooks.DummyHookRunner{}
+			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
 			results := newArrayWriter(tt.totalEvents)
 			encoder := json.NewEncoder(results)
 			request := &tetragon.GetEventsRequest{}

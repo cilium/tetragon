@@ -38,6 +38,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -391,6 +392,9 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	// signals from users.
 	var cancelWg sync.WaitGroup
 
+	// use an empty hooks runner
+	hookRunner := (&rthooks.Runner{}).WithWatcher(watcher)
+
 	// For testing we disable the eventcache and cilium cache by default. If we
 	// enable these then every tests would need to wait for the 1.5 mimutes needed
 	// to bounce events through the cache waiting for Cilium to reply with endpoints
@@ -399,7 +403,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
 	option.Config.EnableCilium = false
-	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, SensorManager)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, SensorManager, hookRunner)
 	if err != nil {
 		return err
 	}
