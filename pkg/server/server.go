@@ -278,3 +278,7 @@ func (s *Server) GetStackTraceTree(ctx context.Context, req *tetragon.GetStackTr
 func (s *Server) GetVersion(ctx context.Context, req *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
 	return &tetragon.GetVersionResponse{Version: version.Version}, nil
 }
+
+func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookRequest) (*tetragon.RuntimeHookResponse, error) {
+	return &tetragon.RuntimeHookResponse{}, nil
+}

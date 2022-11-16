@@ -112,3 +112,7 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 	}
 	return nil, io.EOF
 }
+
+func (i *ioReaderClient) RuntimeHook(ctx context.Context, in *tetragon.RuntimeHookRequest, opts ...grpc.CallOption) (*tetragon.RuntimeHookResponse, error) {
+	panic("stub")
+}
