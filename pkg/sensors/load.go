@@ -181,6 +181,17 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 			}
 		}
 
+		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
+		if err != nil {
+			return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
+		}
+		mapSpec, ok := spec.Maps[m.Name]
+		if !ok {
+			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
+		}
+
+		createMap := true
+
 		// Try to open the pinPath and if it exist use the previously
 		// pinned map otherwise pin the map and next user will find
 		// it here.
@@ -188,16 +199,21 @@ func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
 			if err = m.LoadPinnedMap(pinPath); err != nil {
 				return fmt.Errorf("loading pinned map failed: %w", err)
 			}
-		} else {
-			spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
-			if err != nil {
-				return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
+			if err = m.IsCompatibleWith(mapSpec); err != nil {
+				l.WithFields(logrus.Fields{
+					"sensor": s.Name,
+					"map":    m.Name,
+					"path":   pinPath,
+				}).Warn("tetragon, incompatible map found: ", err)
+				m.Close()
+				os.Remove(pinPath)
+			} else {
+				createMap = false
 			}
-			mapSpec, ok := spec.Maps[m.Name]
-			if !ok {
-				return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
-			}
+		}
 
+		// either there's no pin file or the map spec does not match
+		if createMap {
 			if err := m.New(mapSpec); err != nil {
 				return fmt.Errorf("failed to open map '%s': %w", m.Name, err)
 			}
