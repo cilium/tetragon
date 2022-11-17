@@ -39,12 +39,14 @@ type cgroupHierarchy struct {
 	tracking bool // Cgroup is being used as a tracking entity
 	added    bool
 	removed  bool
+	cleanup  func(t *testing.T, root, name, path string)
 }
 
 type cgroupController struct {
 	name    string // Controller name
 	mounted bool   // Will be set if to true if mounted
 	used    bool   // Will be set to true if controller is set and active
+	cleanup func(t *testing.T, mountPoint string)
 }
 
 const (
@@ -63,22 +65,22 @@ var (
 	}
 
 	defaultKubeCgroupHierarchy = []cgroupHierarchy{
-		{"tetragon-tests-39d631b6f0fbc4e261c7a0ee636cf434-defaultKubeCgroupHierarchy-system.slice", true, false, false},
-		{"kubelet.slice", true, false, false},
-		{"kubelet-kubepods.slice", true, false, false},
-		{"kubelet-kubepods-besteffort.slice", true, false, false},
-		{"kubelet-kubepods-besteffort-pod2edf54f8_6911_449f_9abe_3d468a770d6b.slice", true, false, false},
-		{"cri-containerd-02de72688d6bb0908d279bbbb05ffa9d7e0b2ae17a8bf23683a33cc1349e55aa.scope", true, false, false},
-		{"nested-below-container-tracking-level+1", false, false, false},
-		{"nested-below-container-tracking-level+2", false, false, false},
+		{"tetragon-tests-39d631b6f0fbc4e261c7a0ee636cf434-defaultKubeCgroupHierarchy-system.slice", true, false, false, nil},
+		{"kubelet.slice", true, false, false, nil},
+		{"kubelet-kubepods.slice", true, false, false, nil},
+		{"kubelet-kubepods-besteffort.slice", true, false, false, nil},
+		{"kubelet-kubepods-besteffort-pod2edf54f8_6911_449f_9abe_3d468a770d6b.slice", true, false, false, nil},
+		{"cri-containerd-02de72688d6bb0908d279bbbb05ffa9d7e0b2ae17a8bf23683a33cc1349e55aa.scope", true, false, false, nil},
+		{"nested-below-container-tracking-level+1", false, false, false, nil},
+		{"nested-below-container-tracking-level+2", false, false, false, nil},
 	}
 
 	cgroupv1Controllers = []cgroupController{
-		{"cpuset", false, false},
-		{"blkio", false, false},
-		{"memory", false, false},
-		{"pids", false, false},
-		{"devices", false, false},
+		{"cpuset", false, false, nil},
+		{"blkio", false, false, nil},
+		{"memory", false, false, nil},
+		{"pids", false, false, nil},
+		{"devices", false, false, nil},
 	}
 )
 
@@ -249,7 +251,7 @@ func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy) {
 }
 
 // Asserts cgroupv1 hierarchies events
-func assertCgroupv1Events(ctx context.Context, t *testing.T, cgroupHierarchiesMap map[string][]cgroupHierarchy, trackedLevel uint32, trigger func()) {
+func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController string, cgroupHierarchiesMap map[string][]cgroupHierarchy, trackedLevel uint32, trigger func()) {
 	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), testsensor.GetCgroupsTrackingMap().Name)
 	events := perfring.RunTestEvents(t, ctx, trigger)
 	for _, ev := range events {
@@ -272,6 +274,12 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, cgroupHierarchiesMa
 				}
 
 				require.NotEmpty(t, controller)
+
+				// We passed a faked selected Controller so we should not update it
+				// inside cgroupHierarchiesMap
+				if controller != selectedController {
+					continue
+				}
 
 				cgrpName := filepath.Base(cgrpPath)
 				require.Equal(t, cgrpName, cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH]))
@@ -625,14 +633,14 @@ func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
 }
 
 func testCgroupv1HierarchyInHybrid(ctx context.Context, t *testing.T,
-	cgroupRoot string, cgroupHierarchiesMap map[string][]cgroupHierarchy, trackingCgrpLevel uint32,
+	cgroupRoot string, usedController string, cgroupHierarchiesMap map[string][]cgroupHierarchy, trackingCgrpLevel uint32,
 	triggers []func()) {
 
 	t.Logf("Test %s running in %s", t.Name(), cgroups.CgroupModeCode(cgroups.CGROUP_HYBRID).String())
 
 	for hierarchy, cgroupHierarchy := range cgroupHierarchiesMap {
 		hierarchyPath := filepath.Join(cgroups.GetCgroupFSPath(), hierarchy)
-		t.Logf("Test %s cgroup mount point: %s -> %s", t.Name(), hierarchyPath, cgroupRoot)
+		t.Logf("Test %s cgroup mount point: %s -> %s", t.Name(), hierarchyPath, filepath.Join(cgroupRoot, hierarchy))
 
 		// Ensure that we do not have a test cgroup hierarchy since cgroupfs is shared
 		sharedCgroupPath := filepath.Join(hierarchyPath, cgroupHierarchy[0].path)
@@ -647,7 +655,7 @@ func testCgroupv1HierarchyInHybrid(ctx context.Context, t *testing.T,
 	}
 
 	for _, trigger := range triggers {
-		assertCgroupv1Events(ctx, t, cgroupHierarchiesMap, trackingCgrpLevel, trigger)
+		assertCgroupv1Events(ctx, t, usedController, cgroupHierarchiesMap, trackingCgrpLevel, trigger)
 	}
 }
 
@@ -836,9 +844,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_HYBRID)
 }
 
-// Test Cgroupv1 tries to emulate k8s hierarchy without exec context
-// Works in systemd hybrid mode
-func TestCgroupv1K8sHierarchyInHybrid(t *testing.T) {
+func testCgroupv1K8sHierarchyInHybrid(t *testing.T, selectedController string) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -887,15 +893,61 @@ func TestCgroupv1K8sHierarchyInHybrid(t *testing.T) {
 	require.NotZero(t, trackingCgrpLevel)
 	require.True(t, trackingCgrpLevel <= uint32(len(defaultKubeCgroupHierarchy)))
 
-	// Setup unified cgroup tracking 0 as hierarchy ID
+	// First setup default cgroup
 	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
+	// Fetch which controller name we will use
+	usedController := cgroups.GetCgrpControllerName()
+
+	if selectedController != "" && selectedController != usedController {
+		found := false
+		// Let's reset to selected Controller
+		usedController = selectedController
+		for _, ctrl := range cgroups.CgroupControllers {
+			if ctrl.Name == selectedController && ctrl.Active {
+				setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel),
+					ctrl.Id, ctrl.Idx)
+				t.Logf("SetupTgRuntimeConf() with Cgroup Hierarchy ID=%d  and Index=%d", ctrl.Id, ctrl.Idx)
+				found = true
+			}
+			// If selectedController we fallback to default controller
+			// probably memory or pids
+		}
+
+		/* If not found falls back to default selected controller by
+		 * the cgroups auto discovery.
+		 */
+		if !found {
+			usedController = cgroups.GetCgrpControllerName()
+		}
+	}
+
+	// Make sure that we do not have an empty controller and we always have one
+	require.NotEmpty(t, usedController)
 
 	controllers := append([]cgroupController(nil), cgroupv1Controllers...)
 	kubeCgroupHierarchiesMap := make(map[string][]cgroupHierarchy, len(cgroupv1Controllers))
 
-	// Fetch which controller name we will use
-	usedController := cgroups.GetCgrpControllerName()
-	require.NotEmpty(t, usedController)
+	// Ensure we unmount all cgroup mount points
+	cleanupMounts := func() {
+		for _, controller := range controllers {
+			if controller.mounted == true && controller.cleanup != nil {
+				hierarchy := filepath.Join(cgroupRoot, controller.name)
+				controller.cleanup(t, hierarchy)
+			}
+		}
+	}
+	t.Cleanup(cleanupMounts)
+
+	// Ensure we remove all hierarchies
+	cleanupHierarchies := func() {
+		for _, controller := range controllers {
+			c, ok := kubeCgroupHierarchiesMap[controller.name]
+			if ok && c[0].cleanup != nil {
+				c[0].cleanup(t, cgroupRoot, controller.name, c[0].path)
+			}
+		}
+	}
+	t.Cleanup(cleanupHierarchies)
 
 	mountedControllers := 0
 	for i, controller := range controllers {
@@ -907,22 +959,25 @@ func TestCgroupv1K8sHierarchyInHybrid(t *testing.T) {
 			t.Logf("mountCgroup() %s failed: %v ignoring", hierarchy, err)
 		} else {
 			controllers[i].mounted = true
-			t.Cleanup(func() {
-				umountCgroup(t, hierarchy)
-			})
+			controllers[i].cleanup = func(t *testing.T, mountPoint string) {
+				umountCgroup(t, mountPoint)
+			}
 			kubeCgroupHierarchiesMap[controller.name] = make([]cgroupHierarchy, 0)
 			for i, c := range defaultKubeCgroupHierarchy {
 				n := cgroupHierarchy{}
 				if i == 0 {
 					// Prefix path so we can match it later easily
 					n.path = fmt.Sprintf("%s-%s", controller.name, c.path)
+					n.cleanup = func(t *testing.T, rootCgroup, name, path string) {
+						cgroupRmdir(t, rootCgroup, name, path)
+					}
 				} else {
 					n.path = c.path
 				}
 				if controller.name == usedController && uint32(i) < trackingCgrpLevel {
 					n.tracking = true
 				} else {
-					n.tracking = false // Controller was not used at all hierarchy not to be tracked
+					n.tracking = false // Controller was not used at all, hierarchy not to be tracked
 				}
 				kubeCgroupHierarchiesMap[controller.name] = append(kubeCgroupHierarchiesMap[controller.name], n)
 			}
@@ -971,17 +1026,33 @@ func TestCgroupv1K8sHierarchyInHybrid(t *testing.T) {
 		triggerCgroupMkdir, triggerCgroupRmdir,
 	}
 
-	for hierarchy, cgroupHierarchy := range kubeCgroupHierarchiesMap {
-		t.Cleanup(func() {
-			cgroupRmdir(t, cgroupRoot, hierarchy, cgroupHierarchy[0].path)
-		})
-	}
-
 	// Loop over all created cgroup hierarchies
-	testCgroupv1HierarchyInHybrid(ctx, t, cgroupRoot, kubeCgroupHierarchiesMap,
+	testCgroupv1HierarchyInHybrid(ctx, t, cgroupRoot, usedController, kubeCgroupHierarchiesMap,
 		trackingCgrpLevel, triggers)
 
 	for _, cgroupHierarchy := range kubeCgroupHierarchiesMap {
 		assertCgroupDirTracking(t, cgroupHierarchy)
 	}
+}
+
+// Test Cgroupv1 tries to emulate k8s hierarchy without exec context
+// Works in systemd hybrid mode
+// This test will select the best cgroup controller to use
+func TestCgroupv1K8sHierarchyInHybridDefault(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "")
+}
+
+// This test will use the memory cgroup controller if available
+func TestCgroupv1K8sHierarchyInHybridMemory(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "memory")
+}
+
+// This test will use the pids cgroup controller if available
+func TestCgroupv1K8sHierarchyInHybridPids(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "pids")
+}
+
+// This test will use the cpuset cgroup controller if available
+func TestCgroupv1K8sHierarchyInHybridCpuset(t *testing.T) {
+	testCgroupv1K8sHierarchyInHybrid(t, "cpuset")
 }
