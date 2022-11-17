@@ -52,6 +52,7 @@ $ ./tests/vmtests/tetragon-vmtests-run \
 
 Run a single test 20 times on 4.19 and fail fast
 
+```
 $ seq 20 | xargs -I {} echo pkg.sensors.tracing:TestGenericTracepointRawSyscall > tests/vmtests/repeat-raw-syscall
 $ ./tests/vmtests/tetragon-vmtests-run \
 	--kernel tests/vmtests/test-data/kernels/4.19/boot/vmlinuz-4.19.262 \
@@ -59,6 +60,7 @@ $ ./tests/vmtests/tetragon-vmtests-run \
 	--base tests/vmtests/test-data/images/base.qcow2  \
 	--testsfile tests/vmtests/repeat-raw-syscall \
 	--fail-fast
+```
 
 Just Boot the VM. User
 
