@@ -69,6 +69,10 @@ func (v *TetragonConfValue) DeepCopyMapValue() bpf.MapValue {
 // On failures it returns an error, and it default prints a warning that advanced
 // Cgroups tracking will be disabled which will affect process association with
 // kubernetes pods and containers.
+//
+// Important: this function does not take extra arguments as it should auto detect
+// environment without any help. For testing use the specific variant that can be
+// tuned with specific argument values.
 func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	configMap := base.GetTetragonConfMap()
 	mapPath := filepath.Join(mapDir, configMap.Name)
