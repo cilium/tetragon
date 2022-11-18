@@ -369,19 +369,23 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	return nil
 }
 
-func Serve(ctx context.Context, address string, server *server.Server) error {
+func Serve(ctx context.Context, listenAddr string, server *server.Server) error {
 	grpcServer := grpc.NewServer()
 	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, server)
-	go func(address string) {
-		listener, err := net.Listen("tcp", address)
+	proto, addr, err := splitListenAddr(listenAddr)
+	if err != nil {
+		return fmt.Errorf("failed to parse listen address: %w", err)
+	}
+	go func(proto, addr string) {
+		listener, err := net.Listen(proto, addr)
 		if err != nil {
-			log.WithError(err).WithField("address", address).Fatal("Failed to start gRPC server")
+			log.WithError(err).WithField("protocol", proto).WithField("address", addr).Fatal("Failed to start gRPC server")
 		}
-		log.WithField("address", address).Info("Starting gRPC server")
+		log.WithField("address", addr).WithField("protocol", proto).Info("Starting gRPC server")
 		if err = grpcServer.Serve(listener); err != nil {
 			log.WithError(err).Error("Failed to close gRPC server")
 		}
-	}(address)
+	}(proto, addr)
 	go func() {
 		<-ctx.Done()
 		grpcServer.Stop()
