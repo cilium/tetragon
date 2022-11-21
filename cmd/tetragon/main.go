@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	pprofhttp "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -161,6 +163,14 @@ func tetragonExecute() error {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
+
+	if pprofAddr != "" {
+		go func() {
+			if err := servePprof(pprofAddr); err != nil {
+				log.Warnf("serving pprof via http: %v", err)
+			}
+		}()
+	}
 
 	// Start profilers first as we have to capture them in signal handling
 	if memProfile != "" {
@@ -480,6 +490,9 @@ func execute() error {
 	flags.String(keyMemProfile, "", "Store MEM profile into provided file")
 	flags.MarkHidden(keyMemProfile)
 
+	flags.String(keyPprofAddr, "", "Profile via pprof http")
+	flags.MarkHidden(keyPprofAddr)
+
 	// JSON export aggregation options.
 	flags.Bool(keyEnableExportAggregation, false, "Enable JSON export aggregation")
 	flags.Duration(keyExportAggregationWindowSize, 15*time.Second, "JSON export aggregation time window")
@@ -508,4 +521,14 @@ func execute() error {
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
+}
+
+func servePprof(addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprofhttp.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprofhttp.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprofhttp.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprofhttp.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprofhttp.Trace)
+	return http.ListenAndServe(addr, mux)
 }
