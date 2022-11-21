@@ -40,6 +40,7 @@ const (
 
 	keyCpuProfile = "cpuprofile"
 	keyMemProfile = "memprofile"
+	keyPprofAddr  = "pprof-addr"
 
 	keyExportFilename             = "export-filename"
 	keyExportFileMaxSizeMB        = "export-file-max-size-mb"
@@ -90,6 +91,7 @@ var (
 
 	cpuProfile string
 	memProfile string
+	pprofAddr  string
 )
 
 func readAndSetFlags() {
@@ -137,6 +139,7 @@ func readAndSetFlags() {
 
 	cpuProfile = viper.GetString(keyCpuProfile)
 	memProfile = viper.GetString(keyMemProfile)
+	pprofAddr = viper.GetString(keyPprofAddr)
 
 	option.Config.EventQueueSize = viper.GetUint(keyEventQueueSize)
 
