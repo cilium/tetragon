@@ -112,27 +112,29 @@ func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		switch op {
 		case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
 			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.event":     op.String(),
-				"PID":              msg.PID,
-				"NSPID":            msg.NSPID,
-				"cgroup.IDTracker": msg.CgrpidTracker,
-				"cgroup.ID":        msg.Cgrpid,
-				"cgroup.state":     st,
-				"cgroup.level":     msg.CgrpData.Level,
-				"cgroup.path":      cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+				"cgroup.event":       op.String(),
+				"PID":                msg.PID,
+				"NSPID":              msg.NSPID,
+				"cgroup.IDTracker":   msg.CgrpidTracker,
+				"cgroup.ID":          msg.Cgrpid,
+				"cgroup.state":       st,
+				"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
+				"cgroup.level":       msg.CgrpData.Level,
+				"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
 			}).Debug("Received Cgroup event")
 		case ops.MSG_OP_CGROUP_ATTACH_TASK:
 			// Here we should get notification when Tetragon migrate itself
 			// and discovers cgroups configuration
 			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.event":     op.String(),
-				"PID":              msg.PID,
-				"NSPID":            msg.NSPID,
-				"cgroup.IDTracker": msg.CgrpidTracker,
-				"cgroup.ID":        msg.Cgrpid,
-				"cgroup.state":     st,
-				"cgroup.level":     msg.CgrpData.Level,
-				"cgroup.path":      cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+				"cgroup.event":       op.String(),
+				"PID":                msg.PID,
+				"NSPID":              msg.NSPID,
+				"cgroup.IDTracker":   msg.CgrpidTracker,
+				"cgroup.ID":          msg.Cgrpid,
+				"cgroup.state":       st,
+				"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
+				"cgroup.level":       msg.CgrpData.Level,
+				"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
 			}).Info("Received Cgroup event")
 		default:
 			logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
