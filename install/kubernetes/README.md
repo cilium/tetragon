@@ -64,9 +64,8 @@ Helm chart for Tetragon
 | tetragon.fieldFilters | string | `"{}"` |  |
 | tetragon.gops.address | string | `"localhost"` | The address at which to expose gops. |
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
-| tetragon.grpc.address | string | `"localhost"` | The address at which to expose gRPC. Set it to "" to listen on all available interfaces. |
+| tetragon.grpc.address | string | `"localhost:54321"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock |
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
-| tetragon.grpc.port | int | `54321` | The port at which to expose gRPC. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
 | tetragon.image.tag | string | `"v0.8.3"` |  |

@@ -134,10 +134,8 @@ tetragon:
   grpc:
     # -- Whether to enable exposing Tetragon gRPC.
     enabled: true
-    # -- The address at which to expose gRPC. Set it to "" to listen on all available interfaces.
-    address: "localhost"
-    # -- The port at which to expose gRPC.
-    port: 54321
+    # -- The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock
+    address: "localhost:54321"
   gops:
     # -- The address at which to expose gops.
     address: "localhost"
