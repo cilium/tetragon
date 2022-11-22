@@ -39,7 +39,7 @@ data:
   metrics-server: ""
 {{- end }}
 {{- if .Values.tetragon.grpc.enabled }}
-  server-address: {{ .Values.tetragon.grpc.address }}:{{ .Values.tetragon.grpc.port }}
+  server-address: {{ .Values.tetragon.grpc.address }}
 {{- else }}
 {{- end }}
 {{- if .Values.tetragon.tcpStatsSampleSegs }}
