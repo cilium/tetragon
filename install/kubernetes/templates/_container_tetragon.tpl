@@ -68,11 +68,15 @@
   resources:
     {{- toYaml . | nindent 4 }}
 {{- end }}
+{{- if .Values.tetragon.grpc.enabled }}
   livenessProbe:
-    exec:
-      command:
-      - tetra
-      - status
+     exec:
+       command:
+       - tetra
+       - status
+       - --server-address
+       - {{ .Values.tetragon.grpc.address }}
+{{- end -}}
 {{- end -}}
 
 {{- define "container.tetragon.init-operator" -}}
