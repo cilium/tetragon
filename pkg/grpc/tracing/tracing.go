@@ -48,16 +48,17 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	var tetragonParent, tetragonProcess *tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 	var tetragonReturnArg *tetragon.KprobeArgument
+	var daddr string
 
-	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
-	if process == nil {
+	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
-		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
@@ -77,6 +78,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		case api.MsgGenericKprobeArgString:
 			a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
 		case api.MsgGenericKprobeArgSock:
+			daddr = e.Daddr
 			sockArg := &tetragon.KprobeSock{
 				Family:   network.InetFamily(e.Family),
 				Type:     network.InetType(e.Type),
@@ -90,6 +92,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			}
 			a.Arg = &tetragon.KprobeArgument_SockArg{SockArg: sockArg}
 		case api.MsgGenericKprobeArgSkb:
+			daddr = e.Daddr
 			skbArg := &tetragon.KprobeSkb{
 				Hash:        e.Hash,
 				Len:         e.Len,
@@ -203,11 +206,14 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		return nil
 	}
 
-	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+	if proc != nil {
+		tetragonEvent.Process = proc.GetProcessCopy()
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
+	}
+	if daddr != "" {
+		tetragonEvent.Process.DestPod = process.GetPodInfoByAddr(daddr)
 	}
 
 	return tetragonEvent

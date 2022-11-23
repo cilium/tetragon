@@ -112,3 +112,11 @@ func (c *Colorer) ProcessInfo(host string, process *tetragon.Process) (string, s
 	caps := c.Magenta.Sprint(processCaps(process.Cap))
 	return fmt.Sprintf("%s %s", source, proc), caps
 }
+
+func (c *Colorer) DestPod(process *tetragon.Process) string {
+	pod := process.DestPod
+	if pod == nil {
+		return ""
+	}
+	return c.Green.Sprintf("%s/%s ", pod.Namespace, pod.Name)
+}

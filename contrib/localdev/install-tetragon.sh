@@ -72,7 +72,7 @@ if [ "$FORCE" == 1 ]; then
 fi
 
 # Set helm options
-declare -a helm_opts=("install" "--namespace" "kube-system")
+declare -a helm_opts=("upgrade" "--install" "--namespace" "kube-system")
 if [ ! -z "$IMAGE" ]; then
     helm_opts+=("--set" "tetragon.image.override=$IMAGE")
     if [ "$IS_KIND" == 1 ]; then

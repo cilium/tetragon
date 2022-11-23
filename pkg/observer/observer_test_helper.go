@@ -494,11 +494,11 @@ type fakeK8sWatcher struct {
 	OnGetPodInfo func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
 }
 
-func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func (f *fakeK8sWatcher) FindPod(filter watcher.PodFilter) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	if f.OnFindPod == nil {
 		panic("FindPod not implemented")
 	}
-	return f.OnFindPod(containerID)
+	return f.OnFindPod(filter.ContainerID)
 }
 
 func (f *fakeK8sWatcher) GetPodInfo(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {

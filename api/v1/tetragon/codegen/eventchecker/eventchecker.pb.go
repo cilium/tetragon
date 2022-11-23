@@ -9,6 +9,8 @@ import (
 	list "container/list"
 	json "encoding/json"
 	fmt "fmt"
+	strings "strings"
+
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	bytesmatcher "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	listmatcher "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -16,7 +18,6 @@ import (
 	timestampmatcher "github.com/cilium/tetragon/pkg/matchers/timestampmatcher"
 	logrus "github.com/sirupsen/logrus"
 	yaml "sigs.k8s.io/yaml"
-	strings "strings"
 )
 
 // MultiEventChecker is an interface for checking multiple Tetragon events
@@ -390,7 +391,7 @@ func (checker *ProcessExecChecker) WithAncestors(check *ProcessListMatcher) *Pro
 	return checker
 }
 
-//FromProcessExec populates the ProcessExecChecker using data from a ProcessExec event
+// FromProcessExec populates the ProcessExecChecker using data from a ProcessExec event
 func (checker *ProcessExecChecker) FromProcessExec(event *tetragon.ProcessExec) *ProcessExecChecker {
 	if event == nil {
 		return checker
@@ -600,7 +601,7 @@ func (checker *ProcessExitChecker) WithStatus(check uint32) *ProcessExitChecker 
 	return checker
 }
 
-//FromProcessExit populates the ProcessExitChecker using data from a ProcessExit event
+// FromProcessExit populates the ProcessExitChecker using data from a ProcessExit event
 func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) *ProcessExitChecker {
 	if event == nil {
 		return checker
@@ -727,7 +728,7 @@ func (checker *ProcessKprobeChecker) WithAction(check tetragon.KprobeAction) *Pr
 	return checker
 }
 
-//FromProcessKprobe populates the ProcessKprobeChecker using data from a ProcessKprobe event
+// FromProcessKprobe populates the ProcessKprobeChecker using data from a ProcessKprobe event
 func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKprobe) *ProcessKprobeChecker {
 	if event == nil {
 		return checker
@@ -954,7 +955,7 @@ func (checker *ProcessTracepointChecker) WithArgs(check *KprobeArgumentListMatch
 	return checker
 }
 
-//FromProcessTracepoint populates the ProcessTracepointChecker using data from a ProcessTracepoint event
+// FromProcessTracepoint populates the ProcessTracepointChecker using data from a ProcessTracepoint event
 func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.ProcessTracepoint) *ProcessTracepointChecker {
 	if event == nil {
 		return checker
@@ -1066,7 +1067,7 @@ func (checker *TestChecker) WithArg3(check uint64) *TestChecker {
 	return checker
 }
 
-//FromTest populates the TestChecker using data from a Test event
+// FromTest populates the TestChecker using data from a Test event
 func (checker *TestChecker) FromTest(event *tetragon.Test) *TestChecker {
 	if event == nil {
 		return checker
@@ -1132,7 +1133,7 @@ func (checker *ImageChecker) WithName(check *stringmatcher.StringMatcher) *Image
 	return checker
 }
 
-//FromImage populates the ImageChecker using data from a Image field
+// FromImage populates the ImageChecker using data from a Image field
 func (checker *ImageChecker) FromImage(event *tetragon.Image) *ImageChecker {
 	if event == nil {
 		return checker
@@ -1235,7 +1236,7 @@ func (checker *ContainerChecker) WithMaybeExecProbe(check bool) *ContainerChecke
 	return checker
 }
 
-//FromContainer populates the ContainerChecker using data from a Container field
+// FromContainer populates the ContainerChecker using data from a Container field
 func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *ContainerChecker {
 	if event == nil {
 		return checker
@@ -1389,7 +1390,7 @@ func (checker *PodChecker) WithPodLabels(check map[string]stringmatcher.StringMa
 	return checker
 }
 
-//FromPod populates the PodChecker using data from a Pod field
+// FromPod populates the PodChecker using data from a Pod field
 func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event == nil {
 		return checker
@@ -1458,7 +1459,7 @@ func (checker *CapabilitiesChecker) WithInheritable(check *CapabilitiesTypeListM
 	return checker
 }
 
-//FromCapabilities populates the CapabilitiesChecker using data from a Capabilities field
+// FromCapabilities populates the CapabilitiesChecker using data from a Capabilities field
 func (checker *CapabilitiesChecker) FromCapabilities(event *tetragon.Capabilities) *CapabilitiesChecker {
 	if event == nil {
 		return checker
@@ -1641,7 +1642,7 @@ func (checker *NamespaceChecker) WithIsHost(check bool) *NamespaceChecker {
 	return checker
 }
 
-//FromNamespace populates the NamespaceChecker using data from a Namespace field
+// FromNamespace populates the NamespaceChecker using data from a Namespace field
 func (checker *NamespaceChecker) FromNamespace(event *tetragon.Namespace) *NamespaceChecker {
 	if event == nil {
 		return checker
@@ -1795,7 +1796,7 @@ func (checker *NamespacesChecker) WithUser(check *NamespaceChecker) *NamespacesC
 	return checker
 }
 
-//FromNamespaces populates the NamespacesChecker using data from a Namespaces field
+// FromNamespaces populates the NamespacesChecker using data from a Namespaces field
 func (checker *NamespacesChecker) FromNamespaces(event *tetragon.Namespaces) *NamespacesChecker {
 	if event == nil {
 		return checker
@@ -1850,6 +1851,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	DestPod      *PodChecker                        `json:"destPod,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -1947,6 +1949,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Ns check failed: %w", err)
 		}
 	}
+	if checker.DestPod != nil {
+		if err := checker.DestPod.Check(event.DestPod); err != nil {
+			return fmt.Errorf("ProcessChecker: DestPod check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -2040,7 +2047,13 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
-//FromProcess populates the ProcessChecker using data from a Process field
+// WithDestPod adds a DestPod check to the ProcessChecker
+func (checker *ProcessChecker) WithDestPod(check *PodChecker) *ProcessChecker {
+	checker.DestPod = check
+	return checker
+}
+
+// FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
 		return checker
@@ -2078,6 +2091,9 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
+	}
+	if event.DestPod != nil {
+		checker.DestPod = NewPodChecker().FromPod(event.DestPod)
 	}
 	return checker
 }
@@ -2208,7 +2224,7 @@ func (checker *KprobeSockChecker) WithDport(check uint32) *KprobeSockChecker {
 	return checker
 }
 
-//FromKprobeSock populates the KprobeSockChecker using data from a KprobeSock field
+// FromKprobeSock populates the KprobeSockChecker using data from a KprobeSock field
 func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *KprobeSockChecker {
 	if event == nil {
 		return checker
@@ -2387,7 +2403,7 @@ func (checker *KprobeSkbChecker) WithSecPathOlen(check uint32) *KprobeSkbChecker
 	return checker
 }
 
-//FromKprobeSkb populates the KprobeSkbChecker using data from a KprobeSkb field
+// FromKprobeSkb populates the KprobeSkbChecker using data from a KprobeSkb field
 func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *KprobeSkbChecker {
 	if event == nil {
 		return checker
@@ -2487,7 +2503,7 @@ func (checker *KprobePathChecker) WithFlags(check *stringmatcher.StringMatcher) 
 	return checker
 }
 
-//FromKprobePath populates the KprobePathChecker using data from a KprobePath field
+// FromKprobePath populates the KprobePathChecker using data from a KprobePath field
 func (checker *KprobePathChecker) FromKprobePath(event *tetragon.KprobePath) *KprobePathChecker {
 	if event == nil {
 		return checker
@@ -2552,7 +2568,7 @@ func (checker *KprobeFileChecker) WithFlags(check *stringmatcher.StringMatcher) 
 	return checker
 }
 
-//FromKprobeFile populates the KprobeFileChecker using data from a KprobeFile field
+// FromKprobeFile populates the KprobeFileChecker using data from a KprobeFile field
 func (checker *KprobeFileChecker) FromKprobeFile(event *tetragon.KprobeFile) *KprobeFileChecker {
 	if event == nil {
 		return checker
@@ -2605,7 +2621,7 @@ func (checker *KprobeTruncatedBytesChecker) WithOrigSize(check uint64) *KprobeTr
 	return checker
 }
 
-//FromKprobeTruncatedBytes populates the KprobeTruncatedBytesChecker using data from a KprobeTruncatedBytes field
+// FromKprobeTruncatedBytes populates the KprobeTruncatedBytesChecker using data from a KprobeTruncatedBytes field
 func (checker *KprobeTruncatedBytesChecker) FromKprobeTruncatedBytes(event *tetragon.KprobeTruncatedBytes) *KprobeTruncatedBytesChecker {
 	if event == nil {
 		return checker
@@ -2672,7 +2688,7 @@ func (checker *KprobeCredChecker) WithInheritable(check *CapabilitiesTypeListMat
 	return checker
 }
 
-//FromKprobeCred populates the KprobeCredChecker using data from a KprobeCred field
+// FromKprobeCred populates the KprobeCredChecker using data from a KprobeCred field
 func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *KprobeCredChecker {
 	if event == nil {
 		return checker
@@ -2758,7 +2774,7 @@ func (checker *KprobeCapabilityChecker) WithName(check *stringmatcher.StringMatc
 	return checker
 }
 
-//FromKprobeCapability populates the KprobeCapabilityChecker using data from a KprobeCapability field
+// FromKprobeCapability populates the KprobeCapabilityChecker using data from a KprobeCapability field
 func (checker *KprobeCapabilityChecker) FromKprobeCapability(event *tetragon.KprobeCapability) *KprobeCapabilityChecker {
 	if event == nil {
 		return checker
@@ -2846,7 +2862,7 @@ func (checker *KprobeUserNamespaceChecker) WithNs(check *NamespaceChecker) *Kpro
 	return checker
 }
 
-//FromKprobeUserNamespace populates the KprobeUserNamespaceChecker using data from a KprobeUserNamespace field
+// FromKprobeUserNamespace populates the KprobeUserNamespaceChecker using data from a KprobeUserNamespace field
 func (checker *KprobeUserNamespaceChecker) FromKprobeUserNamespace(event *tetragon.KprobeUserNamespace) *KprobeUserNamespaceChecker {
 	if event == nil {
 		return checker
@@ -2923,7 +2939,7 @@ func (checker *KprobeBpfAttrChecker) WithProgName(check *stringmatcher.StringMat
 	return checker
 }
 
-//FromKprobeBpfAttr populates the KprobeBpfAttrChecker using data from a KprobeBpfAttr field
+// FromKprobeBpfAttr populates the KprobeBpfAttrChecker using data from a KprobeBpfAttr field
 func (checker *KprobeBpfAttrChecker) FromKprobeBpfAttr(event *tetragon.KprobeBpfAttr) *KprobeBpfAttrChecker {
 	if event == nil {
 		return checker
@@ -3003,7 +3019,7 @@ func (checker *KprobePerfEventChecker) WithProbeOffset(check uint64) *KprobePerf
 	return checker
 }
 
-//FromKprobePerfEvent populates the KprobePerfEventChecker using data from a KprobePerfEvent field
+// FromKprobePerfEvent populates the KprobePerfEventChecker using data from a KprobePerfEvent field
 func (checker *KprobePerfEventChecker) FromKprobePerfEvent(event *tetragon.KprobePerfEvent) *KprobePerfEventChecker {
 	if event == nil {
 		return checker
@@ -3099,7 +3115,7 @@ func (checker *KprobeBpfMapChecker) WithMapName(check *stringmatcher.StringMatch
 	return checker
 }
 
-//FromKprobeBpfMap populates the KprobeBpfMapChecker using data from a KprobeBpfMap field
+// FromKprobeBpfMap populates the KprobeBpfMapChecker using data from a KprobeBpfMap field
 func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMap) *KprobeBpfMapChecker {
 	if event == nil {
 		return checker
@@ -3428,7 +3444,7 @@ func (checker *KprobeArgumentChecker) WithCapabilityArg(check *KprobeCapabilityC
 	return checker
 }
 
-//FromKprobeArgument populates the KprobeArgumentChecker using data from a KprobeArgument field
+// FromKprobeArgument populates the KprobeArgumentChecker using data from a KprobeArgument field
 func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeArgument) *KprobeArgumentChecker {
 	if event == nil {
 		return checker

@@ -1850,6 +1850,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	DestPod      *PodChecker                        `json:"destPod,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -1947,6 +1948,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 			return fmt.Errorf("ProcessChecker: Ns check failed: %w", err)
 		}
 	}
+	if checker.DestPod != nil {
+		if err := checker.DestPod.Check(event.DestPod); err != nil {
+			return fmt.Errorf("ProcessChecker: DestPod check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -2040,6 +2046,12 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
+// WithDestPod adds a DestPod check to the ProcessChecker
+func (checker *ProcessChecker) WithDestPod(check *PodChecker) *ProcessChecker {
+	checker.DestPod = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2078,6 +2090,9 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
+	}
+	if event.DestPod != nil {
+		checker.DestPod = NewPodChecker().FromPod(event.DestPod)
 	}
 	return checker
 }

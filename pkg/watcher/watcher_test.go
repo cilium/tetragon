@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func TestK8sWatcher_GetPodInfo(t *testing.T) {
+func TestK8sWatcher(t *testing.T) {
 	pod := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test-pod",
@@ -31,8 +31,15 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 			Generation:        1,
 			CreationTimestamp: metav1.Time{},
 			Labels:            map[string]string{"a": "b", "c": "d"},
+			ManagedFields: []metav1.ManagedFieldsEntry{
+				{
+					Manager:   "manager",
+					Operation: "op",
+				},
+			},
 		},
 		Status: v1.PodStatus{
+			PodIP: "10.20.0.23",
 			ContainerStatuses: []v1.ContainerStatus{
 				{
 					Image:       "image-name",
@@ -47,8 +54,11 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	k8sClient := fake.NewSimpleClientset(&pod)
 	sharedK8sInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Hour)
 	podInformer := sharedK8sInformerFactory.Core().V1().Pods().Informer()
+	err = podInformer.SetTransform(podTransformFunc)
+	assert.NoError(t, err)
 	err = podInformer.AddIndexers(map[string]cache.IndexFunc{
 		containerIdx: containerIndexFunc,
+		podAddrIdx:   podAddrIndexFunc,
 	})
 	assert.NoError(t, err)
 	sharedK8sInformerFactory.Start(wait.NeverStop)
@@ -56,19 +66,29 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	watcher := &K8sWatcher{
 		podInformer: podInformer,
 	}
-	pid := uint32(1)
-	podInfo, _ := watcher.GetPodInfo("abcd1234", "curl", "cilium.io", 1)
-	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
-		Namespace: pod.Namespace,
-		Name:      pod.Name,
-		Container: &tetragon.Container{
-			Id:  pod.Status.ContainerStatuses[0].ContainerID,
-			Pid: &wrapperspb.UInt32Value{Value: pid},
-			Image: &tetragon.Image{
-				Id:   pod.Status.ContainerStatuses[0].ImageID,
-				Name: pod.Status.ContainerStatuses[0].Image,
+
+	t.Run("get pod info by container ID", func(t *testing.T) {
+		pid := uint32(1)
+		podInfoByContainerID, _ := watcher.GetPodInfo("abcd1234", "curl", "cilium.io", 1)
+		assert.True(t, proto.Equal(podInfoByContainerID, &tetragon.Pod{
+			Namespace: pod.Namespace,
+			Name:      pod.Name,
+			Container: &tetragon.Container{
+				Id:  pod.Status.ContainerStatuses[0].ContainerID,
+				Pid: &wrapperspb.UInt32Value{Value: pid},
+				Image: &tetragon.Image{
+					Id:   pod.Status.ContainerStatuses[0].ImageID,
+					Name: pod.Status.ContainerStatuses[0].Image,
+				},
 			},
-		},
-		PodLabels: pod.Labels,
-	}))
+			PodLabels: pod.Labels,
+		}))
+	})
+
+	t.Run("find pod by addr", func(t *testing.T) {
+		podInfoByAddr, _, _ := watcher.FindPod(PodFilter{Addr: pod.Status.PodIP})
+		expectedPod := pod.DeepCopy()
+		expectedPod.ManagedFields = nil
+		assert.Equal(t, expectedPod, podInfoByAddr)
+	})
 }

@@ -229,7 +229,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				destPod := p.Colorer.DestPod(kprobe.Process)
+				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s%s:%d", sa.Saddr, sa.Sport, destPod, sa.Daddr, sa.Dport)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_close":
@@ -237,7 +238,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			sock := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				destPod := p.Colorer.DestPod(kprobe.Process)
+				sock = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s%s:%d", sa.Saddr, sa.Sport, destPod, sa.Daddr, sa.Dport)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sock), caps), nil
 		case "tcp_sendmsg":
@@ -245,7 +247,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			args := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				sa := kprobe.Args[0].GetSockArg()
-				args = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s:%d", sa.Saddr, sa.Sport, sa.Daddr, sa.Dport)
+				destPod := p.Colorer.DestPod(kprobe.Process)
+				args = p.Colorer.Cyan.Sprintf("tcp %s:%d -> %s%s:%d", sa.Saddr, sa.Sport, destPod, sa.Daddr, sa.Dport)
 			}
 			bytes := int32(0)
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
