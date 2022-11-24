@@ -181,7 +181,7 @@ func GetProcess(
 		parentExecID = GetProcessID(0, 1)
 	}
 	execID := GetExecID(&process)
-	protoPod, endpoint := k8s.GetPodInfo(containerID, process.Filename, args, process.NSPID)
+	protoPod, endpoint := GetPodInfo(containerID, process.Filename, args, process.NSPID)
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
 	return &ProcessInternal{
@@ -211,7 +211,7 @@ func FindPod(containerId string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 }
 
 func GetPodInfo(cid, bin, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
-	return k8s.GetPodInfo(cid, bin, args, nspid)
+	return getPodInfo(k8s, cid, bin, args, nspid)
 }
 
 func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *ProcessInternal) {
