@@ -15,10 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/tools/cache"
 )
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
@@ -44,18 +41,9 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	}
 	_, err := cilium.InitCiliumState(context.Background(), false)
 	assert.NoError(t, err)
+
 	k8sClient := fake.NewSimpleClientset(&pod)
-	sharedK8sInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Hour)
-	podInformer := sharedK8sInformerFactory.Core().V1().Pods().Informer()
-	err = podInformer.AddIndexers(map[string]cache.IndexFunc{
-		containerIdx: containerIndexFunc,
-	})
-	assert.NoError(t, err)
-	sharedK8sInformerFactory.Start(wait.NeverStop)
-	sharedK8sInformerFactory.WaitForCacheSync(wait.NeverStop)
-	watcher := &K8sWatcher{
-		podInformer: podInformer,
-	}
+	watcher := NewK8sWatcher(k8sClient, time.Hour)
 	pid := uint32(1)
 	podInfo, _ := watcher.GetPodInfo("abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
