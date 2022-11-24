@@ -98,7 +98,7 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 }
 
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
-func NewK8sWatcher(k8sClient *kubernetes.Clientset, stateSyncIntervalSec time.Duration) *K8sWatcher {
+func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
 	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
 		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 			// Watch local pods only.
