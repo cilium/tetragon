@@ -59,6 +59,13 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
 
+      - name: Install Bom
+        shell: bash
+        run: |
+          curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
+          sudo mv ./bom /usr/local/bin/bom
+          sudo chmod +x /usr/local/bin/bom
+
       # main branch pushes
       - name: CI Build (main)
         if: ${{ github.event_name != 'pull_request_target' }}
@@ -81,6 +88,26 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
+
+      - name: Generate SBOM
+        if: ${{ github.event_name != 'pull_request_target' }}
+        shell: bash
+        run: |
+          bom generate -o sbom_ci_main_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx \
+          --dirs=. \
+          --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
+
+      - name: Attach SBOM to container images
+        if: ${{ github.event_name != 'pull_request_target' }}
+        run: |
+          cosign attach sbom --sbom sbom_ci_main_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
+
+      - name: Sign Container Image SBOM
+        if: ${{ github.event_name != 'pull_request_target' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.docker_build_ci_main.outputs.digest }}.sbom
 
       - name: CI Image Releases digests (main)
         if: ${{ github.event_name != 'pull_request_target' }}
@@ -110,6 +137,26 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
+
+      - name: Generate SBOM
+        if: ${{ github.event_name == 'pull_request_target' }}
+        shell: bash
+        run: |
+          bom generate --format json -o sbom_ci_pr_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx \
+          --dirs=. \
+          --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
+
+      - name: Attach SBOM to container images
+        if: ${{ github.event_name == 'pull_request_target' }}
+        run: |
+          cosign attach sbom --sbom sbom_ci_pr_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
+
+      - name: Sign Container Image SBOM
+        if: ${{ github.event_name == 'pull_request_target' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.docker_build_ci_pr.outputs.digest }}.sbom
 
       - name: CI Image Releases digests (PR)
         if: ${{ github.event_name == 'pull_request_target' }}

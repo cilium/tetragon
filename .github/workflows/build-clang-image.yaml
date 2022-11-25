@@ -66,6 +66,31 @@ jobs:
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
 
+      - name: Install Bom
+        shell: bash
+        run: |
+          curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
+          sudo mv ./bom /usr/local/bin/bom
+          sudo chmod +x /usr/local/bin/bom
+
+      - name: Generate SBOM
+        shell: bash
+        run: |
+          bom generate -o sbom_clang_${{ steps.tag.outputs.tag }}.spdx \
+          --dirs= . \
+          --image=quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
+
+      - name: Attach SBOM to container image
+        run: |
+          cosign attach sbom --sbom sbom_clang_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Sign Container Image SBOM
+        if: ${{ steps.tag-in-repositories.outputs.exists == 'false' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign quay.io/${{ github.repository_owner }}/clang:${{ steps.docker_build_release.outputs.digest }}.sbom
+
       - name: Image Release Digest
         shell: bash
         run: |
