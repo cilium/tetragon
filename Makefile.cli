@@ -13,8 +13,8 @@ cli-release:
 		--workdir /tetragon \
 		--volume `pwd`:/tetragon docker.io/library/golang:1.19.0-alpine3.16 \
 		sh -c "apk add --no-cache make git && \
-			addgroup -g $(RELEASE_GID) release && \
-			adduser -u $(RELEASE_UID) -D -G release release && \
+			(addgroup -g $(RELEASE_GID) release || addgroup release )&& \
+			(adduser -u $(RELEASE_UID) -D -G release release || adduser -D -G release release )&& \
 			su release -c 'make cli-local-release VERSION=${VERSION}'"
 
 cli-local-release: cli-clean
