@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/mountinfo"
 	"github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -91,6 +92,22 @@ func logTetragonConfig(t *testing.T, mapDir string) error {
 
 	t.Logf("Test %s tetragon configuration: cgroup.magic=%s  logLevel=%d  cgroup.hierarchyID=%d  cgroup.subsysIdx=%d  cgroup.trackinglevel=%d  cgroup.ID=%d",
 		t.Name(), cgroups.CgroupFsMagicStr(conf.CgrpFsMagic), conf.LogLevel, conf.TgCgrpHierarchy, conf.TgCgrpSubsysIdx, conf.TgCgrpLevel, conf.TgCgrpId)
+
+	return nil
+}
+
+func logCgroupMountInfo(t *testing.T) error {
+	mountInfos, err := mountinfo.GetMountInfo()
+	if err != nil {
+		return err
+	}
+
+	for _, mountInfo := range mountInfos {
+		if strings.Contains(mountInfo.MountPoint, "cgroup") ||
+			strings.Contains(mountInfo.FilesystemType, "cgroup") {
+			t.Logf("Cgroup mount:%+v", mountInfo)
+		}
+	}
 
 	return nil
 }
@@ -198,6 +215,22 @@ func requireCgroupEventOpRmdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 	assert.Error(t, err)
 	if looked != nil {
 		t.Fatalf("Failed found tracking cgroup with cgroupID=%d in bpf-map=%s", msg.CgrpidTracker, cgrpMapPath)
+	}
+}
+
+func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy) {
+	for i, c := range cgroupHierarchy {
+		if c.tracking == true {
+			assert.Equalf(t, true, c.added,
+				"failed at cgroupHierarchy[%d].path=%s should be tracked and added into bpf-map", i, c.path)
+			assert.Equalf(t, true, c.removed,
+				"failed at cgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
+		} else {
+			assert.Equalf(t, false, c.added,
+				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added into bpf-map", i, c.path)
+			assert.Equalf(t, false, c.removed,
+				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added/removed from bpf-map", i, c.path)
+		}
 	}
 }
 
@@ -503,6 +536,27 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
+	cgroupRoot string, cgroupHierarchy []cgroupHierarchy, trackingCgrpLevel uint32,
+	triggers []func()) {
+
+	t.Logf("Test %s running in %s", t.Name(), cgroups.CgroupModeCode(cgroups.CGROUP_HYBRID).String())
+	unifiedCgroup := "unified" // in Hybrid setup the unified cgroup is the cgroupv2 instance
+	t.Logf("Test %s cgroup mount point: %s -> %s", t.Name(), filepath.Join(cgroups.GetCgroupFSPath(), unifiedCgroup), cgroupRoot)
+
+	// Ensure that we do not have a test cgroup hierarchy since cgroupfs is shared
+	sharedCgroupPath := filepath.Join(cgroups.GetCgroupFSPath(), unifiedCgroup, cgroupHierarchy[0].path)
+	t.Logf("Test %s cleaning up cgroup: %s", t.Name(), sharedCgroupPath)
+	os.RemoveAll(sharedCgroupPath)
+	_, err := os.Stat(sharedCgroupPath)
+	require.Error(t, err)
+
+	// Run tests on the unified cgroup hierarchy (cgroupv2) of the hybrid setup
+	for _, trigger := range triggers {
+		assertCgroupEvents(ctx, t, filepath.Join(cgroups.GetCgroupFSPath(), unifiedCgroup), cgroupHierarchy, trackingCgrpLevel, trigger)
+	}
+}
+
 func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 	cgroupRoot string, cgroupHierarchy []cgroupHierarchy, trackingCgrpLevel uint32,
 	triggers []func()) {
@@ -517,10 +571,6 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 	_, err := os.Stat(sharedCgroupPath)
 	require.Error(t, err)
 
-	t.Cleanup(func() {
-		cgroupRmdir(t, cgroupRoot, "", cgroupHierarchy[0].path)
-	})
-
 	// Run tests on the default cgroupv2 mount point
 	for _, trigger := range triggers {
 		assertCgroupEvents(ctx, t, cgroups.GetCgroupFSPath(), cgroupHierarchy, trackingCgrpLevel, trigger)
@@ -528,20 +578,8 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 }
 
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
-// Works in systemd Unified pure cgroupv2
-func TestCgroupv2Pods(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
-
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
-
+// Works in systemd unified and hybrid mode according to parameter
+func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode) {
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
@@ -549,6 +587,13 @@ func TestCgroupv2Pods(t *testing.T) {
 	t.Cleanup(func() {
 		testManager.DisableSensors(ctx, t, loadedSensors)
 	})
+
+	// Probe full environment detection
+	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
+	if mode != cgroups.CGROUP_HYBRID && mode != cgroups.CGROUP_UNIFIED {
+		logDefaultCgroupConfig(t)
+		t.Skipf("Skipping test %s as default cgroup mode is not Unified nor Hybrid mode (Cgroupv1 and Cgroupv2)", t.Name())
+	}
 
 	testDir := t.TempDir()
 	cgroupRoot, err := mountCgroup(t, testDir, "cgroup2")
@@ -576,10 +621,25 @@ func TestCgroupv2Pods(t *testing.T) {
 
 	logDefaultCgroupConfig(t)
 	logTetragonConfig(t, bpf.MapPrefixPath())
+	err = logCgroupMountInfo(t)
+	assert.NoError(t, err)
+
+	kubeCgroupHierarchy := make([]cgroupHierarchy, 0)
+	for i, c := range defaultKubeCgroupHierarchy {
+		n := cgroupHierarchy{
+			path: c.path,
+		}
+		if c.tracking == true && uint32(i) < trackingCgrpLevel {
+			n.tracking = true
+		} else {
+			n.tracking = false
+		}
+		kubeCgroupHierarchy = append(kubeCgroupHierarchy, n)
+	}
 
 	triggerCgroupMkdir := func() {
 		last := cgroupRoot
-		for _, dir := range defaultKubeCgroupHierarchy {
+		for _, dir := range kubeCgroupHierarchy {
 			err = cgroupMkdir(t, last, "", dir.path)
 			if err != nil {
 				t.Fatalf("Failed to create cgroup %s/%s", last, dir.path)
@@ -589,32 +649,90 @@ func TestCgroupv2Pods(t *testing.T) {
 	}
 
 	triggerCgroupRmdir := func() {
-		err = cgroupRmdir(t, cgroupRoot, "", defaultKubeCgroupHierarchy[0].path)
+		err = cgroupRmdir(t, cgroupRoot, "", kubeCgroupHierarchy[0].path)
 		assert.NoError(t, err)
+		path := "/"
+		for _, dir := range defaultKubeCgroupHierarchy {
+			path = filepath.Join(path, dir.path)
+		}
+
+		for i := 0; i < len(kubeCgroupHierarchy); i++ {
+			err := cgroupRmdir(t, cgroupRoot, "", path)
+			if err != nil {
+				t.Fatalf("Failed to remove cgroup %s/%s", cgroupRoot, path)
+			}
+			path = filepath.Dir(path)
+		}
 	}
 
 	triggers := []func(){
 		triggerCgroupMkdir, triggerCgroupRmdir,
 	}
 
-	if cgroups.GetCgroupMode() == cgroups.CGROUP_UNIFIED {
-		testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, defaultKubeCgroupHierarchy,
-			trackingCgrpLevel, triggers)
+	t.Cleanup(func() {
+		cgroupRmdir(t, cgroupRoot, "", kubeCgroupHierarchy[0].path)
+	})
 
-		for i, c := range defaultKubeCgroupHierarchy {
-			if c.tracking == true {
-				assert.Equalf(t, true, c.added,
-					"failed at defaultKubeCgroupHierarchy[%d].path=%s should be tracked and added into bpf-map", i, c.path)
-				assert.Equalf(t, true, c.removed,
-					"failed at defaultKubeCgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
-			} else {
-				assert.Equalf(t, false, c.added,
-					"failed at defaultKubeCgroupHierarchy[%d].path=%s should not be tracked nor added into bpf-map", i, c.path)
-				assert.Equalf(t, false, c.removed,
-					"failed at defaultKubeCgroupHierarchy[%d].path=%s should not be tracked nor added/removed from bpf-map", i, c.path)
-			}
-		}
+	if mode == cgroups.CGROUP_HYBRID {
+		// This test will run in hybrid mode since systemd will mount first cgroup2
+		testCgroupv2HierarchyInHybrid(ctx, t, cgroupRoot, kubeCgroupHierarchy,
+			trackingCgrpLevel, triggers)
+	} else if mode == cgroups.CGROUP_UNIFIED {
+		testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
+			trackingCgrpLevel, triggers)
 	} else {
-		t.Skipf("Skipping test due Cgroup Mode not being unified")
+		t.Fatalf("Test %s unsupported Cgroup Mode", t.Name())
 	}
+
+	assertCgroupDirTracking(t, kubeCgroupHierarchy)
+}
+
+// Test Cgroupv2 tries to emulate k8s hierarchy without exec context
+// Works in systemd Unified pure cgroupv2
+func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	// Probe full environment detection
+	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
+	if cgroups.GetCgroupMode() != cgroups.CGROUP_UNIFIED {
+		logDefaultCgroupConfig(t)
+		t.Skipf("Skipping test %s as default cgroup mode is not Unified mode (Cgroupv2)", t.Name())
+	}
+
+	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_UNIFIED)
+}
+
+// Test Cgroupv2 tries to emulate k8s hierarchy without exec context
+// Works in systemd hybrid mode
+func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	// Probe full environment detection
+	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
+	if cgroups.GetCgroupMode() != cgroups.CGROUP_HYBRID {
+		logDefaultCgroupConfig(t)
+		t.Skipf("Skipping test %s as default cgroup mode is not Hybrid mode (Cgroupv1 and Cgroupv2)", t.Name())
+	}
+
+	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_HYBRID)
 }
