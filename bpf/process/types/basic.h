@@ -521,6 +521,8 @@ __copy_char_buf(long off, unsigned long arg, unsigned long bytes,
 
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes;
+	while (rd_bytes > 0xfff)
+		rd_bytes >>= 1;
 	rd_bytes &= 0xfff;
 	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)
