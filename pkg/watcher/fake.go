@@ -20,3 +20,13 @@ func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
 func (watcher *FakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return findContainer(containerID, watcher.pods)
 }
+
+// AddPod adds a pod to the fake k8s watcher. This is intended for testing.
+func (watcher *FakeK8sWatcher) AddPod(pod *corev1.Pod) {
+	watcher.pods = append(watcher.pods, pod)
+}
+
+// ClearPods() removes all pods from the fake watcher. This is intended for testing.
+func (watcher *FakeK8sWatcher) ClearAllPods() {
+	watcher.pods = nil
+}
