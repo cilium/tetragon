@@ -14,18 +14,17 @@ import (
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
-	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -35,6 +34,29 @@ const (
 var (
 	AllEvents []*tetragon.GetEventsResponse
 	BasePid   uint32 = 46987
+	dummyPod         = &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "fake_pod_namespace",
+			Name:      "fake_pod_name",
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					ContainerID: "docker://fake_container_container_id",
+					Name:        "fake_container_name",
+					Image:       "fake_container_image",
+					ImageID:     "fake_container_image_id",
+					State: corev1.ContainerState{
+						Running: &corev1.ContainerStateRunning{
+							StartedAt: v1.Time{
+								Time: time.Unix(21034995089403, 0),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 )
 
 type DummyNotifier[EXEC notify.Message, EXIT notify.Message] struct {
@@ -92,47 +114,6 @@ func (o DummyObserver) SetSensorConfig(ctx context.Context, name string, cfgkey 
 
 func (o DummyObserver) RemoveSensor(ctx context.Context, sensorName string) error {
 	return nil
-}
-
-type DummyK8sWatcher struct {
-	pod *tetragon.Pod
-}
-
-func NewDummyK8sWatcher() *DummyK8sWatcher {
-	return &DummyK8sWatcher{pod: nil}
-}
-
-func (watcher *DummyK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-	return nil, nil, true
-}
-
-func (watcher *DummyK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
-	return watcher.pod, nil
-}
-
-func (watcher *DummyK8sWatcher) SetDummyPod() {
-	var emptyLabels []string
-
-	watcher.pod = &tetragon.Pod{
-		Namespace: "fake_pod_namespace",
-		Name:      "fake_pod_name",
-		Labels:    emptyLabels,
-		Container: &tetragon.Container{
-			Id:   "fake_container_container_id",
-			Pid:  &wrapperspb.UInt32Value{Value: 0},
-			Name: "fake_container_name",
-			Image: &tetragon.Image{
-				Id:   "fake_container_image_id",
-				Name: "fake_container_image",
-			},
-			StartTime:      ktime.ToProto(21034995089403),
-			MaybeExecProbe: false,
-		},
-	}
-}
-
-func (watcher *DummyK8sWatcher) ClearPod() {
-	watcher.pod = nil
 }
 
 func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*EXEC, *EXEC, *EXEC, *EXIT) {
@@ -810,8 +791,8 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -827,10 +808,10 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*execMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -840,7 +821,7 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 		AllEvents = append(AllEvents, e)
 	}
 
-	watcher.SetDummyPod()                                                         // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod)                                                  // setup some dummy pod to return
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
@@ -854,8 +835,8 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -871,10 +852,10 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*exitMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -884,7 +865,7 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 		AllEvents = append(AllEvents, e)
 	}
 
-	watcher.SetDummyPod()                                                         // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod)
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
@@ -901,8 +882,8 @@ func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *te
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -918,16 +899,16 @@ func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *te
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*execMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
 	}
 
-	watcher.SetDummyPod() // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
 	if e := (*exitMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -949,8 +930,8 @@ func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t 
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -966,17 +947,16 @@ func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t 
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*exitMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
 	}
 
-	watcher.SetDummyPod() // setup some dummy pod to return
-
+	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 	if e := (*execMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
 	}
@@ -995,8 +975,8 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -1012,10 +992,10 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*exitMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -1029,7 +1009,7 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 
 	assert.Equal(t, len(AllEvents), 0) // here we should still not have any events as we don't have the podinfo yet
 
-	watcher.SetDummyPod() // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
 
@@ -1044,8 +1024,8 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -1061,10 +1041,10 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*execMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -1078,7 +1058,7 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 
 	assert.Equal(t, len(AllEvents), 0) // here we should still not have any events as we don't have the podinfo yet
 
-	watcher.SetDummyPod() // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
 	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
 
@@ -1092,8 +1072,8 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
-	watcher := NewDummyK8sWatcher()
-	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
+	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
+	cancel := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
 	defer func() {
 		cancel()
 		cancelWg.Wait()
@@ -1109,16 +1089,16 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 	// here in order not to cache these events. At
 	// the end we remove pod info to do the actual
 	// test.
-	watcher.SetDummyPod()
+	fakeWatcher.AddPod(dummyPod)
 	(*rootMsg).HandleMessage()
 	(*parentMsg).HandleMessage()
-	watcher.ClearPod()
+	fakeWatcher.ClearAllPods()
 
 	if e := (*exitMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
 	}
 
-	watcher.SetDummyPod() // setup some dummy pod to return
+	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
 	time.Sleep(time.Millisecond * (5 * CacheTimerMs)) // wait for cache to do it's work (but less than eventcache.CacheStrikes iterations)
 	assert.Equal(t, len(AllEvents), 0)                // here we should still not have any events as we don't have the podinfo yet
