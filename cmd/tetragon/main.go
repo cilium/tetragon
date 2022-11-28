@@ -396,8 +396,8 @@ func getWatcher() (watcher.K8sResourceWatcher, error) {
 
 func execute() error {
 	rootCmd := &cobra.Command{
-		Use:   "tetragon SOURCE_DIR BUCKET",
-		Short: "Tetragon",
+		Use:   "tetragon",
+		Short: "Run the tetragon agent",
 		Run: func(cmd *cobra.Command, args []string) {
 			readAndSetFlags()
 
