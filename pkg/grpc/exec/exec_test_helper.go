@@ -102,7 +102,7 @@ func NewDummyK8sWatcher() *DummyK8sWatcher {
 	return &DummyK8sWatcher{pod: nil}
 }
 
-func (watcher *DummyK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func (watcher *DummyK8sWatcher) FindPod(filter watcher.PodFilter) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return nil, nil, true
 }
 

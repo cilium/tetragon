@@ -6,7 +6,6 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -24,22 +23,27 @@ import (
 
 	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	containerIDLen = 15
 	containerIdx   = "containers-ids"
+	podAddrIdx     = "pods-addrs"
 )
 
 var (
 	errNoPod = errors.New("object is not a *corev1.Pod")
 )
 
+type PodFilter struct {
+	ContainerID string
+	Addr        string
+}
+
 // K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
 type K8sResourceWatcher interface {
 	// Find a pod/container pair for the given container ID.
-	FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
+	FindPod(filter PodFilter) (*corev1.Pod, *corev1.ContainerStatus, bool)
 
 	// Get PodInfo and Endpoint ID for a containerId.
 	GetPodInfo(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
@@ -97,17 +101,26 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
+// podAddrIndexFunc index pod by pod IP.
+func podAddrIndexFunc(obj interface{}) ([]string, error) {
+	switch t := obj.(type) {
+	case *corev1.Pod:
+		return []string{t.Status.PodIP}, nil
+	}
+	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
+}
+
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
 func NewK8sWatcher(k8sClient *kubernetes.Clientset, stateSyncIntervalSec time.Duration) *K8sWatcher {
-	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
-		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			// Watch local pods only.
-			options.FieldSelector = "spec.nodeName=" + os.Getenv("NODE_NAME")
-		}))
+	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec)
 	podInformer := k8sInformerFactory.Core().V1().Pods().Informer()
+	if err := podInformer.SetTransform(podTransformFunc); err != nil {
+		panic(err)
+	}
 
 	err := podInformer.AddIndexers(map[string]cache.IndexFunc{
 		containerIdx: containerIndexFunc,
+		podAddrIdx:   podAddrIndexFunc,
 	})
 	if err != nil {
 		// Panic during setup since this should never fail, if it fails is a
@@ -120,8 +133,29 @@ func NewK8sWatcher(k8sClient *kubernetes.Clientset, stateSyncIntervalSec time.Du
 	return &K8sWatcher{podInformer: podInformer}
 }
 
+// podTransformFunc removes unused fields from pod to reduce memory usage.
+func podTransformFunc(obj interface{}) (interface{}, error) {
+	switch t := obj.(type) {
+	case *corev1.Pod:
+		t.SetManagedFields(nil)
+		return t, nil
+	}
+	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
+}
+
 // FindPod implements K8sResourceWatcher.FindPod.
-func (watcher *K8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func (watcher *K8sWatcher) FindPod(filter PodFilter) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+	if filter.ContainerID != "" {
+		return watcher.findPodByContainerID(filter.ContainerID)
+	}
+	if filter.Addr != "" {
+		pod, found := watcher.findPodByAddr(filter.Addr)
+		return pod, nil, found
+	}
+	return nil, nil, false
+}
+
+func (watcher *K8sWatcher) findPodByContainerID(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	indexedContainerID := containerID
 	if len(containerID) > containerIDLen {
 		indexedContainerID = containerID[:containerIDLen]
@@ -138,11 +172,24 @@ func (watcher *K8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.Con
 	return findContainer(containerID, objs)
 }
 
+func (watcher *K8sWatcher) findPodByAddr(addr string) (*corev1.Pod, bool) {
+	objs, err := watcher.podInformer.GetIndexer().ByIndex(podAddrIdx, addr)
+	if err != nil {
+		return nil, false
+	}
+	if len(objs) != 1 {
+		// Right now we don't support multiple pods for the same addr. Most likely such pods runs on host network.
+		return nil, false
+	}
+
+	return objs[0].(*corev1.Pod), true
+}
+
 func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	if containerID == "" {
 		return nil, nil
 	}
-	pod, container, ok := watcher.FindPod(containerID)
+	pod, container, ok := watcher.FindPod(PodFilter{ContainerID: containerID})
 	if !ok {
 		watchermetrics.GetWatcherErrors("k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
@@ -156,6 +203,7 @@ func (watcher *K8sWatcher) GetPodInfo(containerID string, binary string, args st
 		startTime = timestamppb.New(container.State.Running.StartedAt.Time)
 	}
 
+	// TODO: Remove *hubblev1.Endpoint from this method. Looks like currently it's not used and probably this is not the right place to have it.
 	ciliumState := cilium.GetCiliumState()
 	endpoint, ok := ciliumState.GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
 	var labels []string
@@ -202,12 +250,12 @@ func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
 }
 
 // FindPod implements K8sResourceWatcher.FindPod.
-func (watcher *FakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-	return findContainer(containerID, watcher.pods)
+func (watcher *FakeK8sWatcher) FindPod(filter PodFilter) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+	return findContainer(filter.ContainerID, watcher.pods)
 }
 
 func (watcher *FakeK8sWatcher) GetPodInfo(containerID string, binary string, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
-	pod, container, ok := watcher.FindPod(containerID)
+	pod, container, ok := watcher.FindPod(PodFilter{ContainerID: containerID})
 	if !ok {
 		watchermetrics.GetWatcherErrors("fake-k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")

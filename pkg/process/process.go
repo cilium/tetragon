@@ -30,7 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // ProcessInternal is the internal representation of a process.
@@ -206,10 +205,6 @@ func GetProcess(
 	}, endpoint
 }
 
-func FindPod(containerId string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-	return k8s.FindPod(containerId)
-}
-
 func GetPodInfo(cid, bin, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	return k8s.GetPodInfo(cid, bin, args, nspid)
 }
@@ -280,18 +275,14 @@ func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
 
-func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
-	if p == nil {
+func GetPodInfoByAddr(addr string) *tetragon.Pod {
+	pod, _, found := k8s.FindPod(watcher.PodFilter{Addr: addr})
+	if !found {
 		return nil
 	}
-	if p.Docker == "" {
-		return nil
+	return &tetragon.Pod{
+		Namespace: pod.Namespace,
+		Name:      pod.Name,
+		PodLabels: pod.Labels,
 	}
-	pod, _, ok := FindPod(p.Docker)
-	if !ok {
-		logger.GetLogger().WithField("container id", p.Docker).Trace("failed to get pod")
-		return nil
-	}
-	endpoint, _ := cilium.GetCiliumState().GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
-	return endpoint
 }
