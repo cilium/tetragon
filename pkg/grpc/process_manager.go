@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -47,6 +48,10 @@ func NewProcessManager(
 
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.New(pm.Server)
+
+	if err := exec.InitCache(); err != nil {
+		return nil, err
+	}
 
 	logger.GetLogger().WithField("enableCilium", option.Config.EnableCilium).WithFields(logrus.Fields{
 		"enableK8s":         option.Config.EnableK8s,

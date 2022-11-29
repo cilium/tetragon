@@ -4,6 +4,7 @@ package exec
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -19,18 +20,76 @@ import (
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+type PidExecId struct {
+	processId  string
+	removeTime uint64
+}
+
 var (
-	nodeName = node.GetNodeNameForExport()
+	nodeName  = node.GetNodeNameForExport()
+	execIdMap *lru.Cache
 )
 
 const (
 	ParentRefCnt  = 0
 	ProcessRefCnt = 1
 )
+
+func isValiddPid(t, removeTime uint64) bool {
+	if removeTime == 0 {
+		return true
+	}
+	timeThresh := 10 * uint64(time.Second)
+	if t < timeThresh {
+		return false
+	}
+	return removeTime > (t - timeThresh)
+}
+
+func GetExecId(pid uint32, time uint64) string {
+	data, ok := execIdMap.Get(pid)
+	if !ok {
+		return ""
+	}
+	val, ok := data.(*PidExecId)
+	if !ok || !isValiddPid(time, val.removeTime) {
+		return ""
+	}
+	return val.processId
+}
+
+func addExecId(pid uint32, processId string) {
+	data, ok := execIdMap.Get(pid)
+	if !ok {
+		execIdMap.Add(pid, &PidExecId{processId, 0})
+		return
+	}
+	val, ok := data.(*PidExecId)
+	if ok {
+		val.processId = processId
+		val.removeTime = 0
+	}
+}
+
+func delExecId(pid uint32, time uint64) {
+	if data, ok := execIdMap.Get(pid); ok {
+		if val, ok := data.(*PidExecId); ok {
+			val.removeTime = time
+		}
+	}
+}
+
+func InitCache() error {
+	var err error
+
+	execIdMap, err = lru.New(4096)
+	return err
+}
 
 func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
 	if msg.CleanupProcess.Ktime == 0 {
@@ -51,6 +110,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
+
+	addExecId(event.Process.PID, processId)
 
 	parent, err := process.Get(parentId)
 	if err == nil {
@@ -283,6 +344,8 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
+
+	delExecId(event.ProcessKey.Pid, event.Common.Ktime)
 
 	code := event.Info.Code >> 8
 	signal := readerexec.Signal(event.Info.Code & 0xFF)
