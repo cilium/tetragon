@@ -131,7 +131,6 @@ func stopProfile() {
 
 func tetragonExecute() error {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -246,6 +245,7 @@ func tetragonExecute() error {
 
 	var cancelWg sync.WaitGroup
 	defer cancelWg.Wait()
+	defer cancel()
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
