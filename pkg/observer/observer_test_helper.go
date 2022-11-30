@@ -510,13 +510,6 @@ func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.Conta
 	return f.OnFindPod(containerID)
 }
 
-func (f *fakeK8sWatcher) GetPodInfo(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
-	if f.OnGetPodInfo == nil {
-		panic("GetPodInfo not implemented")
-	}
-	return f.OnGetPodInfo(containerID, binary, args, nspid)
-}
-
 // Used to wait for a process to start, we do a lookup on PROCFS because this
 // may be called before obs is created.
 func WaitForProcess(process string) error {
