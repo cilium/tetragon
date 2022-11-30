@@ -8,6 +8,7 @@ package main
 import (
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
 	"github.com/cilium/tetragon/cmd/tetra/getevents"
+	"github.com/cilium/tetragon/cmd/tetra/rthooks"
 	"github.com/cilium/tetragon/cmd/tetra/sensors"
 	"github.com/cilium/tetragon/cmd/tetra/stacktracetree"
 	"github.com/cilium/tetragon/cmd/tetra/status"
@@ -24,4 +25,5 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(stacktracetree.New())
 	rootCmd.AddCommand(status.New())
 	rootCmd.AddCommand(tracingpolicy.New())
+	rootCmd.AddCommand(rthooks.New())
 }
