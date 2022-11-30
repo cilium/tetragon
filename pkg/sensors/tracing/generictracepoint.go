@@ -318,8 +318,8 @@ func createGenericTracepoint(sensorName string, conf *GenericTracepointConf) (*g
 func createGenericTracepointSensor(name string, confs []GenericTracepointConf) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
-	for _, conf := range confs {
-		tp, err := createGenericTracepoint(name, &conf)
+	for i := range confs {
+		tp, err := createGenericTracepoint(name, &confs[i])
 		if err != nil {
 			return nil, err
 		}
