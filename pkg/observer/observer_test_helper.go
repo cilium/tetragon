@@ -45,7 +45,6 @@ import (
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crd"
 
-	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -166,41 +165,8 @@ func createFakeCiliumState(testPod, testNamespace string) *hubbleCilium.State {
 // Create a fake K8s watcher to avoid delayed event due to missing pod info
 func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
 	return &fakeK8sWatcher{
-		OnFindPod: func(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-			if containerID == "" {
-				return nil, nil, false
-			}
-
-			container := corev1.ContainerStatus{
-				Name:        containerID,
-				Image:       "image",
-				ImageID:     "id",
-				ContainerID: "docker://" + containerID,
-				State: corev1.ContainerState{
-					Running: &corev1.ContainerStateRunning{
-						StartedAt: v1.Time{
-							Time: time.Unix(1, 2),
-						},
-					},
-				},
-			}
-			pod := corev1.Pod{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      testPod,
-					Namespace: testNamespace,
-				},
-				Status: corev1.PodStatus{
-					ContainerStatuses: []corev1.ContainerStatus{
-						container,
-					},
-				},
-			}
-
-			return &pod, &container, true
-		},
-		OnGetPodInfo: func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
-			return nil, nil
-		},
+		fakePod:       testPod,
+		fakeNamespace: testNamespace,
 	}
 }
 
@@ -499,15 +465,40 @@ func DockerRun(t *testing.T, args ...string) (containerId string) {
 }
 
 type fakeK8sWatcher struct {
-	OnFindPod    func(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
-	OnGetPodInfo func(containerID, binary, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint)
+	fakePod, fakeNamespace string
 }
 
 func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-	if f.OnFindPod == nil {
-		panic("FindPod not implemented")
+	if containerID == "" {
+		return nil, nil, false
 	}
-	return f.OnFindPod(containerID)
+
+	container := corev1.ContainerStatus{
+		Name:        containerID,
+		Image:       "image",
+		ImageID:     "id",
+		ContainerID: "docker://" + containerID,
+		State: corev1.ContainerState{
+			Running: &corev1.ContainerStateRunning{
+				StartedAt: v1.Time{
+					Time: time.Unix(1, 2),
+				},
+			},
+		},
+	}
+	pod := corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      f.fakePod,
+			Namespace: f.fakeNamespace,
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				container,
+			},
+		},
+	}
+
+	return &pod, &container, true
 }
 
 // Used to wait for a process to start, we do a lookup on PROCFS because this
