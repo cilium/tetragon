@@ -429,6 +429,8 @@ func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev not
 		pi, err := process.Get(tetragonProcess.ParentExecId)
 		if err == nil {
 			ev.SetParent(pi.GetProcessCopy())
+			LoaderMetricInc(LoaderResolved)
+			LoaderMetricInc(LoaderResolvedRetry)
 			return nil
 		}
 	}
@@ -437,10 +439,13 @@ func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev not
 }
 
 func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
+	LoaderMetricInc(LoaderReceived)
 	k := GetProcessLoader(msg)
 	if k == nil {
 		return nil
 	}
+	LoaderMetricInc(LoaderResolved)
+	LoaderMetricInc(LoaderResolvedImm)
 	return &tetragon.GetEventsResponse{
 		Event:    &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
 		NodeName: nodeName,
