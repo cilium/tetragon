@@ -409,14 +409,17 @@ func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64
 }
 
 func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	LoaderMetricInc(LoaderResolvedRetry)
 	return eventcache.HandleGenericEvent(internal, ev)
 }
 
 func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
+	LoaderMetricInc(LoaderReceived)
 	k := GetProcessLoader(msg)
 	if k == nil {
 		return nil
 	}
+	LoaderMetricInc(LoaderResolvedImm)
 	return &tetragon.GetEventsResponse{
 		Event:    &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
 		NodeName: nodeName,
