@@ -9,6 +9,7 @@ package cgroups
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -159,6 +160,26 @@ func GetCgroupFSMagic() uint64 {
 
 func GetCgroupFSPath() string {
 	return cgroupFSPath
+}
+
+type FileHandle struct {
+	Id uint64
+}
+
+func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
+	var fh FileHandle
+
+	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
+	if err != nil {
+		return 0, fmt.Errorf("decoding NameToHandleAt data failed: %v", err)
+	}
+
+	return fh.Id, nil
 }
 
 func parseCgroupSubSysIds(filePath string) error {
