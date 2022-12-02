@@ -55,10 +55,10 @@ type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, wg *sync.WaitGroup, notifier notifier, observer observer) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer) *Server {
 	return &Server{
 		ctx:          ctx,
-		ctxCleanupWG: wg,
+		ctxCleanupWG: cleanupWg,
 		notifier:     notifier,
 		observer:     observer,
 	}
