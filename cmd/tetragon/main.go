@@ -213,6 +213,8 @@ func tetragonExecute() error {
 	}()
 
 	go func() {
+		// if we receive a signal, call cancel so that contexts are finalized, which will
+		// leads to normally return from tetragonExecute().
 		s := <-sigs
 		log.Infof("Received signal %s, shutting down...", s)
 		cancel()
@@ -254,12 +256,24 @@ func tetragonExecute() error {
 		return err
 	}
 
-	var cancelWg sync.WaitGroup
-	defer cancelWg.Wait()
+	// cleanupWg is needed to ensure that gRPC code cleanly finishes before we exit (e.g,
+	// due to a signal). This is needed, for example, so that the exported writes full
+	// (uncorrupted) to the file. See: 4b7c8d1c427a46b864763e910e8f3511e1c4eb00.
+	var cleanupWg sync.WaitGroup
+	defer cleanupWg.Wait()
+
+	// The "defer cleanupWg.Wait()" above, might introduce deadlocks if an error happens.
+	// This is because cancel() will not be called until cleanupWg.Wait() returns.
+	// But, the code in server/server.go:GetEventsWG() will only call cleanupWg.Done() if ctx.Done()
+	// Which causes a deadlock. To fix this, we add a new ctx and we pass that to the rest of the
+	// initialization functions. This means that we can cancel them without causing a deadlock
+	// using cancel2.
+	ctx, cancel2 := context.WithCancel(ctx)
+	defer cancel2()
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
-		&cancelWg,
+		&cleanupWg,
 		ciliumState,
 		observer.SensorManager)
 	if err != nil {
