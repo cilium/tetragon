@@ -6905,7 +6905,13 @@ struct perf_event_attr {
 	__u64 bpf_event: 1;
 	__u64 aux_output: 1;
 	__u64 cgroup: 1;
-	__u64 __reserved_1: 31;
+	__u64 text_poke: 1;
+	__u64 build_id: 1;
+	__u64 inherit_thread: 1;
+	__u64 remove_on_exec: 1;
+	__u64 sigtrap: 1;
+	__u64 __reserved_1: 26;
+
 	union {
 		__u32 wakeup_events;
 		__u32 wakeup_watermark;
@@ -36473,6 +36479,8 @@ struct perf_cgroup_event {
 	} event_id;
 };
 
+#define BUILD_ID_SIZE_MAX 20
+
 struct perf_mmap_event {
 	struct vm_area_struct *vma;
 	const char *file_name;
@@ -36483,6 +36491,9 @@ struct perf_mmap_event {
 	u64 ino_generation;
 	u32 prot;
 	u32 flags;
+	u8  build_id[BUILD_ID_SIZE_MAX];
+	u32 build_id_size;
+
 	struct {
 		struct perf_event_header header;
 		u32 pid;

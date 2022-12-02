@@ -349,3 +349,81 @@ func (msg *MsgGenericKprobeUnix) Cast(o interface{}) notify.Message {
 	t := o.(MsgGenericKprobeUnix)
 	return &t
 }
+
+type MsgProcessLoaderUnix struct {
+	ProcessKey processapi.MsgExecveKey
+	Path       string
+	Ktime      uint64
+	Buildid    []byte
+}
+
+type ProcessLoaderNotify struct {
+	tetragon.ProcessLoader
+}
+
+func (event *ProcessLoaderNotify) GetParent() *tetragon.Process {
+	return nil
+}
+
+func (event *ProcessLoaderNotify) SetParent(*tetragon.Process) {
+}
+
+func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
+	var tetragonProcess *tetragon.Process
+
+	process, _ := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
+	if process == nil {
+		tetragonProcess = &tetragon.Process{
+			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
+			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
+		}
+	} else {
+		tetragonProcess = process.UnsafeGetProcess()
+	}
+
+	if ec := eventcache.Get(); ec != nil &&
+		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
+		tetragonEvent := &ProcessLoaderNotify{}
+		tetragonEvent.Process = tetragonProcess
+		tetragonEvent.Path = msg.Path
+		tetragonEvent.Buildid = msg.Buildid
+		ec.Add(nil, tetragonEvent, msg.ProcessKey.Ktime, msg)
+		return nil
+	}
+
+	tetragonEvent := &tetragon.ProcessLoader{
+		Process: tetragonProcess,
+		Path:    msg.Path,
+		Buildid: msg.Buildid,
+	}
+
+	return tetragonEvent
+}
+
+func (msg *MsgProcessLoaderUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+}
+
+func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev)
+}
+
+func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessLoader(msg)
+	if k == nil {
+		return nil
+	}
+	return &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
+		NodeName: nodeName,
+	}
+}
+
+func (msg *MsgProcessLoaderUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgProcessLoaderUnix)
+	return &t
+}

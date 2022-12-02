@@ -16,7 +16,8 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_execve_event_v60.o \
 	  bpf_generic_kprobe_v60.o bpf_generic_retkprobe_v60.o \
 	  bpf_generic_tracepoint_v60.o \
-	  bpf_multi_kprobe_v60.o bpf_multi_retkprobe_v60.o
+	  bpf_multi_kprobe_v60.o bpf_multi_retkprobe_v60.o \
+	  bpf_loader.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o bpf_globals.o
