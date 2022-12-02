@@ -442,6 +442,9 @@ spec:
                   - call
                   type: object
                 type: array
+              loader:
+                description: Enable loader events
+                type: boolean
               tracepoints:
                 description: A list of tracepoint specs.
                 items:
