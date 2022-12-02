@@ -13,7 +13,7 @@ var (
 	Execve = program.Builder(
 		"bpf_execve_event.o",
 		"sched/sched_process_exec",
-		"tracepoint/sys_execve",
+		"raw_tracepoint/sys_execve",
 		"event_execve",
 		"execve",
 	)
@@ -21,7 +21,7 @@ var (
 	ExecveV53 = program.Builder(
 		"bpf_execve_event_v53.o",
 		"sched/sched_process_exec",
-		"tracepoint/sys_execve",
+		"raw_tracepoint/sys_execve",
 		"event_execve",
 		"execve",
 	)

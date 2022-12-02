@@ -176,7 +176,14 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 }
 
 func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, RawTracepointAttach(load), nil, verbose)
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "tp_calls" || mName == "execve_calls" {
+			ci = &customInstall{mPath, "raw_tracepoint"}
+			break
+		}
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, RawTracepointAttach(load), ci, verbose)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
