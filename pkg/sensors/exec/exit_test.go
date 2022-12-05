@@ -119,3 +119,57 @@ func TestExitLeader(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// TestExitZombie tests whether we properly handle the thread group leader exiting before the other threads.
+// see: tester-progs/exit-tester.c for the program we use to test this.
+//
+// The program will:
+//   - create a thread
+//   - have the group leader return
+//   - once this happens, the thread (which continues to run) will exec a /bin/echo command
+//
+// In our test we check that the parent of the /bin/echo command is the exit-tester program.
+func TestExitZombie(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testBin := testutils.ContribPath("tester-progs/exit-tester")
+	testCmd := exec.CommandContext(ctx, testBin)
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
+	logWG.Wait()
+
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	exitTesterCheck := ec.NewProcessChecker().WithBinary(sm.Suffix("tester-progs/exit-tester"))
+	echoCheck := ec.NewProcessChecker().WithBinary(sm.Full("/bin/sh")).WithArguments(sm.Contains("pizza is the best!"))
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker().WithProcess(exitTesterCheck),
+		ec.NewProcessExecChecker().WithProcess(echoCheck).WithParent(exitTesterCheck),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
