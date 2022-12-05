@@ -115,6 +115,42 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 	return nil
 }
 
+func JsonFind(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logger) (*tetragon.GetEventsResponse, error) {
+	count := 0
+	dec := json.NewDecoder(jsonFile)
+	for dec.More() {
+		var dbgErr *DebugError
+		var ev tetragon.GetEventsResponse
+		if err := dec.Decode(&ev); err != nil {
+			return nil, fmt.Errorf("unmarshal failed: %w", err)
+		}
+		count++
+		prefix := fmt.Sprintf("jsonTestCheck/line:%04d ", count)
+		eType, err := helpers.ResponseTypeString(&ev)
+		if err != nil {
+			eType = "<UNKNOWN>"
+		}
+		matchPrefix := fmt.Sprintf("%sevent:%s", prefix, eType)
+		done, err := ec.NextResponseCheck(checker, &ev, log)
+		if done && err == nil {
+			log.Infof("%s =>  FINAL MATCH", matchPrefix)
+			log.Infof("jsonTestCheck: DONE!")
+			return &ev, nil
+		} else if err == nil {
+			log.Infof("%s => MATCH, continuing", matchPrefix)
+		} else if done && err != nil {
+			log.Errorf("%s => terminating error: %s", matchPrefix, err)
+			return nil, err
+		} else if errors.As(err, &dbgErr) {
+			log.Debugf("%s => no match: %s, continuing", matchPrefix, err)
+		} else {
+			log.Infof("%s => no match: %s, continuing", matchPrefix, err)
+		}
+	}
+
+	return nil, fmt.Errorf("event not found")
+}
+
 func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
 	fieldLogger := logger.GetLogger()
 	log, ok := fieldLogger.(*logrus.Logger)
@@ -161,6 +197,16 @@ func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventCheck
 	return err
 }
 
+func doJsonTestFind(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) (*tetragon.GetEventsResponse, error) {
+	fieldLogger := logger.GetLogger()
+	log, ok := fieldLogger.(*logrus.Logger)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert logger")
+	}
+
+	return JsonFind(jsonFile, checker, log)
+}
+
 func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure bool) error {
 	var err error
 
@@ -202,4 +248,23 @@ func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheck
 // JsonTestCheck checks a JSON file
 func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
 	return JsonTestCheckExpect(t, checker, false)
+}
+
+func JsonTestFind(t *testing.T, checker ec.MultiEventChecker) (*tetragon.GetEventsResponse, error) {
+	var err error
+
+	jsonFname, err := testutils.GetExportFilename(t)
+	if err != nil {
+		return nil, err
+	}
+
+	// attempt to open the export file
+	t.Logf("jsonTestFind: opening: %s\n", jsonFname)
+	jsonFile, err := os.Open(jsonFname)
+	if err != nil {
+		return nil, fmt.Errorf("opening json file failed: %w", err)
+	}
+	defer jsonFile.Close()
+
+	return doJsonTestFind(t, jsonFile, checker)
 }
