@@ -4,6 +4,7 @@
 package encoder
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -138,6 +139,20 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			status = p.Colorer.Red.Sprint(exit.Status)
 		}
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
+	case *tetragon.GetEventsResponse_ProcessLoader:
+		loader := response.GetProcessLoader()
+		if loader.Process == nil {
+			return "", ErrMissingProcessInfo
+		}
+		event := p.Colorer.Blue.Sprintf("🧬 %-7s", "loader")
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, loader.Process)
+		var buildid string
+		if len(loader.Buildid) > 0 {
+			buildid = hex.EncodeToString(loader.Buildid) + " "
+		}
+		path := p.Colorer.Yellow.Sprint(loader.Path)
+		return CapTrailorPrinter(fmt.Sprintf("%s %s %s%s", event, processInfo,
+			buildid, path), caps), nil
 	case *tetragon.GetEventsResponse_ProcessKprobe:
 		kprobe := response.GetProcessKprobe()
 		if kprobe.Process == nil {
