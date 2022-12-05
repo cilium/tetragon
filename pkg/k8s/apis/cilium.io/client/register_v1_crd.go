@@ -49,7 +49,7 @@ func CreateCustomResourceDefinitions(clientset apiextensionsclient.Interface) er
 	g, _ := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		return createTPCRD(clientset)
+		return createTPCRDs(clientset)
 	})
 
 	return g.Wait()
@@ -58,6 +58,9 @@ func CreateCustomResourceDefinitions(clientset apiextensionsclient.Interface) er
 var (
 	//go:embed crds/v1alpha1/cilium.io_tracingpolicies.yaml
 	crdsv1Alpha1TracingPolicies []byte
+
+	//go:embed crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+	crdsv1Alpha1TracingPoliciesNamespaced []byte
 )
 
 // GetPregeneratedCRD returns the pregenerated CRD based on the requested CRD
@@ -75,6 +78,8 @@ func GetPregeneratedCRD(crdName string) apiextensionsv1.CustomResourceDefinition
 	switch crdName {
 	case v1alpha1.TPCRDName:
 		crdBytes = crdsv1Alpha1TracingPolicies
+	case v1alpha1.TPNamespacedCRDName:
+		crdBytes = crdsv1Alpha1TracingPoliciesNamespaced
 	default:
 		scopedLog.Fatal("Pregenerated CRD does not exist")
 	}
@@ -88,15 +93,29 @@ func GetPregeneratedCRD(crdName string) apiextensionsv1.CustomResourceDefinition
 	return isoCRD
 }
 
-func createTPCRD(clientset apiextensionsclient.Interface) error {
+func createTPCRDs(clientset apiextensionsclient.Interface) error {
+	// custer-wide tracing policy CRD
 	isoCRD := GetPregeneratedCRD(v1alpha1.TPCRDName)
-
-	return createUpdateCRD(
+	if err := createUpdateCRD(
 		clientset,
 		v1alpha1.TPCRDName,
 		constructV1CRD(v1alpha1.TPName, isoCRD),
 		newDefaultPoller(),
-	)
+	); err != nil {
+		return err
+	}
+
+	// namespaced tracing policy CRD
+	isoCRD = GetPregeneratedCRD(v1alpha1.TPNamespacedCRDName)
+	if err := createUpdateCRD(
+		clientset,
+		v1alpha1.TPNamespacedCRDName,
+		constructV1CRD(v1alpha1.TPNamespacedName, isoCRD),
+		newDefaultPoller(),
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 // createUpdateCRD ensures the CRD object is installed into the K8s cluster. It

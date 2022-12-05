@@ -8,3 +8,11 @@ package v1alpha1
 // TracingPolicyListerExpansion allows custom methods to be added to
 // TracingPolicyLister.
 type TracingPolicyListerExpansion interface{}
+
+// TracingPolicyNamespacedListerExpansion allows custom methods to be added to
+// TracingPolicyNamespacedLister.
+type TracingPolicyNamespacedListerExpansion interface{}
+
+// TracingPolicyNamespacedNamespaceListerExpansion allows custom methods to be added to
+// TracingPolicyNamespacedNamespaceLister.
+type TracingPolicyNamespacedNamespaceListerExpansion interface{}

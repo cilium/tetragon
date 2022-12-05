@@ -13,6 +13,8 @@ import (
 type Interface interface {
 	// TracingPolicies returns a TracingPolicyInformer.
 	TracingPolicies() TracingPolicyInformer
+	// TracingPoliciesNamespaced returns a TracingPolicyNamespacedInformer.
+	TracingPoliciesNamespaced() TracingPolicyNamespacedInformer
 }
 
 type version struct {
@@ -29,4 +31,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // TracingPolicies returns a TracingPolicyInformer.
 func (v *version) TracingPolicies() TracingPolicyInformer {
 	return &tracingPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// TracingPoliciesNamespaced returns a TracingPolicyNamespacedInformer.
+func (v *version) TracingPoliciesNamespaced() TracingPolicyNamespacedInformer {
+	return &tracingPolicyNamespacedInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

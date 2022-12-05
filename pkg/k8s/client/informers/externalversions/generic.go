@@ -42,6 +42,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=cilium.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("tracingpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cilium().V1alpha1().TracingPolicies().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("tracingpoliciesnamespaced"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cilium().V1alpha1().TracingPoliciesNamespaced().Informer()}, nil
 
 	}
 
