@@ -292,6 +292,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		Parent:  tetragonParent,
 		Signal:  signal,
 		Status:  code,
+		Time:    ktime.ToProto(event.Common.Ktime),
 	}
 	ec := eventcache.Get()
 	if ec != nil &&

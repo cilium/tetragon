@@ -627,6 +627,7 @@
 | parent | [Process](#tetragon-Process) |  |  |
 | signal | [string](#string) |  |  |
 | status | [uint32](#uint32) |  |  |
+| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
 
 
 
