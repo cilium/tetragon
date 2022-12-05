@@ -16,6 +16,7 @@ import (
 type CiliumV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	TracingPoliciesGetter
+	TracingPoliciesNamespacedGetter
 }
 
 // CiliumV1alpha1Client is used to interact with features provided by the cilium.io group.
@@ -25,6 +26,10 @@ type CiliumV1alpha1Client struct {
 
 func (c *CiliumV1alpha1Client) TracingPolicies() TracingPolicyInterface {
 	return newTracingPolicies(c)
+}
+
+func (c *CiliumV1alpha1Client) TracingPoliciesNamespaced(namespace string) TracingPolicyNamespacedInterface {
+	return newTracingPoliciesNamespaced(c, namespace)
 }
 
 // NewForConfig creates a new CiliumV1alpha1Client for the given config.
