@@ -519,10 +519,11 @@ nextCheck:
 
 // ProcessExitChecker implements a checker struct to check a ProcessExit event
 type ProcessExitChecker struct {
-	Process *ProcessChecker              `json:"process,omitempty"`
-	Parent  *ProcessChecker              `json:"parent,omitempty"`
-	Signal  *stringmatcher.StringMatcher `json:"signal,omitempty"`
-	Status  *uint32                      `json:"status,omitempty"`
+	Process *ProcessChecker                    `json:"process,omitempty"`
+	Parent  *ProcessChecker                    `json:"parent,omitempty"`
+	Signal  *stringmatcher.StringMatcher       `json:"signal,omitempty"`
+	Status  *uint32                            `json:"status,omitempty"`
+	Time    *timestampmatcher.TimestampMatcher `json:"time,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -573,6 +574,11 @@ func (checker *ProcessExitChecker) Check(event *tetragon.ProcessExit) error {
 			return fmt.Errorf("ProcessExitChecker: Status has value %d which does not match expected value %d", event.Status, *checker.Status)
 		}
 	}
+	if checker.Time != nil {
+		if err := checker.Time.Match(event.Time); err != nil {
+			return fmt.Errorf("ProcessExitChecker: Time check failed: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -600,6 +606,12 @@ func (checker *ProcessExitChecker) WithStatus(check uint32) *ProcessExitChecker 
 	return checker
 }
 
+// WithTime adds a Time check to the ProcessExitChecker
+func (checker *ProcessExitChecker) WithTime(check *timestampmatcher.TimestampMatcher) *ProcessExitChecker {
+	checker.Time = check
+	return checker
+}
+
 //FromProcessExit populates the ProcessExitChecker using data from a ProcessExit event
 func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) *ProcessExitChecker {
 	if event == nil {
@@ -616,6 +628,8 @@ func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) 
 		val := event.Status
 		checker.Status = &val
 	}
+	// NB: We don't want to match timestamps for now
+	checker.Time = nil
 	return checker
 }
 
