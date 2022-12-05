@@ -109,6 +109,7 @@ message ProcessExit {
     Process parent  = 2;
     string  signal  = 3;
     uint32  status  = 4;
+    google.protobuf.Timestamp time = 5;
 }
 
 message KprobeSock {
