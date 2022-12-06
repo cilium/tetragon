@@ -95,7 +95,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.LoadMaps(stopCtx, mapDir); err != nil {
+	if err := s.loadMaps(stopCtx, mapDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
@@ -157,8 +157,8 @@ func isValidSubdir(dir string) bool {
 	return dir != "." && dir != ".."
 }
 
-// LoadMaps loads all the BPF maps in the sensor.
-func (s *Sensor) LoadMaps(stopCtx context.Context, mapDir string) error {
+// loadMaps loads all the BPF maps in the sensor.
+func (s *Sensor) loadMaps(stopCtx context.Context, mapDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
 		if m.PinState.IsLoaded() {
