@@ -88,8 +88,6 @@ type probeLoader interface {
 }
 
 var (
-	// list of availableSensors, see registerSensor()
-	availableSensors = map[string][]*Sensor{}
 	// list of registered Tracing handlers, see registerTracingHandler()
 	registeredSpecHandlers = map[string]specHandler{}
 	// list of registers loaders, see registerProbeType()
