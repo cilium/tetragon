@@ -362,6 +362,32 @@ func (h *Manager) StopSensorManager(ctx context.Context) error {
 	return <-retc
 }
 
+func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
+	log := logger.GetLogger()
+	sensors, err := h.ListSensors(ctx)
+	if err != nil {
+		log.WithError(err).Warn("failed to list sensors")
+	}
+
+	names := []string{}
+	for _, s := range *sensors {
+		names = append(names, s.Name)
+	}
+	log.WithField("sensors", strings.Join(names, ", ")).Info("Available sensors")
+
+	names = []string{}
+	for n := range registeredTracingSensors {
+		names = append(names, n)
+	}
+	log.WithField("sensors", strings.Join(names, ", ")).Info("Registered tracing sensors")
+
+	names = []string{}
+	for n := range registeredProbeLoad {
+		names = append(names, n)
+	}
+	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
+}
+
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {

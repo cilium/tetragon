@@ -5,7 +5,6 @@ package sensors
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -111,28 +110,6 @@ func RegisterProbeType(probeType string, s tracingSensor) {
 		panic(fmt.Sprintf("RegisterProbeType called, but %s is already registered", probeType))
 	}
 	registeredProbeLoad[probeType] = s
-}
-
-func LogRegisteredSensorsAndProbes() {
-	log := logger.GetLogger()
-
-	names := []string{}
-	for n := range availableSensors {
-		names = append(names, n)
-	}
-	log.WithField("sensors", strings.Join(names, ", ")).Info("Available sensors")
-
-	names = []string{}
-	for n := range registeredTracingSensors {
-		names = append(names, n)
-	}
-	log.WithField("sensors", strings.Join(names, ", ")).Info("Registered tracing sensors")
-
-	names = []string{}
-	for n := range registeredProbeLoad {
-		names = append(names, n)
-	}
-	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
 }
 
 type tracingSensor interface {
