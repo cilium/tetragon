@@ -117,6 +117,32 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	return nil
 }
 
+func (s *Sensor) Unload() error {
+	logger.GetLogger().Infof("Unloading sensor %s", s.Name)
+	if !s.Loaded {
+		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", s.Name)
+	}
+
+	if s.UnloadHook != nil {
+		if err := s.UnloadHook(); err != nil {
+			logger.GetLogger().Warnf("Sensor %s unload hook failed: %s", s.Name, err)
+		}
+	}
+
+	for _, p := range s.Progs {
+		unloadProgram(p)
+	}
+
+	for _, m := range s.Maps {
+		if err := m.Unload(); err != nil {
+			logger.GetLogger().Warnf("Failed to unload map %s: %s", m.Name, err)
+		}
+	}
+
+	s.Loaded = false
+	return nil
+}
+
 func (s *Sensor) findProgram(p *program.Program) error {
 	logger.GetLogger().WithField("file", p.Name).Debug("Checking for bpf file")
 	if _, err := os.Stat(p.Name); err == nil {
