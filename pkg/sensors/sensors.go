@@ -97,7 +97,7 @@ var (
 // This will register a CRD or config file handler so that the config file
 // or CRDs will be passed to the handler to be parsed.
 func RegisterTracingSensorsAtInit(name string, s tracingSensor) {
-	if _, exists := availableSensors[name]; exists {
+	if _, exists := registeredTracingSensors[name]; exists {
 		panic(fmt.Sprintf("RegisterTracingSensor called, but %s is already registered", name))
 	}
 	registeredTracingSensors[name] = s
