@@ -26,7 +26,7 @@ func LoadSensor(ctx context.Context, t *testing.T, sensor *sensors.Sensor) {
 	}
 
 	t.Cleanup(func() {
-		sensors.UnloadSensor(ctx, mapDir, mapDir, sensor)
+		sensor.Unload()
 	})
 }
 

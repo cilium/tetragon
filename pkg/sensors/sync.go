@@ -73,7 +73,7 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 					if !s.Loaded {
 						continue
 					}
-					if err = UnloadSensor(op.ctx, bpfDir, mapDir, s); err != nil {
+					if err = s.Unload(); err != nil {
 						errs = append(errs, err.Error())
 					}
 				}
@@ -141,7 +141,7 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 						logger.GetLogger().Infof("ignoring disableSensor %s since sensor is not enabled", s.Name)
 						continue
 					}
-					err = UnloadSensor(op.ctx, bpfDir, mapDir, s)
+					err = s.Unload()
 					if err == nil && s.Ops != nil {
 						s.Ops.Unloaded(UnloadArg{STTManagerHandle: op.sttManagerHandle})
 					}
@@ -228,32 +228,6 @@ func unloadProgram(prog *program.Program) {
 	}
 
 	log.Info("BPF prog was unloaded")
-}
-
-func UnloadSensor(ctx context.Context, bpfDir, mapDir string, sensor *Sensor) error {
-	logger.GetLogger().Infof("Unloading sensor %s", sensor.Name)
-	if !sensor.Loaded {
-		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", sensor.Name)
-	}
-
-	if sensor.UnloadHook != nil {
-		if err := sensor.UnloadHook(); err != nil {
-			logger.GetLogger().Warnf("Sensor %s unload hook failed: %s", sensor.Name, err)
-		}
-	}
-
-	for _, p := range sensor.Progs {
-		unloadProgram(p)
-	}
-
-	for _, m := range sensor.Maps {
-		if err := m.Unload(); err != nil {
-			logger.GetLogger().Warnf("Failed to unload map %s: %s", m.Name, err)
-		}
-	}
-
-	sensor.Loaded = false
-	return nil
 }
 
 /*
