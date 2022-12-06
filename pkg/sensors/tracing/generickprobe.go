@@ -49,7 +49,7 @@ func init() {
 		name: "kprobe sensor",
 	}
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
-	sensors.RegisterTracingSensorsAtInit(kprobe.name, kprobe)
+	sensors.RegisterSpecHandlerAtInit(kprobe.name, kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
 }
 

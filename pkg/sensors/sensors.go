@@ -79,42 +79,45 @@ func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor 
 	}
 }
 
+type specHandler interface {
+	SpecHandler(interface{}) (*Sensor, error)
+}
+
+type probeLoader interface {
+	LoadProbe(args LoadProbeArgs) error
+}
+
 var (
 	// list of availableSensors, see registerSensor()
 	availableSensors = map[string][]*Sensor{}
 	// list of registered Tracing handlers, see registerTracingHandler()
-	registeredTracingSensors = map[string]tracingSensor{}
+	registeredSpecHandlers = map[string]specHandler{}
 	// list of registers loaders, see registerProbeType()
-	registeredProbeLoad = map[string]tracingSensor{}
+	registeredProbeLoad = map[string]probeLoader{}
 )
 
-// RegisterTracingSensorsAtInit registers a handler for Tracing policy.
+// RegisterSpecHandlerAtInit registers a handler for Tracing policy.
 //
 // This function is meant to be called in an init().
 // This will register a CRD or config file handler so that the config file
 // or CRDs will be passed to the handler to be parsed.
-func RegisterTracingSensorsAtInit(name string, s tracingSensor) {
-	if _, exists := registeredTracingSensors[name]; exists {
+func RegisterSpecHandlerAtInit(name string, s specHandler) {
+	if _, exists := registeredSpecHandlers[name]; exists {
 		panic(fmt.Sprintf("RegisterTracingSensor called, but %s is already registered", name))
 	}
-	registeredTracingSensors[name] = s
+	registeredSpecHandlers[name] = s
 }
 
 // RegisterProbeType registers a handler for a probe type string
 //
 // This function is meant to be called in an init() by sensors that
 // need extra logic when loading a specific probe type.
-func RegisterProbeType(probeType string, s tracingSensor) {
+func RegisterProbeType(probeType string, s probeLoader) {
 	logger.GetLogger().WithField("probeType", probeType).WithField("sensors", s).Debug("Registered probe type")
 	if _, exists := registeredProbeLoad[probeType]; exists {
 		panic(fmt.Sprintf("RegisterProbeType called, but %s is already registered", probeType))
 	}
 	registeredProbeLoad[probeType] = s
-}
-
-type tracingSensor interface {
-	SpecHandler(interface{}) (*Sensor, error)
-	LoadProbe(args LoadProbeArgs) error
 }
 
 // LoadProbeArgs are the args to the LoadProbe function.
@@ -126,7 +129,7 @@ type LoadProbeArgs struct {
 
 func GetSensorsFromParserPolicy(spec interface{}) ([]*Sensor, error) {
 	var sensors []*Sensor
-	for _, s := range registeredTracingSensors {
+	for _, s := range registeredSpecHandlers {
 		sensor, err := s.SpecHandler(spec)
 		if err != nil {
 			return nil, err
