@@ -87,8 +87,6 @@ var (
 	registeredTracingSensors = map[string]tracingSensor{}
 	// list of registers loaders, see registerProbeType()
 	registeredProbeLoad = map[string]tracingSensor{}
-
-	manager *Manager
 )
 
 // RegisterTracingSensorsAtInit registers a handler for Tracing policy.
