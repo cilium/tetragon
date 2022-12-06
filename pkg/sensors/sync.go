@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/sensors/program"
 	sttManager "github.com/cilium/tetragon/pkg/stt"
 )
 
@@ -209,25 +208,6 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 	m.STTManager = sttManager.StartSttManager()
 	m.sensorCtl = c
 	return &m, nil
-}
-
-func unloadProgram(prog *program.Program) {
-	log := logger.GetLogger().WithField("label", prog.Label).WithField("pin", prog.PinPath)
-
-	if !prog.LoadState.IsLoaded() {
-		log.Debugf("Refusing to remove %s, program not loaded", prog.Label)
-		return
-	}
-	if count := prog.LoadState.RefDec(); count > 0 {
-		log.Debugf("Program reference count %d, not unloading yet", count)
-		return
-	}
-
-	if err := prog.Unload(); err != nil {
-		logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")
-	}
-
-	log.Info("BPF prog was unloaded")
 }
 
 /*
