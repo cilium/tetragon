@@ -41,7 +41,7 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 					break
 				}
 				sensors := []*Sensor{}
-				for _, s := range registeredTracingSensors {
+				for _, s := range registeredSpecHandlers {
 					sensor, err = s.SpecHandler(op.spec)
 					if err != nil {
 						break
@@ -376,10 +376,10 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log.WithField("sensors", strings.Join(names, ", ")).Info("Available sensors")
 
 	names = []string{}
-	for n := range registeredTracingSensors {
+	for n := range registeredSpecHandlers {
 		names = append(names, n)
 	}
-	log.WithField("sensors", strings.Join(names, ", ")).Info("Registered tracing sensors")
+	log.WithField("spec-handlers", strings.Join(names, ", ")).Info("Registered tracing sensors")
 
 	names = []string{}
 	for n := range registeredProbeLoad {
