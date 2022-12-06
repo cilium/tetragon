@@ -27,10 +27,6 @@ type SensorStatus struct {
 func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 	var m Manager
 
-	if manager != nil {
-		return nil, fmt.Errorf("failed to start sensor controller: channel already exists")
-	}
-
 	c := make(chan sensorOp)
 	go func() {
 		done := false
