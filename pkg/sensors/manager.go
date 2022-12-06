@@ -28,6 +28,10 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 
 	c := make(chan sensorOp)
 	go func() {
+
+		// list of availableSensors
+		availableSensors := map[string][]*Sensor{}
+
 		done := false
 		for !done {
 			op_ := <-c
