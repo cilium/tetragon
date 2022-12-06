@@ -211,7 +211,7 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 	return &m, nil
 }
 
-func RemoveProgram(bpfDir string, prog *program.Program) {
+func unloadProgram(prog *program.Program) {
 	log := logger.GetLogger().WithField("label", prog.Label).WithField("pin", prog.PinPath)
 
 	if !prog.LoadState.IsLoaded() {
@@ -243,7 +243,7 @@ func UnloadSensor(ctx context.Context, bpfDir, mapDir string, sensor *Sensor) er
 	}
 
 	for _, p := range sensor.Progs {
-		RemoveProgram(bpfDir, p)
+		unloadProgram(p)
 	}
 
 	for _, m := range sensor.Maps {

@@ -340,7 +340,7 @@ func createDir(bpfDir, mapDir string) {
 
 func UnloadAll(bpfDir string) {
 	for _, l := range AllPrograms {
-		RemoveProgram(bpfDir, l)
+		unloadProgram(l)
 	}
 
 	for _, m := range AllMaps {
