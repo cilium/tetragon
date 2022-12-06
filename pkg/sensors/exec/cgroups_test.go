@@ -84,10 +84,6 @@ var (
 	}
 )
 
-func init() {
-	tus.RegisterSensorsAtInit(loadedSensors)
-}
-
 func logDefaultCgroupConfig(t *testing.T) {
 	path := cgroups.GetCgroupFSPath()
 	magic := cgroups.GetCgroupFSMagic()
@@ -451,10 +447,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
-	testManager.EnableSensors(ctx, t, loadedSensors)
-	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, loadedSensors)
-	})
+	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 
 	// Set Cgroup Tracking level to Zero means no tracking and no
 	// cgroup events, all bpf cgroups related programs have no effect
@@ -510,7 +503,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
-	testManager.EnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 	t.Cleanup(func() {
 		testManager.DisableSensors(ctx, t, loadedSensors)
 	})
@@ -690,7 +683,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
-	testManager.EnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 	t.Cleanup(func() {
 		testManager.DisableSensors(ctx, t, loadedSensors)
 	})
@@ -860,10 +853,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, selectedController string) {
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
-	testManager.EnableSensors(ctx, t, loadedSensors)
-	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, loadedSensors)
-	})
+	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)

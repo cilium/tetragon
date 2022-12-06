@@ -147,20 +147,6 @@ type LoadProbeArgs struct {
 	Version, Verbose          int
 }
 
-// registerSensor registers a sensor so that it is available to users.
-//
-// This function is meant to be called in an init().
-// This ensures that the function is called before controller goroutine starts,
-// and that the availableSensors is setup without having to worry about
-// synchronization.
-func RegisterSensorAtInit(s *Sensor) {
-	if _, exists := availableSensors[s.Name]; exists {
-		panic(fmt.Sprintf("registerSensor called, but %s is already registered", s.Name))
-	}
-
-	availableSensors[s.Name] = []*Sensor{s}
-}
-
 func GetSensorsFromParserPolicy(spec interface{}) ([]*Sensor, error) {
 	var sensors []*Sensor
 	for _, s := range registeredTracingSensors {
