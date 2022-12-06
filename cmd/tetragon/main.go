@@ -222,11 +222,10 @@ func tetragonExecute() error {
 		cancel()
 	}()
 
-	sensors.LogRegisteredSensorsAndProbes()
-
 	if err := obs.InitSensorManager(); err != nil {
 		return err
 	}
+	observer.SensorManager.LogSensorsAndProbes(ctx)
 
 	/* Remove any stale programs, otherwise feature set change can cause
 	 * old programs to linger resulting in undefined behavior. And because
