@@ -14,7 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type ksym struct {
@@ -26,13 +26,19 @@ type ksym struct {
 // Ksyms is a structure for kernel symbols
 type Ksyms struct {
 	table   []ksym
-	fnCache *lru.Cache
+	fnCache *lru.Cache[uint64, fnOffsetVal]
 }
 
 // FnOffset is a function location (function name + offset)
 type FnOffset struct {
 	SymName string
 	Offset  uint64
+}
+
+// fnOffsetVal is used as a value in the FnOffset cache.
+type fnOffsetVal struct {
+	fnOffset *FnOffset
+	err      error
 }
 
 // ToString returns a string representation of FnOffset
@@ -108,7 +114,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		sort.Slice(ksyms.table[:], func(i1, i2 int) bool { return ksyms.table[i1].addr < ksyms.table[i2].addr })
 	}
 
-	fc, err := lru.New(1024)
+	fc, err := lru.New[uint64, fnOffsetVal](1024)
 	if err == nil {
 		ksyms.fnCache = fc
 	} else {
@@ -121,26 +127,20 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 
 // GetFnOffset -- returns the FnOffset for a given address
 func (k *Ksyms) GetFnOffset(addr uint64) (*FnOffset, error) {
-	type V struct {
-		ret *FnOffset
-		err error
-	}
-
 	// no cache
 	if k.fnCache == nil {
 		return k.getFnOffset(addr)
 	}
 
 	// cache hit
-	if v, ok := k.fnCache.Get(addr); ok {
-		val := v.(V)
-		return val.ret, val.err
+	if ret, ok := k.fnCache.Get(addr); ok {
+		return ret.fnOffset, ret.err
 	}
 
 	// cache miss
-	ret, err := k.getFnOffset(addr)
-	k.fnCache.Add(addr, V{ret: ret, err: err})
-	return ret, err
+	fnOffset, err := k.getFnOffset(addr)
+	k.fnCache.Add(addr, fnOffsetVal{fnOffset: fnOffset, err: err})
+	return fnOffset, err
 
 }
 
