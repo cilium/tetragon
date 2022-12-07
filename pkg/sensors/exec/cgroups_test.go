@@ -415,6 +415,13 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 					require.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
 					require.EqualValues(t, cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].path, cgrpName)
 
+					// Get cgroup id from path
+					targetPath := filepath.Join(cgroups.GetCgroupFSPath(), controller, cgrpPath)
+					id, err := cgroups.GetCgroupIdFromPath(targetPath)
+					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
+					// Assert that received cgroup id from event is same as the id from the cgroup fs
+					require.EqualValues(t, msg.CgrpidTracker, id)
+
 					requireCgroupEventOpMkdir(t, msg, cgrpMapPath)
 					cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].added = true
 					// Save the cgrpid of the cgroup_mkdir so we can match it later with cgrpid of execve
@@ -447,7 +454,7 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 	}
 }
 
-func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupHierarchy []cgroupHierarchy, trackedLevel uint32, trigger func()) {
+func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupRoot string, cgroupHierarchy []cgroupHierarchy, trackedLevel uint32, trigger func()) {
 	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), testsensor.GetCgroupsTrackingMap().Name)
 	events := perfring.RunTestEvents(t, ctx, trigger)
 	for _, ev := range events {
@@ -469,6 +476,14 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupHierarchy []c
 				case ops.MSG_OP_CGROUP_MKDIR:
 					require.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
 					require.EqualValues(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
+
+					// Get cgroup id from path
+					targetPath := filepath.Join(cgroupRoot, cgrpPath)
+					id, err := cgroups.GetCgroupIdFromPath(targetPath)
+					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
+					require.NoError(t, err)
+					// Assert that received cgroup id from event is same as the id from the cgroup fs
+					require.EqualValues(t, msg.CgrpidTracker, id)
 
 					requireCgroupEventOpMkdir(t, msg, cgrpMapPath)
 					cgroupHierarchy[msg.CgrpData.Level-1].added = true
@@ -806,7 +821,7 @@ func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
 
 	// Run tests on the unified cgroup hierarchy (cgroupv2) of the hybrid setup
 	for _, trigger := range triggers {
-		assertCgroupv2Events(ctx, t, cgroupHierarchy, trackingCgrpLevel, trigger)
+		assertCgroupv2Events(ctx, t, filepath.Join(cgroups.GetCgroupFSPath(), unifiedCgroup), cgroupHierarchy, trackingCgrpLevel, trigger)
 	}
 }
 
@@ -858,7 +873,7 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 
 	// Run tests on the default cgroupv2 mount point
 	for _, trigger := range triggers {
-		assertCgroupv2Events(ctx, t, cgroupHierarchy, trackingCgrpLevel, trigger)
+		assertCgroupv2Events(ctx, t, cgroups.GetCgroupFSPath(), cgroupHierarchy, trackingCgrpLevel, trigger)
 	}
 }
 
