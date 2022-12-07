@@ -12,11 +12,11 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type Cache struct {
-	cache      *lru.Cache
+	cache      *lru.Cache[string, *ProcessInternal]
 	deleteChan chan *ProcessInternal
 	stopChan   chan bool
 }
@@ -127,7 +127,7 @@ func (pc *Cache) Purge() {
 func NewCache(
 	processCacheSize int,
 ) (*Cache, error) {
-	lruCache, err := lru.New(processCacheSize)
+	lruCache, err := lru.New[string, *ProcessInternal](processCacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +151,11 @@ func NewCache(
 }
 
 func (pc *Cache) get(processID string) (*ProcessInternal, error) {
-	entry, ok := pc.cache.Get(processID)
+	process, ok := pc.cache.Get(processID)
 	if !ok {
 		logger.GetLogger().WithField("id in event", processID).Debug("process not found in cache")
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
 		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
-	}
-	process, ok := entry.(*ProcessInternal)
-	if !ok {
-		logger.GetLogger().WithField("process entry", entry).Debug("invalid entry in process cache")
-		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
-		return nil, fmt.Errorf("process with ID %s not found in cache", processID)
 	}
 	return process, nil
 }

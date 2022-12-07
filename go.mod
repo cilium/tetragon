@@ -13,7 +13,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/google/go-cmp v0.5.8
 	github.com/google/gops v0.3.25
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
