@@ -11,7 +11,7 @@ require (
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/fatih/color v1.13.0
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/google/gops v0.3.25
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/iancoleman/strcase v0.2.0
