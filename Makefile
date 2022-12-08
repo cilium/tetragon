@@ -19,7 +19,7 @@ GO_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
-GOLANGCILINT_WANT_VERSION = 1.45.2
+GOLANGCILINT_WANT_VERSION = 1.50.1
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 
@@ -264,7 +264,7 @@ endif
 
 .PHONY: go-format
 go-format:
-	find . -name '*.go' -not -path './vendor/*' -not -path './api/vendor/*' -not -path './pkg/k8s/vendor/*' | xargs gofmt -w
+	find . -name '*.go' -not -path './vendor/*' -not -path './api/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/codegen/*' | xargs gofmt -w
 
 .PHONY: format
 format: go-format clang-format

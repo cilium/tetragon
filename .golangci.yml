@@ -17,7 +17,6 @@ linters:
     - revive
     - staticcheck
     - unused
-    - varcheck
 
 issues:
   exclude-rules:

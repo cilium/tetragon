@@ -10,8 +10,9 @@ import (
 // with net.Listen.
 //
 // addresses can be:
-//  unix://absolute_path for unix sockets
-//  <host>:<port> for TCP (more specifically, an address that can be passed to net.Listen)
+//
+//	unix://absolute_path for unix sockets
+//	<host>:<port> for TCP (more specifically, an address that can be passed to net.Listen)
 //
 // Note that the client (tetra) uses https://github.com/grpc/grpc-go/blob/v1.51.0/clientconn.go#L135
 // With the syntax is documented in https://github.com/grpc/grpc/blob/master/doc/naming.md. The

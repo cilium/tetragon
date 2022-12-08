@@ -12,9 +12,9 @@ import (
 // ListenWithRename creates a "unix" listener for the given path and the given mode
 //
 // Go's net.Listen() performs three system calls at once:
-//  - socket, where the file descriptor is created
-//  - bind, where the unix socket file is created
-//  - listen, where the socket can now accept connections
+//   - socket, where the file descriptor is created
+//   - bind, where the unix socket file is created
+//   - listen, where the socket can now accept connections
 //
 // Hence, doing a chmod(2) after Listen is racy because a client can connect
 // between the listen(2) and the chmod(2) calls. One solution would be to use
