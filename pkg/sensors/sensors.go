@@ -28,9 +28,10 @@ var (
 
 // Sensor is a set of BPF programs and maps that are managed as a unit.
 //
-// NB: For now we assume that sensors use disjoint sets of progs and maps.  If
-// that assumption breaks, we need to be smarter about loading/deleting programs
-// and maps (e.g., keep reference counts).
+// NB: We need to rethink the Ops field. See manager main loop for some
+// discussion on this. If we decide to keep them, we should merge them with the
+// UnloadHook since the two are similar: ops.Unloaded is called when a sensor
+// is successfully unloaded, while UnloadHook is called during unloading.
 type Sensor struct {
 	// Name is a human-readbale description.
 	Name string
