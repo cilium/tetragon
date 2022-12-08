@@ -1,4 +1,4 @@
-FROM docker.io/golangci/golangci-lint:v1.49.0
+FROM docker.io/golangci/golangci-lint:v1.50.1
 RUN apt-get -y update
 RUN apt-get -y install libz-dev libelf-dev
 
