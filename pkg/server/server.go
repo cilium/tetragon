@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -34,7 +35,7 @@ type notifier interface {
 }
 
 type observer interface {
-	AddTracingPolicy(ctx context.Context, sensorName string, spec interface{}) error
+	AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error
 	DelTracingPolicy(ctx context.Context, sensorName string) error
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error

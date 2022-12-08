@@ -14,6 +14,7 @@ import (
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -84,7 +85,7 @@ type DummyObserver struct {
 	t *testing.T
 }
 
-func (o DummyObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec interface{}) error {
+func (o DummyObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
 	return nil
 }
 
