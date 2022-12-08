@@ -14,9 +14,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/ratelimit"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/stretchr/testify/assert"
 )
@@ -79,50 +77,12 @@ func (f *fakeNotifier) NotifyListener(original interface{}, processed *tetragon.
 	}
 }
 
-type fakeObserver struct{}
-
-func (f *fakeObserver) ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error) {
-	return nil, nil
-}
-
-func (f *fakeObserver) EnableSensor(ctx context.Context, name string) error {
-	return nil
-}
-
-func (f *fakeObserver) DisableSensor(ctx context.Context, name string) error {
-	return nil
-}
-
-func (f *fakeObserver) GetSensorConfig(ctx context.Context, k string, v string) (string, error) {
-	return "", nil
-}
-
-func (f *fakeObserver) SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error {
-	return nil
-}
-
-func (f *fakeObserver) GetTreeProto(ctx context.Context, tname string) (*tetragon.StackTraceNode, error) {
-	return nil, nil
-}
-
-func (f *fakeObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
-	return nil
-}
-
-func (f *fakeObserver) DelTracingPolicy(ctx context.Context, sensorName string) error {
-	return nil
-}
-
-func (f *fakeObserver) RemoveSensor(ctx context.Context, sensorName string) error {
-	return nil
-}
-
 func TestExporter_Send(t *testing.T) {
 	var wg sync.WaitGroup
 
 	eventNotifier := newFakeNotifier()
 	ctx, cancel := context.WithCancel(context.Background())
-	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &fakeObserver{})
+	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{})
 	numRecords := 2
 	results := newArrayWriter(numRecords)
 	encoder := json.NewEncoder(results)
@@ -226,7 +186,7 @@ func Test_rateLimitExport(t *testing.T) {
 		t.Run(fmt.Sprintf("%s (%d events, %d rate limit)", tt.name, tt.totalEvents, tt.rateLimit), func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			eventNotifier := newFakeNotifier()
-			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &fakeObserver{})
+			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{})
 			results := newArrayWriter(tt.totalEvents)
 			encoder := json.NewEncoder(results)
 			request := &tetragon.GetEventsRequest{}

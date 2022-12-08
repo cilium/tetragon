@@ -14,11 +14,9 @@ import (
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
 
@@ -79,42 +77,6 @@ func (n DummyNotifier[EXEC, EXIT]) NotifyListener(original interface{}, processe
 	default:
 		n.t.Fatalf("Unknown type in NotifyListener = %T", v)
 	}
-}
-
-type DummyObserver struct {
-	t *testing.T
-}
-
-func (o DummyObserver) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
-	return nil
-}
-
-func (o DummyObserver) DelTracingPolicy(ctx context.Context, sensorName string) error {
-	return nil
-}
-
-func (o DummyObserver) EnableSensor(ctx context.Context, name string) error {
-	return nil
-}
-
-func (o DummyObserver) DisableSensor(ctx context.Context, name string) error {
-	return nil
-}
-
-func (o DummyObserver) ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error) {
-	return nil, nil
-}
-
-func (o DummyObserver) GetSensorConfig(ctx context.Context, name string, cfgkey string) (string, error) {
-	return "<dummy>", nil
-}
-
-func (o DummyObserver) SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error {
-	return nil
-}
-
-func (o DummyObserver) RemoveSensor(ctx context.Context, sensorName string) error {
-	return nil
 }
 
 func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*EXEC, *EXEC, *EXEC, *EXIT) {
@@ -314,8 +276,7 @@ func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *s
 	}
 
 	dn := DummyNotifier[EXEC, EXIT]{t}
-	do := DummyObserver{t}
-	lServer := server.NewServer(ctx, cancelWg, dn, do)
+	lServer := server.NewServer(ctx, cancelWg, dn, &server.FakeObserver{})
 
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.NewWithTimer(lServer, time.Millisecond*CacheTimerMs)
