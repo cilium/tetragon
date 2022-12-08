@@ -6,3 +6,6 @@ cmd/protoc-gen-go-tetragon/ @willfindlay
 
 # Request a review from William when CI is edited
 .github/workflows/ @willfindlay
+
+# Request a review from kkourt when core sensor files are modified
+pkg/src/sensors/ @kkourt
