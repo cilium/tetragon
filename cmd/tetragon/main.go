@@ -336,6 +336,13 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		MaxBackups: exportFileMaxBackups,
 		Compress:   exportFileCompress,
 	}
+
+	// For non k8s deployments we explicitly want log files
+	// with permission 0600
+	if !option.Config.EnableK8s {
+		writer.FileMode = os.FileMode(0600)
+	}
+
 	if exportFileRotationInterval != 0 {
 		log.WithField("duration", exportFileRotationInterval).Info("Periodically rotating JSON export files")
 		go func() {
