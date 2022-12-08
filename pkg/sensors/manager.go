@@ -30,23 +30,26 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 	c := make(chan sensorOp)
 	go func() {
 
-		// list of availableSensors
-		availableSensors := map[string][]*Sensor{}
+		// map of sensor collections: name -> collection
+		sensorCols := map[string]collection{}
 
 		done := false
 		for !done {
 			op_ := <-c
-			err := errors.New("BUG in SensorCtl: unset error value")
+			// NB: let's keep this to avoid issues from changes. A better approach would
+			// be to create functions for each type.
+			err := errors.New("BUG in SensorCtl: unset error value") // nolint
 			switch op := op_.(type) {
 
 			case *tracingPolicyAdd:
-				var sensor *Sensor
-				if _, exists := availableSensors[op.sensorName]; exists {
-					err = fmt.Errorf("sensor %s already exists", op.sensorName)
+				if _, exists := sensorCols[op.name]; exists {
+					err = fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 					break
 				}
-				sensors := []*Sensor{}
+
+				var sensors []*Sensor
 				for _, s := range registeredSpecHandlers {
+					var sensor *Sensor
 					sensor, err = s.SpecHandler(op.spec)
 					if err != nil {
 						break
@@ -54,147 +57,135 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 					if sensor == nil {
 						continue
 					}
-					if err = sensor.FindPrograms(op.ctx); err != nil {
-						err = fmt.Errorf("sensor %s could not be found", op.sensorName)
-						break
-					}
-					err = sensor.Load(op.ctx, bpfDir, mapDir, ciliumDir)
-					if err != nil {
-						break
-					}
 					sensors = append(sensors, sensor)
 				}
-				availableSensors[op.sensorName] = sensors
 
-			case *tracingPolicyDel:
-				sensors, exists := availableSensors[op.sensorName]
-				if !exists {
-					err = fmt.Errorf("sensor %s does not exist", op.sensorName)
+				if err != nil {
 					break
 				}
-				errs := []string{}
-				for _, s := range sensors {
-					if !s.Loaded {
-						continue
-					}
-					if err = s.Unload(); err != nil {
-						errs = append(errs, err.Error())
-					}
+
+				col := collection{
+					sensors: sensors,
+					name:    op.name,
 				}
-				if len(errs) > 0 {
-					err = fmt.Errorf("errors unloading sensor %s: %s", op.sensorName, strings.Join(errs, ", "))
+				err = col.load(op.ctx, bpfDir, mapDir, ciliumDir, nil)
+				if err == nil {
+					// NB: in some cases it might make
+					// sense to keep the policy registered
+					// if there was an error. For now,
+					// however, we only keep it if it was
+					// successfully loaded
+					sensorCols[op.name] = col
 				}
-				delete(availableSensors, op.sensorName)
+
+			case *tracingPolicyDel:
+				col, exists := sensorCols[op.name]
+				if !exists {
+					err = fmt.Errorf("tracing policy %s does not exist", op.name)
+					break
+				}
+				err = col.unload(nil)
+				delete(sensorCols, op.name)
 
 			case *sensorAdd:
-				if _, exists := availableSensors[op.name]; exists {
+				if _, exists := sensorCols[op.name]; exists {
 					err = fmt.Errorf("sensor %s already exists", op.name)
 					break
 				}
-				availableSensors[op.name] = []*Sensor{op.sensor}
+				sensorCols[op.name] = collection{
+					sensors: []*Sensor{op.sensor},
+					name:    op.name,
+				}
 				err = nil
 
 			case *sensorRemove:
-				sensors, exists := availableSensors[op.name]
+				col, exists := sensorCols[op.name]
 				if !exists {
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
-				err = nil
-				for _, s := range sensors {
-					if s.Loaded {
-						err = fmt.Errorf("sensor %s enabled, please disable it before removing", op.name)
-						break
-					}
-				}
-				if err == nil {
-					delete(availableSensors, op.name)
-				}
+				err = col.unload(nil)
+				delete(sensorCols, op.name)
+
 			case *sensorEnable:
-				sensors, exists := availableSensors[op.name]
+				col, exists := sensorCols[op.name]
 				if !exists {
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
 
-				err = nil
-				for _, s := range sensors {
-					// NB: For now, we don't treat a sensor already loaded as an error
-					// because that would complicate the client side, but we might have
-					// to reconsider
-					if s.Loaded {
-						logger.GetLogger().Infof("ignoring enableSensor %s since sensor is already enabled", s.Name)
-						continue
-					}
-					err = s.Load(op.ctx, bpfDir, mapDir, ciliumDir)
-					if err == nil && s.Ops != nil {
-						s.Ops.Loaded(LoadArg{STTManagerHandle: op.sttManagerHandle})
-					}
-				}
+				// NB: LoadArg was passed for a previous implementation of a sensor.
+				// The idea is that sensors can get a handle to the stt manager when
+				// they are loaded which they can use to attach stt information to
+				// events. Need to revsit this, and until we do we keep LoadArg.
+				err = col.load(op.ctx, bpfDir, mapDir, ciliumDir, &LoadArg{STTManagerHandle: op.sttManagerHandle})
 
 			case *sensorDisable:
-				sensors, exists := availableSensors[op.name]
+				col, exists := sensorCols[op.name]
 				if !exists {
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
-				// NB: ditto as sensorEnable
-				err = nil
-				for _, s := range sensors {
-					if !s.Loaded {
-						logger.GetLogger().Infof("ignoring disableSensor %s since sensor is not enabled", s.Name)
-						continue
-					}
-					err = s.Unload()
-					if err == nil && s.Ops != nil {
-						s.Ops.Unloaded(UnloadArg{STTManagerHandle: op.sttManagerHandle})
-					}
-				}
+
+				// NB: see LoadArg for sensorEnable
+				err = col.unload(&UnloadArg{STTManagerHandle: op.sttManagerHandle})
 
 			case *sensorList:
-				ret := make([]SensorStatus, 0, len(availableSensors))
-				for n, sl := range availableSensors {
-					for _, s := range sl {
-						ret = append(ret, SensorStatus{Name: n, Enabled: s.Loaded})
+				ret := make([]SensorStatus, 0)
+				for _, col := range sensorCols {
+					for _, s := range col.sensors {
+						ret = append(ret, SensorStatus{Name: s.Name, Enabled: s.Loaded})
 					}
 				}
 				op.result = &ret
 				err = nil
 
 			case *sensorConfigSet:
-				sensors, exists := availableSensors[op.name]
+				col, exists := sensorCols[op.name]
 				if !exists {
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
-				for _, s := range sensors {
-					if s.Ops == nil {
-						err = fmt.Errorf("sensor %s does not support configuration", op.name)
-						break
-					}
-					err = s.Ops.SetConfig(op.key, op.val)
-					if err != nil {
-						err = fmt.Errorf("sensor %s SetConfig failed: %w", op.name, err)
-						break
-					}
+				// NB: sensorConfigSet was used before tracing policies were
+				// introduced. The idea was that it could be used to provide
+				// sensor-specifc configuration values. We can either modify the
+				// call to specify a sensor within a collection, or completely
+				// remove it. TBD.
+				if len(col.sensors) != 1 {
+					err = fmt.Errorf("configuration only supported for collections of one sensor, but %s has %d sensors", op.name, len(col.sensors))
+					break
+				}
+				s := col.sensors[0]
+				if s.Ops == nil {
+					err = fmt.Errorf("sensor %s does not support configuration", op.name)
+					break
+				}
+				err = s.Ops.SetConfig(op.key, op.val)
+				if err != nil {
+					err = fmt.Errorf("sensor %s SetConfig failed: %w", op.name, err)
+					break
 				}
 
 			case *sensorConfigGet:
-				sensors, exists := availableSensors[op.name]
+				col, exists := sensorCols[op.name]
 				if !exists {
 					err = fmt.Errorf("sensor %s does not exist", op.name)
 					break
 				}
-				for _, s := range sensors {
-					if s.Ops == nil {
-						err = fmt.Errorf("sensor %s does not support configuration", op.name)
-						break
-					}
-					op.val, err = s.Ops.GetConfig(op.key)
-					if err != nil {
-						err = fmt.Errorf("sensor %s GetConfig failed: %s", op.name, err)
-						break
-					}
+				// NB: see sensorConfigSet
+				if len(col.sensors) != 1 {
+					err = fmt.Errorf("configuration only supported for collections of one sensor, but %s has %d sensors", op.name, len(col.sensors))
+					break
+				}
+				s := col.sensors[0]
+				if s.Ops == nil {
+					err = fmt.Errorf("sensor %s does not support configuration", op.name)
+					break
+				}
+				op.val, err = s.Ops.GetConfig(op.key)
+				if err != nil {
+					err = fmt.Errorf("sensor %s GetConfig failed: %s", op.name, err)
+					break
 				}
 
 			case *sensorCtlStop:
@@ -312,13 +303,13 @@ func (h *Manager) SetSensorConfig(ctx context.Context, name string, cfgkey strin
 }
 
 // AddTracingPolicy adds a new sensor based on a tracing policy
-func (h *Manager) AddTracingPolicy(ctx context.Context, sensorName string, spec *v1alpha1.TracingPolicySpec) error {
+func (h *Manager) AddTracingPolicy(ctx context.Context, name string, spec *v1alpha1.TracingPolicySpec) error {
 	retc := make(chan error)
 	op := &tracingPolicyAdd{
-		ctx:        ctx,
-		sensorName: sensorName,
-		spec:       spec,
-		retChan:    retc,
+		ctx:     ctx,
+		name:    name,
+		spec:    spec,
+		retChan: retc,
 	}
 
 	h.sensorCtl <- op
@@ -328,12 +319,12 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, sensorName string, spec 
 }
 
 // DelTracingPolicy deletes a new sensor based on a tracing policy
-func (h *Manager) DelTracingPolicy(ctx context.Context, sensorName string) error {
+func (h *Manager) DelTracingPolicy(ctx context.Context, name string) error {
 	retc := make(chan error)
 	op := &tracingPolicyDel{
-		ctx:        ctx,
-		sensorName: sensorName,
-		retChan:    retc,
+		ctx:     ctx,
+		name:    name,
+		retChan: retc,
 	}
 
 	h.sensorCtl <- op
@@ -411,16 +402,16 @@ type Manager struct {
 
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
 type tracingPolicyAdd struct {
-	ctx        context.Context
-	sensorName string
-	spec       interface{}
-	retChan    chan error
+	ctx     context.Context
+	name    string
+	spec    *v1alpha1.TracingPolicySpec
+	retChan chan error
 }
 
 type tracingPolicyDel struct {
-	ctx        context.Context
-	sensorName string
-	retChan    chan error
+	ctx     context.Context
+	name    string
+	retChan chan error
 }
 
 // sensorOp is an interface for the sensor operations.
