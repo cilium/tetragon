@@ -121,7 +121,7 @@ install:
 vendor:
 	$(MAKE) -C ./api vendor
 	$(MAKE) -C ./pkg/k8s vendor
-	$(GO) mod tidy -compat=1.17
+	$(GO) mod tidy -compat=1.18
 	$(GO) mod vendor
 	$(GO) mod verify
 
