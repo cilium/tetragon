@@ -32,6 +32,6 @@ generate:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy -compat=1.17
+	$(GO) mod tidy -compat=1.18
 	$(GO) mod vendor
 	$(GO) mod verify
