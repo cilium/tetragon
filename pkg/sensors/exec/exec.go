@@ -237,11 +237,9 @@ func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-type execSensor struct {
-	name string
-}
+type execProbe struct{}
 
-func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+func (e *execProbe) LoadProbe(args sensors.LoadProbeArgs) error {
 	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
 	if err == nil {
 		procevents.GetRunningProcs()
@@ -249,19 +247,12 @@ func (e *execSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return err
 }
 
-func (e *execSensor) SpecHandler(spec interface{}) (*sensors.Sensor, error) {
-	return nil, nil
-}
-
 func init() {
 	AddExec()
 }
 
 func AddExec() {
-	execveProbe := &execSensor{
-		name: "exec base sensor",
-	}
-	sensors.RegisterProbeType("execve", execveProbe)
+	sensors.RegisterProbeType("execve", &execProbe{})
 
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXECVE, handleExecve)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_EXIT, handleExit)
