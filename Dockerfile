@@ -33,8 +33,7 @@ RUN strip bpftool
 
 FROM docker.io/library/alpine:3.16.2@sha256:bc41182d7ef5ffc53a40b044e725193bc10142a1243f395ee852a8d9730fc2ad
 RUN apk add iproute2
-RUN addgroup hubble	     && \
-    mkdir /var/lib/tetragon/ && \
+RUN mkdir /var/lib/tetragon/ && \
     apk add --no-cache --update bash
 COPY --from=bpftool-builder /src/linux/tools/bpf/bpftool/bpftool /usr/bin/bpftool
 COPY --from=hubble-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
