@@ -80,6 +80,12 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		var dbgErr *DebugError
 		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+				return &JsonEOF{
+					count: count,
+					err:   fmt.Errorf("unmarshal failed: %w", err),
+				}
+			}
 			return fmt.Errorf("unmarshal failed: %w", err)
 		}
 		count++
