@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
@@ -118,7 +119,7 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 }
 
 func (k *Observer) receiveEvent(data []byte, cpu int) {
-	k.recvCntr++
+	atomic.AddUint64(&k.recvCntr, 1)
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(int(op))
 	if err != nil {
@@ -211,19 +212,19 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 			if err != nil {
 				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
-					k.errorCntr++
-					ringbufmetrics.ErrorsSet(float64(k.errorCntr))
-					k.log.WithError(err).Warn("kprobe events read failed")
+					errorCnt := atomic.AddUint64(&k.errorCntr, 1)
+					ringbufmetrics.ErrorsSet(float64(errorCnt))
+					k.log.WithField("errors", errorCnt).WithError(err).Warn("Reading bpf events failed")
 				}
 			} else {
 				if len(record.RawSample) > 0 {
 					k.receiveEvent(record.RawSample, record.CPU)
-					ringbufmetrics.ReceivedSet(float64(k.recvCntr))
+					ringbufmetrics.ReceivedSet(float64(k.ReadReceivedEvents()))
 				}
 
 				if record.LostSamples > 0 {
-					k.lostCntr += int(record.LostSamples)
-					ringbufmetrics.LostSet(float64(k.lostCntr))
+					lostCnt := atomic.AddUint64(&k.lostCntr, uint64(record.LostSamples))
+					ringbufmetrics.LostSet(float64(lostCnt))
 				}
 			}
 		}
@@ -244,11 +245,11 @@ type Observer struct {
 	listeners  map[Listener]struct{}
 	perfConfig *bpf.PerfEventConfig
 	/* Statistics */
-	lostCntr   int
-	errorCntr  int
-	recvCntr   int
-	filterPass int
-	filterDrop int
+	lostCntr   uint64 // atomic
+	errorCntr  uint64 // atomic
+	recvCntr   uint64 // atomic
+	filterPass uint64
+	filterDrop uint64
 	/* Filters */
 	log logrus.FieldLogger
 
@@ -318,9 +319,32 @@ func (k *Observer) Remove() {
 	}
 }
 
+func (k *Observer) ReadLostEvents() uint64 {
+	return atomic.LoadUint64(&k.lostCntr)
+}
+
+func (k *Observer) ReadErrorEvents() uint64 {
+	return atomic.LoadUint64(&k.errorCntr)
+}
+
+func (k *Observer) ReadReceivedEvents() uint64 {
+	return atomic.LoadUint64(&k.recvCntr)
+}
+
 func (k *Observer) PrintStats() {
-	k.log.Infof("Observer Stats: errors %d lost %d recvd %d filterPass %d filterDrop %d",
-		k.errorCntr, k.lostCntr, k.recvCntr, k.filterPass, k.filterDrop)
+	recvCntr := k.ReadReceivedEvents()
+	lostCntr := k.ReadLostEvents()
+	total := float64(recvCntr + lostCntr)
+	loss := (float64(lostCntr) * 100.0) / total
+	k.log.Infof("BPF events statistics: %d received, %.2g%% events loss", recvCntr, loss)
+
+	k.log.WithFields(logrus.Fields{
+		"received":   recvCntr,
+		"lost":       lostCntr,
+		"errors":     k.ReadErrorEvents(),
+		"filterPass": k.filterPass,
+		"filterDrop": k.filterDrop,
+	}).Info("Observer events statistics")
 }
 
 func (k *Observer) RemovePrograms() {
