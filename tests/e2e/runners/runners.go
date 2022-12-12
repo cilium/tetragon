@@ -55,7 +55,7 @@ var DefaultRunner = Runner{
 		// Only install Cilium if it does not already exist
 		ciliumDs := &appsv1.DaemonSet{}
 		if err := client.Resources("kube-system").Get(ctx, "cilium", "kube-system", ciliumDs); err != nil && apierrors.IsNotFound(err) {
-			return cilium.Setup(cilium.WithNamespace("kube-system"))(ctx, c)
+			return cilium.Setup(cilium.WithNamespace("kube-system"), cilium.WithVersion(flags.Opts.CiliumVersion))(ctx, c)
 		}
 		return ctx, nil
 	},
