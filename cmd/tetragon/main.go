@@ -322,7 +322,43 @@ func tetragonExecute() error {
 		}
 	}
 
+	// Periodically log status
+	go logStatus(ctx, obs)
+
 	return obs.Start(ctx)
+}
+
+// Periodically log current status every 1 hour. For lost or error
+// events we ratelimit statistics to 1 message per every 5mins to
+// continuously infor users that events are being lost without
+// polluting logs.
+func logStatus(ctx context.Context, obs *observer.Observer) {
+	prevLost := uint64(0)
+	prevErrors := uint64(0)
+	lostTicker := time.NewTicker(5 * time.Minute)
+	defer lostTicker.Stop()
+	logTicker := time.NewTicker(1 * time.Hour)
+	defer logTicker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-logTicker.C:
+			// We always print stats
+			obs.PrintStats()
+			// Update lost and errors, to not print two consecutive lines at same time
+			prevLost = obs.ReadLostEvents()
+			prevErrors = obs.ReadErrorEvents()
+		case <-lostTicker.C:
+			lost := obs.ReadLostEvents()
+			errors := obs.ReadErrorEvents()
+			if lost > prevLost || errors > prevErrors {
+				obs.PrintStats()
+				prevLost = lost
+				prevErrors = errors
+			}
+		}
+	}
 }
 
 // getObserverDir returns the path to the observer directory based on the BPF
