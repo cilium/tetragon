@@ -19,6 +19,7 @@ import (
 type Opts struct {
 	Wait           bool
 	Namespace      string
+	Version        string
 	ChartDirectory string
 	HelmOptions    map[string]string
 }
@@ -31,6 +32,10 @@ func WithWait(wait bool) Option {
 
 func WithNamespace(namespace string) Option {
 	return func(o *Opts) { o.Namespace = namespace }
+}
+
+func WithVersion(version string) Option {
+	return func(o *Opts) { o.Version = version }
 }
 
 func WithChartDirectory(chartDirectory string) Option {
@@ -103,6 +108,9 @@ func (c *ciliumCLI) install(ctx context.Context) error {
 	}
 	if c.opts.ChartDirectory != "" {
 		opts.WriteString(fmt.Sprintf(" --chart-directory=%s", c.opts.ChartDirectory))
+	}
+	if c.opts.Version != "" {
+		opts.WriteString(fmt.Sprintf(" --version=%s", c.opts.Version))
 	}
 	for k, v := range c.opts.HelmOptions {
 		opts.WriteString(fmt.Sprintf(" --helm-set=%s=%s", k, v))
