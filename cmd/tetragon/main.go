@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 	"strings"
@@ -343,8 +344,28 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		writer.FileMode = os.FileMode(0600)
 	}
 
-	if exportFileRotationInterval != 0 {
-		log.WithField("duration", exportFileRotationInterval).Info("Periodically rotating JSON export files")
+	finfo, err := os.Stat(filepath.Clean(exportFilename))
+	if err == nil && finfo.IsDir() {
+		// Error if exportFilename points to a directory
+		return fmt.Errorf("passed export JSON logs file point to a directory")
+	}
+	logFile := filepath.Base(exportFilename)
+	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(exportFilename)))
+	if err != nil {
+		log.WithError(err).Warnf("Failed to get absolute path of exported JSON logs '%s'", exportFilename)
+		// Do not fail; we let lumberjack handle this. We want to
+		// log the rotate logs operation.
+		logsDir = filepath.Dir(exportFilename)
+	}
+
+	if exportFileRotationInterval < 0 {
+		// Passed an invalid interval let's error out
+		return fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", exportFileRotationInterval.String())
+	} else if exportFileRotationInterval > 0 {
+		log.WithFields(logrus.Fields{
+			"directory": logsDir,
+			"frequency": exportFileRotationInterval.String(),
+		}).Info("Periodically rotating JSON export files")
 		go func() {
 			ticker := time.NewTicker(exportFileRotationInterval)
 			for {
@@ -352,15 +373,20 @@ func startExporter(ctx context.Context, server *server.Server) error {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
+					log.WithFields(logrus.Fields{
+						"file":      logFile,
+						"directory": logsDir,
+					}).Info("Rotating JSON logs export")
 					if rotationErr := writer.Rotate(); rotationErr != nil {
 						log.WithError(rotationErr).
-							WithField("filename", exportFilename).
+							WithField("file", exportFilename).
 							Warn("Failed to rotate JSON export file")
 					}
 				}
 			}
 		}()
 	}
+
 	encoder := json.NewEncoder(writer)
 	var rateLimiter *ratelimit.RateLimiter
 	if exportRateLimit >= 0 {
