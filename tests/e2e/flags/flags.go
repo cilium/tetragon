@@ -26,6 +26,7 @@ var Opts = Flags{
 	},
 	KeepExportData: false,
 	InstallCilium:  true,
+	CiliumVersion:  "v1.12.4",
 }
 
 func init() {
@@ -82,6 +83,11 @@ func init() {
 		"tetragon.btf",
 		Opts.Helm.BTF,
 		"A BTF file on the host that should be loaded into the KinD cluster. Will override helm BTF settings. Only makes sense when testing on a KinD cluster.")
+
+	flag.StringVar(&Opts.CiliumVersion,
+		"tetragon.cilium-version",
+		Opts.CiliumVersion,
+		"Version of Cilium to install. Only makes sense if tetragon.install-cilium is true.")
 }
 
 type Flags struct {
@@ -90,6 +96,8 @@ type Flags struct {
 	KeepExportData bool
 	// Should we install Cilium in the test?
 	InstallCilium bool
+	// Version of Cilium to use
+	CiliumVersion string
 }
 
 type HelmOptions struct {
