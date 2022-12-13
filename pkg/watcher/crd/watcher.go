@@ -61,7 +61,7 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 				return
 			}
 			log.WithField("policy", policy.Spec).Info("tracing policy added")
-			err := s.AddTracingPolicy(ctx, policy.ObjectMeta.Name, &policy.Spec)
+			err := s.AddTracingPolicy(ctx, policy.ObjectMeta.Name, policy)
 			if err != nil {
 				log.WithError(err).Warn("adding tracing policy failed")
 			}
@@ -93,7 +93,7 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 				log.WithError(err).Warnf("Failed to remove sensor %s to perform update", oldPolicy.ObjectMeta.Name)
 				return
 			}
-			err = s.AddTracingPolicy(ctx, newPolicy.ObjectMeta.Name, &newPolicy.Spec)
+			err = s.AddTracingPolicy(ctx, newPolicy.ObjectMeta.Name, newPolicy)
 			if err != nil {
 				log.WithError(err).Warn("adding new tracing policy failed")
 			}

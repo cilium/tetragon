@@ -50,7 +50,8 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 				var sensors []*Sensor
 				for _, s := range registeredSpecHandlers {
 					var sensor *Sensor
-					sensor, err = s.SpecHandler(op.spec)
+					spec := op.tp.TpSpec()
+					sensor, err = s.SpecHandler(spec)
 					if err != nil {
 						break
 					}
@@ -302,13 +303,22 @@ func (h *Manager) SetSensorConfig(ctx context.Context, name string, cfgkey strin
 	return <-retc
 }
 
+// TracingPolicy is an interface for a tracing policy
+// This is implemented by v1alpha1.types.TracingPolicy and
+// config.GenericTracingConf. The former is what is the k8s API server uses,
+// and the latter is used when we load files directly (e.g., via the cli).
+type TracingPolicy interface {
+	TpSpec() *v1alpha1.TracingPolicySpec
+	TpInfo() string
+}
+
 // AddTracingPolicy adds a new sensor based on a tracing policy
-func (h *Manager) AddTracingPolicy(ctx context.Context, name string, spec *v1alpha1.TracingPolicySpec) error {
+func (h *Manager) AddTracingPolicy(ctx context.Context, name string, tp TracingPolicy) error {
 	retc := make(chan error)
 	op := &tracingPolicyAdd{
 		ctx:     ctx,
 		name:    name,
-		spec:    spec,
+		tp:      tp,
 		retChan: retc,
 	}
 
@@ -404,7 +414,7 @@ type Manager struct {
 type tracingPolicyAdd struct {
 	ctx     context.Context
 	name    string
-	spec    *v1alpha1.TracingPolicySpec
+	tp      TracingPolicy
 	retChan chan error
 }
 
