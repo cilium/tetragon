@@ -767,6 +767,8 @@ func execute() error {
 
 	flags.StringSlice(keyKmods, []string{}, "List of kernel modules to load symbols from")
 
+	flags.Int(keyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }

@@ -126,7 +126,6 @@ func (k *Observer) receiveEvent(data []byte) {
 	if option.Config.EnableMsgHandlingLatency {
 		timer = time.Now()
 	}
-	atomic.AddUint64(&k.recvCntr, 1)
 
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(int(op))
@@ -186,6 +185,15 @@ func (k *Observer) getRBSize(cpus int) int {
 	return size
 }
 
+func (k *Observer) getRBQueueSize() int {
+	size := option.Config.RBQueueSize
+	if size == 0 {
+		size = 65535
+	}
+	k.log.WithField("size", size).Info("Perf ring buffer events queue size (events)")
+	return size
+}
+
 func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}
 	perfMap, err := ebpf.LoadPinnedMap(k.PerfConfig.MapName, &pinOpts)
@@ -204,6 +212,10 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	// Inform caller that we're about to start processing events.
 	k.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
+
+	// We spawn go routine to read and process perf events,
+	// connected with main app through eventsQueue channel.
+	eventsQueue := make(chan *perf.Record, k.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -226,7 +238,12 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				}
 			} else {
 				if len(record.RawSample) > 0 {
-					k.receiveEvent(record.RawSample)
+					select {
+					case eventsQueue <- &record:
+					default:
+						// eventsQueue channel is full, drop the event
+					}
+					k.recvCntr++
 					ringbufmetrics.PerfEventReceived.Inc()
 				}
 
@@ -236,7 +253,22 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				}
 			}
 		}
-		k.log.WithError(stopCtx.Err()).Info("Listening for events completed.")
+	}()
+
+	// Start processing records from perf.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case event := <-eventsQueue:
+				k.receiveEvent(event.RawSample)
+			case <-stopCtx.Done():
+				k.log.WithError(stopCtx.Err()).Infof("Listening for events completed.")
+				k.log.Debugf("Unprocessed events in RB queue: %d", len(eventsQueue))
+				return
+			}
+		}
 	}()
 
 	// Loading default program consumes some memory lets kick GC to give

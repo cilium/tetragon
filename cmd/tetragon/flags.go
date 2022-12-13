@@ -66,6 +66,7 @@ const (
 
 	keyRBSize      = "rb-size"
 	keyRBSizeTotal = "rb-size-total"
+	keyRBQueueSize = "rb-queue-size"
 
 	keyEventQueueSize = "event-queue-size"
 
@@ -101,6 +102,7 @@ func readAndSetFlags() {
 
 	option.Config.RBSize = viper.GetInt(keyRBSize)
 	option.Config.RBSizeTotal = viper.GetInt(keyRBSizeTotal)
+	option.Config.RBQueueSize = viper.GetInt(keyRBQueueSize)
 
 	option.Config.GopsAddr = viper.GetString(keyGopsAddr)
 

@@ -41,6 +41,7 @@ type config struct {
 
 	RBSize      int
 	RBSizeTotal int
+	RBQueueSize int
 
 	ProcessCacheSize int
 	DataCacheSize    int
