@@ -26,6 +26,14 @@ func (cnf *GenericTracingConf) Name() string {
 	return fmt.Sprintf("%s", cnf.Metadata.Name)
 }
 
+func (cnf *GenericTracingConf) TpSpec() *v1alpha1.TracingPolicySpec {
+	return &cnf.Spec
+}
+
+func (cnf *GenericTracingConf) TpInfo() string {
+	return fmt.Sprintf("%s", cnf.Metadata.Name)
+}
+
 func ReadConfigYaml(data string) (*GenericTracingConf, error) {
 	var k GenericTracingConf
 

@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,6 +45,14 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of tracepoint specs.
 	Tracepoints []TracepointSpec `json:"tracepoints"`
+}
+
+func (tp *TracingPolicy) TpSpec() *TracingPolicySpec {
+	return &tp.Spec
+}
+
+func (tp *TracingPolicy) TpInfo() string {
+	return fmt.Sprintf("%s (object:%d/%s) (type:%s/%s)", tp.ObjectMeta.Name, tp.ObjectMeta.Generation, tp.ObjectMeta.UID, tp.TypeMeta.Kind, tp.TypeMeta.APIVersion)
 }
 
 type KProbeSpec struct {
