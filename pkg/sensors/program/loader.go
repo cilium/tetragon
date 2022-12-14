@@ -13,6 +13,7 @@ import (
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -369,7 +370,17 @@ func doLoadProgram(
 		// as that makes the loading very slow.
 		opts.Programs.LogLevel = 1
 		opts.Programs.LogSize = verifierLogBufferSize
-		coll, err = ebpf.NewCollectionWithOptions(spec, opts)
+		// If we hit ENOSPC that means that our log size is not big enough,
+		// so keep trying again with log size * 2 until we succeed or the kernel
+		// complains.
+		for {
+			coll, err = ebpf.NewCollectionWithOptions(spec, opts)
+			if errors.Is(err, unix.ENOSPC) {
+				opts.Programs.LogSize = opts.Programs.LogSize * 2
+				continue
+			}
+			break
+		}
 		if err != nil {
 			// Log the error directly using the logger so that the verifier log
 			// gets properly pretty-printed.
