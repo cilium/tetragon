@@ -511,22 +511,6 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	}
 }
 
-/* Gather Cgroup id using current task context */
-static inline __attribute__((always_inline)) void
-__event_get_current_cgroup_id(struct msg_execve_event *msg, struct cgroup *cgrp)
-{
-	/* Try the bpf helper on the default hierarchy */
-#ifdef BPF_FUNC_get_current_cgroup_id
-	msg->kube.cgrpid = get_current_cgroup_id();
-#endif
-
-	/* Fallback on the passed cgroup which should point to the
-	 * right hierarchy.
-	 */
-	if (!msg->kube.cgrpid)
-		msg->kube.cgrpid = get_cgroup_id(cgrp);
-}
-
 /* Gather Cgroup name using current task context */
 static inline __attribute__((always_inline)) void
 __event_get_current_cgroup_name(struct msg_execve_event *msg,
@@ -558,6 +542,7 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 {
 	struct cgroup *cgrp;
 	int zero = 0, subsys_idx = 0;
+	__u64 cgrpfs_magic = 0;
 	struct tetragon_conf *conf;
 
 	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
@@ -566,8 +551,11 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 	/* Check if cgroup configuration is set */
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	/* Select the right css to use */
-	if (conf && conf->tg_cgrp_subsys_idx != 0)
-		subsys_idx = conf->tg_cgrp_subsys_idx;
+	if (conf) {
+		if (conf->tg_cgrp_subsys_idx != 0)
+			subsys_idx = conf->tg_cgrp_subsys_idx;
+		cgrpfs_magic = conf->cgrp_fs_magic;
+	}
 
 	cgrp = get_task_cgroup(task, subsys_idx);
 	if (!cgrp) {
@@ -576,7 +564,12 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 	}
 
 	/* Collect event cgroup ID */
-	__event_get_current_cgroup_id(msg, cgrp);
+	msg->kube.cgrpid =
+		tg_get_current_cgroup_id(task, cgrpfs_magic, subsys_idx);
+	if (!msg->kube.cgrpid) {
+		process->flags |= EVENT_ERROR_CGROUP_ID;
+		/* Continue and gather remaining info */
+	}
 
 	/* Get the event cgroup name now */
 	__event_get_current_cgroup_name(msg, process, cgrp);

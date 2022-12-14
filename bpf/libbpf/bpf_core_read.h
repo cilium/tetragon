@@ -116,6 +116,17 @@ enum bpf_type_info_kind {
 	__builtin_preserve_type_info(*(typeof(type) *)0, BPF_TYPE_EXISTS)
 
 /*
+ * Convenience macro to check that provided enumerator value is defined in
+ * a target kernel.
+ * Returns:
+ *    1, if specified enum type and its enumerator value are present in target
+ *    kernel's BTF;
+ *    0, if no matching enum and/or enum value within that enum is found.
+ */
+#define bpf_core_enum_value_exists(enum_type, enum_value)		    \
+	__builtin_preserve_enum_value(*(typeof(enum_type) *)enum_value, BPF_ENUMVAL_EXISTS)
+
+/*
  * bpf_core_read() abstracts away bpf_probe_read() call and captures offset
  * relocation for source address using __builtin_preserve_access_index()
  * built-in, provided by Clang.

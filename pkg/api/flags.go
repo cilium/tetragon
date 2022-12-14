@@ -82,9 +82,8 @@ const (
 	EventDockerSubsysCgrpErr = 0x040000
 	EventDockerSubsysErr     = 0x080000
 	EventDockerCgroupsErr    = 0x100000
+	EventErrorCgroupId       = 0x200000
 
-	// Errors in path resolution because we have limits due to program size
-	// EventErrorMountPoints    = 0x200000 // (deprecated)
 	EventErrorPathComponents = 0x400000
 
 	// EventDataFilename indicates filename is received with data event
