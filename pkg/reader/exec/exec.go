@@ -57,6 +57,9 @@ func DecodeCommonFlags(flags uint32) []string {
 	if (flags & api.EventDockerNameErr) != 0 {
 		s = append(s, "errorDockerNameCwd")
 	}
+	if (flags & api.EventErrorCgroupId) != 0 {
+		s = append(s, "errorCgroupID")
+	}
 	if (flags & api.EventDockerKnErr) != 0 {
 		s = append(s, "errorDockerKn")
 	}
