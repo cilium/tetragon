@@ -523,7 +523,7 @@ __event_get_current_cgroup_name(struct msg_execve_event *msg,
 	if (name)
 		probe_read_str(msg->kube.docker_id, KN_NAME_LENGTH, name);
 	else
-		process->flags |= EVENT_DOCKER_NAME_ERR;
+		process->flags |= EVENT_ERROR_CGROUP_NAME;
 }
 
 /**
@@ -559,7 +559,7 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 
 	cgrp = get_task_cgroup(task, subsys_idx);
 	if (!cgrp) {
-		process->flags |= EVENT_DOCKER_SUBSYSCGRP_ERR;
+		process->flags |= EVENT_ERROR_CGROUP_SUBSYSCGRP;
 		return;
 	}
 
