@@ -74,15 +74,16 @@ const (
 	// the old process and the newly exec'd process.
 	EventClone = 0x4000
 
-	// EventDocker*Err indicate the process containerID lookup failed in the
+	// EventCgroup*Err indicate the process cgroup information lookup failed in the
 	// kernel. The strings {Name|Kn|SubsysCgrp|Subsys|Cgroup} give us a hint
 	// at the specific read that failed so we can investigate the cause.
-	EventDockerNameErr       = 0x010000
-	EventDockerKnErr         = 0x020000
-	EventDockerSubsysCgrpErr = 0x040000
-	EventDockerSubsysErr     = 0x080000
-	EventDockerCgroupsErr    = 0x100000
-	EventErrorCgroupId       = 0x200000
+	// The cgroup name is used to get the container ID or docker field.
+	EventErrorCgroupName       = 0x010000
+	EventErrorCgroupKn         = 0x020000
+	EventErrorCgroupSubsysCgrp = 0x040000
+	EventErrorCgroupSubsys     = 0x080000
+	EventErrorCgroups          = 0x100000
+	EventErrorCgroupId         = 0x200000
 
 	EventErrorPathComponents = 0x400000
 

@@ -54,23 +54,23 @@ func DecodeCommonFlags(flags uint32) []string {
 	if (flags & api.EventClone) != 0 {
 		s = append(s, "clone")
 	}
-	if (flags & api.EventDockerNameErr) != 0 {
-		s = append(s, "errorDockerNameCwd")
+	if (flags & api.EventErrorCgroupName) != 0 {
+		s = append(s, "errorCgroupName")
 	}
 	if (flags & api.EventErrorCgroupId) != 0 {
 		s = append(s, "errorCgroupID")
 	}
-	if (flags & api.EventDockerKnErr) != 0 {
-		s = append(s, "errorDockerKn")
+	if (flags & api.EventErrorCgroupKn) != 0 {
+		s = append(s, "errorCgroupKn")
 	}
-	if (flags & api.EventDockerSubsysCgrpErr) != 0 {
-		s = append(s, "errorDockerSubsysCgrp")
+	if (flags & api.EventErrorCgroupSubsysCgrp) != 0 {
+		s = append(s, "errorCgroupSubsysCgrp")
 	}
-	if (flags & api.EventDockerSubsysErr) != 0 {
-		s = append(s, "errorDockerSubsys")
+	if (flags & api.EventErrorCgroupSubsys) != 0 {
+		s = append(s, "errorCgroupSubsys")
 	}
-	if (flags & api.EventDockerCgroupsErr) != 0 {
-		s = append(s, "errorDockerCgroups")
+	if (flags & api.EventErrorCgroups) != 0 {
+		s = append(s, "errorCgroups")
 	}
 	if (flags & api.EventErrorPathComponents) != 0 {
 		s = append(s, "errorPathResolutionCwd")
