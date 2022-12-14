@@ -560,15 +560,12 @@ __event_get_cgroup_info(struct msg_execve_event *msg,
 		cgrpfs_magic = conf->cgrp_fs_magic;
 	}
 
-	cgrp = get_task_cgroup(task, subsys_idx);
-	if (!cgrp) {
-		process->flags |= EVENT_ERROR_CGROUP_SUBSYSCGRP;
+	cgrp = get_task_cgroup(task, subsys_idx, &process->flags);
+	if (!cgrp)
 		return;
-	}
 
 	/* Collect event cgroup ID */
-	msg->kube.cgrpid =
-		tg_get_current_cgroup_id(task, cgrpfs_magic, subsys_idx);
+	msg->kube.cgrpid = tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
 	if (!msg->kube.cgrpid) {
 		process->flags |= EVENT_ERROR_CGROUP_ID;
 		/* Continue and gather remaining info */
