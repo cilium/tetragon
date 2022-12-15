@@ -73,7 +73,11 @@ func (pc *Cache) cacheGarbageCollector() {
 					}
 					if p.color == deleteReady {
 						p.color = deleted
-						pc.remove(p.process)
+						if p.process == nil {
+							logger.GetLogger().Warnf("cacheGarbageCollector: got processInternal with nil process: %v", p)
+						} else {
+							pc.remove(p.process)
+						}
 					} else {
 						newQueue = append(newQueue, p)
 						p.color = deleteReady
@@ -112,7 +116,11 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 func (pc *Cache) refDec(p *ProcessInternal) {
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
-		pc.deletePending(p)
+		if p.process == nil {
+			logger.GetLogger().Warnf("refDec: got processInternal with nil process: %v", p)
+		} else {
+			pc.deletePending(p)
+		}
 	}
 }
 
