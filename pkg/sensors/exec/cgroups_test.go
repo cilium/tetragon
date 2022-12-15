@@ -409,10 +409,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
 	val, err := testutils.GetTgRuntimeConf()
 	assert.NoError(t, err)
@@ -443,10 +440,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
@@ -468,7 +462,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	cgroupRmdir(t, cgroupFSPath, hierarchy, tetragonCgrpRoot)
 
 	finalpath := filepath.Join(cgroupFSPath, hierarchy, dir)
-	_, err = os.Stat(finalpath)
+	_, err := os.Stat(finalpath)
 	if err == nil {
 		t.Fatalf("Test %s failed cgroup test hierarchy should not exist '%s'", t.Name(), finalpath)
 	}
@@ -502,10 +496,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
@@ -528,7 +519,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	matchedPath := dir
 	finalPath := filepath.Join(cgroupFSPath, hierarchy, dir)
-	_, err = os.Stat(finalPath)
+	_, err := os.Stat(finalPath)
 	if err == nil {
 		t.Fatalf("Test %s failed cgroup test hierarchy should not exist '%s'", t.Name(), finalPath)
 	}
@@ -804,10 +795,7 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
@@ -829,10 +817,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	_, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
