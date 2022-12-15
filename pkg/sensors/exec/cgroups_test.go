@@ -472,10 +472,30 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupHierarchy []c
 
 					requireCgroupEventOpMkdir(t, msg, cgrpMapPath)
 					cgroupHierarchy[msg.CgrpData.Level-1].added = true
+					// Save the cgrpid of the cgroup_mkdir so we can match it later with cgrpid of execve
+					cgroupHierarchy[msg.CgrpData.Level-1].mkdirCgrpID = msg.CgrpidTracker
 				case ops.MSG_OP_CGROUP_RMDIR:
 					require.EqualValues(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
 					requireCgroupEventOpRmdir(t, msg, cgrpMapPath)
 					cgroupHierarchy[msg.CgrpData.Level-1].removed = true
+				}
+			}
+		}
+		if exec, ok := ev.(*grpcexec.MsgExecveEventUnix); ok {
+			if strings.Contains(exec.Process.Filename, "printf") {
+				args := strings.Split(exec.Process.Args, `\n`)
+				argDir := args[0]
+				for i, cgroup := range cgroupHierarchy {
+					// Ensure that argument matches the target cgroup directory of
+					// the hierarchy we want
+					if cgroup.path == argDir {
+						// cgroup path match, let's save the cgrpid of the execve
+						cgroupHierarchy[i].execCgrpID = exec.Kube.Cgrpid
+						// save the received docker id of the execve
+						cgroupHierarchy[i].actualDocker = exec.Kube.Docker
+						// we had our match break
+						break
+					}
 				}
 			}
 		}
@@ -844,7 +864,7 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd unified and hybrid mode according to parameter
-func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode) {
+func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
 	testManager := tus.StartTestSensorManager(ctx, t)
 	observer.SensorManager = testManager.Manager
 
@@ -853,8 +873,8 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		testManager.DisableSensors(ctx, t, loadedSensors)
 	})
 
-	// Probe full environment detection
-	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
+	_, err := testutils.GetTgRuntimeConf()
+	require.NoError(t, err)
 	if mode != cgroups.CGROUP_HYBRID && mode != cgroups.CGROUP_UNIFIED {
 		logDefaultCgroupConfig(t)
 		t.Skipf("Skipping test %s as default cgroup mode is not Unified nor Hybrid mode (Cgroupv1 and Cgroupv2)", t.Name())
@@ -870,14 +890,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		umountCgroup(t, cgroupRoot)
 	})
 
-	trackingCgrpLevel := uint32(0)
-	for i, c := range defaultKubeCgroupHierarchy {
-		if c.tracking == false {
-			trackingCgrpLevel = uint32(i)
-			break
-		}
-	}
-
+	trackingCgrpLevel := getTrackingLevel(defaultKubeCgroupHierarchy)
 	require.NotZero(t, trackingCgrpLevel)
 	require.True(t, trackingCgrpLevel <= uint32(len(defaultKubeCgroupHierarchy)))
 
@@ -896,11 +909,16 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		}
 		if c.tracking == true && uint32(i) < trackingCgrpLevel {
 			n.tracking = true
+			n.expectedDocker = c.expectedDocker
 		} else {
 			n.tracking = false
 		}
 		kubeCgroupHierarchy = append(kubeCgroupHierarchy, n)
 	}
+
+	t.Cleanup(func() {
+		cgroupRmdir(t, cgroupRoot, "", kubeCgroupHierarchy[0].path)
+	})
 
 	triggerCgroupMkdir := func() {
 		last := cgroupRoot
@@ -913,11 +931,10 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		}
 	}
 
+	// Generate cgroup rmdir events
 	triggerCgroupRmdir := func() {
-		err = cgroupRmdir(t, cgroupRoot, "", kubeCgroupHierarchy[0].path)
-		assert.NoError(t, err)
 		path := "/"
-		for _, dir := range defaultKubeCgroupHierarchy {
+		for _, dir := range kubeCgroupHierarchy {
 			path = filepath.Join(path, dir.path)
 		}
 
@@ -930,26 +947,76 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		}
 	}
 
-	triggers := []func(){
+	// Exec the cgroup-migrate script that will create cgroups,
+	// migrate processes, then performs an execve to gather
+	// exec events.
+	testCgroupMigrate := testutils.ContribPath("tester-progs/cgroup-migrate.bash")
+	triggerCgroupExec := func() {
+		path := cgroupRoot
+		for i, dir := range kubeCgroupHierarchy {
+			path = filepath.Join(path, dir.path)
+			if dir.tracking == true {
+				kubeCgroupHierarchy[i].matchExecCgrpID = true
+			}
+			/* We expect docker field here */
+			if dir.expectedDocker == "yes" {
+				docker, _ := procevents.LookupContainerId(dir.path, true, false)
+				require.NotEmpty(t, docker)
+				kubeCgroupHierarchy[i].expectedDocker = docker
+			}
+			var outb, errb bytes.Buffer
+			cmd := exec.Command(testCgroupMigrate, "--mode", "cgroupv2", "--new", dir.path, path)
+			cmd.Stdout = &outb
+			cmd.Stderr = &errb
+			t.Logf("Executing command: %v", cmd.String())
+			err := cmd.Run()
+			stderr := errb.String()
+			if len(stderr) > 0 {
+				t.Logf("\nstderr:\n%v", stderr)
+			}
+			if err != nil {
+				t.Fatalf("Command failed: %s", err)
+			}
+			if len(outb.String()) > 0 {
+				t.Logf("\nstdout:\n%v\n", outb.String())
+			}
+		}
+	}
+
+	triggersMkdirRmdir := []func(){
 		triggerCgroupMkdir, triggerCgroupRmdir,
 	}
 
-	t.Cleanup(func() {
-		cgroupRmdir(t, cgroupRoot, "", kubeCgroupHierarchy[0].path)
-	})
-
-	if mode == cgroups.CGROUP_HYBRID {
-		// This test will run in hybrid mode since systemd will mount first cgroup2
-		testCgroupv2HierarchyInHybrid(ctx, t, cgroupRoot, kubeCgroupHierarchy,
-			trackingCgrpLevel, triggers)
-	} else if mode == cgroups.CGROUP_UNIFIED {
-		testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
-			trackingCgrpLevel, triggers)
-	} else {
-		t.Fatalf("Test %s unsupported Cgroup Mode", t.Name())
+	triggersExecIDs := []func(){
+		triggerCgroupExec, triggerCgroupRmdir,
 	}
 
+	if withExec {
+		testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
+			trackingCgrpLevel, triggersExecIDs)
+	} else {
+		if mode == cgroups.CGROUP_HYBRID {
+			// This test will run in hybrid mode since systemd will mount first cgroup2
+			testCgroupv2HierarchyInHybrid(ctx, t, cgroupRoot, kubeCgroupHierarchy,
+				trackingCgrpLevel, triggersMkdirRmdir)
+		} else if mode == cgroups.CGROUP_UNIFIED {
+			testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
+				trackingCgrpLevel, triggersMkdirRmdir)
+		} else {
+			t.Fatalf("Test %s unsupported Cgroup Mode", t.Name())
+		}
+	}
+
+	// dump final constructed values
+	t.Logf("\ncgroupHierarchy=%+v\n", kubeCgroupHierarchy)
+
+	// Match cgroup mkdir and rmdir events
 	assertCgroupDirTracking(t, kubeCgroupHierarchy)
+
+	// Match cgroup mkdir and execve cgroup info events
+	if withExec {
+		assertCgroupExecIDsTracking(t, kubeCgroupHierarchy)
+	}
 }
 
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
@@ -974,7 +1041,7 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 		t.Skipf("Skipping test %s as default cgroup mode is not Unified mode (Cgroupv2)", t.Name())
 	}
 
-	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_UNIFIED)
+	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_UNIFIED, false)
 }
 
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
@@ -999,7 +1066,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 		t.Skipf("Skipping test %s as default cgroup mode is not Hybrid mode (Cgroupv1 and Cgroupv2)", t.Name())
 	}
 
-	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_HYBRID)
+	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_HYBRID, false)
 }
 
 func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedController string) {
@@ -1256,4 +1323,30 @@ func TestCgroupv1ExecK8sHierarchyInHybridBlkio(t *testing.T) {
 // fallback to the best cgroup controller if available
 func TestCgroupv1ExecK8sHierarchyInHybridInvalid(t *testing.T) {
 	testCgroupv1K8sHierarchyInHybrid(t, true, "invalid-cgroup-controller")
+}
+
+// Test Cgroupv2 tries to emulate k8s hierarchy with exec context
+// Works in systemd hybrid mode
+func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+
+	// Probe full environment detection
+	_, err := testutils.GetTgRuntimeConf()
+	require.NoError(t, err)
+	// We support only unified mode as in hybrid mode, controllers
+	// are part of the hybrid cgroupv1 hierarchy, the cgroupv2 of
+	// the hybrid is only used by systemd to track launched services/processes
+	if cgroups.GetCgroupMode() != cgroups.CGROUP_UNIFIED {
+		logDefaultCgroupConfig(t)
+		t.Skipf("Skipping test %s as default cgroup mode is not Unified mode", t.Name())
+	}
+
+	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_UNIFIED, true)
 }
