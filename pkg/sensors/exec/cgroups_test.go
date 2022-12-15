@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
@@ -44,6 +45,8 @@ type cgroupHierarchy struct {
 	matchExecCgrpID bool
 	mkdirCgrpID     uint64
 	execCgrpID      uint64
+	expectedDocker  string
+	actualDocker    string
 	cleanup         func(t *testing.T, root, name, path string)
 }
 
@@ -70,14 +73,14 @@ var (
 	}
 
 	defaultKubeCgroupHierarchy = []cgroupHierarchy{
-		{"tetragon-tests-39d631b6f0fbc4e261c7a0ee636cf434-defaultKubeCgroupHierarchy-system.slice", true, false, false, false, 0, 0, nil},
-		{"kubelet.slice", true, false, false, false, 0, 0, nil},
-		{"kubelet-kubepods.slice", true, false, false, false, 0, 0, nil},
-		{"kubelet-kubepods-besteffort.slice", true, false, false, false, 0, 0, nil},
-		{"kubelet-kubepods-besteffort-pod2edf54f8_6911_449f_9abe_3d468a770d6b.slice", true, false, false, false, 0, 0, nil},
-		{"cri-containerd-02de72688d6bb0908d279bbbb05ffa9d7e0b2ae17a8bf23683a33cc1349e55aa.scope", true, false, false, false, 0, 0, nil},
-		{"nested-below-container-tracking-level+1", false, false, false, false, 0, 0, nil},
-		{"nested-below-container-tracking-level+2", false, false, false, false, 0, 0, nil},
+		{"tetragon-tests-39d631b6f0fbc4e261c7a0ee636cf434-defaultKubeCgroupHierarchy-system.slice", true, false, false, false, 0, 0, "", "", nil},
+		{"kubelet.slice", true, false, false, false, 0, 0, "", "", nil},
+		{"kubelet-kubepods.slice", true, false, false, false, 0, 0, "", "", nil},
+		{"kubelet-kubepods-besteffort.slice", true, false, false, false, 0, 0, "", "", nil},
+		{"kubelet-kubepods-besteffort-pod2edf54f8_6911_449f_9abe_3d468a770d6b.slice", true, false, false, false, 0, 0, "", "", nil},
+		{"cri-containerd-02de72688d6bb0908d279bbbb05ffa9d7e0b2ae17a8bf23683a33cc1349e55aa.scope", true, false, false, false, 0, 0, "yes", "", nil},
+		{"nested-below-container-tracking-level+1", false, false, false, false, 0, 0, "", "", nil},
+		{"nested-below-container-tracking-level+2", false, false, false, false, 0, 0, "", "", nil},
 	}
 
 	cgroupv1Controllers = []cgroupController{
@@ -257,8 +260,12 @@ func prepareCgroupv1Hierarchies(t *testing.T, cgroupRoot string, controllers []c
 			}
 			// We track only usedController, other controllers are mounted but
 			// not tracked to emulate a production system.
-			if controller.name == usedController && uint32(i) < trackingCgrpLevel {
-				n.tracking = true
+			if controller.name == usedController {
+				if uint32(i) < trackingCgrpLevel {
+					n.tracking = true
+				}
+				// We are tracking this controller expect docker fields
+				n.expectedDocker = c.expectedDocker
 			} else {
 				n.tracking = false // Controller was not used at all, hierarchy not to be tracked
 			}
@@ -345,16 +352,22 @@ func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy) {
 				"failed at cgroupHierarchy[%d].path=%s should be tracked and added into bpf-map", i, c.path)
 			assert.Equalf(t, true, c.removed,
 				"failed at cgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
-			if c.matchExecCgrpID == true {
-				// We are expecting that cgrpid mkdir and execve match
-				assert.Equalf(t, uint64(c.mkdirCgrpID), uint64(c.execCgrpID), "failed at cgroupHierarchy[%d].path=%s  mkdirCgroupID != execCgroupID (%d != %d)",
-					i, c.path, c.mkdirCgrpID, c.execCgrpID)
-			}
 		} else {
 			assert.Equalf(t, false, c.added,
 				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added into bpf-map", i, c.path)
 			assert.Equalf(t, false, c.removed,
 				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added/removed from bpf-map", i, c.path)
+		}
+	}
+}
+
+func assertCgroupExecIDsTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy) {
+	for i, c := range cgroupHierarchy {
+		assert.Equalf(t, c.expectedDocker, c.actualDocker, "failed at cgroupHierarchy[%d].path=%s  expected Docker and Actual one do not match", i, c.path)
+		if c.matchExecCgrpID {
+			// We are expecting that cgrpid mkdir and execve match
+			assert.Equalf(t, uint64(c.mkdirCgrpID), uint64(c.execCgrpID), "failed at cgroupHierarchy[%d].path=%s  mkdirCgroupID != execCgroupID (%d != %d)",
+				i, c.path, c.mkdirCgrpID, c.execCgrpID)
 		}
 	}
 }
@@ -423,6 +436,8 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 					if cgroup.path == argDir {
 						// cgroup path match, let's save the cgrpid of the execve
 						cgroupHierarchiesMap[selectedController][i].execCgrpID = exec.Kube.Cgrpid
+						// save the received docker id of the execve
+						cgroupHierarchiesMap[selectedController][i].actualDocker = exec.Kube.Docker
 						// we had our match break
 						break
 					}
@@ -1102,7 +1117,15 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 		path := filepath.Join(cgroupRoot, usedController)
 		for i, dir := range kubeCgroupHierarchiesMap[usedController] {
 			path = filepath.Join(path, dir.path)
-			kubeCgroupHierarchiesMap[usedController][i].matchExecCgrpID = true
+			if dir.tracking == true {
+				kubeCgroupHierarchiesMap[usedController][i].matchExecCgrpID = true
+			}
+			/* We expect docker field here, so let's properly set it */
+			if dir.expectedDocker == "yes" {
+				docker, _ := procevents.LookupContainerId(dir.path, true, false)
+				require.NotEmpty(t, docker)
+				kubeCgroupHierarchiesMap[usedController][i].expectedDocker = docker
+			}
 			var outb, errb bytes.Buffer
 			cmd := exec.Command(testCgroupMigrate, "--mode", "cgroupv1", "--controller", usedController,
 				"--new", dir.path, path)
@@ -1159,8 +1182,16 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 		t.Logf("\nkubeCgroupHierarchiesMap[%s]=%+v\n", controller, cgroupHierarchy)
 	}
 
+	// Match cgroup mkdir and rmdir events
 	for _, cgroupHierarchy := range kubeCgroupHierarchiesMap {
 		assertCgroupDirTracking(t, cgroupHierarchy)
+	}
+
+	if withExec {
+		// Match cgroup mkdir and execve cgroup info events
+		for _, cgroupHierarchy := range kubeCgroupHierarchiesMap {
+			assertCgroupExecIDsTracking(t, cgroupHierarchy)
+		}
 	}
 }
 
