@@ -26,9 +26,12 @@ var (
 	crd        *string
 	csv        *string
 	name       *string
+
+	rbSize *int
 )
 
 func init() {
+	rbSize = flag.Int("rb-size", 65535, "perf ring buffer size")
 	debug = flag.Bool("debug", false, "enable debugging")
 	jsonEncode = flag.Bool("json-encode", false, "JSON encode the events and measure overhead")
 	baseline = flag.Bool("baseline", false, "run a baseline benchmark without tetragon")
@@ -93,6 +96,7 @@ func main() {
 		Trace:       bench.TraceBenchNameOrPanic(*traceBench),
 		Crd:         *crd,
 		CmdArgs:     cmdArgs,
+		RBSize:      *rbSize,
 	}
 
 	summary := bench.RunTraceBench(args)

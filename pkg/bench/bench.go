@@ -50,6 +50,7 @@ type Arguments struct {
 	PrintEvents bool
 	JSONEncode  bool
 	Baseline    bool
+	RBSize      int
 }
 
 func (args *Arguments) String() string {
@@ -81,6 +82,8 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 			option.Config.HubbleLib = defaults.DefaultTetragonLib
 		}
 	}
+
+	option.Config.RBSize = args.RBSize
 
 	option.Config.BpfDir = bpf.MapPrefixPath()
 	option.Config.MapDir = bpf.MapPrefixPath()
