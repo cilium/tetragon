@@ -4,6 +4,10 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -93,6 +97,82 @@ var (
 	memProfile string
 	pprofAddr  string
 )
+
+func readConfigFile(path string, file string) error {
+	file = filepath.Join(path, file)
+	st, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+	if st.Mode().IsRegular() == false {
+		return fmt.Errorf("failed to read config file '%s' not a regular file", file)
+	}
+
+	viper.AddConfigPath(path)
+	err = viper.MergeInConfig()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readConfigDir(path string) error {
+	st, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if st.IsDir() == false {
+		return fmt.Errorf("'%s' is not a directory", path)
+	}
+
+	cm, err := option.ReadDirConfig(path)
+	if err != nil {
+		return err
+	}
+	if err := viper.MergeConfigMap(cm); err != nil {
+		return fmt.Errorf("merge config failed %v", err)
+	}
+
+	return nil
+}
+
+func readConfigSettings(defaultConfDir string, dropInsDir []string) {
+	viper.SetEnvPrefix("tetragon")
+	replacer := strings.NewReplacer("-", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
+
+	viper.SetConfigName("tetragon")
+	viper.SetConfigType("yaml")
+
+	// Look into cwd first, this is needed for quick development only
+	err := readConfigFile(".", "tetragon.yaml")
+	if err == nil {
+		return
+	}
+	log.Debugf("Reading configuration: %v", err)
+
+	// Read drop-ins
+	for _, dir := range dropInsDir {
+		readConfigDir(dir)
+	}
+
+	readConfigFile(defaultConfDir, "tetragon.yaml")
+
+	// Read now the passed key config
+	if viper.IsSet(keyConfigDir) {
+		configDir := viper.GetString(keyConfigDir)
+		cm, err := option.ReadDirConfig(configDir)
+		if err != nil {
+			log.WithField(keyConfigDir, configDir).WithError(err).Fatal("Failed to read config from directory")
+		}
+		if err := viper.MergeConfigMap(cm); err != nil {
+			log.WithField(keyConfigDir, configDir).WithError(err).Fatal("Failed to merge config from directory")
+		}
+		log.WithField(keyConfigDir, configDir).Info("Loaded config from directory")
+	}
+}
 
 func readAndSetFlags() {
 	option.Config.HubbleLib = viper.GetString(keyHubbleLib)

@@ -13,7 +13,6 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -458,27 +457,7 @@ func execute() error {
 	}
 
 	cobra.OnInitialize(func() {
-		viper.SetEnvPrefix("tetragon")
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".") // look for a config file in cwd first, useful during development
-		if err := viper.ReadInConfig(); err == nil {
-			log.Info("Loaded config from file")
-		}
-		if viper.IsSet(keyConfigDir) {
-			configDir := viper.GetString(keyConfigDir)
-			cm, err := option.ReadDirConfig(configDir)
-			if err != nil {
-				log.WithField(keyConfigDir, configDir).WithError(err).Fatal("Failed to read config from directory")
-			}
-			if err := viper.MergeConfigMap(cm); err != nil {
-				log.WithField(keyConfigDir, configDir).WithError(err).Fatal("Failed to merge config from directory")
-			}
-			log.WithField(keyConfigDir, configDir).Info("Loaded config from directory")
-		}
-		replacer := strings.NewReplacer("-", "_")
-		viper.SetEnvKeyReplacer(replacer)
-		viper.AutomaticEnv()
+		readConfigSettings(defaults.DefaultTgConfDir, defaults.DefaultTgConfDropIns)
 	})
 
 	flags := rootCmd.PersistentFlags()

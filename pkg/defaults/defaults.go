@@ -42,9 +42,18 @@ const (
 
 	// Default location for BPF programs and BTF files
 	DefaultTetragonLib = "/var/lib/tetragon/"
+
+	DefaultTgConfDir = "/etc/tetragon/"
 )
 
 var (
 	// NetnsDir is the network namespace directory for runtime
 	NetnsDir = DefaultNetnsDir
+
+	// Sorted by order, last takes precedence
+	DefaultTgConfDropIns = []string{
+		"/usr/lib/tetragon/tetragon.conf.d/",
+		"/usr/local/lib/tetragon/tetragon.conf.d/",
+		"/etc/tetragon/tetragon.conf.d/",
+	}
 )
