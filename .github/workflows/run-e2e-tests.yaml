@@ -43,9 +43,9 @@ jobs:
         else
           SHA=${{ github.sha }}
         fi
-        echo ::set-output name=sha::${SHA}
-        echo ::set-output name=agentImage::quay.io/cilium/tetragon-ci:${SHA}
-        echo ::set-output name=operatorImage::quay.io/cilium/tetragon-operator-ci:${SHA}
+        echo "sha=${SHA}" >> $GITHUB_OUTPUT
+        echo "agentImage=quay.io/cilium/tetragon-ci:${SHA}" >> $GITHUB_OUTPUT
+        echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
 
     - name: Pull Tetragon Images
       uses: nick-invision/retry@v2

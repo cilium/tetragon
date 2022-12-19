@@ -36,7 +36,7 @@ jobs:
       - name: Getting image tag
         id: tag
         run: |
-          echo ::set-output name=tag::${GITHUB_REF##*/}
+          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Checkout Source Code
         uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
