@@ -11,7 +11,7 @@
     - /usr/bin/tetragon
 {{- end }}
   args:
-    - --config-dir=/etc/tetragon
+    - --config-dir=/etc/tetragon/tetragon.conf.d/
 {{- with .Values.tetragon.argsOverride }}
   {{- toYaml . | nindent 2 }}
 {{- else }}
@@ -31,7 +31,7 @@
     - mountPath: /var/lib/tetragon/metadata
       name: metadata-files
     {{- end }}
-    - mountPath: /etc/tetragon
+    - mountPath: /etc/tetragon/tetragon.conf.d/
       name: tetragon-config
       readOnly: true
     - mountPath: /sys/fs/bpf
