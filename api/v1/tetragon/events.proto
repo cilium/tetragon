@@ -34,6 +34,7 @@ enum EventType {
     PROCESS_KPROBE = 9;
     PROCESS_TRACEPOINT = 10;
     PROCESS_LOADER = 11;
+    PROCESS_UPROBE = 12;
 
     TEST = 40000;
 }
@@ -127,6 +128,7 @@ message GetEventsResponse {
         ProcessKprobe process_kprobe = 9;
         ProcessTracepoint process_tracepoint = 10;
         ProcessLoader process_loader = 11;
+        ProcessUprobe process_uprobe = 12;
 
         Test test = 40000;
     }
