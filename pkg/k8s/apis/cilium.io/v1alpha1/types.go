@@ -81,6 +81,9 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// Enable loader events
 	Loader bool `json:"loader"`
+	// +kubebuilder:validation:Optional
+	// A list of uprobe specs.
+	UProbes []UProbeSpec `json:"uprobes"`
 }
 
 func (tp *TracingPolicy) TpName() string {
@@ -284,4 +287,11 @@ type TracingPolicyNamespacedList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 	Items           []TracingPolicyNamespaced `json:"items"`
+}
+
+type UProbeSpec struct {
+	// Name of the traced binary
+	Path string `json:"path"`
+	// Name of the traced symbol
+	Symbol string `json:"symbol"`
 }

@@ -434,3 +434,84 @@ func (msg *MsgProcessLoaderUnix) Cast(o interface{}) notify.Message {
 	t := o.(MsgProcessLoaderUnix)
 	return &t
 }
+
+type MsgGenericUprobeUnix struct {
+	Common     processapi.MsgCommon
+	ProcessKey processapi.MsgExecveKey
+	Path       string
+	Symbol     string
+}
+
+func (msg *MsgGenericUprobeUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgGenericUprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+}
+
+func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev)
+}
+
+func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
+	var tetragonParent, tetragonProcess *tetragon.Process
+
+	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if process == nil {
+		tetragonProcess = &tetragon.Process{
+			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
+			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
+		}
+	} else {
+		tetragonProcess = process.UnsafeGetProcess()
+		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
+				Debugf("Failed to annotate process with capabilities and namespaces info")
+		}
+	}
+
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
+	}
+
+	tetragonEvent := &tetragon.ProcessUprobe{
+		Process: tetragonProcess,
+		Parent:  tetragonParent,
+		Path:    event.Path,
+		Symbol:  event.Symbol,
+	}
+
+	if ec := eventcache.Get(); ec != nil &&
+		(ec.Needed(tetragonProcess) ||
+			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
+		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+		return nil
+	}
+
+	if process != nil {
+		tetragonEvent.Process = process.GetProcessCopy()
+	}
+	if parent != nil {
+		tetragonEvent.Parent = parent.GetProcessCopy()
+	}
+
+	return tetragonEvent
+}
+
+func (msg *MsgGenericUprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessUprobe(msg)
+	if k == nil {
+		return nil
+	}
+	return &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessUprobe{ProcessUprobe: k},
+		NodeName: nodeName,
+		Time:     ktime.ToProto(msg.Common.Ktime),
+	}
+}
+
+func (msg *MsgGenericUprobeUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericUprobeUnix)
+	return &t
+}

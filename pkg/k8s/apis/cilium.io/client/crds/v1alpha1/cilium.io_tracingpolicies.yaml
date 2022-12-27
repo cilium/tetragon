@@ -800,6 +800,21 @@ spec:
                   - subsystem
                   type: object
                 type: array
+              uprobes:
+                description: A list of uprobe specs.
+                items:
+                  properties:
+                    path:
+                      description: Name of the traced binary
+                      type: string
+                    symbol:
+                      description: Name of the traced symbol
+                      type: string
+                  required:
+                  - path
+                  - symbol
+                  type: object
+                type: array
             type: object
         required:
         - metadata
