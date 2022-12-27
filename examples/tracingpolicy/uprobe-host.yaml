@@ -1,0 +1,8 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/procRoot/1/root/usr/bin/bash"
+    symbol: "_start"
