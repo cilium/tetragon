@@ -83,13 +83,6 @@ $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 objs/%.ll: $(PROCESSDIR)%.c
 	$(CLANG) $(CLANG_FLAGS) -c $< -o $@
 
-objs/bpf_execve_event_v53.ll: process/bpf_execve_event.c
-objs/bpf_generic_kprobe_v53.ll: process/bpf_generic_kprobe.c
-objs/bpf_generic_retkprobe_v53.ll: process/bpf_generic_retkprobe.c
-objs/bpf_multi_kprobe_v53.ll: process/bpf_generic_kprobe.c
-objs/bpf_multi_retkprobe_v53.ll: process/bpf_generic_retkprobe.c
-objs/bpf_generic_tracepoint_v53.ll: process/bpf_generic_tracepoint.c
-
 objs/bpf_multi_kprobe_v53.ll objs/bpf_multi_retkprobe_v53.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
@@ -108,13 +101,6 @@ deps/bpf_generic_tracepoint_v53.d: process/bpf_generic_tracepoint.c
 
 $(DEPSDIR)%_v53.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
-
-objs/bpf_execve_event_v60.ll: process/bpf_execve_event.c
-objs/bpf_generic_kprobe_v60.ll: process/bpf_generic_kprobe.c
-objs/bpf_generic_retkprobe_v60.ll: process/bpf_generic_retkprobe.c
-objs/bpf_multi_kprobe_v60.ll: process/bpf_generic_kprobe.c
-objs/bpf_multi_retkprobe_v60.ll: process/bpf_generic_retkprobe.c
-objs/bpf_generic_tracepoint_v60.ll: process/bpf_generic_tracepoint.c
 
 objs/bpf_multi_kprobe_v60.ll objs/bpf_multi_retkprobe_v60.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
