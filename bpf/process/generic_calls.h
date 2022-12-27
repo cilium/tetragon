@@ -98,6 +98,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (!config)
 		return 0;
 
+#ifdef GENERIC_KPROBE
 	if (config->syscall) {
 		struct pt_regs *_ctx;
 		_ctx = PT_REGS_SYSCALL_REGS(ctx);
@@ -121,11 +122,21 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	e->thread_id = retprobe_map_get_key(ctx);
 
 	/* If return arg is needed mark retprobe */
-#ifdef GENERIC_KPROBE
 	ty = config->argreturn;
 	if (ty > 0)
 		retprobe_map_set(e->id, e->thread_id, e->common.ktime, 1);
 #endif
+
+#ifdef GENERIC_UPROBE
+	/* no arguments for uprobes for now */
+	e->a0 = 0;
+	e->a1 = 0;
+	e->a2 = 0;
+	e->a3 = 0;
+	e->a4 = 0;
+	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
+#endif
+
 	return generic_process_event(ctx, 0, heap_map, tailcals, config_map);
 }
 

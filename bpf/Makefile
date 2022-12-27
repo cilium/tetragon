@@ -27,10 +27,12 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_kprobe_v53.o bpf_generic_retkprobe.o bpf_generic_retkprobe_v53.o \
 	  bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
 	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o \
+	  bpf_generic_uprobe.o bpf_generic_uprobe_v53.o \
 	  bpf_execve_event_v60.o \
 	  bpf_generic_kprobe_v60.o bpf_generic_retkprobe_v60.o \
 	  bpf_generic_tracepoint_v60.o \
 	  bpf_multi_kprobe_v60.o bpf_multi_retkprobe_v60.o \
+	  bpf_generic_uprobe_v60.o \
 	  bpf_loader.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
@@ -84,6 +86,7 @@ deps/bpf_generic_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
 deps/bpf_multi_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
 deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
 deps/bpf_generic_tracepoint_$$(VAR).d: process/bpf_generic_tracepoint.c
+deps/bpf_generic_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
 endef
 
 # Generic build targets for each sub-dir
