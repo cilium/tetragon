@@ -70,7 +70,20 @@ $(OBJSDIR):
 $(DEPSDIR):
 	mkdir $(DEPSDIR)
 
+define DEFINE_VARIANT
+VAR := $1
+deps/bpf_execve_event_$$(VAR).d: process/bpf_execve_event.c
+deps/bpf_generic_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
+deps/bpf_generic_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
+deps/bpf_multi_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
+deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
+deps/bpf_generic_tracepoint_$$(VAR).d: process/bpf_generic_tracepoint.c
+endef
+
 # Generic build targets for each sub-dir
+
+$(eval $(call DEFINE_VARIANT,v53))
+$(eval $(call DEFINE_VARIANT,v60))
 
 # ALIGNCHECKER
 objs/%.ll: $(ALIGNCHECKERDIR)%.c
@@ -92,13 +105,6 @@ objs/%_v53.ll:
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
-deps/bpf_execve_event_v53.d: process/bpf_execve_event.c
-deps/bpf_generic_kprobe_v53.d: process/bpf_generic_kprobe.c
-deps/bpf_generic_retkprobe_v53.d: process/bpf_generic_retkprobe.c
-deps/bpf_multi_kprobe_v53.d: process/bpf_generic_kprobe.c
-deps/bpf_multi_retkprobe_v53.d: process/bpf_generic_retkprobe.c
-deps/bpf_generic_tracepoint_v53.d: process/bpf_generic_tracepoint.c
-
 $(DEPSDIR)%_v53.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
@@ -107,13 +113,6 @@ objs/bpf_multi_kprobe_v60.ll objs/bpf_multi_retkprobe_v60.ll:
 
 objs/%_v60.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -c $< -o $@
-
-deps/bpf_execve_event_v60.d: process/bpf_execve_event.c
-deps/bpf_generic_kprobe_v60.d: process/bpf_generic_kprobe.c
-deps/bpf_generic_retkprobe_v60.d: process/bpf_generic_retkprobe.c
-deps/bpf_multi_kprobe_v60.d: process/bpf_generic_kprobe.c
-deps/bpf_multi_retkprobe_v60.d: process/bpf_generic_retkprobe.c
-deps/bpf_generic_tracepoint_v60.d: process/bpf_generic_tracepoint.c
 
 $(DEPSDIR)%_v60.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG  -D__V60_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
