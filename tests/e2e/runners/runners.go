@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 
-	// Auth plugin for GCP
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	// Auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (
