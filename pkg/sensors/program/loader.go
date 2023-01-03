@@ -126,6 +126,34 @@ func KprobeAttach(load *Program) AttachFunc {
 	}
 }
 
+func UprobeAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		data, ok := load.AttachData.(*UprobeAttachData)
+		if !ok {
+			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
+		}
+
+		linkFn := func() (link.Link, error) {
+			exec, err := link.OpenExecutable(data.Path)
+			if err != nil {
+				return nil, err
+			}
+			return exec.Uprobe(data.Symbol, prog, nil)
+		}
+
+		lnk, err := linkFn()
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       lnk,
+			RelinkFn:   linkFn,
+		}, nil
+	}
+}
+
 func NoAttach(load *Program) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
@@ -193,6 +221,17 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 		}
 	}
 	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+}
+
+func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "uprobe_calls" {
+			ci = &customInstall{mPath, "uprobe"}
+			break
+		}
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, UprobeAttach(load), ci, verbose)
 }
 
 func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {

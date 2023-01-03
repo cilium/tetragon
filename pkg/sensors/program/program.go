@@ -45,6 +45,11 @@ type MultiKprobeAttachData struct {
 	Cookies []uint64
 }
 
+type UprobeAttachData struct {
+	Path   string
+	Symbol string
+}
+
 // Program reprents a BPF program.
 type Program struct {
 	// Name is the name of the BPF object file.
