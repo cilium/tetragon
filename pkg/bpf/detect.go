@@ -7,26 +7,24 @@
 package bpf
 
 import (
+	"sync"
+
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/link"
 )
 
 type Feature struct {
-	initialized bool
-	detected    bool
+	init     sync.Once
+	detected bool
 }
 
 var (
-	overrideHelper = Feature{false, false}
-	kprobeMulti    = Feature{false, false}
+	overrideHelper Feature
+	kprobeMulti    Feature
 )
 
-func HasOverrideHelper() bool {
-	if overrideHelper.initialized {
-		return overrideHelper.detected
-	}
-	overrideHelper.initialized = true
+func detectOverrideHelper() bool {
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
 		Type: ebpf.Kprobe,
 		Instructions: asm.Instructions{
@@ -43,7 +41,13 @@ func HasOverrideHelper() bool {
 		overrideHelper.detected = false
 		return false
 	}
-	overrideHelper.detected = true
+	return true
+}
+
+func HasOverrideHelper() bool {
+	overrideHelper.init.Do(func() {
+		overrideHelper.detected = detectOverrideHelper()
+	})
 	return overrideHelper.detected
 }
 
@@ -71,11 +75,8 @@ func detectKprobeMulti() bool {
 }
 
 func HasKprobeMulti() bool {
-	if kprobeMulti.initialized {
-		return kprobeMulti.detected
-	}
-
-	kprobeMulti.detected = detectKprobeMulti()
-	kprobeMulti.initialized = true
+	kprobeMulti.init.Do(func() {
+		kprobeMulti.detected = detectKprobeMulti()
+	})
 	return kprobeMulti.detected
 }
