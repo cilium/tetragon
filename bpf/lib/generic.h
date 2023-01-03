@@ -42,8 +42,7 @@ struct msg_generic_kprobe {
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
-	int idx;
-	int func_id;
+	__u32 idx;
 };
 
 static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()

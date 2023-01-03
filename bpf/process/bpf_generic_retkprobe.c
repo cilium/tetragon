@@ -24,7 +24,7 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, MAX_ENTRIES_CONFIG);
-	__type(key, int);
+	__type(key, __u32);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
@@ -52,15 +52,16 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!e)
 		return 0;
 
-	setup_index(ctx, e, (struct bpf_map_def *)&config_map);
+	e->idx = get_index(ctx);
 
 	config = map_lookup_elem(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
+	e->id = config->func_id;
 	e->thread_id = retprobe_map_get_key(ctx);
 
-	if (!retprobe_map_get(e->func_id, e->thread_id, &info))
+	if (!retprobe_map_get(e->id, e->thread_id, &info))
 		return 0;
 
 	*(unsigned long *)e->args = info.ktime_enter;

@@ -41,7 +41,7 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
-	__type(key, int);
+	__type(key, __u32);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
@@ -178,6 +178,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 #endif
 	/* Tail call into filters. */
 	msg->idx = 0;
+	msg->id = config->func_id;
 	tail_call(ctx, &tp_calls, 5);
 	return 0;
 }
