@@ -142,30 +142,14 @@ struct event_config {
 #define MAX_STRING 1024
 
 #ifdef __MULTI_KPROBE
-static inline __attribute__((always_inline)) void
-setup_index(void *ctx, struct msg_generic_kprobe *msg,
-	    struct bpf_map_def *config_map)
+static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 {
-	int idx = (int)get_attach_cookie(ctx);
-	struct event_config *config;
-
-	config = map_lookup_elem(config_map, &idx);
-	if (!config)
-		return;
-	msg->idx = idx;
-	msg->func_id = config->func_id;
+	return (__u32)get_attach_cookie(ctx);
 }
 
 #define MAX_ENTRIES_CONFIG 100 /* MaxKprobesMulti in go code */
 #else
-static inline __attribute__((always_inline)) void
-setup_index(void *ctx, struct msg_generic_kprobe *msg,
-	    struct bpf_map_def *config_map)
-{
-	msg->idx = 0;
-	msg->func_id = 0;
-}
-
+#define get_index(ctx)	   0
 #define MAX_ENTRIES_CONFIG 1
 #endif
 
@@ -544,7 +528,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set(e->func_id, tid, e->common.ktime, arg);
+		retprobe_map_set(e->id, tid, e->common.ktime, arg);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
@@ -695,8 +679,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	if (hasReturnCopy(argm)) {
 		u64 tid = retprobe_map_get_key(ctx);
-		retprobe_map_set_iovec(e->func_id, tid, e->common.ktime, arg,
-				       meta);
+		retprobe_map_set_iovec(e->id, tid, e->common.ktime, arg, meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e);
@@ -1051,10 +1034,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(int idx)
+static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 {
 	u64 tid = get_current_pid_tgid();
-	retprobe_map_clear(idx, tid);
+	retprobe_map_clear(id, tid);
 	return 0;
 }
 
@@ -1078,7 +1061,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 	 * have their arg filters run.
 	 */
 	if (index > SELECTORS_ACTIVE)
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(e->id);
 
 	if (e->sel.active[index]) {
 		int pass = selector_arg_offset(f, e, index);
@@ -1309,7 +1292,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		if (index <= MAX_SELECTORS && e->sel.active[index])
 			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL + index);
 		// reject if we did not attempt to tailcall, or if tailcall failed.
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(e->id);
 	}
 
 	// If pass >1 then we need to consult the selector actions

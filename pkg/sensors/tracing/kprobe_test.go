@@ -2427,11 +2427,11 @@ func TestLoadKprobeSensor(t *testing.T) {
 	}
 
 	if kernels.EnableLargeProgs() {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
+		// all kprobe but generic_kprobe_process_filter
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
 	} else {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{1, 2, 3, 4, 5}})
+		// all kprobe but generic_kprobe_process_filter
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5}})
 	}
 
 	readHook := `

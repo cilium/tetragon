@@ -52,7 +52,7 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, MAX_ENTRIES_CONFIG);
-	__type(key, int);
+	__type(key, __u32);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
@@ -60,6 +60,7 @@ static inline __attribute__((always_inline)) int
 generic_kprobe_start_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
+	struct event_config *config;
 	struct task_struct *task;
 	int i, zero = 0;
 
@@ -84,7 +85,12 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
+	// setup index and function id
+	msg->idx = get_index(ctx);
+	config = map_lookup_elem(&config_map, &msg->idx);
+	if (!config)
+		return 0;
+	msg->id = config->func_id;
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;
