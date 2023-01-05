@@ -119,7 +119,7 @@ func (ec *Cache) handleEvents() {
 			if errors.Is(err, ErrFailedToGetProcessInfo) {
 				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
-				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
+				eventcachemetrics.PodInfoError(notify.EventTypeString(event.event)).Inc()
 			}
 		}
 
