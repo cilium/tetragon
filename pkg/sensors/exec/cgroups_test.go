@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/kernels"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
@@ -345,13 +347,15 @@ func requireCgroupEventOpRmdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 	}
 }
 
-func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy) {
+func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy, assertRmdir bool) {
 	for i, c := range cgroupHierarchy {
 		if c.tracking == true {
 			assert.Equalf(t, true, c.added,
 				"failed at cgroupHierarchy[%d].path=%s should be tracked and added into bpf-map", i, c.path)
-			assert.Equalf(t, true, c.removed,
-				"failed at cgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
+			if assertRmdir {
+				assert.Equalf(t, true, c.removed,
+					"failed at cgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
+			}
 		} else {
 			assert.Equalf(t, false, c.added,
 				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added into bpf-map", i, c.path)
@@ -1017,7 +1021,14 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 	t.Logf("\ncgroupHierarchy=%+v\n", kubeCgroupHierarchy)
 
 	// Match cgroup mkdir and rmdir events
-	assertCgroupDirTracking(t, kubeCgroupHierarchy)
+	if !kernels.MinKernelVersion("5.0") && withExec {
+		// For old kernels when a process is migrated to a cgroup, and after
+		// it terminates, it may take longer to get cgroup rmdir events, in
+		// this case skip cgroup rmdir assertion and avoid flaky tests
+		assertCgroupDirTracking(t, kubeCgroupHierarchy, false)
+	} else {
+		assertCgroupDirTracking(t, kubeCgroupHierarchy, true)
+	}
 
 	// Match cgroup mkdir and execve cgroup info events
 	if withExec {
@@ -1251,7 +1262,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 
 	// Match cgroup mkdir and rmdir events
 	for _, cgroupHierarchy := range kubeCgroupHierarchiesMap {
-		assertCgroupDirTracking(t, cgroupHierarchy)
+		assertCgroupDirTracking(t, cgroupHierarchy, true)
 	}
 
 	if withExec {
