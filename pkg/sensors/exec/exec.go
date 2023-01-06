@@ -200,6 +200,9 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil && empty {
 		msgUnix.Process = nopMsgProcess()
 	}
+	if err != nil {
+		logger.GetLogger().WithError(err).WithField("empty", empty).Warn("execParse returned error")
+	}
 	msgUnix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Process), msgUnix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
 }
