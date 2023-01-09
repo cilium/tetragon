@@ -510,7 +510,8 @@ func LoadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
+	tcInstall *TailCallInstall,
 	verbose int,
 ) error {
-	return loadProgram(bpfDir, mapDirs, load, withProgram, nil, verbose)
+	return loadProgram(bpfDir, mapDirs, load, withProgram, tcInstall, verbose)
 }
