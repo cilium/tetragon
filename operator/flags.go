@@ -40,11 +40,15 @@ func initializeFlags() {
 	flags.String(operatorOption.CMDRef, "", "Path to cmdref output directory")
 	flags.MarkHidden(operatorOption.CMDRef)
 
-	flags.Bool(operatorOption.SkipCRDCreation, false, "When true, Kubernetes Custom Resource Definitions will not be created")
+	flags.Bool(operatorOption.SkipCRDCreation, false, "When true, Kubernetes Custom Resource Definitions (CRDs) will not be created")
+
+	flags.String(operatorOption.KubeCfgPath, "", "Kubeconfig filepath to connect to k8s")
+
 	viper.BindPFlags(flags)
 }
 
 // Populate sets all options with the values from viper.
 func configPopulate() {
 	operatorOption.Config.SkipCRDCreation = viper.GetBool(operatorOption.SkipCRDCreation)
+	operatorOption.Config.KubeCfgPath = viper.GetString(operatorOption.KubeCfgPath)
 }
