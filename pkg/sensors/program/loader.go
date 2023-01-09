@@ -25,8 +25,8 @@ var (
 type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
 type TailCallInstall struct {
-	mapName   string
-	secPrefix string
+	MapName   string
+	SecPrefix string
 }
 
 func RawAttach(targetFD int) AttachFunc {
@@ -274,7 +274,7 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return err
 	}
 	if tcInstall != nil {
-		if err := install(tcInstall.mapName, tcInstall.secPrefix); err != nil {
+		if err := install(tcInstall.MapName, tcInstall.SecPrefix); err != nil {
 			return err
 		}
 	}
