@@ -166,10 +166,10 @@ func MultiKprobeAttach(load *Program) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	var tcInstall *TailCallInstall
+	var tcInstall []TailCallInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			tcInstall = &TailCallInstall{mPath, "tracepoint"}
+			tcInstall = []TailCallInstall{{mPath, "tracepoint"}}
 			break
 		}
 	}
@@ -181,10 +181,10 @@ func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	var tcInstall *TailCallInstall
+	var tcInstall []TailCallInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" {
-			tcInstall = &TailCallInstall{mPath, "kprobe"}
+			tcInstall = []TailCallInstall{{mPath, "kprobe"}}
 			break
 		}
 	}
@@ -196,7 +196,7 @@ func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) erro
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	tcInstall := &TailCallInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
+	tcInstall := []TailCallInstall{{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}}
 	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), tcInstall, verbose)
 }
 
@@ -235,7 +235,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, tcInstall *TailCallInstall) error {
+func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, tcInstall []TailCallInstall) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -265,8 +265,10 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	}
 
 	if tcInstall != nil {
-		if err := install(tcInstall.MapName, tcInstall.SecPrefix); err != nil {
-			return err
+		for _, inst := range tcInstall {
+			if err := install(inst.MapName, inst.SecPrefix); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -278,7 +280,7 @@ func doLoadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
-	tcInstall *TailCallInstall,
+	tcInstall []TailCallInstall,
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
@@ -482,7 +484,7 @@ func loadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
-	tcInstall *TailCallInstall,
+	tcInstall []TailCallInstall,
 	verbose int,
 ) error {
 	lc, err := doLoadProgram(bpfDir, mapDirs, load, withProgram, tcInstall, verbose)
@@ -501,7 +503,7 @@ func LoadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
-	tcInstall *TailCallInstall,
+	tcInstall []TailCallInstall,
 	verbose int,
 ) error {
 	return loadProgram(bpfDir, mapDirs, load, withProgram, tcInstall, verbose)
