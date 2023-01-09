@@ -4,6 +4,7 @@
 #ifndef __DATA_EVENT_H__
 #define __DATA_EVENT_H__
 
+#include "bpf_tracing.h"
 #include "data_msg.h"
 
 static inline __attribute__((always_inline)) long
@@ -153,6 +154,9 @@ static inline __attribute__((always_inline)) int data_event(
 	msg->common.pad[1] = 0;
 
 	msg->id.pid = get_current_pid_tgid();
+	if (msg->id.pid == (__u64)-22) // -EINVAL -- current == NULL
+		msg->id.pid = PT_REGS_FP_CORE((struct pt_regs *)ctx);
+
 	msg->id.time = ktime_get_ns();
 	desc->id = msg->id;
 
