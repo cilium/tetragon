@@ -28,6 +28,7 @@ const (
 	keyLogFormat = "log-format"
 
 	keyEnableK8sAPI           = "enable-k8s-api"
+	keyK8sKubeConfigPath      = "k8s-kubeconfig-path"
 	keyEnableCiliumAPI        = "enable-cilium-api"
 	keyEnableProcessAncestors = "enable-process-ancestors"
 
@@ -109,6 +110,7 @@ func readAndSetFlags() {
 	option.Config.EnableProcessNs = viper.GetBool(keyEnableProcessNs)
 	option.Config.EnableCilium = viper.GetBool(keyEnableCiliumAPI)
 	option.Config.EnableK8s = viper.GetBool(keyEnableK8sAPI)
+	option.Config.K8sKubeConfigPath = viper.GetString(keyK8sKubeConfigPath)
 
 	option.Config.DisableKprobeMulti = viper.GetBool(keyDisableKprobeMulti)
 

@@ -25,6 +25,7 @@ type config struct {
 	EnableProcessNs   bool
 	EnableProcessCred bool
 	EnableK8s         bool
+	K8sKubeConfigPath string
 
 	DisableKprobeMulti bool
 

@@ -14,10 +14,10 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors"
+	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -132,7 +132,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 
 func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	log := logger.GetLogger()
-	conf, err := rest.InClusterConfig()
+	conf, err := k8sconf.K8sConfig()
 	if err != nil {
 		log.WithError(err).Fatal("couldn't get cluster config")
 	}
