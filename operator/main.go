@@ -24,6 +24,7 @@ import (
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/version"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
@@ -52,11 +53,18 @@ var (
 	}
 )
 
+func getConfig() (*rest.Config, error) {
+	if operatorOption.Config.KubeCfgPath != "" {
+		return clientcmd.BuildConfigFromFlags("", operatorOption.Config.KubeCfgPath)
+	}
+	return rest.InClusterConfig()
+}
+
 func operatorExecute() {
 	// Prepopulate option.Config with options from CLI.
 	configPopulate()
 
-	restConfig, err := rest.InClusterConfig()
+	restConfig, err := getConfig()
 	if err != nil {
 		log.WithError(err).Fatal("Unable to check k8s configuration")
 	}

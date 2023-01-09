@@ -23,6 +23,9 @@ const (
 
 	// CMDRef is the path to cmdref output directory
 	CMDRef = "cmdref"
+
+	// KubeCfgPath is the path to a kubeconfig file
+	KubeCfgPath = "kube-config"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -30,6 +33,9 @@ type OperatorConfig struct {
 	// SkipCRDCreation disables creation of the CustomResourceDefinition
 	// for the operator
 	SkipCRDCreation bool
+
+	// KubeCfgPath allows users to specify a kubeconfig file to be used by the operator
+	KubeCfgPath string
 }
 
 // Config represents the operator configuration.
