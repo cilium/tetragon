@@ -24,7 +24,7 @@ var (
 // given the program and it's up to it to close it.
 type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
-type customInstall struct {
+type TailCallInstall struct {
 	mapName   string
 	secPrefix string
 }
@@ -166,14 +166,14 @@ func MultiKprobeAttach(load *Program) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tcInstall *TailCallInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			ci = &customInstall{mPath, "tracepoint"}
+			tcInstall = &TailCallInstall{mPath, "tracepoint"}
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), tcInstall, verbose)
 }
 
 func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
@@ -181,14 +181,14 @@ func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tcInstall *TailCallInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			tcInstall = &TailCallInstall{mPath, "kprobe"}
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), tcInstall, verbose)
 }
 
 func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
@@ -196,8 +196,8 @@ func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) erro
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
-	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
+	tcInstall := &TailCallInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
+	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), tcInstall, verbose)
 }
 
 func slimVerifierError(errStr string) string {
@@ -235,7 +235,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, ci *customInstall) error {
+func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, tcInstall *TailCallInstall) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -273,8 +273,8 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	if err := install("tls_calls", "classifier"); err != nil {
 		return err
 	}
-	if ci != nil {
-		if err := install(ci.mapName, ci.secPrefix); err != nil {
+	if tcInstall != nil {
+		if err := install(tcInstall.mapName, tcInstall.secPrefix); err != nil {
 			return err
 		}
 	}
@@ -287,7 +287,7 @@ func doLoadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
-	ci *customInstall,
+	tcInstall *TailCallInstall,
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
@@ -403,7 +403,7 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(mapDirs[0], spec, coll, ci)
+	err = installTailCalls(mapDirs[0], spec, coll, tcInstall)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
@@ -491,10 +491,10 @@ func loadProgram(
 	mapDirs []string,
 	load *Program,
 	withProgram AttachFunc,
-	ci *customInstall,
+	tcInstall *TailCallInstall,
 	verbose int,
 ) error {
-	lc, err := doLoadProgram(bpfDir, mapDirs, load, withProgram, ci, verbose)
+	lc, err := doLoadProgram(bpfDir, mapDirs, load, withProgram, tcInstall, verbose)
 	if err != nil {
 		return err
 	}
