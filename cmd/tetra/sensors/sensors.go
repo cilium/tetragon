@@ -120,7 +120,7 @@ func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient)
 		} else {
 			enabled = "(not enabled)"
 		}
-		fmt.Printf("%s %s\n", sensor.Name, enabled)
+		fmt.Printf("%s %s %s\n", sensor.Name, enabled, sensor.Collection)
 	}
 }
 

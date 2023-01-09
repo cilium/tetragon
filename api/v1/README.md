@@ -1327,8 +1327,9 @@ Determins the behaviour of a field filter
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| enabled | [bool](#bool) |  |  |
+| name | [string](#string) |  | name is the name of the sensor |
+| enabled | [bool](#bool) |  | enabled marks whether the sensor is enabled |
+| collection | [string](#string) |  | collection is the collection the sensor belongs to (typically a tracing policy) |
 
 
 
