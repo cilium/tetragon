@@ -27,8 +27,12 @@ import "tetragon/events.proto";
 message ListSensorsRequest { }
 
 message SensorStatus {
+	// name is the name of the sensor
 	string name = 1;
+	// enabled marks whether the sensor is enabled
 	bool enabled = 2;
+	// collection is the collection the sensor belongs to (typically a tracing policy)
+	string collection = 3;
 }
 message ListSensorsResponse {
 	repeated SensorStatus sensors = 1;

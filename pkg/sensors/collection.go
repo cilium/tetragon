@@ -13,8 +13,16 @@ import (
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.
 type collection struct {
-	sensors []*Sensor
-	name    string
+	sensors       []*Sensor
+	name          string
+	tracingpolicy TracingPolicy
+}
+
+func (c *collection) info() string {
+	if c.tracingpolicy != nil {
+		return c.tracingpolicy.TpInfo()
+	}
+	return c.name
 }
 
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it

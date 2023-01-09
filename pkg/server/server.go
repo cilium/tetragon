@@ -198,7 +198,11 @@ func (s *Server) ListSensors(ctx context.Context, request *tetragon.ListSensorsR
 	if err == nil {
 		sensors := make([]*tetragon.SensorStatus, 0, len(*list))
 		for _, s := range *list {
-			sensors = append(sensors, &tetragon.SensorStatus{Name: s.Name, Enabled: s.Enabled})
+			sensors = append(sensors, &tetragon.SensorStatus{
+				Name:       s.Name,
+				Enabled:    s.Enabled,
+				Collection: s.Collection,
+			})
 		}
 		ret = &tetragon.ListSensorsResponse{Sensors: sensors}
 	}

@@ -14,8 +14,9 @@ import (
 )
 
 type SensorStatus struct {
-	Name    string
-	Enabled bool
+	Name       string
+	Enabled    bool
+	Collection string
 }
 
 // StartSensorManager initializes the sensorCtlHandle by spawning a sensor
@@ -66,8 +67,9 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 				}
 
 				col := collection{
-					sensors: sensors,
-					name:    op.name,
+					sensors:       sensors,
+					name:          op.name,
+					tracingpolicy: op.tp,
 				}
 				err = col.load(op.ctx, bpfDir, mapDir, ciliumDir, nil)
 				if err == nil {
@@ -134,8 +136,13 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 			case *sensorList:
 				ret := make([]SensorStatus, 0)
 				for _, col := range sensorCols {
+					colInfo := col.info()
 					for _, s := range col.sensors {
-						ret = append(ret, SensorStatus{Name: s.Name, Enabled: s.Loaded})
+						ret = append(ret, SensorStatus{
+							Name:       s.Name,
+							Enabled:    s.Loaded,
+							Collection: colInfo,
+						})
 					}
 				}
 				op.result = &ret
