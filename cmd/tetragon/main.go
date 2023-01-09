@@ -42,6 +42,7 @@ import (
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
+	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
 	"github.com/cilium/tetragon/pkg/watcher/crd"
 
 	// Imported to allow sensors to be initialized inside init().
@@ -55,7 +56,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 var (
@@ -505,7 +505,7 @@ func Serve(ctx context.Context, listenAddr string, server *server.Server) error 
 func getWatcher() (watcher.K8sResourceWatcher, error) {
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
-		config, err := rest.InClusterConfig()
+		config, err := k8sconf.K8sConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -578,6 +578,7 @@ func execute() error {
 	flags.String(keyLogLevel, "info", "Set log level")
 	flags.String(keyLogFormat, "text", "Set log format")
 	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
+	flags.String(keyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
 	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache")
 	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
 	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
