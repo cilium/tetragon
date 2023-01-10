@@ -638,16 +638,12 @@ Since version 0.8.4, all Tetragon container images are signed using cosign.
 Let's verify a Tetragon image's signature using the `cosign verify` command:
 
 ```bash
-$ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-github-workflow-name "Image CI Releases" --certificate-github-workflow-ref refs/tags/[RELEASE TAG] quay.io/cilium/tetragon:v0.8.4 | jq
+$ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com <Image URL> | jq
 ```
 
 **Note**
 
 `COSIGN_EXPERIMENTAL=1` is used to allow verification of images signed in KEYLESS mode. To learn more about keyless signing, please refer to [Keyless Signatures](https://github.com/sigstore/cosign/blob/main/KEYLESS.md#keyless-signatures).
-
-`--certificate-github-workflow-name string` contains the workflow claim from the GitHub OIDC Identity token that contains the name of the executed workflow. For the names of workflows used to build Tetragon images, see the build image workflows under [Tetragon workflows](https://github.com/cilium/tetragon/tree/main/.github/workflows).
-
-`--certificate-github-workflow-ref string` contains the ref claim from the GitHub OIDC Identity token that contains the git ref that the workflow run was based upon.
 
 ## Software Bill of Materials
 
@@ -673,7 +669,7 @@ To ensure the SBOM is tamper-proof, its signature can be verified using the
 `cosign verify` command.
 
 ```bash
-$ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/cilium --certificate-oidc-issuer https://token.actions.githubusercontent.com --attachment sbom <Image URL> | jq
+$ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com --attachment sbom <Image URL> | jq
 ```
 It can be validated that the SBOM image was signed using Github Actions in the Cilium
 repository from the `Issuer` and `Subject` fields of the output.
