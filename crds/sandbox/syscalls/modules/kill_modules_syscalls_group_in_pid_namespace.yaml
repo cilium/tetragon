@@ -1,0 +1,37 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  # Kernel modules operation
+  name: "kill_modules_syscalls_group_in_pid_namespace"
+spec:
+  kprobes:
+  - call: "__x64_sys_finit_module"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_delete_module"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_init_module"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill

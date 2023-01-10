@@ -1,0 +1,77 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  # Obsolete uninmplemeted syscalls (they may fail)
+  name: "kill_obsolete_syscalls_group_in_pid_namespace"
+spec:
+  kprobes:
+  - call: "__x64_sys_bdflush"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_sgetmask"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_ssetmask"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_stime"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_sysfs"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_uselib"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill
+  - call: "__x64_sys_ustat"
+    syscall: true
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: NotIn
+        values:
+        - "host_ns"
+      matchActions:
+      - action: Sigkill

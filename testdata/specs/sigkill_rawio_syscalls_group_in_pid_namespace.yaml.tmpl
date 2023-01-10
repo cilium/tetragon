@@ -1,0 +1,26 @@
+# test for the sigkill action
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill_rawio_syscalls_group_in_pid_namespace"
+spec:
+  kprobes:
+  - call: "__x64_sys_ioperm"
+    syscall: true
+    args:
+    - index: 0
+      type: "nop"
+    selectors:
+      - matchPids:
+        - operator: In
+          values:
+          - {{.MatchedPID}}
+          isNamespacePID: false
+          followForks: true
+        matchNamespaces:
+        - namespace: Pid
+          operator: NotIn
+          values:
+          - "host_ns"
+        matchActions:
+        - action: Sigkill
