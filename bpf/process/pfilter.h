@@ -4,42 +4,42 @@
  * see generic_process_filter below
  */
 
-#define FIND_PIDSET(value, isns)                                               \
-	{                                                                      \
-		if (!filter)                                                   \
-			return 0;                                              \
-		{                                                              \
-			__u32 pid, ppid = 0;                                   \
-			if (isns) {                                            \
-				pid = filter->nspid;                           \
-			} else {                                               \
-				pid = filter->key.pid;                         \
-				ppid = filter->pkey.pid;                       \
-			}                                                      \
-			if (pid == value || ppid == value) {                   \
-				pidset_found = true;                           \
-				goto accept;                                   \
-			}                                                      \
-		}                                                              \
-		filter = map_lookup_elem(&execve_map, &filter->pkey.pid);      \
+#define FIND_PIDSET(value, isns)                                          \
+	{                                                                 \
+		if (!filter)                                              \
+			return 0;                                         \
+		{                                                         \
+			__u32 pid, ppid = 0;                              \
+			if (isns) {                                       \
+				pid = filter->nspid;                      \
+			} else {                                          \
+				pid = filter->key.pid;                    \
+				ppid = filter->pkey.pid;                  \
+			}                                                 \
+			if (pid == value || ppid == value) {              \
+				pidset_found = true;                      \
+				goto accept;                              \
+			}                                                 \
+		}                                                         \
+		filter = map_lookup_elem(&execve_map, &filter->pkey.pid); \
 	}
 
-#define FIND_PIDSET10(VAL, ISNS)                                               \
-	{                                                                      \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
-		FIND_PIDSET(VAL, ISNS)                                         \
+#define FIND_PIDSET10(VAL, ISNS)       \
+	{                              \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
+		FIND_PIDSET(VAL, ISNS) \
 	}
 
-#define FILTER_PIDSET(VAL)                                                     \
-	{                                                                      \
-		FIND_PIDSET10(VAL)                                             \
+#define FILTER_PIDSET(VAL)         \
+	{                          \
+		FIND_PIDSET10(VAL) \
 	}
 
 static inline __attribute__((always_inline)) bool
@@ -126,7 +126,8 @@ process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 	else {
 		__u64 o = (__u64)off;
 		o = o / 4;
-		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o) :);
+		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
+			     :);
 		sel = f[o];
 	}
 	return __process_filter_pid(ty, flags, sel, pid, enter);
@@ -144,7 +145,8 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 	else {
 		__u64 o = (__u64)off;
 		o = o / 4;
-		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o) :);
+		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
+			     :);
 		sel = f[o];
 	}
 

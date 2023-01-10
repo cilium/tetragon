@@ -57,7 +57,8 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		int a0m;
 
 		a0m = config->arg0m;
-		asm volatile("%[a0m] &= 0xffff;\n" ::[a0m] "+r"(a0m) :);
+		asm volatile("%[a0m] &= 0xffff;\n" ::[a0m] "+r"(a0m)
+			     :);
 
 		errv = read_call_arg(ctx, e, 0, ty, total, a0, a0m, map);
 		if (errv > 0)
@@ -147,7 +148,8 @@ generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
 		int a1m;
 
 		a1m = config->arg1m;
-		asm volatile("%[a1m] &= 0xffff;\n" ::[a1m] "+r"(a1m) :);
+		asm volatile("%[a1m] &= 0xffff;\n" ::[a1m] "+r"(a1m)
+			     :);
 
 		errv = read_call_arg(ctx, e, 1, ty, total, a1, a1m, map);
 		if (errv > 0)
@@ -189,7 +191,8 @@ generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
 		int a2m;
 
 		a2m = config->arg2m;
-		asm volatile("%[a2m] &= 0xffff;\n" ::[a2m] "+r"(a2m) :);
+		asm volatile("%[a2m] &= 0xffff;\n" ::[a2m] "+r"(a2m)
+			     :);
 
 		errv = read_call_arg(ctx, e, 2, ty, total, a2, a2m, map);
 		if (errv > 0)
@@ -232,7 +235,8 @@ generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
 		int a3m;
 
 		a3m = config->arg3m;
-		asm volatile("%[a3m] &= 0xffff;\n" ::[a3m] "+r"(a3m) :);
+		asm volatile("%[a3m] &= 0xffff;\n" ::[a3m] "+r"(a3m)
+			     :);
 
 		errv = read_call_arg(ctx, e, 3, ty, total, a3, a3m, map);
 		if (errv > 0)
@@ -274,7 +278,8 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 		int a4m;
 
 		a4m = config->arg4m;
-		asm volatile("%[a4m] &= 0xffff;\n" ::[a4m] "+r"(a4m) :);
+		asm volatile("%[a4m] &= 0xffff;\n" ::[a4m] "+r"(a4m)
+			     :);
 
 		errv = read_call_arg(ctx, e, 4, ty, total, a4, a4m, map);
 		if (errv > 0)

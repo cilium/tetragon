@@ -65,10 +65,10 @@ get_parent_auid(struct task_struct *t)
 
 #define offsetof_btf(s, memb) ((size_t)((char *)_(&((s *)0)->memb) - (char *)0))
 
-#define container_of_btf(ptr, type, member)                                    \
-	({                                                                     \
-		void *__mptr = (void *)(ptr);                                  \
-		((type *)(__mptr - offsetof_btf(type, member)));               \
+#define container_of_btf(ptr, type, member)                      \
+	({                                                       \
+		void *__mptr = (void *)(ptr);                    \
+		((type *)(__mptr - offsetof_btf(type, member))); \
 	})
 
 static inline __attribute__((always_inline)) struct mount *
@@ -137,7 +137,8 @@ prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
 	// This ensures that dlen is < 256, which is aligned with kernel's max dentry name length
 	// that is 255 (https://elixir.bootlin.com/linux/v5.10/source/include/uapi/linux/limits.h#L12).
 	// Needed to bound that for probe_read call.
-	asm volatile("%[dlen] &= 0xff;\n" ::[dlen] "+r"(dlen) :);
+	asm volatile("%[dlen] &= 0xff;\n" ::[dlen] "+r"(dlen)
+		     :);
 	probe_read(bf + buffer_offset + 1, dlen * sizeof(char), name);
 
 	*buffer = bf + buffer_offset;
@@ -382,8 +383,10 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 	if (!buffer)
 		return 0;
 
-	asm volatile("%[offset] &= 0x3ff;\n" ::[offset] "+r"(offset) :);
-	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
+	asm volatile("%[offset] &= 0x3ff;\n" ::[offset] "+r"(offset)
+		     :);
+	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
+		     :);
 	probe_read((char *)curr + offset, size, buffer);
 
 	offset += size;

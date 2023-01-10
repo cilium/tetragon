@@ -193,7 +193,8 @@ static inline __attribute__((always_inline)) int return_error(int *s, int err)
 static inline __attribute__((always_inline)) char *
 args_off(struct msg_generic_kprobe *e, long off)
 {
-	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off) :);
+	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off)
+		     :);
 	return e->args + off;
 }
 
@@ -231,7 +232,8 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		size = max;
 	if (size > 4094)
 		return char_buf_toolarge;
-	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size) :);
+	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size)
+		     :);
 	err = probe_read(args_off(e, off), size, (char *)iov.iov_base);
 	if (err < 0)
 		return char_buf_pagefault;
@@ -239,38 +241,38 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 }
 
 // for loop can not be unrolled which is needed for 4.19 kernels :(
-#define PARSE_IOVEC_ENTRY                                                      \
-	{                                                                      \
-		int c;                                                         \
-		/* embedding this in the loop counter breaks verifier */       \
-		if (i >= cnt)                                                  \
-			goto char_iovec_done;                                  \
-		c = parse_iovec_array(off, arg, i, max, e);                    \
-		if (c < 0) {                                                   \
-			char *args = args_off(e, off_orig);                    \
-			return return_stack_error(args, 0, c);                 \
-		}                                                              \
-		size += c;                                                     \
-		if (max) {                                                     \
-			max -= c;                                              \
-			if (!max)                                              \
-				goto char_iovec_done;                          \
-		}                                                              \
-		c &= 0x7fff;                                                   \
-		off += c;                                                      \
-		i++;                                                           \
+#define PARSE_IOVEC_ENTRY                                                \
+	{                                                                \
+		int c;                                                   \
+		/* embedding this in the loop counter breaks verifier */ \
+		if (i >= cnt)                                            \
+			goto char_iovec_done;                            \
+		c = parse_iovec_array(off, arg, i, max, e);              \
+		if (c < 0) {                                             \
+			char *args = args_off(e, off_orig);              \
+			return return_stack_error(args, 0, c);           \
+		}                                                        \
+		size += c;                                               \
+		if (max) {                                               \
+			max -= c;                                        \
+			if (!max)                                        \
+				goto char_iovec_done;                    \
+		}                                                        \
+		c &= 0x7fff;                                             \
+		off += c;                                                \
+		i++;                                                     \
 	}
 
 // We parse a max iovec entries and any more can be detected in db
-#define PARSE_IOVEC_ENTRIES                                                    \
-	{                                                                      \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
-		PARSE_IOVEC_ENTRY                                              \
+#define PARSE_IOVEC_ENTRIES       \
+	{                         \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
+		PARSE_IOVEC_ENTRY \
 	}
 
 #ifdef __LARGE_BPF_PROG
@@ -286,60 +288,60 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
  * verifiers especially on <5.x series. So we get the following ASM
  * blob which I find easier to read than C code that would work here.
  */
-#define ASM_RCMP                                                               \
-	{                                                                      \
-		t = s1;                                                        \
-		asm volatile("%[n] &= 0x7f;\n"                                 \
-			     "r0 = %[t];\n"                                    \
-			     "r0 += %[n];\n"                                   \
-			     "%[c] = *(u8*)(r0 + 0);\n"                        \
-			     : [c] "=r"(c1)                                    \
-			     : [n] "+r"(n1), [t] "+r:"(t)                      \
-			     : "r0");                                          \
-		t = s2;                                                        \
-		asm volatile("%[n] &= 0x7f;\n"                                 \
-			     "r0 = %[t];\n"                                    \
-			     "r0 += %[n];\n"                                   \
-			     "%[c] = *(u8*)(r0 + 0);\n"                        \
-			     : [c] "=r"(c2)                                    \
-			     : [n] "+r"(n2), [t] "+r"(t)                       \
-			     : "c2", "r0");                                    \
-		if (c1 != c2)                                                  \
-			goto failed;                                           \
-		n1--;                                                          \
-		n2--;                                                          \
-		if (n1 < 1 || n2 < 1)                                          \
-			goto accept;                                           \
+#define ASM_RCMP                                          \
+	{                                                 \
+		t = s1;                                   \
+		asm volatile("%[n] &= 0x7f;\n"            \
+			     "r0 = %[t];\n"               \
+			     "r0 += %[n];\n"              \
+			     "%[c] = *(u8*)(r0 + 0);\n"   \
+			     : [c] "=r"(c1)               \
+			     : [n] "+r"(n1), [t] "+r:"(t) \
+			     : "r0");                     \
+		t = s2;                                   \
+		asm volatile("%[n] &= 0x7f;\n"            \
+			     "r0 = %[t];\n"               \
+			     "r0 += %[n];\n"              \
+			     "%[c] = *(u8*)(r0 + 0);\n"   \
+			     : [c] "=r"(c2)               \
+			     : [n] "+r"(n2), [t] "+r"(t)  \
+			     : "c2", "r0");               \
+		if (c1 != c2)                             \
+			goto failed;                      \
+		n1--;                                     \
+		n2--;                                     \
+		if (n1 < 1 || n2 < 1)                     \
+			goto accept;                      \
 	}
 
-#define ASM_RCMP5                                                              \
-	{                                                                      \
-		ASM_RCMP                                                       \
-		ASM_RCMP                                                       \
-		ASM_RCMP                                                       \
-		ASM_RCMP                                                       \
-		ASM_RCMP                                                       \
+#define ASM_RCMP5        \
+	{                \
+		ASM_RCMP \
+		ASM_RCMP \
+		ASM_RCMP \
+		ASM_RCMP \
+		ASM_RCMP \
 	}
 
-#define ASM_RCMP20                                                             \
-	{                                                                      \
-		ASM_RCMP5                                                      \
-		ASM_RCMP5                                                      \
-		ASM_RCMP5                                                      \
-		ASM_RCMP5                                                      \
+#define ASM_RCMP20        \
+	{                 \
+		ASM_RCMP5 \
+		ASM_RCMP5 \
+		ASM_RCMP5 \
+		ASM_RCMP5 \
 	}
 
-#define ASM_RCMP50                                                             \
-	{                                                                      \
-		ASM_RCMP20                                                     \
-		ASM_RCMP20                                                     \
-		ASM_RCMP5                                                      \
+#define ASM_RCMP50         \
+	{                  \
+		ASM_RCMP20 \
+		ASM_RCMP20 \
+		ASM_RCMP5  \
 	}
 
-#define ASM_RCMP100                                                            \
-	{                                                                      \
-		ASM_RCMP50                                                     \
-		ASM_RCMP50                                                     \
+#define ASM_RCMP100        \
+	{                  \
+		ASM_RCMP50 \
+		ASM_RCMP50 \
 	}
 
 static inline __attribute__((always_inline)) int rcmpbytes(char *s1, char *s2,
@@ -383,7 +385,8 @@ copy_path(char *args, const struct path *arg)
 	if (!buffer)
 		return 0;
 
-	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size) :);
+	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
+		     :);
 	probe_read(curr, size, buffer);
 	*s = size;
 	size += 4;
@@ -521,7 +524,8 @@ __copy_char_buf(long off, unsigned long arg, unsigned long bytes,
 
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes < 0x1000 ? bytes : 0xfff;
-	asm volatile("%[rd_bytes] &= 0xfff;\n" ::[rd_bytes] "+r"(rd_bytes) :);
+	asm volatile("%[rd_bytes] &= 0xfff;\n" ::[rd_bytes] "+r"(rd_bytes)
+		     :);
 	err = probe_read(&s[2], rd_bytes, (char *)arg);
 	if (err < 0)
 		return return_error(s, char_buf_pagefault);
@@ -562,9 +566,11 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		/* filter->vallen is pulled from user input so we also need to
 		 * ensure its bounded.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j) :);
+		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
+			     :);
 		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0x3f;\n" ::[length] "+r"(length) :);
+		asm volatile("%[length] &= 0x3f;\n" ::[length] "+r"(length)
+			     :);
 		v = (int)value[j];
 		a = (int)args[0];
 		if (filter->op == op_filter_eq) {
@@ -581,7 +587,8 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		 * above so at the moment its necessary until we improve
 		 * compiler.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j) :);
+		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
+			     :);
 		err = cmpbytes(&value[j + 4], &args[4 + postoff], length);
 		if (!err)
 			return 1;
@@ -997,7 +1004,8 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
-	asm volatile("%[seloff] &= 0xfff;\n" ::[seloff] "+r"(seloff) :);
+	asm volatile("%[seloff] &= 0xfff;\n" ::[seloff] "+r"(seloff)
+		     :);
 	filter = (struct selector_arg_filter *)&f[seloff];
 
 	if (filter->arglen <= 4) // no filters
@@ -1007,9 +1015,11 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	if (index > 5)
 		return 0;
 
-	asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index) :);
+	asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
+		     :);
 	argoff = e->argsoff[index];
-	asm volatile("%[argoff] &= 0xeff;\n" ::[argoff] "+r"(argoff) :);
+	asm volatile("%[argoff] &= 0xeff;\n" ::[argoff] "+r"(argoff)
+		     :);
 	args = &e->args[argoff];
 
 	switch (filter->type) {
@@ -1106,12 +1116,16 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
 	 */
-	asm volatile("%[fd] &= 0xf;\n" : [fd] "+r"(fd) :);
+	asm volatile("%[fd] &= 0xf;\n"
+		     : [fd] "+r"(fd)
+		     :);
 	if (fd > 5) {
 		return 0;
 	}
 	fdoff = e->argsoff[fd];
-	asm volatile("%[fdoff] &= 0xeff;\n" : [fdoff] "+r"(fdoff) :);
+	asm volatile("%[fdoff] &= 0xeff;\n"
+		     : [fdoff] "+r"(fdoff)
+		     :);
 	key.pad = 0;
 	key.fd = *(__u32 *)&e->args[fdoff];
 	key.tid = get_current_pid_tgid() >> 32;
@@ -1119,7 +1133,9 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	if (follow) {
 		__u32 size;
 
-		asm volatile("%[name] &= 0xf;\n" : [name] "+r"(name) :);
+		asm volatile("%[name] &= 0xf;\n"
+			     : [name] "+r"(name)
+			     :);
 		if (name > 5)
 			return 0;
 		nameoff = e->argsoff[name];
@@ -1128,7 +1144,9 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     :);
 
 		size = *(__u32 *)&e->args[nameoff];
-		asm volatile("%[size] &= 0xff;\n" : [size] "+r"(size) :);
+		asm volatile("%[size] &= 0xff;\n"
+			     : [size] "+r"(size)
+			     :);
 
 		probe_read(&val.file[0], size + 4 /* size */ + 4 /* flags */,
 			   &e->args[nameoff]);
@@ -1147,18 +1165,24 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	int oldfdoff, newfdoff;
 	int err = 0;
 
-	asm volatile("%[oldfd] &= 0xf;\n" : [oldfd] "+r"(oldfd) :);
+	asm volatile("%[oldfd] &= 0xf;\n"
+		     : [oldfd] "+r"(oldfd)
+		     :);
 	if (oldfd > 5)
 		return 0;
 	oldfdoff = e->argsoff[oldfd];
-	asm volatile("%[oldfdoff] &= 0xeff;\n" : [oldfdoff] "+r"(oldfdoff) :);
+	asm volatile("%[oldfdoff] &= 0xeff;\n"
+		     : [oldfdoff] "+r"(oldfdoff)
+		     :);
 	key.pad = 0;
 	key.fd = *(__u32 *)&e->args[oldfdoff];
 	key.tid = get_current_pid_tgid() >> 32;
 
 	val = map_lookup_elem(&fdinstall_map, &key);
 	if (val) {
-		asm volatile("%[newfd] &= 0xf;\n" : [newfd] "+r"(newfd) :);
+		asm volatile("%[newfd] &= 0xf;\n"
+			     : [newfd] "+r"(newfd)
+			     :);
 		if (newfd > 5)
 			return 0;
 		newfdoff = e->argsoff[newfd];
