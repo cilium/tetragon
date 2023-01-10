@@ -22,42 +22,42 @@
  * }
  */
 
-#define GLOBAL_U16                                                             \
-	volatile const union {                                                 \
-		uint16_t __typ;                                                \
-		uint64_t __val;                                                \
+#define GLOBAL_U16              \
+	volatile const union {  \
+		uint16_t __typ; \
+		uint64_t __val; \
 	}
-#define GLOBAL_I16                                                             \
-	volatile const union {                                                 \
-		int16_t __typ;                                                 \
-		uint64_t __val;                                                \
+#define GLOBAL_I16              \
+	volatile const union {  \
+		int16_t __typ;  \
+		uint64_t __val; \
 	}
-#define GLOBAL_U32                                                             \
-	volatile const union {                                                 \
-		uint32_t __typ;                                                \
-		uint64_t __val;                                                \
+#define GLOBAL_U32              \
+	volatile const union {  \
+		uint32_t __typ; \
+		uint64_t __val; \
 	}
-#define GLOBAL_I32                                                             \
-	volatile const union {                                                 \
-		int32_t __typ;                                                 \
-		uint64_t __val;                                                \
+#define GLOBAL_I32              \
+	volatile const union {  \
+		int32_t __typ;  \
+		uint64_t __val; \
 	}
-#define GLOBAL_U64                                                             \
-	volatile const union {                                                 \
-		uint64_t __typ;                                                \
-		uint64_t __val;                                                \
+#define GLOBAL_U64              \
+	volatile const union {  \
+		uint64_t __typ; \
+		uint64_t __val; \
 	}
-#define GLOBAL_I64                                                             \
-	volatile const union {                                                 \
-		int64_t __typ;                                                 \
-		uint64_t __val;                                                \
+#define GLOBAL_I64              \
+	volatile const union {  \
+		int64_t __typ;  \
+		uint64_t __val; \
 	}
 
 /* Macro to read the value of a global variable declared using GLOBAL_XXX above. */
-#define READ_GLOBAL(g)                                                         \
-	({                                                                     \
-		typeof((g).__typ) x =                                          \
-			(typeof((g).__typ))(uint64_t)(&((g).__val));           \
-		x;                                                             \
+#define READ_GLOBAL(g)                                               \
+	({                                                           \
+		typeof((g).__typ) x =                                \
+			(typeof((g).__typ))(uint64_t)(&((g).__val)); \
+		x;                                                   \
 	})
 #endif

@@ -18,21 +18,21 @@
 #endif
 
 #ifndef READ_ONCE
-#define READ_ONCE(x)                                                           \
-	({                                                                     \
-		typeof(x) __val;                                               \
-		__val = __READ_ONCE(x);                                        \
-		compiler_barrier();                                            \
-		__val;                                                         \
+#define READ_ONCE(x)                    \
+	({                              \
+		typeof(x) __val;        \
+		__val = __READ_ONCE(x); \
+		compiler_barrier();     \
+		__val;                  \
 	})
 #endif
 #ifndef WRITE_ONCE
-#define WRITE_ONCE(x, v)                                                       \
-	({                                                                     \
-		typeof(x) __val = (v);                                         \
-		__WRITE_ONCE(x, __val);                                        \
-		compiler_barrier();                                            \
-		__val;                                                         \
+#define WRITE_ONCE(x, v)                \
+	({                              \
+		typeof(x) __val = (v);  \
+		__WRITE_ONCE(x, __val); \
+		compiler_barrier();     \
+		__val;                  \
 	})
 #endif
 
@@ -60,7 +60,7 @@ const void *__builtin_preserve_access_index(void *);
  *    1, if matching field is present in target kernel;
  *    0, if no matching field found.
  */
-#define bpf_core_field_exists(field)                                           \
+#define bpf_core_field_exists(field) \
 	__builtin_preserve_field_info(field, BPF_FIELD_EXISTS)
 
 /* second argument to __builtin_preserve_enum_value() built-in */
@@ -92,8 +92,8 @@ static long (*bpf_probe_read)(void *dst, __u32 size,
  *    present in target kernel's BTF;
  *    0, if no matching enum and/or enum value within that enum is found.
  */
-#define bpf_core_enum_value(enum_type, enum_value)                             \
-	__builtin_preserve_enum_value(*(typeof(enum_type) *)enum_value,        \
+#define bpf_core_enum_value(enum_type, enum_value)                      \
+	__builtin_preserve_enum_value(*(typeof(enum_type) *)enum_value, \
 				      BPF_ENUMVAL_VALUE)
 
 #include "bpf_core_read.h"
@@ -109,12 +109,14 @@ static inline __attribute__((always_inline)) void relax_verifier(void)
 	 * name, hence 'call 8'. This is unlikely to change, though, so this
 	 * isn't a big issue.
 	 */
-	asm volatile("call 8;\n" ::: "r0", "r1", "r2", "r3", "r4", "r5");
+	asm volatile("call 8;\n" ::
+			     : "r0", "r1", "r2", "r3", "r4", "r5");
 }
 
 static inline void compiler_barrier(void)
 {
-	asm volatile("" ::: "memory");
+	asm volatile("" ::
+			     : "memory");
 }
 
 #define __uint(name, val)  int(*name)[val]

@@ -94,7 +94,7 @@
 #define CWD_MAX	     256
 #define BUFFER	     1024
 #define SIZEOF_EVENT 32
-#define PADDED_BUFFER                                                          \
+#define PADDED_BUFFER \
 	(BUFFER + MAXARGLENGTH + SIZEOF_EVENT + SIZEOF_EVENT + CWD_MAX)
 /* This is the usable buffer size for args and filenames. It is calculated
  * as the (BUFFER SIZE - sizeof(parent) - sizeof(curr) but unfortunately
