@@ -28,7 +28,9 @@ generate:
 	  github.com/cilium/tetragon/pkg/k8s/client \
 	  github.com/cilium/tetragon/pkg/k8s/apis \
 	  cilium.io:v1alpha1 \
-	  --go-header-file hack/custom-boilerplate.go.txt
+	  --go-header-file hack/custom-boilerplate.go.txt \
+	  -o . \
+	  --trim-path-prefix github.com/cilium/tetragon/pkg/k8s
 
 .PHONY: vendor
 vendor:
