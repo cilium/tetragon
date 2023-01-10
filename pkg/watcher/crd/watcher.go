@@ -48,7 +48,7 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	log := logger.GetLogger()
 	conf, err := rest.InClusterConfig()
 	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("couldn't get cluster config")
+		log.WithError(err).Fatal("couldn't get cluster config")
 	}
 	client := versioned.NewForConfigOrDie(conf)
 	factory := externalversions.NewSharedInformerFactory(client, 0)
@@ -69,12 +69,12 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 			oldPolicy, ok := oldObj.(*v1alpha1.TracingPolicy)
 			if !ok {
-				logger.GetLogger().WithField("oldObj", oldObj).Warn("invalid oldObj type in update func")
+				log.WithField("oldObj", oldObj).Warn("invalid oldObj type in update func")
 				return
 			}
 			newPolicy, ok := newObj.(*v1alpha1.TracingPolicy)
 			if !ok {
-				logger.GetLogger().WithField("newObj", newObj).Warn("invalid newObj type in update func")
+				log.WithField("newObj", newObj).Warn("invalid newObj type in update func")
 				return
 			}
 			/* Deep Equals */
@@ -84,7 +84,7 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 			if oldPolicy.ResourceVersion == newPolicy.ResourceVersion {
 				return
 			}
-			logger.GetLogger().WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"oldPolicy": oldPolicy.Spec,
 				"newPolicy": newPolicy.Spec,
 			}).Info("tracing policy updated")
@@ -107,11 +107,11 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 					policy, ok = dfsu.Obj.(*v1alpha1.TracingPolicy)
 				}
 				if !ok {
-					logger.GetLogger().WithField("obj", obj).Warn("invalid type in delete func")
+					log.WithField("obj", obj).Warn("invalid type in delete func")
 					return
 				}
 			}
-			logger.GetLogger().WithField("policy", policy.Spec).Info("tracing policy deleted")
+			log.WithField("policy", policy.Spec).Info("tracing policy deleted")
 			err := s.DelTracingPolicy(ctx, policy.ObjectMeta.Name)
 			if err != nil {
 				log.WithError(err).Warnf("Failed to remove sensor %s to perform update", policy.ObjectMeta.Name)
@@ -122,5 +122,5 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	})
 	go factory.Start(wait.NeverStop)
 	factory.WaitForCacheSync(wait.NeverStop)
-	logger.GetLogger().Info("Started watching tracing policies")
+	log.Info("Started watching tracing policies")
 }
