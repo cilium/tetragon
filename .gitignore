@@ -3,6 +3,7 @@ lib/*
 /tetragon
 /tetragon-alignchecker
 /tetragon-bench
+/tetragon-operator
 /tetra
 /parsertest
 /checkerpc
