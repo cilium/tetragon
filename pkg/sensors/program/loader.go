@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/unix"
 )
@@ -329,6 +330,7 @@ func doLoadProgram(
 	for name := range refMaps {
 		var m *ebpf.Map
 		var err error
+
 		for _, mapDir := range mapDirs {
 			var mapPath string
 			if pinName, ok := load.PinMap[name]; ok {
@@ -336,6 +338,7 @@ func doLoadProgram(
 			} else {
 				mapPath = filepath.Join(mapDir, name)
 			}
+			logger.GetLogger().Info("loading a pinned map")
 			m, err = ebpf.LoadPinnedMap(mapPath, nil)
 			if err == nil {
 				break
@@ -410,6 +413,7 @@ func doLoadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
+			logger.GetLogger().Info("loading a map")
 			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
 				return nil, err
 			}
@@ -449,6 +453,10 @@ func doLoadProgram(
 	prog, ok := coll.Programs[progSpec.Name]
 	if !ok {
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
+	}
+
+	for _, m := range coll.Maps {
+		mapmetrics.RegisterMap(m)
 	}
 
 	pinPath := filepath.Join(bpfDir, load.PinPath)

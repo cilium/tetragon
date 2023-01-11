@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -38,7 +39,7 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 		dataMap[m.Id] = data
 	}
 
-	logger.GetLogger().Debugf("Data message received id %v, size %v, total %v", m.Id, size, len(data))
+	logger.GetLogger().WithFields(logrus.Fields{}).Tracef("Data message received id %v, size %v, total %v", m.Id, size, len(data))
 	return nil
 }
 
@@ -49,7 +50,7 @@ func Get(id dataapi.DataEventId) ([]byte, error) {
 	}
 
 	delete(dataMap, id)
-	logger.GetLogger().Debugf("Data message used id %v, data len %v", id, len(data))
+	logger.GetLogger().WithFields(logrus.Fields{}).Tracef("Data message used id %v, data len %v", id, len(data))
 	return data, nil
 }
 

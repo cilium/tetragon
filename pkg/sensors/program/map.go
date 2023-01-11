@@ -5,6 +5,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 )
 
 // Map represents BPF maps.
@@ -31,6 +32,7 @@ func (m *Map) Unload() error {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
 	}
+	mapmetrics.DecPinCount(m.MapHandle)
 	if count := m.PinState.RefDec(); count > 0 {
 		log.WithField("count", count).Debug("Reference exists, not unloading map yet")
 		return nil
@@ -97,4 +99,16 @@ func (m *Map) GetFD() (int, error) {
 		return 0, fmt.Errorf("map %s is not loaded", m.Name)
 	}
 	return m.MapHandle.FD(), nil
+}
+
+// Type returns the type of the underlying eBPF map
+func (m *Map) Type() (ebpf.MapType, error) {
+	if m.MapHandle == nil {
+		return 0, fmt.Errorf("Map is not loaded")
+	}
+	i, err := m.MapHandle.Info()
+	if err != nil {
+		return 0, err
+	}
+	return i.Type, nil
 }
