@@ -52,7 +52,7 @@ func addTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Ma
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
 		log.WithField("policy", tp.TpInfo()).Info("adding tracing policy")
-		err = s.AddTracingPolicy(ctx, tp.ObjectMeta.Name, tp)
+		err = s.AddTracingPolicy(ctx, tp)
 	default:
 		log.WithFields(logrus.Fields{
 			"obj":      obj,
@@ -120,7 +120,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 			return
 		}
 
-		err := s.AddTracingPolicy(ctx, newTp.ObjectMeta.Name, newTp)
+		err := s.AddTracingPolicy(ctx, newTp)
 		if err != nil {
 			log.WithError(err).WithField(
 				"new-policy", newTp.TpInfo(),

@@ -2324,7 +2324,7 @@ spec:
 		return nil
 	}
 
-	sens, err := sensors.GetMergedSensorFromParserPolicy(cnf.Name(), &cnf.Spec)
+	sens, err := sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), &cnf.Spec)
 	if err != nil {
 		return err
 	}

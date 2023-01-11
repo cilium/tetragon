@@ -42,11 +42,12 @@ func TestAddPolicy(t *testing.T) {
 			panic("failed to stop sensor manager")
 		}
 	})
-	err = mgr.AddTracingPolicy(ctx, "test-policy", &policy)
+	policy.ObjectMeta.Name = "test-policy"
+	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, []SensorStatus{{Name: "dummy-sensor", Enabled: true}}, *l)
+	assert.Equal(t, []SensorStatus{{Name: "dummy-sensor", Enabled: true, Collection: "test-policy (object:0/) (type:/)"}}, *l)
 }
 
 // TestAddPolicies tests the addition of a policy with two dummy sensors
@@ -69,13 +70,14 @@ func TestAddPolicies(t *testing.T) {
 			panic("failed to stop sensor manager")
 		}
 	})
-	err = mgr.AddTracingPolicy(ctx, "test-policy", &policy)
+	policy.ObjectMeta.Name = "test-policy"
+	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []SensorStatus{
-		{Name: "dummy-sensor1", Enabled: true},
-		{Name: "dummy-sensor2", Enabled: true},
+		{Name: "dummy-sensor1", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
+		{Name: "dummy-sensor2", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
 	}, *l)
 }
 
@@ -99,7 +101,8 @@ func TestAddPolicySpecError(t *testing.T) {
 			panic("failed to stop sensor manager")
 		}
 	})
-	err = mgr.AddTracingPolicy(ctx, "test-policy", &policy)
+	policy.ObjectMeta.Name = "test-policy"
+	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, err)
 	t.Logf("got error (as expected): %s", err)
 	l, err := mgr.ListSensors(ctx)
@@ -130,7 +133,8 @@ func TestAddPolicyLoadError(t *testing.T) {
 			panic("failed to stop sensor manager")
 		}
 	})
-	err = mgr.AddTracingPolicy(ctx, "test-policy", &policy)
+	policy.ObjectMeta.Name = "test-policy"
+	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, err)
 	t.Logf("got error (as expected): %s", err)
 	l, err := mgr.ListSensors(ctx)

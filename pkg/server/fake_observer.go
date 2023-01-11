@@ -36,7 +36,7 @@ func (f *FakeObserver) GetTreeProto(ctx context.Context, tname string) (*tetrago
 	return nil, nil
 }
 
-func (f *FakeObserver) AddTracingPolicy(ctx context.Context, sensorName string, tp sensors.TracingPolicy) error {
+func (f *FakeObserver) AddTracingPolicy(ctx context.Context, tp sensors.TracingPolicy) error {
 	return nil
 }
 
