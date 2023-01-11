@@ -5,6 +5,7 @@ package crd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -44,6 +45,91 @@ func k8sErrorHandler(e error) {
 	}
 }
 
+func addTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+	obj interface{},
+) {
+	var err error
+	switch tp := obj.(type) {
+	case *v1alpha1.TracingPolicy:
+		log.WithField("policy", tp.TpInfo()).Info("adding tracing policy")
+		err = s.AddTracingPolicy(ctx, tp.ObjectMeta.Name, tp)
+	default:
+		log.WithFields(logrus.Fields{
+			"obj":      obj,
+			"obj-type": fmt.Sprintf("%T", obj),
+		}).Warn("addTracingPolicy: invalid type")
+		return
+	}
+
+	if err != nil {
+		log.WithError(err).Warn("adding tracing policy failed")
+	}
+}
+
+func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+	obj interface{}) {
+
+	if dfsu, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		obj = dfsu.Obj
+	}
+
+	var err error
+	switch tp := obj.(type) {
+	case *v1alpha1.TracingPolicy:
+		log.WithField("policy", tp.TpInfo()).Info("deleting tracing policy")
+		err = s.DelTracingPolicy(ctx, tp.ObjectMeta.Name)
+	}
+
+	if err != nil {
+		log.WithError(err).Warn("delete tracing policy failed")
+	}
+}
+
+func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+	oldObj interface{}, newObj interface{}) {
+	var err error
+	switch oldTp := oldObj.(type) {
+	case *v1alpha1.TracingPolicy:
+		newTp, ok := newObj.(*v1alpha1.TracingPolicy)
+		if !ok {
+			log.WithFields(logrus.Fields{
+				"old-obj":      oldObj,
+				"old-obj-type": fmt.Sprintf("%T", oldObj),
+				"new-obj":      newObj,
+				"new-obj-type": fmt.Sprintf("%T", newObj),
+			}).Warn("updateTracingPolicy: invalid new type")
+			return
+		}
+
+		// FIXME: add proper DeepEquals. The resource might have different
+		//  resource versions but the fields that matter to us are still the
+		//  same.
+		if oldTp.ResourceVersion == newTp.ResourceVersion {
+			return
+		}
+
+		log.WithFields(logrus.Fields{
+			"old": oldTp.TpInfo(),
+			"new": newTp.TpInfo(),
+		}).Info("updating tracing policy")
+		err = s.DelTracingPolicy(ctx, oldTp.ObjectMeta.Name)
+		if err != nil {
+			log.WithError(err).WithField(
+				"old-policy", oldTp.TpInfo(),
+			).Warnf("updateTracingPolicy: failed to remove old policy")
+			return
+		}
+
+		err := s.AddTracingPolicy(ctx, newTp.ObjectMeta.Name, newTp)
+		if err != nil {
+			log.WithError(err).WithField(
+				"new-policy", newTp.TpInfo(),
+			).Warnf("updateTracingPolicy: failed to add new policy")
+			return
+		}
+	}
+}
+
 func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	log := logger.GetLogger()
 	conf, err := rest.InClusterConfig()
@@ -55,71 +141,15 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	informer := factory.Cilium().V1alpha1().TracingPolicies()
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			policy, ok := obj.(*v1alpha1.TracingPolicy)
-			if !ok {
-				log.WithField("obj", obj).Warn("invalid type in add func")
-				return
-			}
-			log.WithField("policy", policy.Spec).Info("tracing policy added")
-			err := s.AddTracingPolicy(ctx, policy.ObjectMeta.Name, policy)
-			if err != nil {
-				log.WithError(err).Warn("adding tracing policy failed")
-			}
-		},
-		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-			oldPolicy, ok := oldObj.(*v1alpha1.TracingPolicy)
-			if !ok {
-				log.WithField("oldObj", oldObj).Warn("invalid oldObj type in update func")
-				return
-			}
-			newPolicy, ok := newObj.(*v1alpha1.TracingPolicy)
-			if !ok {
-				log.WithField("newObj", newObj).Warn("invalid newObj type in update func")
-				return
-			}
-			/* Deep Equals */
-			// FIXME: add proper DeepEquals. The resource might have different
-			//  resource versions but the fields that matter to us are still the
-			//  same.
-			if oldPolicy.ResourceVersion == newPolicy.ResourceVersion {
-				return
-			}
-			log.WithFields(logrus.Fields{
-				"oldPolicy": oldPolicy.Spec,
-				"newPolicy": newPolicy.Spec,
-			}).Info("tracing policy updated")
-			err := s.DelTracingPolicy(ctx, oldPolicy.ObjectMeta.Name)
-			if err != nil {
-				log.WithError(err).Warnf("Failed to remove sensor %s to perform update", oldPolicy.ObjectMeta.Name)
-				return
-			}
-			err = s.AddTracingPolicy(ctx, newPolicy.ObjectMeta.Name, newPolicy)
-			if err != nil {
-				log.WithError(err).Warn("adding new tracing policy failed")
-			}
-
+			addTracingPolicy(ctx, log, s, obj)
 		},
 		DeleteFunc: func(obj interface{}) {
-			policy, ok := obj.(*v1alpha1.TracingPolicy)
-			if !ok {
-				dfsu, ok := obj.(cache.DeletedFinalStateUnknown)
-				if ok {
-					policy, ok = dfsu.Obj.(*v1alpha1.TracingPolicy)
-				}
-				if !ok {
-					log.WithField("obj", obj).Warn("invalid type in delete func")
-					return
-				}
-			}
-			log.WithField("policy", policy.Spec).Info("tracing policy deleted")
-			err := s.DelTracingPolicy(ctx, policy.ObjectMeta.Name)
-			if err != nil {
-				log.WithError(err).Warnf("Failed to remove sensor %s to perform update", policy.ObjectMeta.Name)
-				return
-			}
-
+			deleteTracingPolicy(ctx, log, s, obj)
 		},
-	})
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			updateTracingPolicy(ctx, log, s, oldObj, newObj)
+		}})
+
 	go factory.Start(wait.NeverStop)
 	factory.WaitForCacheSync(wait.NeverStop)
 	log.Info("Started watching tracing policies")
