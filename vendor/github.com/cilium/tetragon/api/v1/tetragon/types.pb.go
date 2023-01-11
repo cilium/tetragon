@@ -117,6 +117,20 @@ func (event *Test) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessLoader) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessLoader{
+		ProcessLoader: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessLoader) SetProcess(p *Process) {
+	event.Process = p
+}
+
 // UnwrapGetEventsResponse gets the inner event type from a GetEventsResponse
 func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 	event := response.GetEvent()
@@ -134,6 +148,8 @@ func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 		return ev.ProcessTracepoint
 	case *GetEventsResponse_Test:
 		return ev.Test
+	case *GetEventsResponse_ProcessLoader:
+		return ev.ProcessLoader
 	}
 	return nil
 }
