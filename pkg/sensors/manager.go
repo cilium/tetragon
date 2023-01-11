@@ -170,16 +170,20 @@ func (h *Manager) SetSensorConfig(ctx context.Context, name string, cfgkey strin
 // config.GenericTracingConf. The former is what is the k8s API server uses,
 // and the latter is used when we load files directly (e.g., via the cli).
 type TracingPolicy interface {
+	// TpName returns the name of the policy.
+	TpName() string
+	// TpSpec  returns the specification of the policy
 	TpSpec() *v1alpha1.TracingPolicySpec
+	// TpInfo returns a description of the policy
 	TpInfo() string
 }
 
 // AddTracingPolicy adds a new sensor based on a tracing policy
-func (h *Manager) AddTracingPolicy(ctx context.Context, name string, tp TracingPolicy) error {
+func (h *Manager) AddTracingPolicy(ctx context.Context, tp TracingPolicy) error {
 	retc := make(chan error)
 	op := &tracingPolicyAdd{
 		ctx:     ctx,
-		name:    name,
+		name:    tp.TpName(),
 		tp:      tp,
 		retChan: retc,
 	}

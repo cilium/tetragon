@@ -50,6 +50,10 @@ type TracingPolicySpec struct {
 	Loader bool `json:"loader"`
 }
 
+func (tp *TracingPolicy) TpName() string {
+	return tp.ObjectMeta.Name
+}
+
 func (tp *TracingPolicy) TpSpec() *TracingPolicySpec {
 	return &tp.Spec
 }

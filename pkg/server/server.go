@@ -34,8 +34,12 @@ type notifier interface {
 }
 
 type observer interface {
-	AddTracingPolicy(ctx context.Context, sensorName string, policy sensors.TracingPolicy) error
-	DelTracingPolicy(ctx context.Context, sensorName string) error
+	// AddTracingPolicy will add a new tracing policy
+	AddTracingPolicy(ctx context.Context, policy sensors.TracingPolicy) error
+	// DelTracingPolicy deletes a tracing policy that was added with
+	// AddTracingPolicy as defined by  its name (policy.TpName()).
+	DelTracingPolicy(ctx context.Context, name string) error
+
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error
 	ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error)
@@ -216,7 +220,7 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 	if err != nil {
 		return nil, err
 	}
-	if err := s.observer.AddTracingPolicy(ctx, conf.Metadata.Name, conf); err != nil {
+	if err := s.observer.AddTracingPolicy(ctx, conf); err != nil {
 		return nil, err
 	}
 	return &tetragon.AddTracingPolicyResponse{}, nil

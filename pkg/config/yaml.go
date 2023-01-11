@@ -24,8 +24,8 @@ type GenericTracingConf struct {
 	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
-func (cnf *GenericTracingConf) Name() string {
-	return fmt.Sprintf("%s", cnf.Metadata.Name)
+func (cnf *GenericTracingConf) TpName() string {
+	return cnf.Metadata.Name
 }
 
 func (cnf *GenericTracingConf) TpSpec() *v1alpha1.TracingPolicySpec {
