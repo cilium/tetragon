@@ -367,4 +367,5 @@ type EventConfig struct {
 	Syscall       uint32                     `align:"syscall"`
 	ArgReturnCopy int32                      `align:"argreturncopy"`
 	ArgReturn     int32                      `align:"argreturn"`
+	PolicyID      uint32                     `align:"policy_id"`
 }

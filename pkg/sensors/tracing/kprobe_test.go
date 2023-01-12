@@ -2397,12 +2397,13 @@ func TestLoadKprobeSensor(t *testing.T) {
 		11: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
 		// retkprobe
 		12: tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+		13: tus.SensorProg{Name: "generic_kprobe_policy_filter", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all kprobe programs
 		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13}},
 
 		// only retkprobe
 		tus.SensorMap{Name: "process_call_heap", Progs: []uint{12}},
@@ -2427,11 +2428,11 @@ func TestLoadKprobeSensor(t *testing.T) {
 	}
 
 	if kernels.EnableLargeProgs() {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
+		// all kprobe but generic_kprobe_process_filter
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
 	} else {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{1, 2, 3, 4, 5}})
+		// all kprobe but generic_kprobe_process_filter
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5}})
 	}
 
 	readHook := `

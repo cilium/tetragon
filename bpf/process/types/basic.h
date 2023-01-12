@@ -116,6 +116,11 @@ struct event_config {
 	__u32 syscall;
 	__s32 argreturncopy;
 	__s32 argreturn;
+	/* policy id identifies the policy of this generic hook and is used to
+	 * apply policies only on certain processes. A value of 0 indicates
+	 * that the hook always applies and no check will be performed.
+	 */
+	__u32 policy_id;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
@@ -142,7 +147,7 @@ struct event_config {
 #define MAX_STRING 1024
 
 #ifdef __MULTI_KPROBE
-static inline __attribute__((always_inline)) void
+static inline __attribute__((always_inline)) struct event_config *
 setup_index(void *ctx, struct msg_generic_kprobe *msg,
 	    struct bpf_map_def *config_map)
 {
@@ -150,20 +155,22 @@ setup_index(void *ctx, struct msg_generic_kprobe *msg,
 	struct event_config *config;
 
 	config = map_lookup_elem(config_map, &idx);
-	if (!config)
-		return;
-	msg->idx = idx;
-	msg->func_id = config->func_id;
+	if (config) {
+		msg->idx = idx;
+		msg->func_id = config->func_id;
+	}
+	return config;
 }
 
 #define MAX_ENTRIES_CONFIG 100 /* MaxKprobesMulti in go code */
 #else
-static inline __attribute__((always_inline)) void
+static inline __attribute__((always_inline)) struct event_config *
 setup_index(void *ctx, struct msg_generic_kprobe *msg,
 	    struct bpf_map_def *config_map)
 {
 	msg->idx = 0;
 	msg->func_id = 0;
+	return map_lookup_elem(config_map, &msg->idx);
 }
 
 #define MAX_ENTRIES_CONFIG 1

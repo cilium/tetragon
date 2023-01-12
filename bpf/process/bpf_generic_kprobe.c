@@ -27,6 +27,7 @@ char _license[] __attribute__((section("license"), used)) = "GPL";
 #define KPROBE_TAILCALL_SEL2_FILTER    8
 #define KPROBE_TAILCALL_SEL3_FILTER    9
 #define KPROBE_TAILCALL_SEL4_FILTER    10
+#define KPROBE_TAILCALL_POLICY_FILTER  11
 
 #define str(x)		    #x
 #define KPROBE_TAILCALL(nr) __attribute__((section("kprobe/" str(nr)), used))
@@ -43,7 +44,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 11);
+	__uint(max_entries, 12);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } kprobe_calls SEC(".maps");
@@ -78,8 +79,9 @@ static inline __attribute__((always_inline)) int
 generic_kprobe_start_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
+	struct event_config *conf;
 	struct task_struct *task;
-	int i, zero = 0;
+	int i, zero = 0, tcall;
 
 	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
@@ -102,9 +104,12 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
+	conf = setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
+	if (!conf)
+		return 0;
+	tcall = conf->policy_id ? KPROBE_TAILCALL_POLICY_FILTER : KPROBE_TAILCALL_PROCESS_FILTER;
 	/* Tail call into filters. */
-	tail_call(ctx, &kprobe_calls, KPROBE_TAILCALL_PROCESS_FILTER);
+	tail_call(ctx, &kprobe_calls, tcall);
 	return 0;
 }
 
@@ -263,6 +268,14 @@ int generic_kprobe_filter_arg5(void *ctx)
 			       (struct bpf_map_def *)&kprobe_calls,
 			       (struct bpf_map_def *)&override_tasks,
 			       (struct bpf_map_def *)&config_map);
+}
+
+KPROBE_TAILCALL(KPROBE_TAILCALL_POLICY_FILTER)
+int generic_kprobe_policy_filter(void *ctx)
+{
+	// TODO: policy filter
+	tail_call(ctx, &kprobe_calls, KPROBE_TAILCALL_PROCESS_FILTER);
+	return 0;
 }
 
 __attribute__((section("kprobe/override"), used)) int
