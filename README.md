@@ -704,6 +704,8 @@ this is with `git fetch origin/main && git rebase --signoff origin/main`. Then p
 
 [Keeping your cluster safe from attacks with eBPF](https://www.youtube.com/watch?v=agN68U8x1go) - Jed Salazar & Natália Réka Ivánkó, eBPF Summit, 2021
 
+[You and Your Security Profiles; Generating Security Policies with the Help of eBPF](https://www.youtube.com/watch?v=EhQI1qPVb0E) - John Fastabend & Natália Réka Ivánkó, eBPF Day North America, 2022
+
 ### Book
 
 [Security Observability with eBPF](https://isovalent.com/ebpf-security/) - Jed Salazar & Natália Réka Ivánkó, OReilly, 2022
