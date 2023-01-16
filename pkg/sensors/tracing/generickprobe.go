@@ -274,16 +274,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 	var useMulti bool
 
 	sensorPath := name
-
-	loadProgName := "bpf_generic_kprobe.o"
-	loadProgRetName := "bpf_generic_retkprobe.o"
-	if kernels.EnableV60Progs() {
-		loadProgName = "bpf_generic_kprobe_v60.o"
-		loadProgRetName = "bpf_generic_retkprobe_v60.o"
-	} else if kernels.EnableLargeProgs() {
-		loadProgName = "bpf_generic_kprobe_v53.o"
-		loadProgRetName = "bpf_generic_retkprobe_v53.o"
-	}
+	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 
 	// use multi kprobe only if:
 	// - it's not disabled by user
