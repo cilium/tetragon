@@ -91,6 +91,7 @@ func (rdu *RawDetachUnloader) Unload() error {
 
 // TcUnloader unloads programs attached to TC filters
 type TcUnloader struct {
+	Prog        *ebpf.Program
 	Attachments []TcAttachment
 }
 
