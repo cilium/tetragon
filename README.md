@@ -683,7 +683,9 @@ repository from the `Issuer` and `Subject` fields of the output.
 **Q:** Can I install and use Tetragon in standalone mode (outside of k8s)?
 
 **A:** Yes! You can run `make` to generate standalone binaries and run them directly.
-`make install` will do the same thing and also install to your `PATH`.
+Make sure to take a look at the [Development Setup](docs/contributing/development/README.md#development-setup)
+guide for the build requirements. Then use `sudo ./tetragon --bpf-lib bpf/objs`
+to run Tetragon.
 
 ----
 
