@@ -2420,7 +2420,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		tus.SensorMap{Name: "config_map", Progs: []uint{12}},
 
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 12}},
 
 		// generic_kprobe_process_event*,generic_kprobe_filter_arg*,retkprobe
 		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12}},

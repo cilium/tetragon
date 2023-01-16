@@ -119,6 +119,11 @@ struct event_config {
 	__u32 syscall;
 	__s32 argreturncopy;
 	__s32 argreturn;
+	/* policy id identifies the policy of this generic hook and is used to
+	 * apply policies only on certain processes. A value of 0 indicates
+	 * that the hook always applies and no check will be performed.
+	 */
+	__u32 policy_id;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
