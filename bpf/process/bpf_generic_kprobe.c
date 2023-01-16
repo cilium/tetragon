@@ -13,6 +13,7 @@
 #include "types/basic.h"
 #include "generic_calls.h"
 #include "pfilter.h"
+#include "policy_filter.h"
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
@@ -67,6 +68,16 @@ generic_kprobe_start_process_filter(void *ctx)
 	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
 		return 0;
+
+	/* setup index, check policy filter, and setup function id */
+	msg->idx = get_index(ctx);
+	config = map_lookup_elem(&config_map, &msg->idx);
+	if (!config)
+		return 0;
+	if (!policy_filter_check(config->policy_id))
+		return 0;
+	msg->id = config->func_id;
+
 	/* Initialize selector index to 0 */
 	msg->sel.curr = 0;
 #pragma unroll
@@ -85,12 +96,7 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	// setup index and function id
-	msg->idx = get_index(ctx);
-	config = map_lookup_elem(&config_map, &msg->idx);
-	if (!config)
-		return 0;
-	msg->id = config->func_id;
+
 	/* Tail call into filters. */
 	tail_call(ctx, &kprobe_calls, 5);
 	return 0;
