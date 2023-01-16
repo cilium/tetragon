@@ -23,6 +23,6 @@ event_exit(struct pt_regs *ctx)
 	 * would otherwise occur.
 	 */
 	if (pid == tgid)
-		event_exit_send(ctx, tgid);
+		event_exit_send(ctx, tgid, task);
 	return 0;
 }
