@@ -15,7 +15,7 @@ struct {
 } exit_heap_map SEC(".maps");
 
 static inline __attribute__((always_inline)) void event_exit_send(void *ctx,
-								  __u32 tgid)
+								  __u32 tgid, struct task_struct *task)
 {
 	struct execve_map_value *enter;
 
@@ -31,8 +31,6 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx,
 	if (!enter)
 		return;
 	if (enter->key.ktime) {
-		struct task_struct *task =
-			(struct task_struct *)get_current_task();
 		size_t size = sizeof(struct msg_exit);
 		struct msg_exit *exit;
 		int zero = 0;
