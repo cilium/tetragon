@@ -10,6 +10,14 @@
 #include <errno.h>
 #include <stdbool.h>
 
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 30
+#include <sys/syscall.h>
+static inline pid_t gettid(void)
+{
+	return (pid_t)syscall(__NR_gettid);
+}
+#endif
+
 // is_zombie reads /proc/<pid>/stat, and returns true if status is Z (zombie)
 bool is_zombie(int pid) {
 	const int buff_size = 128;
