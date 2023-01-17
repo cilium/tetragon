@@ -724,3 +724,5 @@ this is with `git fetch origin/main && git rebase --signoff origin/main`. Then p
 
 Join the Tetragon [Slack channel](https://cilium.herokuapp.com/) to chat with developers, maintainers, and other users. This
 is a good first stop to ask questions and share your experiences.
+
+Pizza!
