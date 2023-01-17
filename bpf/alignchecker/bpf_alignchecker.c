@@ -44,5 +44,6 @@ int main(void)
 	DECLARE(struct, tetragon_conf, iter);
 	DECLARE(struct, cgroup_tracking_value, iter);
 
-	return 0;
+	// avoid unused variable warning/error
+	return iter * 0;
 }
