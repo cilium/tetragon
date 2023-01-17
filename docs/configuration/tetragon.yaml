@@ -1,0 +1,50 @@
+#  This file is part of Tetragon.
+#
+# Entries in this file show the compile time defaults. Local configuration
+# should be created by editing and copying this file into
+# /etc/tetragon/tetragon.yaml, or by creating "drop-ins" in the
+# /etc/tetragon/tetragon.conf.d/ subdirectory. The latter is generally
+# recommended. Defaults can be restored by simply deleting this file and
+# all drop-ins.
+#
+
+bpf-lib: /var/lib/tetragon/
+btf:
+cilium-bpf:
+config-dir:
+config-file:
+debug: false
+disable-kprobe-multi: false
+enable-cilium-api: false
+enable-export-aggregation: false
+enable-k8s-api: false
+enable-process-ancestors: true
+enable-process-cred: false
+enable-process-ns: false
+event-queue-size: 10000
+export-aggregation-buffer-size: 10000
+export-aggregation-window-size: 15s
+export-allowlist:
+export-denylist:
+export-file-compress: false
+export-file-max-backups: 5
+export-file-max-size-mb: 10
+export-file-rotation-interval: 0s
+export-filename:
+export-rate-limit: -1
+field-filters:
+force-small-progs: false
+gops-address:
+kernel:
+log-format: text
+log-level: info
+metrics-server:
+netns-dir: /var/run/docker/netns/
+pprof-addr:
+process-cache-size: 65536
+procfs: /proc/
+rb-size: 0
+rb-size-total: 0
+release-pinned-bpf: false
+server-address: localhost:54321
+verbose: 0
