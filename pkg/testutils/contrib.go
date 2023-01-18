@@ -13,3 +13,9 @@ func ContribPath(fname string) string {
 	_, testFname, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(testFname), "..", "..", "contrib", fname)
 }
+
+// RepoRootPath retrieves the repository root path
+func RepoRootPath(fname string) string {
+	_, testFname, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(testFname), "..", "..", fname)
+}
