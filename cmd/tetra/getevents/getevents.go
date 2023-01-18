@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -20,6 +21,22 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
+
+// DocLong documents the commands with some examples
+const DocLong = `This command prints and filter events by connecting to the server or via
+redirection of events to the stdin. Examples:
+
+  # Connect, print and filter by process events
+  %[1]s getevents --process netserver
+
+  # Redirect events and filter by namespace from stdin
+  cat events.json | %[1]s getevents -o compact --namespace default
+
+  # Exclude parent field
+  %[1]s getevents -F parent
+
+  # Include only process and parent.pod fields
+  %[1]s getevents -f process,parent.pod`
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
 var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool) encoder.EventEncoder {
@@ -116,6 +133,7 @@ func New() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "getevents",
 		Short: "Print events",
+		Long:  fmt.Sprintf(DocLong, "tetra"),
 		Run: func(cmd *cobra.Command, args []string) {
 			fi, _ := os.Stdin.Stat()
 			if fi.Mode()&os.ModeNamedPipe != 0 {
