@@ -487,6 +487,24 @@ func getWatcher() (watcher.K8sResourceWatcher, error) {
 	return watcher.NewFakeK8sWatcher(nil), nil
 }
 
+func startGopsServer() error {
+	// Empty means no gops
+	if option.Config.GopsAddr == "" {
+		return nil
+	}
+
+	if err := gops.Listen(gops.Options{
+		Addr:                   option.Config.GopsAddr,
+		ReuseSocketAddrAndPort: true,
+	}); err != nil {
+		return err
+	}
+
+	log.WithField("addr", option.Config.GopsAddr).Info("Starting gops server")
+
+	return nil
+}
+
 func execute() error {
 	rootCmd := &cobra.Command{
 		Use:   "tetragon",
@@ -494,11 +512,7 @@ func execute() error {
 		Run: func(cmd *cobra.Command, args []string) {
 			readAndSetFlags()
 
-			log.WithField("addr", option.Config.GopsAddr).Info("Starting gops server")
-			if err := gops.Listen(gops.Options{
-				Addr:                   option.Config.GopsAddr,
-				ReuseSocketAddrAndPort: true,
-			}); err != nil {
+			if err := startGopsServer(); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
 			}
 
@@ -535,9 +549,9 @@ func execute() error {
 	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
 	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache")
 	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
-	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Set it to an empty string to disable.")
+	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
 	flags.String(keyServerAddress, "localhost:54321", "gRPC server address")
-	flags.String(keyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Defaults to a random port on localhost.")
+	flags.String(keyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
 	flags.String(keyCiliumBPF, "", "Cilium BPF directory")
 	flags.Bool(keyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(keyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
