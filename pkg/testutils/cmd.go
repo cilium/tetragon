@@ -5,12 +5,16 @@ package testutils
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"sync"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 // CmdPipes maintains pipes for stdout, stderr, and stdin
@@ -124,4 +128,73 @@ func (cbp *CmdBufferedPipes) ParseAndLogCmdOutput(
 	startParseAndLog(t, &wg, cbp.StdoutRd, "stdout>", parseOut)
 	startParseAndLog(t, &wg, cbp.StderrRd, "stderr>", parseErr)
 	return &wg
+}
+
+// MockPipedFile mocks the file being piped into stdin, similarly as what you
+// can do with `cat file | cmd`. It restores the original os.Stdin in t.Cleanup.
+// It's using a goroutine to copy the file content to the writer of the pipe.
+func MockPipedFile(t *testing.T, filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		_, err := io.Copy(w, file)
+		defer file.Close()
+		defer w.Close()
+		if err != nil {
+			// this should not happen but can be useful
+			panic(err)
+		}
+	}()
+
+	oldStdin := os.Stdin
+	t.Cleanup(func() {
+		// using closure to restore stdin after the test
+		os.Stdin = oldStdin
+		r.Close()
+	})
+
+	os.Stdin = r
+}
+
+// RedirectStdoutExecuteCmd redirects stdout, executes the command and returns
+// the result of the command.
+func RedirectStdoutExecuteCmd(t *testing.T, cmd *cobra.Command) []byte {
+	// redirect stdout because most commands are writing directly to it
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+
+	done := make(chan error, 1)
+	buf := bytes.Buffer{}
+	go func(ch chan error) {
+		_, err := io.Copy(&buf, r)
+		defer r.Close()
+		if err != nil {
+			ch <- err
+		}
+		ch <- nil
+	}(done)
+
+	cmd.Execute()
+	// restore stdout
+	os.Stdout = oldStdout
+	w.Close()
+
+	err = <-done
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return buf.Bytes()
 }
