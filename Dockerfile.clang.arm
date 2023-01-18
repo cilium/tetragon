@@ -1,3 +1,3 @@
-FROM fedora:36
+FROM fedora:37
 RUN dnf update -y && dnf clean all
 RUN dnf install -y clang llvm && dnf clean all
