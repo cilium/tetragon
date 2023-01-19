@@ -1,4 +1,5 @@
 GO ?= go
+export TARGET_ARCH ?= amd64
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
 CONTAINER_ENGINE ?= docker
@@ -77,7 +78,7 @@ tetragon-bpf-local:
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
-	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e TARGET_ARCH=$(TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
 .PHONY: verify
