@@ -281,6 +281,151 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl /etc/password", result)
 }
 
+func TestCompactEncoder_KprobeBPFEventToString(t *testing.T) {
+	p := NewCompactEncoder(os.Stdout, Never, false)
+
+	// bpf with no args
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "bpf_check",
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🐝 bpf_check kube-system/tetragon /usr/bin/bpftool ", result)
+
+	// bpf with args
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "bpf_check",
+				Args: []*tetragon.KprobeArgument{
+					{Arg: &tetragon.KprobeArgument_BpfAttrArg{
+						BpfAttrArg: &tetragon.KprobeBpfAttr{
+							ProgType: "BPF_PROG_TYPE_KPROBE",
+							InsnCnt:  2048,
+							ProgName: "amazing-program",
+						},
+					},
+					},
+				},
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🐝 bpf_check kube-system/tetragon /usr/bin/bpftool BPF_PROG_TYPE_KPROBE amazing-program instruction count 2048", result)
+}
+
+func TestCompactEncoder_KprobePerfEventAllocEventToString(t *testing.T) {
+	p := NewCompactEncoder(os.Stdout, Never, false)
+
+	// perf event alloc with no args
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_perf_event_alloc",
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🐝 perf_event_alloc kube-system/tetragon /usr/bin/bpftool ", result)
+
+	// perf event alloc with args
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_perf_event_alloc",
+				Args: []*tetragon.KprobeArgument{
+					{Arg: &tetragon.KprobeArgument_PerfEventArg{
+						PerfEventArg: &tetragon.KprobePerfEvent{
+							KprobeFunc: "commit_creds",
+							Type:       "PERF_TYPE_TRACEPOINT",
+						},
+					},
+					},
+				},
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🐝 perf_event_alloc kube-system/tetragon /usr/bin/bpftool PERF_TYPE_TRACEPOINT commit_creds", result)
+}
+
+func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
+	p := NewCompactEncoder(os.Stdout, Never, false)
+
+	// bpf map with no args
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_bpf_map_alloc",
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🗺 bpf_map_alloc kube-system/tetragon /usr/bin/bpftool ", result)
+
+	// bpf map with args
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_bpf_map_alloc",
+				Args: []*tetragon.KprobeArgument{
+					{Arg: &tetragon.KprobeArgument_BpfMapArg{
+						BpfMapArg: &tetragon.KprobeBpfMap{
+							MapType:    "BPF_MAP_TYPE_HASH",
+							KeySize:    8,
+							ValueSize:  8,
+							MaxEntries: 1024,
+							MapName:    "amazing-map",
+						},
+					},
+					},
+				},
+			},
+		}})
+	assert.NoError(t, err)
+	assert.Equal(t, "🗺 bpf_map_alloc kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
+}
+
 func TestCompactEncoder_Encode(t *testing.T) {
 	var b bytes.Buffer
 	p := NewCompactEncoder(&b, Never, false)
