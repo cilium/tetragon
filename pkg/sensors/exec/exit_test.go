@@ -33,7 +33,7 @@ func TestExit(t *testing.T) {
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	testNop := testutils.ContribPath("tester-progs/nop")
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop))
@@ -67,7 +67,7 @@ func TestExitLeader(t *testing.T) {
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	testExitLeader := testutils.ContribPath("tester-progs/exit-leader")
+	testExitLeader := testutils.RepoRootPath("contrib/tester-progs/exit-leader")
 
 	var startTime, exitTime time.Time
 
@@ -144,7 +144,7 @@ func TestExitZombie(t *testing.T) {
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	testBin := testutils.ContribPath("tester-progs/exit-tester")
+	testBin := testutils.RepoRootPath("contrib/tester-progs/exit-tester")
 	testCmd := exec.CommandContext(ctx, testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {

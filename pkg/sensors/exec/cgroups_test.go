@@ -960,7 +960,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 	// Exec the cgroup-migrate script that will create cgroups,
 	// migrate processes, then performs an execve to gather
 	// exec events.
-	testCgroupMigrate := testutils.ContribPath("tester-progs/cgroup-migrate.bash")
+	testCgroupMigrate := testutils.RepoRootPath("contrib/tester-progs/cgroup-migrate.bash")
 	triggerCgroupExec := func() {
 		path := cgroupRoot
 		for i, dir := range kubeCgroupHierarchy {
@@ -1190,7 +1190,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	// Exec the cgroup-migrate script that will create cgroup of the usedController,
 	// migrate processes to this usedController then performs an execve to gather
 	// exec events.
-	testCgroupMigrate := testutils.ContribPath("tester-progs/cgroup-migrate.bash")
+	testCgroupMigrate := testutils.RepoRootPath("contrib/tester-progs/cgroup-migrate.bash")
 	triggerCgroupExec := func() {
 		path := filepath.Join(cgroupRoot, usedController)
 		for i, dir := range kubeCgroupHierarchiesMap[usedController] {
