@@ -42,16 +42,15 @@ jobs:
     - name: Run go tests
       env:
         GOPATH: /home/runner/work/tetragon/tetragon/go
+        SUDO: sudo -E
       run: |
         cd go/src/github.com/cilium/tetragon/
         make check-copyright
-        sudo make tetragon-bpf
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
         export TETRAGON_LIB=$(realpath "bpf/objs/")
-        sudo -E make tester-progs
-        sudo -E make test
+        make test
 
     - name: Upload Tetragon logs
       if: failure()
