@@ -186,6 +186,17 @@ docker exec -it tetragon \
    bash -c "/usr/bin/tetra getevents -o compact"
 ```
 
+### Building and running as a systemd service
+
+To build Tetragon tarball:
+```
+make tarball
+```
+
+The produced tarball will be inside directory `./build/`, then follow the [Package deployment guide][package-deployment] to install it as a systemd service.
+
+[package-deployment]: ../../deployment/package/README.md
+
 ### Running Tetragon in kind
 
 The scripts in contrib/localdev will help you run Tetragon locally in a kind cluster.

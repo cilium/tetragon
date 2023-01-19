@@ -81,6 +81,12 @@ For getting started without having to deploy on a Kubernetes cluster, please ref
 
 [docker-deployment]: ./docs/deployment/docker/README.md
 
+## Package deployment
+
+For deploying Tetragon as a systemd service, please refer to the [Package deployment guide][package-deployment].
+
+[package-deployment]: ./docs/deployment/package/README.md
+
 ## Kubernetes Quickstart Guide
 
 This Quickstart guide uses a Kind cluster and a helm-based installation to
