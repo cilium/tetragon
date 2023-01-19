@@ -16,6 +16,25 @@
 
 char _license[] __attribute__((section("license"), used)) = "GPL";
 
+#define KPROBE_TAILCALL_SETUP_AND_A0   0 /* A0: retrieve arguments and handle first arg */
+#define KPROBE_TAILCALL_A1	       1 /* A1-A4: handle rest of the args */
+#define KPROBE_TAILCALL_A2	       2
+#define KPROBE_TAILCALL_A3	       3
+#define KPROBE_TAILCALL_A4	       4
+#define KPROBE_TAILCALL_PROCESS_FILTER 5 /* check process filters */
+#define KPROBE_TAILCALL_SEL0_FILTER    6 /* selector filters */
+#define KPROBE_TAILCALL_SEL1_FILTER    7
+#define KPROBE_TAILCALL_SEL2_FILTER    8
+#define KPROBE_TAILCALL_SEL3_FILTER    9
+#define KPROBE_TAILCALL_SEL4_FILTER    10
+#define KPROBE_TAILCALL_POLICY_FILTER  11
+
+#define str(x)		    #x
+#define KPROBE_TAILCALL(nr) __attribute__((section("kprobe/" str(nr)), used))
+
+_Static_assert(KPROBE_TAILCALL_SEL0_FILTER == MIN_FILTER_TAILCALL, "selector tailcall mismatch");
+_Static_assert(KPROBE_TAILCALL_SEL4_FILTER == MAX_FILTER_TAILCALL, "selector tailcall mismatch");
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
@@ -25,7 +44,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 11);
+	__uint(max_entries, 12);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } kprobe_calls SEC(".maps");
@@ -60,8 +79,9 @@ static inline __attribute__((always_inline)) int
 generic_kprobe_start_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
+	struct event_config *conf;
 	struct task_struct *task;
-	int i, zero = 0;
+	int i, zero = 0, tcall;
 
 	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
@@ -84,9 +104,12 @@ generic_kprobe_start_process_filter(void *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
+	conf = setup_index(ctx, msg, (struct bpf_map_def *)&config_map);
+	if (!conf)
+		return 0;
+	tcall = conf->policy_id ? KPROBE_TAILCALL_POLICY_FILTER : KPROBE_TAILCALL_PROCESS_FILTER;
 	/* Tail call into filters. */
-	tail_call(ctx, &kprobe_calls, 5);
+	tail_call(ctx, &kprobe_calls, tcall);
 	return 0;
 }
 
@@ -125,8 +148,8 @@ generic_kprobe_event(struct pt_regs *ctx)
 	return generic_kprobe_start_process_filter(ctx);
 }
 
-__attribute__((section("kprobe/0"), used)) int
-generic_kprobe_process_event0(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SETUP_AND_A0)
+int generic_kprobe_process_event0(void *ctx)
 {
 	return generic_process_event_and_setup(
 		ctx, (struct bpf_map_def *)&process_call_heap,
@@ -135,8 +158,8 @@ generic_kprobe_process_event0(void *ctx)
 		(struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/1"), used)) int
-generic_kprobe_process_event1(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_A1)
+int generic_kprobe_process_event1(void *ctx)
 {
 	return generic_process_event1(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
@@ -145,8 +168,8 @@ generic_kprobe_process_event1(void *ctx)
 				      (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/2"), used)) int
-generic_kprobe_process_event2(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_A2)
+int generic_kprobe_process_event2(void *ctx)
 {
 	return generic_process_event2(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
@@ -155,8 +178,8 @@ generic_kprobe_process_event2(void *ctx)
 				      (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/3"), used)) int
-generic_kprobe_process_event3(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_A3)
+int generic_kprobe_process_event3(void *ctx)
 {
 	return generic_process_event3(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
@@ -165,8 +188,8 @@ generic_kprobe_process_event3(void *ctx)
 				      (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/4"), used)) int
-generic_kprobe_process_event4(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_A4)
+int generic_kprobe_process_event4(void *ctx)
 {
 	return generic_process_event4(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
@@ -175,8 +198,8 @@ generic_kprobe_process_event4(void *ctx)
 				      (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/5"), used)) int
-generic_kprobe_process_filter(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_PROCESS_FILTER)
+int generic_kprobe_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
 	int ret, zero = 0;
@@ -188,20 +211,17 @@ generic_kprobe_process_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &kprobe_calls, 5);
+		tail_call(ctx, &kprobe_calls, KPROBE_TAILCALL_PROCESS_FILTER);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &kprobe_calls, 0);
+		tail_call(ctx, &kprobe_calls, KPROBE_TAILCALL_SETUP_AND_A0);
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
 	return PFILTER_REJECT;
 }
 
-// Filter tailcalls: kprobe/6...kprobe/10
-// see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
-
-__attribute__((section("kprobe/6"), used)) int
-generic_kprobe_filter_arg1(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SEL0_FILTER)
+int generic_kprobe_filter_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
@@ -210,8 +230,8 @@ generic_kprobe_filter_arg1(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/7"), used)) int
-generic_kprobe_filter_arg2(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SEL1_FILTER)
+int generic_kprobe_filter_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
@@ -220,8 +240,8 @@ generic_kprobe_filter_arg2(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/8"), used)) int
-generic_kprobe_filter_arg3(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SEL2_FILTER)
+int generic_kprobe_filter_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
@@ -230,8 +250,8 @@ generic_kprobe_filter_arg3(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/9"), used)) int
-generic_kprobe_filter_arg4(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SEL3_FILTER)
+int generic_kprobe_filter_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
@@ -240,14 +260,22 @@ generic_kprobe_filter_arg4(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("kprobe/10"), used)) int
-generic_kprobe_filter_arg5(void *ctx)
+KPROBE_TAILCALL(KPROBE_TAILCALL_SEL4_FILTER)
+int generic_kprobe_filter_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&kprobe_calls,
 			       (struct bpf_map_def *)&override_tasks,
 			       (struct bpf_map_def *)&config_map);
+}
+
+KPROBE_TAILCALL(KPROBE_TAILCALL_POLICY_FILTER)
+int generic_kprobe_policy_filter(void *ctx)
+{
+	// TODO: policy filter
+	tail_call(ctx, &kprobe_calls, KPROBE_TAILCALL_PROCESS_FILTER);
+	return 0;
 }
 
 __attribute__((section("kprobe/override"), used)) int
