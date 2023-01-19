@@ -37,7 +37,7 @@ func TestCopyFd(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	testBin := testutils.ContribPath("tester-progs/dup-tester")
+	testBin := testutils.RepoRootPath("contrib/tester-progs/dup-tester")
 	testCmd := exec.CommandContext(ctx, testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {

@@ -108,7 +108,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	testNop := testutils.ContribPath("tester-progs/nop")
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	id, err := parseBuildId(testNop)
 	if err != nil {

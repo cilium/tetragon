@@ -35,7 +35,7 @@ func TestKprobeSigkill(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	testBin := testutils.ContribPath("tester-progs/sigkill-tester")
+	testBin := testutils.RepoRootPath("contrib/tester-progs/sigkill-tester")
 	testCmd := exec.CommandContext(ctx, testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {
@@ -120,7 +120,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 
 	specFile := ""
 	var testCmd *exec.Cmd
-	testBin := testutils.ContribPath("tester-progs/sigkill-unprivileged-user-ns-tester")
+	testBin := testutils.RepoRootPath("contrib/tester-progs/sigkill-unprivileged-user-ns-tester")
 	if pidns {
 		specFile = "sigkill_unprivileged_user_namespace_in_pid_namespace.yaml.tmpl"
 		testCmd = exec.CommandContext(ctx, testBin, "pidns")
