@@ -3,6 +3,14 @@
 
 SHELL=/bin/bash # needed for the *.{o,ll,i,s} pattern in the clean target
 
+CLANG  ?= clang
+LLC    ?= llc
+
+# By default we build for amd64 that is in libbpf x86
+# To build for other architectures check $TARGET_ARCH
+# var exported from parent Makefile.
+BPF_TARGET_ARCH ?= x86
+
 ALIGNCHECKERDIR = alignchecker/
 PROCESSDIR := process/
 CGROUPDIR := cgroup/
@@ -32,13 +40,9 @@ FLAGS := -I. \
 	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
 	 -O2
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(ARCH) -fdebug-default-version=4
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4
 LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
 LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
-
-CLANG  ?= clang
-LLC    ?= llc
-ARCH   ?= x86
 
 OBJSDIR       := objs/
 DEPSDIR       := deps/
