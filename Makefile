@@ -11,6 +11,7 @@ CLANG_IMAGE  = quay.io/cilium/clang:ca424d14eb4326ffc65fccd8049d8a7bfdd06607@sha
 TESTER_PROGS_DIR = "contrib/tester-progs"
 # Extra flags to pass to test binary
 EXTRA_TESTFLAGS ?=
+SUDO ?= sudo
 
 VERSION ?= $(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
@@ -133,8 +134,8 @@ clean: cli-clean
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
 .PHONY: test
-test:
-	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./pkg/... ${EXTRA_TESTFLAGS}
+test: tester-progs tetragon-bpf
+	$(SUDO) $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout 20m -failfast -cover ./pkg/... ${EXTRA_TESTFLAGS}
 
 # Agent image to use for end-to-end tests
 E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
