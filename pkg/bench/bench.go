@@ -112,7 +112,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		log.Fatalf("PolicyFromYamlFilename: %v", err)
 	}
 
-	benchSensors, err := sensors.GetMergedSensorFromParserPolicy(tp.TpName(), tp.TpSpec())
+	benchSensors, err := sensors.GetMergedSensorFromParserPolicy(tp)
 	if err != nil {
 		log.Fatalf("GetMergedSensorFromParserPolicy error: %v", err)
 	}

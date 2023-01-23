@@ -301,12 +301,12 @@ func tetragonExecute() error {
 	// load sensor from configuration file
 	if len(configFile) > 0 {
 		var sens *sensors.Sensor
-		cnf, err := config.PolicyFromYamlFilename(configFile)
+		tp, err := config.PolicyFromYamlFilename(configFile)
 		if err != nil {
 			return err
 		}
 
-		sens, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), cnf.TpSpec())
+		sens, err = sensors.GetMergedSensorFromParserPolicy(tp)
 		if err != nil {
 			return err
 		}

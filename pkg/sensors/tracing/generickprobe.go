@@ -7,15 +7,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strconv"
-	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -51,7 +48,6 @@ func init() {
 		name: "kprobe sensor",
 	}
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
-	sensors.RegisterSpecHandlerAtInit(kprobe.name, kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
 }
 
@@ -1200,26 +1196,6 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 		}
 	}
 	return enterEv, ret
-}
-
-func (k *observerKprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
-	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
-	if !ok {
-		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
-		if !ok {
-			return nil, nil
-		}
-		spec = &s
-	}
-	name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-
-	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
-		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
-	}
-	if len(spec.KProbes) > 0 {
-		return createGenericKprobeSensor(name, spec.KProbes)
-	}
-	return nil, nil
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {

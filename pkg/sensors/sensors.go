@@ -148,25 +148,11 @@ type LoadProbeArgs struct {
 	Version, Verbose          int
 }
 
-func GetSensorsFromParserPolicy(spec interface{}) ([]*Sensor, error) {
-	var sensors []*Sensor
-	for _, s := range registeredSpecHandlers {
-		sensor, err := s.SpecHandler(spec)
-		if err != nil {
-			return nil, err
-		}
-		if sensor == nil {
-			continue
-		}
-		sensors = append(sensors, sensor)
-	}
-	return sensors, nil
-}
-
-func GetMergedSensorFromParserPolicy(name string, policy interface{}) (*Sensor, error) {
-	sensors, err := GetSensorsFromParserPolicy(policy)
+func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (*Sensor, error) {
+	// NB: use a filter id of 0, so no filtering will happen
+	sensors, err := SensorsFromPolicy(tp, policyfilter.PolicyID(0))
 	if err != nil {
 		return nil, err
 	}
-	return SensorCombine(name, sensors...), nil
+	return SensorCombine(tp.TpName(), sensors...), nil
 }

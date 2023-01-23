@@ -44,6 +44,22 @@ func (h *handler) allocPolicyID() uint64 {
 	return ret
 }
 
+// revive:disable:exported
+func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
+	sensors, err := sensorsFromSpecHandlers(tp)
+	if err != nil {
+		return nil, err
+	}
+	policySensors, err := sensorsFromPolicyHandlers(tp, filterID)
+	if err != nil {
+		return nil, err
+	}
+	sensors = append(sensors, policySensors...)
+	return sensors, nil
+}
+
+// revive:enable:exported
+
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if _, exists := h.collections[op.name]; exists {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
