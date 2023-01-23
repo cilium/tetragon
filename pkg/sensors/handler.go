@@ -3,7 +3,11 @@
 
 package sensors
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
+)
 
 type handler struct {
 	// map of sensor collections: name -> collection
@@ -25,18 +29,9 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 	}
 
-	var sensors []*Sensor
-	spec := op.tp.TpSpec()
-	for _, s := range registeredSpecHandlers {
-		var sensor *Sensor
-		sensor, err := s.SpecHandler(spec)
-		if err != nil {
-			return err
-		}
-		if sensor == nil {
-			continue
-		}
-		sensors = append(sensors, sensor)
+	sensors, err := sensorsFromSpecHandlers(op.tp)
+	if err != nil {
+		return err
 	}
 
 	col := collection{
@@ -169,4 +164,22 @@ func (h *handler) configGet(op *sensorConfigGet) error {
 	}
 
 	return nil
+}
+
+func sensorsFromSpecHandlers(tp tracingpolicy.TracingPolicy) ([]*Sensor, error) {
+	var sensors []*Sensor
+	spec := tp.TpSpec()
+
+	for n, s := range registeredSpecHandlers {
+		var sensor *Sensor
+		sensor, err := s.SpecHandler(spec)
+		if err != nil {
+			return nil, fmt.Errorf("spec handler %s failed: %w", n, err)
+		}
+		if sensor == nil {
+			continue
+		}
+		sensors = append(sensors, sensor)
+	}
+	return sensors, nil
 }
