@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"go.uber.org/multierr"
 )
 
@@ -15,7 +16,7 @@ import (
 type collection struct {
 	sensors       []*Sensor
 	name          string
-	tracingpolicy TracingPolicy
+	tracingpolicy tracingpolicy.TracingPolicy
 }
 
 func (c *collection) info() string {
