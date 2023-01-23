@@ -32,8 +32,12 @@ func StartSensorManager(bpfDir, mapDir, ciliumDir string) (*Manager, error) {
 		STTManager: sttManager.StartSttManager(),
 		sensorCtl:  c,
 	}
+	handler, err := newHandler(bpfDir, mapDir, ciliumDir)
+	if err != nil {
+		return nil, err
+	}
+
 	go func() {
-		handler := newHandler(bpfDir, mapDir, ciliumDir)
 		done := false
 		for !done {
 			op_ := <-c
