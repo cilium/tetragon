@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -252,7 +253,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	return progs, maps
 }
 
-func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
+func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, policyID policyfilter.PolicyID) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 	var multiIDs, multiRetIDs []idtable.EntryID
@@ -278,6 +279,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		var argsBTFSet [api.MaxArgsSupported]bool
 
 		config := &api.EventConfig{}
+		config.PolicyID = uint32(policyID)
 
 		argRetprobe = nil // holds pointer to arg for return handler
 
