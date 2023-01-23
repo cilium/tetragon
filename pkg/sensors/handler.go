@@ -6,6 +6,8 @@ package sensors
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -13,26 +15,61 @@ type handler struct {
 	// map of sensor collections: name -> collection
 	collections               map[string]collection
 	bpfDir, mapDir, ciliumDir string
+
+	nextPolicyID uint64
+	pfState      *policyfilter.State
 }
 
-func newHandler(bpfDir, mapDir, ciliumDir string) *handler {
+func newHandler(bpfDir, mapDir, ciliumDir string) (*handler, error) {
+	pfState, err := policyfilter.GetState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
+	}
+
 	return &handler{
 		collections: map[string]collection{},
 		bpfDir:      bpfDir,
 		mapDir:      mapDir,
 		ciliumDir:   ciliumDir,
-	}
+		pfState:     pfState,
+		// NB: policy ids start with 1, so that they can be used for filtering. In policy
+		// filtering code, a policy id of 0 means no filtering.
+		nextPolicyID: 1,
+	}, nil
+}
+
+func (h *handler) allocPolicyID() uint64 {
+	ret := h.nextPolicyID
+	h.nextPolicyID++
+	return ret
 }
 
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if _, exists := h.collections[op.name]; exists {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 	}
+	tpID := h.allocPolicyID()
+	filterID := policyfilter.PolicyID(0)
+
+	// This is a namespaced policy, so update policy filter state before loading the sensors
+	// NB: the filterID is set to a non-zero value only if we have a namespaced policy and need
+	// to apply filtering.
+	if tpNs, ok := op.tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		filterID = policyfilter.PolicyID(tpID)
+		if err := h.pfState.AddPolicy(filterID, tpNs.TpNamespace()); err != nil {
+			return err
+		}
+	}
 
 	sensors, err := sensorsFromSpecHandlers(op.tp)
 	if err != nil {
 		return err
 	}
+	policySensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
+	if err != nil {
+		return err
+	}
+	sensors = append(sensors, policySensors...)
 
 	col := collection{
 		sensors:       sensors,
@@ -165,12 +202,17 @@ func (h *handler) configGet(op *sensorConfigGet) error {
 
 	return nil
 }
-
 func sensorsFromSpecHandlers(tp tracingpolicy.TracingPolicy) ([]*Sensor, error) {
 	var sensors []*Sensor
+	_, isNamespaced := tp.(tracingpolicy.TracingPolicyNamespaced)
 	spec := tp.TpSpec()
+	log := logger.GetLogger().WithField("policy-name", tp.TpName())
 
 	for n, s := range registeredSpecHandlers {
+		if isNamespaced {
+			// NB: requires using policyHandler
+			log.WithField("sensor-name", n).Warn("sensor will be ignored because it cannot handle namespaced tracing policy")
+		}
 		var sensor *Sensor
 		sensor, err := s.SpecHandler(spec)
 		if err != nil {
@@ -181,5 +223,22 @@ func sensorsFromSpecHandlers(tp tracingpolicy.TracingPolicy) ([]*Sensor, error) 
 		}
 		sensors = append(sensors, sensor)
 	}
+	return sensors, nil
+}
+
+func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
+	var sensors []*Sensor
+	for n, s := range registeredPolicyHandlers {
+		var sensor *Sensor
+		sensor, err := s.PolicyHandler(tp, filterID)
+		if err != nil {
+			return nil, fmt.Errorf("policy handler %s failed: %w", n, err)
+		}
+		if sensor == nil {
+			continue
+		}
+		sensors = append(sensors, sensor)
+	}
+
 	return sensors, nil
 }
