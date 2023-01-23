@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 type FakeObserver struct{}
@@ -36,7 +37,7 @@ func (f *FakeObserver) GetTreeProto(ctx context.Context, tname string) (*tetrago
 	return nil, nil
 }
 
-func (f *FakeObserver) AddTracingPolicy(ctx context.Context, tp sensors.TracingPolicy) error {
+func (f *FakeObserver) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
 	return nil
 }
 

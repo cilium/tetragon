@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
 )
 
@@ -35,7 +36,7 @@ type notifier interface {
 
 type observer interface {
 	// AddTracingPolicy will add a new tracing policy
-	AddTracingPolicy(ctx context.Context, policy sensors.TracingPolicy) error
+	AddTracingPolicy(ctx context.Context, policy tracingpolicy.TracingPolicy) error
 	// DelTracingPolicy deletes a tracing policy that was added with
 	// AddTracingPolicy as defined by  its name (policy.TpName()).
 	DelTracingPolicy(ctx context.Context, name string) error
