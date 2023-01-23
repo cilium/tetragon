@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
-	"reflect"
 	"sync"
-	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -61,7 +59,6 @@ func init() {
 		name: "tracepoint sensor",
 	}
 	sensors.RegisterProbeType("generic_tracepoint", tp)
-	sensors.RegisterSpecHandlerAtInit(tp.name, tp)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_TRACEPOINT, handleGenericTracepoint)
 }
 
@@ -667,26 +664,6 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		}
 	}
 	return []observer.Event{unix}, nil
-}
-
-func (t *observerTracepointSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
-	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
-	if !ok {
-		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
-		if !ok {
-			return nil, nil
-		}
-		spec = &s
-	}
-	name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-
-	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
-		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
-	}
-	if len(spec.Tracepoints) > 0 {
-		return createGenericTracepointSensor(name, spec.Tracepoints)
-	}
-	return nil, nil
 }
 
 func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {

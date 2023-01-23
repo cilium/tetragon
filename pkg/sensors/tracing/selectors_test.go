@@ -15,12 +15,14 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -52,7 +54,12 @@ func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.Tra
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observer.InitDataCache: %s", err)
 	}
-	ret, err := sensors.GetSensorsFromParserPolicy(spec)
+
+	tp := &config.GenericTracingConf{
+		Metadata: config.Metadata{Name: "name"},
+		Spec:     *spec,
+	}
+	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.PolicyID(0))
 	if err != nil {
 		t.Fatalf("GetSensorsFromParserPolicy failed: %v", err)
 	} else if len(ret) != 1 {

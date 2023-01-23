@@ -230,7 +230,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	cnf, _ := yaml.PolicyFromYamlFilename(o.observer.config)
 	if cnf != nil {
 		var err error
-		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), cnf.TpSpec())
+		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf)
 		if err != nil {
 			return nil, ret, err
 		}
