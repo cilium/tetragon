@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "sys_symlink_passwd"
+  name: "sys-symlink-passwd"
 spec:
   kprobes:
   - call: "__x64_sys_symlinkat"
