@@ -16,8 +16,8 @@ func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
 	return &FakeK8sWatcher{pods: pods}
 }
 
-// FindPod implements K8sResourceWatcher.FindPod.
-func (watcher *FakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+// FindContainer implements K8sResourceWatcher.FindContainer
+func (watcher *FakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return findContainer(containerID, watcher.pods)
 }
 

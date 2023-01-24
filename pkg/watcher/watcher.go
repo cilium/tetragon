@@ -32,7 +32,7 @@ var (
 // K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
 type K8sResourceWatcher interface {
 	// Find a pod/container pair for the given container ID.
-	FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
+	FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
@@ -114,8 +114,8 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 	return &K8sWatcher{podInformer: podInformer}
 }
 
-// FindPod implements K8sResourceWatcher.FindPod.
-func (watcher *K8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+// FindContainer implements K8sResourceWatcher.FindContainer.
+func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	indexedContainerID := containerID
 	if len(containerID) > containerIDLen {
 		indexedContainerID = containerID[:containerIDLen]

@@ -43,7 +43,7 @@ func getPodInfo(
 	if containerID == "" {
 		return nil, nil
 	}
-	pod, container, ok := w.FindPod(containerID)
+	pod, container, ok := w.FindContainer(containerID)
 	if !ok {
 		watchermetrics.GetWatcherErrors("k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
