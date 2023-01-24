@@ -77,7 +77,7 @@ spec:
 	}
 
 	// Match only owner and group of userns as we are supposed to be real root
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("cap_capable")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().

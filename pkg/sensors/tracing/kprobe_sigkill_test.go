@@ -93,7 +93,7 @@ func TestKprobeSigkill(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_lseek")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -181,7 +181,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("create_user_ns")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
 

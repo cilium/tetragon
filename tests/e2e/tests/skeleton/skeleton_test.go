@@ -126,7 +126,9 @@ func TestSkeletonBasic(t *testing.T) {
 
 func curlEventChecker(kernelVersion string) *checker.RPCChecker {
 	curlEventChecker := ec.NewUnorderedEventChecker(
-		ec.NewProcessExecChecker().
+		// Checkers should be given a unique name. This shows up in the logs and can be
+		// helpful when debugging failures and flakes.
+		ec.NewProcessExecChecker("checkerNameHere").
 			WithProcess(
 				ec.NewProcessChecker().
 					WithPod(ec.NewPodChecker().

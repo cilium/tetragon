@@ -38,8 +38,8 @@ func TestExit(t *testing.T) {
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop))
 
-	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
-	exitChecker := ec.NewProcessExitChecker().WithProcess(procChecker)
+	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procChecker)
+	exitChecker := ec.NewProcessExitChecker("exit").WithProcess(procChecker)
 
 	var checker *ec.UnorderedEventChecker
 
@@ -166,8 +166,8 @@ func TestExitZombie(t *testing.T) {
 	exitTesterCheck := ec.NewProcessChecker().WithBinary(sm.Suffix("tester-progs/exit-tester"))
 	echoCheck := ec.NewProcessChecker().WithBinary(sm.Full("/bin/sh")).WithArguments(sm.Contains("pizza is the best!"))
 	checker := ec.NewUnorderedEventChecker(
-		ec.NewProcessExecChecker().WithProcess(exitTesterCheck),
-		ec.NewProcessExecChecker().WithProcess(echoCheck).WithParent(exitTesterCheck),
+		ec.NewProcessExecChecker("exitTester").WithProcess(exitTesterCheck),
+		ec.NewProcessExecChecker("echo").WithProcess(echoCheck).WithParent(exitTesterCheck),
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)

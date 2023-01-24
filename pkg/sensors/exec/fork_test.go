@@ -62,7 +62,7 @@ func TestFork(t *testing.T) {
 	binCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("fork-tester")).
 		WithPid(fti.child2Pid)
-	exitCheck := ec.NewProcessExitChecker().
+	exitCheck := ec.NewProcessExitChecker("").
 		WithProcess(binCheck).
 		WithParent(ec.NewProcessChecker().WithPid(fti.child1Pid))
 	checker := ec.NewUnorderedEventChecker(exitCheck)

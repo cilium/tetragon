@@ -126,6 +126,12 @@ func FmtErrorf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
 	return fmt.Sprintf("%s(%s)", GoIdent(g, "fmt", "Errorf"), strings.Join(args, ", "))
 }
 
+// FmtSprintf is a convenience helper that generates a call to fmt.Sprintf
+func FmtSprintf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
+	args = append([]string{fmt.Sprintf("\"%s\"", fmt_)}, args...)
+	return fmt.Sprintf("%s(%s)", GoIdent(g, "fmt", "Sprintf"), strings.Join(args, ", "))
+}
+
 // EventFieldCheck returns true if the event has the field
 func EventFieldCheck(msg *protogen.Message, field string) bool {
 	if msg.Desc.Fields().ByName(protoreflect.Name(field)) != nil {

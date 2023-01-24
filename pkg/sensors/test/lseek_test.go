@@ -37,7 +37,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	defer cancel()
 
 	checker := ec.NewUnorderedEventChecker(
-		ec.NewTestChecker(),
+		ec.NewTestChecker(""),
 	)
 
 	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
@@ -66,7 +66,7 @@ func TestSensorLseekEnable(t *testing.T) {
 	defer cancel()
 
 	checker := ec.NewUnorderedEventChecker(
-		ec.NewTestChecker(),
+		ec.NewTestChecker(""),
 	)
 
 	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)

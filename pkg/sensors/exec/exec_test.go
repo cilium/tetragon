@@ -131,7 +131,7 @@ func TestNamespaces(t *testing.T) {
 		WithNs(nsChecker)
 
 	checker := ec.NewUnorderedEventChecker(
-		ec.NewProcessExecChecker().
+		ec.NewProcessExecChecker("").
 			WithProcess(selfChecker).
 			WithParent(ec.NewProcessChecker()),
 	)
@@ -167,7 +167,7 @@ func TestEventExecve(t *testing.T) {
 		WithBinary(sm.Full(testNop)).
 		WithArguments(sm.Full("arg1 arg2 arg3"))
 
-	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
 	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
@@ -239,7 +239,7 @@ func TestEventExecveLongPath(t *testing.T) {
 		WithBinary(sm.Full(testBin)).
 		WithArguments(sm.Full("arg1 arg2 arg3"))
 
-	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
@@ -298,7 +298,7 @@ func TestEventExecveLongArgs(t *testing.T) {
 		WithBinary(sm.Full(testNop)).
 		WithArguments(sm.Full(testArg1 + " " + testArg2 + " " + testArg3))
 
-	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
 	if err := exec.Command(testNop, testArg1, testArg2, testArg3).Run(); err != nil {
@@ -386,7 +386,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 		WithBinary(sm.Full(testBin)).
 		WithArguments(sm.Full(testArg1 + " " + testArg2 + " " + testArg3))
 
-	execChecker := ec.NewProcessExecChecker().WithProcess(procChecker)
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
@@ -465,10 +465,10 @@ func TestDocker(t *testing.T) {
 		WithDocker(fgsServerID)
 
 	checker := ec.NewUnorderedEventChecker(
-		ec.NewProcessExecChecker().
+		ec.NewProcessExecChecker("client").
 			WithProcess(selfChecker).
 			WithParent(ec.NewProcessChecker()),
-		ec.NewProcessExecChecker().
+		ec.NewProcessExecChecker("server").
 			WithProcess(ncSrvChecker),
 	)
 
