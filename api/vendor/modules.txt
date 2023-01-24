@@ -26,7 +26,7 @@ github.com/sirupsen/logrus
 # github.com/stretchr/testify v1.7.3
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
-# golang.org/x/net v0.0.0-20220615171555-694bf12d69de
+# golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 ## explicit; go 1.17
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2

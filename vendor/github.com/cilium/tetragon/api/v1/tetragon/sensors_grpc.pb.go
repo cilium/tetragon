@@ -33,6 +33,7 @@ type FineGuidanceSensorsClient interface {
 	GetSensorConfig(ctx context.Context, in *GetSensorConfigRequest, opts ...grpc.CallOption) (*GetSensorConfigResponse, error)
 	GetStackTraceTree(ctx context.Context, in *GetStackTraceTreeRequest, opts ...grpc.CallOption) (*GetStackTraceTreeResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
+	RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error)
 }
 
 type fineGuidanceSensorsClient struct {
@@ -165,6 +166,15 @@ func (c *fineGuidanceSensorsClient) GetVersion(ctx context.Context, in *GetVersi
 	return out, nil
 }
 
+func (c *fineGuidanceSensorsClient) RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error) {
+	out := new(RuntimeHookResponse)
+	err := c.cc.Invoke(ctx, "/tetragon.FineGuidanceSensors/RuntimeHook", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FineGuidanceSensorsServer is the server API for FineGuidanceSensors service.
 // All implementations should embed UnimplementedFineGuidanceSensorsServer
 // for forward compatibility
@@ -180,6 +190,7 @@ type FineGuidanceSensorsServer interface {
 	GetSensorConfig(context.Context, *GetSensorConfigRequest) (*GetSensorConfigResponse, error)
 	GetStackTraceTree(context.Context, *GetStackTraceTreeRequest) (*GetStackTraceTreeResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
+	RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error)
 }
 
 // UnimplementedFineGuidanceSensorsServer should be embedded to have forward compatible implementations.
@@ -218,6 +229,9 @@ func (UnimplementedFineGuidanceSensorsServer) GetStackTraceTree(context.Context,
 }
 func (UnimplementedFineGuidanceSensorsServer) GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RuntimeHook not implemented")
 }
 
 // UnsafeFineGuidanceSensorsServer may be embedded to opt out of forward compatibility for this service.
@@ -432,6 +446,24 @@ func _FineGuidanceSensors_GetVersion_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FineGuidanceSensors_RuntimeHook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RuntimeHookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).RuntimeHook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tetragon.FineGuidanceSensors/RuntimeHook",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).RuntimeHook(ctx, req.(*RuntimeHookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FineGuidanceSensors_ServiceDesc is the grpc.ServiceDesc for FineGuidanceSensors service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -478,6 +510,10 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVersion",
 			Handler:    _FineGuidanceSensors_GetVersion_Handler,
+		},
+		{
+			MethodName: "RuntimeHook",
+			Handler:    _FineGuidanceSensors_RuntimeHook_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
