@@ -468,7 +468,7 @@ type fakeK8sWatcher struct {
 	fakePod, fakeNamespace string
 }
 
-func (f *fakeK8sWatcher) FindPod(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	if containerID == "" {
 		return nil, nil, false
 	}
