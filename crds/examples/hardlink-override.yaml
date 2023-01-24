@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "sys_linkat_passwd"
+  name: "sys-linkat-passwd"
 spec:
   kprobes:
   - call: "__x64_sys_linkat"

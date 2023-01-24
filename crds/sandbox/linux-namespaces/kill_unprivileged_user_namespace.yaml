@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "kill_unprivileged_user_namespace"
+  name: "kill-unprivileged-user-namespace"
 
 #
 # Adds ability to sandbox access to unprivileged user namespaces.
