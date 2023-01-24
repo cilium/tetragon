@@ -23,6 +23,7 @@ import (
 const (
 	containerIDLen = 15
 	containerIdx   = "containers-ids"
+	podIdx         = "pod-ids"
 )
 
 var (
@@ -33,11 +34,22 @@ var (
 type K8sResourceWatcher interface {
 	// Find a pod/container pair for the given container ID.
 	FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
+
+	// Find a pod given the podID
+	FindPod(podID string) (*corev1.Pod, error)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
 type K8sWatcher struct {
 	podInformer cache.SharedIndexInformer
+}
+
+func podIndexFunc(obj interface{}) ([]string, error) {
+	switch t := obj.(type) {
+	case *corev1.Pod:
+		return []string{string(t.UID)}, nil
+	}
+	return nil, fmt.Errorf("podIndexFunc: %w - found %T", errNoPod, obj)
 }
 
 // containerIndexFunc index pod by container IDs.
@@ -102,6 +114,7 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 
 	err := podInformer.AddIndexers(map[string]cache.IndexFunc{
 		containerIdx: containerIndexFunc,
+		podIdx:       podIndexFunc,
 	})
 	if err != nil {
 		// Panic during setup since this should never fail, if it fails is a
@@ -130,6 +143,37 @@ func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *core
 		return findContainer(containerID, watcher.podInformer.GetStore().List())
 	}
 	return findContainer(containerID, objs)
+}
+
+func (watcher *K8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
+	objs, err := watcher.podInformer.GetIndexer().ByIndex(podIdx, podID)
+	if err != nil {
+		return nil, fmt.Errorf("watcher returned: %w", err)
+	}
+	if len(objs) == 1 {
+		if pod, ok := objs[0].(*corev1.Pod); ok {
+			return pod, nil
+		}
+		return nil, fmt.Errorf("unexpected type %t", objs[0])
+	}
+
+	allPods := watcher.podInformer.GetStore().List()
+	if pod, ok := findPod(podID, allPods); ok {
+		return pod, nil
+	}
+	return nil, fmt.Errorf("unable to find pod with ID %s (index pods=%d all pods=%d)", podID, len(objs), len(allPods))
+}
+
+func findPod(podID string, pods []interface{}) (*corev1.Pod, bool) {
+	for i := range pods {
+		if pod, ok := pods[i].(*corev1.Pod); ok {
+			if pod.UID == podIdx {
+				return pod, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 // TODO(michi) Not the most efficient implementation. Optimize as needed.
