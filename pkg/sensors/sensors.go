@@ -8,6 +8,9 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+
+	// load rthooks for policy filter
+	_ "github.com/cilium/tetragon/pkg/policyfilter/rthooks"
 )
 
 var (
