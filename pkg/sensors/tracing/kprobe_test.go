@@ -148,7 +148,7 @@ func getTestKprobeObjectWRChecker() ec.MultiEventChecker {
 	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_write")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -484,7 +484,7 @@ spec:
         values:
         - ` + fdString
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_read")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -532,7 +532,7 @@ spec:
         values:
         - ` + fdString
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_read")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -549,7 +549,7 @@ spec:
 
 // __x64_sys_openat trace
 func getOpenatChecker(dir string) ec.MultiEventChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_openat")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -564,7 +564,7 @@ func getOpenatChecker(dir string) ec.MultiEventChecker {
 
 // matches any kprobe event, used to test filters
 func getAnyChecker() ec.MultiEventChecker {
-	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker())
+	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("anyKprobe"))
 }
 
 func testKprobeObjectFiltered(t *testing.T,
@@ -1046,7 +1046,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
 		WithFunctionName(sm.Full("__x64_sys_writev")).
@@ -1072,7 +1072,7 @@ spec:
 }
 
 func getFilpOpenChecker(dir string) ec.MultiEventChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("do_filp_open")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1237,7 +1237,7 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
 }
 
 func getWriteChecker(path, flags string) ec.MultiEventChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_write")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1525,7 +1525,7 @@ spec:
 	var newFd int32 = -321
 	var flags int32 = 12345
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_linkat")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1670,7 +1670,7 @@ spec:
         argError: -2
 `
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_openat")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1806,7 +1806,7 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_writev")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1859,7 +1859,7 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_writev")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -1913,7 +1913,7 @@ spec:
 		buffer[i] = 'A' + byte(i%26)
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_readv")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -2036,7 +2036,7 @@ func readFile(t *testing.T, file string) int {
 }
 
 func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("fd_install")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -2048,7 +2048,7 @@ func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
 }
 
 func createReadChecker(filename string) *ec.ProcessKprobeChecker {
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_read")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -2364,7 +2364,7 @@ spec:
 		t.Fatalf("Loading test CRD failed: %s", err)
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("bpf_check")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(

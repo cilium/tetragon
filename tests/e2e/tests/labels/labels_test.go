@@ -110,26 +110,26 @@ func TestLabelsDemoApp(t *testing.T) {
 
 func labelsEventChecker(kernelVersion string) *checker.RPCChecker {
 	labelsEventChecker := ec.NewUnorderedEventChecker(
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("coreapi").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("coreapi"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("crawler").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("crawler"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("elasticsearch").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":                                *sm.Full("elasticsearch-master"),
 			"chart":                              *sm.Full("elasticsearch"),
 			"controller-revision-hash":           *sm.Regex("elasticsearch-master-[a-f0-9]+"),
 			"release":                            *sm.Full("jobs-app"),
 			"statefulset.kubernetes.io/pod-name": *sm.Prefix("elasticsearch-master"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("jobposting").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("jobposting"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("kafka").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app.kubernetes.io/instance":         *sm.Full("jobs-app"),
 			"app.kubernetes.io/managed-by":       *sm.Full("strimzi-cluster-operator"),
 			"app.kubernetes.io/name":             *sm.Full("kafka"),
@@ -140,7 +140,7 @@ func labelsEventChecker(kernelVersion string) *checker.RPCChecker {
 			"strimzi.io/kind":                    *sm.Full("Kafka"),
 			"strimzi.io/name":                    *sm.Full("jobs-app-kafka"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("zookeeper").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app.kubernetes.io/instance":         *sm.Full("jobs-app"),
 			"app.kubernetes.io/managed-by":       *sm.Full("strimzi-cluster-operator"),
 			"app.kubernetes.io/name":             *sm.Full("zookeeper"),
@@ -151,15 +151,15 @@ func labelsEventChecker(kernelVersion string) *checker.RPCChecker {
 			"strimzi.io/kind":                    *sm.Full("Kafka"),
 			"strimzi.io/name":                    *sm.Full("jobs-app-zookeeper"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("loader").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("loader"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("recruiter").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("recruiter"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
-		ec.NewProcessExecChecker().WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
+		ec.NewProcessExecChecker("cluster-operator").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"name":              *sm.Full("strimzi-cluster-operator"),
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 			"strimzi.io/kind":   *sm.Full("cluster-operator"),

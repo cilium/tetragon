@@ -88,7 +88,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	writeArg1 := ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00")))
 	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
 
-	kprobeChecker := ec.NewProcessKprobeChecker().
+	kprobeChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_write")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -169,7 +169,7 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	writeArg1 := ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00")))
 	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
 
-	kprobeChecker := ec.NewProcessKprobeChecker().
+	kprobeChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_write")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).

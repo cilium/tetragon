@@ -115,7 +115,7 @@ spec:
 		t.Fatalf("Failed to ParseBuildId: %v\n", err)
 	}
 
-	loaderChecker := ec.NewProcessLoaderChecker().
+	loaderChecker := ec.NewProcessLoaderChecker("").
 		WithBuildid(bytesmatcher.Full(id)).
 		WithPath(sm.Full(testNop))
 

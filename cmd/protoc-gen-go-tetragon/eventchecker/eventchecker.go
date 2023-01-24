@@ -39,6 +39,10 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
+	if err := generateLogPrefix(g); err != nil {
+		return err
+	}
+
 	if err := generateInterfaces(g); err != nil {
 		return err
 	}
@@ -73,7 +77,7 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
 		for _, msg := range events {
 			msgIdent := common.TetragonApiIdent(g, msg.GoIdent.GoName)
 			ret += `case *` + msgIdent + `:
-            return New` + msg.checkerName(g) + `().From` + msg.GoIdent.GoName + `(ev), nil
+            return New` + msg.checkerName(g) + `("").From` + msg.GoIdent.GoName + `(ev), nil
             `
 		}
 		return ret
@@ -96,6 +100,25 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
             return nil, err
         }
         return CheckerFromEvent(event)
+    }`)
+
+	return nil
+}
+
+func generateLogPrefix(g *protogen.GeneratedFile) error {
+	g.P(`// CheckerLogPrefix is a helper that outputs the log prefix for an event checker,
+    // which is a combination of the checker type and the checker name if applicable.
+    func CheckerLogPrefix(checker interface{ GetCheckerType() string }) string {
+        type_ := checker.GetCheckerType()
+
+        if withName, ok := checker.(interface{ GetCheckerName() string }); ok {
+            name := withName.GetCheckerName()
+            if len(name) > 0 {
+                return ` + common.FmtSprintf(g, "%s/%s", "type_", "name") + `
+            }
+        }
+
+        return type_
     }`)
 
 	return nil

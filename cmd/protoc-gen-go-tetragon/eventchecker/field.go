@@ -280,7 +280,7 @@ func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checke
 
 	if field.isList() {
 		return `if err := ` + checkerVar + `.Check(` + eventVar + `); err != nil {
-		return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+		return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
 		}`, nil
 	}
 
@@ -306,7 +306,7 @@ func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVa
                     // Attempt to grab the matcher for this key
                     if matcher, ok := ` + checkerVar + `[key]; ok {
                         if err := matcher.Match(value); err != nil {
-                            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+"[%s] (%s=%s) check failed: %w", "key", "key", "value", "err") + `
+                            return ` + common.FmtErrorf(g, field.GoName+"[%s] (%s=%s) check failed: %w", "key", "key", "value", "err") + `
                         }
                         matched[key] = struct{}{}
                     }
@@ -320,7 +320,7 @@ func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVa
                         unmatched = append(unmatched, k)
                     }
                 }
-                return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" unmatched: %v", "unmatched") + `
+                return ` + common.FmtErrorf(g, field.GoName+" unmatched: %v", "unmatched") + `
             }`, nil
 	}
 
@@ -376,11 +376,11 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerName, checkerV
 		ff := kindToFormat(kind)
 		if field.IsInnerField {
 			return `if ` + checkerVar + ` != ` + eventVar + ` {
-                return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, checkerVar) + `
+                return ` + common.FmtErrorf(g, field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, checkerVar) + `
             }`
 		}
 		return `if *` + checkerVar + ` != ` + eventVar + ` {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, "*"+checkerVar) + `
+            return ` + common.FmtErrorf(g, field.GoName+" has value "+ff+" which does not match expected value "+ff, eventVar, "*"+checkerVar) + `
         }`
 	}
 
@@ -389,46 +389,46 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerName, checkerV
 		ff := kindToFormat(kind)
 		wrapperVal := fmt.Sprintf("%s.Value", eventVar)
 		return `if ` + eventVar + ` == nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" is nil and does not match expected value "+ff, "*"+checkerVar) + `
+            return ` + common.FmtErrorf(g, field.GoName+" is nil and does not match expected value "+ff, "*"+checkerVar) + `
         }
         if *` + checkerVar + ` != ` + wrapperVal + ` {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" has value "+ff+" which does not match expected value "+ff, wrapperVal, "*"+checkerVar) + `
+            return ` + common.FmtErrorf(g, field.GoName+" has value "+ff+" which does not match expected value "+ff, wrapperVal, "*"+checkerVar) + `
         }`
 	}
 
 	doCheckerCheck := func() string {
 		return `if err := ` + checkerVar + `.Check(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 
 	doEnumCheck := func() string {
 		return `if err := ` + checkerVar + `.Check(&` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 
 	doStringCheck := func() string {
 		return `if err := ` + checkerVar + `.Match(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 
 	doBytesCheck := func() string {
 		return `if err := ` + checkerVar + `.Match(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 
 	doTimestampCheck := func() string {
 		return `if err := ` + checkerVar + `.Match(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 
 	doDurationCheck := func() string {
 		return `if err := ` + checkerVar + `.Match(` + eventVar + `); err != nil {
-            return ` + common.FmtErrorf(g, checkerName+": "+field.GoName+" check failed: %w", "err") + `
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
         }`
 	}
 

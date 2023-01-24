@@ -86,7 +86,7 @@ func TestCopyFd(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker().
+	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("__x64_sys_read")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).

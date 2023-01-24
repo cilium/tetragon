@@ -48,13 +48,14 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 		return err
 	}
 
-	g.P(`// ` + msg.checkerName(g) + ` implements a checker struct to check a ` + msg.GoIdent.GoName + ` ` + msgType + `
-        type ` + msg.checkerName(g) + ` struct {
-            ` + fieldsStr + `
-        }`)
-
 	// Generate the EventChecker implementation
 	if isEvent {
+		g.P(`// ` + msg.checkerName(g) + ` implements a checker struct to check a ` + msg.GoIdent.GoName + ` ` + msgType + `
+            type ` + msg.checkerName(g) + ` struct {
+                CheckerName string ` + common.StructTag(`json:"checkerName"`) + `
+                ` + fieldsStr + `
+            }`)
+
 		g.P(`// CheckEvent checks a single event and implements the EventChecker interface
         func (checker *` + msg.checkerName(g) + `) CheckEvent(event Event) error {
             if ev, ok := event.(*` + targetIdent + `); ok {
@@ -72,21 +73,40 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
             return checker.CheckEvent(event)
         }`)
 
+		g.P(`// New` + msg.checkerName(g) + ` creates a new ` + msg.checkerName(g) + `
+        func New` + msg.checkerName(g) + `(name string) *` + msg.checkerName(g) + ` {
+            return &` + msg.checkerName(g) + `{CheckerName: name}
+        }`)
+
+		g.P(`// Get the name associated with the checker
+        func (checker *` + msg.checkerName(g) + `) GetCheckerName() string {
+            return checker.CheckerName
+        }`)
+	} else {
+		g.P(`// ` + msg.checkerName(g) + ` implements a checker struct to check a ` + msg.GoIdent.GoName + ` ` + msgType + `
+            type ` + msg.checkerName(g) + ` struct {
+                ` + fieldsStr + `
+            }`)
+
+		g.P(`// New` + msg.checkerName(g) + ` creates a new ` + msg.checkerName(g) + `
+        func New` + msg.checkerName(g) + `() *` + msg.checkerName(g) + ` {
+            return &` + msg.checkerName(g) + `{}
+        }`)
 	}
 
-	g.P(`// New` + msg.checkerName(g) + ` creates a new ` + msg.checkerName(g) + `
-    func New` + msg.checkerName(g) + `() *` + msg.checkerName(g) + ` {
-        return &` + msg.checkerName(g) + `{}
-    }
-    `)
+	g.P(`// Get the type of the checker as a string
+    func (checker *` + msg.checkerName(g) + `) GetCheckerType() string {
+        return "` + msg.checkerName(g) + `"
+    }`)
 
 	// Do preamble
 	g.P(`// Check checks a ` + msg.GoIdent.GoName + ` ` + msgType + `
         func (checker *` + msg.checkerName(g) + `) Check(event *` + targetIdent + `) error {
             if event == nil {
-                return ` + common.FmtErrorf(g, msg.checkerName(g)+": "+msg.GoIdent.GoName+" "+msgType+" "+"is nil") + `
+                return ` + common.FmtErrorf(g, "%s: "+msg.GoIdent.GoName+" "+msgType+" "+"is nil", "CheckerLogPrefix(checker)") + `
             }
-        `)
+
+            fieldChecks := func() error {`)
 	// Do fields
 	for _, rawField := range msg.Fields {
 		field := &Field{Field: rawField, IsInnerField: false}
@@ -94,6 +114,11 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 	}
 	// Do final return
 	g.P(`return nil
+        }
+        if err := fieldChecks(); err != nil {
+            return ` + common.FmtErrorf(g, "%s: %w", "CheckerLogPrefix(checker)", "err") + `
+        }
+        return nil
     }`)
 
 	// Generate With funcs

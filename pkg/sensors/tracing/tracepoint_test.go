@@ -72,7 +72,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	}
 	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
 
-	tpChecker := ec.NewProcessTracepointChecker().
+	tpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(smatcher.Full("syscalls")).
 		WithEvent(smatcher.Full("sys_enter_lseek")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
