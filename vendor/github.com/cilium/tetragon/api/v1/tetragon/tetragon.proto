@@ -285,3 +285,28 @@ message ProcessLoader {
 	string path = 2;
 	bytes buildid = 3;
 }
+
+// RuntimeHookRequest synchronously propagates information to the agent about run-time state.
+message RuntimeHookRequest {
+    oneof event {
+        CreateContainer createContainer = 1;
+    }
+}
+
+message RuntimeHookResponse {}
+
+// CreateContainer informs the agent that a container was created
+// This is intented to be used by OCI hooks (but not limited to them) and corresponds to the
+// CreateContainer hook:
+// https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontainer-hooks.
+message CreateContainer {
+    // cgroupsPath is the cgroups path for the container. The path is expected to be relative to the
+    // cgroups mountpoint. See: https://github.com/opencontainers/runtime-spec/blob/58ec43f9fc39e0db229b653ae98295bfde74aeab/specs-go/config.go#L174
+    string cgroupsPath = 1;
+    // rootDir is the absolute path of the root directory of the container.
+    // See: https://github.com/opencontainers/runtime-spec/blob/main/specs-go/config.go#L174
+    string rootDir = 2;
+    // annotations are the run-time annotations for the container
+    // see https://github.com/opencontainers/runtime-spec/blob/main/config.md#annotations
+    map<string, string> annotations = 3;
+}
