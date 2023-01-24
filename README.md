@@ -22,38 +22,6 @@ can be configured in relation to individual workloads.
 
 ![Tetragon Overview Diagram](docs/images/smart_observability.png)
 
-## Table Of Content
-
-* [Functionality Overview](#functionality-overview)
-    * [eBPF Real-Time](#ebpf-real-time)
-    * [eBPF Flexibility](#ebpf-flexibility)
-    * [eBPF Kernel Aware](#ebpf-kernel-aware)
-* [Local Development](#local-development)
-* [Docker Deployment](#docker-deployment)
-* [Kubernetes Quickstart Guide](#kubernetes-quickstart-guide)
-    * [Requirements](#requirements)
-    * [Create a cluster](#create-a-cluster)
-        * [Kind](#kind)
-        * [GKE](#gke)
-    * [Deploy Tetragon](#deploy-tetragon)
-    * [Deploy Demo Application](#deploy-demo-application)
-    * [Explore Security Observability Events](#explore-security-observability-events)
-        * [Raw JSON events](#raw-json-events)
-        * [`tetra` CLI](#tetra-cli)
-    * [Process Execution](#process-execution)
-    * [File Access](#file-access)
-    * [Network Observability](#network-observability)
-    * [Privileged Execution](#privileged-execution)
-* [BTF Requirement](#btf-requirement)
-* [FAQ](#faq)
-* [Additional Resources](#additional-resources)
-* [Conference Talks](#conference-talks)
-    * [Book](#book)
-    * [Blog posts](#blog-posts)
-    * [Hands-on lab](#hands-on-lab)
-* [Community](#community)
-    * [Slack](#slack)
-
 ## Functionality Overview
 
 ### eBPF Real-Time
@@ -100,6 +68,37 @@ namespace and capabilities, sockets to processes, process file descriptor to
 filenames and so on. For example, when an application changes its privileges we
 can create a policy to trigger an alert or even kill the process before it has
 a chance to complete the syscall and potentially run additional syscalls.
+
+## Table Of Content
+
+* [Local Development](#local-development)
+* [Docker Deployment](#docker-deployment)
+* [Kubernetes Quickstart Guide](#kubernetes-quickstart-guide)
+    * [Requirements](#requirements)
+    * [Create a cluster](#create-a-cluster)
+        * [Kind](#kind)
+        * [GKE](#gke)
+    * [Deploy Tetragon](#deploy-tetragon)
+    * [Deploy Demo Application](#deploy-demo-application)
+    * [Explore Security Observability Events](#explore-security-observability-events)
+        * [Raw JSON events](#raw-json-events)
+        * [`tetra` CLI](#tetra-cli)
+* [Tetragon Events](#tetragon-events)
+    * [Process execution](#process-execution)
+        * [Use case 1: Monitoring Process Execution](#use-case-1-monitoring-process-execution)
+        * [Use case 2: Privileged Execution](#use-case-2-privileged-execution)
+    * [Generic tracing](#generic-tracing)
+        * [Use case 1: File Access](#use-case-1-file-access)
+        * [Use case 2: Network Observability](#use-case-2-network-observability)
+* [BTF Requirement](#btf-requirement)
+* [FAQ](#faq)
+* [Additional Resources](#additional-resources)
+* [Conference Talks](#conference-talks)
+    * [Book](#book)
+    * [Blog posts](#blog-posts)
+    * [Hands-on lab](#hands-on-lab)
+* [Community](#community)
+    * [Slack](#slack)
 
 ## Local Development
 
@@ -252,10 +251,48 @@ The `tetra` CLI is also available inside `tetragon` container.
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact
 ```
 
-Tetragon is able to observe several events, here we provide a few small
-samples that can be used as a starting point:
+## Tetragon Events
 
-### Process Execution ###
+Tetragon is able to observe critical hooks in the kernel through its sensors
+and generates enriched events from them. In the next sections we detail the
+available sensors and the events they produce:
+1. [Process execution](#process-execution): generating `process_exec` and
+   `process_exit` events.
+1. [Generic tracing](#tracepoints-and-kprobes): generating `process_kprobes`
+   and `process_tracepoint` events.
+
+Along, we present use cases on how they can be used as a starting point.
+
+### Process execution
+
+Tetragon observes process creation and termination with default configuration
+and generates `process_exec` and `process_exit` events:
+
+- The `process_exec` events include useful information about the execution of
+  binaries and related process information. This includes the binary image that
+  was executed, command-line arguments, the UID context the process was
+  executed with, the process parent information, the capabilities that a
+  process had while executed, the process start time, the Kubernetes Pod,
+  labels and more.
+- The `process_exit` events, as the `process_exec` event shows how and when a
+  process started, indicate how and when a process is removed. The information
+  in the event includes the binary image that was executed, command-line
+  arguments, the UID context the process was executed with, process parent
+  information, process start time, the status codes and signals on process
+  exit. Understanding why a process exited and with what status code helps
+  understand the specifics of that exit.
+
+Both these events include Linux-level metadata (UID, parents, capabilities,
+start time, etc.) but also Kubernetes-level metadata (Kubernetes namespace,
+labels, name, etc.). This data make the connection between node-level concepts,
+the processes, and Kubernetes or container environments.
+
+These events enable a full lifecycle view into a process that can aid an
+incident investigation, for example, we can determine if a suspicious process
+is still running in a particular environment. For concrete examples of such
+events, see the next use case on process execution.
+
+#### Use case 1: Monitoring Process Execution
 
 This first use case is monitoring process execution, which can be observed with
 the Tetragon `process_exec` and `process_exit` JSON events.
@@ -440,22 +477,78 @@ Example `process_exec` and `process_exit` events can be:
 </p>
 </details>
 
-For the rest of the use cases we will use the Tetragon CLI to give the output.
+#### Use case 2: Privileged Execution
 
-### File Access
+Tetragon also provides the ability to check process capabilities and kernel
+namespaces access.
 
-The second use case is file access, which can be observed with the
-Tetragon `process_kprobe` JSON events. By using kprobe hook
-points, these events are able to observe arbitrary kernel calls and
-file descriptors in the Linux kernel, giving you the ability to monitor
-every file a process opens, reads, writes, and closes throughout its
-lifecycle. To be able to observe arbitrary kernel calls, Tetragon
-can be extended with `TracingPolicies`.
+This information would help us determine which process or Kubernetes pod has
+started or gained access to privileges or host namespaces that it should not
+have. This would help us answer questions like:
 
-`TracingPolicy` is a user-configurable Kubernetes custom resource definition (CRD)
-that allows users to trace arbitrary events in the kernel and define actions
-to take on a match. For bare metal or VM use cases without Kubernetes a YAML
-configuration file can be used.
+> Which Kubernetes pods are running with `CAP_SYS_ADMIN` in my cluster?
+
+> Which Kubernetes pods have host network or pid namespace access in my
+> cluster?
+
+As a first step let's enable visibility to capability and namespace changes via
+the configmap by setting `enable-process-cred` and `enable-process-ns` from
+`false` to `true`:
+```bash
+kubectl edit cm -n kube-system tetragon-config
+# change "enable-process-cred" from "false" to "true"
+# change "enable-process-ns" from "false" to "true"
+# then save and exit
+```
+Restart the Tetragon daemonset:
+```
+kubectl rollout restart -n kube-system ds/tetragon
+```
+
+As a second step, let's start monitoring the Security Observability events from the privileged `test-pod` workload:
+```bash
+kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents --namespace default --pod test-pod
+```
+
+In another terminal let's apply the privileged PodSpec:
+```bash
+kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/testdata/specs/testpod.yaml
+```
+
+If you observe the output in the first terminal, you can see the container start with `CAP_SYS_ADMIN`:
+```bash
+🚀 process default/test-pod /bin/sleep 365d                🛑 CAP_SYS_ADMIN
+🚀 process default/test-pod /usr/bin/jq -r .bundle         🛑 CAP_SYS_ADMIN
+🚀 process default/test-pod /usr/bin/cp /kind/product_name /kind/product_uuid /run/containerd/io.containerd.runtime.v2.task/k8s.io/7c7e513cd4d506417bc9d97dd9af670d94d9e84161c8c8 fdc9fa3a678289a59/rootfs/ 🛑 CAP_SYS_ADMIN
+```
+
+
+### Generic tracing
+
+For more advanced use cases, Tetragon can observe tracepoints and arbitrary
+kernel calls via kprobes. For that, Tetragon must be extended and configured
+with custom resources objects named `TracingPolicy`. It can then generates
+`process_tracepoint` and `process_kprobes` events.
+
+`TracingPolicy` is a user-configurable Kubernetes custom resource that allows
+users to trace arbitrary events in the kernel and optionally define actions to
+take on a match. For example, a Sigkill signal can be sent to the process or
+the return value of a system call can be overridden. For bare metal or VM use
+cases without Kubernetes, the same YAML configuration can be passed via a flag
+to the Tetragon binary or via the `tetra` CLI to load the policies via gRPC.
+
+For more information on `TracingPolicy` and how to write them, see the
+[`TracingPolicy` Guide](doc/todo.md).
+
+add this link in the guide https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+
+#### Use case 1: File Access
+
+The first use case is file access, which can be observed with the Tetragon
+`process_kprobe` JSON events. By using kprobe hook points, these events are
+able to observe arbitrary kernel calls and file descriptors in the Linux
+kernel, giving you the ability to monitor every file a process opens, reads,
+writes, and closes throughout its lifecycle.
 
 In this example, we can monitor if a process inside a Kubernetes workload performs
 an open, close, read or write in the `/etc/` directory. The policy may further
@@ -573,9 +666,9 @@ To disable the `TracingPolicy` run:
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/sys_write_follow_fd_prefix.yaml
 ```
 
-### Network Observability
+#### Use case 2: Network Observability
 
-To view TCP connect events apply the example TCP connect `TracingPolicy`:
+To view TCP connect events, apply the example TCP connect `TracingPolicy`:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/tcp-connect.yaml
@@ -606,39 +699,6 @@ To disable the TracingPolicy run:
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/tcp-connect.yaml
 ```
 
-### Privileged Execution
-
-Tetragon also provides the ability to check process capabilities and kernel namespaces.
-
-As a first step let's enable visibility to capability and namespace changes via the configmap
-by setting `enable-process-cred` and `enable-process-ns`  from `false` to `true`
-```bash
-kubectl edit cm -n kube-system tetragon-config
-# change "enable-process-cred" from "false" to "true"
-# change "enable-process-ns" from "false" to "true"
-# then save and exit
-```
-Restart the Tetragon daemonset:
-```
-kubectl rollout restart -n kube-system ds/tetragon
-```
-
-As a second step, let's start monitoring the Security Observability events from the privileged `test-pod` workload:
-```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents --namespace default --pod test-pod
-```
-
-In another terminal let's apply the privileged PodSpec:
-```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/testdata/specs/testpod.yaml
-```
-
-If you observe the output in the first terminal, you can see the container start with `CAP_SYS_ADMIN`:
-```bash
-🚀 process default/test-pod /bin/sleep 365d                🛑 CAP_SYS_ADMIN
-🚀 process default/test-pod /usr/bin/jq -r .bundle         🛑 CAP_SYS_ADMIN
-🚀 process default/test-pod /usr/bin/cp /kind/product_name /kind/product_uuid /run/containerd/io.containerd.runtime.v2.task/k8s.io/7c7e513cd4d506417bc9d97dd9af670d94d9e84161c8c8 fdc9fa3a678289a59/rootfs/ 🛑 CAP_SYS_ADMIN
-```
 
 ## BTF Requirement
 
