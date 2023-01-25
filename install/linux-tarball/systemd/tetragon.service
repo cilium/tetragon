@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of Tetragon
+
+[Unit]
+Description=Tetragon eBPF-based Security Observability and Runtime Enforcement
+DefaultDependencies=no
+After=network.target local-fs.target
+Documentation=https://github.com/cilium/tetragon/
+
+[Service]
+Environment="PATH=/usr/local/lib/tetragon/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+User=root
+Group=root
+ExecStart=/usr/local/bin/tetragon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
