@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 
+	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -698,4 +699,65 @@ func CgroupNameFromCStr(cstr []byte) string {
 		i = len(cstr)
 	}
 	return string(cstr[:i])
+}
+
+func tryHostCgroup(path string) error {
+	var st, pst unix.Stat_t
+	if err := unix.Lstat(path, &st); err != nil {
+		return fmt.Errorf("cannot determine cgroup root: error acessing path '%s': %w", path, err)
+	}
+
+	parent := filepath.Dir(path)
+	if err := unix.Lstat(parent, &pst); err != nil {
+		return fmt.Errorf("cannot determine cgroup root: error acessing parent path '%s': %w", parent, err)
+	}
+
+	if st.Dev == pst.Dev {
+		return fmt.Errorf("cannot determine cgroup root: '%s' does not appear to be a mount point", path)
+	}
+
+	fst := unix.Statfs_t{}
+	if err := unix.Statfs(path, &fst); err != nil {
+		return fmt.Errorf("cannot determine cgroup root: failed to get info for '%s'", path)
+	}
+
+	switch fst.Type {
+	case unix.CGROUP2_SUPER_MAGIC, unix.CGROUP_SUPER_MAGIC:
+		return nil
+	default:
+		return fmt.Errorf("cannot determine cgroup root: path '%s' is not a cgroup fs", path)
+	}
+}
+
+// HostCgroupRoot tries to retrieve the host cgroup root
+//
+// For cgroupv1, we return the directory of the contoller currently used.
+//
+// NB(kkourt): for now we are checking /sys/fs/cgroup under host /proc's init.
+// For systems where the cgroup is mounted in a non-standard location, we could
+// also check host's /proc/mounts.
+func HostCgroupRoot() (string, error) {
+	components := []string{
+		option.Config.ProcFS, "1", "root",
+		"sys", "fs", "cgroup",
+		GetCgrpControllerName(),
+	}
+
+	path1 := filepath.Join(components...)
+	err1 := tryHostCgroup(path1)
+	if err1 == nil {
+		return path1, nil
+	}
+
+	path2 := filepath.Join(components[:len(components)-1]...)
+	err2 := tryHostCgroup(path2)
+	if err2 == nil {
+		return path2, nil
+	}
+
+	err := multierr.Append(
+		fmt.Errorf("failed to set path %s as as cgroup root %w", path1, err1),
+		fmt.Errorf("failed to set path %s as as cgroup root %w", path2, err2),
+	)
+	return "", fmt.Errorf("failed to set cgroup root: %w", err)
 }
