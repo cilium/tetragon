@@ -78,7 +78,7 @@ func (src traceBenchOpen) ConfigFilename(ctx context.Context, args *Arguments) s
 	tmpl := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write_writev"
+  name: "sys-write-writev"
 spec:
   kprobes:
   - call: "__x64_sys_openat"

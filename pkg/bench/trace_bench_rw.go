@@ -124,7 +124,7 @@ func (src traceBenchRw) ConfigFilename(ctx context.Context, args *Arguments) str
 	tmpl := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write_writev"
+  name: "sys-write-writev"
 spec:
   kprobes:
   - call: "__x64_sys_write"
