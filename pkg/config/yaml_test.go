@@ -23,7 +23,7 @@ import (
 var writev = `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -89,7 +89,7 @@ spec:
 
 var expectedWrite = GenericTracingConf{
 	ApiVersion: "cilium.io/v1alpha1",
-	Metadata:   Metadata{Name: "sys_write"},
+	Metadata:   Metadata{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
@@ -178,7 +178,7 @@ var expectedWrite = GenericTracingConf{
 var data = `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "example_func"
@@ -251,7 +251,7 @@ spec:
 
 var expectedData = GenericTracingConf{
 	ApiVersion: "cilium.io/v1alpha1",
-	Metadata:   Metadata{Name: "sys_write"},
+	Metadata:   Metadata{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
@@ -473,4 +473,13 @@ func TestExamplesSmoke(t *testing.T) {
 	})
 
 	assert.NoError(t, err, "failed to walk examples directory")
+}
+
+const invalidNameYaml = `apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "invalid_name"`
+
+func TestReadConfigYamlInvalidName(t *testing.T) {
+	_, err := ReadConfigYaml(invalidNameYaml)
+	assert.Error(t, err)
 }

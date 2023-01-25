@@ -56,7 +56,7 @@ func TestKprobeObjectLoad(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -111,7 +111,7 @@ func TestKprobeLseek(t *testing.T) {
 	lseekConfigHook_ := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_lseek"
@@ -202,7 +202,7 @@ func TestKprobeObjectWriteReadHostNs(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -248,7 +248,7 @@ func TestKprobeObjectWriteRead(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -293,7 +293,7 @@ func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -328,7 +328,7 @@ func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -368,7 +368,7 @@ func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write"
+  name: "sys-write"
 spec:
   kprobes:
   - call: "__x64_sys_write"
@@ -459,7 +459,7 @@ func TestKprobeObjectRead(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_read"
@@ -504,7 +504,7 @@ func TestKprobeObjectReadReturn(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_read"
@@ -632,7 +632,7 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "__x64_sys_openat"
@@ -677,7 +677,7 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "__x64_sys_openat"
@@ -725,7 +725,7 @@ func TestKprobeObjectFilterOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_openat"
@@ -759,7 +759,7 @@ func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_openat"
@@ -792,7 +792,7 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "__x64_sys_openat"
@@ -837,7 +837,7 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "__x64_sys_openat"
@@ -882,7 +882,7 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "__x64_sys_openat"
@@ -929,7 +929,7 @@ func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_openat"
@@ -963,7 +963,7 @@ func TestKprobeObjectPostfixOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_openat"
@@ -1016,7 +1016,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "__x64_sys_writev"
+  name: "x64-sys-writev"
 spec:
   kprobes:
   - call: "__x64_sys_writev"
@@ -1090,7 +1090,7 @@ func TestKprobeObjectFilenameOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "do_filp_open"
@@ -1117,7 +1117,7 @@ func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "do_filp_open"
@@ -1144,7 +1144,7 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "fd_install"
@@ -1187,7 +1187,7 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
-    name: "sys_read"
+    name: "sys-read"
   spec:
     kprobes:
     - call: "fd_install"
@@ -1495,7 +1495,7 @@ func TestKprobeArgValues(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "sys_linkat_args"
+  name: "sys-linkat-args"
 spec:
   kprobes:
   - call: "__x64_sys_linkat"
@@ -1639,7 +1639,7 @@ func TestKprobeOverride(t *testing.T) {
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "__x64_sys_openat override"
+  name: "x64-sys-openat-override"
 spec:
   kprobes:
   - call: "__x64_sys_openat"
@@ -1690,7 +1690,7 @@ func TestKprobeOverrideNonSyscall(t *testing.T) {
 	closeFdHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "close_fd override"
+  name: "close-fd-override"
 spec:
   kprobes:
   - call: "close_fd"
@@ -1774,7 +1774,7 @@ func TestKprobe_char_iovec(t *testing.T) {
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write_writev"
+  name: "sys-write-writev"
 spec:
   kprobes:
   - call: "__x64_sys_writev"
@@ -1827,7 +1827,7 @@ func TestKprobe_char_iovec_overflow(t *testing.T) {
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write_writev"
+  name: "sys-write-writev"
 spec:
   kprobes:
   - call: "__x64_sys_writev"
@@ -1880,7 +1880,7 @@ func TestKprobe_char_iovec_returnCopy(t *testing.T) {
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_write_read"
+  name: "sys-write-read"
 spec:
   kprobes:
   - call: "__x64_sys_readv"
@@ -1931,7 +1931,7 @@ func getMatchArgsFileCrd(opStr string, vals []string) string {
 	configHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "testing-file-matchArgs"
+  name: "testing-file-match-args"
 spec:
   kprobes:
   - call: "fd_install"
@@ -1957,7 +1957,7 @@ func getMatchArgsFdCrd(opStr string, vals []string) string {
 	configHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "testing-file-matchArgs"
+  name: "testing-file-match-args"
 spec:
   kprobes:
   - call: "fd_install"
@@ -2437,7 +2437,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
-  name: "sys_read"
+  name: "sys-read"
 spec:
   kprobes:
   - call: "__x64_sys_read"

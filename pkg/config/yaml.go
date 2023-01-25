@@ -6,8 +6,10 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
 )
 
@@ -41,6 +43,15 @@ func ReadConfigYaml(data string) (*GenericTracingConf, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// validates that metadata.name value is compliant with RFC 1123 for the
+	// object to be a valid Kubernetes object, see:
+	// https://k8s.io/docs/concepts/overview/working-with-objects/names/
+	errs := validation.IsDNS1123Subdomain(k.Metadata.Name)
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("invalid metadata.name value: %s", strings.Join(errs, ","))
+	}
+
 	return &k, nil
 }
 
