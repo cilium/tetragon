@@ -48,3 +48,6 @@ jobs:
       - name: Build CLI release binaries
         run: |
           make cli-release
+      - name: Build Tarball
+        run: |
+          make tarball
