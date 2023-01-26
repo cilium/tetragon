@@ -51,6 +51,7 @@ help:
 	@echo '    image-operator    - build the Tetragon operator container image'
 	@echo 'Packages:'
 	@echo '    tarball           - build Tetragon compressed tarball'
+	@echo '    tarball-release   - build Tetragon release tarball'
 	@echo 'Generated files:'
 	@echo '    codegen           - generate code based on .proto files'
 	@echo '    generate          - generate kubebuilder files'
@@ -132,11 +133,10 @@ vendor:
 	$(GO) mod verify
 
 .PHONY: clean
-clean: cli-clean
+clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
-	rm -fr $(BUILD_PKG_DIR)
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
 .PHONY: test
@@ -227,21 +227,27 @@ image-clang-arm:
 	# to compile bpf programs for arm, put 'docker.io/cilium/clang.arm:latest' to CLANG_IMAGE
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang.arm -t "cilium/clang.arm:${DOCKER_IMAGE_TAG}" .
 
-.PHONY: tarball
+.PHONY: tarball tarball-release tarball-clean
 # Share same build environment as docker image
-tarball: image
+tarball: tarball-clean image
 	$(CONTAINER_ENGINE) build --build-arg TETRAGON_VERSION=$(VERSION) --build-arg TARGET_ARCH=$(TARGET_ARCH) -f Dockerfile.tarball -t "cilium/tetragon-tarball:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)mkdir -p $(BUILD_PKG_DIR)
 	$(CONTAINER_ENGINE) save cilium/tetragon-tarball:$(DOCKER_IMAGE_TAG) -o $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
-	$(QUIET)rm -fr $(BUILD_PKG_DIR)/docker/
 	$(QUIET)mkdir -p $(BUILD_PKG_DIR)/docker/
-	$(QUIET)rm -fr $(BUILD_PKG_DIR)/linux-tarball/
 	$(QUIET)mkdir -p $(BUILD_PKG_DIR)/linux-tarball/
 	tar xC $(BUILD_PKG_DIR)/docker/ -f $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
 	find $(BUILD_PKG_DIR)/docker/ -name 'layer.tar' -exec cp '{}' $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar \;
 	$(QUIET)rm -fr $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
 	gzip -6 $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar
 	@echo "Tetragon tarball is ready: $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz"
+
+tarball-release: tarball
+	mkdir -p release/
+	mv $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz release/
+	sha256sum release/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz > release/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz.sha256sum
+
+tarball-clean:
+	rm -fr $(BUILD_PKG_DIR)
 
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'

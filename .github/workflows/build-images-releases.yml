@@ -171,6 +171,9 @@ jobs:
       - name: Generate tetra CLI artifacts
         run: make cli-release
 
+      - name: Generate Tetragon Tarball
+        run: make tarball-release
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
