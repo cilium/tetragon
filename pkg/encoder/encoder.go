@@ -268,7 +268,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s bytes %d", event, processInfo, args, bytes), caps), nil
 		case "bpf_check":
-			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "bpf_check")
+			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "bpf_load")
 			attr := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				ba := kprobe.Args[0].GetBpfAttrArg()
@@ -284,7 +284,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		case "security_bpf_map_alloc":
-			event := p.Colorer.Blue.Sprintf("🗺 %-7s", "bpf_map_alloc")
+			event := p.Colorer.Blue.Sprintf("🗺 %-7s", "bpf_map_create")
 			attr := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
 				bpfmap := kprobe.Args[0].GetBpfMapArg()

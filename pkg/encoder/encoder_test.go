@@ -299,7 +299,7 @@ func TestCompactEncoder_KprobeBPFEventToString(t *testing.T) {
 			},
 		}})
 	assert.NoError(t, err)
-	assert.Equal(t, "🐝 bpf_check kube-system/tetragon /usr/bin/bpftool ", result)
+	assert.Equal(t, "🐝 bpf_load kube-system/tetragon /usr/bin/bpftool ", result)
 
 	// bpf with args
 	result, err = p.EventToString(&tetragon.GetEventsResponse{
@@ -326,7 +326,7 @@ func TestCompactEncoder_KprobeBPFEventToString(t *testing.T) {
 			},
 		}})
 	assert.NoError(t, err)
-	assert.Equal(t, "🐝 bpf_check kube-system/tetragon /usr/bin/bpftool BPF_PROG_TYPE_KPROBE amazing-program instruction count 2048", result)
+	assert.Equal(t, "🐝 bpf_load kube-system/tetragon /usr/bin/bpftool BPF_PROG_TYPE_KPROBE amazing-program instruction count 2048", result)
 }
 
 func TestCompactEncoder_KprobePerfEventAllocEventToString(t *testing.T) {
@@ -394,7 +394,7 @@ func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
 			},
 		}})
 	assert.NoError(t, err)
-	assert.Equal(t, "🗺 bpf_map_alloc kube-system/tetragon /usr/bin/bpftool ", result)
+	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool ", result)
 
 	// bpf map with args
 	result, err = p.EventToString(&tetragon.GetEventsResponse{
@@ -423,7 +423,7 @@ func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
 			},
 		}})
 	assert.NoError(t, err)
-	assert.Equal(t, "🗺 bpf_map_alloc kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
+	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
 }
 
 func TestCompactEncoder_Encode(t *testing.T) {
