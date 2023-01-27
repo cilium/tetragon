@@ -203,7 +203,12 @@ func tetragonExecute() error {
 
 	// Check if option to remove old BPF and maps is enabled.
 	if option.Config.ReleasePinned {
-		os.RemoveAll(observerDir)
+		err := os.RemoveAll(observerDir)
+		if err != nil {
+			log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: failed to release pinned BPF programs and maps, Consider removing it manually")
+		} else {
+			log.WithField("bpf-dir", observerDir).Info("BPF: successfully released pinned BPF programs and maps")
+		}
 	}
 
 	// Get observer from configFile
@@ -298,6 +303,8 @@ func tetragonExecute() error {
 	if option.Config.EnableK8s {
 		go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
+
+	obs.LogPinnedBpf(observerDir)
 
 	// load base sensor
 	if err := base.GetInitialSensor().Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {

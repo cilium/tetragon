@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -349,4 +350,35 @@ func (k *Observer) PrintStats() {
 
 func (k *Observer) RemovePrograms() {
 	RemovePrograms(option.Config.BpfDir, option.Config.MapDir)
+}
+
+// Log Active pinned BPF resources
+func (k *Observer) LogPinnedBpf(observerDir string) {
+	finfo, err := os.Stat(observerDir)
+	if err != nil {
+		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
+		return
+	}
+
+	if finfo.IsDir() == false {
+		err := fmt.Errorf("is not a directory")
+		k.log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: checking BPF resources failed")
+		// Do not fail, let bpf part handle it
+		return
+	}
+
+	bpfRes, _ := os.ReadDir(observerDir)
+	// Do not fail, let bpf part handle it
+	if len(bpfRes) == 0 {
+		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
+	} else {
+		res := make([]string, 0)
+		for _, b := range bpfRes {
+			res = append(res, b.Name())
+		}
+		k.log.WithFields(logrus.Fields{
+			"bpf-dir":    observerDir,
+			"pinned-bpf": fmt.Sprintf("[%s]", strings.Join(res, " ")),
+		}).Info("BPF: found active BPF resources")
+	}
 }
