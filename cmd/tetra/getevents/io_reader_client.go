@@ -23,6 +23,7 @@ import (
 type ioReaderClient struct {
 	scanner      *bufio.Scanner
 	allowlist    hubbleFilters.FilterFuncs
+	fieldFilters []*filters.FieldFilter
 	unmarshaller protojson.UnmarshalOptions
 	debug        bool
 	grpc.ClientStream
@@ -42,6 +43,7 @@ func (i *ioReaderClient) GetEvents(ctx context.Context, in *tetragon.GetEventsRe
 		return nil, err
 	}
 	i.allowlist = allowlist
+	i.fieldFilters = filters.FieldFiltersFromGetEventsRequest(in)
 	if i.debug {
 		fmt.Fprintf(os.Stderr, "DEBUG: GetEvents request: %+v\n", in)
 	}
@@ -99,6 +101,9 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 		}
 		if !hubbleFilters.Apply(i.allowlist, nil, &v1.Event{Event: &res}) {
 			continue
+		}
+		for _, filter := range i.fieldFilters {
+			filter.Filter(&res)
 		}
 		return &res, nil
 	}
