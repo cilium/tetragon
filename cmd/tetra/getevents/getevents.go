@@ -149,7 +149,7 @@ func New() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringP("output", "o", "json", "Output format. json or compact")
 	flags.String("color", "auto", "Colorize compact output. auto, always, or never")
-	flags.StringSliceP("include-fields", "f", nil, "Include fields in events")
+	flags.StringSliceP("include-fields", "f", nil, "Include only fields in events")
 	flags.StringSliceP("exclude-fields", "F", nil, "Exclude fields from events")
 	flags.StringSliceP("namespace", "n", nil, "Get events by Kubernetes namespaces")
 	flags.StringSlice("process", nil, "Get events by process name regex")
