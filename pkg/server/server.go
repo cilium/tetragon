@@ -217,11 +217,11 @@ func (s *Server) ListSensors(ctx context.Context, request *tetragon.ListSensorsR
 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received an AddTracingPolicy request")
-	conf, err := config.ReadConfigYaml(req.GetYaml())
+	tp, err := config.PolicyFromYaml(req.GetYaml())
 	if err != nil {
 		return nil, err
 	}
-	if err := s.observer.AddTracingPolicy(ctx, conf); err != nil {
+	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
 		return nil, err
 	}
 	return &tetragon.AddTracingPolicyResponse{}, nil
@@ -229,11 +229,11 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 
 func (s *Server) DelTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received an DeleteTracingPolicy request")
-	conf, err := config.ReadConfigYaml(req.GetYaml())
+	tp, err := config.PolicyFromYaml(req.GetYaml())
 	if err != nil {
 		return nil, err
 	}
-	if err := s.observer.DelTracingPolicy(ctx, conf.Metadata.Name); err != nil {
+	if err := s.observer.DelTracingPolicy(ctx, tp.TpName()); err != nil {
 		return nil, err
 	}
 	return &tetragon.DeleteTracingPolicyResponse{}, nil

@@ -362,22 +362,24 @@ var expectedData = GenericTracingConf{
 }
 
 func TestYamlWritev(t *testing.T) {
-	k, err := ReadConfigYaml(writev)
+	pol, err := PolicyFromYaml(writev)
 	if err != nil {
 		t.Errorf("YamlWritev error %s", err)
 	}
+	k := pol.(*GenericTracingConf)
 	if reflect.DeepEqual(*k, expectedWrite) != true {
 		t.Errorf("not equal\nk=%v\ne= %v\n", k, expectedWrite)
 	}
 }
 
 func TestYamlData(t *testing.T) {
-	k, err := ReadConfigYaml(data)
+	pol, err := PolicyFromYaml(data)
 	if err != nil {
 		t.Errorf("YamlData error %s", err)
 	}
+	k := pol.(*GenericTracingConf)
 	if reflect.DeepEqual(*k, expectedData) != true {
-		t.Errorf("not equal\nk=%v\ne= %v\n", k, expectedData)
+		t.Errorf("not equal\nk=%v\ne=%v\n", *k, expectedData)
 	}
 }
 
@@ -418,7 +420,11 @@ func TestYamlLseek(t *testing.T) {
 		},
 	}
 
-	k, err := ReadConfigYaml(lseekExample)
+	pol, err := PolicyFromYaml(lseekExample)
+	if err != nil {
+		t.Errorf("YamlData error %s", err)
+	}
+	k := pol.(*GenericTracingConf)
 	if err != nil {
 		t.Errorf("ReadConfigYaml failed: %s", err)
 	}
@@ -438,7 +444,11 @@ func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingC
 	var buf bytes.Buffer
 	templ.Execute(&buf, data)
 
-	return ReadConfigYaml(buf.String())
+	pol, err := PolicyFromYaml(buf.String())
+	if err != nil {
+		return nil, fmt.Errorf("PolicyFromYaml error %s", err)
+	}
+	return pol.(*GenericTracingConf), nil
 }
 
 func TestExamplesSmoke(t *testing.T) {
@@ -480,6 +490,6 @@ metadata:
   name: "invalid_name"`
 
 func TestReadConfigYamlInvalidName(t *testing.T) {
-	_, err := ReadConfigYaml(invalidNameYaml)
+	_, err := PolicyFromYaml(invalidNameYaml)
 	assert.Error(t, err)
 }

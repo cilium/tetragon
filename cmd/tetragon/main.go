@@ -96,23 +96,6 @@ func saveInitInfo() error {
 	return bugtool.SaveInitInfo(&info)
 }
 
-func readConfig(file string) (*config.GenericTracingConf, error) {
-	if file == "" {
-		return nil, nil
-	}
-
-	yamlData, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read yaml file %s: %w", configFile, err)
-	}
-	cnf, err := config.ReadConfigYaml(string(yamlData))
-	if err != nil {
-		return nil, err
-	}
-
-	return cnf, nil
-}
-
 func stopProfile() {
 	if memProfile != "" {
 		log.WithField("file", memProfile).Info("Stopping mem profiling")
@@ -318,12 +301,12 @@ func tetragonExecute() error {
 	// load sensor from configuration file
 	if len(configFile) > 0 {
 		var sens *sensors.Sensor
-		cnf, err := readConfig(configFile)
+		cnf, err := config.PolicyFromYamlFilename(configFile)
 		if err != nil {
 			return err
 		}
 
-		sens, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), &cnf.Spec)
+		sens, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), cnf.TpSpec())
 		if err != nil {
 			return err
 		}

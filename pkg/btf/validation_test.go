@@ -66,10 +66,11 @@ func TestSpecs(t *testing.T) {
 		specFname := testFiles[fi].specFname
 		t.Run(specFname, func(t *testing.T) {
 			specFname := filepath.Join(testdataPath, specFname)
-			spec, err := config.FileConfigSpec(specFname)
+			tp, err := config.PolicyFromYamlFilename(specFname)
 			if err != nil {
 				t.Fatal(err)
 			}
+			spec := tp.TpSpec()
 			for ki := range spec.KProbes {
 				err = ValidateKprobeSpec(btf, &spec.KProbes[ki])
 				if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {

@@ -201,23 +201,6 @@ func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
 	return NewObserver(oo.config)
 }
 
-func readConfig(file string) (*yaml.GenericTracingConf, error) {
-	if file == "" {
-		return nil, nil
-	}
-
-	yamlData, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read yaml file %s: %w", file, err)
-	}
-	cnf, err := yaml.ReadConfigYaml(string(yamlData))
-	if err != nil {
-		return nil, err
-	}
-
-	return cnf, nil
-}
-
 func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
 	var cnfSensor *sensors.Sensor
 	var ret []*sensors.Sensor
@@ -244,10 +227,10 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		return nil, ret, err
 	}
 
-	cnf, _ := readConfig(o.observer.config)
+	cnf, _ := yaml.PolicyFromYamlFilename(o.observer.config)
 	if cnf != nil {
 		var err error
-		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), &cnf.Spec)
+		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), cnf.TpSpec())
 		if err != nil {
 			return nil, ret, err
 		}
