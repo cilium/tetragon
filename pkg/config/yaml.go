@@ -42,8 +42,10 @@ func PolicyFromYaml(data string) (tracingpolicy.TracingPolicy, error) {
 	var k GenericTracingConf
 
 	err := yaml.UnmarshalStrict([]byte(data), &k)
+	// if yaml file contains a namespace field, parsing will fail. Retry
+	// again to parse it as a namespaced policy.
 	if err != nil {
-		return nil, err
+		return NamespacedPolicyFromYaml(data)
 	}
 
 	// validates that metadata.name value is compliant with RFC 1123 for the
@@ -91,4 +93,23 @@ func (cnf *GenericTracingConfNamespaced) TpSpec() *v1alpha1.TracingPolicySpec {
 
 func (cnf *GenericTracingConfNamespaced) TpInfo() string {
 	return cnf.Metadata.Name
+}
+
+func NamespacedPolicyFromYaml(data string) (tracingpolicy.TracingPolicy, error) {
+	var k GenericTracingConfNamespaced
+
+	err := yaml.UnmarshalStrict([]byte(data), &k)
+	if err != nil {
+		return nil, err
+	}
+
+	// validates that metadata.name value is compliant with RFC 1123 for the
+	// object to be a valid Kubernetes object, see:
+	// https://k8s.io/docs/concepts/overview/working-with-objects/names/
+	errs := validation.IsDNS1123Subdomain(k.Metadata.Name)
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("invalid metadata.name value %q: %s", k.Metadata.Name, strings.Join(errs, ","))
+	}
+
+	return &k, nil
 }

@@ -17,7 +17,10 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var writev = `
@@ -492,4 +495,22 @@ metadata:
 func TestReadConfigYamlInvalidName(t *testing.T) {
 	_, err := PolicyFromYaml(invalidNameYaml)
 	assert.Error(t, err)
+}
+
+const tpNamespaced = `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "tracepoint-lseek"
+  namespace: "default"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`
+
+func TestYamlNamespaced(t *testing.T) {
+	tp, err := PolicyFromYaml(tpNamespaced)
+	require.NoError(t, err)
+	_, ok := tp.(tracingpolicy.TracingPolicyNamespaced)
+	require.True(t, ok)
 }
