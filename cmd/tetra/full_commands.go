@@ -7,6 +7,7 @@ package main
 
 import (
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
+	"github.com/cilium/tetragon/cmd/tetra/dump"
 	"github.com/cilium/tetragon/cmd/tetra/getevents"
 	"github.com/cilium/tetragon/cmd/tetra/rthooks"
 	"github.com/cilium/tetragon/cmd/tetra/sensors"
@@ -26,4 +27,5 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(status.New())
 	rootCmd.AddCommand(tracingpolicy.New())
 	rootCmd.AddCommand(rthooks.New())
+	rootCmd.AddCommand(dump.New())
 }
