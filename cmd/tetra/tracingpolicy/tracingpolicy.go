@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -41,6 +42,20 @@ func New() *cobra.Command {
 		},
 	}
 	tpCmd.AddCommand(tpAddCmd)
+
+	tpListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "list tracing policies",
+		Args:  cobra.ExactArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				listTragingPolicies(ctx, cli)
+			})
+		},
+	}
+
+	tpCmd.AddCommand(tpAddCmd, tpListCmd)
+
 	return tpCmd
 }
 
@@ -56,5 +71,24 @@ func addTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsCl
 	})
 	if err != nil {
 		fmt.Printf("failed to add tracing policy: %s\n", err)
+	}
+}
+
+func listTragingPolicies(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
+
+	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
+	if err != nil || res == nil {
+		fmt.Printf("failed to list tracing policies: %s\n", err)
+		return
+	}
+
+	for _, pol := range res.Policies {
+		namespace := pol.Namespace
+		if namespace == "" {
+			namespace = "(global)"
+		}
+
+		sensors := strings.Join(pol.Sensors, ",")
+		fmt.Printf("%d %s (%s) %s %s\n", pol.Id, pol.Name, pol.Info, namespace, sensors)
 	}
 }
