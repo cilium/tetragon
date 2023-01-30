@@ -14,9 +14,11 @@ import (
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.
 type collection struct {
-	sensors       []*Sensor
-	name          string
-	tracingpolicy tracingpolicy.TracingPolicy
+	sensors []*Sensor
+	name    string
+	// fields below are only set for tracing policies
+	tracingpolicy   tracingpolicy.TracingPolicy
+	tracingpolicyID uint64
 }
 
 func (c *collection) info() string {

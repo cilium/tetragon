@@ -6,6 +6,7 @@ package sensors
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -88,9 +89,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	sensors = append(sensors, policySensors...)
 
 	col := collection{
-		sensors:       sensors,
-		name:          op.name,
-		tracingpolicy: op.tp,
+		sensors:         sensors,
+		name:            op.name,
+		tracingpolicy:   op.tp,
+		tracingpolicyID: uint64(tpID),
 	}
 	if err := col.load(op.ctx, h.bpfDir, h.mapDir, h.ciliumDir, nil); err != nil {
 		return err
@@ -110,6 +112,35 @@ func (h *handler) delTracingPolicy(op *tracingPolicyDel) error {
 	err := col.unload(nil)
 	delete(h.collections, op.name)
 	return err
+}
+
+func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
+	ret := tetragon.ListTracingPoliciesResponse{}
+	for name, col := range h.collections {
+		if col.tracingpolicy == nil {
+			continue
+		}
+
+		pol := tetragon.TracingPolicyStatus{
+			Id:   col.tracingpolicyID,
+			Name: name,
+			Info: col.tracingpolicy.TpInfo(),
+		}
+
+		pol.Namespace = ""
+		if tpNs, ok := col.tracingpolicy.(tracingpolicy.TracingPolicyNamespaced); ok {
+			pol.Namespace = tpNs.TpNamespace()
+		}
+
+		for _, sens := range col.sensors {
+			pol.Sensors = append(pol.Sensors, sens.Name)
+		}
+
+		ret.Policies = append(ret.Policies, &pol)
+
+	}
+	op.result = &ret
+	return nil
 }
 
 func (h *handler) addSensor(op *sensorAdd) error {
