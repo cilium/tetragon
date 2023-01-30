@@ -48,3 +48,7 @@ func (f *FakeObserver) DelTracingPolicy(ctx context.Context, sensorName string) 
 func (f *FakeObserver) RemoveSensor(ctx context.Context, sensorName string) error {
 	return nil
 }
+
+func (f *FakeObserver) ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
+	return nil, nil
+}
