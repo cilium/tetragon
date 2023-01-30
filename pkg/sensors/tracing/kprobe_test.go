@@ -2418,12 +2418,12 @@ spec:
 		return fmt.Errorf("load base sensor failed: %w", err)
 	}
 
-	cnf, _ := yaml.ReadConfigYaml(testHook)
-	if cnf == nil {
+	tp, _ := yaml.PolicyFromYaml(testHook)
+	if tp == nil {
 		return nil
 	}
 
-	sens, err := sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), &cnf.Spec)
+	sens, err := sensors.GetMergedSensorFromParserPolicy(tp.TpName(), tp.TpSpec())
 	if err != nil {
 		return err
 	}

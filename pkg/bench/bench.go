@@ -52,23 +52,6 @@ type Arguments struct {
 	Baseline    bool
 }
 
-func readConfig(file string) (*config.GenericTracingConf, error) {
-	if file == "" {
-		return nil, nil
-	}
-
-	yamlData, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read yaml file %s: %w", file, err)
-	}
-	cnf, err := config.ReadConfigYaml(string(yamlData))
-	if err != nil {
-		return nil, err
-	}
-
-	return cnf, nil
-}
-
 func (args *Arguments) String() string {
 	return fmt.Sprintf("Trace=%s, Debug=%v, PrintEvents=%v, JSONEncode=%v, Baseline=%v",
 		args.Trace, args.Debug, args.PrintEvents, args.JSONEncode, args.Baseline)
@@ -124,12 +107,12 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		}
 	}
 
-	cnf, err := readConfig(configFile)
+	tp, err := config.PolicyFromYamlFilename(configFile)
 	if err != nil {
-		log.Fatalf("readConfig error: %v", err)
+		log.Fatalf("PolicyFromYamlFilename: %v", err)
 	}
 
-	benchSensors, err := sensors.GetMergedSensorFromParserPolicy(cnf.TpName(), &cnf.Spec)
+	benchSensors, err := sensors.GetMergedSensorFromParserPolicy(tp.TpName(), tp.TpSpec())
 	if err != nil {
 		log.Fatalf("GetMergedSensorFromParserPolicy error: %v", err)
 	}
