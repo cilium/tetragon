@@ -19,7 +19,8 @@ BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 VERSION ?= $(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
-GO_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode external -extldflags -static"
+GO_LDFLAGS_STATIC="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode=external -extldflags=-static"
+GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
@@ -76,6 +77,10 @@ endif
 
 ifeq (1,$(NOOPT))
 GO_GCFLAGS = "all=-N -l"
+endif
+
+ifeq (1,$(STATIC))
+GO_LDFLAGS = $(GO_LDFLAGS_STATIC)
 endif
 
 tetragon-bpf-local:
