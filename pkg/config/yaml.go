@@ -49,7 +49,7 @@ func ReadConfigYaml(data string) (*GenericTracingConf, error) {
 	// https://k8s.io/docs/concepts/overview/working-with-objects/names/
 	errs := validation.IsDNS1123Subdomain(k.Metadata.Name)
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("invalid metadata.name value: %s", strings.Join(errs, ","))
+		return nil, fmt.Errorf("invalid metadata.name value %q: %s", k.Metadata.Name, strings.Join(errs, ","))
 	}
 
 	return &k, nil
