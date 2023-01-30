@@ -26,6 +26,7 @@ type FineGuidanceSensorsClient interface {
 	GetHealth(ctx context.Context, in *GetHealthStatusRequest, opts ...grpc.CallOption) (*GetHealthStatusResponse, error)
 	AddTracingPolicy(ctx context.Context, in *AddTracingPolicyRequest, opts ...grpc.CallOption) (*AddTracingPolicyResponse, error)
 	RemoveSensor(ctx context.Context, in *RemoveSensorRequest, opts ...grpc.CallOption) (*RemoveSensorResponse, error)
+	ListTracingPolicies(ctx context.Context, in *ListTracingPoliciesRequest, opts ...grpc.CallOption) (*ListTracingPoliciesResponse, error)
 	ListSensors(ctx context.Context, in *ListSensorsRequest, opts ...grpc.CallOption) (*ListSensorsResponse, error)
 	EnableSensor(ctx context.Context, in *EnableSensorRequest, opts ...grpc.CallOption) (*EnableSensorResponse, error)
 	DisableSensor(ctx context.Context, in *DisableSensorRequest, opts ...grpc.CallOption) (*DisableSensorResponse, error)
@@ -97,6 +98,15 @@ func (c *fineGuidanceSensorsClient) AddTracingPolicy(ctx context.Context, in *Ad
 func (c *fineGuidanceSensorsClient) RemoveSensor(ctx context.Context, in *RemoveSensorRequest, opts ...grpc.CallOption) (*RemoveSensorResponse, error) {
 	out := new(RemoveSensorResponse)
 	err := c.cc.Invoke(ctx, "/tetragon.FineGuidanceSensors/RemoveSensor", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fineGuidanceSensorsClient) ListTracingPolicies(ctx context.Context, in *ListTracingPoliciesRequest, opts ...grpc.CallOption) (*ListTracingPoliciesResponse, error) {
+	out := new(ListTracingPoliciesResponse)
+	err := c.cc.Invoke(ctx, "/tetragon.FineGuidanceSensors/ListTracingPolicies", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +193,7 @@ type FineGuidanceSensorsServer interface {
 	GetHealth(context.Context, *GetHealthStatusRequest) (*GetHealthStatusResponse, error)
 	AddTracingPolicy(context.Context, *AddTracingPolicyRequest) (*AddTracingPolicyResponse, error)
 	RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error)
+	ListTracingPolicies(context.Context, *ListTracingPoliciesRequest) (*ListTracingPoliciesResponse, error)
 	ListSensors(context.Context, *ListSensorsRequest) (*ListSensorsResponse, error)
 	EnableSensor(context.Context, *EnableSensorRequest) (*EnableSensorResponse, error)
 	DisableSensor(context.Context, *DisableSensorRequest) (*DisableSensorResponse, error)
@@ -208,6 +219,9 @@ func (UnimplementedFineGuidanceSensorsServer) AddTracingPolicy(context.Context, 
 }
 func (UnimplementedFineGuidanceSensorsServer) RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveSensor not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) ListTracingPolicies(context.Context, *ListTracingPoliciesRequest) (*ListTracingPoliciesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTracingPolicies not implemented")
 }
 func (UnimplementedFineGuidanceSensorsServer) ListSensors(context.Context, *ListSensorsRequest) (*ListSensorsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSensors not implemented")
@@ -316,6 +330,24 @@ func _FineGuidanceSensors_RemoveSensor_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(FineGuidanceSensorsServer).RemoveSensor(ctx, req.(*RemoveSensorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FineGuidanceSensors_ListTracingPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTracingPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).ListTracingPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tetragon.FineGuidanceSensors/ListTracingPolicies",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).ListTracingPolicies(ctx, req.(*ListTracingPoliciesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -482,6 +514,10 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveSensor",
 			Handler:    _FineGuidanceSensors_RemoveSensor_Handler,
+		},
+		{
+			MethodName: "ListTracingPolicies",
+			Handler:    _FineGuidanceSensors_ListTracingPolicies_Handler,
 		},
 		{
 			MethodName: "ListSensors",

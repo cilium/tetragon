@@ -79,11 +79,14 @@
     - [GetVersionResponse](#tetragon-GetVersionResponse)
     - [ListSensorsRequest](#tetragon-ListSensorsRequest)
     - [ListSensorsResponse](#tetragon-ListSensorsResponse)
+    - [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest)
+    - [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse)
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
     - [SensorStatus](#tetragon-SensorStatus)
     - [SetSensorConfigRequest](#tetragon-SetSensorConfigRequest)
     - [SetSensorConfigResponse](#tetragon-SetSensorConfigResponse)
+    - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
   
@@ -1294,6 +1297,31 @@ Determins the behaviour of a field filter
 
 
 
+<a name="tetragon-ListTracingPoliciesRequest"></a>
+
+### ListTracingPoliciesRequest
+
+
+
+
+
+
+
+<a name="tetragon-ListTracingPoliciesResponse"></a>
+
+### ListTracingPoliciesResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| policies | [TracingPolicyStatus](#tetragon-TracingPolicyStatus) | repeated |  |
+
+
+
+
+
+
 <a name="tetragon-RemoveSensorRequest"></a>
 
 ### RemoveSensorRequest
@@ -1362,6 +1390,25 @@ Determins the behaviour of a field filter
 
 
 
+
+<a name="tetragon-TracingPolicyStatus"></a>
+
+### TracingPolicyStatus
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [uint64](#uint64) |  | id is the id of the policy |
+| name | [string](#string) |  | name is the name of the policy |
+| namespace | [string](#string) |  | namespace is the namespace of the policy (or empty of the policy is global) |
+| info | [string](#string) |  | info is additional information about the policy |
+| sensors | [string](#string) | repeated | sensors loaded in the scope of this policy |
+
+
+
+
+
  
 
  
@@ -1380,6 +1427,7 @@ Determins the behaviour of a field filter
 | GetHealth | [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest) | [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse) |  |
 | AddTracingPolicy | [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest) | [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
+| ListTracingPolicies | [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest) | [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse) |  |
 | ListSensors | [ListSensorsRequest](#tetragon-ListSensorsRequest) | [ListSensorsResponse](#tetragon-ListSensorsResponse) |  |
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
