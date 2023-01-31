@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -51,7 +52,17 @@ func addTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Ma
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.WithField("policy", tp.TpInfo()).Info("adding tracing policy")
+		log.WithFields(logrus.Fields{
+			"name": tp.TpName(),
+			"info": tp.TpInfo(),
+		}).Info("adding tracing policy")
+		err = s.AddTracingPolicy(ctx, tp)
+	case *v1alpha1.TracingPolicyNamespaced:
+		log.WithFields(logrus.Fields{
+			"name":      tp.TpName(),
+			"info":      tp.TpInfo(),
+			"namespace": tp.TpNamespace(),
+		}).Info("adding namespaced tracing policy")
 		err = s.AddTracingPolicy(ctx, tp)
 	default:
 		log.WithFields(logrus.Fields{
@@ -76,8 +87,19 @@ func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.WithField("policy", tp.TpInfo()).Info("deleting tracing policy")
-		err = s.DelTracingPolicy(ctx, tp.ObjectMeta.Name)
+		log.WithFields(logrus.Fields{
+			"name": tp.TpName(),
+			"info": tp.TpInfo(),
+		}).Info("deleting tracing policy")
+		err = s.DelTracingPolicy(ctx, tp.TpName())
+
+	case *v1alpha1.TracingPolicyNamespaced:
+		log.WithFields(logrus.Fields{
+			"name":      tp.TpName(),
+			"info":      tp.TpInfo(),
+			"namespace": tp.TpNamespace(),
+		}).Info("deleting namespaced tracing policy")
+		err = s.DelTracingPolicy(ctx, tp.TpName())
 	}
 
 	if err != nil {
@@ -87,20 +109,28 @@ func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 
 func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
 	oldObj interface{}, newObj interface{}) {
-	var err error
+
+	update := func(oldTp, newTp tracingpolicy.TracingPolicy) {
+		if err := s.DelTracingPolicy(ctx, oldTp.TpName()); err != nil {
+			log.WithError(err).WithField(
+				"old-name", oldTp.TpName(),
+			).Warnf("updateTracingPolicy: failed to remove old policy")
+			return
+		}
+		if err := s.AddTracingPolicy(ctx, newTp); err != nil {
+			log.WithError(err).WithField(
+				"new-name", newTp.TpName(),
+			).Warnf("updateTracingPolicy: failed to add new policy")
+			return
+		}
+	}
+
 	switch oldTp := oldObj.(type) {
 	case *v1alpha1.TracingPolicy:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicy)
 		if !ok {
-			log.WithFields(logrus.Fields{
-				"old-obj":      oldObj,
-				"old-obj-type": fmt.Sprintf("%T", oldObj),
-				"new-obj":      newObj,
-				"new-obj-type": fmt.Sprintf("%T", newObj),
-			}).Warn("updateTracingPolicy: invalid new type")
-			return
+			break
 		}
-
 		// FIXME: add proper DeepEquals. The resource might have different
 		//  resource versions but the fields that matter to us are still the
 		//  same.
@@ -109,25 +139,36 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 		}
 
 		log.WithFields(logrus.Fields{
-			"old": oldTp.TpInfo(),
-			"new": newTp.TpInfo(),
+			"old": oldTp.TpName(),
+			"new": newTp.TpName(),
 		}).Info("updating tracing policy")
-		err = s.DelTracingPolicy(ctx, oldTp.ObjectMeta.Name)
-		if err != nil {
-			log.WithError(err).WithField(
-				"old-policy", oldTp.TpInfo(),
-			).Warnf("updateTracingPolicy: failed to remove old policy")
+		update(oldTp, newTp)
+
+	case *v1alpha1.TracingPolicyNamespaced:
+		newTp, ok := newObj.(*v1alpha1.TracingPolicyNamespaced)
+		if !ok {
+			break
+		}
+		// FIXME: add proper DeepEquals. The resource might have different
+		//  resource versions but the fields that matter to us are still the
+		//  same.
+		if oldTp.ResourceVersion == newTp.ResourceVersion {
 			return
 		}
 
-		err := s.AddTracingPolicy(ctx, newTp)
-		if err != nil {
-			log.WithError(err).WithField(
-				"new-policy", newTp.TpInfo(),
-			).Warnf("updateTracingPolicy: failed to add new policy")
-			return
-		}
+		log.WithFields(logrus.Fields{
+			"old": oldTp.TpName(),
+			"new": newTp.TpName(),
+		}).Info("updating namespaced tracing policy")
+		update(oldTp, newTp)
 	}
+
+	log.WithFields(logrus.Fields{
+		"old-obj":      oldObj,
+		"old-obj-type": fmt.Sprintf("%T", oldObj),
+		"new-obj":      newObj,
+		"new-obj-type": fmt.Sprintf("%T", newObj),
+	}).Warn("updateTracingPolicy: type mismatch")
 }
 
 func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
@@ -138,17 +179,30 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 	}
 	client := versioned.NewForConfigOrDie(conf)
 	factory := externalversions.NewSharedInformerFactory(client, 0)
-	informer := factory.Cilium().V1alpha1().TracingPolicies()
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			addTracingPolicy(ctx, log, s, obj)
-		},
-		DeleteFunc: func(obj interface{}) {
-			deleteTracingPolicy(ctx, log, s, obj)
-		},
-		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-			updateTracingPolicy(ctx, log, s, oldObj, newObj)
-		}})
+
+	factory.Cilium().V1alpha1().TracingPolicies().Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				addTracingPolicy(ctx, log, s, obj)
+			},
+			DeleteFunc: func(obj interface{}) {
+				deleteTracingPolicy(ctx, log, s, obj)
+			},
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+				updateTracingPolicy(ctx, log, s, oldObj, newObj)
+			}})
+
+	factory.Cilium().V1alpha1().TracingPoliciesNamespaced().Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				addTracingPolicy(ctx, log, s, obj)
+			},
+			DeleteFunc: func(obj interface{}) {
+				deleteTracingPolicy(ctx, log, s, obj)
+			},
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+				updateTracingPolicy(ctx, log, s, oldObj, newObj)
+			}})
 
 	go factory.Start(wait.NeverStop)
 	factory.WaitForCacheSync(wait.NeverStop)

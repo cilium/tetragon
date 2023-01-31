@@ -55,6 +55,22 @@ type TracingPolicyNamespaced struct {
 	Spec TracingPolicySpec `json:"spec"`
 }
 
+func (tp *TracingPolicyNamespaced) TpSpec() *TracingPolicySpec {
+	return &tp.Spec
+}
+
+func (tp *TracingPolicyNamespaced) TpInfo() string {
+	return fmt.Sprintf("%s (object:%d/%s) (type:%s/%s)", tp.ObjectMeta.Name, tp.ObjectMeta.Generation, tp.ObjectMeta.UID, tp.TypeMeta.Kind, tp.TypeMeta.APIVersion)
+}
+
+func (tp *TracingPolicyNamespaced) TpName() string {
+	return tp.ObjectMeta.Name
+}
+
+func (tp *TracingPolicyNamespaced) TpNamespace() string {
+	return tp.ObjectMeta.Namespace
+}
+
 type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of kprobe specs.
