@@ -22,9 +22,41 @@ can be configured in relation to individual workloads.
 
 ![Tetragon Overview Diagram](docs/images/smart_observability.png)
 
-## Functionality Overview #
+## Table Of Content
 
-### eBPF Real-Time ##
+* [Functionality Overview](#functionality-overview)
+    * [eBPF Real-Time](#ebpf-real-time)
+    * [eBPF Flexibility](#ebpf-flexibility)
+    * [eBPF Kernel Aware](#ebpf-kernel-aware)
+* [Local Development](#local-development)
+* [Docker Deployment](#docker-deployment)
+* [Kubernetes Quickstart Guide](#kubernetes-quickstart-guide)
+    * [Requirements](#requirements)
+    * [Create a cluster](#create-a-cluster)
+        * [Kind](#kind)
+        * [GKE](#gke)
+    * [Deploy Tetragon](#deploy-tetragon)
+    * [Deploy Demo Application](#deploy-demo-application)
+    * [Explore Security Observability Events](#explore-security-observability-events)
+        * [Raw JSON events](#raw-json-events)
+        * [`tetra` CLI](#tetra-cli)
+    * [Process Execution](#process-execution)
+    * [File Access](#file-access)
+    * [Network Observability](#network-observability)
+    * [Privileged Execution](#privileged-execution)
+* [BTF Requirement](#btf-requirement)
+* [FAQ](#faq)
+* [Additional Resources](#additional-resources)
+* [Conference Talks](#conference-talks)
+    * [Book](#book)
+    * [Blog posts](#blog-posts)
+    * [Hands-on lab](#hands-on-lab)
+* [Community](#community)
+    * [Slack](#slack)
+
+## Functionality Overview
+
+### eBPF Real-Time
 
 Tetragon is a runtime security enforcement and observability tool. What this means is Tetragon applies
 policy and filtering directly in eBPF in the kernel. It performs the filtering,
@@ -75,7 +107,7 @@ For getting started with local development, you can refer to the [Development Gu
 
 [dev-guide]: ./docs/contributing/development/README.md
 
-## Docker deployment
+## Docker Deployment
 
 For getting started without having to deploy on a Kubernetes cluster, please refer to the [Docker deployment guide][docker-deployment].
 
@@ -680,7 +712,7 @@ $ COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository c
 It can be validated that the SBOM image was signed using Github Actions in the Cilium
 repository from the `Issuer` and `Subject` fields of the output.
 
-# FAQ
+## FAQ
 
 **Q:** Can I install and use Tetragon in standalone mode (outside of k8s)?
 
@@ -702,9 +734,9 @@ to run Tetragon.
 **A:** You need to add a signed-off-by line to your commit messages. The easiest way to do
 this is with `git fetch origin/main && git rebase --signoff origin/main`. Then push your changes.
 
-# Additional Resources
+## Additional Resources
 
-### Conference talks
+## Conference Talks
 
 [Uncovering a Sophisticated Kubernetes Attack in Real-Time](https://www.youtube.com/watch?v=bohnofE_dvw) - Jed Salazar & Natália Réka Ivánkó, KubeCon EU, 2020
 
@@ -730,9 +762,9 @@ this is with `git fetch origin/main && git rebase --signoff origin/main`. Then p
 
 [Security Observability with eBPF and Tetragon](https://isovalent.com/labs/) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
 
-# Community
+## Community
 
-## Slack
+### Slack
 
 Join the Tetragon [Slack channel](https://cilium.herokuapp.com/) to chat with developers, maintainers, and other users. This
 is a good first stop to ask questions and share your experiences.
