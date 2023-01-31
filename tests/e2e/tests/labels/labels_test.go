@@ -23,10 +23,13 @@ import (
 // This holds our test environment which we get from calling runners.NewRunner().Setup()
 var runner *runners.Runner
 
-// The namespace where we want to spawn our pods
-const namespace = "labels"
+const (
+	// The namespace where we want to spawn our pods
+	namespace    = "labels"
+	demoAppRetry = 3
+)
 
-func installDemoApp() features.Func {
+func installDemoApp(labelsChecker *checker.RPCChecker) features.Func {
 	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 		manager := helm.New(c.KubeconfigFile())
 		if err := manager.RunRepo(helm.WithArgs("add", "isovalent", "https://helm.isovalent.com")); err != nil {
@@ -37,16 +40,22 @@ func installDemoApp() features.Func {
 			t.Fatalf("failed to update helm repo: %s", err)
 		}
 
-		if err := manager.RunInstall(
-			helm.WithName("jobs-app"),
-			helm.WithChart("isovalent/jobs-app"),
-			helm.WithVersion("v0.1.1"),
-			helm.WithNamespace(namespace),
-			helm.WithArgs("--create-namespace"),
-		); err != nil {
-			t.Fatalf("failed to install demo app. run with `-args -v=4` for more context from helm: %s", err)
+		for i := 0; i < demoAppRetry; i++ {
+			if err := manager.RunInstall(
+				helm.WithName("jobs-app"),
+				helm.WithChart("isovalent/jobs-app"),
+				helm.WithVersion("v0.1.1"),
+				helm.WithNamespace(namespace),
+				helm.WithArgs("--create-namespace", "--wait"),
+			); err != nil {
+				labelsChecker.ResetTimeout()
+				t.Logf("failed to install demo app. run with `-args -v=4` for more context from helm: %s", err)
+			} else {
+				return ctx
+			}
 		}
 
+		t.Fatalf("failed to install demo app after %d tries", demoAppRetry)
 		return ctx
 	}
 }
@@ -97,7 +106,7 @@ func TestLabelsDemoApp(t *testing.T) {
 		/* Wait up to 30 seconds for the event checker to start before continuing */
 		Assess("Wait for Checker", labelsChecker.Wait(30*time.Second)).
 		/* Run the workload */
-		Assess("Run Workload", installDemoApp()).
+		Assess("Run Workload", installDemoApp(labelsChecker)).
 		Feature()
 
 	uninstall := features.New("Uninstall Demo App").
