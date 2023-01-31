@@ -67,10 +67,11 @@ func (c *collection) unload(cbArg *UnloadArg) error {
 		if !s.Loaded {
 			continue
 		}
-		if unloadErr := s.Unload(); unloadErr == nil && cbArg != nil && s.Ops != nil {
+		unloadErr := s.Unload()
+		if unloadErr == nil && cbArg != nil && s.Ops != nil {
 			s.Ops.Unloaded(*cbArg)
 		}
-		err = multierr.Append(err, s.Unload())
+		err = multierr.Append(err, unloadErr)
 	}
 
 	if err != nil {
