@@ -48,6 +48,8 @@ type RPCChecker struct {
 	lock             *sync.Mutex
 	encoder          exporter.ExportEncoder
 	eventWriter      *bufio.Writer
+	resetTimeout     chan struct{}
+	resetEventCount  chan struct{}
 }
 
 // NewRPCChecker constructs a new RPCChecker from a MultiEventChecker.
@@ -63,6 +65,8 @@ func NewRPCChecker(checker ec.MultiEventChecker, name string) *RPCChecker {
 		lock:             new(sync.Mutex),
 		encoder:          nil,
 		eventWriter:      nil,
+		resetTimeout:     make(chan struct{}),
+		resetEventCount:  make(chan struct{}),
 	}
 	// Mark that the checker has not yet started.
 	rc.checkerStartedWG.Add(1)
@@ -172,6 +176,14 @@ func (rc *RPCChecker) CheckWithFilters(connTimeout time.Duration, allowList, den
 	}
 }
 
+func (rc *RPCChecker) ResetTimeout() {
+	rc.resetTimeout <- struct{}{}
+}
+
+func (rc *RPCChecker) ResetEventCount() {
+	rc.resetEventCount <- struct{}{}
+}
+
 // Connect connects the RPCChecker to one or more gRPC servers. This must be called
 // before calling RPCChecker.Check().
 func (rc *RPCChecker) connect(ctx context.Context, connTimeout time.Duration, addrs ...string) error {
@@ -194,7 +206,7 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 		return err
 	}
 
-	timeout := time.After(rc.timeLimit)
+	timeout := time.NewTimer(rc.timeLimit)
 	var eventCount uint32
 
 	// Invariant rc.checkerStartedWG counter must be == 1 here
@@ -225,7 +237,16 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 
 	for {
 		select {
-		case <-timeout:
+		case <-rc.resetTimeout:
+			if !timeout.Stop() {
+				<-timeout.C
+			}
+			timeout = time.NewTimer(rc.timeLimit)
+			continue
+		case <-rc.resetEventCount:
+			eventCount = 0
+			continue
+		case <-timeout.C:
 			if rc.timeLimit > 0 {
 				return fmt.Errorf("event checker %s timed out after %v", rc.name, rc.timeLimit)
 			}
