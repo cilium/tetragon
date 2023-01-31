@@ -220,7 +220,12 @@ A second way is to pretty print the events using the
 [`tetra` CLI](https://github.com/cilium/tetragon/releases/latest).
 The tool also allows filtering by process, pod, and other fields.
 
-You can download and install it by the following command:
+If you are using `homebrew`, you can install the latest release with:
+```console
+brew install tetra
+```
+
+Or you can download and install the latest release with the following commands:
 
 ```
 GOOS=$(go env GOOS)
