@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -121,6 +122,13 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 		// developer mistake.
 		panic(err)
 	}
+
+	// register pod handlers for policyfilters
+	if pfState, err := policyfilter.GetState(); err == nil {
+		logger.GetLogger().Info("registering policyfilter pod handlers")
+		pfState.RegisterPodHandlers(podInformer)
+	}
+
 	k8sInformerFactory.Start(wait.NeverStop)
 	k8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	logger.GetLogger().WithField("num_pods", len(podInformer.GetStore().ListKeys())).Info("Initialized pod cache")
