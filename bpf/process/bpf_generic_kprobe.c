@@ -136,7 +136,6 @@ generic_kprobe_process_event0(void *ctx)
 {
 	return generic_process_event_and_setup(
 		ctx, (struct bpf_map_def *)&process_call_heap,
-		(struct bpf_map_def *)&filter_map,
 		(struct bpf_map_def *)&kprobe_calls,
 		(struct bpf_map_def *)&config_map);
 }
@@ -146,7 +145,6 @@ generic_kprobe_process_event1(void *ctx)
 {
 	return generic_process_event1(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&filter_map,
 				      (struct bpf_map_def *)&kprobe_calls,
 				      (struct bpf_map_def *)&config_map);
 }
@@ -156,7 +154,6 @@ generic_kprobe_process_event2(void *ctx)
 {
 	return generic_process_event2(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&filter_map,
 				      (struct bpf_map_def *)&kprobe_calls,
 				      (struct bpf_map_def *)&config_map);
 }
@@ -166,7 +163,6 @@ generic_kprobe_process_event3(void *ctx)
 {
 	return generic_process_event3(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&filter_map,
 				      (struct bpf_map_def *)&kprobe_calls,
 				      (struct bpf_map_def *)&config_map);
 }
@@ -176,7 +172,6 @@ generic_kprobe_process_event4(void *ctx)
 {
 	return generic_process_event4(ctx,
 				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&filter_map,
 				      (struct bpf_map_def *)&kprobe_calls,
 				      (struct bpf_map_def *)&config_map);
 }
