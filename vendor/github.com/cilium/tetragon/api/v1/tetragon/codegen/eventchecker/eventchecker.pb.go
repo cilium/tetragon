@@ -8,6 +8,7 @@ package eventchecker
 import (
 	list "container/list"
 	json "encoding/json"
+	errors "errors"
 	fmt "fmt"
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	bytesmatcher "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -174,7 +175,12 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 			return true, nil
 		}
 		if logger != nil {
-			logger.Infof("UnorderedEventChecker: checking pending %d/%d: failure: %s", idx, pending, err)
+			mismatch := &EventTypeMistmatch{}
+			if errors.As(err, &mismatch) {
+				logger.Debugf("UnorderedEventChecker: checking pending %d/%d: failure: %s", idx, pending, err)
+			} else {
+				logger.Infof("UnorderedEventChecker: checking pending %d/%d: failure: %s", idx, pending, err)
+			}
 		}
 		idx++
 	}
