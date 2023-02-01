@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
+
+#ifndef __GENERIC_CALLS_H__
+#define __GENERIC_CALLS_H__
+
 #include "bpf_tracing.h"
 
 #define MAX_TOTAL 9000
@@ -292,3 +296,5 @@ generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
 	tail_call(ctx, tailcals, 6);
 	return 0;
 }
+
+#endif /* __GENERIC_CALLS_H__ */

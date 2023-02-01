@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
 
+#ifndef __BASIC_H__
+#define __BASIC_H__
+
 #include "operations.h"
 #include "bpf_events.h"
 #include "skb.h"
@@ -1503,3 +1506,5 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	return size;
 }
+
+#endif /* __BASIC_H__ */

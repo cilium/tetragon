@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copyright Authors of Cilium */
 
+#ifndef __DATA_EVENT_H__
+#define __DATA_EVENT_H__
+
 #include "data_msg.h"
 
 static inline __attribute__((always_inline)) long
@@ -177,3 +180,5 @@ data_event_str(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 {
 	return data_event(ctx, desc, uptr, -1, heap, do_str);
 }
+
+#endif /* __DATA_EVENT_H__ */

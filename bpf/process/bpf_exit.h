@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copyright Authors of Cilium */
 
+#ifndef __EXIT_H__
+#define __EXIT_H__
+
 #include "vmlinux.h"
 #include "api.h"
 
@@ -61,3 +64,5 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx,
 	}
 	execve_map_delete(tgid);
 }
+
+#endif /* __EXIT_H__ */
