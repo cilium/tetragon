@@ -9,6 +9,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
+	github.com/containerd/cgroups v1.0.3
 	github.com/containerd/containerd v1.6.10
 	github.com/fatih/color v1.14.1
 	github.com/go-openapi/strfmt v0.21.2
@@ -66,9 +67,11 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/ttrpc v1.1.0 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
+	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
@@ -85,6 +88,7 @@ require (
 	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
+	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect

@@ -11,3 +11,4 @@ exit-tester
 libuprobe.so
 uprobe-test-1
 uprobe-test-2
+lseek-pipe
