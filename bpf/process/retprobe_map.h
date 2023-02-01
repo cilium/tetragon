@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
+
+#ifndef __RETPROBE_MAP_H__
+#define __RETPROBE_MAP_H__
+
 #include "bpf_tracing.h"
 
 struct retprobe_key {
@@ -122,3 +126,5 @@ retprobe_map_get_key(struct pt_regs *ctx)
 	}
 	return ret;
 }
+
+#endif /* __RETPROBE_MAP_H__ */

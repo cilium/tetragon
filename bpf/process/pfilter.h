@@ -1,3 +1,5 @@
+#ifndef __PFILTER_H__
+#define __PFILTER_H__
 
 /**
  * Process filters
@@ -583,3 +585,5 @@ generic_process_filter(struct msg_selector_data *sel,
 	}
 	return PFILTER_CURR_NOT_FOUND;
 }
+
+#endif /* __PFILTER_H__ */
