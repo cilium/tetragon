@@ -39,6 +39,10 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
+	if err := generateCheckerErrors(g, files); err != nil {
+		return err
+	}
+
 	if err := generateLogPrefix(g); err != nil {
 		return err
 	}
@@ -101,6 +105,20 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
         }
         return CheckerFromEvent(event)
     }`)
+
+	return nil
+}
+
+func generateCheckerErrors(g *protogen.GeneratedFile, f []*protogen.File) error {
+	g.P(`
+    type EventTypeMistmatch struct {
+        eventType ` + common.TetragonApiIdent(g, "EventType") + `
+    }
+
+    func (err *EventTypeMistmatch) Error() string {
+        return ` + common.FmtSprintf(g, "wrong event type `%s`", "err.eventType") + `
+    }
+    `)
 
 	return nil
 }

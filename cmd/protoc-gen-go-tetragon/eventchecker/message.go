@@ -61,7 +61,9 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
             if ev, ok := event.(*` + targetIdent + `); ok {
                 return checker.Check(ev)
             }
-            return ` + common.FmtErrorf(g, "%T is not a "+msg.GoIdent.GoName+" event", "event") + `
+            return &EventTypeMistmatch{
+                eventType: event.EventType(),
+            }
         }`)
 
 		g.P(`// CheckResponse checks a single gRPC response and implements the EventChecker interface

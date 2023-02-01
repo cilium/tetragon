@@ -26,6 +26,7 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 	g.P(`// Event represents a Tetragon event
     type Event interface {
         Encapsulate() IsGetEventsResponse_Event
+        EventType() EventType
     }`)
 
 	g.P(`// ProcessEvent represents a Tetragon event that has a Process field
@@ -48,6 +49,15 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
             return &GetEventsResponse_` + event.GoIdent.GoName + `{
                 ` + event.GoIdent.GoName + `: event,
             }
+        }`)
+
+		g.P(`// EventType implements the Event interface.
+        // Returns the EventType associated with the event.
+        func (event *` + event.GoIdent.GoName + `) EventType() EventType {
+            res := &GetEventsResponse{
+                Event: event.Encapsulate(),
+            }
+            return res.EventType()
         }`)
 
 		if common.IsProcessEvent(event) {

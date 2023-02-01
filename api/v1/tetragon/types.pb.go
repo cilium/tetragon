@@ -15,6 +15,7 @@ type IsGetEventsResponse_Event = isGetEventsResponse_Event
 // Event represents a Tetragon event
 type Event interface {
 	Encapsulate() IsGetEventsResponse_Event
+	EventType() EventType
 }
 
 // ProcessEvent represents a Tetragon event that has a Process field
@@ -37,6 +38,15 @@ func (event *ProcessExec) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *ProcessExec) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
+}
+
 // SetProcess implements the ProcessEvent interface.
 // Sets the Process field of an event.
 func (event *ProcessExec) SetProcess(p *Process) {
@@ -55,6 +65,15 @@ func (event *ProcessExit) Encapsulate() IsGetEventsResponse_Event {
 	return &GetEventsResponse_ProcessExit{
 		ProcessExit: event,
 	}
+}
+
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *ProcessExit) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
 }
 
 // SetProcess implements the ProcessEvent interface.
@@ -77,6 +96,15 @@ func (event *ProcessKprobe) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *ProcessKprobe) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
+}
+
 // SetProcess implements the ProcessEvent interface.
 // Sets the Process field of an event.
 func (event *ProcessKprobe) SetProcess(p *Process) {
@@ -95,6 +123,15 @@ func (event *ProcessTracepoint) Encapsulate() IsGetEventsResponse_Event {
 	return &GetEventsResponse_ProcessTracepoint{
 		ProcessTracepoint: event,
 	}
+}
+
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *ProcessTracepoint) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
 }
 
 // SetProcess implements the ProcessEvent interface.
@@ -117,12 +154,30 @@ func (event *Test) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *Test) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
+}
+
 // Encapsulate implements the Event interface.
 // Returns the event wrapped by its GetEventsResponse_* type.
 func (event *ProcessLoader) Encapsulate() IsGetEventsResponse_Event {
 	return &GetEventsResponse_ProcessLoader{
 		ProcessLoader: event,
 	}
+}
+
+// EventType implements the Event interface.
+// Returns the EventType associated with the event.
+func (event *ProcessLoader) EventType() EventType {
+	res := &GetEventsResponse{
+		Event: event.Encapsulate(),
+	}
+	return res.EventType()
 }
 
 // SetProcess implements the ProcessEvent interface.
