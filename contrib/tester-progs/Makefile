@@ -12,7 +12,8 @@ PROGS = sigkill-tester \
 	exit-leader \
 	exit-tester \
 	uprobe-test-1 \
-	uprobe-test-2
+	uprobe-test-2 \
+	lseek-pipe
 
 all: $(PROGS)
 
@@ -40,6 +41,11 @@ uprobe-test-1: uprobe-test.c libuprobe.so
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
 
+lseek-pipe: FORCE
+	go build -o lseek-pipe ./go/lseek-pipe
+
 .PHONY: clean
 clean:
 	rm -f $(PROGS)
+
+FORCE:

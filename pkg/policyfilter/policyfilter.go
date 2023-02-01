@@ -30,14 +30,32 @@ func GetState() (State, error) {
 	return glblState, glblError
 }
 
+// ResetStateOnlyForTesting resets the global policyfilter state.
+// As the name states, it should only be used for testing.
+// We need this because GetState() depends on the
+// option.Config.EnablePolicyFilter global and this is only initialized once.
+// Callers for this should ensure that no race happens.
+func ResetStateOnlyForTesting() {
+	if glblState != nil {
+		glblState.Close()
+	}
+	if option.Config.EnablePolicyFilter {
+		logger.GetLogger().Info("Enabling policy filtering")
+		glblState, glblError = New()
+	} else {
+		glblState = &dummy{}
+		glblError = nil
+	}
+}
+
 // State is the policyfilter state interface
 // It handles two things:
 //   - policies being added and removed
-//   - pod continers being created and deleted.
+//   - pod containers being added and deleted.
 type State interface {
-	// AddPolicy adds state a policy to the state
+	// AddPolicy adds a policy to the state
 	AddPolicy(polID PolicyID, namespace string) error
-	// DelPolicy will removes a policy from the state
+	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error
 
 	// AddPodContainer informs policyfilter about a new container in a pod.
