@@ -3,12 +3,19 @@ package tracing
 import (
 	"context"
 	"os"
+	"os/exec"
+	"sync"
 	"testing"
 
 	"github.com/cilium/ebpf"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUprobeLoad(t *testing.T) {
@@ -69,4 +76,49 @@ spec:
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
 	sensors.UnloadAll(tus.Conf().TetragonLib)
+}
+
+func TestUprobeGeneric(t *testing.T) {
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+	nopHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testNop + `"
+    symbol: "main"
+`
+
+	nopConfigHook := []byte(nopHook)
+	err := os.WriteFile(testConfigFile, nopConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_GENERIC").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testNop))).
+		WithSymbol(sm.Full("main"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
