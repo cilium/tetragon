@@ -646,14 +646,14 @@ static inline __attribute__((always_inline)) void
 __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		      bool cwd_always)
 {
-	struct msg_process *curr;
+	struct msg_process *process;
 	struct task_struct *task;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
-	curr = &msg->process;
+	process = &msg->process;
 
-	if (cwd_always || curr->flags & EVENT_NEEDS_CWD) {
+	if (cwd_always || process->flags & EVENT_NEEDS_CWD) {
 		__u32 offset;
 		int err;
 		bool prealloc = false;
@@ -666,29 +666,29 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
 		 * is no point in continuing to bang on it if its not
 		 * working.
 		 */
-		offset = curr->size;
+		offset = process->size;
 		if (!cwd_always) {
 			offset -= CWD_MAX + 1;
 			prealloc = true;
 		}
-		if (!(curr->flags & EVENT_ERROR_CWD)) {
-			err = getcwd(curr, offset, curr->pid, prealloc);
+		if (!(process->flags & EVENT_ERROR_CWD)) {
+			err = getcwd(process, offset, process->pid, prealloc);
 			if (!err)
-				curr->flags = curr->flags & ~(EVENT_NEEDS_CWD |
-							      EVENT_ERROR_CWD);
+				process->flags = process->flags & ~(EVENT_NEEDS_CWD |
+								    EVENT_ERROR_CWD);
 		}
 	}
-	if (curr->flags & EVENT_NEEDS_AUID) {
-		__u32 flags = curr->flags & ~EVENT_NEEDS_AUID;
+	if (process->flags & EVENT_NEEDS_AUID) {
+		__u32 flags = process->flags & ~EVENT_NEEDS_AUID;
 
-		curr->auid = get_auid();
-		curr->flags = flags;
+		process->auid = get_auid();
+		process->flags = flags;
 	}
 	msg->common.size =
-		offsetof(struct msg_execve_event, process) + curr->size;
-	curr->uid = get_current_uid_gid();
+		offsetof(struct msg_execve_event, process) + process->size;
+	process->uid = get_current_uid_gid();
 	if (walker)
-		curr->flags |= EVENT_TASK_WALK;
+		process->flags |= EVENT_TASK_WALK;
 
 	task = (struct task_struct *)get_current_task();
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
