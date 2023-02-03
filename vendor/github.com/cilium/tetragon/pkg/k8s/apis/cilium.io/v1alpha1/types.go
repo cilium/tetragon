@@ -294,4 +294,7 @@ type UProbeSpec struct {
 	Path string `json:"path"`
 	// Name of the traced symbol
 	Symbol string `json:"symbol"`
+	// +kubebuilder:validation:Optional
+	// Selectors to apply before producing trace output. Selectors are ORed.
+	Selectors []KProbeSelector `json:"selectors"`
 }
