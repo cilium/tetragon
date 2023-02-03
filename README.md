@@ -543,9 +543,7 @@ cases without Kubernetes, the same YAML configuration can be passed via a flag
 to the Tetragon binary or via the `tetra` CLI to load the policies via gRPC.
 
 For more information on `TracingPolicy` and how to write them, see the
-[`TracingPolicy` Guide](doc/todo.md).
-
-add this link in the guide https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+[`TracingPolicy` Guide](docs/tracingpolicy/README.md).
 
 #### Use case 1: File Access
 
@@ -812,6 +810,8 @@ this is with `git fetch origin/main && git rebase --signoff origin/main`. Then p
 [You and Your Security Profiles; Generating Security Policies with the Help of eBPF](https://www.youtube.com/watch?v=EhQI1qPVb0E) - John Fastabend & Natália Réka Ivánkó, eBPF Day North America, 2022
 
 [Container Security and Runtime Enforcement with Tetragon](https://www.youtube.com/watch?v=fw40ROmswbM) - Djalal Harouni, eBPF Summit, 2022
+
+[Securing the Superpowers: Who Loaded That eBPF Program?](https://www.youtube.com/watch?v=UBVTJ0LeXxc) - John Fastabend & Natália Réka Ivánkó, CloudNative SecurityCon NA, 2023
 
 ### Book
 
