@@ -5,15 +5,20 @@ package confmap
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
-	"time"
-	"unsafe"
 
-	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	configMapName = "tg_conf_map"
 )
 
 type TetragonConfKey struct {
@@ -35,27 +40,19 @@ var (
 	log = logger.GetLogger()
 )
 
-func (k *TetragonConfKey) String() string             { return fmt.Sprintf("key=%d", k.Key) }
-func (k *TetragonConfKey) GetKeyPtr() unsafe.Pointer  { return unsafe.Pointer(k) }
-func (k *TetragonConfKey) DeepCopyMapKey() bpf.MapKey { return &TetragonConfKey{k.Key} }
-
-func (k *TetragonConfKey) NewValue() bpf.MapValue { return &TetragonConfValue{} }
-
-func (v *TetragonConfValue) String() string {
-	return fmt.Sprintf("value=%d %s", 0, "")
-}
-func (v *TetragonConfValue) GetValuePtr() unsafe.Pointer { return unsafe.Pointer(v) }
-func (v *TetragonConfValue) DeepCopyMapValue() bpf.MapValue {
-	return &TetragonConfValue{
-		LogLevel:        v.LogLevel,
-		PID:             v.PID,
-		NSPID:           v.NSPID,
-		TgCgrpHierarchy: v.TgCgrpHierarchy,
-		TgCgrpSubsysIdx: v.TgCgrpSubsysIdx,
-		TgCgrpLevel:     v.TgCgrpLevel,
-		TgCgrpId:        v.TgCgrpId,
-		CgrpFsMagic:     v.CgrpFsMagic,
+// confmapSpec returns the spec for the configuration map
+func confmapSpec() (*ebpf.MapSpec, error) {
+	objName := base.ExecObj()
+	objPath := path.Join(option.Config.HubbleLib, objName)
+	spec, err := ebpf.LoadCollectionSpec(objPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
 	}
+	mapSpec, ok := spec.Maps[configMapName]
+	if !ok {
+		return nil, fmt.Errorf("%s not found in %s (%v)", configMapName, objPath, spec.Maps)
+	}
+	return mapSpec, nil
 }
 
 // UpdateTgRuntimeConf() Gathers information about Tetragon runtime environment and
@@ -74,49 +71,30 @@ func (v *TetragonConfValue) DeepCopyMapValue() bpf.MapValue {
 // environment without any help. For testing use the specific variant that can be
 // tuned with specific argument values.
 func UpdateTgRuntimeConf(mapDir string, nspid int) error {
-	configMap := base.GetTetragonConfMap()
-	mapPath := filepath.Join(mapDir, configMap.Name)
-
-	m, err := bpf.OpenMap(mapPath)
-	for i := 0; err != nil; i++ {
-		m, err = bpf.OpenMap(mapPath)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-		}
-		if i > 4 {
-			log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
-			log.WithField("confmap-update", configMap.Name).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
-			return err
-		}
-	}
-
-	defer m.Close()
-
 	// First let's detect cgroupfs magic
 	cgroupFsMagic, err := cgroups.DetectCgroupFSMagic()
 	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Cgroupfs version failed")
-		log.WithField("confmap-update", configMap.Name).Warn("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled")
+		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of Cgroupfs version failed")
+		log.WithField("confmap-update", configMapName).Warn("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled")
 		return err
 	}
 
 	// This must be called before probing cgroup configurations
 	err = cgroups.DiscoverSubSysIds()
 	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of Cgroup Subsystem Controllers failed")
-		log.WithField("confmap-update", configMap.Name).Warn("Cgroup Subsystems IDs are unknown, advanced Cgroups tracking will be disabled")
+		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of Cgroup Subsystem Controllers failed")
+		log.WithField("confmap-update", configMapName).Warn("Cgroup Subsystems IDs are unknown, advanced Cgroups tracking will be disabled")
 		return err
 	}
 
 	// Detect deployment mode
 	deployMode, err := cgroups.DetectDeploymentMode()
 	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warnf("Detection of deployment mode failed")
-		log.WithField("confmap-update", configMap.Name).Warn("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
+		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of deployment mode failed")
+		log.WithField("confmap-update", configMapName).Warn("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
 		return err
 	}
 
-	k := &TetragonConfKey{Key: 0}
 	v := &TetragonConfValue{
 		LogLevel:        uint32(logger.GetLogLevel()),
 		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
@@ -125,15 +103,13 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		CgrpFsMagic:     cgroupFsMagic,
 	}
 
-	err = m.Update(k, v)
-	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
-		log.WithField("confmap-update", configMap.Name).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
+	if err := UpdateConfMap(mapDir, v); err != nil {
+		log.WithField("confmap-update", configMapName).WithError(err).Warnf("failed to update map")
 		return err
 	}
 
 	log.WithFields(logrus.Fields{
-		"confmap-update":                configMap.Name,
+		"confmap-update":                configMapName,
 		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
 		"log.level":                     logrus.Level(v.LogLevel).String(),
 		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
@@ -150,18 +126,45 @@ func ReadTgRuntimeConf(mapDir string) (*TetragonConfValue, error) {
 	configMap := base.GetTetragonConfMap()
 	mapPath := filepath.Join(mapDir, configMap.Name)
 
-	m, err := bpf.OpenMap(mapPath)
+	m, err := ebpf.LoadPinnedMap(mapPath, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	defer m.Close()
 
+	var v TetragonConfValue
 	k := &TetragonConfKey{Key: 0}
-	v, err := m.Lookup(k)
-	if err != nil {
+
+	if err = m.Lookup(k, &v); err != nil {
 		return nil, err
 	}
 
-	return v.DeepCopyMapValue().(*TetragonConfValue), nil
+	return &v, nil
+}
+
+// UpdateConfMap updates the configuration map with the provided value
+func UpdateConfMap(mapDir string, v *TetragonConfValue) error {
+	configMap := base.GetTetragonConfMap()
+	mapPath := filepath.Join(mapDir, configMap.Name)
+	mapSpec, err := confmapSpec()
+	if err != nil {
+		return err
+	}
+
+	m, err := program.LoadOrCreatePinnedMap(mapPath, mapSpec)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	k := &TetragonConfKey{Key: 0}
+	err = m.Update(k, v, ebpf.UpdateAny)
+	if err != nil {
+		log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
+		log.WithField("confmap-update", configMap.Name).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
+		return err
+	}
+
+	return nil
 }

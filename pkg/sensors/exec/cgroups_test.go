@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
+	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -581,7 +582,7 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 	}
 
 	mapDir := bpf.MapPrefixPath()
-	err = testutils.UpdateTgRuntimeConf(mapDir, val)
+	err = confmap.UpdateConfMap(mapDir, val)
 	if err != nil {
 		t.Fatalf("UpdateTgRuntimeConf() failed: %v", err)
 	}
@@ -628,7 +629,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	assert.NotZero(t, val.CgrpFsMagic)
 
 	mapDir := bpf.MapPrefixPath()
-	err = testutils.UpdateTgRuntimeConf(mapDir, val)
+	err = confmap.UpdateConfMap(mapDir, val)
 	assert.NoError(t, err)
 
 	ret, err := testutils.ReadTgRuntimeConf(mapDir)
