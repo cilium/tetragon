@@ -2,9 +2,12 @@ package program
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/sirupsen/logrus"
 )
 
 // Map represents BPF maps.
@@ -97,4 +100,70 @@ func (m *Map) GetFD() (int, error) {
 		return 0, fmt.Errorf("map %s is not loaded", m.Name)
 	}
 	return m.MapHandle.FD(), nil
+}
+
+func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error {
+	if m.MapHandle != nil {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"map-name": m.Name,
+		}).Warn("LoadOrCreatePinnedMap called with non-nil map, will close and continue.")
+		m.MapHandle.Close()
+	}
+
+	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec)
+	if err != nil {
+		return err
+	}
+
+	m.MapHandle = mh
+	m.PinState.RefInc()
+	return nil
+}
+
+func isValidSubdir(d string) bool {
+	dir := filepath.Base(d)
+	return dir != "." && dir != ".."
+}
+
+func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, error) {
+	// Try to open the pinPath and if it exist use the previously
+	// pinned map otherwise pin the map and next user will find
+	// it here.
+	if _, err := os.Stat(pinPath); err == nil {
+		m, err := ebpf.LoadPinnedMap(pinPath, nil)
+		if err != nil {
+			return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
+		}
+		if err := compatible(mapSpec, m); err != nil {
+			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
+				"path":     pinPath,
+				"map-name": mapSpec.Name,
+			}).Warn("tetragon, incompatible map found: will delete and recreate")
+			m.Close()
+			os.Remove(pinPath)
+		} else {
+			return m, nil
+		}
+	}
+
+	// check if PinName has directory portion and create it,
+	// filepath.Dir returns '.' for filename without dir portion
+	if dir := filepath.Dir(pinPath); isValidSubdir(dir) {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create subbir for '%s': %w", mapSpec.Name, err)
+		}
+	}
+
+	// either there's no pin file or the map spec does not match
+	m, err := ebpf.NewMap(mapSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create map '%s': %w", mapSpec.Name, err)
+	}
+
+	if err := m.Pin(pinPath); err != nil {
+		m.Close()
+		return nil, fmt.Errorf("failed to pin to %s: %w", pinPath, err)
+	}
+
+	return m, nil
 }
