@@ -10,7 +10,9 @@ PROGS = sigkill-tester \
 	sigkill-unprivileged-user-ns-tester \
 	nop \
 	exit-leader \
-	exit-tester
+	exit-tester \
+	uprobe-test-1 \
+	uprobe-test-2
 
 all: $(PROGS)
 
@@ -28,6 +30,15 @@ sigkill-unprivileged-user-ns-tester: sigkill-unprivileged-user-ns-tester.c
 
 exit-leader: exit-leader.c
 	$(GCC) -Wall $< -o $@ -lpthread
+
+libuprobe.so: uprobe-lib.c
+	$(GCC) -Wall -fPIC $< -o $@ -shared
+
+uprobe-test-1: uprobe-test.c libuprobe.so
+	$(GCC) -Wall $< -o $@ $(CURDIR)/libuprobe.so
+
+uprobe-test-2: uprobe-test-1
+	cp uprobe-test-1 uprobe-test-2
 
 .PHONY: clean
 clean:
