@@ -185,3 +185,66 @@ func TestUprobePidMatchNot(t *testing.T) {
 	err := uprobePidMatch(t, observer.GetMyPid()+1)
 	assert.Error(t, err)
 }
+
+func uprobeBinariesMatch(t *testing.T, execBinary string) error {
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbol: "uprobe_test_lib"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + uprobeTest1 + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(execBinary).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	return jsonchecker.JsonTestCheck(t, checker)
+}
+
+func TestUprobeBinariesMatch(t *testing.T) {
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	err := uprobeBinariesMatch(t, uprobeTest1)
+	assert.NoError(t, err)
+}
+
+func TestUprobeBinariesMatchNot(t *testing.T) {
+	uprobeTest2 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-2")
+	err := uprobeBinariesMatch(t, uprobeTest2)
+	assert.Error(t, err)
+}
