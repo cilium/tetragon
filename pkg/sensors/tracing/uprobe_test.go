@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -121,4 +122,66 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func uprobePidMatch(t *testing.T, pid uint32) error {
+	path, err := os.Executable()
+	assert.NoError(t, err)
+
+	pidStr := strconv.Itoa(int(pid))
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + path + `"
+    symbol: "uprobe_test_func"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+`
+
+	pathConfigHook := []byte(pathHook)
+	err = os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_PID_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(path))).
+		WithSymbol(sm.Full("uprobe_test_func"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	UprobeTestFunc()
+
+	return jsonchecker.JsonTestCheck(t, checker)
+}
+
+func TestUprobePidMatch(t *testing.T) {
+	err := uprobePidMatch(t, observer.GetMyPid())
+	assert.NoError(t, err)
+}
+
+func TestUprobePidMatchNot(t *testing.T) {
+	err := uprobePidMatch(t, observer.GetMyPid()+1)
+	assert.Error(t, err)
 }
