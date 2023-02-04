@@ -1,0 +1,13 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/lib64/libc.so.6"
+    symbol: "malloc"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/bash"
