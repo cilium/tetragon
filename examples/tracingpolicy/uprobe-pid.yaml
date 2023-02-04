@@ -1,0 +1,14 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbol: "readline"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - 61697
