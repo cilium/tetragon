@@ -170,6 +170,10 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 
 		cwd := args[unsafe.Sizeof(desc):]
 		cmdArgs = append(cmdArgs, cwd)
+	} else {
+		// no arguments, args should have just cwd
+		// reading it with split to get [][]byte type
+		cmdArgs = bytes.Split(args, []byte{0x00})
 	}
 
 	proc.Args = string(bytes.Join(cmdArgs[0:], []byte{0x00}))
