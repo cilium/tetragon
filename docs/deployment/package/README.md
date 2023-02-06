@@ -115,6 +115,14 @@ To restore default settings, remove any added configuration inside
 
 To remove Tetragon:
 
+Run the `uninstall.sh` script that is provided inside the tarball.
+
+   ```bash
+   sudo ./uninstall.sh
+   ```
+
+Or manually:
+
    ```bash
    sudo systemctl stop tetragon
    sudo systemctl disable tetragon
@@ -125,13 +133,7 @@ To remove Tetragon:
    sudo rm -fr /usr/local/lib/tetragon/
    ```
 
-Or run the `uninstall.sh` script that is provided inside the tarball.
-
-   ```bash
-   sudo ./uninstall.sh
-   ```
-
-To remove custom settings:
+To purge custom settings:
 
    ```bash
    sudo rm -fr /etc/tetragon/
