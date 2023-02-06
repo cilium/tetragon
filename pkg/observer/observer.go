@@ -177,9 +177,6 @@ func (k *Observer) getRBSize(cpus int) int {
 }
 
 func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
-	/* Probe runtime configuration and do not fail on errors */
-	k.UpdateRuntimeConf(option.Config.MapDir)
-
 	pinOpts := ebpf.LoadPinOptions{}
 	perfMap, err := ebpf.LoadPinnedMap(k.perfConfig.MapName, &pinOpts)
 	if err != nil {
