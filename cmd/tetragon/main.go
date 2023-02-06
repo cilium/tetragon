@@ -236,6 +236,9 @@ func tetragonExecute() error {
 		go metrics.EnableMetrics(metricsServer)
 	}
 
+	// Probe runtime configuration and do not fail on errors
+	obs.UpdateRuntimeConf(option.Config.MapDir)
+
 	watcher, err := getWatcher()
 	if err != nil {
 		return err
