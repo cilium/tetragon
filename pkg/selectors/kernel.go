@@ -6,6 +6,7 @@ package selectors
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -632,16 +633,21 @@ func parseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
-func parseMatchBinary(k *KernelSelectorState, index uint32, b *v1alpha1.BinarySelector) error {
+func parseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error {
 	op, err := selectorOp(b.Operator)
 	if err != nil {
 		return fmt.Errorf("matchpid error: %w", err)
 	}
 	WriteSelectorUint32(k, op)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
-	WriteSelectorUint32(k, index)
+	if len(b.Values) > 4 {
+		return fmt.Errorf("Only support up to 4 values in MatchBinary")
+	}
+	for _, s := range b.Values {
+		WriteSelectorUint32(k, k.AddBinaryName(s))
+	}
+	for l := len(b.Values); l < 4; l++ {
+		WriteSelectorUint32(k, math.MaxUint32)
+	}
 	return nil
 }
 
@@ -658,7 +664,7 @@ func parseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 		WriteSelectorUint32(k, 0)
 		WriteSelectorUint32(k, 0)
 	} else {
-		if err := parseMatchBinary(k, 1, &binarys[0]); err != nil {
+		if err := parseMatchBinary(k, &binarys[0]); err != nil {
 			return err
 		}
 	}

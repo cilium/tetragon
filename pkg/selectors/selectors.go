@@ -5,6 +5,14 @@ package selectors
 
 import (
 	"encoding/binary"
+	"sync"
+)
+
+// as we use a single names_map for all kprobes, so we have to use
+// a global variable to assign values to binary names
+var (
+	binMu  sync.Mutex
+	binIdx uint32 = 1
 )
 
 type KernelSelectorState struct {
@@ -13,6 +21,26 @@ type KernelSelectorState struct {
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
 	valueMaps []map[[8]byte]struct{}
+
+	// matchBinaries mappings
+	binVals map[uint32]string
+}
+
+func (k *KernelSelectorState) AddBinaryName(binary string) uint32 {
+	if k.binVals == nil {
+		k.binVals = make(map[uint32]string)
+	}
+
+	binMu.Lock()
+	defer binMu.Unlock()
+	idx := binIdx
+	binIdx++
+	k.binVals[idx] = binary
+	return idx
+}
+
+func (k *KernelSelectorState) GetBinaryMappings() map[uint32]string {
+	return k.binVals
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {

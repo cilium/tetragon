@@ -186,17 +186,6 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	return meta, nil
 }
 
-var binaryNames []v1alpha1.BinarySelector
-
-func initBinaryNames(spec *v1alpha1.KProbeSpec) error {
-	for _, s := range spec.Selectors {
-		for _, b := range s.MatchBinaries {
-			binaryNames = append(binaryNames, b)
-		}
-	}
-	return nil
-}
-
 func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -390,11 +379,6 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 					config.ArgM[j] = 0
 				}
 			}
-		}
-
-		// Parse Binary Name into kernel data structures
-		if err := initBinaryNames(f); err != nil {
-			return nil, err
 		}
 
 		hasOverride := selectors.HasOverride(f)
@@ -614,14 +598,14 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 		return err
 	}
 
-	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
+	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
 	if err != nil {
 		return err
 	}
-	for i, b := range binaryNames {
-		for _, path := range b.Values {
-			writeBinaryMap(i+1, path, m)
-		}
+	defer m.Close()
+
+	for i, path := range gk.loadArgs.selectors.GetBinaryMappings() {
+		writeBinaryMap(m, i, path)
 	}
 
 	return err
@@ -662,13 +646,17 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		return err
 	}
 
-	m, err := bpf.OpenMap(filepath.Join(mapDir, base.NamesMap.Name))
+	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
 	if err != nil {
 		return err
 	}
-	for i, b := range binaryNames {
-		for _, path := range b.Values {
-			writeBinaryMap(i+1, path, m)
+	defer m.Close()
+
+	for _, id := range ids {
+		if gk, err := genericKprobeTableGet(id); err == nil {
+			for i, path := range gk.loadArgs.selectors.GetBinaryMappings() {
+				writeBinaryMap(m, i, path)
+			}
 		}
 	}
 
