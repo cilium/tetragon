@@ -18,7 +18,7 @@ type handler struct {
 	bpfDir, mapDir, ciliumDir string
 
 	nextPolicyID uint64
-	pfState      *policyfilter.State
+	pfState      policyfilter.State
 }
 
 func newHandler(bpfDir, mapDir, ciliumDir string) (*handler, error) {

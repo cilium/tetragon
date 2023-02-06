@@ -46,3 +46,6 @@ data:
   tcp-stats-sample-segs: {{ .Values.tetragon.tcpStatsSampleSegs | quote }}
 {{- end }}
   gops-address: {{ .Values.tetragon.gops.address }}:{{ .Values.tetragon.gops.port }}
+{{- if .Values.tetragon.enablePolicyFilter }}
+  enable-policy-filter: "true"
+{{- end }}

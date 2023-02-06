@@ -43,6 +43,8 @@ type config struct {
 	EventQueueSize uint
 
 	ReleasePinned bool
+
+	EnablePolicyFilter bool
 }
 
 var (

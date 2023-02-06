@@ -141,6 +141,9 @@ tetragon:
     address: "localhost"
     # -- The port at which to expose gops.
     port: 8118
+  # Enable policy filter. This is required for K8s namespace filtering.
+  # NB: this is currently a work-in-progress feature
+  enablePolicyFilter: false
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true
