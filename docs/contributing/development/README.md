@@ -32,7 +32,7 @@ Docs](https://docs.github.com/en/repositories/managing-your-repositorys-settings
 5. Prepare your [Development Setup](#development-setup), see below.
 
 6. Check the GitHub issues for [good tasks to get
-started](https://github.com/cilium/tetragon/issues?q=is%3Aopen+is%3Aissue+label%3Agood-first-issue)
+started](https://github.com/cilium/tetragon/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
 
 7. Follow the steps in [Making Changes](#making-changes) to start contributing :)
 
