@@ -99,7 +99,8 @@ func createContainerHook(ctx context.Context, arg *rthooks.CreateContainerArg) e
 		"container-id": containerID,
 		"cgroup-id":    cgID,
 	}).Trace("policyfilter: add pod container")
-	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, containerID, policyfilter.CgroupID(cgID)); err != nil {
+	cgid := policyfilter.CgroupID(cgID)
+	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, containerID, &cgid); err != nil {
 		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
 	}
 
