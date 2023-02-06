@@ -70,6 +70,8 @@ const (
 	keyEventQueueSize = "event-queue-size"
 
 	keyReleasePinnedBPF = "release-pinned-bpf"
+
+	keyEnablePolicyFilter = "enable-policy-filter"
 )
 
 var (
@@ -149,4 +151,5 @@ func readAndSetFlags() {
 	option.Config.EventQueueSize = viper.GetUint(keyEventQueueSize)
 
 	option.Config.ReleasePinned = viper.GetBool(keyReleasePinnedBPF)
+	option.Config.EnablePolicyFilter = viper.GetBool(keyEnablePolicyFilter)
 }

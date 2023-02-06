@@ -615,6 +615,10 @@ func execute() error {
 	// disable.
 	flags.Bool(keyReleasePinnedBPF, true, "Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable")
 
+	// Provide option to enable policy filtering. Because the code is new,
+	// this is set to false by default.
+	flags.Bool(keyEnablePolicyFilter, false, "Enable policy (beta) filter code")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }

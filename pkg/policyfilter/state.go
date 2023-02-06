@@ -160,7 +160,7 @@ func (pol *policy) podMatches(pod *podInfo) bool {
 }
 
 // State holds the necessary state for policyfilter
-type State struct {
+type state struct {
 	log logrus.FieldLogger
 
 	// mutex serializes access to the internal structures, as well as operations.
@@ -177,9 +177,11 @@ type State struct {
 
 // New creates a new State of the policy filter code. Callers should call Close() to release
 // allocated resources (namely the bpf map).
-func New() (*State, error) {
+//
+//revive:disable:unexported-return
+func New() (*state, error) {
 	var err error
-	ret := &State{
+	ret := &state{
 		log:         logger.GetLogger().WithField("subsystem", "policy-filter"),
 		cgfsScanner: fsscan.New(),
 	}
@@ -192,7 +194,9 @@ func New() (*State, error) {
 	return ret, nil
 }
 
-func (m *State) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
+//revive:enable:unexported-return
+
+func (m *state) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
@@ -288,11 +292,11 @@ func (m *State) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 }
 
 // Close releases resources allocated by the Manager. Specifically, we close and unpin the policy filter map.
-func (m *State) Close() error {
+func (m *state) Close() error {
 	return m.pfMap.release()
 }
 
-func (m *State) findPolicy(id PolicyID) *policy {
+func (m *state) findPolicy(id PolicyID) *policy {
 	for i := range m.policies {
 		if m.policies[i].id == id {
 			return &m.policies[i]
@@ -302,7 +306,7 @@ func (m *State) findPolicy(id PolicyID) *policy {
 }
 
 // delPolicy removes a policy and returns it, or returns nil if policy is not found
-func (m *State) delPolicy(id PolicyID) *policy {
+func (m *state) delPolicy(id PolicyID) *policy {
 	for i, pol := range m.policies {
 		if pol.id == id {
 			m.policies = append(m.policies[:i], m.policies[i+1:]...)
@@ -312,7 +316,7 @@ func (m *State) delPolicy(id PolicyID) *policy {
 	return nil
 }
 
-func (m *State) findPod(id PodID) *podInfo {
+func (m *state) findPod(id PodID) *podInfo {
 	for i := range m.pods {
 		if m.pods[i].id == id {
 			return &m.pods[i]
@@ -321,7 +325,7 @@ func (m *State) findPod(id PodID) *podInfo {
 	return nil
 }
 
-func (m *State) delPod(id PodID) *podInfo {
+func (m *state) delPod(id PodID) *podInfo {
 	for i, pod := range m.pods {
 		if pod.id == id {
 			m.pods = append(m.pods[:i], m.pods[i+1:]...)
@@ -331,8 +335,8 @@ func (m *State) delPod(id PodID) *podInfo {
 	return nil
 }
 
-// AddPolicy adds a policy to the policyfilter state
-func (m *State) AddPolicy(polID PolicyID, namespace string) error {
+// AddPolicy adds a policy
+func (m *state) AddPolicy(polID PolicyID, namespace string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -367,7 +371,7 @@ func (m *State) AddPolicy(polID PolicyID, namespace string) error {
 }
 
 // DelPolicy will destroly all information for the provided policy
-func (m *State) DelPolicy(polID PolicyID) error {
+func (m *state) DelPolicy(polID PolicyID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	policy := m.delPolicy(polID)
@@ -384,7 +388,7 @@ func (m *State) DelPolicy(polID PolicyID) error {
 	return nil
 }
 
-func (m *State) addPod(podID PodID, namespace string, containers []containerInfo) error {
+func (m *state) addPod(podID PodID, namespace string, containers []containerInfo) error {
 	m.pods = append(m.pods, podInfo{
 		id:         podID,
 		namespace:  namespace,
@@ -418,7 +422,7 @@ func cgIDPtrStr(p *CgroupID) string {
 	return fmt.Sprintf("%d", *p)
 }
 
-func (m *State) findCgroupID(podID PodID, containerID string) (CgroupID, error) {
+func (m *state) findCgroupID(podID PodID, containerID string) (CgroupID, error) {
 	path, err := m.cgfsScanner.FindContainerPath(uuid.UUID(podID), containerID)
 	if errors.Is(err, fsscan.ErrContainerPathWithoutMatchingPodID) {
 		m.log.WithFields(logrus.Fields{
@@ -436,7 +440,7 @@ func (m *State) findCgroupID(podID PodID, containerID string) (CgroupID, error) 
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
 // The pod might or might not have been encountered before.
-func (m *State) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp *CgroupID) error {
+func (m *state) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp *CgroupID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -511,7 +515,7 @@ func (m *State) AddPodContainer(podID PodID, namespace string, containerID strin
 
 // delPodCgroupIDsFromPolicyMaps will delete cgorup entries for containers belonging to pod on all
 // policy maps.
-func (m *State) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []containerInfo) {
+func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []containerInfo) {
 
 	if len(containers) == 0 {
 		return
@@ -542,7 +546,7 @@ func (m *State) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 }
 
 // DelPodContainer informs policyfilter that a container was deleted from a pod
-func (m *State) DelPodContainer(podID PodID, containerID string) error {
+func (m *state) DelPodContainer(podID PodID, containerID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -561,7 +565,7 @@ func (m *State) DelPodContainer(podID PodID, containerID string) error {
 }
 
 // DelPod informs policyfilter that a pod has been deleted
-func (m *State) DelPod(podID PodID) error {
+func (m *state) DelPod(podID PodID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
