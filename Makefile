@@ -244,7 +244,7 @@ tarball: tarball-clean image
 tarball-release: tarball
 	mkdir -p release/
 	mv $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz release/
-	sha256sum release/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz > release/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz.sha256sum
+	(cd release && sha256sum tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz > tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz.sha256sum)
 
 tarball-clean:
 	rm -fr $(BUILD_PKG_DIR)
