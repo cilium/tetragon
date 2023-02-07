@@ -3,7 +3,9 @@
 package exec
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +16,8 @@ import (
 
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/api"
+	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
@@ -23,6 +27,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	proc "github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -546,4 +551,182 @@ func TestExecPerfring(t *testing.T) {
 		}
 	}
 	t.Fatalf("failed to find exec event")
+}
+
+func TestExecParse(t *testing.T) {
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observer.InitDataCache: %s", err)
+	}
+
+	exec := processapi.MsgExec{
+		Size: processapi.MSG_SIZEOF_EXECVE,
+	}
+
+	filename := []byte("/bin/krava")
+	cwd := []byte("/home/krava")
+
+	// Following tests prepare reader with MsgExec event plus additional data
+	// that follows it - filename, arguments, cwd
+	//
+	// The filename could be in form of data event or string. The arguments
+	// data is optional and can be only in form of data event. This setup is
+	// reflected in MsgExec::Flags.
+	//
+	// Based on the MsgExec::Flags the execParse function parses out MsgProcess
+	// object, and we retrieve and check its Args value with ArgsDecoder
+	// function which is used in GetProcess.
+
+	var err error
+
+	{
+		// - filename (string)
+		// - no args
+		// - cwd (string)
+
+		exec.Flags = 0
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd) + 1)
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, []byte{0})
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, empty, err := execParse(reader)
+		assert.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, string(cwd), process.Args)
+		assert.Equal(t, empty, false)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	}
+
+	observer.DataPurge()
+
+	{
+		// - filename (data event)
+		// - no args
+		// - cwd (string)
+
+		id := dataapi.DataEventId{Pid: 1, Time: 1}
+		desc := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id}
+		err = observer.DataAdd(id, filename)
+		assert.NoError(t, err)
+
+		exec.Flags = api.EventDataFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc) + len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, desc)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, empty, err := execParse(reader)
+		assert.NoError(t, err)
+
+		// execParse check
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, string(cwd), process.Args)
+		assert.Equal(t, empty, false)
+
+		// ArgsDecoder check
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	}
+
+	observer.DataPurge()
+
+	{
+		// - filename (string)
+		// - args (data event)
+		// - cwd (string)
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
+
+		id := dataapi.DataEventId{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id}
+		err = observer.DataAdd(id, args)
+		assert.NoError(t, err)
+
+		exec.Flags = api.EventDataArgs
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, []byte{0})
+		binary.Write(&buf, binary.LittleEndian, desc)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, empty, err := execParse(reader)
+		assert.NoError(t, err)
+
+		// execParse check
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, string(args)+string(cwd), process.Args)
+		assert.Equal(t, empty, false)
+
+		// ArgsDecoder check
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "arg1 arg2", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	}
+
+	observer.DataPurge()
+
+	{
+		// - filename (data event)
+		// - args (data event)
+		// - cwd (string)
+
+		id1 := dataapi.DataEventId{Pid: 1, Time: 1}
+		desc1 := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id1}
+		err = observer.DataAdd(id1, filename)
+		assert.NoError(t, err)
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
+
+		id2 := dataapi.DataEventId{Pid: 1, Time: 2}
+		desc2 := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id2}
+		err = observer.DataAdd(id2, args)
+		assert.NoError(t, err)
+
+		exec.Flags = api.EventDataFilename | api.EventDataArgs
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc1) + binary.Size(desc2) + len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, desc1)
+		binary.Write(&buf, binary.LittleEndian, desc2)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, empty, err := execParse(reader)
+		assert.NoError(t, err)
+
+		// execParse check
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, string(args)+string(cwd), process.Args)
+		assert.Equal(t, empty, false)
+
+		// ArgsDecoder check
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "arg1 arg2", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	}
+
+	observer.DataPurge()
 }
