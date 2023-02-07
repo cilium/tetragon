@@ -14,7 +14,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	api "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
-	event := api.MsgExecveEvent{}
+	event := processapi.MsgExecveEvent{}
 	idLength := procevents.BpfContainerIdLength
 
 	// Minikube has "docker-" prefix.
@@ -97,7 +97,7 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	assert.Equal(t, idLength, len(kube.Docker))
 
 	// Empty event so we don't fail tests
-	for i := 0; i < api.DOCKER_ID_LENGTH; i++ {
+	for i := 0; i < processapi.DOCKER_ID_LENGTH; i++ {
 		event.Kube.Docker[i] = 0
 	}
 	// Not valid
@@ -107,7 +107,7 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	assert.Empty(t, kube.Docker)
 
 	// Empty event so we don't fail tests
-	for i := 0; i < api.DOCKER_ID_LENGTH; i++ {
+	for i := 0; i < processapi.DOCKER_ID_LENGTH; i++ {
 		event.Kube.Docker[i] = 0
 	}
 	id = ":ba4c34f800cf9f92881fd55cea8e60d"
