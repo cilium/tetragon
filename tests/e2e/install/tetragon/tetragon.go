@@ -26,9 +26,12 @@ import (
 )
 
 var (
-	AgentBTFKey      = "tetragon.btf"
-	AgentImageKey    = "tetragon.image.override"
-	OperatorImageKey = "tetragonOperator.image.override"
+	AgentExtraVolumesKey      = "extraVolumes"
+	AgentExtraVolumeMountsKey = "tetragon.extraVolumeMounts"
+	AgentExtraArgsKey         = "tetragon.extraArgs"
+	AgentBTFKey               = "tetragon.btf"
+	AgentImageKey             = "tetragon.image.override"
+	OperatorImageKey          = "tetragonOperator.image.override"
 )
 
 type Option func(*flags.HelmOptions)
@@ -145,6 +148,24 @@ func Install(opts ...Option) env.Func {
 			} else {
 				return ctx, fmt.Errorf("option -tetragon.btf only makes sense for KinD clusters")
 			}
+		}
+
+		// Handle procRoot for KinD cluster
+		if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
+			// real-host-proc lets us mount procFS from the real host rather than the KinD node
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].name=real-host-proc", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].hostPath.path=/procRoot", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].hostPath.type=Directory", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].mountPath=/procRootReal", AgentExtraVolumeMountsKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].name=real-host-proc", AgentExtraVolumeMountsKey))
+			// Set tetragon procfs value to the new host proc mountpoint
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s.procfs=/procRootReal", AgentExtraArgsKey))
+			// real-export-dir gives us a directory we can use to export files directly to the host
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].name=real-export-dir", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].hostPath.path=/tetragonExport", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].hostPath.type=Directory", AgentExtraVolumesKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].mountPath=/tetragonExport", AgentExtraVolumeMountsKey))
+			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].name=real-export-dir", AgentExtraVolumeMountsKey))
 		}
 
 		helmArgs.WriteString(" --install")

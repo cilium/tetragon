@@ -26,7 +26,7 @@ var Opts = Flags{
 	},
 	KeepExportData: false,
 	InstallCilium:  true,
-	CiliumVersion:  "v1.12.4",
+	CiliumVersion:  "v1.12.6",
 }
 
 func init() {
