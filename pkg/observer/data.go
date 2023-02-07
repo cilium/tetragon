@@ -27,6 +27,20 @@ func InitDataCache(size int) error {
 	return err
 }
 
+func DataAdd(id dataapi.DataEventId, msgData []byte) error {
+	size := len(msgData)
+	data, ok := dataMap.Get(id)
+	if !ok {
+		dataMap.Add(id, msgData)
+	} else {
+		data = append(data, msgData...)
+		dataMap.Add(id, data)
+	}
+
+	logger.GetLogger().WithFields(nil).Tracef("Data message received id %v, size %v, total %v", id, size, len(data))
+	return nil
+}
+
 func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
 	msgData := make([]byte, size)
@@ -37,16 +51,7 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 		return err
 	}
 
-	data, ok := dataMap.Get(m.Id)
-	if !ok {
-		dataMap.Add(m.Id, msgData)
-	} else {
-		data = append(data, msgData...)
-		dataMap.Add(m.Id, data)
-	}
-
-	logger.GetLogger().WithFields(nil).Tracef("Data message received id %v, size %v, total %v", m.Id, size, len(data))
-	return nil
+	return DataAdd(m.Id, msgData)
 }
 
 func DataGet(id dataapi.DataEventId) ([]byte, error) {
@@ -74,4 +79,8 @@ func HandleData(r *bytes.Reader) ([]Event, error) {
 
 	// we don't send the event further
 	return nil, nil
+}
+
+func DataPurge() {
+	dataMap.Purge()
 }
