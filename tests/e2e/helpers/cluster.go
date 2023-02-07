@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
 	"strings"
 	"testing"
 
@@ -22,15 +23,35 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
+const configPath = "/tmp/tetragon-e2e-kind.yaml"
+
+const kindConfig = `
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: "/proc"
+    containerPath: "/procRoot"
+  - hostPath: "/tetragonExport"
+    containerPath: "/tetragonExport"
+  - hostPath: "/sys/fs/bpf"
+    containerPath: "/sys/fs/bpf"
+    propagation: Bidirectional
+`
+
 var (
-	clusterName string
+	clusterName  string
+	clusterImage string
 )
 
 func init() {
 	flag.StringVar(&clusterName, "cluster-name", "tetragon-ci", "Set the name of the k8s cluster being used")
+	flag.StringVar(&clusterImage, "cluster-image", "kindest/node:v1.24.7", "Set the node image for the kind cluster")
 }
 
-// GetClusterName fetches the cluster name configured with -cluster-name.
+// GetClusterName fetches the cluster name configured with -cluster-name or the temporary
+// kind cluster name.
 func GetClusterName() string {
 	return clusterName
 }
@@ -98,15 +119,34 @@ func GetMinKernelVersion(t *testing.T, testenv env.Environment) string {
 	return *version
 }
 
+func writeKindConfig() error {
+	f, err := os.Create(configPath)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(kindConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // MaybeCreateTempKindCluster creates a new temporary kind cluster in case no kubeconfig file is
 // specified on the command line.
 func MaybeCreateTempKindCluster(testenv env.Environment, namePrefix string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		if cfg.KubeconfigFile() == "" {
 			name := envconf.RandomName(namePrefix, 16)
+			clusterName = name
 			klog.Infof("No kubeconfig specified, creating temporary kind cluster %s", name)
 			var err error
-			ctx, err = envfuncs.CreateKindCluster(name)(ctx, cfg)
+			err = writeKindConfig()
+			if err != nil {
+				return ctx, err
+			}
+			ctx, err = envfuncs.CreateKindClusterWithConfig(name, clusterImage, configPath)(ctx, cfg)
 			if err != nil {
 				return ctx, err
 			}
