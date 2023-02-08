@@ -613,9 +613,10 @@ func execute() error {
 	flags.Int(keyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
 	flags.Int(keyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
 
-	// Provide option to remove existing pinned BPF programs and maps in
-	// Tetragon's observer dir. Useful for doing upgrades/downgrades.
-	flags.Bool(keyReleasePinnedBPF, false, "Release all pinned BPF programs and maps in Tetragon BPF directory")
+	// Provide option to remove existing pinned BPF programs and maps in Tetragon's
+	// observer dir on startup. Useful for doing upgrades/downgrades. Set to false to
+	// disable.
+	flags.Bool(keyReleasePinnedBPF, true, "Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
