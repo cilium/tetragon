@@ -397,11 +397,11 @@ func TestMultipleSelectorsExample(t *testing.T) {
 		expectedLen += 4
 	}
 
-	// vaue               absolute offset    explanation
+	// value               absolute offset    explanation
 	expU32Push(2)               // off: 0       number of selectors
 	expU32Push(8)               // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(104)             // off: 8       relative ofset of 2nd selector (8 + 104 = 112)
-	expU32Push(100)             // off: 12      selector1: length (100 + 12 = 112)
+	expU32Push(80)              // off: 8       relative ofset of 2nd selector (8 + 80 = 88)
+	expU32Push(76)              // off: 12      selector1: length (76 + 12 = 112)
 	expU32Push(24)              // off: 16      selector1: MatchPIDs: len
 	expU32Push(selectorOpNotIn) // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)               // off: 24      selector1: MatchPIDs[0]: flags
@@ -412,12 +412,6 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)               // off: 44      selector1: MatchCapabilities: len
 	expU32Push(4)               // off: 48      selector1: MatchNamespaceChanges: len
 	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
-	expU32Push(4 + 5*4)         // off: 56      selector1: matchBinaries: len
-	expU32Push(0)               // off: 60      selector1: matchBinaries: 0
-	expU32Push(0)               // off: 64      selector1: matchBinaries: 1
-	expU32Push(0)               // off: 68      selector1: matchBinaries: 2
-	expU32Push(0)               // off: 72      selector1: matchBinaries: 3
-	expU32Push(0)               // off: 76      selector1: matchBinaries: 4
 	expU32Push(28)              // off: 80      selector1: matchArgs: len
 	expU32Push(1)               // off: 84      selector1: matchArgs: arg0: index
 	expU32Push(selectorOpEQ)    // off: 88      selector1: matchArgs: arg0: operator
@@ -426,7 +420,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(10)              // off: 100     selector1: matchArgs: arg0: val0: 10
 	expU32Push(20)              // off: 104     selector1: matchArgs: arg0: val1: 20
 	expU32Push(4)               // off: 108     selector1: matchActions: length
-	expU32Push(100)             // off: 112     selector2: length
+	expU32Push(76)              // off: 112     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
@@ -443,11 +437,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0xfe, 0x00, 0x00, 0x00, // size = pids + binarys + args + actions + namespaces + capabilities  + 4
+		0xe6, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x1a, 0x01, 0x00, 0x00, // size = pids + binarys + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x02, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -531,17 +525,6 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_last := []byte{
-		// binaryNames header
-		24, 0x00, 0x00, 0x00, // size = sizeof(uint32) * 4
-
-		// binaryNames Ids, always has 4 to ease verify complexity and
-		// zeroes unused entries.
-		0x00, 0x00, 0x00, 0x00, // op
-		0x00, 0x00, 0x00, 0x00, // index0
-		0x00, 0x00, 0x00, 0x00, // index1
-		0x00, 0x00, 0x00, 0x00, // index2
-		0x00, 0x00, 0x00, 0x00, // index3
-
 		// arg header
 		54, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
 

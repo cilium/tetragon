@@ -83,12 +83,6 @@ struct selector_action {
 	__u32 act[];
 };
 
-struct selector_binary_filter {
-	__u32 arglen;
-	__u32 op;
-	__u32 index[4];
-};
-
 struct selector_arg_filter {
 	__u32 arglen;
 	__u32 index;
@@ -930,14 +924,33 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 
 #define INDEX_MASK 0x3ff
 
+/*
+ * For matchBinaries we use two maps:
+ * 1. names_map: global (for all sensors) keeps a mapping from names -> ids
+ * 2. sel_names_map: per-sensor: keeps a mapping from id -> selector val
+ *
+ * At exec time, we check names_map and set ->binary in execve_map equal to
+ * the id stored in names_map. Assuming the binary name exists in the map,
+ * otherwise binary is 0.
+ *
+ * When we check the selectors, use ->binary to index sel_names_map and decide
+ * whether the selector matches or not.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 256);
+	__type(key, __u32);
+	__type(value, __u32);
+} sel_names_map SEC(".maps");
+
 static inline __attribute__((always_inline)) int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 {
 	struct selector_arg_filter *filter;
-	struct selector_binary_filter *binary;
 	long seloff, argoff, pass;
-	__u32 index;
+	__u32 index, *op;
 	char *args;
+	__u32 max = 0xffffffff; // UINT32_MAX
 
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */
@@ -958,42 +971,26 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	/* skip the matchCapabilityChanges by reading its length */
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
-	/* seloff must leave space for verifier to walk strings
-	 * so we set inside 4k maximum. Advance to binary matches.
-	 */
-	seloff &= INDEX_MASK;
-	binary = (struct selector_binary_filter *)&f[seloff];
-
-	/* Run binary name filters
-	 */
-	if (binary->op == op_filter_in) {
+	op = map_lookup_elem(&sel_names_map, &max);
+	if (op && *op == op_filter_in) {
 		struct execve_map_value *execve;
 		bool walker = 0;
-		__u32 ppid;
+		__u32 ppid, bin_key, *bin_val;
 
 		execve = event_find_curr(&ppid, &walker);
 		if (!execve)
 			return 0;
-		if (binary->index[0] != execve->binary &&
-		    binary->index[1] != execve->binary &&
-		    binary->index[2] != execve->binary &&
-		    binary->index[3] != execve->binary)
+
+		bin_key = execve->binary;
+		bin_val = map_lookup_elem(&sel_names_map, &bin_key);
+		if (!bin_val)
+			return 0;
+		if (*bin_val != 1)
 			return 0;
 	}
 
-	/* Advance to matchArgs we use fixed size binary filters for now. It helps
-	 * the verifier and its still unclear how many entries are needed. At any
-	 * rate each entry is a uint32 now and we should really be able to pack
-	 * an entry into a byte which would give us 4x more entries.
-	 */
-	seloff += sizeof(struct selector_binary_filter);
-	if (seloff > 3800) {
-		return 0;
-	}
-
 	/* Making binary selectors fixes size helps on some kernels */
-	asm volatile("%[seloff] &= 0xfff;\n" ::[seloff] "+r"(seloff)
-		     :);
+	seloff &= INDEX_MASK;
 	filter = (struct selector_arg_filter *)&f[seloff];
 
 	if (filter->arglen <= 4) // no filters
