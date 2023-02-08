@@ -53,6 +53,25 @@ func updateSelectors(
 		return fmt.Errorf("failed to populate argfilter_maps: %w", err)
 	}
 
+	selNamesMapName, ok := pinMap["sel_names_map"]
+	if !ok {
+		return fmt.Errorf("cannot find pinned sel_names_map")
+	}
+	selNamesMapName = filepath.Join(bpf.MapPrefixPath(), selNamesMapName)
+	selNamesMap, err := ebpf.LoadPinnedMap(selNamesMapName, nil)
+	if err != nil {
+		return fmt.Errorf("failed to open sel_names_map map %s: %w", selNamesMapName, err)
+	}
+	defer selNamesMap.Close()
+	if err := selNamesMap.Update(uint32(0xffffffff), ks.GetBinaryOp(), ebpf.UpdateAny); err != nil {
+		return err
+	}
+	for idx, val := range ks.GetBinSelNamesMap() {
+		if err := selNamesMap.Update(idx, val, ebpf.UpdateAny); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -70,6 +89,22 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			Name:  "argfilter_maps",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
+			Name:  "sel_names_map",
+			Load: func(m *ebpf.Map, index uint32) error {
+				// add a special entry (key == UINT32_MAX) that has as a value the number of matchBinaries entry
+				// if this is zero we don't have any matchBinaries selectors
+				if err := m.Update(uint32(0xffffffff), ks.GetBinaryOp(), ebpf.UpdateAny); err != nil {
+					return err
+				}
+				for idx, val := range ks.GetBinSelNamesMap() {
+					if err := m.Update(idx, val, ebpf.UpdateAny); err != nil {
+						return err
+					}
+				}
+				return nil
 			},
 		},
 	}

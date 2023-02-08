@@ -6,7 +6,6 @@ package selectors
 import (
 	"encoding/binary"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -636,39 +635,30 @@ func parseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 func parseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error {
 	op, err := selectorOp(b.Operator)
 	if err != nil {
-		return fmt.Errorf("matchpid error: %w", err)
+		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	WriteSelectorUint32(k, op)
-	if len(b.Values) > 4 {
-		return fmt.Errorf("Only support up to 4 values in MatchBinary")
+	if op != selectorOpIn {
+		return fmt.Errorf("matchBinary error: Only In operator is supported")
 	}
+	k.SetBinaryOp(op)
 	for _, s := range b.Values {
-		WriteSelectorUint32(k, k.AddBinaryName(s))
-	}
-	for l := len(b.Values); l < 4; l++ {
-		WriteSelectorUint32(k, math.MaxUint32)
+		if len(s) > 255 {
+			return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+		}
+		k.AddBinaryName(s)
 	}
 	return nil
 }
 
 func parseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector) error {
-	loff := AdvanceSelectorLength(k)
 	if len(binarys) > 1 {
 		return fmt.Errorf("Only support single binary selector")
-	} else if len(binarys) == 0 {
-		// To aid verifier we always zero in binary fields to allow
-		// BPF to assume the values exist.
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-		WriteSelectorUint32(k, 0)
-	} else {
-		if err := parseMatchBinary(k, &binarys[0]); err != nil {
+	}
+	for _, s := range binarys {
+		if err := parseMatchBinary(k, &s); err != nil {
 			return err
 		}
 	}
-	WriteSelectorLength(k, loff)
 	return nil
 }
 
@@ -721,7 +711,6 @@ func parseSelector(
 //	[matchCapabilities]
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
-//	[matchBinaries]
 //	[matchArgs]
 //	[matchActions]
 //
@@ -730,7 +719,6 @@ func parseSelector(
 // matchCapabilities := [length][CAx][CAy]...[CAn]
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
-// matchBinaries := [length][op][Index]...[Index]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]

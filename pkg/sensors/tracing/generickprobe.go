@@ -230,6 +230,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	maps = append(maps, callHeap)
 
+	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
+	maps = append(maps, selNamesMap)
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -491,6 +494,9 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 		maps = append(maps, callHeap)
 
+		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
+		maps = append(maps, selNamesMap)
+
 		if setRetprobe {
 			pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
 			loadret := program.Builder(
@@ -604,7 +610,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 	}
 	defer m.Close()
 
-	for i, path := range gk.loadArgs.selectors.GetBinaryMappings() {
+	for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
 		writeBinaryMap(m, i, path)
 	}
 
@@ -654,7 +660,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 
 	for _, id := range ids {
 		if gk, err := genericKprobeTableGet(id); err == nil {
-			for i, path := range gk.loadArgs.selectors.GetBinaryMappings() {
+			for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
 				writeBinaryMap(m, i, path)
 			}
 		}
