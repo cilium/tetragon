@@ -5,9 +5,8 @@
 #include "api.h"
 #include "bpf_tracing.h"
 #include "bpf_helpers.h"
-#include "lib/common.h"
-#include "lib/hubble_msg.h"
-#include "lib/bpf_events.h"
+#include "hubble_msg.h"
+#include "bpf_events.h"
 
 struct msg_loader {
 	struct msg_common common;
