@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -138,60 +139,44 @@ var capabilitiesTypeTable = map[string]uint32{
 }
 
 const (
-	argTypeInt       = 1
-	argTypeCharBuf   = 2
-	argTypeCharIovec = 3
-	argTypeSizet     = 4
-	argTypeSkb       = 5
-	argTypeString    = 6
-	argTypeSock      = 7
-
-	argTypeS64 = 10
-	argTypeU64 = 11
-	argTypeS32 = 12
-	argTypeU32 = 13
-
-	argTypeFile = 16
-	argTypeFd   = 17
-
 	argTypeUrl  = 18
 	argTypeFqdn = 19
 )
 
 var argTypeTable = map[string]uint32{
-	"int":        argTypeInt,
-	"uint32":     argTypeU32,
-	"int32":      argTypeS32,
-	"uint64":     argTypeU64,
-	"int64":      argTypeS64,
-	"char_buf":   argTypeCharBuf,
-	"char_iovec": argTypeCharIovec,
-	"sizet":      argTypeSizet,
-	"skb":        argTypeSkb,
-	"string":     argTypeString,
-	"fd":         argTypeFd,
-	"file":       argTypeFile,
-	"sock":       argTypeSock,
+	"int":        generictypes.GenericIntType,
+	"uint32":     generictypes.GenericU32Type,
+	"int32":      generictypes.GenericS32Type,
+	"uint64":     generictypes.GenericU64Type,
+	"int64":      generictypes.GenericS64Type,
+	"char_buf":   generictypes.GenericCharBuffer,
+	"char_iovec": generictypes.GenericCharIovec,
+	"sizet":      generictypes.GenericSizeType,
+	"skb":        generictypes.GenericSkbType,
+	"string":     generictypes.GenericStringType,
+	"fd":         generictypes.GenericFdType,
+	"file":       generictypes.GenericFileType,
+	"sock":       generictypes.GenericSockType,
 	"url":        argTypeUrl,
 	"fqdn":       argTypeFqdn,
 }
 
 var argTypeStringTable = map[uint32]string{
-	argTypeInt:       "int",
-	argTypeU32:       "uint32",
-	argTypeS32:       "int32",
-	argTypeU64:       "uint64",
-	argTypeS64:       "int64",
-	argTypeCharBuf:   "char_buf",
-	argTypeCharIovec: "char_iovec",
-	argTypeSizet:     "sizet",
-	argTypeSkb:       "skb",
-	argTypeString:    "string",
-	argTypeFd:        "fd",
-	argTypeFile:      "file",
-	argTypeSock:      "sock",
-	argTypeUrl:       "url",
-	argTypeFqdn:      "fqdn",
+	generictypes.GenericIntType:    "int",
+	generictypes.GenericU32Type:    "uint32",
+	generictypes.GenericS32Type:    "int32",
+	generictypes.GenericU64Type:    "uint64",
+	generictypes.GenericS64Type:    "int64",
+	generictypes.GenericCharBuffer: "char_buf",
+	generictypes.GenericCharIovec:  "char_iovec",
+	generictypes.GenericSizeType:   "sizet",
+	generictypes.GenericSkbType:    "skb",
+	generictypes.GenericStringType: "string",
+	generictypes.GenericFdType:     "fd",
+	generictypes.GenericFileType:   "file",
+	generictypes.GenericSockType:   "sock",
+	argTypeUrl:                     "url",
+	argTypeFqdn:                    "fqdn",
 }
 
 const (
@@ -315,13 +300,13 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 	for _, v := range values {
 		var val [8]byte
 		switch ty {
-		case argTypeS64, argTypeInt:
+		case generictypes.GenericS64Type, generictypes.GenericIntType:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			binary.LittleEndian.PutUint64(val[:], uint64(i))
-		case argTypeU64:
+		case generictypes.GenericU64Type:
 			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
@@ -341,39 +326,39 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
 	for _, v := range values {
 		switch ty {
-		case argTypeFd, argTypeFile:
+		case generictypes.GenericFdType, generictypes.GenericFileType:
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
-		case argTypeString, argTypeCharBuf:
+		case generictypes.GenericStringType, generictypes.GenericCharBuffer:
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
-		case argTypeS32, argTypeInt, argTypeSizet:
+		case generictypes.GenericS32Type, generictypes.GenericIntType, generictypes.GenericSizeType:
 			i, err := strconv.ParseInt(v, 10, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			WriteSelectorInt32(k, int32(i))
-		case argTypeU32:
+		case generictypes.GenericU32Type:
 			i, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			WriteSelectorUint32(k, uint32(i))
-		case argTypeS64:
+		case generictypes.GenericS64Type:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			WriteSelectorInt64(k, int64(i))
-		case argTypeU64:
+		case generictypes.GenericU64Type:
 			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
 			}
 			WriteSelectorUint64(k, uint64(i))
-		case argTypeSock, argTypeSkb, argTypeCharIovec:
+		case generictypes.GenericSockType, generictypes.GenericSkbType, generictypes.GenericCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
 	}

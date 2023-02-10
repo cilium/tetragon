@@ -22,3 +22,4 @@ strange.txt
 compile_commands.json
 contrib/tester-progs/sigkill-unprivileged-user-ns-tester
 /release
+.idea
