@@ -118,7 +118,7 @@ static uint64_t BPF_FUNC(get_socket_cookie, void *ctx);
 
 /* Debugging */
 
-__attribute__((__format__(__printf__, 1, 3)))
+__attribute__((__format__(__printf__, 1, 0)))
 static void BPF_FUNC(trace_printk, const char *fmt, int fmt_size, ...);
 
 static long BPF_FUNC(trace_vprintk, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len);
