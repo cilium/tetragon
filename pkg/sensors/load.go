@@ -70,6 +70,12 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 		return nil
 	}
 
+	for _, check := range s.VersionChecks {
+		if err := check(); err != nil {
+			return err
+		}
+	}
+
 	// Add the loaded programs and maps to All* so they can be unloaded on shutdown.
 	AllPrograms = append(AllPrograms, s.Progs...)
 	AllMaps = append(AllMaps, s.Maps...)
@@ -123,8 +129,8 @@ func (s *Sensor) Unload() error {
 		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", s.Name)
 	}
 
-	if s.UnloadHook != nil {
-		if err := s.UnloadHook(); err != nil {
+	for _, hook := range s.UnloadHooks {
+		if err := hook(); err != nil {
 			logger.GetLogger().Warnf("Sensor %s unload hook failed: %s", s.Name, err)
 		}
 	}
@@ -263,15 +269,22 @@ func (s *Sensor) loadMaps(stopCtx context.Context, mapDir string) error {
 func mergeSensors(sensors []*Sensor) *Sensor {
 	var progs []*program.Program
 	var maps []*program.Map
+	var unloadHooks []SensorUnloadHook
+	var versionChecks []SensorVersionCheck
 
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
 		maps = append(maps, s.Maps...)
+		unloadHooks = append(unloadHooks, s.UnloadHooks...)
+		versionChecks = append(versionChecks, s.VersionChecks...)
 	}
+
 	return &Sensor{
-		Name:  "__main__",
-		Progs: progs,
-		Maps:  maps,
+		Name:          "__main__",
+		Progs:         progs,
+		Maps:          maps,
+		VersionChecks: versionChecks,
+		UnloadHooks:   unloadHooks,
 	}
 }
 

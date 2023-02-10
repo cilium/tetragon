@@ -43,10 +43,15 @@ type Sensor struct {
 	Loaded bool
 	// Ops contains an implementation to perform on this sensor.
 	Ops Operations
-	// UnloadHook can optionally contain a pointer to a function to be
+	// UnloadHooks can optionally contain pointers to functions to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
-	UnloadHook SensorUnloadHook
+	UnloadHooks []SensorUnloadHook
+	// VersionChecks are callbacks for optional checks that we can run just before
+	// loading the sensor. For example, this can be used to perform kernel version checks
+	// and return a sane error message. Return nil when checks pass, or an error
+	// otherwise.
+	VersionChecks []SensorVersionCheck
 }
 
 // Operations is the interface to the underlying sensor implementations.
@@ -62,14 +67,32 @@ type Operations interface {
 // that can be called during sensor unloading.
 type SensorUnloadHook func() error
 
+// SensorVersionCheck is the function signature for an optional check that we can run just
+// before loading the sensor. For example, this can be used to perform kernel version
+// checks and return a sane error message. Return nil when checks pass, or an error
+// otherwise.
+type SensorVersionCheck func() error
+
 func SensorCombine(name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
 	maps := []*program.Map{}
+	var unloadHooks []SensorUnloadHook
+	var versionChecks []SensorVersionCheck
+
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
 		maps = append(maps, s.Maps...)
+		unloadHooks = append(unloadHooks, s.UnloadHooks...)
+		versionChecks = append(versionChecks, s.VersionChecks...)
 	}
-	return SensorBuilder(name, progs, maps)
+
+	sensor := SensorBuilder(name, progs, maps)
+	if sensor != nil {
+
+		sensor.VersionChecks = versionChecks
+		sensor.UnloadHooks = unloadHooks
+	}
+	return sensor
 }
 
 func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor {
