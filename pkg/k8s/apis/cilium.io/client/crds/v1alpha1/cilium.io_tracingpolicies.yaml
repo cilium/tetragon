@@ -102,6 +102,7 @@ spec:
                             - bpf_map
                             - user_namespace
                             - capability
+                            - kiocb
                             type: string
                         required:
                         - index
@@ -176,6 +177,7 @@ spec:
                           - bpf_map
                           - user_namespace
                           - capability
+                          - kiocb
                           type: string
                       required:
                       - index
@@ -643,6 +645,7 @@ spec:
                             - bpf_map
                             - user_namespace
                             - capability
+                            - kiocb
                             type: string
                         required:
                         - index

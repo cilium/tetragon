@@ -31,6 +31,8 @@ const (
 	GenericUserNamespace = 22
 	GenericCapability    = 23
 
+	GenericKiocb = 24
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -83,6 +85,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericUserNamespace
 	case "capability":
 		return GenericCapability
+	case "kiocb":
+		return GenericKiocb
 	default:
 		return GenericInvalidType
 	}
