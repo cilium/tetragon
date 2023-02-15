@@ -51,6 +51,8 @@ enum {
 	user_namespace_type = 22,
 	capability_type = 23,
 
+	kiocb_type = 24,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -1794,6 +1796,15 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	e->argsoff[index] = orig_off;
 
 	switch (type) {
+	case kiocb_type: {
+		struct kiocb *kiocb = (struct kiocb *)arg;
+		struct file *file;
+
+		arg = (unsigned long)_(&kiocb->ki_filp);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		arg = (unsigned long)file;
+	}
+		// fallthrough to file_ty
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);

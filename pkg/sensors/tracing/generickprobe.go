@@ -950,7 +950,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Value = output
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
-		case gt.GenericFileType, gt.GenericFdType:
+		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 			var arg api.MsgGenericKprobeArgFile
 			var flags uint32
 			var b int32
