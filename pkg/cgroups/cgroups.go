@@ -76,6 +76,131 @@ type CgroupController struct {
 	Active bool   // Will be set to true if controller is set and active
 }
 
+type cgroupsState struct {
+	path    string
+	mode    CgroupModeCode
+	fsMagic uint64
+	err     error
+}
+
+var (
+	// cgroup shared state set only once
+	sharedState   cgroupsState
+	initStateOnce sync.Once
+)
+
+func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
+	var st syscall.Statfs_t
+
+	if err := syscall.Statfs(cgroupfs, &st); err != nil {
+		return CGROUP_UNDEF, err
+	}
+
+	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+		return CGROUP_UNIFIED, nil
+	} else if st.Type == unix.TMPFS_MAGIC {
+		err := syscall.Statfs(filepath.Join(cgroupfs, "unified"), &st)
+		if err == nil && st.Type == unix.CGROUP2_SUPER_MAGIC {
+			return CGROUP_HYBRID, nil
+		}
+		return CGROUP_LEGACY, nil
+	}
+
+	return CGROUP_UNDEF, fmt.Errorf("wrong filesystem type '0x%x' for cgroupfs '%s'", st.Type, cgroupfs)
+}
+
+// Initialize a cgroups state
+func initCGroupsState() *cgroupsState {
+	initStateOnce.Do(func() {
+		sharedState.path = defaultCgroupRoot
+		cgroupMode, err := detectCgroupMode(cgroupFSPath)
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("cgroup.fs", cgroupFSPath).Debug("Could not detect Cgroup Mode")
+			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
+			if err != nil {
+				logger.GetLogger().WithError(err).WithField("cgroup.fs", defaults.Cgroup2Dir).Debug("Could not detect Cgroup Mode")
+			} else {
+				sharedState.path = defaults.Cgroup2Dir
+			}
+		}
+
+		if cgroupMode == CGROUP_UNDEF {
+			sharedState.err = fmt.Errorf("could not detect Cgroup Mode: %v", err)
+			return
+		}
+
+		switch cgroupMode {
+		case CGROUP_LEGACY, CGROUP_HYBRID:
+			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in raw Cgroup mode")
+			sharedState.fsMagic = unix.CGROUP_SUPER_MAGIC
+		case CGROUP_UNIFIED:
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+			sharedState.fsMagic = unix.CGROUP2_SUPER_MAGIC
+		}
+
+		sharedState.mode = cgroupMode
+	})
+
+	return &sharedState
+}
+
+type CGroups struct {
+	state *cgroupsState
+}
+
+// Initialize and returns a new CGroups
+func NewCGroup() (*CGroups, error) {
+	state := initCGroupsState()
+	if state.err != nil {
+		return nil, state.err
+	}
+
+	return &CGroups{
+		state: state,
+	}, nil
+}
+
+// Returns the path of the Control Groups Filesystem.
+func (cg *CGroups) Path() string {
+	return cg.state.path
+}
+
+// Returns the cgroup Mode, could be one of these:
+//
+//	CGROUP_LEGACY: cgroupv1
+//	CGROUP_HYBRID: cgroupv1 + cgroupv2
+//	CGROUP_UNIFIED: pure cgroupv2
+//	CGROUP_UNDEF: 0 if an error was accountered.
+func (cg *CGroups) Mode() CgroupModeCode {
+	return cg.state.mode
+}
+
+// Returns the cgroup fs magic
+func (cg *CGroups) FSMagic() uint64 {
+	return cg.state.fsMagic
+}
+
+func (cg *CGroups) LogState() {
+	if cg.state.mode != CGROUP_UNDEF {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs":   cg.state.path,
+			"cgroup.mode": cg.state.mode.String(),
+		}).Info("Cgroup mode detection succeeded")
+	} else {
+		logger.GetLogger().Warn("Cgroup mode is not set")
+	}
+
+	if cg.state.fsMagic != CGROUP_UNSET_VALUE {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs":       cg.state.path,
+			"cgroup.fs.Magic": CgroupFsMagicStr(cg.state.fsMagic),
+		}).Info("Cgroup filesystem detection succeeded")
+	} else {
+		logger.GetLogger().Warn("Cgroup Filesystem Magic is not set")
+	}
+}
+
 var (
 	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
@@ -562,26 +687,6 @@ func findMigrationPath(pid uint32) (string, error) {
 	}
 
 	return cgrpMigrationPath, nil
-}
-
-func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
-	var st syscall.Statfs_t
-
-	if err := syscall.Statfs(cgroupfs, &st); err != nil {
-		return CGROUP_UNDEF, err
-	}
-
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
-		return CGROUP_UNIFIED, nil
-	} else if st.Type == unix.TMPFS_MAGIC {
-		err := syscall.Statfs(filepath.Join(cgroupfs, "unified"), &st)
-		if err == nil && st.Type == unix.CGROUP2_SUPER_MAGIC {
-			return CGROUP_HYBRID, nil
-		}
-		return CGROUP_LEGACY, nil
-	}
-
-	return CGROUP_UNDEF, fmt.Errorf("wrong type '%d' for cgroupfs '%s'", st.Type, cgroupfs)
 }
 
 // DetectCgroupMode() Returns the current Cgroup mode that is applied to the system

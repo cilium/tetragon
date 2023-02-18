@@ -212,6 +212,12 @@ func TestDetectCgroupMode(t *testing.T) {
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	assert.NotEmpty(t, cgroupFSPath)
+
+	cgroup, err := NewCGroup()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, cgroup.Path())
+	assert.NotZero(t, cgroup.Mode())
+	assert.NotZero(t, cgroup.FSMagic())
 }
 
 // Test cgroup FS magic detection. This will run DetectCgroupFSMagic()
