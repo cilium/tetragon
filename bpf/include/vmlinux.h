@@ -11800,21 +11800,30 @@ struct iovec;
 struct kvec;
 
 struct iov_iter {
-	unsigned int type;
-	size_t iov_offset;
+	u8 iter_type;
+	bool nofault;
+	bool data_source;
+	bool user_backed;
+	union {
+		size_t iov_offset;
+		int last_offset;
+	};
 	size_t count;
 	union {
 		const struct iovec *iov;
 		const struct kvec *kvec;
 		const struct bio_vec *bvec;
+		struct xarray *xarray;
 		struct pipe_inode_info *pipe;
+		void *ubuf;
 	};
 	union {
-		long unsigned int nr_segs;
+		unsigned long nr_segs;
 		struct {
 			unsigned int head;
 			unsigned int start_head;
 		};
+		loff_t xarray_start;
 	};
 };
 
@@ -36839,11 +36848,14 @@ enum mapping_flags {
 };
 
 enum iter_type {
-	ITER_IOVEC = 4,
-	ITER_KVEC = 8,
-	ITER_BVEC = 16,
-	ITER_PIPE = 32,
-	ITER_DISCARD = 64,
+	/* iter types */
+	ITER_IOVEC,
+	ITER_KVEC,
+	ITER_BVEC,
+	ITER_PIPE,
+	ITER_XARRAY,
+	ITER_DISCARD,
+	ITER_UBUF,
 };
 
 struct pagevec {

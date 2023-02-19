@@ -1026,7 +1026,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Inheritable = cred.Inheritable
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
-		case gt.GenericCharBuffer, gt.GenericCharIovec:
+		case gt.GenericCharBuffer, gt.GenericCharIovec, gt.GenericIovIter:
 			if arg, err := ReadArgBytes(r, a.index, a.maxData); err == nil {
 				arg.Label = a.label
 				unix.Args = append(unix.Args, *arg)

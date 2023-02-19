@@ -52,6 +52,7 @@ enum {
 	capability_type = 23,
 
 	kiocb_type = 24,
+	iov_iter_type = 25,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -882,6 +883,62 @@ copy_bpf_map(char *args, unsigned long arg)
 	probe_read(&map_info->map_name, BPF_OBJ_NAME_LEN, _(&bpfmap->name));
 
 	return sizeof(struct bpf_map_info_type);
+}
+
+static inline __attribute__((always_inline)) long
+copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
+	      struct bpf_map_def *data_heap)
+{
+	struct iov_iter *iov_iter = (struct iov_iter *)arg;
+	struct kvec *kvec;
+	unsigned int val;
+	const char *buf;
+	size_t count;
+	u8 iter_type;
+	long size;
+	void *tmp;
+	int *s;
+
+	if (bpf_core_field_exists(iov_iter->iter_type)) {
+		tmp = _(&iov_iter->iter_type);
+		probe_read(&iter_type, sizeof(iter_type), tmp);
+	} else {
+		probe_read(&val, sizeof(val), (const void *)arg);
+		val &= ~1;
+		iter_type = val == 4 ? ITER_IOVEC : ITER_UBUF + 1;
+	}
+
+	switch (iter_type) {
+	case ITER_IOVEC:
+		tmp = _(&iov_iter->kvec);
+		probe_read(&kvec, sizeof(kvec), tmp);
+
+		tmp = _(&kvec->iov_base);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&kvec->iov_len);
+		probe_read(&count, sizeof(count), tmp);
+
+		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
+		break;
+#ifdef __V60_BPF_PROG
+	case ITER_UBUF:
+		tmp = _(&iov_iter->ubuf);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&iov_iter->count);
+		probe_read(&count, sizeof(count), tmp);
+
+		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
+		break;
+#endif // __V60_BPF_PROG
+	default:
+		s = (int *)args_off(e, off);
+		s[0] = s[1] = 0;
+		size = 8;
+		break;
+	}
+	return size;
 }
 
 // filter on values provided in the selector itself
@@ -1796,6 +1853,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	e->argsoff[index] = orig_off;
 
 	switch (type) {
+	case iov_iter_type:
+		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
+		break;
 	case kiocb_type: {
 		struct kiocb *kiocb = (struct kiocb *)arg;
 		struct file *file;
