@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -26,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 	"github.com/sirupsen/logrus"
@@ -536,7 +538,23 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
+	if err := program.LoadTracepointProgram(bpfDir, mapDir, load, verbose); err == nil {
+		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+	} else {
+		return err
+	}
+
+	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	for i, path := range kernelSelectors.GetNewBinaryMappings() {
+		writeBinaryMap(m, i, path)
+	}
+
+	return err
 }
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
