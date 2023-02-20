@@ -57,7 +57,7 @@ func (k *KernelSelectorState) AddBinaryName(binary string) {
 	binIdx++
 	binVals[binary] = idx      // global map of all names_map entries
 	k.newBinVals[idx] = binary // new names_map entries that we should add
-	k.selNamesMap[idx] = 1     // value in the per-selector names_map
+	k.selNamesMap[idx] = 1     // value in the per-selector names_map (we ignore the value)
 }
 
 func (k *KernelSelectorState) GetNewBinaryMappings() map[uint32]string {

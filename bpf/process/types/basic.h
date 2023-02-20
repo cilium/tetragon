@@ -972,7 +972,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	op = map_lookup_elem(&sel_names_map, &max);
-	if (op && *op == op_filter_in) {
+	if (op) {
 		struct execve_map_value *execve;
 		bool walker = 0;
 		__u32 ppid, bin_key, *bin_val;
@@ -983,10 +983,21 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 
 		bin_key = execve->binary;
 		bin_val = map_lookup_elem(&sel_names_map, &bin_key);
-		if (!bin_val)
-			return 0;
-		if (*bin_val != 1)
-			return 0;
+
+		/*
+		 * The following things may happen:
+		 * binary is not part of names_map, execve_map->binary will be `0` and `bin_val` will always be `0`
+		 * binary is part of `names_map`:
+		 *  if binary is not part of this selector, bin_val will be`0`
+		 *  if binary is part of this selector: `bin_val will be `!0`
+		 */
+		if (*op == op_filter_in) {
+			if (!bin_val)
+				return 0;
+		} else if (*op == op_filter_notin) {
+			if (bin_val)
+				return 0;
+		}
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */

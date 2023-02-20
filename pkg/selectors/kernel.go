@@ -637,8 +637,8 @@ func parseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error 
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	if op != selectorOpIn {
-		return fmt.Errorf("matchBinary error: Only In operator is supported")
+	if op != selectorOpIn && op != selectorOpNotIn {
+		return fmt.Errorf("matchBinary error: Only In and NotIn operators are supported")
 	}
 	k.SetBinaryOp(op)
 	for _, s := range b.Values {
