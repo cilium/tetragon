@@ -77,16 +77,27 @@ type CgroupController struct {
 }
 
 type cgroupsState struct {
-	path    string
-	mode    CgroupModeCode
-	fsMagic uint64
-	err     error
+	path        string
+	mode        CgroupModeCode
+	fsMagic     uint64
+	controllers []CgroupController
+	err         error
 }
 
 var (
 	// cgroup shared state set only once
 	sharedState   cgroupsState
 	initStateOnce sync.Once
+
+	/* Cgroup controllers that we are interested in
+	 * are usually the ones that are setup by systemd
+	 * or other init programs.
+	 */
+	CgroupControllers = []CgroupController{
+		{Name: "memory"}, // Memory first
+		{Name: "pids"},   // pids second
+		{Name: "cpuset"}, // fallback
+	}
 )
 
 func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
@@ -107,6 +118,81 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 	}
 
 	return CGROUP_UNDEF, fmt.Errorf("wrong filesystem type '0x%x' for cgroupfs '%s'", st.Type, cgroupfs)
+}
+
+func (s *cgroupsState) parseCgroupsControllers(filePath string) error {
+	var allcontrollers []string
+	selectedControllers := []string{"memory", "pids", "cpuset"}
+
+	if s.controllers == nil {
+		s.controllers = make([]CgroupController, 0)
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	fscanner := bufio.NewScanner(file)
+	fixed := false
+	idx := 0
+	fscanner.Scan() // ignore first entry
+	for fscanner.Scan() {
+		line := fscanner.Text()
+		fields := strings.Fields(line)
+
+		allcontrollers = append(allcontrollers, fields[0])
+
+		// No need to read enabled field as it can be enabled on
+		// root without having a proper cgroup name to reflect that
+		// or the controller is not active on the unified cgroupv2.
+		for _, name := range selectedControllers {
+			if fields[0] == name {
+				/* We care only for the controllers that we want */
+				if idx >= CGROUP_SUBSYS_COUNT {
+					/* Maybe some cgroups are not upstream? */
+					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at idx=%d higher than CGROUP_SUBSYS_COUNT=%d",
+						fields[0], idx, CGROUP_SUBSYS_COUNT)
+				}
+
+				id, err := strconv.ParseUint(fields[1], 10, 32)
+				if err == nil {
+					controller := CgroupController{
+						Name:   name,
+						Id:     uint32(id),
+						Idx:    uint32(idx),
+						Active: true,
+					}
+					s.controllers = append(s.controllers, controller)
+					fixed = true
+				} else {
+					logger.GetLogger().WithFields(logrus.Fields{
+						"cgroup.fs":              s.path,
+						"cgroup.controller.name": name,
+					}).WithError(err).Warnf("parsing controller line from '%s' failed", filePath)
+				}
+			}
+		}
+		idx++
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":          s.path,
+		"cgroup.controllers": fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")),
+	}).Debugf("Cgroup available controllers")
+
+	// Could not find 'memory', 'pids' nor 'cpuset' controllers
+	if fixed == false {
+		err = fmt.Errorf("no available controller inside '%s'", filePath)
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs": s.path,
+		}).WithError(err).Warnf("Cgroup controllers 'memory', 'pids' and 'cpuset' are missing")
+		return err
+	}
+
+	return nil
 }
 
 // Initialize a cgroups state
@@ -140,6 +226,12 @@ func initCGroupsState() *cgroupsState {
 		}
 
 		sharedState.mode = cgroupMode
+
+		err = sharedState.parseCgroupsControllers(filepath.Join(option.Config.ProcFS, "cgroups"))
+		if err != nil {
+			sharedState.err = fmt.Errorf("could not detect Cgroup controllers: %v", err)
+			return
+		}
 	})
 
 	return &sharedState
@@ -181,6 +273,14 @@ func (cg *CGroups) FSMagic() uint64 {
 	return cg.state.fsMagic
 }
 
+func (cg *CGroups) Controllers() ([]CgroupController, error) {
+	if cg.state.controllers == nil || len(cg.state.controllers) == 0 {
+		return nil, fmt.Errorf("Cgroup controllers are not set")
+	}
+
+	return cg.state.controllers, nil
+}
+
 func (cg *CGroups) LogState() {
 	if cg.state.mode != CGROUP_UNDEF {
 		logger.GetLogger().WithFields(logrus.Fields{
@@ -199,21 +299,31 @@ func (cg *CGroups) LogState() {
 	} else {
 		logger.GetLogger().Warn("Cgroup Filesystem Magic is not set")
 	}
+
+	if cg.state.controllers == nil || len(cg.state.controllers) == 0 {
+		logger.GetLogger().Warn("Cgroup controllers are not set")
+	} else {
+		for _, controller := range cg.state.controllers {
+			// Print again everything that is available or not
+			if controller.Active {
+				logger.GetLogger().WithFields(logrus.Fields{
+					"cgroup.fs":                     cg.state.path,
+					"cgroup.controller.name":        controller.Name,
+					"cgroup.controller.hierarchyID": controller.Id,
+					"cgroup.controller.index":       controller.Idx,
+				}).Infof("Cgroup supported controller '%s' is active on the system", controller.Name)
+			} else {
+				// Warn with error
+				err := fmt.Errorf("controller '%s' is not active", controller.Name)
+				logger.GetLogger().WithField("cgroup.fs", cg.state.path).WithError(err).Warnf("Cgroup controller '%s' is not active", controller.Name)
+			}
+		}
+	}
 }
 
 var (
 	// Path where default cgroupfs is mounted
 	defaultCgroupRoot = "/sys/fs/cgroup"
-
-	/* Cgroup controllers that we are interested in
-	 * are usually the ones that are setup by systemd
-	 * or other init programs.
-	 */
-	CgroupControllers = []CgroupController{
-		{Name: "memory"}, // Memory first
-		{Name: "pids"},   // pids second
-		{Name: "cpuset"}, // fallback
-	}
 
 	cgroupv2Hierarchy = "0::"
 

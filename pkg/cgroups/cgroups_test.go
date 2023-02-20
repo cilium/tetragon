@@ -243,10 +243,14 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
 	}
 
-	assert.NotEqual(t, uint64(CGROUP_UNDEF), GetCgroupFSMagic())
 	assert.NotEmpty(t, CgroupFsMagicStr(fs))
-	assert.NotEmpty(t, GetCgroupFSPath())
-	assert.Equal(t, true, filepath.IsAbs(GetCgroupFSPath()))
+
+	cgroup, err := NewCGroup()
+	assert.NoError(t, err)
+	assert.NotZero(t, cgroup.Mode())
+	assert.NotEqual(t, uint64(CGROUP_UNDEF), cgroup.FSMagic())
+	assert.NotEmpty(t, cgroup.Path())
+	assert.Equal(t, true, filepath.IsAbs(cgroup.Path()))
 }
 
 // Test discovery of compiled-in Cgroups controllers
@@ -289,6 +293,21 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 	}
 
 	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
+
+	cgroup, err := NewCGroup()
+	assert.NoError(t, err)
+	controllers, err := cgroup.Controllers()
+	assert.NoError(t, err)
+	count := 0
+	for _, controller := range controllers {
+		if controller.Active {
+			count++
+		}
+	}
+
+	assert.NotZero(t, count)
+
+	cgroup.LogState()
 }
 
 func TestGetCgroupIdFromPath(t *testing.T) {
