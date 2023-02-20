@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -36,6 +37,48 @@ const (
 	Never  ColorMode = "never"  // disable colored output.
 	Auto   ColorMode = "auto"   // automatically enable / disable colored output based on terminal settings.
 )
+
+type TtyEncoder struct {
+	Writer io.Writer
+	Tty    string
+}
+
+func NewTtyEncoder(w io.Writer, tty string) *TtyEncoder {
+	return &TtyEncoder{
+		Writer: w,
+		Tty:    tty,
+	}
+}
+
+// Encode implements EventEncoder.Encode.
+func (p *TtyEncoder) Encode(v interface{}) error {
+	event, ok := v.(*tetragon.GetEventsResponse)
+	if !ok {
+		return ErrInvalidEvent
+	}
+
+	switch event.Event.(type) {
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		kprobe := event.GetProcessKprobe()
+
+		file := ""
+		if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
+			file = kprobe.Args[0].GetFileArg().Path
+		}
+
+		if file != p.Tty {
+			return nil
+		}
+
+		bytes := []byte{}
+		if len(kprobe.Args) > 1 && kprobe.Args[1] != nil && kprobe.Args[1].GetBytesArg() != nil {
+			bytes = kprobe.Args[1].GetBytesArg()
+		}
+
+		os.Stdout.Write(bytes)
+	}
+	return nil
+}
 
 // CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {

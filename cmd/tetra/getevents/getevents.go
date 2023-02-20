@@ -39,7 +39,10 @@ redirection of events to the stdin. Examples:
   %[1]s getevents -f process,parent.pod`
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
-var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool) encoder.EventEncoder {
+var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string) encoder.EventEncoder {
+	if tty != "" {
+		return encoder.NewTtyEncoder(w, tty)
+	}
 	if compact {
 		return encoder.NewCompactEncoder(w, colorMode, timestamps)
 	}
@@ -108,13 +111,14 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
 	colorMode := encoder.ColorMode(viper.GetString(common.KeyColor))
 	includeFields := viper.GetStringSlice("include-fields")
 	excludeFields := viper.GetStringSlice("exclude-fields")
+	tty := viper.GetString(common.KeyTty)
 
 	request := getRequest(includeFields, excludeFields, GetFilter())
 	stream, err := client.GetEvents(ctx, request)
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
 	}
-	eventEncoder := GetEncoder(os.Stdout, colorMode, timestamps, compact)
+	eventEncoder := GetEncoder(os.Stdout, colorMode, timestamps, compact, tty)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -156,6 +160,7 @@ func New() *cobra.Command {
 	flags.StringSlice("pod", nil, "Get events by pod name regex")
 	flags.Bool("host", false, "Get host events")
 	flags.Bool("timestamps", false, "Include timestamps in compact output")
+	flags.StringP("tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
 	viper.BindPFlags(flags)
 	return &cmd
 }
