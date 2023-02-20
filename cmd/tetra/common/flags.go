@@ -7,5 +7,6 @@ const (
 	KeyColor         = "color"          // string
 	KeyDebug         = "debug"          // bool
 	KeyOutput        = "output"         // string
+	KeyTty           = "tty-encode"     // string
 	KeyServerAddress = "server-address" // string
 )
