@@ -89,6 +89,11 @@ var (
 	sharedState   cgroupsState
 	initStateOnce sync.Once
 
+	// Path where default cgroupfs is mounted
+	defaultCgroupRoot = "/sys/fs/cgroup"
+
+	cgroupv2Hierarchy = "0::"
+
 	/* Cgroup controllers that we are interested in
 	 * are usually the ones that are setup by systemd
 	 * or other init programs.
@@ -120,7 +125,22 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 	return CGROUP_UNDEF, fmt.Errorf("wrong filesystem type '0x%x' for cgroupfs '%s'", st.Type, cgroupfs)
 }
 
-func (s *cgroupsState) parseCgroupsControllers(filePath string) error {
+func getPidCgroupPaths(pid uint32) ([]string, error) {
+	file := filepath.Join(option.Config.ProcFS, fmt.Sprint(pid), "cgroup")
+
+	cgroups, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %v", file, err)
+	}
+
+	if len(cgroups) == 0 {
+		return nil, fmt.Errorf("no entry from %s", file)
+	}
+
+	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
+}
+
+func (s *cgroupsState) initCgroupsControllers(filePath string) error {
 	var allcontrollers []string
 	selectedControllers := []string{"memory", "pids", "cpuset"}
 
@@ -195,6 +215,14 @@ func (s *cgroupsState) parseCgroupsControllers(filePath string) error {
 	return nil
 }
 
+func (s *cgroupsState) Controllers() ([]CgroupController, error) {
+	if s.controllers == nil || len(s.controllers) == 0 {
+		return nil, fmt.Errorf("Cgroup controllers are not initialized")
+	}
+
+	return s.controllers, nil
+}
+
 // Initialize a cgroups state
 func initCGroupsState() *cgroupsState {
 	initStateOnce.Do(func() {
@@ -227,7 +255,7 @@ func initCGroupsState() *cgroupsState {
 
 		sharedState.mode = cgroupMode
 
-		err = sharedState.parseCgroupsControllers(filepath.Join(option.Config.ProcFS, "cgroups"))
+		err = sharedState.initCgroupsControllers(filepath.Join(option.Config.ProcFS, "cgroups"))
 		if err != nil {
 			sharedState.err = fmt.Errorf("could not detect Cgroup controllers: %v", err)
 			return
@@ -237,20 +265,273 @@ func initCGroupsState() *cgroupsState {
 	return &sharedState
 }
 
-type CGroups struct {
-	state *cgroupsState
+// Cgroup Environment that are discovered when parsing /proc/pid/cgroup
+type pidCgroupEnv struct {
+	pid uint32
+
+	// Final processed cgroup path
+	path string
+
+	// Best Cgroup Controller
+	controller *CgroupController
 }
 
-// Initialize and returns a new CGroups
-func NewCGroup() (*CGroups, error) {
+func getCgroupv1Env(pid uint32, cgroupPaths []string) (*pidCgroupEnv, error) {
+	cgroupFSPath := sharedState.path
+	if cgroupFSPath == "" {
+		return nil, fmt.Errorf("Cgroup filesystem path is not initialized")
+	}
+
+	controllers, err := sharedState.Controllers()
+	if err != nil {
+		return nil, err
+	}
+
+	for i, controller := range controllers {
+		// First lets go again over list of active controllers
+		if controller.Active == false {
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.Name)
+			continue
+		}
+
+		for _, s := range cgroupPaths {
+			if strings.Contains(s, fmt.Sprintf(":%s:", controller.Name)) {
+				idx := strings.Index(s, "/")
+				path := s[idx+1:]
+				cgroupPath := filepath.Join(cgroupFSPath, controller.Name, path)
+				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
+				_, err := os.Stat(finalpath)
+				if err != nil {
+					// Probably namespaced...
+					cgroupPath = filepath.Join(cgroupFSPath, controller.Name)
+					finalpath = filepath.Join(cgroupPath, "cgroup.procs")
+					_, err = os.Stat(finalpath)
+				}
+
+				if err != nil {
+					logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv1 path '%s'", finalpath)
+					continue
+				}
+
+				return &pidCgroupEnv{
+					pid:        pid,
+					path:       cgroupPath,
+					controller: &controllers[i],
+				}, nil
+			}
+		}
+	}
+
+	// Cgroupv1 hierarchy is not properly setup we can not support such systems,
+	// reason should have been logged in above messages.
+	return nil, fmt.Errorf("validate Cgroupv1 hierarchies failed")
+}
+
+func parseCgroupv2Controllers(cgroupPath string) (*CgroupController, error) {
+	file := filepath.Join(cgroupPath, "cgroup.controllers")
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %v", file, err)
+	}
+
+	rootControllers, err := sharedState.Controllers()
+	if err != nil {
+		return nil, err
+	}
+
+	activeControllers := strings.TrimRight(string(data), "\n")
+	if len(activeControllers) == 0 {
+		return nil, fmt.Errorf("no active controllers from '%s'", file)
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":          cgroupFSPath,
+		"cgroup.controllers": strings.Fields(activeControllers),
+	}).Debug("Cgroupv2 supported controllers detected successfully")
+
+	for i, controller := range rootControllers {
+		if controller.Active && strings.Contains(activeControllers, controller.Name) {
+			return &rootControllers[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("Cgroupv2 no appropriate active controller")
+}
+
+func getCgroupv2Env(pid uint32, cgroupPaths []string) (*pidCgroupEnv, error) {
+	cgroupFSPath := sharedState.path
+	if cgroupFSPath == "" {
+		return nil, fmt.Errorf("Cgroup filesystem path is not initialized")
+	}
+
+	for _, s := range cgroupPaths {
+		if strings.Contains(s, cgroupv2Hierarchy) {
+			idx := strings.Index(s, "/")
+			path := s[idx+1:]
+			cgroupPath := filepath.Join(cgroupFSPath, path)
+			finalpath := filepath.Join(cgroupPath, "cgroup.procs")
+			_, err := os.Stat(finalpath)
+			if err != nil {
+				// Namespaced ? let's force the check
+				cgroupPath = cgroupFSPath
+				finalpath = filepath.Join(cgroupPath, "cgroup.procs")
+				_, err = os.Stat(finalpath)
+			}
+
+			if err != nil {
+				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv2 path '%s'", finalpath)
+				break
+			}
+
+			controller, err := parseCgroupv2Controllers(cgroupPath)
+			if err != nil {
+				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to detect current Cgroupv2 active controller")
+				break
+			}
+
+			return &pidCgroupEnv{
+				pid:        pid,
+				path:       cgroupPath,
+				controller: controller,
+			}, nil
+		}
+	}
+
+	// Cgroupv2 hierarchy is not properly setup we can not support such systems,
+	// reason should have been logged in above messages.
+	return nil, fmt.Errorf("validate Cgroupv2 hierarchy failed")
+}
+
+func detectPidCgroupEnv(pid uint32, mode CgroupModeCode) (*pidCgroupEnv, error) {
+	cgroupPaths, err := getPidCgroupPaths(pid)
+	if err != nil {
+		return nil, fmt.Errorf("could not get Cgroup paths for pid=%d: %v", pid, err)
+	}
+
+	var cgroupEnv *pidCgroupEnv
+	switch mode {
+	case CGROUP_LEGACY, CGROUP_HYBRID:
+		cgroupEnv, err = getCgroupv1Env(pid, cgroupPaths)
+	case CGROUP_UNIFIED:
+		cgroupEnv, err = getCgroupv2Env(pid, cgroupPaths)
+	default:
+		err = fmt.Errorf("invalid Cgroup Mode")
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("could not parse Cgroup environments for pid=%d: %v", pid, err)
+	}
+
+	return cgroupEnv, nil
+}
+
+func (p *pidCgroupEnv) getPidCgroupPath() (string, error) {
+	if p == nil || p.pid == 0 || p.path == "" {
+		return "", fmt.Errorf("Cgroup pid path is not initialized")
+	}
+
+	return p.path, nil
+}
+
+func (p *pidCgroupEnv) getPidCgroupHierarchyId() (uint32, error) {
+	if p == nil || p.pid == 0 || p.controller == nil || p.controller.Active == false {
+		return 0, fmt.Errorf("Cgroup pid hierarchy ID is not initialized")
+	}
+
+	return p.controller.Id, nil
+}
+
+func (p *pidCgroupEnv) getPidCgroupControllerIdx() (uint32, error) {
+	if p == nil || p.pid == 0 || p.controller == nil || p.controller.Active == false {
+		return 0, fmt.Errorf("Cgroup pid controller index is not initialized")
+	}
+
+	return p.controller.Idx, nil
+}
+
+func (p *pidCgroupEnv) getPidCgroupControllerName() (string, error) {
+	if p == nil || p.pid == 0 || p.controller == nil || p.controller.Active == false {
+		return "", fmt.Errorf("Cgroup pid controller name is not initialized")
+	}
+
+	return p.controller.Name, nil
+}
+
+type CGroups struct {
+	state          *cgroupsState
+	mu             sync.Mutex
+	pidEnv         *pidCgroupEnv
+	deploymentMode DeploymentCode
+}
+
+// Initialize and returns a new CGroups environment
+func NewCGroups() (*CGroups, error) {
 	state := initCGroupsState()
 	if state.err != nil {
 		return nil, state.err
 	}
 
-	return &CGroups{
-		state: state,
-	}, nil
+	return &CGroups{state: state}, nil
+}
+
+func (cg *CGroups) DetectPidCgroupEnv(pid uint32) error {
+	env, err := detectPidCgroupEnv(pid, cg.state.mode)
+	if err != nil {
+		return err
+	}
+
+	cg.mu.Lock()
+	cg.pidEnv = env
+	cg.mu.Unlock()
+
+	return nil
+}
+
+func (cg *CGroups) GetPidCgroupPath() (string, error) {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+	return cg.pidEnv.getPidCgroupPath()
+}
+
+func (cg *CGroups) GetPidHierarchyId() (uint32, error) {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+	return cg.pidEnv.getPidCgroupHierarchyId()
+}
+
+func (cg *CGroups) GetPidControllerIdx() (uint32, error) {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+	return cg.pidEnv.getPidCgroupControllerIdx()
+}
+
+func (cg *CGroups) GetPidControllerName() (string, error) {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+	return cg.pidEnv.getPidCgroupControllerName()
+}
+
+func guessDeploymentMode(cgroupPath string) error {
+	if option.Config.EnableK8s == true {
+		deploymentMode = DEPLOY_K8S
+		return nil
+	}
+
+	if cgroupPath == "" {
+		// Probably namespaced
+		deploymentMode = DEPLOY_CONTAINER
+		return nil
+	}
+
+	// Last go through the deployments
+	for _, d := range deployments {
+		if strings.Contains(cgroupPath, d.str) {
+			deploymentMode = d.id
+			return nil
+		}
+	}
+
+	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
 }
 
 // Returns the path of the Control Groups Filesystem.
@@ -274,11 +555,15 @@ func (cg *CGroups) FSMagic() uint64 {
 }
 
 func (cg *CGroups) Controllers() ([]CgroupController, error) {
-	if cg.state.controllers == nil || len(cg.state.controllers) == 0 {
-		return nil, fmt.Errorf("Cgroup controllers are not set")
+	return cg.state.Controllers()
+}
+
+func (cg *CGroups) GetDeploymentMode() (DeploymentCode, error) {
+	if cg.deploymentMode == DEPLOY_UNKNOWN {
+		return DEPLOY_UNKNOWN, fmt.Errorf("Deployment mode is not set")
 	}
 
-	return cg.state.controllers, nil
+	return cg.deploymentMode, nil
 }
 
 func (cg *CGroups) LogState() {
@@ -319,14 +604,49 @@ func (cg *CGroups) LogState() {
 			}
 		}
 	}
+
+	pidCgrouPath, _ := cg.GetPidCgroupPath()
+	controllerName, _ := cg.GetPidControllerName()
+	controllerId, _ := cg.GetPidHierarchyId()
+	controllerIdx, _ := cg.GetPidControllerIdx()
+
+	if pidCgrouPath != "" && controllerName != "" {
+		if cg.state.mode == CGROUP_UNIFIED {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.fs":                     cg.Path(),
+				"cgroup.controller.name":        controllerName,
+				"cgroup.controller.hierarchyID": controllerId,
+				"cgroup.controller.index":       controllerIdx,
+			}).Infof("Cgroupv2 controller '%s' will be used as a fallback for the default hierarchy", controllerName)
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.fs":   cg.Path(),
+				"cgroup.path": pidCgrouPath,
+			}).Info("Cgroupv2 hierarchy validated successfully")
+		} else {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.fs":                     cg.Path(),
+				"cgroup.controller.name":        controllerName,
+				"cgroup.controller.hierarchyID": controllerId,
+				"cgroup.controller.index":       controllerIdx,
+			}).Infof("Cgroupv1 controller '%s' will be used", controllerName)
+			logger.GetLogger().WithFields(logrus.Fields{
+				"cgroup.fs":   cg.Path(),
+				"cgroup.path": pidCgrouPath,
+			}).Info("Cgroupv1 hierarchy validated successfully")
+		}
+	}
+
+	if cg.deploymentMode != DEPLOY_UNKNOWN {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs":       cg.state.path,
+			"deployment.mode": DeploymentCode(cg.deploymentMode).String(),
+		}).Info("Deployment mode detection succeeded")
+	} else {
+		logger.GetLogger().Warn("Deployment mode is not set")
+	}
 }
 
 var (
-	// Path where default cgroupfs is mounted
-	defaultCgroupRoot = "/sys/fs/cgroup"
-
-	cgroupv2Hierarchy = "0::"
-
 	/* Ordered from nested to top cgroup parents
 	 * For k8s we check also config k8s flags.
 	 */
@@ -740,21 +1060,6 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 	// Cgroupv2 hierarchy is not properly setup we can not support such systems,
 	// reason should have been logged in above messages.
 	return "", fmt.Errorf("could not validate Cgroupv2 hierarchy")
-}
-
-func getPidCgroupPaths(pid uint32) ([]string, error) {
-	file := filepath.Join(option.Config.ProcFS, fmt.Sprint(pid), "cgroup")
-
-	cgroups, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %v", file, err)
-	}
-
-	if len(cgroups) == 0 {
-		return nil, fmt.Errorf("no entry from %s", file)
-	}
-
-	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
 func findMigrationPath(pid uint32) (string, error) {

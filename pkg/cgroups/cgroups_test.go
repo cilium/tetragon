@@ -213,7 +213,7 @@ func TestDetectCgroupMode(t *testing.T) {
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	assert.NotEmpty(t, cgroupFSPath)
 
-	cgroup, err := NewCGroup()
+	cgroup, err := NewCGroups()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, cgroup.Path())
 	assert.NotZero(t, cgroup.Mode())
@@ -245,7 +245,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 
 	assert.NotEmpty(t, CgroupFsMagicStr(fs))
 
-	cgroup, err := NewCGroup()
+	cgroup, err := NewCGroups()
 	assert.NoError(t, err)
 	assert.NotZero(t, cgroup.Mode())
 	assert.NotEqual(t, uint64(CGROUP_UNDEF), cgroup.FSMagic())
@@ -294,7 +294,7 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 
 	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
 
-	cgroup, err := NewCGroup()
+	cgroup, err := NewCGroups()
 	assert.NoError(t, err)
 	controllers, err := cgroup.Controllers()
 	assert.NoError(t, err)
@@ -329,4 +329,29 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 
 	// Log data useful to inspect different hierarchies
 	t.Logf("\ncgroup.Path=%s cgroup.ID=%d\n", path, id)
+}
+
+func TestPidCgroupEnv(t *testing.T) {
+	cgroup, err := NewCGroups()
+	assert.NoError(t, err)
+
+	pid := os.Getpid()
+	err = cgroup.DetectPidCgroupEnv(uint32(pid))
+	assert.NoError(t, err)
+
+	path, err := cgroup.GetPidCgroupPath()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, path)
+
+	_, err = cgroup.GetPidHierarchyId()
+	assert.NoError(t, err)
+
+	_, err = cgroup.GetPidControllerIdx()
+	assert.NoError(t, err)
+
+	name, err := cgroup.GetPidControllerName()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, name)
+
+	cgroup.LogState()
 }
