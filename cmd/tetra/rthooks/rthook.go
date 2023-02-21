@@ -13,9 +13,9 @@ import (
 )
 
 type addContainerConf struct {
-	containerDir string
-	rootDir      string
-	annotations  map[string]string
+	containerID string
+	rootDir     string
+	annotations map[string]string
 }
 
 func New() *cobra.Command {
@@ -28,9 +28,8 @@ func New() *cobra.Command {
 
 	cnf := addContainerConf{}
 	add := &cobra.Command{
-		Use:   "create-container <containerID> <rootDir>",
+		Use:   "create-container --container-id=<containerID> --root-dir=<rootDir>",
 		Short: "trigger create-container hook",
-		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				createContainer(ctx, cli, &cnf)
@@ -39,7 +38,7 @@ func New() *cobra.Command {
 	}
 
 	flags := add.Flags()
-	flags.StringVar(&cnf.containerDir, "container-dir", "", "container directory")
+	flags.StringVar(&cnf.containerID, "container-id", "", "container directory")
 	flags.StringVar(&cnf.rootDir, "root-dir", "", "container root directory")
 	flags.StringToStringVar(&cnf.annotations, "annotations", map[string]string{}, "container annotations")
 
@@ -51,7 +50,7 @@ func createContainer(ctx context.Context, client tetragon.FineGuidanceSensorsCli
 	req := &tetragon.RuntimeHookRequest{
 		Event: &tetragon.RuntimeHookRequest_CreateContainer{
 			CreateContainer: &tetragon.CreateContainer{
-				CgroupsPath: cnf.containerDir,
+				CgroupsPath: cnf.containerID,
 				RootDir:     cnf.rootDir,
 				Annotations: cnf.annotations,
 			},
