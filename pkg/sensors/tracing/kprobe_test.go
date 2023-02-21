@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -2299,6 +2300,103 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func getMatchBinariesCrd(opStr string, vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-match-binaries"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchBinaries:
+      - operator: "` + opStr + `"
+        values: `
+	for i := 0; i < len(vals); i++ {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	return configHook
+}
+
+func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Subset).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
+	return kpChecker
+}
+
+func TestKprobeMatchBinariesIn(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchBinariesCrd("In", []string{"/usr/bin/cat"}))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command("/usr/bin/cat", "/etc/passwd").Run(); err != nil {
+		t.Fatalf("failed to run cat /etc/passwd: %s", err)
+	}
+
+	if err := exec.Command("/usr/bin/head", "/etc/passwd").Run(); err != nil {
+		t.Fatalf("failed to run head /etc/passwd: %s", err)
+	}
+
+	kpChecker := createBinariesChecker("/usr/bin/cat", "/etc/passwd")
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMatchBinariesNotIn(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchBinariesCrd("NotIn", []string{"/usr/bin/tail"}))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command("/usr/bin/tail", "/etc/passwd").Run(); err != nil {
+		t.Fatalf("failed to run cat /etc/passwd: %s", err)
+	}
+
+	if err := exec.Command("/usr/bin/head", "/etc/passwd").Run(); err != nil {
+		t.Fatalf("failed to run head /etc/passwd: %s", err)
+	}
+
+	kpChecker := createBinariesChecker("/usr/bin/head", "/etc/passwd")
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
