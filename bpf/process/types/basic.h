@@ -1310,13 +1310,13 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		if (f) {
 			bool postit;
 
-			asm volatile("%[pass] &= 0xeff;\n"
+			asm volatile("%[pass] &= 0x7ff;\n"
 				     : [pass] "+r"(pass)
 				     :);
 			arg = (struct selector_arg_filter *)&f[pass];
 
 			actoff = pass + arg->arglen;
-			asm volatile("%[actoff] &= 0xeff;\n"
+			asm volatile("%[actoff] &= 0x7ff;\n"
 				     : [actoff] "+r"(actoff)
 				     :);
 			actions = (struct selector_action *)&f[actoff];
