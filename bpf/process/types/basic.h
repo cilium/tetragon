@@ -1236,6 +1236,11 @@ __do_action(long i, struct msg_generic_kprobe *e,
 		else
 			map_update_elem(override_tasks, &id, &error, BPF_ANY);
 		break;
+	case ACTION_GETURL:
+	case ACTION_DNSLOOKUP:
+		/* Set the URL or DNS action */
+		e->action_arg_id = actions->act[++i];
+		break;
 	default:
 		break;
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -48,6 +49,20 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeDnsLookup:  "dnslookup",
 }
 
+// Action argument table entry (for URL and FQDN arguments)
+type ActionArgEntry struct {
+	arg     string
+	tableId idtable.EntryID
+}
+
+func (g *ActionArgEntry) SetID(id idtable.EntryID) {
+	g.tableId = id
+}
+
+func (g *ActionArgEntry) GetArg() string {
+	return g.arg
+}
+
 func MatchActionSigKill(spec interface{}) bool {
 	var sels []v1alpha1.KProbeSelector
 	switch s := spec.(type) {
@@ -67,36 +82,6 @@ func MatchActionSigKill(spec interface{}) bool {
 		}
 	}
 	return false
-}
-
-func GetUrls(spec *v1alpha1.KProbeSpec) []string {
-	var urls []string
-	sels := spec.Selectors
-	for _, s := range sels {
-		for _, act := range s.MatchActions {
-			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeGetUrl] {
-				if len(act.ArgUrl) > 0 {
-					urls = append(urls, act.ArgUrl)
-				}
-			}
-		}
-	}
-	return urls
-}
-
-func GetDnsFQDNs(spec *v1alpha1.KProbeSpec) []string {
-	var fqdns []string
-	sels := spec.Selectors
-	for _, s := range sels {
-		for _, act := range s.MatchActions {
-			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeDnsLookup] {
-				if len(act.ArgFqdn) > 0 {
-					fqdns = append(fqdns, act.ArgFqdn)
-				}
-			}
-		}
-	}
-	return fqdns
 }
 
 const (
@@ -421,7 +406,7 @@ func parseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	return nil
 }
 
-func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector) error {
+func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
@@ -433,18 +418,26 @@ func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector) e
 		WriteSelectorUint32(k, action.ArgName)
 	case ActionTypeOverride:
 		WriteSelectorInt32(k, action.ArgError)
-	case ActionTypeGetUrl:
-		WriteSelectorByteArray(k, []byte(action.ArgUrl), uint32(len(action.ArgUrl)))
-	case ActionTypeDnsLookup:
-		WriteSelectorByteArray(k, []byte(action.ArgFqdn), uint32(len(action.ArgFqdn)))
+	case ActionTypeGetUrl, ActionTypeDnsLookup:
+		actionArg := ActionArgEntry{
+			tableId: idtable.UninitializedEntryID,
+		}
+		switch act {
+		case ActionTypeGetUrl:
+			actionArg.arg = action.ArgUrl
+		case ActionTypeDnsLookup:
+			actionArg.arg = action.ArgFqdn
+		}
+		actionArgTable.AddEntry(&actionArg)
+		WriteSelectorUint32(k, uint32(actionArg.tableId.ID))
 	}
 	return nil
 }
 
-func parseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector) error {
+func parseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	loff := AdvanceSelectorLength(k)
 	for _, a := range actions {
-		if err := parseMatchAction(k, &a); err != nil {
+		if err := parseMatchAction(k, &a, actionArgTable); err != nil {
 			return err
 		}
 	}
@@ -673,7 +666,8 @@ func parseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 func parseSelector(
 	k *KernelSelectorState,
 	selectors *v1alpha1.KProbeSelector,
-	args []v1alpha1.KProbeArg) error {
+	args []v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table) error {
 	if err := parseMatchPids(k, selectors.MatchPIDs); err != nil {
 		return fmt.Errorf("parseMatchPids error: %w", err)
 	}
@@ -695,7 +689,7 @@ func parseSelector(
 	if err := parseMatchArgs(k, selectors.MatchArgs, args); err != nil {
 		return fmt.Errorf("parseMatchArgs  error: %w", err)
 	}
-	if err := parseMatchActions(k, selectors.MatchActions); err != nil {
+	if err := parseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
 		return fmt.Errorf("parseMatchActions error: %w", err)
 	}
 	return nil
@@ -738,15 +732,16 @@ func parseSelector(
 // valueInt := [len][v]
 //
 // For some examples, see kernel_test.go
-func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) ([4096]byte, error) {
-	kernelSelectors, err := InitKernelSelectorState(selectors, args)
+func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
+	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable)
 	if err != nil {
 		return [4096]byte{}, err
 	}
 	return kernelSelectors.e, nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg) (*KernelSelectorState, error) {
+func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table) (*KernelSelectorState, error) {
 	kernelSelectors := &KernelSelectorState{}
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
@@ -757,7 +752,7 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 	for i, s := range selectors {
 		WriteSelectorLength(kernelSelectors, soff[i])
 		loff := AdvanceSelectorLength(kernelSelectors)
-		if err := parseSelector(kernelSelectors, &s, args); err != nil {
+		if err := parseSelector(kernelSelectors, &s, args, actionArgTable); err != nil {
 			return nil, err
 		}
 		WriteSelectorLength(kernelSelectors, loff)

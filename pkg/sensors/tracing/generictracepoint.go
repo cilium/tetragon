@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -71,6 +72,9 @@ type genericTracepoint struct {
 
 	// index to access this on genericTracepointTable
 	tableIdx int
+
+	// for tracepoints that have a GetUrl or DnsLookup action, we store the table of arguments.
+	actionArgs idtable.Table
 
 	pinPathPrefix string
 }
@@ -403,7 +407,7 @@ func (tp *genericTracepoint) KernelSelectors() (*selectors.KernelSelectorState, 
 		}
 	}
 
-	return selectors.InitKernelSelectorState(selSelectors, selArgs)
+	return selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs)
 }
 
 func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
@@ -549,6 +553,24 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		logger.GetLogger().WithField("id", m.Id).WithError(err).Warnf("genericTracepoint info not found")
 		return []observer.Event{unix}, nil
+	}
+
+	switch m.ActionId {
+	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
+		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
+			return nil, fmt.Errorf("Failed to find argument for id")
+		}
+		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
+		switch m.ActionId {
+		case selectors.ActionTypeGetUrl:
+			logger.GetLogger().WithField("URL", actionArg).Trace("Get URL Action")
+			getUrl(actionArg)
+		case selectors.ActionTypeDnsLookup:
+			logger.GetLogger().WithField("FQDN", actionArg).Trace("DNS lookup")
+			dnsLookup(actionArg)
+		}
 	}
 
 	unix.Subsys = tp.Info.Subsys
