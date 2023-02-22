@@ -1004,7 +1004,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
 		     :);
 	argoff = e->argsoff[index];
-	asm volatile("%[argoff] &= 0xeff;\n" ::[argoff] "+r"(argoff)
+	asm volatile("%[argoff] &= 0x7ff;\n" ::[argoff] "+r"(argoff)
 		     :);
 	args = &e->args[argoff];
 
@@ -1109,7 +1109,7 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 		return 0;
 	}
 	fdoff = e->argsoff[fd];
-	asm volatile("%[fdoff] &= 0xeff;\n"
+	asm volatile("%[fdoff] &= 0x7ff;\n"
 		     : [fdoff] "+r"(fdoff)
 		     :);
 	key.pad = 0;
@@ -1125,7 +1125,7 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 		if (name > 5)
 			return 0;
 		nameoff = e->argsoff[name];
-		asm volatile("%[nameoff] &= 0xeff;\n"
+		asm volatile("%[nameoff] &= 0x7ff;\n"
 			     : [nameoff] "+r"(nameoff)
 			     :);
 
@@ -1157,7 +1157,7 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	if (oldfd > 5)
 		return 0;
 	oldfdoff = e->argsoff[oldfd];
-	asm volatile("%[oldfdoff] &= 0xeff;\n"
+	asm volatile("%[oldfdoff] &= 0x7ff;\n"
 		     : [oldfdoff] "+r"(oldfdoff)
 		     :);
 	key.pad = 0;
@@ -1172,7 +1172,7 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 		if (newfd > 5)
 			return 0;
 		newfdoff = e->argsoff[newfd];
-		asm volatile("%[newfdoff] &= 0xeff;\n"
+		asm volatile("%[newfdoff] &= 0x7ff;\n"
 			     : [newfdoff] "+r"(newfdoff)
 			     :);
 		key.pad = 0;
