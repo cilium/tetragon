@@ -12,7 +12,7 @@ require (
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/fatih/color v1.14.1
 	github.com/google/go-cmp v0.5.9
-	github.com/google/gops v0.3.25
+	github.com/google/gops v0.3.27
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
@@ -22,9 +22,9 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/client_model v0.2.1-0.20210607210712-147c58e9608a
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.7.3
+	github.com/stretchr/testify v1.8.1
 	github.com/vishvananda/netlink v1.1.1-0.20220125195016-0639e7e787ba
 	github.com/vladimirvivien/gexe v0.1.1
 	go.uber.org/multierr v1.8.0
@@ -85,7 +85,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/packer-plugin-sdk v0.3.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
