@@ -94,8 +94,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
-		       __u32 flags, __u32 bin, void *filename)
+event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid, __u32 flags, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
@@ -133,14 +132,14 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid,
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
-		return bin;
+		return 0;
 
 	memset(heap->pathname, 0, 256);
 	probe_read_str(heap->pathname, size, filename);
 	value = map_lookup_elem(&names_map, heap->pathname);
 	if (value)
 		return *value;
-	return bin;
+	return 0;
 }
 
 __attribute__((section("tracepoint/sys_execve"), used)) int
@@ -150,7 +149,6 @@ event_execve(struct sched_execve_args *ctx)
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *execve;
-	uint32_t binary = 0;
 	bool walker = 0;
 	__u32 zero = 0;
 	__u32 pid;
@@ -173,16 +171,13 @@ event_execve(struct sched_execve_args *ctx)
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;
-		binary = parent->binary;
 	} else {
 		event_minimal_parent(event, task);
 	}
 
 	execve = &event->process;
 	fileoff = ctx->filename & 0xFFFF;
-	binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, binary,
-					(char *)ctx + fileoff);
-	event->binary = binary;
+	event->binary = event_filename_builder(ctx, execve, pid, EVENT_EXECVE, (char *)ctx + fileoff);
 
 	event_args_builder(ctx, event);
 	compiler_barrier();
