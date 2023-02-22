@@ -130,6 +130,10 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid, __u3
 	curr->ktime = ktime_get_ns();
 	curr->size = size + offsetof(struct msg_process, args);
 
+	// skip binaries check for long (> 255) filenames for now
+	if (flags & EVENT_DATA_FILENAME)
+		return 0;
+
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
 		return 0;
