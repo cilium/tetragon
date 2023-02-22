@@ -39,6 +39,10 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 		return tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE
 	case tracingapi.ActionCopyFd:
 		return tetragon.KprobeAction_KPROBE_ACTION_COPYFD
+	case tracingapi.ActionGetUrl:
+		return tetragon.KprobeAction_KPROBE_ACTION_GETURL
+	case tracingapi.ActionLookupDns:
+		return tetragon.KprobeAction_KPROBE_ACTION_DNSLOOKUP
 	default:
 		return tetragon.KprobeAction_KPROBE_ACTION_UNKNOWN
 	}
