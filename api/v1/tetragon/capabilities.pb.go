@@ -38,44 +38,47 @@ type CapabilitiesType int32
 
 const (
 	// In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
-	//overrides the restriction of changing file ownership and group
-	//ownership.
+	// overrides the restriction of changing file ownership and group
+	// ownership.
 	CapabilitiesType_CAP_CHOWN CapabilitiesType = 0
 	// Override all DAC access, including ACL execute access if
-	//[_POSIX_ACL] is defined. Excluding DAC access covered by
-	//CAP_LINUX_IMMUTABLE.
+	// [_POSIX_ACL] is defined. Excluding DAC access covered by
+	// CAP_LINUX_IMMUTABLE.
 	CapabilitiesType_DAC_OVERRIDE CapabilitiesType = 1
 	// Overrides all DAC restrictions regarding read and search on files
-	//and directories, including ACL restrictions if [_POSIX_ACL] is
-	//defined. Excluding DAC access covered by "$1"_LINUX_IMMUTABLE.
+	// and directories, including ACL restrictions if [_POSIX_ACL] is
+	// defined. Excluding DAC access covered by "$1"_LINUX_IMMUTABLE.
 	CapabilitiesType_CAP_DAC_READ_SEARCH CapabilitiesType = 2
 	// Overrides all restrictions about allowed operations on files, where
-	//file owner ID must be equal to the user ID, except where CAP_FSETID
-	//is applicable. It doesn't override MAC and DAC restrictions.
+	// file owner ID must be equal to the user ID, except where CAP_FSETID
+	// is applicable. It doesn't override MAC and DAC restrictions.
 	CapabilitiesType_CAP_FOWNER CapabilitiesType = 3
 	// Overrides the following restrictions that the effective user ID
-	//shall match the file owner ID when setting the S_ISUID and S_ISGID
-	//bits on that file; that the effective group ID (or one of the
-	//supplementary group IDs) shall match the file owner ID when setting
-	//the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are
-	//cleared on successful return from chown(2) (not implemented).
+	// shall match the file owner ID when setting the S_ISUID and S_ISGID
+	// bits on that file; that the effective group ID (or one of the
+	// supplementary group IDs) shall match the file owner ID when setting
+	// the S_ISGID bit on that file; that the S_ISUID and S_ISGID bits are
+	// cleared on successful return from chown(2) (not implemented).
 	CapabilitiesType_CAP_FSETID CapabilitiesType = 4
 	// Overrides the restriction that the real or effective user ID of a
-	//process sending a signal must match the real or effective user ID
-	//of the process receiving the signal.
+	// process sending a signal must match the real or effective user ID
+	// of the process receiving the signal.
 	CapabilitiesType_CAP_KILL CapabilitiesType = 5
 	// Allows forged gids on socket credentials passing.
 	CapabilitiesType_CAP_SETGID CapabilitiesType = 6
 	// Allows forged pids on socket credentials passing.
 	CapabilitiesType_CAP_SETUID CapabilitiesType = 7
 	// Without VFS support for capabilities:
-	//   Transfer any capability in your permitted set to any pid,
-	//   remove any capability in your permitted set from any pid
+	//
+	//	Transfer any capability in your permitted set to any pid,
+	//	remove any capability in your permitted set from any pid
+	//
 	// With VFS support for capabilities (neither of above, but)
-	//   Add any capability from current's capability bounding set
-	//       to the current process' inheritable set
-	//   Allow taking bits out of capability bounding set
-	//   Allow modification of the securebits for a process
+	//
+	//	Add any capability from current's capability bounding set
+	//	    to the current process' inheritable set
+	//	Allow taking bits out of capability bounding set
+	//	Allow modification of the securebits for a process
 	CapabilitiesType_CAP_SETPCAP CapabilitiesType = 8
 	// Allow modification of S_IMMUTABLE and S_APPEND file attributes
 	CapabilitiesType_CAP_LINUX_IMMUTABLE CapabilitiesType = 9
@@ -88,7 +91,7 @@ const (
 	// Allow binding to any address for transparent proxying (also via NET_ADMIN)
 	CapabilitiesType_CAP_NET_RAW CapabilitiesType = 13
 	// Allow mlock and mlockall (which doesn't really have anything to do
-	//with IPC)
+	// with IPC)
 	CapabilitiesType_CAP_IPC_LOCK CapabilitiesType = 14
 	// Override IPC ownership checks
 	CapabilitiesType_CAP_IPC_OWNER CapabilitiesType = 15
@@ -125,17 +128,17 @@ const (
 	// Set or remove capabilities on files
 	CapabilitiesType_CAP_SETFCAP CapabilitiesType = 31
 	// Override MAC access.
-	//The base kernel enforces no MAC policy.
-	//An LSM may enforce a MAC policy, and if it does and it chooses
-	//to implement capability based overrides of that policy, this is
-	//the capability it should use to do so.
+	// The base kernel enforces no MAC policy.
+	// An LSM may enforce a MAC policy, and if it does and it chooses
+	// to implement capability based overrides of that policy, this is
+	// the capability it should use to do so.
 	CapabilitiesType_CAP_MAC_OVERRIDE CapabilitiesType = 32
 	// Allow MAC configuration or state changes.
-	//The base kernel requires no MAC configuration.
-	//An LSM may enforce a MAC policy, and if it does and it chooses
-	//to implement capability based checks on modifications to that
-	//policy or the data required to maintain it, this is the
-	//capability it should use to do so.
+	// The base kernel requires no MAC configuration.
+	// An LSM may enforce a MAC policy, and if it does and it chooses
+	// to implement capability based checks on modifications to that
+	// policy or the data required to maintain it, this is the
+	// capability it should use to do so.
 	CapabilitiesType_CAP_MAC_ADMIN CapabilitiesType = 33
 	// Allow configuring the kernel's syslog (printk behaviour)
 	CapabilitiesType_CAP_SYSLOG CapabilitiesType = 34
@@ -145,11 +148,9 @@ const (
 	CapabilitiesType_CAP_BLOCK_SUSPEND CapabilitiesType = 36
 	// Allow reading the audit log via multicast netlink socket
 	CapabilitiesType_CAP_AUDIT_READ CapabilitiesType = 37
-	//
 	// Allow system performance and observability privileged operations
 	// using perf_events, i915_perf and other kernel subsystems
 	CapabilitiesType_CAP_PERFMON CapabilitiesType = 38
-	//
 	// CAP_BPF allows the following BPF operations:
 	// - Creating all types of BPF maps
 	// - Advanced verifier features
@@ -160,6 +161,7 @@ const (
 	//   - Larger complexity limits
 	//   - Dead code elimination
 	//   - And potentially other features
+	//
 	// - Loading BPF Type Format (BTF) data
 	// - Retrieve xlated and JITed code of BPF programs
 	// - Use bpf_spin_lock() helper
