@@ -5,6 +5,7 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -111,13 +112,8 @@ type genericKprobe struct {
 
 	tableId idtable.EntryID
 
-	// for kprobes that have a GetUrl action, we store the list of URLs
-	// to get.
-	urls []string
-
-	// for kprobes that have a DnsRequest action, we store the list of
-	// FQDNs to request.
-	fqdns []string
+	// for kprobes that have a GetUrl or DnsLookup action, we store the table of arguments.
+	actionArgs idtable.Table
 
 	pinPathPrefix string
 }
@@ -386,12 +382,6 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 			}
 		}
 
-		// Parse Filters into kernel filter logic
-		kernelSelectorState, err := selectors.InitKernelSelectorState(f.Selectors, f.Args)
-		if err != nil {
-			return nil, err
-		}
-
 		// Parse Binary Name into kernel data structures
 		if err := initBinaryNames(f); err != nil {
 			return nil, err
@@ -433,17 +423,13 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 			config.Sigkill = 0
 		}
 
-		urls := selectors.GetUrls(f)
-		fqdns := selectors.GetDnsFQDNs(f)
-
 		// create a new entry on the table, and pass its id to BPF-side
 		// so that we can do the matching at event-generation time
 		kprobeEntry := genericKprobe{
 			loadArgs: kprobeLoadArgs{
-				selectors: kernelSelectorState,
-				retprobe:  setRetprobe,
-				syscall:   is_syscall,
-				config:    config,
+				retprobe: setRetprobe,
+				syscall:  is_syscall,
+				config:   config,
 			},
 			argSigPrinters:    argSigPrinters,
 			argReturnPrinters: argReturnPrinters,
@@ -451,8 +437,12 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 			funcName:          funcName,
 			pendingEvents:     nil,
 			tableId:           idtable.UninitializedEntryID,
-			urls:              urls,
-			fqdns:             fqdns,
+		}
+
+		// Parse Filters into kernel filter logic
+		kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs)
+		if err != nil {
+			return nil, err
 		}
 
 		kprobeEntry.pendingEvents, err = lru.New(4096)
@@ -550,7 +540,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 // This is intended for speeding up testing, so DO NOT USE elsewhere without
 // checking its implementation first because limitations may exist (e.g,. the
 // config map is not updated, the retprobe is not reloaded, userspace return filters are not updated, etc.).
-func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProbeSpec) error {
+func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProbeSpec, actionArgTable *idtable.Table) error {
 	// The first program should be the (entry) kprobe, and that's the only
 	// one we will reload. We could reload the retprobe, but the assumption
 	// is that we don't need to, because it will never be executed if the
@@ -569,7 +559,7 @@ func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProb
 		return fmt.Errorf("unlinking %v failed: %s", kprobeProg, err)
 	}
 
-	kState, err := selectors.InitKernelSelectorState(conf.Selectors, conf.Args)
+	kState, err := selectors.InitKernelSelectorState(conf.Selectors, conf.Args, actionArgTable)
 	if err != nil {
 		return err
 	}
@@ -757,7 +747,14 @@ func getUrl(url string) {
 
 func dnsLookup(fqdn string) {
 	// We fire and forget DNS lookups, and we don't care if they hit or not.
-	net.LookupIP(fqdn)
+	res := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			dial := net.Dialer{}
+			return dial.Dial("udp", "1.1.1.1:53")
+		},
+	}
+	res.LookupIP(context.Background(), "ip4", fqdn)
 }
 
 func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
@@ -775,15 +772,20 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	}
 
 	switch m.ActionId {
-	case selectors.ActionTypeGetUrl:
-		for _, url := range gk.urls {
-			logger.GetLogger().WithField("URL", url).Trace("Get URL Action")
-			getUrl(url)
+	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
+		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
+			return nil, fmt.Errorf("Failed to find argument for id")
 		}
-	case selectors.ActionTypeDnsLookup:
-		for _, fqdn := range gk.fqdns {
-			logger.GetLogger().WithField("FQDN", fqdn).Trace("DNS lookup")
-			dnsLookup(fqdn)
+		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
+		switch m.ActionId {
+		case selectors.ActionTypeGetUrl:
+			logger.GetLogger().WithField("URL", actionArg).Trace("Get URL Action")
+			getUrl(actionArg)
+		case selectors.ActionTypeDnsLookup:
+			logger.GetLogger().WithField("FQDN", actionArg).Trace("DNS lookup")
+			dnsLookup(actionArg)
 		}
 	}
 

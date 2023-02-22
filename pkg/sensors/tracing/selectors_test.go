@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -361,7 +362,10 @@ func TestKprobeSelectors(t *testing.T) {
 			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
 			if i == 0 {
 			} else {
-				if err := ReloadGenericKprobeSelectors(kpSensor, &spec.KProbes[0]); err != nil {
+				// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
+				var argActionTable idtable.Table
+
+				if err := ReloadGenericKprobeSelectors(kpSensor, &spec.KProbes[0], &argActionTable); err != nil {
 					t.Fatalf("failed to reload kprobe prog: %s", err)
 				}
 			}

@@ -15,4 +15,6 @@ type MsgGenericTracepoint struct {
 	Id           int64
 	ThreadId     uint64
 	ActionId     uint64
+	ActionArgId  uint32
+	Pad          uint32
 }

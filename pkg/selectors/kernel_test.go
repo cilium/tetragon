@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 )
@@ -339,13 +340,16 @@ func TestParseMatchCapabilities(t *testing.T) {
 }
 
 func TestParseMatchAction(t *testing.T) {
+	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
+	var actionArgTable idtable.Table
+
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
 	act2 := &v1alpha1.ActionSelector{Action: "post"}
 	k := &KernelSelectorState{off: 0}
 	expected1 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 	}
-	if err := parseMatchAction(k, act1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := parseMatchAction(k, act1, &actionArgTable); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], act1)
 	}
 	// This is a bit contrived because we only have single action so far
@@ -360,13 +364,16 @@ func TestParseMatchAction(t *testing.T) {
 
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchActions(ks, act); err != nil || bytes.Equal(expected, ks.e[0:ks.off]) == false {
+	if err := parseMatchActions(ks, act, &actionArgTable); err != nil || bytes.Equal(expected, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, ks.e[0:ks.off], act)
 	}
 }
 
 // NB(kkourt):
 func TestMultipleSelectorsExample(t *testing.T) {
+	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
+	var actionArgTable idtable.Table
+
 	args := []v1alpha1.KProbeArg{
 		{Index: 1, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
 	}
@@ -381,7 +388,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 		{MatchArgs: matchArgs, MatchPIDs: pidSelector},
 		{MatchArgs: matchArgs, MatchPIDs: pidSelector},
 	}
-	b, _ := InitKernelSelectors(selectors, args)
+	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
 
 	expected := make([]byte, 4096)
 	expectedLen := 0
@@ -619,7 +626,11 @@ func TestInitKernelSelectors(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
 	}
-	b, _ := InitKernelSelectors(selectors, args)
+
+	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
+	var actionArgTable idtable.Table
+
+	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
 	if bytes.Equal(expected[0:len(expected)], b[0:len(expected)]) == false {
 		t.Errorf("InitKernelSelectors: expected %v bytes %v\n", expected, b[0:len(expected)])
 	}
