@@ -489,10 +489,15 @@ func Serve(ctx context.Context, listenAddr string, server *server.Server) error 
 			log.WithError(err).Error("Failed to close gRPC server")
 		}
 	}(proto, addr)
-	go func() {
+	go func(proto, addr string) {
 		<-ctx.Done()
 		grpcServer.Stop()
-	}()
+		// if proto is unix, ListenWithRename() creates the socket
+		// then renames it, so explicitly clean it up.
+		if proto == "unix" {
+			os.Remove(addr)
+		}
+	}(proto, addr)
 	return nil
 }
 
