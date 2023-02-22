@@ -18,6 +18,8 @@ const (
 	ActionUnfollowFd = 3
 	ActionOverride   = 4
 	ActionCopyFd     = 5
+	ActionGetUrl     = 6
+	ActionLookupDns  = 7
 )
 
 const (
@@ -43,6 +45,8 @@ type MsgGenericKprobe struct {
 	Id           uint64
 	ThreadId     uint64
 	ActionId     uint64
+	ActionArgId  uint32
+	Pad          uint32
 }
 
 type MsgGenericKprobeArgPath struct {
