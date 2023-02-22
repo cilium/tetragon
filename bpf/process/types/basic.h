@@ -598,6 +598,11 @@ __filter_file_buf(char *value, char *args, __u32 op)
 	 */
 	v = (unsigned int)value[0];
 	a = (unsigned int)args[0];
+	/* There are cases where file pointer may not contain a path.
+	 * An example is using an unnamed pipe. This is not a match.
+	 */
+	if (a == 0)
+		goto skip_string;
 	if (op == op_filter_eq) {
 		if (v != a)
 			goto skip_string;
@@ -605,9 +610,6 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		if (a < v)
 			goto skip_string;
 	} else if (op == op_filter_str_postfix) {
-		/* Due to the lack of followfd we get a kprobe with empty path. This is not a match */
-		if (a == 0)
-			goto skip_string;
 		err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
 		if (!err)
 			return 0;
