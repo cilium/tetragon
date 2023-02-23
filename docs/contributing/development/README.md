@@ -229,6 +229,20 @@ If you are on a Mac, use Vagrant to create a dev VM:
 
 If you are getting an error, you can try to run `sudo launchctl load /Library/LaunchDaemons/org.virtualbox.startup.plist` (from https://stackoverflow.com/questions/18149546/macos-vagrant-up-failed-dev-vboxnetctl-no-such-file-or-directory).
 
+### Local Development in Minikube
+
+You can also run the tetragon agent directly (instead of in a pod). Here we describe how this can be
+done in minikube:
+
+```
+minikube start --driver=kvm2
+minikube mount $HOME:$HOME # so that we can use .kube/config
+./tetragon-operator --kube-config ~/.kube/config
+make STATIC=1 tetragon
+minikube ssh --  'sudo mkdir -p /var/run/cilium/tetragon'
+minikube ssh sudo "sh -c 'NODE_NAME=minikube /home/kkourt/src/tetragon/tetragon --bpf-lib /home/kkourt/src/tetragon/bpf/objs --server-address unix:///var/run/cilium/tetragon/tetragon.sock --enable-k8s-api --k8s-kubeconfig-path /home/kkourt/.kube/config'"
+```
+
 ### Making Changes
 
 1. Make sure the main branch of your fork is up-to-date:
