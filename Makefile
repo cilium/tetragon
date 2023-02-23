@@ -285,6 +285,15 @@ check:
 	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app golangci-lint:tetragon golangci-lint run
 endif
 
+.PHONY: copy-golangci-lint
+copy-golangci-lint:
+	mkdir -p bin/
+	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
+	$(eval xid=$(shell docker create golangci-lint:tetragon))
+	echo ${xid}
+	docker cp ${xid}:/usr/bin/golangci-lint bin/golangci-lint
+	docker rm ${xid}
+
 .PHONY: clang-format
 ifeq (1,$(LOCAL_CLANG_FORMAT))
 clang-format:
