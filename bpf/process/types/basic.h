@@ -289,10 +289,10 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 			     : "c2", "r0");               \
 		if (c1 != c2)                             \
 			goto failed;                      \
-		n1--;                                     \
-		n2--;                                     \
 		if (n1 < 1 || n2 < 1)                     \
 			goto accept;                      \
+		n1--;                                     \
+		n2--;                                     \
 	}
 
 #define ASM_RCMP5        \
@@ -317,6 +317,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		ASM_RCMP20 \
 		ASM_RCMP20 \
 		ASM_RCMP5  \
+		ASM_RCMP5  \
 	}
 
 #define ASM_RCMP100        \
@@ -325,6 +326,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		ASM_RCMP50 \
 	}
 
+/* reverse compare bytes. n1 is index of last byte in s1. Ditto n2 of s2. */
 static inline __attribute__((always_inline)) int rcmpbytes(char *s1, char *s2,
 							   u64 n1, u64 n2)
 {
@@ -342,13 +344,16 @@ failed:
 	return -1;
 }
 
+/* compare bytes. n is number of bytes to compare. */
 static inline __attribute__((always_inline)) int cmpbytes(char *s1, char *s2,
 							  size_t n)
 {
 	int i;
 #pragma unroll
 	for (i = 0; i < MAX_STRING_FILTER; i++) {
-		if (i < n && s1[i] != s2[i])
+		if (i >= n)
+			return 0;
+		if (s1[i] != s2[i])
 			return -1;
 	}
 	return 0;
@@ -607,8 +612,9 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
 		if (!err)
 			return 0;
+		goto skip_string;
 	}
-	err = cmpbytes(&value[4], &args[4], v - 1);
+	err = cmpbytes(&value[4], &args[4], v);
 	if (!err)
 		return 0;
 skip_string:
