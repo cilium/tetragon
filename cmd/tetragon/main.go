@@ -335,22 +335,23 @@ func tetragonExecute() error {
 		}
 	}
 
-	// Periodically log status
-	go logStatus(ctx, obs)
+	// k8s should have metrics, so periodically log only in a non k8s
+	if option.Config.EnableK8s == false {
+		go logStatus(ctx, obs)
+	}
 
 	return obs.Start(ctx)
 }
 
-// Periodically log current status every 1 hour. For lost or error
-// events we ratelimit statistics to 1 message per every 5mins to
-// continuously infor users that events are being lost without
-// polluting logs.
+// Periodically log current status every 24 hours. For lost or error
+// events we ratelimit statistics to 1 message per every 1hour and
+// only if they increase, to inform users that events are being lost.
 func logStatus(ctx context.Context, obs *observer.Observer) {
 	prevLost := uint64(0)
 	prevErrors := uint64(0)
-	lostTicker := time.NewTicker(5 * time.Minute)
+	lostTicker := time.NewTicker(1 * time.Hour)
 	defer lostTicker.Stop()
-	logTicker := time.NewTicker(1 * time.Hour)
+	logTicker := time.NewTicker(24 * time.Hour)
 	defer logTicker.Stop()
 	for {
 		select {
@@ -359,7 +360,7 @@ func logStatus(ctx context.Context, obs *observer.Observer) {
 		case <-logTicker.C:
 			// We always print stats
 			obs.PrintStats()
-			// Update lost and errors, to not print two consecutive lines at same time
+			// Update lost and errors
 			prevLost = obs.ReadLostEvents()
 			prevErrors = obs.ReadErrorEvents()
 		case <-lostTicker.C:
