@@ -44,6 +44,9 @@ func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 			"earlyprintk=ttyS0",
 			"panic=-1",
 		}
+		if rcnf.disableUnifiedCgroups {
+			appendArgs = append(appendArgs, "systemd.unified_cgroup_hierarchy=0")
+		}
 		if rcnf.useTetragonTesterInit {
 			appendArgs = append(appendArgs, fmt.Sprintf("init=%s", TetragonTesterBin))
 		}

@@ -19,6 +19,7 @@ type RunConf struct {
 	disableKVM            bool
 	enableHVF             bool
 	btfFile               string
+	disableUnifiedCgroups bool
 	testerConf            vmtests.Conf
 
 	filesystems []QemuFS
