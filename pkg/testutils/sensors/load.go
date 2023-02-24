@@ -228,7 +228,7 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 			}
 
 			if m.ID == sharedId {
-				t.Fatalf("Map %s[%d] is shared also with program %s", tm.Name, m.ID, c.name)
+				t.Fatalf("Error: Map %s[%d] is shared also with program %s", tm.Name, m.ID, c.name)
 			}
 		}
 	}
