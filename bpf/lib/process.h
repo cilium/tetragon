@@ -104,6 +104,7 @@
 #define __ASM_ARGSBUFFER 976
 #define ARGSBUFFERMASK	 (ARGSBUFFER - 1)
 #define MAXARGMASK	 (MAXARG - 1)
+#define PATHNAME_SIZE	 256
 
 /* Task flags */
 #ifndef PF_KTHREAD
@@ -316,7 +317,7 @@ struct {
 
 struct execve_heap {
 	union {
-		char pathname[256];
+		char pathname[PATHNAME_SIZE];
 		char maxpath[4096];
 	};
 };
