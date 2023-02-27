@@ -142,7 +142,7 @@ struct pt_regs___arm64 {
 #define __PT_SP_REG sp
 #define __PT_IP_REG pc
 #define PT_REGS_PARM1_SYSCALL(x) PT_REGS_PARM1_CORE_SYSCALL(x)
-#define PT_REGS_PARM1_CORE_SYSCALL(x) BPF_CORE_READ((const struct pt_regs___arm64 *)(x), orig_x0)
+#define PT_REGS_PARM1_CORE_SYSCALL(x) (unsigned long)BPF_CORE_READ((const struct pt_regs___arm64 *)(x), orig_x0)
 
 #elif defined(bpf_target_mips)
 

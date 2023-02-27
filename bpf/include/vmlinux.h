@@ -1411,6 +1411,8 @@ struct range {
 	u64 end;
 };
 
+#if defined(__TARGET_ARCH_x86)
+
 struct pt_regs {
 	long unsigned int r15;
 	long unsigned int r14;
@@ -1434,6 +1436,40 @@ struct pt_regs {
 	long unsigned int sp;
 	long unsigned int ss;
 };
+
+#elif defined(__TARGET_ARCH_arm64)
+/* definitions for arm64 in this vmlinux.h file might be incomplete or wrong
+ * for more information, see: https://github.com/cilium/tetragon/issues/786
+ */
+
+struct user_pt_regs {
+	__u64 regs[31];
+	__u64 sp;
+	__u64 pc;
+	__u64 pstate;
+};
+
+struct pt_regs {
+	union {
+		struct user_pt_regs user_regs;
+		struct {
+			u64 regs[31];
+			u64 sp;
+			u64 pc;
+			u64 pstate;
+		};
+	};
+	u64 orig_x0;
+	s32 syscallno;
+	u32 unused2;
+	u64 sdei_ttbr1;
+	u64 pmr_save;
+	u64 stackframe[2];
+	u64 lockdep_hardirqs;
+	u64 exit_rcu;
+};
+
+#endif
 
 struct desc_ptr {
 	short unsigned int size;
