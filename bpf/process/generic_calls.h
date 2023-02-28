@@ -9,19 +9,15 @@
 #define MAX_TOTAL 9000
 
 static inline __attribute__((always_inline)) int
-generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
+generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
+		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	unsigned long a0;
+	unsigned long a;
 	int zero = 0;
-	/* total is used as a pointer offset so we want type to match
-	 * pointer type in order to avoid bit shifts.
-	 */
-	long ty, total = 0;
+	long ty, total;
 
-	// get e again to help verifier
 	e = map_lookup_elem(heap_map, &zero);
 	if (!e)
 		return 0;
@@ -30,19 +26,20 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 	if (!config)
 		return 0;
 
-	a0 = e->a0;
+	a = (&e->a0)[index];
+	total = e->common.size;
 
 	/* Read out args1-5 */
-	ty = config->arg0;
+	ty = (&config->arg0)[index];
 	if (total < MAX_TOTAL) {
 		long errv;
-		int a0m;
+		int am;
 
-		a0m = config->arg0m;
-		asm volatile("%[a0m] &= 0xffff;\n" ::[a0m] "+r"(a0m)
+		am = (&config->arg0m)[index];
+		asm volatile("%[am] &= 0xffff;\n" ::[am] "+r"(am)
 			     :);
 
-		errv = read_call_arg(ctx, e, 0, ty, total, a0, a0m);
+		errv = read_call_arg(ctx, e, index, ty, total, a, am);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -54,7 +51,13 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 			return filter_args_reject(e->id);
 	}
 	e->common.size = total;
-	tail_call(ctx, tailcals, 1);
+	/* Continue to process other arguments. */
+	if (index < 4)
+		tail_call(ctx, tailcals, index + 1);
+
+	/* Last argument, go send.. */
+	total += generic_kprobe_common_size();
+	tail_call(ctx, tailcals, 6);
 	return 0;
 }
 
@@ -123,178 +126,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	if (ty > 0)
 		retprobe_map_set(e->id, e->thread_id, e->common.ktime, 1);
 #endif
-	return generic_process_event0(ctx, heap_map, tailcals, config_map);
-}
-
-static inline __attribute__((always_inline)) int
-generic_process_event1(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	unsigned long a1;
-	int zero = 0;
-	long ty, total;
-
-	e = map_lookup_elem(heap_map, &zero);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
-
-	total = e->common.size;
-
-	a1 = e->a1;
-
-	ty = config->arg1;
-	if (total < MAX_TOTAL) {
-		long errv;
-		int a1m;
-
-		a1m = config->arg1m;
-		asm volatile("%[a1m] &= 0xffff;\n" ::[a1m] "+r"(a1m)
-			     :);
-
-		errv = read_call_arg(ctx, e, 1, ty, total, a1, a1m);
-		if (errv > 0)
-			total += errv;
-		if (errv < 0)
-			return filter_args_reject(e->id);
-	}
-	e->common.size = total;
-	tail_call(ctx, tailcals, 2);
-	return 0;
-}
-
-static inline __attribute__((always_inline)) int
-generic_process_event2(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	unsigned long a2;
-	int zero = 0;
-	long ty, total;
-
-	e = map_lookup_elem(heap_map, &zero);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
-
-	total = e->common.size;
-
-	a2 = e->a2;
-
-	ty = config->arg2;
-	if (total < MAX_TOTAL) {
-		long errv;
-		int a2m;
-
-		a2m = config->arg2m;
-		asm volatile("%[a2m] &= 0xffff;\n" ::[a2m] "+r"(a2m)
-			     :);
-
-		errv = read_call_arg(ctx, e, 2, ty, total, a2, a2m);
-		if (errv > 0)
-			total += errv;
-		if (errv < 0)
-			return filter_args_reject(e->id);
-	}
-	e->common.size = total;
-	tail_call(ctx, tailcals, 3);
-	return 0;
-}
-
-static inline __attribute__((always_inline)) int
-generic_process_event3(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	unsigned long a3;
-	int zero = 0;
-	long ty, total;
-
-	e = map_lookup_elem(heap_map, &zero);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
-
-	total = e->common.size;
-
-	a3 = e->a3;
-
-	/* Arg filter and copy logic */
-	ty = config->arg3;
-	if (total < MAX_TOTAL) {
-		long errv;
-		int a3m;
-
-		a3m = config->arg3m;
-		asm volatile("%[a3m] &= 0xffff;\n" ::[a3m] "+r"(a3m)
-			     :);
-
-		errv = read_call_arg(ctx, e, 3, ty, total, a3, a3m);
-		if (errv > 0)
-			total += errv;
-		if (errv < 0)
-			return filter_args_reject(e->id);
-	}
-	e->common.size = total;
-	tail_call(ctx, tailcals, 4);
-	return 0;
-}
-
-static inline __attribute__((always_inline)) int
-generic_process_event4(void *ctx, struct bpf_map_def *heap_map,
-		       struct bpf_map_def *tailcals, struct bpf_map_def *config_map)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	unsigned long a4;
-	int zero = 0;
-	long ty, total;
-
-	e = map_lookup_elem(heap_map, &zero);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
-
-	total = e->common.size;
-
-	a4 = e->a4;
-
-	ty = config->arg4;
-	if (total < MAX_TOTAL) {
-		long errv;
-		int a4m;
-
-		a4m = config->arg4m;
-		asm volatile("%[a4m] &= 0xffff;\n" ::[a4m] "+r"(a4m)
-			     :);
-
-		errv = read_call_arg(ctx, e, 4, ty, total, a4, a4m);
-		if (errv > 0)
-			total += errv;
-		if (errv < 0)
-			return filter_args_reject(e->id);
-	}
-	e->common.size = total;
-	/* Post event */
-	total += generic_kprobe_common_size();
-	tail_call(ctx, tailcals, 6);
-	return 0;
+	return generic_process_event(ctx, 0, heap_map, tailcals, config_map);
 }
 
 #endif /* __GENERIC_CALLS_H__ */

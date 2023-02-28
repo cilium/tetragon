@@ -149,37 +149,37 @@ generic_kprobe_process_event0(void *ctx)
 __attribute__((section("kprobe/1"), used)) int
 generic_kprobe_process_event1(void *ctx)
 {
-	return generic_process_event1(ctx,
-				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&kprobe_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 1,
+				     (struct bpf_map_def *)&process_call_heap,
+				     (struct bpf_map_def *)&kprobe_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("kprobe/2"), used)) int
 generic_kprobe_process_event2(void *ctx)
 {
-	return generic_process_event2(ctx,
-				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&kprobe_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 2,
+				     (struct bpf_map_def *)&process_call_heap,
+				     (struct bpf_map_def *)&kprobe_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("kprobe/3"), used)) int
 generic_kprobe_process_event3(void *ctx)
 {
-	return generic_process_event3(ctx,
-				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&kprobe_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 3,
+				     (struct bpf_map_def *)&process_call_heap,
+				     (struct bpf_map_def *)&kprobe_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("kprobe/4"), used)) int
 generic_kprobe_process_event4(void *ctx)
 {
-	return generic_process_event4(ctx,
-				      (struct bpf_map_def *)&process_call_heap,
-				      (struct bpf_map_def *)&kprobe_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 4,
+				     (struct bpf_map_def *)&process_call_heap,
+				     (struct bpf_map_def *)&kprobe_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("kprobe/5"), used)) int

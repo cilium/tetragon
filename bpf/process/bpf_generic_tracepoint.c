@@ -194,41 +194,41 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint/0"), used)) int
 generic_tracepoint_event0(void *ctx)
 {
-	return generic_process_event0(ctx, (struct bpf_map_def *)&tp_heap,
-				      (struct bpf_map_def *)&tp_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 0, (struct bpf_map_def *)&tp_heap,
+				     (struct bpf_map_def *)&tp_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/1"), used)) int
 generic_tracepoint_event1(void *ctx)
 {
-	return generic_process_event1(ctx, (struct bpf_map_def *)&tp_heap,
-				      (struct bpf_map_def *)&tp_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 1, (struct bpf_map_def *)&tp_heap,
+				     (struct bpf_map_def *)&tp_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/2"), used)) int
 generic_tracepoint_event2(void *ctx)
 {
-	return generic_process_event2(ctx, (struct bpf_map_def *)&tp_heap,
-				      (struct bpf_map_def *)&tp_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 2, (struct bpf_map_def *)&tp_heap,
+				     (struct bpf_map_def *)&tp_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/3"), used)) int
 generic_tracepoint_event3(void *ctx)
 {
-	return generic_process_event3(ctx, (struct bpf_map_def *)&tp_heap,
-				      (struct bpf_map_def *)&tp_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 3, (struct bpf_map_def *)&tp_heap,
+				     (struct bpf_map_def *)&tp_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_event4(void *ctx)
 {
-	return generic_process_event4(ctx, (struct bpf_map_def *)&tp_heap,
-				      (struct bpf_map_def *)&tp_calls,
-				      (struct bpf_map_def *)&config_map);
+	return generic_process_event(ctx, 4, (struct bpf_map_def *)&tp_heap,
+				     (struct bpf_map_def *)&tp_calls,
+				     (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/5"), used)) int
