@@ -249,7 +249,7 @@ func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
-func parseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
+func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 	op, err := selectorOp(pid.Operator)
 	if err != nil {
 		return fmt.Errorf("matchpid error: %w", err)
@@ -265,10 +265,10 @@ func parseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 	return nil
 }
 
-func parseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) error {
+func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) error {
 	loff := AdvanceSelectorLength(k)
 	for _, p := range matchPids {
-		if err := parseMatchPid(k, &p); err != nil {
+		if err := ParseMatchPid(k, &p); err != nil {
 			return err
 		}
 	}
@@ -365,7 +365,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 	return nil
 }
 
-func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(k, arg.Index)
 
 	op, err := selectorOp(arg.Operator)
@@ -395,10 +395,10 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorLength(k, moff)
 	return nil
 }
-func parseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	loff := AdvanceSelectorLength(k)
 	for _, a := range args {
-		if err := parseMatchArg(k, &a, sig); err != nil {
+		if err := ParseMatchArg(k, &a, sig); err != nil {
 			return err
 		}
 	}
@@ -406,7 +406,7 @@ func parseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	return nil
 }
 
-func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
+func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
@@ -434,10 +434,10 @@ func parseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	return nil
 }
 
-func parseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
+func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	loff := AdvanceSelectorLength(k)
 	for _, a := range actions {
-		if err := parseMatchAction(k, &a, actionArgTable); err != nil {
+		if err := ParseMatchAction(k, &a, actionArgTable); err != nil {
 			return err
 		}
 	}
@@ -472,7 +472,7 @@ func namespaceSelectorValue(ns *v1alpha1.NamespaceSelector, nstype string) ([]by
 	return b, uint32(len(b)), nil
 }
 
-func parseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelector) error {
+func ParseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelector) error {
 	nsstr := strings.ToLower(action.Namespace)
 	// write namespace type
 	ns, ok := namespaceTypeTable[nsstr]
@@ -501,7 +501,7 @@ func parseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelec
 	return nil
 }
 
-func parseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSelector) error {
+func ParseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSelector) error {
 	max_nactions := 4 // 4 should match the value of the NUM_NS_FILTERS_SMALL in pfilter.h
 	if kernels.EnableLargeProgs() {
 		max_nactions = 10 // 10 should match the value of ns_max_types in hubble_msg.h
@@ -512,7 +512,7 @@ func parseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSe
 	loff := AdvanceSelectorLength(k)
 	// maybe write the number of namespace matches
 	for _, a := range actions {
-		if err := parseMatchNamespace(k, &a); err != nil {
+		if err := ParseMatchNamespace(k, &a); err != nil {
 			return err
 		}
 	}
@@ -520,7 +520,7 @@ func parseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSe
 	return nil
 }
 
-func parseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.NamespaceChangesSelector) error {
+func ParseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.NamespaceChangesSelector) error {
 	// write operator
 	op, err := selectorOp(action.Operator)
 	if err != nil {
@@ -545,7 +545,7 @@ func parseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.Namespac
 	return nil
 }
 
-func parseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.NamespaceChangesSelector) error {
+func ParseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.NamespaceChangesSelector) error {
 	if len(actions) > 1 {
 		return fmt.Errorf("matchNamespaceChanges supports only a single filter (current number of filters is %d)", len(actions))
 	}
@@ -555,7 +555,7 @@ func parseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.Names
 	loff := AdvanceSelectorLength(k)
 	// maybe write the number of namespace matches
 	for _, a := range actions {
-		if err := parseMatchNamespaceChange(k, &a); err != nil {
+		if err := ParseMatchNamespaceChange(k, &a); err != nil {
 			return err
 		}
 	}
@@ -563,7 +563,7 @@ func parseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.Names
 	return nil
 }
 
-func parseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelector) error {
+func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelector) error {
 	// type
 	tystr := strings.ToLower(action.Type)
 	ty, ok := capabilitiesTypeTable[tystr]
@@ -610,10 +610,10 @@ func parseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	return nil
 }
 
-func parseMatchCapabilities(k *KernelSelectorState, actions []v1alpha1.CapabilitiesSelector) error {
+func ParseMatchCapabilities(k *KernelSelectorState, actions []v1alpha1.CapabilitiesSelector) error {
 	loff := AdvanceSelectorLength(k)
 	for _, a := range actions {
-		if err := parseMatchCaps(k, &a); err != nil {
+		if err := ParseMatchCaps(k, &a); err != nil {
 			return err
 		}
 	}
@@ -621,10 +621,10 @@ func parseMatchCapabilities(k *KernelSelectorState, actions []v1alpha1.Capabilit
 	return nil
 }
 
-func parseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.CapabilitiesSelector) error {
+func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.CapabilitiesSelector) error {
 	loff := AdvanceSelectorLength(k)
 	for _, a := range actions {
-		if err := parseMatchCaps(k, &a); err != nil {
+		if err := ParseMatchCaps(k, &a); err != nil {
 			return err
 		}
 	}
@@ -632,7 +632,7 @@ func parseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
-func parseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error {
+func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error {
 	op, err := selectorOp(b.Operator)
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
@@ -650,12 +650,12 @@ func parseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error 
 	return nil
 }
 
-func parseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector) error {
+func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector) error {
 	if len(binarys) > 1 {
 		return fmt.Errorf("Only support single binary selector")
 	}
 	for _, s := range binarys {
-		if err := parseMatchBinary(k, &s); err != nil {
+		if err := ParseMatchBinary(k, &s); err != nil {
 			return err
 		}
 	}
@@ -667,28 +667,28 @@ func parseSelector(
 	selectors *v1alpha1.KProbeSelector,
 	args []v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table) error {
-	if err := parseMatchPids(k, selectors.MatchPIDs); err != nil {
+	if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
 		return fmt.Errorf("parseMatchPids error: %w", err)
 	}
-	if err := parseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
+	if err := ParseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
 		return fmt.Errorf("parseMatchNamespaces error: %w", err)
 	}
-	if err := parseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
+	if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
 		return fmt.Errorf("parseMatchCapabilities error: %w", err)
 	}
-	if err := parseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
+	if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
 		return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
 	}
-	if err := parseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
+	if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
 		return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
 	}
-	if err := parseMatchBinaries(k, selectors.MatchBinaries); err != nil {
+	if err := ParseMatchBinaries(k, selectors.MatchBinaries); err != nil {
 		return fmt.Errorf("parseMatchBinaries error: %w", err)
 	}
-	if err := parseMatchArgs(k, selectors.MatchArgs, args); err != nil {
+	if err := ParseMatchArgs(k, selectors.MatchArgs, args); err != nil {
 		return fmt.Errorf("parseMatchArgs  error: %w", err)
 	}
-	if err := parseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+	if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
 		return fmt.Errorf("parseMatchActions error: %w", err)
 	}
 	return nil

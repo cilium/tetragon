@@ -184,7 +184,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x06, 0x00, 0x00, 0x00, // value length == 6
 		102, 111, 111, 98, 97, 114, // value ascii "foobar"
 	}
-	if err := parseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], arg1)
 	}
 
@@ -198,7 +198,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // value 1
 		0x02, 0x00, 0x00, 0x00, // value 2
 	}
-	if err := parseMatchArg(k, arg2, sig); err != nil || bytes.Equal(expected2, k.e[nextArg:k.off]) == false {
+	if err := ParseMatchArg(k, arg2, sig); err != nil || bytes.Equal(expected2, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextArg:k.off], arg2)
 	}
 
@@ -207,7 +207,7 @@ func TestParseMatchArg(t *testing.T) {
 	expected3 = append(expected3, expected2[:]...)
 	arg3 := []v1alpha1.ArgSelector{*arg1, *arg2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchArgs(ks, arg3, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+	if err := ParseMatchArgs(ks, arg3, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchArgs: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:k.off], arg3)
 	}
 }
@@ -223,7 +223,7 @@ func TestParseMatchPid(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := parseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], pid1)
 	}
 
@@ -238,7 +238,7 @@ func TestParseMatchPid(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := parseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
+	if err := ParseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextPid:k.off], pid2)
 	}
 
@@ -247,7 +247,7 @@ func TestParseMatchPid(t *testing.T) {
 	expected3 = append(expected3, expected2[:]...)
 	pid3 := []v1alpha1.PIDSelector{*pid1, *pid2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:ks.off], pid3)
 	}
 }
@@ -263,7 +263,7 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := parseMatchNamespace(k, ns1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchNamespace(k, ns1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], ns1)
 	}
 
@@ -278,7 +278,7 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := parseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
+	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
 		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextPid:k.off], ns2)
 	}
 
@@ -287,7 +287,7 @@ func TestParseMatchNamespaces(t *testing.T) {
 	expected3 = append(expected3, expected2[:]...)
 	ns3 := []v1alpha1.NamespaceSelector{*ns1, *ns2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+	if err := ParseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchNamespaces: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:ks.off], ns3)
 	}
 }
@@ -299,7 +299,7 @@ func TestParseMatchNamespaceChanges(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // op == In
 		0x05, 0x00, 0x00, 0x00, // values
 	}
-	if err := parseMatchNamespaceChange(k, ns1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchNamespaceChange(k, ns1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchNamespaceChange: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], ns1)
 	}
 }
@@ -313,7 +313,7 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := parseMatchCaps(k, cap1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchCaps(k, cap1); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], cap1)
 	}
 
@@ -325,7 +325,7 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := parseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
+	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, k.e[nextPid:k.off]) == false {
 		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextPid:k.off], cap2)
 	}
 
@@ -334,7 +334,7 @@ func TestParseMatchCapabilities(t *testing.T) {
 	expected3 = append(expected3, expected2[:]...)
 	cap3 := []v1alpha1.CapabilitiesSelector{*cap1, *cap2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+	if err := ParseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchCapabilities: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:ks.off], cap3)
 	}
 }
@@ -349,7 +349,7 @@ func TestParseMatchAction(t *testing.T) {
 	expected1 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 	}
-	if err := parseMatchAction(k, act1, &actionArgTable); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
+	if err := ParseMatchAction(k, act1, &actionArgTable); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
 		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], act1)
 	}
 	// This is a bit contrived because we only have single action so far
@@ -364,7 +364,7 @@ func TestParseMatchAction(t *testing.T) {
 
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{off: 0}
-	if err := parseMatchActions(ks, act, &actionArgTable); err != nil || bytes.Equal(expected, ks.e[0:ks.off]) == false {
+	if err := ParseMatchActions(ks, act, &actionArgTable); err != nil || bytes.Equal(expected, ks.e[0:ks.off]) == false {
 		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, ks.e[0:ks.off], act)
 	}
 }
