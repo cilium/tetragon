@@ -168,6 +168,8 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 		get_ctx_ul((char *)ctx + ctx_off, ty);
 	});
 
+	generic_process_init(msg, MSG_OP_GENERIC_TRACEPOINT, config);
+
 	msg->common.op = MSG_OP_GENERIC_TRACEPOINT;
 	msg->sel.curr = 0;
 #pragma unroll
