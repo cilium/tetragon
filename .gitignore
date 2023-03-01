@@ -12,13 +12,18 @@ fgs-bench-rootfs*
 ksrc
 kbuild
 latest.json
+strange.txt
+compile_commands.json
+contrib/tester-progs/sigkill-unprivileged-user-ns-tester
+/release
+
+# project tool artifacts
+.vagrant/
+.vscode
 cscope.files
 cscope.po.out
 cscope.out
 cscope.in.out
-strange.txt
-.vagrant/
-.vscode
-compile_commands.json
-contrib/tester-progs/sigkill-unprivileged-user-ns-tester
-/release
+
+# macOS artifacts
+.DS_Store
