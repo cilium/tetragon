@@ -6,9 +6,15 @@ SHELL=/bin/bash # needed for the *.{o,ll,i,s} pattern in the clean target
 CLANG  ?= clang
 LLC    ?= llc
 
-# By default we build for amd64 that is in libbpf x86
-# To build for other architectures check $TARGET_ARCH
-# var exported from parent Makefile.
+# Build the BPF programs for the detected architecture, default to x86, and
+# allow easy overriding by using ?= for cross-compilation
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+	BPF_TARGET_ARCH ?= x86
+endif
+ifeq ($(UNAME_M),aarch64)
+	BPF_TARGET_ARCH ?= arm64
+endif
 BPF_TARGET_ARCH ?= x86
 
 ALIGNCHECKERDIR = alignchecker/
