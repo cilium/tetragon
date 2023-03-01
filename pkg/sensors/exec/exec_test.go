@@ -452,7 +452,7 @@ func TestDocker(t *testing.T) {
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 
 	readyWG.Wait()
-	serverDockerID := observer.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:1.0", "-nvlp", "8081", "-s", "0.0.0.0")
+	serverDockerID := observer.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:v1.6.0", "-nvlp", "8081", "-s", "0.0.0.0")
 	time.Sleep(1 * time.Second)
 
 	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
