@@ -32,26 +32,6 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 
 	a0 = e->a0;
 
-	e->common.flags = 0;
-	e->common.pad[0] = 0;
-	e->common.pad[1] = 0;
-	e->common.size = 0;
-	e->common.ktime = ktime_get_ns();
-
-	e->current.pad[0] = 0;
-	e->current.pad[1] = 0;
-	e->current.pad[2] = 0;
-	e->current.pad[3] = 0;
-
-	e->thread_id = retprobe_map_get_key(ctx);
-
-	/* If return arg is needed mark retprobe */
-#ifdef GENERIC_KPROBE
-	ty = config->argreturn;
-	if (ty > 0)
-		retprobe_map_set(e->id, e->thread_id, e->common.ktime, 1);
-#endif
-
 	/* Read out args1-5 */
 	ty = config->arg0;
 	if (total < MAX_TOTAL) {
@@ -73,10 +53,26 @@ generic_process_event0(struct pt_regs *ctx, struct bpf_map_def *heap_map,
 		if (errv < 0)
 			return filter_args_reject(e->id);
 	}
-	e->common.flags = 0;
 	e->common.size = total;
 	tail_call(ctx, tailcals, 1);
 	return 0;
+}
+
+static inline __attribute__((always_inline)) void
+generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *config)
+{
+	e->common.op = op;
+
+	e->common.flags = 0;
+	e->common.pad[0] = 0;
+	e->common.pad[1] = 0;
+	e->common.size = 0;
+	e->common.ktime = ktime_get_ns();
+
+	e->current.pad[0] = 0;
+	e->current.pad[1] = 0;
+	e->current.pad[2] = 0;
+	e->current.pad[3] = 0;
 }
 
 static inline __attribute__((always_inline)) int
@@ -88,6 +84,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	int zero = 0;
+	long ty __maybe_unused;
 
 	/* Pid/Ktime Passed through per cpu map in process heap. */
 	e = map_lookup_elem(heap_map, &zero);
@@ -115,8 +112,17 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 		e->a3 = PT_REGS_PARM4_CORE(ctx);
 		e->a4 = PT_REGS_PARM5_CORE(ctx);
 	}
-	e->common.op = MSG_OP_GENERIC_KPROBE;
-	e->common.flags = 0;
+
+	generic_process_init(e, MSG_OP_GENERIC_KPROBE, config);
+
+	e->thread_id = retprobe_map_get_key(ctx);
+
+	/* If return arg is needed mark retprobe */
+#ifdef GENERIC_KPROBE
+	ty = config->argreturn;
+	if (ty > 0)
+		retprobe_map_set(e->id, e->thread_id, e->common.ktime, 1);
+#endif
 	return generic_process_event0(ctx, heap_map, tailcals, config_map);
 }
 
