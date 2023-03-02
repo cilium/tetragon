@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package images
 
 import (
@@ -88,29 +91,6 @@ func (f *ImageForest) imageFilename(image string) string {
 	return filepath.Join(f.imagesDir, image)
 }
 
-// getDependencies returns the dependencies of an image, i.e., what images need to be build before it
-func (f *ImageForest) getDependencies(image string) ([]string, error) {
-	var ret []string
-	cnf, ok := f.confs[image]
-	if !ok {
-		return ret, fmt.Errorf("cannot build dependencies for image %s, because image does not exist ", image)
-	}
-
-	parent := cnf.Parent
-	for parent != "" {
-		// NB: we have checked that all parents exist in NewImageForest
-		cnfParent := f.confs[parent]
-		ret = append(ret, parent)
-		parent = cnfParent.Parent
-	}
-
-	// reverse ret slice
-	for i, j := 0, len(ret)-1; i < j; i, j = i+1, j-1 {
-		ret[i], ret[j] = ret[j], ret[i]
-	}
-	return ret, nil
-}
-
 func (f *ImageForest) IsLeafImage(i string) bool {
 	_, hasChidren := f.children[i]
 	return !hasChidren
@@ -156,6 +136,7 @@ func (f *ImageForest) getParent(image string) string {
 	return cnf.Parent
 }
 
+// RootImages are the images which do not have dependencies (i.e., no parents)
 func (f *ImageForest) RootImages() []string {
 	ret := make([]string, 0)
 	for i, cnf := range f.confs {
@@ -165,4 +146,26 @@ func (f *ImageForest) RootImages() []string {
 	}
 
 	return ret
+}
+
+// Dependencies returns the dependencies of an image, i.e., what images need to be build before it
+func (f *ImageForest) Dependencies(image string) ([]string, error) {
+	var ret []string
+	cnf, ok := f.confs[image]
+	if !ok {
+		return ret, fmt.Errorf("cannot build dependencies for image %s, because image does not exist ", image)
+	}
+
+	for !f.isRootImage(cnf) {
+		parent := cnf.Parent
+		// NB: we have checked that all parents exist in NewImageForest
+		cnf = f.confs[parent]
+		ret = append(ret, parent)
+	}
+
+	// reverse ret slice
+	for i, j := 0, len(ret)-1; i < j; i, j = i+1, j-1 {
+		ret[i], ret[j] = ret[j], ret[i]
+	}
+	return ret, nil
 }

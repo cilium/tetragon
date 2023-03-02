@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package images
 
 import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	"github.com/sirupsen/logrus"
@@ -57,15 +61,36 @@ func (f *ImageForest) doBuildImage(
 	}
 
 	state := new(multistep.BasicStateBag)
-	steps := make([]multistep.Step, 1, 1+len(cnf.Actions))
+	steps := make([]multistep.Step, 2, 2+len(cnf.Actions))
+
 	steps[0] = NewCreateImage(stepConf)
-	for i := 0; i < len(cnf.Actions); i++ {
-		next := cnf.Actions[i].Op.ToStep(stepConf)
-		prev := steps[len(steps)-1]
-		if merge && mergeSteps(prev, next) == nil {
-			continue
+	// NB: We might need an --chdir option or similar, but for now just
+	// chdir to the the base dir.
+	baseDir, path := filepath.Split(f.imagesDir)
+	steps[1] = NewChdirStep(stepConf, baseDir)
+
+	// NB: after the chroot, we need to also change the images dir if it is a relative path for
+	// the subsequent steps.
+	if !filepath.IsAbs(stepConf.imagesDir) {
+		stepConf = &StepConf{
+			imagesDir: path,
+			imgCnf:    cnf,
+			log:       log,
 		}
-		steps = append(steps, next)
+	}
+
+	for i := 0; i < len(cnf.Actions); i++ {
+		nextSteps, err := cnf.Actions[i].Op.ToSteps(stepConf)
+		if err != nil {
+			return fmt.Errorf("action %s ('%T') failed: %v", cnf.Actions[i].Comment, cnf.Actions[i].Op, err)
+		}
+		for _, next := range nextSteps {
+			prev := steps[len(steps)-1]
+			if merge && mergeSteps(prev, next) == nil {
+				continue
+			}
+			steps = append(steps, next)
+		}
 	}
 
 	runner := &multistep.BasicRunner{Steps: steps}
