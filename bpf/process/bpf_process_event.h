@@ -547,6 +547,8 @@ __event_get_current_cgroup_id(struct tetragon_conf *conf, struct cgroup *cgrp,
 
 	/* Collect event cgroup ID */
 	msg->kube.cgrpid = tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
+	if (execve_val)
+		execve_val->cgrpid_tracker = msg->kube.cgrpid;
 	if (!msg->kube.cgrpid)
 		process->flags |= EVENT_ERROR_CGROUP_ID;
 }
