@@ -49,6 +49,11 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          maxData:
+                            default: false
+                            description: Read maximum possible data. This field is
+                              used only for char_buf type.
+                            type: boolean
                           returnCopy:
                             default: false
                             description: This field is used only for char_buf and
@@ -107,6 +112,11 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
+                        maxData:
+                          default: false
+                          description: Read maximum possible data. This field is used
+                            only for char_buf type.
+                          type: boolean
                         returnCopy:
                           default: false
                           description: This field is used only for char_buf and char_iovec
@@ -465,6 +475,11 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          maxData:
+                            default: false
+                            description: Read maximum possible data. This field is
+                              used only for char_buf type.
+                            type: boolean
                           returnCopy:
                             default: false
                             description: This field is used only for char_buf and
