@@ -2831,9 +2831,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 		// generic_kprobe_actions
 		tus.SensorMap{Name: "override_tasks", Progs: []uint{12}},
 
-		// generic_kprobe_output,generic_retkprobe_event
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13, 14}},
-
 		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
 		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
@@ -2844,9 +2841,16 @@ func TestLoadKprobeSensor(t *testing.T) {
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 13, 14}})
+
+		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_event
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5, 13, 14}})
+
 	} else {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 14}})
+
+		// generic_kprobe_output,generic_retkprobe_event
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13, 14}})
 	}
 
 	readHook := `

@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -81,8 +82,9 @@ type kprobeLoadArgs struct {
 }
 
 type argPrinters struct {
-	ty    int
-	index int
+	ty      int
+	index   int
+	maxData bool
 }
 
 type pendingEventKey struct {
@@ -161,6 +163,7 @@ var (
 
 const (
 	argReturnCopyBit = 1 << 4
+	argMaxDataBit    = 1 << 5
 )
 
 func argReturnCopy(meta int) bool {
@@ -172,6 +175,7 @@ func argReturnCopy(meta int) bool {
 //
 //	0-3 : SizeArgIndex
 //	  4 : ReturnCopy
+//	  5 : MaxData
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -183,6 +187,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
+	}
+	if arg.MaxData {
+		meta = meta | argMaxDataBit
 	}
 	return meta, nil
 }
@@ -372,6 +379,14 @@ func createGenericKprobeSensor(
 			if argType == gt.GenericInvalidType {
 				return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
 			}
+			if a.MaxData {
+				if argType != gt.GenericCharBuffer {
+					logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
+				}
+				if !kernels.EnableLargeProgs() {
+					logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
+				}
+			}
 			argMValue, err := getMetaValue(&a)
 			if err != nil {
 				return nil, err
@@ -388,7 +403,7 @@ func createGenericKprobeSensor(
 			config.ArgM[a.Index] = uint32(argMValue)
 
 			argsBTFSet[a.Index] = true
-			argP := argPrinters{index: j, ty: argType}
+			argP := argPrinters{index: j, ty: argType, maxData: a.MaxData}
 			argSigPrinters = append(argSigPrinters, argP)
 		}
 
@@ -763,9 +778,31 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 	return strVal
 }
 
-func ReadArgBytes(r *bytes.Reader, index int) (*api.MsgGenericKprobeArgBytes, error) {
-	var bytes, bytes_rd int32
+func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
+	var bytes, bytes_rd, hasDataEvents int32
 	var arg api.MsgGenericKprobeArgBytes
+
+	if hasMaxData {
+		/* First int32 indicates if data events are used (1) or not (0). */
+		if err := binary.Read(r, binary.LittleEndian, &hasDataEvents); err != nil {
+			return nil, fmt.Errorf("failed to read original size for buffer argument: %w", err)
+		}
+		if hasDataEvents != 0 {
+			var desc dataapi.DataEventDesc
+
+			if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
+				return nil, err
+			}
+			data, err := observer.DataGet(desc.Id)
+			if err != nil {
+				return nil, err
+			}
+			arg.Index = uint64(index)
+			arg.OrigSize = uint64(len(data) + int(desc.Leftover))
+			arg.Value = data
+			return &arg, nil
+		}
+	}
 
 	if err := binary.Read(r, binary.LittleEndian, &bytes); err != nil {
 		return nil, fmt.Errorf("failed to read original size for buffer argument: %w", err)
@@ -962,7 +999,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Inheritable = cred.Inheritable
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericCharBuffer, gt.GenericCharIovec:
-			if arg, err := ReadArgBytes(r, a.index); err == nil {
+			if arg, err := ReadArgBytes(r, a.index, a.maxData); err == nil {
 				unix.Args = append(unix.Args, *arg)
 			} else {
 				logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")

@@ -649,7 +649,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericCharBuffer, gt.GenericCharIovec:
-			if arg, err := ReadArgBytes(r, idx); err == nil {
+			if arg, err := ReadArgBytes(r, idx, false); err == nil {
 				unix.Args = append(unix.Args, arg.Value)
 			} else {
 				logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")
