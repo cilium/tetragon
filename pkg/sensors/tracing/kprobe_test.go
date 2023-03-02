@@ -19,6 +19,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -2918,4 +2919,211 @@ spec:
 	assert.Nil(t, sens)
 
 	t.Logf("got error (as expected): %s", err)
+}
+
+func testMaxData(t *testing.T, data []byte, checker *eventchecker.UnorderedEventChecker, configHook string, fd int) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	writeConfigHook := []byte(configHook)
+	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	option.Config.RBSize = 1024 * 1024
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	_, err = syscall.Write(fd, data)
+	assert.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeWriteMaxDataTrunc(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	_, fd2, fdString := createTestFile(t)
+	myPid := observer.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	writeHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_write"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fdString + `
+`
+
+	data := make([]byte, 6000)
+
+	for i := 0; i < len(data); i++ {
+		data[i] = 'a'
+	}
+
+	match := data[:4095]
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithTruncatedBytesArg(
+					ec.NewKprobeTruncatedBytesChecker().
+						WithBytesArg(bc.Full(match)).
+						WithOrigSize(uint64(len(data)))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	testMaxData(t, data, checker, writeHook, fd2)
+}
+
+func TestKprobeWriteMaxData(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	_, fd2, fdString := createTestFile(t)
+	myPid := observer.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	writeHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_write"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+      maxData: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fdString + `
+`
+
+	data := make([]byte, 6000)
+
+	for i := 0; i < len(data); i++ {
+		data[i] = 'a' + byte(i%26)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(data)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	testMaxData(t, data, checker, writeHook, fd2)
+}
+
+func TestKprobeWriteMaxDataFull(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	_, fd2, fdString := createTestFile(t)
+	myPid := observer.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	writeHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_write"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+      maxData: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + fdString + `
+`
+
+	// 10 times 32736 buffer is the max now
+	data := make([]byte, 327360)
+
+	for i := 0; i < len(data); i++ {
+		data[i] = 'a' + byte(i%26)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full(data)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	testMaxData(t, data, checker, writeHook, fd2)
 }
