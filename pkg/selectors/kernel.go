@@ -303,13 +303,13 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 		case argTypeS64, argTypeInt:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			binary.LittleEndian.PutUint64(val[:], uint64(i))
 		case argTypeU64:
 			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			binary.LittleEndian.PutUint64(val[:], uint64(i))
 		default:
@@ -337,25 +337,25 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 		case argTypeS32, argTypeInt, argTypeSizet:
 			i, err := strconv.ParseInt(v, 10, 32)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(k, int32(i))
 		case argTypeU32:
 			i, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(k, uint32(i))
 		case argTypeS64:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt64(k, int64(i))
 		case argTypeU64:
 			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %x", v, err)
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint64(k, uint64(i))
 		case argTypeSock, argTypeSkb, argTypeCharIovec:
