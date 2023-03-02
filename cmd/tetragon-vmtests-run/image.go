@@ -98,15 +98,23 @@ func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 }
 
 func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
+	absTesterBin, err := filepath.Abs(TetragonTesterBin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tetragon-tester full path: %w", err)
+	}
 	ret := []images.Action{
-		{Op: &images.CopyInCommand{LocalPath: TetragonTesterBin, RemoteDir: "/sbin/"}},
+		{Op: &images.CopyInCommand{LocalPath: absTesterBin, RemoteDir: "/sbin/"}},
 	}
 
 	// NB: need to do this before we marshal the configuration
 	if rcnf.btfFile != "" {
+		absBtfFile, err := filepath.Abs(rcnf.btfFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
+		}
 		ret = append(ret, images.Action{
 			Op: &images.CopyInCommand{
-				LocalPath: rcnf.btfFile,
+				LocalPath: absBtfFile,
 				RemoteDir: "/boot/",
 			},
 		})
