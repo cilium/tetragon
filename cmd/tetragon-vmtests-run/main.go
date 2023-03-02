@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
@@ -15,6 +16,7 @@ import (
 
 func main() {
 	var rcnf RunConf
+	var ports []string
 
 	cmd := &cobra.Command{
 		Use:          "vmtest-run",
@@ -23,6 +25,12 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := logrus.New()
 			t0 := time.Now()
+
+			var err error
+			rcnf.portForwards, err = runner.ParsePortForward(ports)
+			if err != nil {
+				return fmt.Errorf("error parseing ports: %w", err)
+			}
 
 			// Hardcoded (for now):
 			// mount cwd as cwd in the VM (this helps with contrib/test-progs paths)
@@ -62,7 +70,7 @@ func main() {
 				rcnf.testImage = fmt.Sprintf("%s.qcow2", rcnf.testImage)
 			}
 
-			err := buildTestImage(log, &rcnf)
+			err = buildTestImage(log, &rcnf)
 			if err != nil || rcnf.justBuildImage {
 				return err
 			}
@@ -135,7 +143,8 @@ func main() {
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.KeepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
-	cmd.Flags().BoolVar(&rcnf.disableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierachy=0.")
+	cmd.Flags().BoolVar(&rcnf.disableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierarchy=0.")
+	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

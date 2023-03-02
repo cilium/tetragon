@@ -3,9 +3,11 @@ package main
 import (
 	"path/filepath"
 
+	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/cilium/tetragon/pkg/vmtests"
 )
 
+// NB: we should use lvh's RunConf to avoid duplicating code
 type RunConf struct {
 	testImage             string
 	baseFname             string
@@ -20,6 +22,7 @@ type RunConf struct {
 	enableHVF             bool
 	btfFile               string
 	disableUnifiedCgroups bool
+	portForwards          runner.PortForwards
 	testerConf            vmtests.Conf
 
 	filesystems []QemuFS

@@ -66,5 +66,9 @@ func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 		qemuArgs = append(qemuArgs, fs.qemuArgs()...)
 	}
 
+	if len(rcnf.portForwards) > 0 {
+		qemuArgs = append(qemuArgs, rcnf.portForwards.QemuArgs()...)
+	}
+
 	return qemuArgs, nil
 }
