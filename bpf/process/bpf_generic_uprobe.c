@@ -103,7 +103,7 @@ generic_uprobe_process_event0(void *ctx)
 	return generic_process_event_and_setup(
 		ctx, (struct bpf_map_def *)&process_call_heap,
 		(struct bpf_map_def *)&uprobe_calls,
-		(struct bpf_map_def *)&config_map);
+		(struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/1"), used)) int
@@ -112,7 +112,7 @@ generic_uprobe_process_event1(void *ctx)
 	return generic_process_event(ctx, 1,
 				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map);
+				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/2"), used)) int
@@ -121,7 +121,7 @@ generic_uprobe_process_event2(void *ctx)
 	return generic_process_event(ctx, 2,
 				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map);
+				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/3"), used)) int
@@ -130,7 +130,7 @@ generic_uprobe_process_event3(void *ctx)
 	return generic_process_event(ctx, 3,
 				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map);
+				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/4"), used)) int
@@ -139,7 +139,7 @@ generic_uprobe_process_event4(void *ctx)
 	return generic_process_event(ctx, 4,
 				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map);
+				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/5"), used)) int

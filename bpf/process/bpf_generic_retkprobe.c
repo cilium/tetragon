@@ -28,6 +28,18 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+#ifdef __LARGE_BPF_PROG
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_data);
+} data_heap SEC(".maps");
+#define data_heap_ptr &data_heap
+#else
+#define data_heap_ptr 0
+#endif
+
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/generic_retkprobe"
 #else
@@ -70,7 +82,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg)
-		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0);
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap_ptr);
 
 	/*
 	 * 0x1000 should be maximum argument length, so masking
@@ -81,7 +93,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(size, info.ptr, ret, e);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr);
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
