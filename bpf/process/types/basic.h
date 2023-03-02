@@ -544,7 +544,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 }
 
 static inline __attribute__((always_inline)) long
-filter_char_buf(struct selector_arg_filter *filter, char *args)
+filter_char_buf(struct selector_arg_filter *filter, char *args, int value_offset)
 {
 	char *value = (char *)&filter->value;
 	long i, j = 0;
@@ -560,10 +560,13 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
 			     :);
 		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0x3f;\n" ::[length] "+r"(length)
+		asm volatile("%[length] &= 0x3f;\n" ::[length] "+r"(
+				     length)
 			     :);
-		v = (int)value[j];
-		a = (int)args[0];
+		// bytes of the matchArgs value
+		v = *(int *)&value[j];
+		// bytes of the char_buf
+		a = ((int *)args)[0];
 		if (filter->op == op_filter_eq) {
 			if (v != a)
 				goto skip_string;
@@ -578,9 +581,10 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		 * above so at the moment its necessary until we improve
 		 * compiler.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
+		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(
+				     j)
 			     :);
-		err = cmpbytes(&value[j + 4], &args[4 + postoff], length);
+		err = cmpbytes(&value[j + 4], &args[value_offset + postoff], length);
 		if (!err)
 			return 1;
 	skip_string:
@@ -1037,8 +1041,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 		pass = filter_file_buf(filter, args);
 		break;
 	case string_type:
+		pass = filter_char_buf(filter, args, 4);
+		break;
 	case char_buf:
-		pass = filter_char_buf(filter, args);
+		pass = filter_char_buf(filter, args, 8);
 		break;
 	case s64_ty:
 	case u64_ty:
