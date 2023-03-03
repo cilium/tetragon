@@ -26,8 +26,8 @@ import (
 	"github.com/cilium/cilium/pkg/monitor"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/monitor/payload"
-	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
 )
 
