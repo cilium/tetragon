@@ -34,11 +34,14 @@ var (
 
 // syncEndpoints sync all endpoints of Cilium with the hubble.
 func (s *State) syncEndpoints() {
+	t0 := 1 * time.Second
+	t := t0
 	for {
 		eps, err := s.ciliumClient.EndpointList()
 		if err != nil {
 			s.log.WithError(err).Error("Unable to get cilium endpoint list")
-			time.Sleep(time.Second)
+			time.Sleep(t)
+			t = t * 2
 			continue
 		}
 

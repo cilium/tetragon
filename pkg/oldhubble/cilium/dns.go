@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	fqdnCacheRetryInterval   = 1 * time.Second
 	fqdnCacheRefreshInterval = 5 * time.Minute
 )
 
@@ -38,12 +37,17 @@ type FqdnCache interface {
 // syncFQDNCache regularly syncs DNS lookups from Cilium into our local FQDN
 // cache
 func (s *State) syncFQDNCache() {
+	t0 := 1 * time.Second
+	t := t0
 	for {
 		entries, err := s.ciliumClient.GetFqdnCache()
 		if err != nil {
 			s.log.WithError(err).Error("Unable to obtain fqdn cache from cilium")
-			time.Sleep(fqdnCacheRetryInterval)
+			time.Sleep(t)
+			t = 2 * t
 			continue
+		} else {
+			t = t0
 		}
 
 		s.fqdnCache.InitializeFrom(entries)
