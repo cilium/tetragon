@@ -27,22 +27,30 @@ import (
 	"github.com/cilium/cilium/pkg/monitor/payload"
 	"github.com/cilium/hubble/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/sirupsen/logrus"
 )
+
+func handleMonitorSocket(ctx context.Context, log logrus.FieldLogger, ciliumState *cilium.State) {
+	conn, err := net.Dial("unix", defaults.MonitorSockPath1_2)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to connect to %s", defaults.MonitorSockPath1_2)
+		return
+	}
+
+	if err = consumeMonitorEvents(ctx, conn, ciliumState); err != nil {
+		log.WithError(err).Warn("Failed to process monitor event. Reconnecting...")
+	}
+	if err = conn.Close(); err != nil {
+		log.WithError(err).Warnf("Failed to close %s", defaults.MonitorSockPath1_2)
+	}
+}
 
 // HandleMonitorSocket connects to the monitor socket and consumes monitor events.
 func HandleMonitorSocket(ctx context.Context, ciliumState *cilium.State) {
 	ticker := time.NewTicker(10 * time.Second)
+	log := logger.GetLogger()
 	for {
-		conn, err := net.Dial("unix", defaults.MonitorSockPath1_2)
-		if err != nil {
-			logger.GetLogger().WithError(err).Fatalf("Failed to connect to %s", defaults.MonitorSockPath1_2)
-		}
-		if err = consumeMonitorEvents(ctx, conn, ciliumState); err != nil {
-			logger.GetLogger().WithError(err).Warn("Failed to process monitor event. Reconnecting...")
-		}
-		if err = conn.Close(); err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to close %s", defaults.MonitorSockPath1_2)
-		}
+		handleMonitorSocket(ctx, log, ciliumState)
 		select {
 		case <-ctx.Done():
 			return
