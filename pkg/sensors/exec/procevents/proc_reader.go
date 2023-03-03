@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -77,6 +78,11 @@ type Procs struct {
 	time_for_children_ns uint32
 	cgroup_ns            uint32
 	user_ns              uint32
+}
+
+// GetPPid gets the pid of the proc
+func (p Procs) GetPPid() uint32 {
+	return p.ppid
 }
 
 func procKernel() Procs {
@@ -264,6 +270,7 @@ func pushEvents(procs []Procs) {
 	}
 }
 
+// GetRunningProcs gets the running processes form /proc, push them to the observer and update execve_map.
 func GetRunningProcs() []Procs {
 	var procs []Procs
 
@@ -278,206 +285,234 @@ func GetRunningProcs() []Procs {
 	hasTimeNs := (int64(kernelVer) >= kernels.KernelStringToNumeric("5.6.0"))
 
 	for _, d := range procFS {
-		var pcmdline []byte
-		var pstats []string
-		var pktime uint64
-		var pexecPath string
-		var pnspid uint32
-
 		if d.IsDir() == false {
 			continue
 		}
 
-		pathName := filepath.Join(option.Config.ProcFS, d.Name())
-
-		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
+		p, err := getProc(d.Name(), hasTimeNs)
 		if err != nil {
 			continue
 		}
-		if string(cmdline) == "" {
-			continue
-		}
 
-		pid, err := proc.GetProcPid(d.Name())
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("pid read error")
-			continue
-		}
-
-		stats, err := proc.GetProcStatStrings(pathName)
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("stats read error")
-			continue
-		}
-
-		ppid := stats[3]
-		_ppid, err := strconv.ParseUint(ppid, 10, 32)
-		if err != nil {
-			_ppid = 0 // 0 pid indicates no known parent
-		}
-
-		ktime, err := proc.GetStatsKtime(stats)
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("ktime read error")
-		}
-
-		// Initialize with invalid uid
-		euid := proc.InvalidUid
-		auid := proc.InvalidUid
-		// Get process status
-		status, err := proc.GetStatus(pathName)
-		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Reading process status error")
-		} else {
-			_, euid, err = proc.GetUids(status)
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(euid))
-			}
-
-			auid, err = proc.GetLoginUid(status)
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid))
-			}
-		}
-
-		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, d.Name(), "status"))
-
-		uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
-		ipc_ns := namespace.GetPidNsInode(uint32(pid), "ipc")
-		mnt_ns := namespace.GetPidNsInode(uint32(pid), "mnt")
-		pid_ns := namespace.GetPidNsInode(uint32(pid), "pid")
-		pid_for_children_ns := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
-		net_ns := namespace.GetPidNsInode(uint32(pid), "net")
-		time_ns := uint32(0)
-		time_for_children_ns := uint32(0)
-		if hasTimeNs {
-			time_ns = namespace.GetPidNsInode(uint32(pid), "time")
-			time_for_children_ns = namespace.GetPidNsInode(uint32(pid), "time_for_children")
-		}
-		cgroup_ns := namespace.GetPidNsInode(uint32(pid), "cgroup")
-		user_ns := namespace.GetPidNsInode(uint32(pid), "user")
-
-		// On error procsDockerId zeros dockerId so we can ignore any errors.
-		dockerId, _ := procsDockerId(uint32(pid))
-		if dockerId == "" {
-			nspid = 0
-		}
-
-		if _ppid != 0 {
-			var err error
-			parentPath := filepath.Join(option.Config.ProcFS, ppid)
-
-			pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
-			if err != nil {
-				logger.GetLogger().WithError(err).WithField("path", parentPath).Warn("parent cmdline error")
-				continue
-			}
-
-			pstats, err = proc.GetProcStatStrings(string(parentPath))
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("parent stats read error")
-				continue
-			}
-
-			pktime, err = proc.GetStatsKtime(pstats)
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("parent ktime read error")
-			}
-
-			if dockerId != "" {
-				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, ppid, "status"))
-			}
-		} else {
-			pcmdline = nil
-			pstats = nil
-			pktime = 0
-			pnspid = 0
-		}
-
-		execPath, err := os.Readlink(filepath.Join(option.Config.ProcFS, d.Name(), "exe"))
-		if err == nil {
-			cmdline = proc.PrependPath(execPath, cmdline)
-		}
-
-		if _ppid != 0 {
-			pexecPath, err = os.Readlink(filepath.Join(option.Config.ProcFS, ppid, "exe"))
-			if err == nil {
-				pcmdline = proc.PrependPath(pexecPath, pcmdline)
-			}
-		} else {
-			pexecPath = ""
-		}
-
-		pcmdsUTF := stringToUTF8(pcmdline)
-		cmdsUTF := stringToUTF8(cmdline)
-
-		p := Procs{
-			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
-			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			pktime: pktime,
-			uid:    euid, // use euid to be compatible with ps
-			auid:   auid,
-			pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
-			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			ktime:                ktime,
-			permitted:            permitted,
-			effective:            effective,
-			inheritable:          inheritable,
-			uts_ns:               uts_ns,
-			ipc_ns:               ipc_ns,
-			mnt_ns:               mnt_ns,
-			pid_ns:               pid_ns,
-			pid_for_children_ns:  pid_for_children_ns,
-			net_ns:               net_ns,
-			time_ns:              time_ns,
-			time_for_children_ns: time_for_children_ns,
-			cgroup_ns:            cgroup_ns,
-			user_ns:              user_ns,
-		}
-
-		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args) + processapi.MSG_SIZEOF_CWD)
-		p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs) + processapi.MSG_SIZEOF_CWD)
-		/* If we can't fit this in the buffer lets trim some parts and
-		 * make it fit.
-		 */
-		if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
-			var deduct uint32
-			var need int32
-
-			need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
-			// First consume CWD space from parent because this speculative extra space
-			// next try to consume CWD space from child and finally start truncating args
-			// if necessary.
-			deduct = processapi.MSG_SIZEOF_CWD
-			p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
-			p.pflags = p.pflags | api.EventNoCWDSupport
-			p.psize -= deduct
-			need -= int32(deduct)
-			if need > 0 {
-				deduct = processapi.MSG_SIZEOF_CWD
-				p.size -= deduct
-				p.flags = p.flags & ^uint32(api.EventNeedsCWD)
-				p.flags = p.flags | api.EventNoCWDSupport
-				need -= int32(deduct)
-			}
-
-			for i := int32(0); i < need; i++ {
-				if len(p.pargs) > len(p.args) {
-					p.pflags |= api.EventTruncArgs
-					p.pargs = p.pargs[:len(p.pargs)-1]
-					p.psize--
-				} else {
-					p.flags |= api.EventTruncArgs
-					p.args = p.args[:len(p.args)-1]
-					p.size--
-				}
-			}
-		}
-
-		procs = append(procs, p)
+		procs = append(procs, *p)
 	}
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(procs), len(procFS))
 
 	pushEvents(procs)
 	return procs
+}
+
+var procRetried = sync.Map{}
+
+// RetryRunningProcByPid retry get the running process from /proc/{pid}, push it to the observer and update execve_map.
+func RetryRunningProcByPid(pid uint32) *Procs {
+	if _, ok := procRetried.LoadOrStore(pid, struct{}{}); ok {
+		return nil
+	}
+
+	name := strconv.Itoa(int(pid))
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	// time and time_for_children namespaces introduced in kernel 5.6
+	hasTimeNs := int64(kernelVer) >= kernels.KernelStringToNumeric("5.6.0")
+	p, err := getProc(name, hasTimeNs)
+	if err != nil {
+		return nil
+	}
+	logger.GetLogger().Infof("Retry Read ProcFS of Pid: %s", name)
+	pushEvents([]Procs{*p})
+	return p
+}
+
+// getProc get process information from /proc/{dirName}
+func getProc(dirName string, hasTimeNs bool) (*Procs, error) {
+	var pcmdline []byte
+	var pktime uint64
+	var pnspid uint32
+
+	pathName := filepath.Join(option.Config.ProcFS, dirName)
+
+	cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
+	if err != nil {
+		return nil, err
+	}
+	if string(cmdline) == "" {
+		return nil, fmt.Errorf("missing cmdline")
+	}
+
+	pid, err := proc.GetProcPid(dirName)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("pid read error")
+		return nil, err
+	}
+
+	stats, err := proc.GetProcStatStrings(pathName)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("stats read error")
+		return nil, err
+	}
+
+	ppid := stats[3]
+	_ppid, err := strconv.ParseUint(ppid, 10, 32)
+	if err != nil {
+		_ppid = 0 // 0 pid indicates no known parent
+	}
+
+	ktime, err := proc.GetStatsKtime(stats)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("ktime read error")
+	}
+
+	// Initialize with invalid uid
+	euid := proc.InvalidUid
+	auid := proc.InvalidUid
+	// Get process status
+	status, err := proc.GetStatus(pathName)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Reading process status error")
+	} else {
+		_, euid, err = proc.GetUids(status)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(euid))
+		}
+
+		auid, err = proc.GetLoginUid(status)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid))
+		}
+	}
+
+	nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, dirName, "status"))
+
+	uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
+	ipc_ns := namespace.GetPidNsInode(uint32(pid), "ipc")
+	mnt_ns := namespace.GetPidNsInode(uint32(pid), "mnt")
+	pid_ns := namespace.GetPidNsInode(uint32(pid), "pid")
+	pid_for_children_ns := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
+	net_ns := namespace.GetPidNsInode(uint32(pid), "net")
+	time_ns := uint32(0)
+	time_for_children_ns := uint32(0)
+	if hasTimeNs {
+		time_ns = namespace.GetPidNsInode(uint32(pid), "time")
+		time_for_children_ns = namespace.GetPidNsInode(uint32(pid), "time_for_children")
+	}
+	cgroup_ns := namespace.GetPidNsInode(uint32(pid), "cgroup")
+	user_ns := namespace.GetPidNsInode(uint32(pid), "user")
+
+	// On error procsDockerId zeros dockerId so we can ignore any errors.
+	dockerId, _ := procsDockerId(uint32(pid))
+	if dockerId == "" {
+		nspid = 0
+	}
+
+	if _ppid != 0 {
+		var err error
+		parentPath := filepath.Join(option.Config.ProcFS, ppid)
+
+		pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("path", parentPath).Warn("parent cmdline error")
+			return nil, err
+		}
+
+		pstats, err := proc.GetProcStatStrings(string(parentPath))
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("parent stats read error")
+			return nil, err
+		}
+
+		pktime, err = proc.GetStatsKtime(pstats)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("parent ktime read error")
+		}
+
+		if dockerId != "" {
+			pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, ppid, "status"))
+		}
+	} else {
+		pcmdline = nil
+		pktime = 0
+		pnspid = 0
+	}
+
+	execPath, err := os.Readlink(filepath.Join(option.Config.ProcFS, dirName, "exe"))
+	if err == nil {
+		cmdline = proc.PrependPath(execPath, cmdline)
+	}
+
+	if _ppid != 0 {
+		pexecPath, err := os.Readlink(filepath.Join(option.Config.ProcFS, ppid, "exe"))
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("parent ktime read error")
+		} else {
+			pcmdline = proc.PrependPath(pexecPath, pcmdline)
+		}
+	}
+
+	pcmdsUTF := stringToUTF8(pcmdline)
+	cmdsUTF := stringToUTF8(cmdline)
+
+	p := &Procs{
+		ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
+		pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		pktime: pktime,
+		uid:    euid, // use euid to be compatible with ps
+		auid:   auid,
+		pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
+		flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		ktime:                ktime,
+		permitted:            permitted,
+		effective:            effective,
+		inheritable:          inheritable,
+		uts_ns:               uts_ns,
+		ipc_ns:               ipc_ns,
+		mnt_ns:               mnt_ns,
+		pid_ns:               pid_ns,
+		pid_for_children_ns:  pid_for_children_ns,
+		net_ns:               net_ns,
+		time_ns:              time_ns,
+		time_for_children_ns: time_for_children_ns,
+		cgroup_ns:            cgroup_ns,
+		user_ns:              user_ns,
+	}
+
+	p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args) + processapi.MSG_SIZEOF_CWD)
+	p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs) + processapi.MSG_SIZEOF_CWD)
+	/* If we can't fit this in the buffer lets trim some parts and
+	 * make it fit.
+	 */
+	if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
+		var deduct uint32
+		var need int32
+
+		need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
+		// First consume CWD space from parent because this speculative extra space
+		// next try to consume CWD space from child and finally start truncating args
+		// if necessary.
+		deduct = processapi.MSG_SIZEOF_CWD
+		p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
+		p.pflags = p.pflags | api.EventNoCWDSupport
+		p.psize -= deduct
+		need -= int32(deduct)
+		if need > 0 {
+			deduct = processapi.MSG_SIZEOF_CWD
+			p.size -= deduct
+			p.flags = p.flags & ^uint32(api.EventNeedsCWD)
+			p.flags = p.flags | api.EventNoCWDSupport
+			need -= int32(deduct)
+		}
+
+		for i := int32(0); i < need; i++ {
+			if len(p.pargs) > len(p.args) {
+				p.pflags |= api.EventTruncArgs
+				p.pargs = p.pargs[:len(p.pargs)-1]
+				p.psize--
+			} else {
+				p.flags |= api.EventTruncArgs
+				p.args = p.args[:len(p.args)-1]
+				p.size--
+			}
+		}
+	}
+
+	return p, nil
 }
