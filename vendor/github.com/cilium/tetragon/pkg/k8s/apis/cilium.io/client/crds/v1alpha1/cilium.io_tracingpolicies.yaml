@@ -236,6 +236,7 @@ spec:
                                   description: Filter operation.
                                   enum:
                                   - In
+                                  - NotIn
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -592,6 +593,7 @@ spec:
                                   description: Filter operation.
                                   enum:
                                   - In
+                                  - NotIn
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
