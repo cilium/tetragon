@@ -17,8 +17,8 @@ package filters
 import (
 	"context"
 
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 )
 
 // FilterFunc is the function will be used to filter the given data.
@@ -88,9 +88,9 @@ func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, flow *pb.FlowFilte
 }
 
 // BuildFilter builds a filter based on a FlowFilter. It returns:
-// - the FilterFunc to be used to filter packets based on the requested
-//   FlowFilter;
-// - an error in case something went wrong.
+//   - the FilterFunc to be used to filter packets based on the requested
+//     FlowFilter;
+//   - an error in case something went wrong.
 func BuildFilter(ctx context.Context, ff *pb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
 	var fs []FilterFunc
 
@@ -109,9 +109,9 @@ func BuildFilter(ctx context.Context, ff *pb.FlowFilter, auxFilters []OnBuildFil
 
 // BuildFilterList constructs a list of filter functions representing the list
 // of FlowFilter. It returns:
-// - the FilterFunc to be used to filter packets based on the requested
-//   FlowFilter;
-// - an error in case something went wrong.
+//   - the FilterFunc to be used to filter packets based on the requested
+//     FlowFilter;
+//   - an error in case something went wrong.
 func BuildFilterList(ctx context.Context, ff []*pb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
 	filterList := make([]FilterFunc, 0, len(ff))
 
