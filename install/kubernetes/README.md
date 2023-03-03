@@ -1,6 +1,6 @@
 # tetragon
 
-![Version: 0.8.3](https://img.shields.io/badge/Version-0.8.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.8.3](https://img.shields.io/badge/AppVersion-0.8.3-informational?style=flat-square)
+![Version: 0.8.4](https://img.shields.io/badge/Version-0.8.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.8.4](https://img.shields.io/badge/AppVersion-0.8.4-informational?style=flat-square)
 
 Helm chart for Tetragon
 
@@ -68,7 +68,7 @@ Helm chart for Tetragon
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v0.8.3"` |  |
+| tetragon.image.tag | string | `"v0.8.4"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
@@ -78,7 +78,7 @@ Helm chart for Tetragon
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
 | tetragonOperator.enabled | bool | `true` | Enable the tetragon-operator component (required). |
-| tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.8.3"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.8.4"}` | tetragon-operator image. |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
 
