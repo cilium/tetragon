@@ -20,10 +20,10 @@ import (
 
 // LooseCompareHTTP returns true if both HTTP flows are loosely identical. This
 // means that the following fields must match:
-//  - Code
-//  - Method
-//  - Url
-//  - Protocol
+//   - Code
+//   - Method
+//   - Url
+//   - Protocol
 func LooseCompareHTTP(a, b *pb.HTTP) bool {
 	return a.Code == b.Code && a.Method == b.Method && a.Url == b.Url && a.Protocol == b.Protocol
 }

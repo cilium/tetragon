@@ -19,6 +19,7 @@ import (
 	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 
 	"github.com/gogo/protobuf/types"
+	//nolint:staticcheck // SA1004 ignore this!
 	"github.com/golang/protobuf/proto"
 )
 

@@ -5,9 +5,10 @@ package flow
 
 import (
 	fmt "fmt"
+	math "math"
+
 	types "github.com/gogo/protobuf/types"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -50,7 +51,8 @@ func (FlowType) EnumDescriptor() ([]byte, []int) {
 }
 
 // This enum corresponds to Cilium's L7 accesslog FlowType:
-//   https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L26
+//
+//	https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L26
 type L7FlowType int32
 
 const (
@@ -473,7 +475,8 @@ func (*Layer4) XXX_OneofWrappers() []interface{} {
 }
 
 // Message for L7 flow, which roughly corresponds to Cilium's accesslog LogRecord:
-//   https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L141
+//
+//	https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L141
 type Layer7 struct {
 	Type L7FlowType `protobuf:"varint,1,opt,name=type,proto3,enum=flow.L7FlowType" json:"type,omitempty"`
 	// Latency of the response
@@ -1492,7 +1495,8 @@ func (m *Payload) GetHostName() string {
 }
 
 // DNS flow. This is basically directly mapped from Cilium's LogRecordDNS:
-//     https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264
+//
+//	https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264
 type DNS struct {
 	// DNS name that's being looked up: e.g. "isovalent.com."
 	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
@@ -1648,7 +1652,8 @@ func (m *HTTPHeader) GetValue() string {
 }
 
 // L7 information for HTTP flows. It corresponds to Cilium's accesslog.LogRecordHTTP type.
-//   https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206
+//
+//	https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206
 type HTTP struct {
 	Code                 uint32        `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	Method               string        `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
@@ -1721,7 +1726,8 @@ func (m *HTTP) GetHeaders() []*HTTPHeader {
 }
 
 // L7 information for Kafka flows. It corresponds to Cilium's accesslog.LogRecordKafka type.
-//   https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L229
+//
+//	https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L229
 type Kafka struct {
 	ErrorCode            int32    `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
 	ApiVersion           int32    `protobuf:"varint,2,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
