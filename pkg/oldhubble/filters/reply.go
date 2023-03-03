@@ -1,4 +1,4 @@
-// Copyright 2020 Authors of Cilium
+// Copyright 2019-2020 Authors of Hubble
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,36 +17,38 @@ package filters
 import (
 	"context"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
+	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 )
 
-func filterByNamespace(namespaces []string) hubbleFilters.FilterFunc {
+func filterByReplyField(replyParams []bool) FilterFunc {
 	return func(ev *v1.Event) bool {
-		process := GetProcess(ev)
-		if process == nil {
-			return false
+		if len(replyParams) == 0 {
+			return true
 		}
-		for _, namespace := range namespaces {
-			if process.Pod == nil {
-				if namespace == "" {
+		switch ev.Event.(type) {
+		case v1.Flow:
+			reply := ev.GetFlow().GetReply()
+			for _, replyParam := range replyParams {
+				if reply == replyParam {
 					return true
 				}
-			} else if namespace == process.Pod.Namespace {
-				return true
 			}
 		}
 		return false
 	}
 }
 
-type NamespaceFilter struct{}
+// ReplyFilter implements filtering for reply flows
+type ReplyFilter struct{}
 
-func (f *NamespaceFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
-	if ff.Namespace != nil {
-		fs = append(fs, filterByNamespace(ff.Namespace))
+// OnBuildFilter builds a reply filter
+func (r *ReplyFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+	var fs []FilterFunc
+
+	if ff.GetReply() != nil {
+		fs = append(fs, filterByReplyField(ff.GetReply()))
 	}
+
 	return fs, nil
 }

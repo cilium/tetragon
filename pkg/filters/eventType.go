@@ -6,9 +6,9 @@ package filters
 import (
 	"context"
 
-	v1 "github.com/cilium/hubble/pkg/api/v1"
-	hubbleFilters "github.com/cilium/hubble/pkg/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 

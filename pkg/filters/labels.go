@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	k8sLabels "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels"
-	v1 "github.com/cilium/hubble/pkg/api/v1"
-	hubbleFilters "github.com/cilium/hubble/pkg/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 )
 
 // FilterByLabelSelectors returns a FilterFunc. The FilterFunc returns true if and only if any of the

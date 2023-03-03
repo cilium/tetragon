@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	hubble "github.com/cilium/hubble/pkg/cilium"
+	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
@@ -29,7 +29,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	hubblev1 "github.com/cilium/hubble/pkg/api/v1"
+	hubblev1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 )
 
 // ProcessInternal is the internal representation of a process.

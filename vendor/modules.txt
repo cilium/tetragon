@@ -53,6 +53,7 @@ github.com/cilium/cilium/pkg/client
 github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/endpoint/id
 github.com/cilium/cilium/pkg/identity
+github.com/cilium/cilium/pkg/inctimer
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection
@@ -79,19 +80,6 @@ github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
-## explicit; go 1.14
-github.com/cilium/hubble/api/v1/flow
-github.com/cilium/hubble/pkg/api/v1
-github.com/cilium/hubble/pkg/cilium
-github.com/cilium/hubble/pkg/cilium/client
-github.com/cilium/hubble/pkg/filters
-github.com/cilium/hubble/pkg/fqdncache
-github.com/cilium/hubble/pkg/ipcache
-github.com/cilium/hubble/pkg/k8s
-github.com/cilium/hubble/pkg/parser/endpoint
-github.com/cilium/hubble/pkg/parser/getters
-github.com/cilium/hubble/pkg/servicecache
 # github.com/cilium/little-vm-helper v0.0.4-0.20230302123240-24dab6e359ff
 ## explicit; go 1.18
 github.com/cilium/little-vm-helper/pkg/images

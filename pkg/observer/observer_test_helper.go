@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	hubbleV1 "github.com/cilium/hubble/pkg/api/v1"
-	hubbleCilium "github.com/cilium/hubble/pkg/cilium"
+	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
