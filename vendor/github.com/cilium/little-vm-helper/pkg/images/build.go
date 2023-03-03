@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package images
 
 import (
@@ -43,10 +46,37 @@ type BuilderResult struct {
 	ImageResults map[string]BuildImageResult
 }
 
-// BuildAllImages will build all images in the forest. It will start from the
-// leafs, and work its way up.
-func (f *ImageForest) BuildAllImages(bldConf *BuildConf) *BuilderResult {
+// BuildImage builds an image, with all of its dependencies
+func (f *ImageForest) BuildImage(bldConf *BuildConf, image string) (*BuilderResult, error) {
+	deps, err := f.Dependencies(image)
+	if err != nil {
+		return nil, err
+	}
 
+	log := bldConf.Log
+	st := newBuildState(f, bldConf)
+	images := append(deps, image)
+	for i := range images {
+		imgRes := st.buildImage(images[i])
+		xlog := log.WithFields(logrus.Fields{
+			"image":    image[i],
+			"all-deps": images,
+			"result":   fmt.Sprintf("%+v", imgRes),
+		})
+		if imgRes.Error == nil {
+			xlog.Info("image built succesfully")
+		} else {
+			xlog.Warn("image build failed")
+			break
+		}
+	}
+
+	return &st.bldResult, nil
+}
+
+// BuildAllImages will build all images in the forest. It will start from the
+// roots, and work its way down.
+func (f *ImageForest) BuildAllImages(bldConf *BuildConf) *BuilderResult {
 	log := bldConf.Log
 	st := newBuildState(f, bldConf)
 

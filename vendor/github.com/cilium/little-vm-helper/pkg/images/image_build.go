@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package images
 
 import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	"github.com/sirupsen/logrus"
@@ -57,15 +61,26 @@ func (f *ImageForest) doBuildImage(
 	}
 
 	state := new(multistep.BasicStateBag)
-	steps := make([]multistep.Step, 1, 1+len(cnf.Actions))
+	steps := make([]multistep.Step, 2, 2+len(cnf.Actions))
+
 	steps[0] = NewCreateImage(stepConf)
+	// NB: We might need an --chdir option or similar, but for now just
+	// chdir to the the base dir.
+	baseDir := filepath.Dir(f.imagesDir)
+	steps[1] = NewChdirStep(stepConf, baseDir)
+
 	for i := 0; i < len(cnf.Actions); i++ {
-		next := cnf.Actions[i].Op.ToStep(stepConf)
-		prev := steps[len(steps)-1]
-		if merge && mergeSteps(prev, next) == nil {
-			continue
+		nextSteps, err := cnf.Actions[i].Op.ToSteps(stepConf)
+		if err != nil {
+			return fmt.Errorf("action %s ('%T') failed: %v", cnf.Actions[i].Comment, cnf.Actions[i].Op, err)
 		}
-		steps = append(steps, next)
+		for _, next := range nextSteps {
+			prev := steps[len(steps)-1]
+			if merge && mergeSteps(prev, next) == nil {
+				continue
+			}
+			steps = append(steps, next)
+		}
 	}
 
 	runner := &multistep.BasicRunner{Steps: steps}

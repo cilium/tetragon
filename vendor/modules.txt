@@ -92,9 +92,10 @@ github.com/cilium/hubble/pkg/k8s
 github.com/cilium/hubble/pkg/parser/endpoint
 github.com/cilium/hubble/pkg/parser/getters
 github.com/cilium/hubble/pkg/servicecache
-# github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
+# github.com/cilium/little-vm-helper v0.0.3
 ## explicit; go 1.18
 github.com/cilium/little-vm-helper/pkg/images
+github.com/cilium/little-vm-helper/pkg/kernels
 github.com/cilium/little-vm-helper/pkg/logcmd
 # github.com/cilium/lumberjack/v2 v2.3.0
 ## explicit; go 1.13
@@ -239,6 +240,12 @@ github.com/google/gops/signal
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
+# github.com/hashicorp/errwrap v1.1.0
+## explicit
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+## explicit; go 1.13
+github.com/hashicorp/go-multierror
 # github.com/hashicorp/golang-lru/v2 v2.0.1
 ## explicit; go 1.18
 github.com/hashicorp/golang-lru/v2

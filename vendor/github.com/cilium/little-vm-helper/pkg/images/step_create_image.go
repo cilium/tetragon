@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package images
 
 import (
@@ -11,11 +14,16 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/sirupsen/logrus"
 )
 
 var (
 	// DelImageIfExists: if set to true, image will be deleted at Cleanup() by the CreateImage step
 	DelImageIfExists = "DelImageIfExist"
+
+	rootDev    = "/dev/sda"
+	rootFsType = "ext4"
+	resizeFS   = "resize2fs"
 )
 
 // Approach for creating images:
@@ -55,15 +63,16 @@ func NewCreateImage(cnf *StepConf) *CreateImage {
 	}
 }
 
-var extLinuxConf = `
+var extLinuxConf = fmt.Sprintf(`
 default linux
 timeout 0
 
 label linux
 kernel /vmlinuz
-append initrd=initrd.img root=/dev/sda rw console=ttyS0
-`
+append initrd=initrd.img root=%s rw console=ttyS0
+`, rootDev)
 
+// makeRootImage creates a root (with respect to the image forest hierarch) image
 func (s *CreateImage) makeRootImage(ctx context.Context) error {
 	imgFname := filepath.Join(s.imagesDir, s.imgCnf.Name)
 	tarFname := path.Join(s.imagesDir, fmt.Sprintf("%s.tar", s.imgCnf.Name))
@@ -112,13 +121,13 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		cmd = exec.CommandContext(ctx, GuestFish,
 			"-N", fmt.Sprintf("%s=disk:%s", imgFname, imgSize),
 			"--",
-			"part-disk", "/dev/sda", "mbr",
+			"part-disk", rootDev, "mbr",
 			":",
-			"part-set-bootable", "/dev/sda", "1", "true",
+			"part-set-bootable", rootDev, "1", "true",
 			":",
-			"mkfs", "ext4", "/dev/sda",
+			"mkfs", rootFsType, rootDev,
 			":",
-			"mount", "/dev/sda", "/",
+			"mount", rootDev, "/",
 			":",
 			"tar-in", tarFname, "/",
 			":",
@@ -130,9 +139,9 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		cmd = exec.CommandContext(ctx, GuestFish,
 			"-N", fmt.Sprintf("%s=disk:%s", imgFname, imgSize),
 			"--",
-			"mkfs", "ext4", "/dev/sda",
+			"mkfs", rootFsType, rootDev,
 			":",
-			"mount", "/dev/sda", "/",
+			"mount", rootDev, "/",
 			":",
 			"tar-in", tarFname, "/",
 		)
@@ -156,6 +165,35 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 
 }
 
+func resizeImage(ctx context.Context,
+	log logrus.FieldLogger,
+	imgFname string, size string,
+) error {
+
+	// resize image
+	cmd := exec.CommandContext(ctx, QemuImg, "resize", imgFname, size)
+	err := logcmd.RunAndLogCommand(cmd, log)
+	if err != nil {
+		return err
+	}
+
+	// resize filesystem
+	cmd = exec.CommandContext(ctx, GuestFish,
+		"-a", imgFname,
+		"--",
+		"run",
+		":",
+		resizeFS,
+		rootDev,
+	)
+	err = logcmd.RunAndLogCommand(cmd, log)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// makeDerivedImage creates a non-root image
 func (s *CreateImage) makeDerivedImage(ctx context.Context) error {
 	parFname := filepath.Join(s.imagesDir, s.imgCnf.Parent)
 	imgFname := filepath.Join(s.imagesDir, s.imgCnf.Name)
@@ -167,6 +205,16 @@ func (s *CreateImage) makeDerivedImage(ctx context.Context) error {
 	err := logcmd.RunAndLogCommand(cmd, s.log)
 	if err != nil {
 		return err
+	}
+
+	// We could check whether the image is the same, but this is tricky.
+	// The configuration of the parent does not always exist, so we would
+	// have to check the current size of the image. To make life easier, we
+	// always resize if the user defines a size.
+	if size := s.imgCnf.ImageSize; size != "" {
+		if err := resizeImage(ctx, s.log, imgFname, size); err != nil {
+			return err
+		}
 	}
 
 	if len(s.imgCnf.Packages) > 0 {

@@ -6,7 +6,7 @@ require (
 	github.com/cilium/cilium v1.9.16
 	github.com/cilium/ebpf v0.9.3
 	github.com/cilium/hubble v0.5.3-0.20220311154618-3e44df066567
-	github.com/cilium/little-vm-helper v0.0.0-20220812055014-101c3e342e13
+	github.com/cilium/little-vm-helper v0.0.3
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -83,6 +83,8 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/packer-plugin-sdk v0.3.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect

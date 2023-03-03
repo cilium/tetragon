@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
 package logcmd
 
 import (
@@ -140,6 +143,7 @@ func RunAndLogCommand(
 	cmd *exec.Cmd,
 	log logrus.FieldLogger,
 ) error {
+	logStart(log, cmd)
 	return runAndLogCommand(nil, cmd, getLogfForLevel(log, logrus.InfoLevel), getLogfForLevel(log, logrus.WarnLevel))
 }
 
