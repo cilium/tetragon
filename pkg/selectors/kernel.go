@@ -180,43 +180,43 @@ var argTypeStringTable = map[uint32]string{
 }
 
 const (
-	selectorOpGT  = 1
-	selectorOpLT  = 2
-	selectorOpEQ  = 3
-	selectorOpNEQ = 4
+	SelectorOpGT  = 1
+	SelectorOpLT  = 2
+	SelectorOpEQ  = 3
+	SelectorOpNEQ = 4
 	// Pid and Namespace ops
-	selectorOpIn    = 5
-	selectorOpNotIn = 6
+	SelectorOpIn    = 5
+	SelectorOpNotIn = 6
 	// String ops
-	selectorOpPrefix  = 8
-	selectorOpPostfix = 9
+	SelectorOpPrefix  = 8
+	SelectorOpPostfix = 9
 	// Map ops
-	selectorInMap    = 10
-	selectorNotInMap = 11
+	SelectorInMap    = 10
+	SelectorNotInMap = 11
 )
 
-func selectorOp(op string) (uint32, error) {
+func SelectorOp(op string) (uint32, error) {
 	switch op {
 	case "gt":
-		return selectorOpGT, nil
+		return SelectorOpGT, nil
 	case "lt":
-		return selectorOpLT, nil
+		return SelectorOpLT, nil
 	case "eq", "Equal":
-		return selectorOpEQ, nil
+		return SelectorOpEQ, nil
 	case "neq":
-		return selectorOpNEQ, nil
+		return SelectorOpNEQ, nil
 	case "In":
-		return selectorOpIn, nil
+		return SelectorOpIn, nil
 	case "NotIn":
-		return selectorOpNotIn, nil
+		return SelectorOpNotIn, nil
 	case "prefix", "Prefix":
-		return selectorOpPrefix, nil
+		return SelectorOpPrefix, nil
 	case "postfix", "Postfix":
-		return selectorOpPostfix, nil
+		return SelectorOpPostfix, nil
 	case "InMap":
-		return selectorInMap, nil
+		return SelectorInMap, nil
 	case "NotInMap":
-		return selectorNotInMap, nil
+		return SelectorNotInMap, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -250,7 +250,7 @@ func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32) {
 }
 
 func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
-	op, err := selectorOp(pid.Operator)
+	op, err := SelectorOp(pid.Operator)
 	if err != nil {
 		return fmt.Errorf("matchpid error: %w", err)
 	}
@@ -368,7 +368,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(k, arg.Index)
 
-	op, err := selectorOp(arg.Operator)
+	op, err := SelectorOp(arg.Operator)
 	if err != nil {
 		return fmt.Errorf("matcharg error: %w", err)
 	}
@@ -380,7 +380,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	}
 	WriteSelectorUint32(k, ty)
 	switch op {
-	case selectorInMap, selectorNotInMap:
+	case SelectorInMap, SelectorNotInMap:
 		err := writeMatchValuesInMap(k, arg.Values, ty)
 		if err != nil {
 			return fmt.Errorf("writeMatchValuesInMap error: %w", err)
@@ -482,11 +482,11 @@ func ParseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelec
 	WriteSelectorUint32(k, ns)
 
 	// write operator
-	op, err := selectorOp(action.Operator)
+	op, err := SelectorOp(action.Operator)
 	if err != nil {
 		return fmt.Errorf("matchNamespace error: %w", err)
 	}
-	if (op != selectorOpIn) && (op != selectorOpNotIn) {
+	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
 		return fmt.Errorf("matchNamespace supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(k, op)
@@ -522,11 +522,11 @@ func ParseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSe
 
 func ParseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.NamespaceChangesSelector) error {
 	// write operator
-	op, err := selectorOp(action.Operator)
+	op, err := SelectorOp(action.Operator)
 	if err != nil {
 		return fmt.Errorf("matchNamespaceChanges error: %w", err)
 	}
-	if (op != selectorOpIn) && (op != selectorOpNotIn) {
+	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
 		return fmt.Errorf("matchNamespaceChanges supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(k, op)
@@ -573,11 +573,11 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	WriteSelectorUint32(k, ty)
 
 	// operator
-	op, err := selectorOp(action.Operator)
+	op, err := SelectorOp(action.Operator)
 	if err != nil {
 		return fmt.Errorf("matchCapabilities error: %w", err)
 	}
-	if (op != selectorOpIn) && (op != selectorOpNotIn) {
+	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
 		return fmt.Errorf("matchCapabilities supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(k, op)
@@ -633,11 +633,11 @@ func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 }
 
 func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector) error {
-	op, err := selectorOp(b.Operator)
+	op, err := SelectorOp(b.Operator)
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	if op != selectorOpIn && op != selectorOpNotIn {
+	if op != SelectorOpIn && op != SelectorOpNotIn {
 		return fmt.Errorf("matchBinary error: Only In and NotIn operators are supported")
 	}
 	k.SetBinaryOp(op)
