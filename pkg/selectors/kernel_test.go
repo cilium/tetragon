@@ -93,28 +93,28 @@ func TestArgSelectorValue(t *testing.T) {
 }
 
 func TestSelectorOp(t *testing.T) {
-	if op, err := selectorOp("gt"); op != selectorOpGT || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpGT, op, err)
+	if op, err := SelectorOp("gt"); op != SelectorOpGT || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpGT, op, err)
 	}
-	if op, err := selectorOp("lt"); op != selectorOpLT || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpLT, op, err)
+	if op, err := SelectorOp("lt"); op != SelectorOpLT || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpLT, op, err)
 	}
-	if op, err := selectorOp("eq"); op != selectorOpEQ || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpEQ, op, err)
+	if op, err := SelectorOp("eq"); op != SelectorOpEQ || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpEQ, op, err)
 	}
-	if op, err := selectorOp("Equal"); op != selectorOpEQ || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpEQ, op, err)
+	if op, err := SelectorOp("Equal"); op != SelectorOpEQ || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpEQ, op, err)
 	}
-	if op, err := selectorOp("neq"); op != selectorOpNEQ || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpNEQ, op, err)
+	if op, err := SelectorOp("neq"); op != SelectorOpNEQ || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNEQ, op, err)
 	}
-	if op, err := selectorOp("In"); op != selectorOpIn || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpIn, op, err)
+	if op, err := SelectorOp("In"); op != SelectorOpIn || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpIn, op, err)
 	}
-	if op, err := selectorOp("NotIn"); op != selectorOpNotIn || err != nil {
-		t.Errorf("selectorOp: expected %d actual %d %v\n", selectorOpNotIn, op, err)
+	if op, err := SelectorOp("NotIn"); op != SelectorOpNotIn || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotIn, op, err)
 	}
-	if op, err := selectorOp("foo"); op != 0 || err == nil {
+	if op, err := SelectorOp("foo"); op != 0 || err == nil {
 		t.Errorf("selectorOp: expected error actual %d %v\n", op, err)
 	}
 }
@@ -403,7 +403,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(80)              // off: 8       relative ofset of 2nd selector (8 + 80 = 88)
 	expU32Push(76)              // off: 12      selector1: length (76 + 12 = 112)
 	expU32Push(24)              // off: 16      selector1: MatchPIDs: len
-	expU32Push(selectorOpNotIn) // off: 20      selector1: MatchPIDs[0]: op
+	expU32Push(SelectorOpNotIn) // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)               // off: 24      selector1: MatchPIDs[0]: flags
 	expU32Push(2)               // off: 28      selector1: MatchPIDs[0]: number of values
 	expU32Push(33)              // off: 32      selector1: MatchPIDs[0]: val1
@@ -414,7 +414,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
 	expU32Push(28)              // off: 80      selector1: matchArgs: len
 	expU32Push(1)               // off: 84      selector1: matchArgs: arg0: index
-	expU32Push(selectorOpEQ)    // off: 88      selector1: matchArgs: arg0: operator
+	expU32Push(SelectorOpEQ)    // off: 88      selector1: matchArgs: arg0: operator
 	expU32Push(16)              // off: 92      selector1: matchArgs: arg0: len of vals
 	expU32Push(argTypeInt)      // off: 96      selector1: matchArgs: arg0: type
 	expU32Push(10)              // off: 100     selector1: matchArgs: arg0: val0: 10
