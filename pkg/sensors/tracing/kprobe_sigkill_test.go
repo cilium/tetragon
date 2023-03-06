@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -94,7 +95,7 @@ func TestKprobeSigkill(t *testing.T) {
 	}
 
 	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("__x64_sys_lseek")).
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(

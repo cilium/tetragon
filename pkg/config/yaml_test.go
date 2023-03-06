@@ -26,7 +26,7 @@ metadata:
   name: "sys-write"
 spec:
   kprobes:
-  - call: "__x64_sys_write"
+  - call: "sys_write"
     return: false
     syscall: true
     args:
@@ -93,7 +93,7 @@ var expectedWrite = GenericTracingConf{
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
-				Call:    "__x64_sys_write",
+				Call:    "sys_write",
 				Return:  false,
 				Syscall: true,
 				Args: []v1alpha1.KProbeArg{

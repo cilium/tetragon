@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -293,7 +294,7 @@ func TestKprobeSelectors(t *testing.T) {
 		sels := selectorsFromWhenceVals(t, filterWhenceVals, 2 /* whenceIdx */, filterOperator)
 		spec := v1alpha1.TracingPolicySpec{
 			KProbes: []v1alpha1.KProbeSpec{{
-				Call:    "__x64_sys_lseek",
+				Call:    "sys_lseek",
 				Return:  true,
 				Syscall: true,
 				ReturnArg: v1alpha1.KProbeArg{
@@ -317,7 +318,7 @@ func TestKprobeSelectors(t *testing.T) {
 		ret := make(map[uint64]int)
 		perfring.RunSubTest(t, ctx, name, op, func(ev notify.Message) error {
 			if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-				if kpEvent.FuncName != "__x64_sys_lseek" {
+				if kpEvent.FuncName != arch.AddSyscallPrefixTestHelper(t, "sys_lseek") {
 					return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
 				}
 				if len(kpEvent.Args) != 2 {

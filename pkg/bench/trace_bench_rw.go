@@ -127,7 +127,7 @@ metadata:
   name: "sys-write-writev"
 spec:
   kprobes:
-  - call: "__x64_sys_write"
+  - call: "sys_write"
     syscall: true
     args:
     - index: 0
@@ -137,7 +137,7 @@ spec:
       sizeArgIndex: 3
     - index: 2
       type: "int"
-  - call: "__x64_sys_read"
+  - call: "sys_read"
     syscall: true
     return: true
     args:

@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -89,7 +90,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
 
 	kprobeChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("__x64_sys_write")).
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -170,7 +171,7 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
 
 	kprobeChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("__x64_sys_write")).
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
