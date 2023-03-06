@@ -14,14 +14,13 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strconv"
-	"strings"
 	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -64,8 +63,6 @@ const (
 
 	MaxKprobesMulti = 100 // MAX_ENTRIES_CONFIG in bpf code
 )
-
-var supportedArchPrefix = map[string]string{"amd64": "__x64_", "arm64": "__arm64_"}
 
 func kprobeCharBufErrorToString(e int32) string {
 	switch e {
@@ -259,35 +256,6 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	return progs, maps
 }
 
-// addSyscallPrefix detects if the symbol is already prefixed with arch specific
-// prefix in the form of "__x64_" or "__arm64_", and if not, adds it based on
-// provided arch.
-//
-// Note that cilium/ebpf, retries to attach to an arch specific version of the
-// symbol after a failure thus making possible to attach to "sys_listen" which
-// will fail and retry with the corrected "__arm64_sys_listen" if you are
-// running on arm64. See https://github.com/cilium/ebpf/pull/304.  However, this
-// causes Tetragon users to believe that two symbols exist (following the same
-// example) "__arm64_sys_listen" and "sys_listen", which results in differents
-// events.  Because we actually know if a call is a syscall, we can pre-format
-// the symbol directly here to allow the user to specify the "sys_listen"
-// version while only registering the real symbol "__arm64_sys_listen".
-func addSyscallPrefix(symbol string, arch string) (string, error) {
-	for prefix_arch, prefix := range supportedArchPrefix {
-		if strings.HasPrefix(symbol, prefix) {
-			// check that the prefix found is the correct one
-			if prefix_arch != arch {
-				return "", fmt.Errorf("expecting %s and got %s", supportedArchPrefix[arch], prefix)
-			}
-			return symbol, nil
-		}
-	}
-	if prefix, found := supportedArchPrefix[arch]; found {
-		return prefix + symbol, nil
-	}
-	return "", fmt.Errorf("unsupported architecture %s", arch)
-}
-
 func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -320,7 +288,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec) (*sen
 		// modifying f.Call directly instead of writing to funcName
 		// because of BTF validation later using the whole v1alpha1.KProbeSpec object
 		if f.Syscall {
-			prefixedName, err := addSyscallPrefix(f.Call, runtime.GOARCH)
+			prefixedName, err := arch.AddSyscallPrefix(f.Call)
 			if err != nil {
 				logger.GetLogger().Warnf("kprobe syscall prefix: %w", err)
 			} else {
