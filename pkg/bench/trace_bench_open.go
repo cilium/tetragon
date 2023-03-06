@@ -81,7 +81,7 @@ metadata:
   name: "sys-write-writev"
 spec:
   kprobes:
-  - call: "__x64_sys_openat"
+  - call: "sys_openat"
     syscall: true
     args:
     - index: 0

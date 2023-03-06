@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"testing"
 )
 
 var supportedArchPrefix = map[string]string{"amd64": "__x64_", "arm64": "__arm64_"}
@@ -41,9 +42,15 @@ func AddSyscallPrefix(symbol string) (string, error) {
 	return addSyscallPrefix(symbol, runtime.GOARCH)
 }
 
-// MustAddSyscallPrefix is like AddSyscallPrefix but panics if the arch is
-// unsupported or if the symbol has already a prefix that doesn't correspond to
-// the running arch.
+// AddSyscallPrefixTestHelper is like AddSyscallPrefix but calls t.Fatal if the
+// arch is unsupported or if the symbol has already a prefix that doesn't
+// correspond to the running arch.
 //
 // It's a helper supposed to be used only in testing code.
-func MustAddSyscallPrefix(symbol string) string
+func AddSyscallPrefixTestHelper(t *testing.T, symbol string) string {
+	syscallName, err := AddSyscallPrefix(symbol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return syscallName
+}

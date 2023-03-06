@@ -26,7 +26,7 @@ spec:
       - action: FollowFD
         argFd: 0
         argName: 1
-  - call: "__x64_sys_dup2"
+  - call: "sys_dup2"
     syscall: true
     args:
     - index: 0
@@ -48,7 +48,7 @@ spec:
       - action: CopyFD
         argFd: 0
         argName: 1
-  - call: "__x64_sys_dup3"
+  - call: "sys_dup3"
     syscall: true
     args:
     - index: 0
@@ -72,7 +72,7 @@ spec:
       - action: CopyFD
         argFd: 0
         argName: 1
-  - call: "__x64_sys_close"
+  - call: "sys_close"
     syscall: true
     args:
     - index: 0
@@ -87,7 +87,7 @@ spec:
       - action: UnfollowFD
         argFd: 0
         argName: 0
-  - call: "__x64_sys_read"
+  - call: "sys_read"
     syscall: true
     args:
     - index: 0

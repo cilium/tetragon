@@ -5,7 +5,7 @@ metadata:
   name: "sigkilltest"
 spec:
   kprobes:
-  - call: "__x64_sys_lseek"
+  - call: "sys_lseek"
     syscall: true
     args:
     - index: 2
