@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+
+# This is a script to deal with dependabot PRs that have conflicts and require manual
+# interventation. What we do is we create a new issue with the "depandabot-fail" label and we
+# document the PR in the body of this issue. We then can close the dependabot PR.
+#
+# Once the dependency is (manually) updated, we can reopen the dependabot PR so that subsequent
+# updates happen automatically.
+
+import sys
+import os
+import json
+from urllib.parse import urlparse
+import subprocess as sp
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: %s <dependabot-failed-PR>" %( sys.argv[0],))
+        sys.exit(1)
+    pr = sys.argv[1]
+    pr_url = urlparse(pr)
+    if pr_url.netloc != 'github.com':
+        print("'%s' does not look like a github.com URL" % (pr,))
+        sys.exit(1)
+    try:
+        owner, repo = pr_url.path.split('/')[1:3]
+    except:
+        print("failed to parse owner and repo from '%s'" % (pr_url.path,))
+        sys.exit(1)
+    if owner == '' or repo == '':
+        print("failed to parse owner and repo from '%s'" % (pr_url.path,))
+        sys.exit(1)
+    repo = '/'.join((owner, repo))
+
+    cmd = ["gh", "--repo", repo, "pr", "view", pr, "--json", "author,title"]
+    cmd_res = sp.run(cmd, capture_output=True)
+    if cmd_res.returncode != 0:
+        print("cmd '%s' failed" % (' '.join(cmd),))
+        sys.exit(1)
+    out = json.loads(cmd_res.stdout)
+    if out.get('author', {}).get('login', "") != "dependabot":
+        print("author of PR '%s' does not seem to be dependabot" % (pr,))
+        sys.exit(1)
+
+    pr_title = out["title"]
+    cmd = ["gh", "issue",  "create",
+            "--repo", repo,
+            "--label", "dependabot-fail",
+            "--title",  "dependabot failure: %s" % (pr_title,),
+            "--body", "PR: %s" % (pr,),
+    ]
+    cmd_res = sp.run(cmd, capture_output=False)
+    if cmd_res.returncode != 0:
+        print("cmd '%s' failed" % (' '.join(cmd),))
+        sys.exit(1)
+
+    cmd = ["gh", "--repo", repo, "pr", "comment", pr, "--body", "seems like we need to do this manualy"]
+    cmd_res = sp.run(cmd, capture_output=False)
+    if cmd_res.returncode != 0:
+        print("cmd '%s' failed" % (' '.join(cmd),))
+        sys.exit(1)
+
+    cmd = ["gh", "--repo", repo, "pr", "comment", pr, "--body", "@dependabot ignore this dependency"]
+    cmd_res = sp.run(cmd, capture_output=False)
+    if cmd_res.returncode != 0:
+        print("cmd '%s' failed" % (' '.join(cmd),))
+        sys.exit(1)
