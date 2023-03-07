@@ -544,7 +544,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 }
 
 static inline __attribute__((always_inline)) long
-filter_char_buf(struct selector_arg_filter *filter, char *args)
+filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	char *value = (char *)&filter->value;
 	long i, j = 0;
@@ -552,7 +552,7 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_STRING_VALUES; i++) {
 		__u32 length;
-		int err, v, a, postoff = 0;
+		int err, a, postoff = 0;
 
 		/* filter->vallen is pulled from user input so we also need to
 		 * ensure its bounded.
@@ -560,12 +560,12 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
 			     :);
 		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0x3f;\n" ::[length] "+r"(length)
+		asm volatile("%[length] &= 0xff;\n" ::[length] "+r"(length)
 			     :);
-		v = (int)value[j];
-		a = (int)args[0];
+		// arg length is 4 bytes before the value data
+		a = *(int *)&args[value_off - 4];
 		if (filter->op == op_filter_eq) {
-			if (v != a)
+			if (length != a)
 				goto skip_string;
 		} else if (filter->op == op_filter_str_postfix) {
 			postoff = a - length;
@@ -580,7 +580,7 @@ filter_char_buf(struct selector_arg_filter *filter, char *args)
 		 */
 		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
 			     :);
-		err = cmpbytes(&value[j + 4], &args[4 + postoff], length);
+		err = cmpbytes(&value[j + 4], &args[value_off + postoff], length);
 		if (!err)
 			return 1;
 	skip_string:
@@ -1037,8 +1037,14 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 		pass = filter_file_buf(filter, args);
 		break;
 	case string_type:
+		/* for strings, we just encode the length */
+		pass = filter_char_buf(filter, args, 4);
+		break;
 	case char_buf:
-		pass = filter_char_buf(filter, args);
+		/* for buffers, we just encode the expected length and the
+		 * length that was actually read (see: __copy_char_buf)
+		 */
+		pass = filter_char_buf(filter, args, 8);
 		break;
 	case s64_ty:
 	case u64_ty:
