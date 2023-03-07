@@ -272,6 +272,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewProcessKprobeChecker("").FromProcessKprobe(ev), nil
 	case *tetragon.ProcessTracepoint:
 		return NewProcessTracepointChecker("").FromProcessTracepoint(ev), nil
+	case *tetragon.ProcessUprobe:
+		return NewProcessUprobeChecker("").FromProcessUprobe(ev), nil
 	case *tetragon.Test:
 		return NewTestChecker("").FromTest(ev), nil
 	case *tetragon.ProcessLoader:
@@ -328,6 +330,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.ProcessKprobe, nil
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
 		return ev.ProcessTracepoint, nil
+	case *tetragon.GetEventsResponse_ProcessUprobe:
+		return ev.ProcessUprobe, nil
 	case *tetragon.GetEventsResponse_Test:
 		return ev.Test, nil
 	case *tetragon.GetEventsResponse_ProcessLoader:
@@ -1081,6 +1085,122 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 			WithValues(checks...)
 		checker.Args = lm
 	}
+	return checker
+}
+
+// ProcessUprobeChecker implements a checker struct to check a ProcessUprobe event
+type ProcessUprobeChecker struct {
+	CheckerName string                       `json:"checkerName"`
+	Process     *ProcessChecker              `json:"process,omitempty"`
+	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Symbol      *stringmatcher.StringMatcher `json:"symbol,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessUprobeChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessUprobe); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%T is not a ProcessUprobe event", event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessUprobeChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessUprobeChecker creates a new ProcessUprobeChecker
+func NewProcessUprobeChecker(name string) *ProcessUprobeChecker {
+	return &ProcessUprobeChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessUprobeChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessUprobeChecker) GetCheckerType() string {
+	return "ProcessUprobeChecker"
+}
+
+// Check checks a ProcessUprobe event
+func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessUprobe event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Process != nil {
+			if err := checker.Process.Check(event.Process); err != nil {
+				return fmt.Errorf("Process check failed: %w", err)
+			}
+		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Path != nil {
+			if err := checker.Path.Match(event.Path); err != nil {
+				return fmt.Errorf("Path check failed: %w", err)
+			}
+		}
+		if checker.Symbol != nil {
+			if err := checker.Symbol.Match(event.Symbol); err != nil {
+				return fmt.Errorf("Symbol check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProcess adds a Process check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithProcess(check *ProcessChecker) *ProcessUprobeChecker {
+	checker.Process = check
+	return checker
+}
+
+// WithParent adds a Parent check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithParent(check *ProcessChecker) *ProcessUprobeChecker {
+	checker.Parent = check
+	return checker
+}
+
+// WithPath adds a Path check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithPath(check *stringmatcher.StringMatcher) *ProcessUprobeChecker {
+	checker.Path = check
+	return checker
+}
+
+// WithSymbol adds a Symbol check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithSymbol(check *stringmatcher.StringMatcher) *ProcessUprobeChecker {
+	checker.Symbol = check
+	return checker
+}
+
+//FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
+func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Process != nil {
+		checker.Process = NewProcessChecker().FromProcess(event.Process)
+	}
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	checker.Path = stringmatcher.Full(event.Path)
+	checker.Symbol = stringmatcher.Full(event.Symbol)
 	return checker
 }
 
