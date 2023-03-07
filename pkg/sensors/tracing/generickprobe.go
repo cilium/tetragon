@@ -623,6 +623,8 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 
 	bin_buf := make([]bytes.Buffer, len(ids))
 
+	data := &program.MultiKprobeAttachData{}
+
 	for index, id := range ids {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
@@ -643,9 +645,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		}
 		load.MapLoad = append(load.MapLoad, config)
 
-		load.MultiSymbols = append(load.MultiSymbols, gk.funcName)
-		load.MultiCookies = append(load.MultiCookies, uint64(index))
+		data.Symbols = append(data.Symbols, gk.funcName)
+		data.Cookies = append(data.Cookies, uint64(index))
 	}
+
+	load.SetAttachData(&data)
 
 	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)

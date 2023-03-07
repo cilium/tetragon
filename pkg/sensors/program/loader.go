@@ -138,9 +138,13 @@ func NoAttach(load *Program) AttachFunc {
 
 func MultiKprobeAttach(load *Program) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		data, ok := load.AttachData.(*MultiKprobeAttachData)
+		if !ok {
+			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
+		}
 		opts := link.KprobeMultiOptions{
-			Symbols: load.MultiSymbols,
-			Cookies: load.MultiCookies,
+			Symbols: data.Symbols,
+			Cookies: data.Cookies,
 		}
 
 		var lnk link.Link
