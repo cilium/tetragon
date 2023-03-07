@@ -246,6 +246,13 @@ message ProcessTracepoint {
     repeated KprobeArgument args = 6;
 }
 
+message ProcessUprobe {
+    Process process = 1;
+    Process parent = 2;
+    string path = 3;
+    string symbol = 4;
+}
+
 message Test {
 	uint64 arg0 = 1;
 	uint64 arg1 = 2;
