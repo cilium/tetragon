@@ -43,6 +43,7 @@ type ProcessInternal struct {
 	// additional internal fields below
 	capabilities *tetragon.Capabilities
 	namespaces   *tetragon.Namespaces
+	nsPid        uint32
 	// garbage collector metadata
 	color  int
 	refcnt uint32
@@ -153,6 +154,13 @@ func (pi *ProcessInternal) RefGet() uint32 {
 	return ref
 }
 
+// RetryPodInfo get pod information and set to process
+func (pi *ProcessInternal) RetryPodInfo() {
+	if podInfo, _ := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, pi.nsPid); podInfo != nil {
+		pi.AddPodInfo(podInfo)
+	}
+}
+
 func GetProcessID(pid uint32, ktime uint64) string {
 	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", nodeName, ktime, pid)))
 }
@@ -202,6 +210,7 @@ func GetProcess(
 		capabilities: caps,
 		namespaces:   ns,
 		refcnt:       1,
+		nsPid:        process.NSPID,
 	}, endpoint
 }
 
@@ -220,9 +229,17 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 		return nil, nil
 	}
 
+	if option.Config.EnableK8s && process.process != nil && process.process.Docker != "" && process.process.Pod == nil {
+		process.RetryPodInfo()
+	}
+
 	if parent, err = procCache.get(process.process.ParentExecId); err != nil {
 		logger.GetLogger().WithField("id in event", process.process.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
 		return process, nil
+	}
+
+	if option.Config.EnableK8s && parent.process != nil && parent.process.Docker != "" && parent.process.Pod == nil {
+		parent.RetryPodInfo()
 	}
 	return process, parent
 }
