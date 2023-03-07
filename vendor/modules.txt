@@ -443,8 +443,8 @@ go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # go.uber.org/atomic v1.9.0
 ## explicit; go 1.13
 go.uber.org/atomic
-# go.uber.org/multierr v1.8.0
-## explicit; go 1.14
+# go.uber.org/multierr v1.9.0
+## explicit; go 1.19
 go.uber.org/multierr
 # golang.org/x/crypto v0.3.0
 ## explicit; go 1.17
