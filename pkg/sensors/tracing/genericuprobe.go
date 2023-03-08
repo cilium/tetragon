@@ -124,18 +124,8 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		{
 			Index: 0,
 			Name:  "sel_names_map",
-			Load: func(m *ebpf.Map, index uint32) error {
-				// add a special entry (key == UINT32_MAX) that has as a value the number of matchBinaries entry
-				// if this is zero we don't have any matchBinaries selectors
-				if err := m.Update(uint32(0xffffffff), uprobeEntry.selectors.GetBinaryOp(), ebpf.UpdateAny); err != nil {
-					return err
-				}
-				for idx, val := range uprobeEntry.selectors.GetBinSelNamesMap() {
-					if err := m.Update(idx, val, ebpf.UpdateAny); err != nil {
-						return err
-					}
-				}
-				return nil
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateBinariesMaps(uprobeEntry.selectors, uprobeEntry.pinPathPrefix, outerMap)
 			},
 		},
 	}

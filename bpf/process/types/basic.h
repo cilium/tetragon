@@ -155,6 +155,12 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define MAX_ENTRIES_CONFIG 1
 #endif
 
+// Filter tailcalls are {kprobe,tracepoint}/{6,7,8,9,10}
+// We do one tail-call per selector, so we can have up to 5 selectors.
+#define MIN_FILTER_TAILCALL 6
+#define MAX_FILTER_TAILCALL 10
+#define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
+
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
 	switch (ty) {
@@ -938,7 +944,10 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 /*
  * For matchBinaries we use two maps:
  * 1. names_map: global (for all sensors) keeps a mapping from names -> ids
- * 2. sel_names_map: per-sensor: keeps a mapping from id -> selector val
+ * 2. sel_names_map: per-sensor: keeps a mapping from selector_id -> id -> selector val
+ *
+ * For each selector we have a separate inner map. We choose the appropriate
+ * inner map based on the selector ID.
  *
  * At exec time, we check names_map and set ->binary in execve_map equal to
  * the id stored in names_map. Assuming the binary name exists in the map,
@@ -948,10 +957,16 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
  * whether the selector matches or not.
  */
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 256);
-	__type(key, __u32);
-	__type(value, __u32);
+	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
+	__uint(max_entries, MAX_SELECTORS);
+	__uint(key_size, sizeof(u32)); /* selector id */
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 256);
+			__type(key, __u32);
+			__type(value, __u32);
+		});
 } sel_names_map SEC(".maps");
 
 static inline __attribute__((always_inline)) int
@@ -959,9 +974,8 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 {
 	struct selector_arg_filter *filter;
 	long seloff, argoff, pass;
-	__u32 index, *op;
-	char *args;
-	__u32 max = 0xffffffff; // UINT32_MAX
+	__u32 index;
+	char *args, *binaries_map;
 
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */
@@ -982,32 +996,40 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	/* skip the matchCapabilityChanges by reading its length */
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
-	op = map_lookup_elem(&sel_names_map, &max);
-	if (op) {
-		struct execve_map_value *execve;
-		bool walker = 0;
-		__u32 ppid, bin_key, *bin_val;
+	// if binaries_map is NULL for the specific selidx, this
+	// means that the specific selector does not contain any
+	// matchBinaries actions. So we just proceed.
+	binaries_map = map_lookup_elem(&sel_names_map, &selidx);
+	if (binaries_map) {
+		__u32 *op, max = 0xffffffff; // UINT32_MAX
 
-		execve = event_find_curr(&ppid, &walker);
-		if (!execve)
-			return 0;
+		op = map_lookup_elem(binaries_map, &max);
+		if (op) {
+			struct execve_map_value *execve;
+			bool walker = 0;
+			__u32 ppid, bin_key, *bin_val;
 
-		bin_key = execve->binary;
-		bin_val = map_lookup_elem(&sel_names_map, &bin_key);
-
-		/*
-		 * The following things may happen:
-		 * binary is not part of names_map, execve_map->binary will be `0` and `bin_val` will always be `0`
-		 * binary is part of `names_map`:
-		 *  if binary is not part of this selector, bin_val will be`0`
-		 *  if binary is part of this selector: `bin_val will be `!0`
-		 */
-		if (*op == op_filter_in) {
-			if (!bin_val)
+			execve = event_find_curr(&ppid, &walker);
+			if (!execve)
 				return 0;
-		} else if (*op == op_filter_notin) {
-			if (bin_val)
-				return 0;
+
+			bin_key = execve->binary;
+			bin_val = map_lookup_elem(binaries_map, &bin_key);
+
+			/*
+			 * The following things may happen:
+			 * binary is not part of names_map, execve_map->binary will be `0` and `bin_val` will always be `0`
+			 * binary is part of `names_map`:
+			 *  if binary is not part of this selector, bin_val will be`0`
+			 *  if binary is part of this selector: `bin_val will be `!0`
+			 */
+			if (*op == op_filter_in) {
+				if (!bin_val)
+					return 0;
+			} else if (*op == op_filter_notin) {
+				if (bin_val)
+					return 0;
+			}
 		}
 	}
 
@@ -1301,12 +1323,6 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 out:
 	return i > 0 ? true : 0;
 }
-
-// Filter tailcalls are {kprobe,tracepoint}/{6,7,8,9,10}
-// We do one tail-call per selector, so we can have up to 5 selectors.
-#define MIN_FILTER_TAILCALL 6
-#define MAX_FILTER_TAILCALL 10
-#define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
 
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
