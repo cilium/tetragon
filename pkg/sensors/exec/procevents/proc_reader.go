@@ -360,6 +360,9 @@ func GetRunningProcs() []Procs {
 		// On error procsDockerId zeros dockerId so we can ignore any errors.
 		dockerId, _ := procsDockerId(uint32(pid))
 		if dockerId == "" {
+			// If we do not have a container ID, then set nspid to zero.
+			// This field is used to construct the pod information to
+			// identify pids inside the container.
 			nspid = 0
 		}
 
@@ -385,6 +388,7 @@ func GetRunningProcs() []Procs {
 			}
 
 			if dockerId != "" {
+				// We have a container ID so let's get the nspid inside.
 				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, ppid, "status"))
 			}
 		} else {

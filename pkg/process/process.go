@@ -205,6 +205,8 @@ func GetProcess(
 	}, endpoint
 }
 
+// GetPodInfo() constructs and returns the Kubernetes Pod information associated with
+// the Container ID and the PID inside this container.
 func GetPodInfo(cid, bin, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
 	return getPodInfo(k8s, cid, bin, args, nspid)
 }
@@ -259,6 +261,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		pi.process.StartTime = ktime.ToProto(event.Ktime)
 		pi.process.Refcnt = 1
 		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
+			// Set the pid inside the container
 			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 		}
 		if option.Config.EnableK8s && pi.process.Docker != "" && pi.process.Pod == nil {
