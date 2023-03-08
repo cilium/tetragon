@@ -5,6 +5,7 @@ package tracepoint
 
 import (
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -22,20 +23,27 @@ func TestTracepointLoadFormat(t *testing.T) {
 		t.FailNow()
 	}
 
+	// the standard does not specify if char is signed or not
+	// historically, it's signed on amd64 and unsigned on arm64
+	isCharSigned := true
+	if runtime.GOARCH == "arm64" {
+		isCharSigned = false
+	}
+
 	var commField FieldFormat
 	if kernels.MinKernelVersion("5.17.0") {
 		commField = FieldFormat{
 			FieldStr: "char comm[TASK_COMM_LEN]",
 			Offset:   12,
 			Size:     16,
-			IsSigned: true,
+			IsSigned: isCharSigned,
 		}
 	} else {
 		commField = FieldFormat{
 			FieldStr: "char comm[16]",
 			Offset:   12,
 			Size:     16,
-			IsSigned: true,
+			IsSigned: isCharSigned,
 		}
 	}
 
