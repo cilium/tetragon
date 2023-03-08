@@ -1,11 +1,14 @@
 name: vmtests
 on:
   pull_request:
-   paths-ignore:
-   - "**.md"
+    paths-ignore:
+      - 'docs/**'
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+
 jobs:
   build:
     name: Build tetragon
