@@ -48,6 +48,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	proc := process.AddExecEvent(&event.MsgExecveEventUnix)
 	tetragonProcess := proc.UnsafeGetProcess()
+	logger.GetLogger().Infof("GetProcessExec pid %d", tetragonProcess.Pid.Value)
 
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId

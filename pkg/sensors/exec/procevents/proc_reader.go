@@ -291,9 +291,10 @@ func GetRunningProcs() []Procs {
 
 		p, err := getProc(d.Name(), hasTimeNs)
 		if err != nil {
+			logger.GetLogger().Warningf("Read ProcFS %s to %s err: %s", option.Config.ProcFS, d.Name(), err)
 			continue
 		}
-
+		logger.GetLogger().Infof("Read ProcFS %s appended pid %s", option.Config.ProcFS, d.Name())
 		procs = append(procs, *p)
 	}
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(procs), len(procFS))
@@ -318,8 +319,8 @@ func RetryRunningProcByPid(pid uint32) *Procs {
 	if err != nil {
 		return nil
 	}
-	logger.GetLogger().Infof("Retry Read ProcFS of Pid: %s", name)
-	pushEvents([]Procs{*p})
+	logger.GetLogger().Infof("Retry Read ProcFS of Pid %s: %+v", name, *p)
+	//pushEvents([]Procs{*p})
 	return p
 }
 

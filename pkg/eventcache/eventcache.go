@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/ktime"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
@@ -98,6 +99,9 @@ func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event) erro
 
 func (ec *Cache) handleEvents() {
 	tmp := ec.cache[:0]
+	if len(ec.cache) > 0 {
+		logger.GetLogger().Infof("eventCache handleEvents cache length: %d", len(ec.cache))
+	}
 	for _, event := range ec.cache {
 		var err error
 

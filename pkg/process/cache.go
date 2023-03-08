@@ -163,6 +163,7 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 func (pc *Cache) Add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
 	if evicted {
+		logger.GetLogger().Warnf("processCache Add evicted, pid: %d, execId: %s", process.process.Pid.Value, process.process.ExecId)
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
 	}
 	return evicted
