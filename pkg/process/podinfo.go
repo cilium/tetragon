@@ -64,7 +64,7 @@ func getPodInfo(
 		labels = endpoint.Labels
 	}
 
-	// Don't set container PIDs if it's zero.
+	// This is the PID inside the container. Don't set it if zero.
 	var containerPID *wrapperspb.UInt32Value
 	if nspid > 0 {
 		containerPID = &wrapperspb.UInt32Value{
