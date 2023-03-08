@@ -4,7 +4,11 @@ on:
     branches:
       - main
       - v*
+    paths-ignore:
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
   generated-files:

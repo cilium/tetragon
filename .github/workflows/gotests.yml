@@ -1,9 +1,13 @@
 name: Tetragon Go Test
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
 jobs:
   build:
     runs-on: ${{ matrix.os }}
