@@ -12,7 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/filters"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -99,7 +99,7 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 			fmt.Fprintf(os.Stderr, "DEBUG: failed unmarshal: %s: %s\n", line, err)
 			continue
 		}
-		if !hubbleFilters.Apply(i.allowlist, nil, &v1.Event{Event: &res}) {
+		if !hubbleFilters.Apply(i.allowlist, nil, &hubbleV1.Event{Event: &res}) {
 			continue
 		}
 		for _, filter := range i.fieldFilters {
