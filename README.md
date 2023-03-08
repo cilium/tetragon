@@ -20,7 +20,7 @@ When used in a Kubernetes environment, Tetragon is Kubernetes-aware - that is, i
 Kubernetes identities such as namespaces, pods and so-on - so that security event detection
 can be configured in relation to individual workloads.
 
-![Tetragon Overview Diagram](docs/images/smart_observability.png)
+![Tetragon Overview Diagram](docs/static/images/smart_observability.png)
 
 ## Functionality Overview
 

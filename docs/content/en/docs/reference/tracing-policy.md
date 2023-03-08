@@ -1,4 +1,8 @@
-# Tracing Policy
+---
+title: "Tracing Policy"
+weight: 1
+description: "Reference for the TracingPolicy custom resource"
+---
 
 `TracingPolicy` is a user-configurable Kubernetes custom resource (CR) that
 allows users to trace arbitrary events in the kernel and optionally define
@@ -21,35 +25,6 @@ on kprobe spec.
 For bare metal or VM use cases without Kubernetes, the same YAML configuration
 can be passed via a flag to the Tetragon binary (using `--config-file`) or via
 the `tetra` CLI to load the policies via gRPC.
-
-#### Table Of Content
-
-* [Getting started with Cilium Tracing Policy](#getting-started-with-cilium-tracing-policy)
-* [Arguments](#arguments)
-* [Selectors](#selectors)
-    * [Arguments filter](#arguments-filter)
-    * [Return args filter](#return-args-filter)
-    * [PIDs filter](#pids-filter)
-    * [Binaries filter](#binaries-filter)
-    * [Namespaces filter](#namespaces-filter)
-    * [Capabilities filter](#capabilities-filter)
-    * [Namespace changes filter](#namespace-changes-filter)
-    * [Capability changes filter](#capability-changes-filter)
-    * [Actions filter](#actions-filter)
-        * [Sigkill action](#sigkill-action)
-        * [Override action](#override-action)
-        * [FollowFD action](#followfd-action)
-        * [UnfollowFD action](#unfollowfd-action)
-        * [CopyFD action](#copyfd-action)
-        * [GetUrl action](#geturl-action)
-        * [DnsLookup action](#dnslookup-action)
-        * [Post action](#post-action)
-* [Selector Semantics](#selector-semantics)
-    * [Multiple values](#multiple-values)
-    * [Multiple operators](#multiple-operators)
-        * [Operator types](#operator-types)
-    * [Multiple selectors](#multiple-selectors)
-        * [Limitations](#limitations)
 
 ### Getting started with Cilium Tracing Policy
 
