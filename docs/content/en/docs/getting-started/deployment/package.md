@@ -1,6 +1,8 @@
-# Package Deployment
-
-This document will guide you through installing Tetragon on your Linux host machines.
+---
+title: "Package deployment"
+weight: 2
+description: "Install Tetragon on your Linux host machines with systemd"
+---
 
 ## Requirement
 
@@ -23,8 +25,8 @@ Tetragon will be managed as a systemd service.
 Default configurations are shipped with Tetragon packages that local administrators
 can override by using their own configurations inside `/etc/tetragon/` directory.
 
-To read more about how configurations are handled please check [Tetragon Configuration doc](../../configuration/README.md).
-
+To read more about how configurations are handled please check the
+[Configuration](/docs/getting-started/documentation) documentation.
 
 ## Linux Binary Tarball
 
@@ -44,7 +46,7 @@ TODO complete.
 
 2. Install Tetragon
 
-   ```bash
+   ```shell
    tar -xvf tetragon-v0.8.3-amd64.tar.gz
    cd tetragon-v0.8.3-amd64/
    sudo ./install.sh
@@ -52,9 +54,11 @@ TODO complete.
 
 3. Check Tetragon service
 
-   ```bash
+   ```shell
    sudo systemctl status tetragon
    ```
+
+   The output should be similar to:
 
    ```
    ● tetragon.service - Tetragon eBPF-based Security Observability and Runtime Enforcement
@@ -79,13 +83,13 @@ To update Tetragon:
 
 2. Stop Tetragon service
 
-   ```bash
+   ```shell
    sudo systemctl stop tetragon
    ```
 
 3. Remove old Tetragon version
 
-   ```bash
+   ```shell
    sudo rm -fr /usr/lib/systemd/system/tetragon.service
    sudo rm -fr /usr/local/bin/tetragon
    sudo rm -fr /usr/local/lib/tetragon/
@@ -93,7 +97,7 @@ To update Tetragon:
 
 4. Install new Tetragon version
 
-   ```bash
+   ```shell
    tar -xvf tetragon-v0.8.4-amd64.tar.gz
    cd tetragon-v0.8.4-amd64/
    sudo ./install.sh
@@ -104,8 +108,10 @@ To update Tetragon:
 By default Tetragon configuration will be installed in
 `/usr/local/lib/tetragon/tetragon.conf.d/`.
 
-If you want to change the configuration, then add your drop-ins inside `/etc/tetragon/tetragon.conf.d/` to override the default
-settings. For further details and examples, please check [Tetragon Configuration doc](../../configuration/README.md).
+If you want to change the configuration, then add your drop-ins inside
+`/etc/tetragon/tetragon.conf.d/` to override the default settings. For further
+details and examples, please check the
+[Configuration](/docs/getting-started/documentation) documentation.
 
 To restore default settings, remove any added configuration inside
 `/etc/tetragon/`.
@@ -117,13 +123,13 @@ To remove Tetragon:
 
 Run the `uninstall.sh` script that is provided inside the tarball.
 
-   ```bash
+   ```shell
    sudo ./uninstall.sh
    ```
 
 Or manually:
 
-   ```bash
+   ```shell
    sudo systemctl stop tetragon
    sudo systemctl disable tetragon
    sudo rm -fr /usr/lib/systemd/system/tetragon.service
@@ -135,10 +141,9 @@ Or manually:
 
 To purge custom settings:
 
-   ```bash
+   ```shell
    sudo rm -fr /etc/tetragon/
    ```
-
 
 ## Tetragon Events
 
@@ -147,18 +152,24 @@ Logs are always rotated into the same directory.
 
 To read real-time JSON events, tailing the logs file is enough.
 
-   ```bash
+   ```shell
    sudo tail -f /var/log/tetragon/tetragon.log
    ```
 
-Tetragon also ships a GRPC client that can be used to receive events.
+Tetragon also ships a gRPC client that can be used to receive events.
 
-1. To print events in `json` format using `tetra` GRPC client:
-   ```
+1. To print events in `json` format using `tetra` gRPC client:
+   ```shell
    sudo tetra --server-address "unix:///var/run/tetragon/tetragon.sock" getevents
    ```
 
 2. To print events in human compact format:
-   ```
+   ```shell
    sudo tetra --server-address "unix:///var/run/tetragon/tetragon.sock" getevents -o compact
    ```
+
+## What's next
+
+See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+to learn more about how to see the Tetragon events.
+
