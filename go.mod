@@ -20,8 +20,8 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mennanov/fmutils v0.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.12.2
-	github.com/prometheus/client_model v0.2.1-0.20210607210712-147c58e9608a
+	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_model v0.3.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
@@ -107,8 +107,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/common v0.32.1 // indirect
-	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/prometheus/common v0.37.0 // indirect
+	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
