@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 
 	hubble "github.com/cilium/hubble/pkg/cilium"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"

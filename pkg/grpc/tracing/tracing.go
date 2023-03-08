@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -58,6 +59,11 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
+		}
+		// retry get process and parent from /proc
+		proc := procevents.RetryRunningProcByPid(event.ProcessKey.Pid)
+		if proc != nil {
+			procevents.RetryRunningProcByPid(proc.GetPPid())
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
@@ -247,6 +253,11 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
+		// retry get process and parent from /proc
+		proc := procevents.RetryRunningProcByPid(msg.ProcessKey.Pid)
+		if proc != nil {
+			procevents.RetryRunningProcByPid(proc.GetPPid())
+		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
@@ -380,6 +391,11 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
+		}
+		// retry get process and parent from /proc
+		proc := procevents.RetryRunningProcByPid(msg.ProcessKey.Pid)
+		if proc != nil {
+			procevents.RetryRunningProcByPid(proc.GetPPid())
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
