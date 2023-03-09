@@ -16,12 +16,6 @@ on:
       - 'Dockerfile.clang'
       - '.github/workflows/build-clang-image.yaml'
 
-permissions:
-  # To be able to access the repository with `actions/checkout`
-  contents: read
-  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
-  id-token: write
-
 jobs:
   build-and-push:
     runs-on: ubuntu-20.04
@@ -29,6 +23,8 @@ jobs:
     permissions:
       # To be able to access the repository with `actions/checkout`
       contents: read
+      # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+      id-token: write
     steps:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
@@ -75,41 +71,19 @@ jobs:
           tags: |
             quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
 
-  sign-and-sbom:
-    permissions:
-      # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
-      id-token: write
-    environment: release-clang
-    name: Sign image and generate SBOM
-    if: github.event_name == 'push'
-    needs: build-and-push
-    runs-on: ubuntu-20.04
-    steps:
       - name: Install Cosign
+        if: github.event_name == 'push'
         uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
 
-      - name: Checkout Source Code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-
-      - name: Login to quay.io
-        if: github.event_name == 'push'
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_CLANG_RELEASE_USERNAME }}
-          password: ${{ secrets.QUAY_CLANG_RELEASE_PASSWORD }}
-
       - name: Sign Container Image
-        if: steps.tag-in-repositories.outputs.exists == 'false'
+        if: github.event_name == 'push' && steps.tag-in-repositories.outputs.exists == 'false'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Install Bom
+        if: github.event_name == 'push'
         shell: bash
         run: |
           curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
@@ -117,6 +91,7 @@ jobs:
           sudo chmod +x /usr/local/bin/bom
 
       - name: Generate SBOM
+        if: github.event_name == 'push'
         shell: bash
         # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
         run: |
@@ -125,11 +100,12 @@ jobs:
           --image=quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
 
       - name: Attach SBOM to container image
+        if: github.event_name == 'push'
         run: |
           cosign attach sbom --sbom sbom_clang_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Sign SBOM Image
-        if: steps.tag-in-repositories.outputs.exists == 'false'
+        if: github.event_name == 'push' && steps.tag-in-repositories.outputs.exists == 'false'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
@@ -139,6 +115,7 @@ jobs:
           cosign sign "quay.io/${{ github.repository_owner }}/clang@${docker_build_release_sbom_digest}"
 
       - name: Image Release Digest
+        if: github.event_name == 'push'
         shell: bash
         run: |
           mkdir -p image-digest/
@@ -146,7 +123,6 @@ jobs:
           job_name_capital=${job_name^^}
           job_name_underscored=${job_name_capital//-/_}
           echo "${job_name_underscored}_DIGEST := \"${{ steps.docker_build_release.outputs.digest }}\"" > image-digest/makefile-digest.txt
-
           echo "### clang" > image-digest/clang.txt
           echo "" >> image-digest/clang.txt
           echo "\`quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_release.outputs.digest }}\`" >> image-digest/clang.txt
@@ -154,6 +130,7 @@ jobs:
 
       # Upload artifact digests
       - name: Upload artifact digests
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
         with:
           name: image-digest clang
@@ -164,7 +141,7 @@ jobs:
     if: github.event_name == 'push' && github.repository == 'cilium/tetragon'
     name: Display Digests
     runs-on: ubuntu-20.04
-    needs: sign-and-sbom
+    needs: build-and-push
     steps:
       - name: Downloading Image Digests
         shell: bash
