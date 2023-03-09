@@ -410,6 +410,13 @@ func loadObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, sens 
 		}
 		t.Fatalf("LoadConfig error: %s\n", err)
 	}
+
+	t.Cleanup(func() {
+		if err := sens.Unload(); err != nil {
+			t.Errorf("failed to unload sensor: %s", err)
+		}
+	})
+
 	return nil
 }
 
