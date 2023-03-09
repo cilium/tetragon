@@ -43,8 +43,6 @@ import (
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
 	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
-	"github.com/cilium/tetragon/pkg/watcher/crd"
-
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
@@ -305,7 +303,7 @@ func tetragonExecute() error {
 	obs.AddListener(pm)
 	saveInitInfo()
 	if option.Config.EnableK8s {
-		go crd.WatchTracePolicy(ctx, observer.SensorManager)
+		//go crd.WatchTracePolicy(ctx, observer.SensorManager)
 	}
 
 	obs.LogPinnedBpf(observerDir)
@@ -338,6 +336,23 @@ func tetragonExecute() error {
 	// k8s should have metrics, so periodically log only in a non k8s
 	if option.Config.EnableK8s == false {
 		go logStatus(ctx, obs)
+	}
+
+	for _, yamlData := range defaultTracingPolicies {
+		policy, err := config.ReadConfigYaml(string(yamlData))
+		if err != nil {
+			return err
+		}
+		sens, err := sensors.GetMergedSensorFromParserPolicy(policy.TpName(), &policy.Spec)
+		if err != nil {
+			return err
+		}
+
+		// NB: simlarly to the base sensor we are loading this
+		// statically (instead of the sensor manager).
+		if err := sens.Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
+			return err
+		}
 	}
 
 	return obs.Start(ctx)
