@@ -79,6 +79,7 @@ jobs:
     permissions:
       # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
       id-token: write
+    environment: release-clang
     name: Sign image and generate SBOM
     if: github.event_name == 'push'
     needs: build-and-push
@@ -86,6 +87,20 @@ jobs:
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
+
+      - name: Checkout Source Code
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Login to quay.io
+        if: github.event_name == 'push'
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_CLANG_RELEASE_USERNAME }}
+          password: ${{ secrets.QUAY_CLANG_RELEASE_PASSWORD }}
 
       - name: Sign Container Image
         if: steps.tag-in-repositories.outputs.exists == 'false'
