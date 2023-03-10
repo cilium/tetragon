@@ -969,46 +969,21 @@ struct {
 		});
 } sel_names_map SEC(".maps");
 
-static inline __attribute__((always_inline)) int
-selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
+static inline __attribute__((always_inline)) int match_binaries(void *sel_names, __u32 selidx)
 {
-	struct selector_arg_filter *filter;
-	long seloff, argoff, pass;
-	__u32 index;
-	char *args, *binaries_map;
-
-	seloff = 4; /* start of the relative offsets */
-	seloff += (selidx * 4); /* relative offset for this selector */
-
-	/* selector section offset by reading the relative offset in the array */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-
-	/* skip the selector size field */
-	seloff += 4;
-	/* skip the matchPids section by reading its length */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-	/* skip the matchNamespaces section by reading its length*/
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-	/* skip matchCapabilitiess section by reading its length */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-	/* skip the matchNamespaceChanges by reading its length */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-	/* skip the matchCapabilityChanges by reading its length */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	void *binaries_map;
+	struct execve_map_value *execve;
+	__u32 *op, max = 0xffffffff; // UINT32_MAX
+	__u32 ppid, bin_key, *bin_val;
+	bool walker = 0;
 
 	// if binaries_map is NULL for the specific selidx, this
 	// means that the specific selector does not contain any
 	// matchBinaries actions. So we just proceed.
-	binaries_map = map_lookup_elem(&sel_names_map, &selidx);
+	binaries_map = map_lookup_elem(sel_names, &selidx);
 	if (binaries_map) {
-		__u32 *op, max = 0xffffffff; // UINT32_MAX
-
 		op = map_lookup_elem(binaries_map, &max);
 		if (op) {
-			struct execve_map_value *execve;
-			bool walker = 0;
-			__u32 ppid, bin_key, *bin_val;
-
 			execve = event_find_curr(&ppid, &walker);
 			if (!execve)
 				return 0;
@@ -1032,6 +1007,40 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 			}
 		}
 	}
+
+	return 1;
+}
+
+static inline __attribute__((always_inline)) int
+selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
+{
+	struct selector_arg_filter *filter;
+	long seloff, argoff, pass;
+	__u32 index;
+	char *args;
+
+	seloff = 4; /* start of the relative offsets */
+	seloff += (selidx * 4); /* relative offset for this selector */
+
+	/* selector section offset by reading the relative offset in the array */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
+	/* skip the selector size field */
+	seloff += 4;
+	/* skip the matchPids section by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchNamespaces section by reading its length*/
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip matchCapabilitiess section by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchNamespaceChanges by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* skip the matchCapabilityChanges by reading its length */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
+	// check for match binary actions
+	if (!match_binaries(&sel_names_map, selidx))
+		return 0;
 
 	/* Making binary selectors fixes size helps on some kernels */
 	seloff &= INDEX_MASK;
