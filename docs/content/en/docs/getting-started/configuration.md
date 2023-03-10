@@ -66,12 +66,11 @@ default installed configuration.
 
 ### What's next
 
-The
-[tetragon.yaml](https://github.com/cilium/tetragon/blob/main/docs/configuration/tetragon.yaml)
+The [tetragon.yaml](https://github.com/cilium/tetragon/blob/main/examples/configuration/tetragon.yaml)
 contains example entries showing the defaults as a guide to the administrator.
 Local overrides can be created by editing and copying this file into
 `/etc/tetragon/tetragon.yaml`, or by editing and copying "drop-ins" from the
-[tetragon.conf.d](https://github.com/cilium/tetragon/tree/main/docs/configuration/tetragon.conf.d)
+[tetragon.conf.d](https://github.com/cilium/tetragon/tree/main/examples/configuration/tetragon.conf.d)
 directory into the `/etc/tetragon/tetragon.conf.d/` subdirectory. The latter is
 generally recommended. Defaults can be restored by simply deleting this file
 and all drop-ins.

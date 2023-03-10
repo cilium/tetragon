@@ -15,7 +15,7 @@ metadata:
 # they will be killed.
 #
 # To test load Tetragon with this CRD:
-#   sudo ./tetragon --bpf-lib bpf/objs/ --config-file crds/sandbox/linux-namespaces/kill_unprivileged_user_namespace.yaml
+#   sudo ./tetragon --bpf-lib bpf/objs/ --config-file examples/sandbox/linux-namespaces/kill_unprivileged_user_namespace.yaml
 #
 # Then run:
 #   sudo ./contrib/tester-progs/sigkill-unprivileged-user-ns-tester

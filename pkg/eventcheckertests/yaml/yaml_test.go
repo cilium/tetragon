@@ -23,7 +23,7 @@ var examplesDir string
 
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
-	examplesDir = filepath.Join(filepath.Dir(filename), "../../../crds/eventchecker/examples")
+	examplesDir = filepath.Join(filepath.Dir(filename), "../../../examples/eventchecker")
 }
 
 // Read a template file and apply data to it, returning the restulting string
