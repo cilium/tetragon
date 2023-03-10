@@ -7,7 +7,7 @@ description: "Monitor TCP connect using kprobe hooks"
 To view TCP connect events, apply the example TCP connect `TracingPolicy`:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/tcp-connect.yaml
+kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/tcp-connect.yaml
 ```
 
 To start monitoring events in the `xwing` pod run the Tetragon CLI:
@@ -32,5 +32,5 @@ The output in the first terminal will capture the new connect and write,
 
 To disable the TracingPolicy run:
 ```bash
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/tcp-connect.yaml
+kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/tcp-connect.yaml
 ```

@@ -632,7 +632,7 @@ matchNamespaceChanges:
 
 The `unshare` command, or executing in the host namespace using `nsenter` can
 be used to test this feature. See a
-[demonstration example](https://github.com/cilium/tetragon/blob/c511bf632ee58d401aa0f0cf1df50b33760515e3/crds/examples/match_namespace_changes.yaml)
+[demonstration example](https://github.com/cilium/tetragon/main/examples/tracingpolicy/match_namespace_changes.yaml)
 of this feature.
 
 #### Capability changes filter
@@ -654,7 +654,7 @@ matchCapabilityChanges:
   - "CAP_SETUID"
 ```
 
-See a [demonstration example](https://github.com/cilium/tetragon/blob/c511bf632ee58d401aa0f0cf1df50b33760515e3/crds/examples/match_capability_changes.yaml)
+See a [demonstration example](https://github.com/cilium/tetragon/main/examples/tracingpolicy/match_capability_changes.yaml)
 of this feature.
 
 #### Actions filter

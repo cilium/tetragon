@@ -17,7 +17,7 @@ specify additional directories or specific files if needed.
 As a first step, let's apply the following `TracingPolicy`:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/sys_write_follow_fd_prefix.yaml
+kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/sys_write_follow_fd_prefix.yaml
 ```
 
 As a second step, let's start monitoring the events from the `xwing` pod:
@@ -123,6 +123,6 @@ the arguments of the observed system call. In the above case they are
 To disable the `TracingPolicy` run:
 
 ```bash
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/crds/examples/sys_write_follow_fd_prefix.yaml
+kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/sys_write_follow_fd_prefix.yaml
 ```
 
