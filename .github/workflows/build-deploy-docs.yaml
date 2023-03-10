@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'docs/**'
-  pull_request_target:
+  pull_request:
     paths:
       - 'docs/**'
       - '.github/workflows/build-deploy-docs.yaml'
@@ -41,16 +41,18 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Install Node dependencies
+        working-directory: docs
         run: npm ci
 
       - name: Build the Hugo website
+        working-directory: docs
         run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
 
       - name: Upload artifact
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@253fd476ed429e83b7aae64a92a75b4ceb1a17cf
         with:
-          path: ./public
+          path: docs/public
 
   deploy:
     if: github.event_name == 'push'
