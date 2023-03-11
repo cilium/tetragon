@@ -20,6 +20,7 @@ type config struct {
 	BTF             string
 	Verbosity       int
 	ForceSmallProgs bool
+	ForceLargeProgs bool
 
 	EnableCilium      bool
 	EnableProcessNs   bool

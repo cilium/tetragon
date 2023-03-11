@@ -70,7 +70,7 @@ func hasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 // syscalls). We still keep this code in the btf package for now, and we can
 // move it once we found a better home for it.
 func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
-	if hasSigkillAction(kspec) && !kernels.MinKernelVersion("5.3.0") {
+	if hasSigkillAction(kspec) && !kernels.EnableLargeProgs() {
 		return &ValidationFailed{s: "sigkill action requires kernel >= 5.3.0"}
 	}
 

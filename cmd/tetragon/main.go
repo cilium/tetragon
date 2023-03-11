@@ -140,6 +140,18 @@ func tetragonExecute() error {
 	log.WithField("version", version.Version).Info("Starting tetragon")
 	log.WithField("config", viper.AllSettings()).Info("config settings")
 
+	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
+		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
+	}
+
+	if option.Config.ForceLargeProgs {
+		log.Info("Force loading large programs")
+	}
+
+	if option.Config.ForceSmallProgs {
+		log.Info("Force loading smallprograms")
+	}
+
 	if viper.IsSet(keyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(keyNetnsDir)
 	}
@@ -555,6 +567,7 @@ func execute() error {
 	flags.Int(keyProcessCacheSize, 65536, "Size of the process cache")
 	flags.Int(keyDataCacheSize, 1024, "Size of the data events cache")
 	flags.Bool(keyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
+	flags.Bool(keyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")
 	flags.String(keyExportFilename, "", "Filename for JSON export. Disabled by default")
 	flags.Int(keyExportFileMaxSizeMB, 10, "Size in MB for rotating JSON export files")
 	flags.Duration(keyExportFileRotationInterval, 0, "Interval at which to rotate JSON export files in addition to rotating them by size")
