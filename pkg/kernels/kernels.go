@@ -132,6 +132,9 @@ func EnableLargeProgs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
 	}
+	if option.Config.ForceLargeProgs {
+		return true
+	}
 	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= KernelStringToNumeric("5.3.0"))
 }

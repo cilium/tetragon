@@ -21,6 +21,7 @@ const (
 	keyProcessCacheSize = "process-cache-size"
 	keyDataCacheSize    = "data-cache-size"
 	keyForceSmallProgs  = "force-small-progs"
+	keyForceLargeProgs  = "force-large-progs"
 
 	keyLogLevel  = "log-level"
 	keyLogFormat = "log-format"
@@ -79,6 +80,7 @@ func readAndSetFlags() {
 	option.Config.KernelVersion = viper.GetString(keyKernelVersion)
 	option.Config.Verbosity = viper.GetInt(keyVerbosity)
 	option.Config.ForceSmallProgs = viper.GetBool(keyForceSmallProgs)
+	option.Config.ForceLargeProgs = viper.GetBool(keyForceLargeProgs)
 	option.Config.Debug = viper.GetBool(keyDebug)
 
 	option.Config.EnableProcessCred = viper.GetBool(keyEnableProcessCred)
