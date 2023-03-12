@@ -348,6 +348,12 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
+	for _, ms := range spec.Maps {
+		if max, ok := load.MaxEntriesMap[ms.Name]; ok {
+			ms.MaxEntries = max
+		}
+	}
+
 	// Find all the maps referenced by the program, so we'll rewrite only
 	// the ones used.
 	var progSpec *ebpf.ProgramSpec

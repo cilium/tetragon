@@ -203,6 +203,10 @@ func (s *Sensor) loadMaps(stopCtx context.Context, mapDir string) error {
 			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
 		}
 
+		if max, ok := m.Prog.MaxEntriesMap[mapSpec.Name]; ok {
+			mapSpec.MaxEntries = max
+		}
+
 		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 		}
