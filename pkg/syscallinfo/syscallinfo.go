@@ -43,6 +43,15 @@ var syscallIDs = func() map[string]int {
 	return ret
 }()
 
+func SyscallsNames() []string {
+	ret := make([]string, len(syscallNames))
+
+	for _, v := range syscallNames {
+		ret = append(ret, v)
+	}
+	return ret
+}
+
 // GetSyscallID returns the id of a syscall based on its name
 // returns -1, if no system call was found
 func GetSyscallID(sysName string) int {
