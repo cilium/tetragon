@@ -231,6 +231,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
 	maps = append(maps, selNamesMap)
 
+	filterMap.SetMaxEntries(len(multiIDs))
+	configMap.SetMaxEntries(len(multiIDs))
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -248,6 +251,8 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
 		maps = append(maps, retConfigMap)
+
+		retConfigMap.SetMaxEntries(len(multiRetIDs))
 	}
 
 	return progs, maps
@@ -268,7 +273,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 	// - multiple kprobes are defined
 	useMulti = !option.Config.DisableKprobeMulti &&
 		bpf.HasKprobeMulti() &&
-		len(kprobes) > 1 && len(kprobes) < MaxKprobesMulti
+		len(kprobes) > 1
 
 	for i := range kprobes {
 		f := &kprobes[i]

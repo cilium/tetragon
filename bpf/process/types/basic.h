@@ -148,11 +148,8 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 {
 	return (__u32)get_attach_cookie(ctx);
 }
-
-#define MAX_ENTRIES_CONFIG 100 /* MaxKprobesMulti in go code */
 #else
-#define get_index(ctx)	   0
-#define MAX_ENTRIES_CONFIG 1
+#define get_index(ctx) 0
 #endif
 
 // Filter tailcalls are {kprobe,tracepoint}/{6,7,8,9,10}
