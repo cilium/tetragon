@@ -94,6 +94,10 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		log.Fatal(err)
 	}
 
+	if err := observer.InitDataCache(1024); err != nil {
+		log.Fatal(err)
+	}
+
 	listener := &benchmarkListener{
 		ctx:      ctx,
 		observer: obs,
