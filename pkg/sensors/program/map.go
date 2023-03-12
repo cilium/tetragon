@@ -167,3 +167,7 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, er
 
 	return m, nil
 }
+
+func (m *Map) SetMaxEntries(max int) {
+	m.Prog.MaxEntriesMap[m.Name] = uint32(max)
+}
