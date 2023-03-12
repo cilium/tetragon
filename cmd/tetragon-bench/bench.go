@@ -24,6 +24,7 @@ var (
 
 	traceBench *string
 	crd        *string
+	csv        *string
 )
 
 func init() {
@@ -34,6 +35,7 @@ func init() {
 	storeEvents = flag.Bool("store", false, "store events in JSON to stdout")
 	traceBench = flag.String("trace", "none", "trace benchmark to run, one of: "+strings.Join(bench.TraceBenchSupported(), ", "))
 	crd = flag.String("crd", "none", "crd to start tetragon with")
+	csv = flag.String("csv", "none", "store stats to CSV file")
 }
 
 func main() {
@@ -92,6 +94,10 @@ func main() {
 	}
 
 	summary := bench.RunTraceBench(args)
+
+	if *csv != "none" {
+		summary.CSVPrint(*csv)
+	}
 
 	summary.PrettyPrint()
 	if summary.Error != "" {

@@ -4,6 +4,7 @@
 package bench
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -120,4 +121,42 @@ func newSummary(args *Arguments) *Summary {
 		StartTime: time.Now(),
 		Args:      args,
 	}
+}
+
+func (s *Summary) CSVPrint(path string) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+
+	records := [][]string{
+		{"Workload duration",
+			fmt.Sprintf("%v", s.EndTime.Sub(s.RunTime)),
+			fmt.Sprintf("%d", s.EndTime.Sub(s.RunTime)),
+		},
+		{"Tetragon SystemTime",
+			fmt.Sprintf("%v", s.TetragonCPUUsage.SystemTime),
+			fmt.Sprintf("%d", s.TetragonCPUUsage.SystemTime),
+		},
+		{"Tetragon UserTime",
+			fmt.Sprintf("%v", s.TetragonCPUUsage.UserTime),
+			fmt.Sprintf("%d", s.TetragonCPUUsage.UserTime),
+		},
+		{"Tetragon MaxRss", fmt.Sprintf("%d", s.TetragonCPUUsage.MaxRss)},
+		{"Tetragon ContextSwitches", fmt.Sprintf("%d", s.TetragonCPUUsage.ContextSwitches)},
+	}
+	w.WriteAll(records)
+
+	if !s.Args.Baseline {
+		records = [][]string{
+			{"Received", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventReceived.WithLabelValues()))},
+			{"Lost", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventLost.WithLabelValues()))},
+			{"Errors", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventErrors.WithLabelValues()))},
+		}
+		w.WriteAll(records)
+	}
+	return w.Error()
 }
