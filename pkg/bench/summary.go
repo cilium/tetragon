@@ -123,7 +123,7 @@ func newSummary(args *Arguments) *Summary {
 	}
 }
 
-func (s *Summary) CSVPrint(path string) error {
+func (s *Summary) CSVPrint(path, name string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
@@ -133,6 +133,7 @@ func (s *Summary) CSVPrint(path string) error {
 	w := csv.NewWriter(f)
 
 	records := [][]string{
+		{"Name", name},
 		{"Workload duration",
 			fmt.Sprintf("%v", s.EndTime.Sub(s.RunTime)),
 			fmt.Sprintf("%d", s.EndTime.Sub(s.RunTime)),
