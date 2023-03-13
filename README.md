@@ -102,15 +102,15 @@ a chance to complete the syscall and potentially run additional syscalls.
 
 ## Local Development
 
-For getting started with local development, you can refer to the [Contribution Guide](https://cilium.github.io/tetragon/docs/contribution-guide/).
+For getting started with local development, you can refer to the [Contribution Guide](https://tetragon.cilium.io/docs/contribution-guide/).
 
 ## Docker Deployment
 
-For getting started without having to deploy on a Kubernetes cluster, please refer to the [Docker deployment guide](https://cilium.github.io/tetragon/docs/getting-started/deployment/container/)
+For getting started without having to deploy on a Kubernetes cluster, please refer to the [Docker deployment guide](https://tetragon.cilium.io/docs/getting-started/deployment/container/)
 
 ## Package deployment
 
-For deploying Tetragon as a systemd service, please refer to the [Package deployment guide](https://cilium.github.io/tetragon/docs/getting-started/deployment/package/)
+For deploying Tetragon as a systemd service, please refer to the [Package deployment guide](https://tetragon.cilium.io/docs/getting-started/deployment/package/)
 
 ## Kubernetes Quickstart Guide
 
@@ -537,7 +537,7 @@ cases without Kubernetes, the same YAML configuration can be passed via a flag
 to the Tetragon binary or via the `tetra` CLI to load the policies via gRPC.
 
 For more information on `TracingPolicy` and how to write them, see the
-[`TracingPolicy` Guide](https://cilium.github.io/tetragon/docs/reference/tracing-policy/).
+[`TracingPolicy` Guide](https://tetragon.cilium.io/docs/reference/tracing-policy/).
 
 #### Use case 1: File Access
 
@@ -718,7 +718,7 @@ we provide a standard VagrantFile with the required components enabled. Simply r
  $ vagrant ssh
  ```
 
-This should be sufficient to create a Kind cluster and run Tetragon. For more information on the vagrant builds, see the [Development Guide](https://cilium.github.io/tetragon/docs/contribution-guide/development-setup/#local-development-in-vagrant-box).
+This should be sufficient to create a Kind cluster and run Tetragon. For more information on the vagrant builds, see the [Development Guide](https://tetragon.cilium.io/docs/contribution-guide/development-setup/#local-development-in-vagrant-box).
 
 ## Verify Tetragon Image Signatures
 
@@ -774,7 +774,7 @@ repository from the `Issuer` and `Subject` fields of the output.
 **Q:** Can I install and use Tetragon in standalone mode (outside of k8s)?
 
 **A:** Yes! You can run `make` to generate standalone binaries and run them directly.
-Make sure to take a look at the [Development Setup](https://cilium.github.io/tetragon/docs/contribution-guide/development-setup/)
+Make sure to take a look at the [Development Setup](https://tetragon.cilium.io/docs/contribution-guide/development-setup/)
 guide for the build requirements. Then use `sudo ./tetragon --bpf-lib bpf/objs`
 to run Tetragon.
 
