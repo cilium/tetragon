@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -55,6 +56,18 @@ import (
 //  without having to check all policies. Note that this would have to account for new
 //  policies added. Since we are only matching on namespace, we iterate over all policies for now
 //  since the performance impact of above optimization would be small.
+
+func init() {
+	podhooks.RegisterCallbacksAtInit(podhooks.Callbacks{
+		PodCallbacks: func(podInformer cache.SharedIndexInformer) {
+			// register pod handlers for policyfilters
+			if pfState, err := GetState(); err == nil {
+				logger.GetLogger().Info("registering policyfilter pod handlers")
+				pfState.RegisterPodHandlers(podInformer)
+			}
+		},
+	})
+}
 
 const (
 	// polMapSize is the number of entries for the (inner) policy map. It
