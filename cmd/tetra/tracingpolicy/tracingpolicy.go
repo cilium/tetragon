@@ -41,7 +41,6 @@ func New() *cobra.Command {
 			})
 		},
 	}
-	tpCmd.AddCommand(tpAddCmd)
 
 	tpListCmd := &cobra.Command{
 		Use:   "list",
