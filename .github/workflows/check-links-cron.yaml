@@ -1,0 +1,53 @@
+name: Periodically check docs links
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/check-links-cron.yaml'
+
+jobs:
+  links-checker:
+    env:
+      ISSUE_NAME: 'Documentation: broken links automatic report'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        with:
+          fetch-depth: 0         # Fetch all history for .GitInfo and .Lastmod
+
+      - name: Links Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@9ace499fe66cee282a29eaa628fdac2c72fa087f
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          args: --base https://tetragon.cilium.io docs/content README.md
+
+      # to avoid automated spam, try to find an existing open issue before opening a new one
+      - name: Search for existing issue number
+        id: search-issue
+        run: |
+          encoded_issue_name=$(echo "$ISSUE_NAME" | sed 's/ /%20/g')
+          response=$(curl -s -X GET "https://api.github.com/search/issues?q=$encoded_issue_name+repo:cilium/tetragon+state:open+label:automated-issue&type=Issues")
+          issue_number=$(echo "$response" | jq -r '.items[0].number // empty')
+          echo "issue_number=$issue_number" >> $GITHUB_OUTPUT
+
+      - name: Create or update issue with report
+        if: env.lychee_exit_code != 0
+        uses: peter-evans/create-issue-from-file@433e51abf769039ee20ba1293a088ca19d573b7f
+        with:
+          title: ${{ env.ISSUE_NAME }}
+          content-filepath: ./lychee/out.md
+          issue-number: ${{ steps.search-issue.outputs.issue_number }}
+          labels: automated-issue
+
+      - name: Close automated issue
+        if: env.lychee_exit_code == 0 && steps.search-issue.outputs.issue_number != ''
+        uses: peter-evans/close-issue@1373cadf1f0c96c1420bc000cfba2273ea307fd1
+        with:
+          issue-number: ${{ steps.search-issue.outputs.issue_number }}
+          comment: '[Periodic links check](https://github.com/cilium/tetragon/actions/workflows/check-links-cron.yaml) no longer finds broken links, closing issue.'

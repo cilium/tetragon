@@ -1,0 +1,47 @@
+name: Check docs links
+
+on:
+  pull_request:
+    paths:
+      - 'docs/content/**.md'
+      - '.github/workflows/check-links-pr.yaml'
+
+jobs:
+  links-checker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        with:
+          fetch-depth: 0         # Fetch all history for .GitInfo and .Lastmod
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@16361eb4acea8698b220b76c0d4e84e1fd22c61d
+        with:
+          hugo-version: '0.111.2'
+          extended: true
+
+      - name: Serve the Hugo website
+        working-directory: docs
+        run: hugo server &
+
+      - name: Wait for server to be ready
+        uses: nick-invision/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd
+        with:
+          timeout_seconds: 2
+          max_attempts: 10
+          retry_wait_seconds: 3
+          command: |
+            set -e
+            curl -s http://localhost:1313 > /dev/null
+
+      - name: Links Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@9ace499fe66cee282a29eaa628fdac2c72fa087f
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          args: --base http://localhost:1313 --exclude cilium.herokuapp.com docs/content
+          fail: true
+          format: json
+
