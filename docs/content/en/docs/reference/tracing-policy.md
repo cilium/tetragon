@@ -615,9 +615,15 @@ This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
 
 Namespace changes filter can be specified under the `matchNamespaceChanges`
 field and provide filtering based on calls that are changing Linux namespaces.
-This filter can be especially useful to track container escape or execution of
-code in a new namespace, for example using user namespace to exploit root-only
-kernel features.
+This filter can be useful to track execution of code in a new namespace or even
+container escapes that change their namespaces.
+
+For instance, if an unprivileged process creates a new user namespace, it gains
+full privileges within that namespace. This grants the process the ability to
+perform some privileged operations within the context of this new namespace
+that would otherwise only be available to privileged root user. As a result, such
+filter is useful to track namespace creation, which can be abused by untrusted
+processes.
 
 To keep track of the changes, when a `process_exec` happens, the namespaces of
 the process are recorded and these are compared with the current namespaces on
@@ -639,7 +645,6 @@ of this feature.
 
 Capability changes filter can be specified under the `matchCapabilityChanges`
 field and provide filtering based on calls that are changing Linux capabilities.
-This filter can be especially useful to detect privilege escalation.
 
 To keep track of the changes, when a `process_exec` happens, the capabilities
 of the process are recorded and these are compared with the current
