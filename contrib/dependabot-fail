@@ -38,8 +38,9 @@ if __name__ == '__main__':
         print("cmd '%s' failed" % (' '.join(cmd),))
         sys.exit(1)
     out = json.loads(cmd_res.stdout)
-    if out.get('author', {}).get('login', "") != "dependabot":
-        print("author of PR '%s' does not seem to be dependabot" % (pr,))
+    login = out.get('author', {}).get('login', "(unable to get login for PR)")
+    if login not in ["dependabot","app/dependabot"]:
+        print("author of PR '%s' (%s) does not seem to be dependabot" % (pr,login))
         sys.exit(1)
 
     pr_title = out["title"]
