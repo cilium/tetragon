@@ -78,8 +78,8 @@ in` .pb.go`), do not modify them directly. Instead, you can edit the files in
 
 ### Building and running a Docker image
 
-The base kernel should support [BTF](../../../README.md#btf-requirement) or a
-BTF file should be bind mounted on top of `/var/lib/tetragon/btf` inside
+The base kernel should support [BTF](https://github.com/cilium/tetragon#btf-requirement)
+or a BTF file should be bind mounted on top of `/var/lib/tetragon/btf` inside
 container.
 
 To build Tetragon image:
@@ -111,10 +111,8 @@ make tarball
 ```
 
 The produced tarball will be inside directory `./build/`, then follow the
-[Package deployment guide][package-deployment] to install it as a systemd
-service.
-
-[package-deployment]: ../../deployment/package/README.md
+[Package deployment guide](/docs/getting-started/deployment/package/) to
+install it as a systemd service.
 
 ### Running Tetragon in kind
 
@@ -168,5 +166,5 @@ minikube ssh sudo "sh -c 'NODE_NAME=minikube /home/kkourt/src/tetragon/tetragon 
 
 ### What's next
 
-See how to [make your first changes](/docs/contribution-guide/making-changes/).
+See how to [make your first changes](/docs/contribution-guide/making-changes).
 
