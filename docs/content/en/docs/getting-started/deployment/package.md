@@ -26,7 +26,7 @@ Default configurations are shipped with Tetragon packages that local administrat
 can override by using their own configurations inside `/etc/tetragon/` directory.
 
 To read more about how configurations are handled please check the
-[Configuration](/docs/getting-started/documentation) documentation.
+[Configuration](/docs/getting-started/configuration) documentation.
 
 ## Linux Binary Tarball
 
@@ -111,7 +111,7 @@ By default Tetragon configuration will be installed in
 If you want to change the configuration, then add your drop-ins inside
 `/etc/tetragon/tetragon.conf.d/` to override the default settings. For further
 details and examples, please check the
-[Configuration](/docs/getting-started/documentation) documentation.
+[Configuration](/docs/getting-started/configuration) documentation.
 
 To restore default settings, remove any added configuration inside
 `/etc/tetragon/`.

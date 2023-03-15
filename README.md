@@ -20,7 +20,7 @@ When used in a Kubernetes environment, Tetragon is Kubernetes-aware - that is, i
 Kubernetes identities such as namespaces, pods and so-on - so that security event detection
 can be configured in relation to individual workloads.
 
-![Tetragon Overview Diagram](docs/static/images/smart_observability.png)
+![Tetragon Overview Diagram](https://github.com/cilium/tetragon/blob/main/docs/static/images/smart_observability.png)
 
 ## Functionality Overview
 
@@ -706,9 +706,9 @@ To check if BTF is enabled on your Linux system, the standard location is:
 $ ls /sys/kernel/btf/
 ```
 
-Otherwise Tetragon repository provides a [Vagrantfile](Vagrantfile) that can
-be used to install a vagrant box for running Tetragon with BTF requirement. Other VM solutions
-work as well.
+Otherwise Tetragon repository provides a [Vagrantfile](https://github.com/cilium/tetragon/blob/main/Vagrantfile)
+that can be used to install a vagrant box for running Tetragon with BTF
+requirement. Other VM solutions work as well.
 
 To run with [vagrant](https://learn.hashicorp.com/tutorials/vagrant/getting-started-index?in=vagrant/getting-started)
 we provide a standard VagrantFile with the required components enabled. Simply run,

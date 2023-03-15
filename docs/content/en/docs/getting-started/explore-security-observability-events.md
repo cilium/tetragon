@@ -5,7 +5,7 @@ description: "Learn how to start exploring the Tetragon events"
 ---
 
 After Tetragon and the [demo application is up and
-running](http://localhost:1313/docs/getting-started/kubernetes-quickstart-guide/#deploy-demo-application)
+running](/docs/getting-started/kubernetes-quickstart-guide/#deploy-the-demo-application)
 you can examine the security and observability events produced by Tetragon in
 different ways.
 
