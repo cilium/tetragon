@@ -29,7 +29,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"reflect"
 	"syscall"
 	"unsafe"
 
@@ -37,12 +36,13 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"golang.org/x/sys/unix"
 )
 
@@ -69,7 +69,7 @@ func init() {
 		name: "loader sensor",
 	}
 	sensors.RegisterProbeType("loader", loader)
-	sensors.RegisterSpecHandlerAtInit(loader.name, loader)
+	sensors.RegisterPolicyHandlerAtInit(loader.name, loader)
 
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_LOADER, handleLoader)
 }
@@ -86,23 +86,22 @@ func hasLoaderEvents() bool {
 	return bpf.HasBuildId() && kernels.MinKernelVersion("5.19.0")
 }
 
-func (k *loaderSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
-	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
-	if !ok {
-		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
-		if !ok {
-			return nil, nil
-		}
-		spec = &s
+func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfilter.PolicyID) (*sensors.Sensor, error) {
+	spec := p.TpSpec()
+	// NB: no loader section is the spec, so nothing to do
+	if !spec.Loader {
+		return nil, nil
 	}
-	if spec.Loader {
-		if !hasLoaderEvents() {
-			return nil, fmt.Errorf("Loader event are not supported on running kernel")
-		}
-		loaderEnabled = true
-		return GetLoaderSensor(), nil
+
+	if fid != policyfilter.NoFilterID {
+		return nil, fmt.Errorf("loader sensor does not implement policy filtering")
 	}
-	return nil, nil
+
+	if !hasLoaderEvents() {
+		return nil, fmt.Errorf("Loader event are not supported on running kernel")
+	}
+	loaderEnabled = true
+	return GetLoaderSensor(), nil
 }
 
 func createLoaderEvents() error {
