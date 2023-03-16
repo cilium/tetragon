@@ -1,5 +1,4 @@
 GO ?= go
-export TARGET_ARCH ?= amd64
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
 CONTAINER_ENGINE ?= docker
@@ -13,6 +12,25 @@ TESTER_PROGS_DIR = "contrib/tester-progs"
 # Extra flags to pass to test binary
 EXTRA_TESTFLAGS ?=
 SUDO ?= sudo
+
+# Architecture, use TARGET_ARCH=amd64 or TARGET_ARCH=arm64
+# or let uname detect the appropriate arch for native build
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+	TARGET_ARCH ?= amd64
+endif
+ifeq ($(UNAME_M),aarch64)
+	TARGET_ARCH ?= arm64
+endif
+TARGET_ARCH ?= amd64
+
+ifeq ($(TARGET_ARCH),amd64)
+	BPF_TARGET_ARCH ?= x86
+endif
+ifeq ($(TARGET_ARCH),arm64)
+	BPF_TARGET_ARCH ?= arm64
+endif
+BPF_TARGET_ARCH ?= x86
 
 BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 
@@ -84,11 +102,11 @@ GO_LDFLAGS = $(GO_LDFLAGS_STATIC)
 endif
 
 tetragon-bpf-local:
-	$(MAKE) -C ./bpf
+	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH)
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
-	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e TARGET_ARCH=$(TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
 .PHONY: verify
@@ -117,11 +135,11 @@ ksyms:
 
 .PHONY: tetragon-image tetragon-operator-image
 tetragon-image:
-	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
-	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
 
 tetragon-operator-image:
-	CGO_ENABLED=0 $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
 
 .PHONY: install
 install:
