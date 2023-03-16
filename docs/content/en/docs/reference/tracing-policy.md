@@ -52,10 +52,10 @@ spec:
     selectors:
     - matchArgs:
       - index: 1
-      operator: "Equal"
-      values:
-      - "/etc/passwd"
-      - "/etc/shadow"
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+        - "/etc/shadow"
 ```
 
 **First required fields**
@@ -217,10 +217,10 @@ is of type `file`.
 selectors:
 - matchArgs:
   - index: 1
-  operator: "Equal"
-  values:
-  - "/etc/passwd"
-  - "/etc/shadow"
+    operator: "Equal"
+    values:
+    - "/etc/passwd"
+    - "/etc/shadow"
 ```
 
 The available operators for `matchArgs` are:
@@ -237,9 +237,9 @@ In the previous example, we used the operator `Equal`, but we can also use the
 selectors:
 - matchArgs:
   - index: 1
-  operator: "Prefix"
-  values:
-  - "/etc"
+    operator: "Prefix"
+    values:
+    - "/etc"
 ```
 In this situation, an event will be created every time a process tries to
 access a file under `/etc`.
