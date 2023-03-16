@@ -1,0 +1,6 @@
+[build]
+  base = "docs/"
+  publish = "docs/public"
+  command = "npm ci && hugo"
+  environment = { HUGO_VERSION = "0.111.3" }
+  ignore = "! git diff main --name-only | grep ^docs/"
