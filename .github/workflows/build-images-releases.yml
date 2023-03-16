@@ -28,6 +28,12 @@ jobs:
             dockerfile: ./operator.Dockerfile
 
     steps:
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18
+        with:
+          platforms: arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7
 
@@ -61,7 +67,7 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
