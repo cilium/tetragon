@@ -1,6 +1,12 @@
+# Netlify is handled and authorized by Mahe and we use a free plan.
+#
+# Netlify currently has a design issue internally so they cannot distinguish
+# cancel jobs from failed jobs. So we disabled all notification from starting
+# or cancelling/failing jobs so that non-docs related PRs are not spamed with
+# Netlify notifications. See https://answers.netlify.com/t/deploy-notifications-cancel-vs-failure/37300.
 [build]
-  base = "docs/"
-  publish = "docs/public"
   command = "npm ci && hugo"
   environment = { HUGO_VERSION = "0.111.3" }
+  # The ignore command is used by Netlify deploy bot to filter if the PR should
+  # be previewed or not, and generally if the website should be built or not.
   ignore = "! git diff main --name-only | grep ^docs/"
