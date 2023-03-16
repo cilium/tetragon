@@ -33,9 +33,12 @@ func newHandler(bpfDir, mapDir, ciliumDir string) (*handler, error) {
 		mapDir:      mapDir,
 		ciliumDir:   ciliumDir,
 		pfState:     pfState,
-		// NB: policy ids start with 1, so that they can be used for filtering. In policy
-		// filtering code, a policy id of 0 means no filtering.
-		nextPolicyID: 1,
+		// NB: we are using policy ids for filtering, so we start with
+		// the first valid id. This is because value 0 is reserved to
+		// indicate that there is no filtering in the bpf side.
+		// FirstValidFilterPolicyID is 1, but this might change if we
+		// introduce more special values in the future.
+		nextPolicyID: policyfilter.FirstValidFilterPolicyID,
 	}, nil
 }
 
@@ -66,11 +69,12 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 	}
 	tpID := h.allocPolicyID()
-	filterID := policyfilter.PolicyID(0)
+	filterID := policyfilter.NoFilterID
 
 	// This is a namespaced policy, so update policy filter state before loading the sensors
-	// NB: the filterID is set to a non-zero value only if we have a namespaced policy and need
-	// to apply filtering.
+	// NB: the filterID is set to a non-zero value only if we need to apply
+	// filtering, so the policy handlers will receive a valid filter value
+	// only if we want to apply filtering and NoFilterID otherwise.
 	if tpNs, ok := op.tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		filterID = policyfilter.PolicyID(tpID)
 		if err := h.pfState.AddPolicy(filterID, tpNs.TpNamespace()); err != nil {

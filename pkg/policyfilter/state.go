@@ -80,6 +80,13 @@ type PolicyID uint32
 type PodID uuid.UUID
 type CgroupID uint64
 
+const (
+	// we reserve 0 as a special value to indicate no filtering
+	NoFilterPolicyID         = 0
+	NoFilterID               = PolicyID(NoFilterPolicyID)
+	FirstValidFilterPolicyID = NoFilterPolicyID + 1
+)
+
 func (i PodID) String() string {
 	var x uuid.UUID = uuid.UUID(i)
 	return x.String()
