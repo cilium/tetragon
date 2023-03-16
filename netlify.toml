@@ -1,0 +1,3 @@
+[build]
+  base = "docs/"
+  ignore = "! git diff main --name-only | grep ^docs/"
