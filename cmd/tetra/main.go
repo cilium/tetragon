@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const useless = "hey"
+
 var (
 	rootCmd *cobra.Command
 )
