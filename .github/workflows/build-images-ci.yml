@@ -33,6 +33,13 @@ jobs:
             dockerfile: ./operator.Dockerfile
 
     steps:
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18
+        with:
+          platforms: arm64
+
+      # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7
 
@@ -75,7 +82,7 @@ jobs:
 
       # main branch pushes
       - name: CI Build (main)
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
         id: docker_build_ci_main
         with:
@@ -83,7 +90,7 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
@@ -91,14 +98,14 @@ jobs:
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:latest
 
       - name: Sign Container Image
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
 
       - name: Generate SBOM
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         shell: bash
         # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
         run: |
@@ -107,12 +114,12 @@ jobs:
           --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
 
       - name: Attach SBOM to container images
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         run: |
           cosign attach sbom --sbom sbom_ci_main_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
 
       - name: Sign SBOM Image
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
@@ -122,7 +129,7 @@ jobs:
           cosign sign "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${docker_build_ci_main_sbom_digest}"
 
       - name: CI Image Releases digests (main)
-        if: ${{ github.event_name != 'pull_request_target' }}
+        if: github.event_name == 'push'
         shell: bash
         run: |
           mkdir -p image-digest/
@@ -130,7 +137,7 @@ jobs:
 
       # PR updates
       - name: CI Build (PR)
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
         id: docker_build_ci_pr
         with:
@@ -138,21 +145,21 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
 
       - name: Sign Container Image
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
 
       - name: Generate SBOM
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
         shell: bash
         # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
         run: |
@@ -161,12 +168,13 @@ jobs:
           --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
 
       - name: Attach SBOM to container images
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
         run: |
           cosign attach sbom --sbom sbom_ci_pr_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
 
       - name: Sign SBOM Image
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+        run: |
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
@@ -176,7 +184,7 @@ jobs:
           cosign sign "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${docker_build_ci_pr_sbom_digest}"
 
       - name: CI Image Releases digests (PR)
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
         shell: bash
         run: |
           mkdir -p image-digest/
