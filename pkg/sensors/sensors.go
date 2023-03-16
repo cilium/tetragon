@@ -150,7 +150,7 @@ type LoadProbeArgs struct {
 
 func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (*Sensor, error) {
 	// NB: use a filter id of 0, so no filtering will happen
-	sensors, err := SensorsFromPolicy(tp, policyfilter.PolicyID(0))
+	sensors, err := SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
 		return nil, err
 	}

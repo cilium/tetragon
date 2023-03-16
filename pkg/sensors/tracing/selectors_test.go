@@ -59,7 +59,7 @@ func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.Tra
 		Metadata: config.Metadata{Name: "name"},
 		Spec:     *spec,
 	}
-	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.PolicyID(0))
+	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
 		t.Fatalf("GetSensorsFromParserPolicy failed: %v", err)
 	} else if len(ret) != 1 {
