@@ -174,7 +174,6 @@ jobs:
 
       - name: Sign SBOM Image
         if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        run: |
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
