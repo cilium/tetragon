@@ -146,18 +146,25 @@ func (k *Ksyms) GetFnOffset(addr uint64) (*FnOffset, error) {
 
 // GetFnOffset -- retruns the FnOffset for a given address
 func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
-
-	// TODO: we can do binary search here if we care about performance
-	i := 0
-	for k.table[i].addr < addr {
-		i++
+	// address is before first symbol
+	if k.table[0].addr > addr {
+		return nil, fmt.Errorf("address %d is before first symbol %s@%d", addr, k.table[0].name, k.table[0].addr)
 	}
 
-	if i == 0 {
-		return nil, fmt.Errorf("address %d is before first sumbol %s@%d", addr, k.table[0].name, k.table[0].addr)
+	// binary search
+	l, r := 0, len(k.table)-1
+
+	for l < r {
+		// prevents overflow
+		m := l + ((r - l + 1) >> 1)
+		if k.table[m].addr < addr {
+			l = m
+		} else {
+			r = m - 1
+		}
 	}
 
-	sym := k.table[i-1]
+	sym := k.table[l]
 	if !sym.isFunction() {
 		return nil, fmt.Errorf("Unable to find function for addr 0x%x", addr)
 	}
