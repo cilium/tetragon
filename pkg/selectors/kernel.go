@@ -395,9 +395,24 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorLength(k, moff)
 	return nil
 }
+
 func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+	max_args := 1
+	if kernels.EnableLargeProgs() {
+		max_args = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
+	}
+	if len(args) > max_args {
+		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", max_args, len(args))
+	}
+	actionOffset := GetCurrentOffset(k)
 	loff := AdvanceSelectorLength(k)
-	for _, a := range args {
+	argOff := make([]uint32, 5)
+	for i := 0; i < 5; i++ {
+		argOff[i] = AdvanceSelectorLength(k)
+		WriteSelectorOffsetUint32(k, argOff[i], 0)
+	}
+	for i, a := range args {
+		WriteSelectorOffsetUint32(k, argOff[i], GetCurrentOffset(k)-actionOffset)
 		if err := ParseMatchArg(k, &a, sig); err != nil {
 			return err
 		}

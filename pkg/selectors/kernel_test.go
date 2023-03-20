@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+// go test -gcflags="" -c ./pkg/selectors -o go-tests/selectors.test
+// sudo ./go-tests/selectors.test  [ -test.run TestCopyFileRange ]
+
 package selectors
 
 import (
@@ -202,13 +205,22 @@ func TestParseMatchArg(t *testing.T) {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextArg:k.off], arg2)
 	}
 
-	length := []byte{54, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
-	arg3 := []v1alpha1.ArgSelector{*arg1, *arg2}
-	ks := &KernelSelectorState{off: 0}
-	if err := ParseMatchArgs(ks, arg3, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
-		t.Errorf("parseMatchArgs: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:k.off], arg3)
+	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
+		length := []byte{
+			74, 0x00, 0x00, 0x00,
+			24, 0x00, 0x00, 0x00,
+			50, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+		}
+		expected3 := append(length, expected1[:]...)
+		expected3 = append(expected3, expected2[:]...)
+		arg3 := []v1alpha1.ArgSelector{*arg1, *arg2}
+		ks := &KernelSelectorState{off: 0}
+		if err := ParseMatchArgs(ks, arg3, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+			t.Errorf("parseMatchArgs: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:k.off], arg3)
+		}
 	}
 }
 
@@ -400,8 +412,8 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	// value               absolute offset    explanation
 	expU32Push(2)               // off: 0       number of selectors
 	expU32Push(8)               // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(80)              // off: 8       relative ofset of 2nd selector (8 + 80 = 88)
-	expU32Push(76)              // off: 12      selector1: length (76 + 12 = 112)
+	expU32Push(100)             // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
+	expU32Push(96)              // off: 12      selector1: length (76 + 12 = 96)
 	expU32Push(24)              // off: 16      selector1: MatchPIDs: len
 	expU32Push(SelectorOpNotIn) // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)               // off: 24      selector1: MatchPIDs[0]: flags
@@ -412,15 +424,20 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)               // off: 44      selector1: MatchCapabilities: len
 	expU32Push(4)               // off: 48      selector1: MatchNamespaceChanges: len
 	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
-	expU32Push(28)              // off: 80      selector1: matchArgs: len
-	expU32Push(1)               // off: 84      selector1: matchArgs: arg0: index
-	expU32Push(SelectorOpEQ)    // off: 88      selector1: matchArgs: arg0: operator
-	expU32Push(16)              // off: 92      selector1: matchArgs: arg0: len of vals
-	expU32Push(argTypeInt)      // off: 96      selector1: matchArgs: arg0: type
-	expU32Push(10)              // off: 100     selector1: matchArgs: arg0: val0: 10
-	expU32Push(20)              // off: 104     selector1: matchArgs: arg0: val1: 20
-	expU32Push(4)               // off: 108     selector1: matchActions: length
-	expU32Push(76)              // off: 112     selector2: length
+	expU32Push(48)              // off: 80      selector1: matchArgs: len
+	expU32Push(24)              // off: 84      selector1: matchArgs[0]: offset
+	expU32Push(0)               // off: 88      selector1: matchArgs[1]: offset
+	expU32Push(0)               // off: 92      selector1: matchArgs[2]: offset
+	expU32Push(0)               // off: 96      selector1: matchArgs[3]: offset
+	expU32Push(0)               // off: 100     selector1: matchArgs[4]: offset
+	expU32Push(1)               // off: 104     selector1: matchArgs: arg0: index
+	expU32Push(SelectorOpEQ)    // off: 108     selector1: matchArgs: arg0: operator
+	expU32Push(16)              // off: 112     selector1: matchArgs: arg0: len of vals
+	expU32Push(argTypeInt)      // off: 116     selector1: matchArgs: arg0: type
+	expU32Push(10)              // off: 120     selector1: matchArgs: arg0: val0: 10
+	expU32Push(20)              // off: 124     selector1: matchArgs: arg0: val1: 20
+	expU32Push(4)               // off: 128     selector1: matchActions: length
+	expU32Push(96)              // off: 132     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
@@ -437,11 +454,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0xe6, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0xe2, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x02, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		22, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -524,9 +541,14 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
 
-	expected_last := []byte{
+	expected_last_large := []byte{
 		// arg header
-		54, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		74, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		24, 0x00, 0x00, 0x00, // arg[0] offset
+		50, 0x00, 0x00, 0x00, // arg[1] offset
+		0x00, 0x00, 0x00, 0x00, // arg[2] offset
+		0x00, 0x00, 0x00, 0x00, // arg[3] offset
+		0x00, 0x00, 0x00, 0x00, // arg[4] offset
 
 		//arg1 size = 26
 		0x01, 0x00, 0x00, 0x00, // Index == 1
@@ -552,17 +574,43 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
+	expected_last_small := []byte{
+		// arg header
+		50, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		24, 0x00, 0x00, 0x00, // arg[0] offset
+		0x00, 0x00, 0x00, 0x00, // arg[1] offset
+		0x00, 0x00, 0x00, 0x00, // arg[2] offset
+		0x00, 0x00, 0x00, 0x00, // arg[3] offset
+		0x00, 0x00, 0x00, 0x00, // arg[4] offset
+
+		//arg1 size = 26
+		0x01, 0x00, 0x00, 0x00, // Index == 1
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		18, 0x00, 0x00, 0x00, // length == 18
+		0x06, 0x00, 0x00, 0x00, // value type == string
+		0x06, 0x00, 0x00, 0x00, // value length == 6
+		102, 111, 111, 98, 97, 114, // value ascii "foobar"
+
+		// actions header
+		20, 0x00, 0x00, 0x00, // size = (sizeof(uint32) * number of actions)  + 4
+		0x00, 0x00, 0x00, 0x00, // post to userspace
+		0x01, 0x00, 0x00, 0x00, // fdinstall
+		0x00, 0x00, 0x00, 0x00, // arg index of fd
+		0x01, 0x00, 0x00, 0x00, // arg index of string filename
+	}
+
 	expected := expected_header
 	if kernels.EnableLargeProgs() {
 		expected = append(expected, expected_selsize_large...)
 		expected = append(expected, expected_filters...)
 		expected = append(expected, expected_changes...)
+		expected = append(expected, expected_last_large...)
 	} else {
 		expected = append(expected, expected_selsize_small...)
 		expected = append(expected, expected_filters...)
 		expected = append(expected, expected_changes_empty...)
+		expected = append(expected, expected_last_small...)
 	}
-	expected = append(expected, expected_last...)
 
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
 	pid2 := &v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{1, 2, 3, 4}, IsNamespacePID: false, FollowForks: false}
@@ -583,9 +631,15 @@ func TestInitKernelSelectors(t *testing.T) {
 		cc := &v1alpha1.CapabilitiesSelector{Type: "Effective", Operator: "In", IsNamespaceCapability: false, Values: []string{"CAP_SYS_ADMIN", "CAP_NET_RAW"}}
 		matchCapabilityChanges = append(matchCapabilityChanges, *cc)
 	}
-	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
-	arg2 := &v1alpha1.ArgSelector{Index: 2, Operator: "Equal", Values: []string{"1", "2"}}
-	matchArgs := []v1alpha1.ArgSelector{*arg1, *arg2}
+	var matchArgs []v1alpha1.ArgSelector
+	if kernels.EnableLargeProgs() {
+		arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
+		arg2 := &v1alpha1.ArgSelector{Index: 2, Operator: "Equal", Values: []string{"1", "2"}}
+		matchArgs = []v1alpha1.ArgSelector{*arg1, *arg2}
+	} else {
+		arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
+		matchArgs = []v1alpha1.ArgSelector{*arg1}
+	}
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
 	act2 := &v1alpha1.ActionSelector{Action: "followfd",
 		ArgFd:   0,
