@@ -115,6 +115,14 @@ func WriteSelectorLength(k *KernelSelectorState, loff uint32) {
 	binary.LittleEndian.PutUint32(k.e[loff:], diff)
 }
 
+func WriteSelectorOffsetUint32(k *KernelSelectorState, loff uint32, val uint32) {
+	binary.LittleEndian.PutUint32(k.e[loff:], val)
+}
+
+func GetCurrentOffset(k *KernelSelectorState) uint32 {
+	return k.off
+}
+
 func WriteSelectorByteArray(k *KernelSelectorState, b []byte, size uint32) {
 	for l := uint32(0); l < size; l++ {
 		k.e[k.off+l] = b[l]
