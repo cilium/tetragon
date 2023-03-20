@@ -85,12 +85,16 @@ struct selector_action {
 };
 
 struct selector_arg_filter {
-	__u32 arglen;
 	__u32 index;
 	__u32 op;
 	__u32 vallen;
 	__u32 type;
 	__u8 value;
+} __attribute__((packed));
+
+struct selector_arg_filters {
+	__u32 arglen;
+	__u32 argoff[5];
 } __attribute__((packed));
 
 #define FLAGS_EARLY_FILTER BIT(0)
@@ -1025,9 +1029,10 @@ static inline __attribute__((always_inline)) int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		    bool early_binary_filter)
 {
+	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
-	long seloff, argoff, pass;
-	__u32 index;
+	long seloff, argoff, argsoff, pass = 1, margsoff;
+	__u32 i = 0, index;
 	char *args;
 
 	seloff = 4; /* start of the relative offsets */
@@ -1055,54 +1060,67 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 
 	/* Making binary selectors fixes size helps on some kernels */
 	seloff &= INDEX_MASK;
-	filter = (struct selector_arg_filter *)&f[seloff];
+	filters = (struct selector_arg_filters *)&f[seloff];
 
-	if (filter->arglen <= 4) // no filters
+	if (filters->arglen <= sizeof(struct selector_arg_filters)) // no filters
 		return seloff;
 
-	index = filter->index;
-	if (index > 5)
-		return 0;
+#ifdef __LARGE_BPF_PROG
+	for (i = 0; i < 5; i++)
+#endif
+	{
+		argsoff = filters->argoff[i];
+		asm volatile("%[argsoff] &= 0x3ff;\n" ::[argsoff] "+r"(argsoff)
+			     :);
 
-	asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
-		     :);
-	argoff = e->argsoff[index];
-	asm volatile("%[argoff] &= 0x7ff;\n" ::[argoff] "+r"(argoff)
-		     :);
-	args = &e->args[argoff];
+		if (argsoff <= 0)
+			return pass ? seloff : 0;
 
-	switch (filter->type) {
-	case fd_ty:
-		/* Advance args past fd */
-		args += 4;
-	case file_ty:
-		pass = filter_file_buf(filter, args);
-		break;
-	case string_type:
-		/* for strings, we just encode the length */
-		pass = filter_char_buf(filter, args, 4);
-		break;
-	case char_buf:
-		/* for buffers, we just encode the expected length and the
-		 * length that was actually read (see: __copy_char_buf)
-		 */
-		pass = filter_char_buf(filter, args, 8);
-		break;
-	case s64_ty:
-	case u64_ty:
-		pass = filter_64ty(filter, args);
-		break;
-	case size_type:
-	case int_type:
-	case s32_ty:
-	case u32_ty:
-		pass = filter_32ty(filter, args);
-		break;
-	default:
-		pass = 1; // no policy in place
-		break;
+		margsoff = (seloff + argsoff) & INDEX_MASK;
+		filter = (struct selector_arg_filter *)&f[margsoff];
+
+		index = filter->index;
+		if (index > 5)
+			return 0;
+
+		asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
+			     :);
+		argoff = e->argsoff[index];
+		asm volatile("%[argoff] &= 0x7ff;\n" ::[argoff] "+r"(argoff)
+			     :);
+		args = &e->args[argoff];
+
+		switch (filter->type) {
+		case fd_ty:
+			/* Advance args past fd */
+			args += 4;
+		case file_ty:
+			pass &= filter_file_buf(filter, args);
+			break;
+		case string_type:
+			/* for strings, we just encode the length */
+			pass &= filter_char_buf(filter, args, 4);
+			break;
+		case char_buf:
+			/* for buffers, we just encode the expected length and the
+			 * length that was actually read (see: __copy_char_buf)
+			 */
+			pass &= filter_char_buf(filter, args, 8);
+			break;
+		case s64_ty:
+		case u64_ty:
+			pass &= filter_64ty(filter, args);
+			break;
+		case size_type:
+		case int_type:
+		case s32_ty:
+		case u32_ty:
+			pass &= filter_32ty(filter, args);
+			break;
+		default:
+			break;
+		}
 	}
-
 	return pass ? seloff : 0;
 }
 
@@ -1379,7 +1397,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
-		struct selector_arg_filter *arg;
+		struct selector_arg_filters *arg;
 		struct selector_action *actions;
 		int actoff;
 		__u8 *f;
@@ -1391,7 +1409,7 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 			asm volatile("%[pass] &= 0x7ff;\n"
 				     : [pass] "+r"(pass)
 				     :);
-			arg = (struct selector_arg_filter *)&f[pass];
+			arg = (struct selector_arg_filters *)&f[pass];
 
 			actoff = pass + arg->arglen;
 			asm volatile("%[actoff] &= 0x7ff;\n"
