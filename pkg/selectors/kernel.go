@@ -136,6 +136,7 @@ const (
 	argTypeS32 = 12
 	argTypeU32 = 13
 
+	argTypePath = 15
 	argTypeFile = 16
 	argTypeFd   = 17
 
@@ -155,6 +156,7 @@ var argTypeTable = map[string]uint32{
 	"skb":        argTypeSkb,
 	"string":     argTypeString,
 	"fd":         argTypeFd,
+	"path":       argTypePath,
 	"file":       argTypeFile,
 	"sock":       argTypeSock,
 	"url":        argTypeUrl,
@@ -174,6 +176,7 @@ var argTypeStringTable = map[uint32]string{
 	argTypeString:    "string",
 	argTypeFd:        "fd",
 	argTypeFile:      "file",
+	argTypePath:      "path",
 	argTypeSock:      "sock",
 	argTypeUrl:       "url",
 	argTypeFqdn:      "fqdn",
@@ -326,7 +329,7 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
 	for _, v := range values {
 		switch ty {
-		case argTypeFd, argTypeFile:
+		case argTypeFd, argTypeFile, argTypePath:
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)

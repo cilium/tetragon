@@ -903,6 +903,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	switch (type) {
 	case fd_ty:
 	case file_ty:
+	case path_ty:
 	case string_type:
 		return MAX_STRING;
 	case int_type:
@@ -1081,6 +1082,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 			/* Advance args past fd */
 			args += 4;
 		case file_ty:
+		case path_ty:
 			pass &= filter_file_buf(filter, args);
 			break;
 		case string_type:
@@ -1474,9 +1476,12 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		path_arg = _(&file->f_path);
 	}
 		// fallthrough to copy_path
-	case path_ty:
+	case path_ty: {
+		if (!path_arg)
+			probe_read(&path_arg, sizeof(path_arg), &arg);
 		size = copy_path(args, path_arg);
 		break;
+	}
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;
