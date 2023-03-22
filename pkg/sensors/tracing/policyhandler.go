@@ -27,6 +27,10 @@ func (h policyHandler) PolicyHandler(
 	}
 	if len(spec.KProbes) > 0 {
 		name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+		err := preValidateKprobes(name, spec.KProbes)
+		if err != nil {
+			return nil, err
+		}
 		return createGenericKprobeSensor(name, spec.KProbes, policyID)
 	}
 	if len(spec.Tracepoints) > 0 {
