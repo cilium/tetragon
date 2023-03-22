@@ -207,6 +207,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct file *":
 			return true
 		}
+	case "path":
+		switch kernelTy {
+		case "struct path *":
+			return true
+		}
 	case "bpf_attr":
 		switch kernelTy {
 		case "union bpf_attr *":
