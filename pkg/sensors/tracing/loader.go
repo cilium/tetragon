@@ -150,7 +150,7 @@ func (k *loaderSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		if err := createLoaderEvents(); err != nil {
 			return err
 		}
-		return program.LoadKprobeProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+		return program.LoadKprobeProgram(args.BPFDir, args.Load, args.Verbose)
 	}
 	return nil
 }

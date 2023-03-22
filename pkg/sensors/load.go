@@ -56,16 +56,16 @@ const (
 )
 
 // LoadConfig loads the default sensor, including any from the configuration file.
-func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir string, sens []*Sensor) error {
+func LoadConfig(ctx context.Context, bpfDir, ciliumDir string, sens []*Sensor) error {
 	load := mergeSensors(sens)
-	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
+	if err := load.Load(ctx, bpfDir, ciliumDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 	return nil
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string) error {
+func (s *Sensor) Load(stopCtx context.Context, bpfDir, ciliumDir string) error {
 	if s == nil {
 		return nil
 	}
@@ -79,7 +79,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
-	createDir(bpfDir, mapDir)
+	createDir(bpfDir)
 
 	l := logger.GetLogger()
 
@@ -95,7 +95,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.loadMaps(stopCtx, mapDir); err != nil {
+	if err := s.loadMaps(stopCtx, bpfDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
@@ -106,7 +106,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 			continue
 		}
 
-		if err := observerLoadInstance(stopCtx, bpfDir, mapDir, ciliumDir, p); err != nil {
+		if err := observerLoadInstance(stopCtx, bpfDir, ciliumDir, p); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
@@ -236,7 +236,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir string, load *program.Program) error {
+func observerLoadInstance(stopCtx context.Context, bpfDir, ciliumDir string, load *program.Program) error {
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return err
@@ -248,33 +248,33 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 		"kern_version": version,
 	}).Debug("observerLoadInstance", load.Name, version)
 	if load.Type == "tracepoint" {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, ciliumDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"raw_tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, ciliumDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
 	} else {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d LoadKprobeProgram: %w",
 				load.Name, version, err)
@@ -283,7 +283,7 @@ func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir str
 	return nil
 }
 
-func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) error {
+func loadInstance(bpfDir, ciliumDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
@@ -292,23 +292,22 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading BPF program")
 	}
 	if load.Type == "tracepoint" {
-		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
+		return program.LoadTracepointProgram(bpfDir, load, verbose)
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
-		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
+		return program.LoadRawTracepointProgram(bpfDir, load, verbose)
 	} else if load.Type == "cgrp_socket" {
-		return cgroup.LoadCgroupProgram(bpfDir, mapDir, ciliumDir, load, verbose)
+		return cgroup.LoadCgroupProgram(bpfDir, ciliumDir, load, verbose)
 	} else if probe != nil {
 		// Registered probes need extra setup
 		return probe.LoadProbe(LoadProbeArgs{
 			BPFDir:    bpfDir,
-			MapDir:    mapDir,
 			CiliumDir: ciliumDir,
 			Load:      load,
 			Version:   version,
 			Verbose:   verbose,
 		})
 	} else {
-		return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
+		return program.LoadKprobeProgram(bpfDir, load, verbose)
 	}
 }
 
@@ -320,9 +319,8 @@ func observerMinReqs(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func createDir(bpfDir, mapDir string) {
+func createDir(bpfDir string) {
 	os.Mkdir(bpfDir, os.ModeDir)
-	os.Mkdir(mapDir, os.ModeDir)
 }
 
 func unloadProgram(prog *program.Program) {

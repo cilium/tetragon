@@ -424,7 +424,7 @@ func TestLoadInitialSensor(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 
 	t.Logf("Loading sensor %v\n", sensor.Name)
-	if err := sensor.Load(context.TODO(), bpf.MapPrefixPath(), bpf.MapPrefixPath(), ""); err != nil {
+	if err := sensor.Load(context.TODO(), bpf.MapPrefixPath(), ""); err != nil {
 		t.Fatalf("sensor.Load failed: %v\n", err)
 	}
 

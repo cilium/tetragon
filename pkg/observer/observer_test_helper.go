@@ -196,7 +196,6 @@ func newDefaultTestOptions(t *testing.T, opts ...TestOption) *TestOptions {
 
 func newDefaultObserver(t *testing.T, oo *testObserverOptions) *Observer {
 	option.Config.BpfDir = bpf.MapPrefixPath()
-	option.Config.MapDir = bpf.MapPrefixPath()
 	option.Config.CiliumDir = ""
 	return NewObserver(oo.config)
 }
@@ -383,11 +382,11 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 }
 
 func loadObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, sens *sensors.Sensor, notestfail bool) error {
-	if err := base.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := base.Load(ctx, option.Config.BpfDir, option.Config.CiliumDir); err != nil {
 		t.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := sens.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := sens.Load(ctx, option.Config.BpfDir, option.Config.CiliumDir); err != nil {
 		if notestfail {
 			return err
 		}

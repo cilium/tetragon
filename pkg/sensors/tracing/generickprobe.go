@@ -627,7 +627,7 @@ func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProb
 	return nil
 }
 
-func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, version, verbose int) error {
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
@@ -650,13 +650,13 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 
-	if err := program.LoadKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
+	if err := program.LoadKprobeProgram(bpfDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
+	m, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, base.NamesMap.Name), nil)
 	if err != nil {
 		return err
 	}
@@ -669,7 +669,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, version, verbose int) error {
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 
 	bin_buf := make([]bytes.Buffer, len(ids))
@@ -702,13 +702,13 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 
 	load.SetAttachData(data)
 
-	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
+	if err := program.LoadMultiKprobeProgram(bpfDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
+	m, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, base.NamesMap.Name), nil)
 	if err != nil {
 		return err
 	}
@@ -725,12 +725,12 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 	return err
 }
 
-func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+func loadGenericKprobeSensor(bpfDir string, load *program.Program, version, verbose int) error {
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
-		return loadSingleKprobeSensor(id, bpfDir, mapDir, load, version, verbose)
+		return loadSingleKprobeSensor(id, bpfDir, load, version, verbose)
 	}
 	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, mapDir, load, version, verbose)
+		return loadMultiKprobeSensor(ids, bpfDir, load, version, verbose)
 	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)
@@ -1257,5 +1257,5 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	return loadGenericKprobeSensor(args.BPFDir, args.MapDir, args.Load, args.Version, args.Verbose)
+	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Version, args.Verbose)
 }
