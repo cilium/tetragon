@@ -253,6 +253,56 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	return progs, maps
 }
 
+// preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
+//
+// Pre validate the kprobe semantics and BTF information in order to separate
+// the kprobe errors from the BPF related ones.
+func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
+	for i := range kprobes {
+		f := &kprobes[i]
+
+		// modifying f.Call directly since BTF validation
+		// later will use v1alpha1.KProbeSpec object
+		if f.Syscall {
+			prefixedName, err := arch.AddSyscallPrefix(f.Call)
+			if err != nil {
+				logger.GetLogger().WithFields(logrus.Fields{
+					"sensor": name,
+				}).WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
+			} else {
+				f.Call = prefixedName
+			}
+		}
+
+		// Now go over BTF validation
+		btfobj, err := btf.NewBTF()
+		if err != nil {
+			return err
+		}
+
+		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
+			if warn, ok := err.(*btf.ValidationWarn); ok {
+				logger.GetLogger().WithFields(logrus.Fields{
+					"sensor": name,
+				}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+			} else if e, ok := err.(*btf.ValidationFailed); ok {
+				return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
+			} else {
+				err = fmt.Errorf("invalid or old kprobe spec: %s", err)
+				logger.GetLogger().WithFields(logrus.Fields{
+					"sensor": name,
+				}).WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+			}
+		} else {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"sensor": name,
+			}).Debug("Kprobe spec pre-validation succeeded")
+		}
+	}
+
+	return nil
+}
+
 func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, policyID policyfilter.PolicyID) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -272,6 +322,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 
 	for i := range kprobes {
 		f := &kprobes[i]
+		var err error
 		var argSigPrinters []argPrinters
 		var argReturnPrinters []argPrinters
 		var setRetprobe, is_syscall bool
@@ -282,33 +333,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 		config.PolicyID = uint32(policyID)
 
 		argRetprobe = nil // holds pointer to arg for return handler
-
-		// modifying f.Call directly instead of writing to funcName
-		// because of BTF validation later using the whole v1alpha1.KProbeSpec object
-		if f.Syscall {
-			prefixedName, err := arch.AddSyscallPrefix(f.Call)
-			if err != nil {
-				logger.GetLogger().Warnf("kprobe syscall prefix: %w", err)
-			} else {
-				f.Call = prefixedName
-			}
-		}
 		funcName := f.Call
-
-		var err error
-		btfobj, err := btf.NewBTF()
-		if err != nil {
-			return nil, err
-		}
-		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
-			if warn, ok := err.(*btf.ValidationWarn); ok {
-				logger.GetLogger().Warnf("kprobe spec validation: %s", warn)
-			} else if e, ok := err.(*btf.ValidationFailed); ok {
-				return nil, fmt.Errorf("kprobe spec validation failed: %w", e)
-			} else {
-				logger.GetLogger().Warnf("invalid or old kprobe spec: %s", err)
-			}
-		}
 
 		// Parse Arguments
 		for j, a := range f.Args {
