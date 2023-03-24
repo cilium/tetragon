@@ -649,7 +649,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		data.Cookies = append(data.Cookies, uint64(index))
 	}
 
-	load.SetAttachData(&data)
+	load.SetAttachData(data)
 
 	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
