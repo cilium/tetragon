@@ -22,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
+	"github.com/sirupsen/logrus"
 )
 
 type Listener interface {
@@ -221,9 +222,18 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 	logger.GetLogger().WithField("request", req).Debug("Received an AddTracingPolicy request")
 	tp, err := config.PolicyFromYaml(req.GetYaml())
 	if err != nil {
+		logger.GetLogger().WithError(err).Warn("Server AddTracingPolicy request failed")
 		return nil, err
 	}
+	namespace := ""
+	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpNs.TpNamespace()
+	}
 	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"metadata.namespace": namespace,
+			"metadata.name":      tp.TpName(),
+		}).WithError(err).Warn("Server AddTracingPolicy request failed")
 		return nil, err
 	}
 	return &tetragon.AddTracingPolicyResponse{}, nil
