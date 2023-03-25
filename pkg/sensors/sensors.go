@@ -90,11 +90,6 @@ type policyHandler interface {
 	PolicyHandler(policy tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) (*Sensor, error)
 }
 
-// NB: deprecated, please use policyHandler
-type specHandler interface {
-	SpecHandler(interface{}) (*Sensor, error)
-}
-
 type probeLoader interface {
 	LoadProbe(args LoadProbeArgs) error
 }
@@ -102,24 +97,9 @@ type probeLoader interface {
 var (
 	// list of registered policy handlers, see RegisterPolicyHandlerAtInit()
 	registeredPolicyHandlers = map[string]policyHandler{}
-	// list of registered Tracing handlers, see RegisterSpecHandlerAtInit()
-	registeredSpecHandlers = map[string]specHandler{}
 	// list of registers loaders, see registerProbeType()
 	registeredProbeLoad = map[string]probeLoader{}
 )
-
-// RegisterSpecHandlerAtInit registers a handler for Tracing policy.
-// NB: This is deprecated, please use RegisterPolicyHandlerAtInit for new code.
-//
-// This function is meant to be called in an init().
-// This will register a CRD or config file handler so that the config file
-// or CRDs will be passed to the handler to be parsed.
-func RegisterSpecHandlerAtInit(name string, s specHandler) {
-	if _, exists := registeredSpecHandlers[name]; exists {
-		panic(fmt.Sprintf("RegisterTracingSensor called, but %s is already registered", name))
-	}
-	registeredSpecHandlers[name] = s
-}
 
 // RegisterPolicyHandlerAtInit registers a handler for a tracing policy.
 func RegisterPolicyHandlerAtInit(name string, h policyHandler) {

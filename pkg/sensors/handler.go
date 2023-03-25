@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -50,16 +49,7 @@ func (h *handler) allocPolicyID() uint64 {
 
 // revive:disable:exported
 func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
-	sensors, err := sensorsFromSpecHandlers(tp)
-	if err != nil {
-		return nil, err
-	}
-	policySensors, err := sensorsFromPolicyHandlers(tp, filterID)
-	if err != nil {
-		return nil, err
-	}
-	sensors = append(sensors, policySensors...)
-	return sensors, nil
+	return sensorsFromPolicyHandlers(tp, filterID)
 }
 
 // revive:enable:exported
@@ -82,15 +72,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		}
 	}
 
-	sensors, err := sensorsFromSpecHandlers(op.tp)
+	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
 	if err != nil {
 		return err
 	}
-	policySensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
-	if err != nil {
-		return err
-	}
-	sensors = append(sensors, policySensors...)
 
 	col := collection{
 		sensors:         sensors,
@@ -252,29 +237,6 @@ func (h *handler) configGet(op *sensorConfigGet) error {
 	}
 
 	return nil
-}
-func sensorsFromSpecHandlers(tp tracingpolicy.TracingPolicy) ([]*Sensor, error) {
-	var sensors []*Sensor
-	_, isNamespaced := tp.(tracingpolicy.TracingPolicyNamespaced)
-	spec := tp.TpSpec()
-	log := logger.GetLogger().WithField("policy-name", tp.TpName())
-
-	for n, s := range registeredSpecHandlers {
-		if isNamespaced {
-			// NB: requires using policyHandler
-			log.WithField("sensor-name", n).Warn("sensor will be ignored because it cannot handle namespaced tracing policy")
-		}
-		var sensor *Sensor
-		sensor, err := s.SpecHandler(spec)
-		if err != nil {
-			return nil, fmt.Errorf("spec handler %s failed: %w", n, err)
-		}
-		if sensor == nil {
-			continue
-		}
-		sensors = append(sensors, sensor)
-	}
-	return sensors, nil
 }
 
 func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
