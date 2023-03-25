@@ -263,7 +263,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 
 		hasOverride := selectors.HasOverride(f)
 		if hasOverride && !bpf.HasOverrideHelper() {
-			return fmt.Errorf("Error override_return bpf helper not available")
+			return fmt.Errorf("Error override action not supported, bpf_override_return helper not available")
 		}
 
 		// modifying f.Call directly since BTF validation
@@ -277,6 +277,8 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 			} else {
 				f.Call = prefixedName
 			}
+		} else if hasOverride {
+			return fmt.Errorf("Error override action can be used only with syscalls")
 		}
 
 		// Now go over BTF validation
@@ -330,7 +332,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 		var err error
 		var argSigPrinters []argPrinters
 		var argReturnPrinters []argPrinters
-		var setRetprobe, is_syscall bool
+		var setRetprobe bool
 		var argRetprobe *v1alpha1.KProbeArg
 		var argsBTFSet [api.MaxArgsSupported]bool
 
@@ -426,19 +428,14 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 		hasOverride := selectors.HasOverride(f)
 
 		// Write attributes into BTF ptr for use with load
-		is_syscall = f.Syscall
 		if !setRetprobe {
 			setRetprobe = f.Return
 		}
 
-		if is_syscall {
+		if f.Syscall {
 			config.Syscall = 1
 		} else {
 			config.Syscall = 0
-
-			if hasOverride {
-				return nil, fmt.Errorf("Error override action can be used only with syscalls")
-			}
 		}
 
 		has_sigkill := selectors.MatchActionSigKill(f)
@@ -453,7 +450,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 		kprobeEntry := genericKprobe{
 			loadArgs: kprobeLoadArgs{
 				retprobe: setRetprobe,
-				syscall:  is_syscall,
+				syscall:  f.Syscall,
 				config:   config,
 			},
 			argSigPrinters:    argSigPrinters,
