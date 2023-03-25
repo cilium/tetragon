@@ -256,10 +256,15 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
 //
 // Pre validate the kprobe semantics and BTF information in order to separate
-// the kprobe errors from the BPF related ones.
+// the kprobe errors from BPF related ones.
 func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 	for i := range kprobes {
 		f := &kprobes[i]
+
+		hasOverride := selectors.HasOverride(f)
+		if hasOverride && !bpf.HasOverrideHelper() {
+			return fmt.Errorf("Error override_return bpf helper not available")
+		}
 
 		// modifying f.Call directly since BTF validation
 		// later will use v1alpha1.KProbeSpec object
@@ -410,11 +415,6 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 			}
 		}
 
-		hasOverride := selectors.HasOverride(f)
-		if hasOverride && !bpf.HasOverrideHelper() {
-			return nil, fmt.Errorf("Error override_return bpf helper not available")
-		}
-
 		// Copy over userspace return filters
 		var userReturnFilters []v1alpha1.ArgSelector
 		for _, s := range f.Selectors {
@@ -422,6 +422,8 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 				userReturnFilters = append(userReturnFilters, returnArg)
 			}
 		}
+
+		hasOverride := selectors.HasOverride(f)
 
 		// Write attributes into BTF ptr for use with load
 		is_syscall = f.Syscall
