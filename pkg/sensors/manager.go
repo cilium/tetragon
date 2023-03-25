@@ -271,10 +271,10 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log.WithField("sensors", strings.Join(names, ", ")).Info("Available sensors")
 
 	names = []string{}
-	for n := range registeredSpecHandlers {
+	for n := range registeredPolicyHandlers {
 		names = append(names, n)
 	}
-	log.WithField("spec-handlers", strings.Join(names, ", ")).Info("Registered tracing sensors")
+	log.WithField("policy-handlers", strings.Join(names, ", ")).Info("Registered sensors (policy-handlers)")
 
 	names = []string{}
 	for n := range registeredProbeLoad {
