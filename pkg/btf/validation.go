@@ -78,7 +78,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 
 	err := bspec.TypeByName(kspec.Call, &fn)
 	if err != nil {
-		return fmt.Errorf("kprobe spec validation failed: call %s not found", kspec.Call)
+		return &ValidationFailed{s: fmt.Sprintf("call %q not found", kspec.Call)}
 	}
 
 	proto, ok := fn.Type.(*btf.FuncProto)
