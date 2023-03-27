@@ -1,12 +1,12 @@
 ---
-title: "Tetragon events"
-linkTitle: "Tetragon events"
+title: "Observability with Tetragon"
+linkTitle: "Observability with Tetragon"
 weight: 3
 description: >
-  Tetragon observes hooks in the kernel and generates events
+   Tetragon uses eBPF to generate various types of events
 ---
 
-Tetragon is able to observe critical hooks in the kernel through its sensors
+Tetragon is able to install hooks in the kernel through its sensors
 and generates enriched events from them.
 
 In the next sections we detail the available sensors with the events they
