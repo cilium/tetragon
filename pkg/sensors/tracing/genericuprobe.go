@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
-	"reflect"
 	"sync/atomic"
 
 	"github.com/cilium/ebpf"
@@ -22,10 +21,12 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 type observerUprobeSensor struct {
@@ -54,7 +55,7 @@ func init() {
 		name: "uprobe sensor",
 	}
 	sensors.RegisterProbeType("generic_uprobe", uprobe)
-	sensors.RegisterSpecHandlerAtInit(uprobe.name, uprobe)
+	sensors.RegisterPolicyHandlerAtInit(uprobe.name, uprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_UPROBE, handleGenericUprobe)
 }
 
@@ -243,18 +244,20 @@ func createGenericUprobeSensor(name string, uprobes []v1alpha1.UProbeSpec) (*sen
 	}, nil
 }
 
-func (k *observerUprobeSensor) SpecHandler(raw interface{}) (*sensors.Sensor, error) {
-	spec, ok := raw.(*v1alpha1.TracingPolicySpec)
-	if !ok {
-		s, ok := reflect.Indirect(reflect.ValueOf(raw)).FieldByName("TracingPolicySpec").Interface().(v1alpha1.TracingPolicySpec)
-		if !ok {
-			return nil, nil
-		}
-		spec = &s
+func (k *observerUprobeSensor) PolicyHandler(
+	p tracingpolicy.TracingPolicy,
+	fid policyfilter.PolicyID,
+) (*sensors.Sensor, error) {
+	spec := p.TpSpec()
+
+	if len(spec.UProbes) == 0 {
+		return nil, nil
 	}
+
+	if fid != policyfilter.NoFilterID {
+		return nil, fmt.Errorf("uprobe sensor does not implement policy filtering")
+	}
+
 	name := fmt.Sprintf("gup-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(name, spec.UProbes)
-	}
-	return nil, nil
+	return createGenericUprobeSensor(name, spec.UProbes)
 }
