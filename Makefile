@@ -223,7 +223,7 @@ lint:
 
 .PHONY: image image-operator image-test image-codegen
 image:
-	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --build-arg TETRAGON_VERSION=$(VERSION) .
+	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) .
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
