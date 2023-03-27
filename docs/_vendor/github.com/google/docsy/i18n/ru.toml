@@ -1,0 +1,81 @@
+# UI strings. Buttons and similar.
+
+[ui_pager_prev]
+other = "Предыдущая"
+
+[ui_pager_next]
+other = "Следующая"
+
+[ui_read_more]
+other = "Подробнее"
+
+[ui_search]
+other = "Поиск по сайту…"
+
+# Used in sentences such as "Posted in News"
+[ui_in]
+other = "в"
+
+# Used in sentences such as "All Tags"
+[ui_all]
+other = "всё"
+
+# Footer text
+[footer_all_rights_reserved]
+other = "Все права защищены"
+
+[footer_privacy_policy]
+other = "Политика конфиденциальности"
+
+
+# Post (blog, articles etc.)
+[post_byline_by]
+other = "Автор"
+[post_created]
+other = "Создано"
+[post_last_mod]
+other = "Изменено"
+[post_edit_this]
+other = "Отредактировать страницу"
+[post_view_this]
+other = "Увидеть источник страницы"
+[post_create_child_page]
+other = "Создать дополнительную страницу"
+[post_create_issue]
+other = "Предложить изменения документации"
+[post_create_project_issue]
+other = "Предложить доработки по проекту"
+[post_posts_in]
+other = "Публикации в"
+[post_reading_time]
+other = "минутное чтение"
+[post_less_than_a_minute_read]
+other = "меньше минуты"
+
+# Print support
+[print_printable_section]
+other = "Это многостраничный печатный вид этого раздела."
+[print_click_to_print]
+other = "Нажмите что бы печатать"
+[print_show_regular]
+other = "Вернуться к обычному просмотру страницы"
+[print_entire_section]
+other = "Печатать весь раздел"
+
+# Community
+[community_join]
+other = "Присоединяйтесь к {{ .Site.Title }} комьюнити"
+[community_introduce]
+other = "{{ .Site.Title }} - это проект с открытым кодом который любой в комьюнити может использовать, улучшать и наслаждаться. Мы будем рады видеть тебя с нами! Вот несколько путей как присоединиться к нам, знать что происходит и быть вовлеченным."
+[community_learn]
+other = "Изучай и Присоединяйся"
+[community_using]
+other = "Уже пользуешься или хочешь пользоваться {{ .Site.Title }}? Узнай больше здесь:"
+[community_develop]
+other = "Розвивай и Вноси свой вклад"
+[community_contribute]
+other = "Если ты хочешь принять более активное участие, внося свой вклад в {{ .Site.Title }}, присоединяйся к нам тут:"
+[community_how_to]
+other = "Ты можешь узнать как сделать вклад в эти документы в нашем"
+[community_guideline]
+other = "Рекомендации касательно вклада"

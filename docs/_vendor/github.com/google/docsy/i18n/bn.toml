@@ -1,0 +1,81 @@
+# ইউআই স্ট্রিং বাটন এবং অনুরূপ।
+
+[ui_pager_prev]
+other = "পূর্ববর্তী"
+
+[ui_pager_next]
+other = "পরবর্তী"
+
+[ui_read_more]
+other = "আরও পড়ুন"
+
+[ui_search]
+other = "এই সাইটে খোঁজ করুন…"
+
+# "পোস্ট করা নিউজ" এর মতো বাক্যে ব্যবহৃত
+[ui_in]
+other = "মধ্যে"
+
+# Used in sentences such as "All Tags"
+[ui_all]
+other = "সব"
+
+# পাদচরণ
+[footer_all_rights_reserved]
+other = "সমস্ত অধিকার সংরক্ষিত"
+
+[footer_privacy_policy]
+other = "গোপনীয়তা নীতি"
+
+
+# পোস্ট (ব্লগ, নিবন্ধ ইত্যাদি)
+[post_byline_by]
+other = "দ্বারা"
+[post_created]
+other = "তৈরি"
+[post_last_mod]
+other = "সর্বশেষ পরিবর্তিত"
+[post_edit_this]
+other = "এই পৃষ্ঠাটি সম্পাদনা করুন"
+[post_view_this]
+other = "পৃষ্ঠার উৎস দেখুন"
+[post_create_child_page]
+other = "শাখা পৃষ্ঠা তৈরি করুন"
+[post_create_issue]
+other = "ডকুমেন্টেশন ইস্যু তৈরি করুন"
+[post_create_project_issue]
+other = "প্রকল্পের সমস্যা তৈরি করুন"
+[post_posts_in]
+other = "পোস্ট"
+[post_reading_time]
+other = "পড়তে এক মিনিট"
+[post_less_than_a_minute_read]
+other = "পড়তে এক মিনিটেরও কম সময় লাগবে"
+
+# মুদ্রণ সমর্থন
+[print_printable_section]
+other = "এটি এই বিভাগটির বহু পৃষ্ঠার মুদ্রণযোগ্য দর্শন।"
+[print_click_to_print]
+other = "মুদ্রণ করতে এখানে ক্লিক করুন"
+[print_show_regular]
+other = "এই পৃষ্ঠার নিয়মিত দৃশ্যে ফিরে আসুন"
+[print_entire_section]
+other = "পুরো বিভাগ মুদ্রণ করুন"
+
+# Community
+[community_join]
+other = "যোগদান করুন {{ .Site.Title }} সম্প্রদায়ে"
+[community_introduce]
+other = "{{ .Site.Title }} হল একটি ওপেন সোর্স প্রকল্প যা সম্প্রদায়ের যে কেউ ব্যবহার করতে, উন্নতি করতে এবং উপভোগ করতে পারে৷ আমরা আপনাকে আমাদের সাথে দেখতে আনন্দিত হবে! এখানে আমাদের সাথে যোগ দেওয়ার কিছু উপায় রয়েছে, কী ঘটছে তা জানুন এবং জড়িত হন৷"
+[community_learn]
+other = "শিখুন এবং যোগদান করুন"
+[community_using]
+other = "ইতিমধ্যে {{ .Site.Title }} ব্যবহার করছেন বা ব্যবহার করতে চান? ? এখানে আরো জানুন:"
+[community_develop]
+other = "বিকাশ এবং অবদান"
+[community_contribute]
+other = "আপনি যদি {{ .Site.Title }} এ অবদান রেখে আরও জড়িত হতে চান, তবে এখানে আমাদের সাথে যোগ দিন:"
+[community_how_to]
+other = "আপনি আমাদের এ এই নথিগুলিতে কীভাবে অবদান রাখবেন তা খুঁজে পেতে পারেন"
+[community_guideline]
+other = "অবদান নির্দেশিকা"

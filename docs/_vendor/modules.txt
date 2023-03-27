@@ -1,0 +1,4 @@
+# github.com/google/docsy v0.6.0
+# github.com/google/docsy/dependencies v0.6.0
+# github.com/twbs/bootstrap v4.6.2+incompatible
+# github.com/FortAwesome/Font-Awesome v0.0.0-20220831210243-d3a7818c253f
