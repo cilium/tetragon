@@ -79,6 +79,8 @@ help:
 	@echo '    clang-format      - run code formatter on BPF code'
 	@echo '    go-format         - run code formatter on Go code'
 	@echo '    format            - convenience alias for clang-format and go-format'
+	@echo 'Documentation:'
+	@echo '    docs              - preview documentation website'
 
 # Generate compile-commands.json using bear
 .PHONY: compile-commands
@@ -343,3 +345,9 @@ tester-progs:
 .PHONY: version
 version:
 	@echo $(VERSION)
+
+.PHONY: doc docs documentation
+doc: documentation
+docs: documentation
+documentation:
+	$(MAKE) -C docs
