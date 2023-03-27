@@ -355,7 +355,7 @@ func (checker *ProcessExecChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessExec); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessExec event", event)
+	return fmt.Errorf("%s: %T is not a ProcessExec event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -572,7 +572,7 @@ func (checker *ProcessExitChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessExit); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessExit event", event)
+	return fmt.Errorf("%s: %T is not a ProcessExit event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -706,7 +706,7 @@ func (checker *ProcessKprobeChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessKprobe); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessKprobe event", event)
+	return fmt.Errorf("%s: %T is not a ProcessKprobe event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -962,7 +962,7 @@ func (checker *ProcessTracepointChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessTracepoint); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessTracepoint event", event)
+	return fmt.Errorf("%s: %T is not a ProcessTracepoint event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -1102,7 +1102,7 @@ func (checker *ProcessUprobeChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessUprobe); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessUprobe event", event)
+	return fmt.Errorf("%s: %T is not a ProcessUprobe event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -1218,7 +1218,7 @@ func (checker *TestChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.Test); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a Test event", event)
+	return fmt.Errorf("%s: %T is not a Test event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
@@ -1341,7 +1341,7 @@ func (checker *ProcessLoaderChecker) CheckEvent(event Event) error {
 	if ev, ok := event.(*tetragon.ProcessLoader); ok {
 		return checker.Check(ev)
 	}
-	return fmt.Errorf("%T is not a ProcessLoader event", event)
+	return fmt.Errorf("%s: %T is not a ProcessLoader event", CheckerLogPrefix(checker), event)
 }
 
 // CheckResponse checks a single gRPC response and implements the EventChecker interface
