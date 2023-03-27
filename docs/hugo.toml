@@ -225,6 +225,18 @@ enable = false
 #   icon = "fa fa-envelope"
 #   desc = "Discuss development issues around the project"
 
+# Modify default caches to cacheDir all the time instead of resources because
+# of permissions issues in default local resources directory. See following:
+# - https://gohugo.io/getting-started/configuration/#configure-file-caches
+# - https://github.com/kubernetes/website/pull/24475/files#diff-28043ff911f28a5cb5742f7638363546311225a63eabc365af5356c70d4deb77
+[caches]
+  [caches.assets]
+    dir = ":cacheDir/_gen"
+    maxAge = -1
+  [caches.images]
+    dir = ":cacheDir/_images"
+    maxAge = -1
+
 # hugo module configuration
 
 [module]

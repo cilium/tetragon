@@ -6,7 +6,9 @@
 # Netlify notifications. See https://answers.netlify.com/t/deploy-notifications-cancel-vs-failure/37300.
 [build]
   command = "npm ci && hugo"
-  environment = { HUGO_VERSION = "0.111.3" }
   # The ignore command is used by Netlify deploy bot to filter if the PR should
   # be previewed or not, and generally if the website should be built or not.
   ignore = "! git diff main --name-only | grep ^docs/"
+
+[build.environment]
+HUGO_VERSION = "0.111.3"

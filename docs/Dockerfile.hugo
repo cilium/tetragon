@@ -1,0 +1,22 @@
+FROM curlimages/curl:8.00.1@sha256:9e886c104cae1072f7874c9c214f77c6758f2e8a477234e32eda5fcbfa41f225 AS downloader
+ARG HUGO_VERSION=0.111.3
+ARG TARGETARCH
+WORKDIR tmp
+RUN curl -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
+
+# Hugo extended is dynamically linked
+FROM golang:1.20.2@sha256:1724dc3128e2e63f0bc3e055fe4fa478d67f6da4bd95c0e69690f6435f658804
+# create an unprivileged user to run hugo
+RUN mkdir -p /var/hugo && \
+    addgroup --system --gid 1000 hugo && \
+    adduser --system --gecos hugo --uid 1000 --home /var/hugo hugo && \
+    chown -R hugo /var/hugo && \
+    runuser -u hugo -- git config --global --add safe.directory /src
+COPY --from=downloader /tmp/hugo /usr/local/bin/hugo
+WORKDIR /src
+
+USER hugo:hugo
+EXPOSE 1313
+ENTRYPOINT ["/usr/local/bin/hugo"]
+CMD ["--help"]
+
