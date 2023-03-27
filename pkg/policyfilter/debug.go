@@ -8,16 +8,13 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 )
 
 // there is no way to have selective information level  per sub-system
 // (see: https://github.com/cilium/cilium/issues/21002) so we define a flag and
 // some helper functions here.
-
-const (
-	debugInfo = true
-)
 
 func initEmptylogger() logrus.FieldLogger {
 	// NB: we could define a better empty logger, that also ignores WithField
@@ -31,7 +28,7 @@ var (
 )
 
 func (s *state) debugLogWithCallers(nCallers int) logrus.FieldLogger {
-	if !debugInfo {
+	if !option.Config.EnablePolicyFilterDebug {
 		return emptyLogger
 	}
 
@@ -50,7 +47,7 @@ func (s *state) debugLogWithCallers(nCallers int) logrus.FieldLogger {
 }
 
 func (s *state) Debug(args ...interface{}) {
-	if debugInfo {
+	if option.Config.EnablePolicyFilterDebug {
 		s.log.Info(args...)
 	} else {
 		s.log.Debug(args...)
@@ -58,7 +55,7 @@ func (s *state) Debug(args ...interface{}) {
 }
 
 func (s *state) Debugf(fmt string, args ...interface{}) {
-	if debugInfo {
+	if option.Config.EnablePolicyFilterDebug {
 		s.log.Infof(fmt, args...)
 	} else {
 		s.log.Debugf(fmt, args...)

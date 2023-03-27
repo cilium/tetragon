@@ -142,8 +142,10 @@ tetragon:
     # -- The port at which to expose gops.
     port: 8118
   # Enable policy filter. This is required for K8s namespace filtering.
-  # NB: this is currently a work-in-progress feature
+  # NB: this is currently a beta feature
   enablePolicyFilter: false
+  # Enable policy filter debug messages.
+  enablePolicyFilterDebug: false
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true
