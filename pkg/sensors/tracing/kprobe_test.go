@@ -2571,3 +2571,31 @@ spec:
 
 	sensors.UnloadAll(tus.Conf().TetragonLib)
 }
+
+func TestFakeSyscallError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "sys-fake"
+spec:
+ kprobes:
+ - call: "sys_fake"
+   syscall: true
+`
+
+	_, err := observer.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib)
+	assert.NoError(t, err)
+
+	tp, err := yaml.PolicyFromYaml(testHook)
+	assert.NoError(t, err)
+	assert.NotNil(t, tp)
+
+	sens, err := sensors.GetMergedSensorFromParserPolicy(tp)
+	assert.Error(t, err)
+	assert.Nil(t, sens)
+
+	t.Logf("got error (as expected): %s", err)
+}
