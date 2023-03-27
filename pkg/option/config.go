@@ -69,7 +69,8 @@ type config struct {
 
 	ReleasePinned bool
 
-	EnablePolicyFilter bool
+	EnablePolicyFilter      bool
+	EnablePolicyFilterDebug bool
 }
 
 var (

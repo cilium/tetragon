@@ -70,7 +70,8 @@ const (
 
 	keyReleasePinnedBPF = "release-pinned-bpf"
 
-	keyEnablePolicyFilter = "enable-policy-filter"
+	keyEnablePolicyFilter      = "enable-policy-filter"
+	keyEnablePolicyFilterDebug = "enable-policy-filter-debug"
 )
 
 func readAndSetFlags() {
@@ -127,4 +128,5 @@ func readAndSetFlags() {
 
 	option.Config.ReleasePinned = viper.GetBool(keyReleasePinnedBPF)
 	option.Config.EnablePolicyFilter = viper.GetBool(keyEnablePolicyFilter)
+	option.Config.EnablePolicyFilterDebug = viper.GetBool(keyEnablePolicyFilterDebug)
 }
