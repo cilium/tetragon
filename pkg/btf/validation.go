@@ -130,7 +130,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 			return &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s: arguments will not be verified", kspec.Call)}
 		}
 		syscall := strings.TrimPrefix(kspec.Call, prefix)
-		return validateSycall(kspec, syscall)
+		return validateSyscall(kspec, syscall)
 	}
 
 	fnNArgs := uint32(len(proto.Params))
@@ -140,23 +140,23 @@ func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 			return fmt.Errorf("kprobe arg %d has an invalid index: %d based on prototype: %s", i, specArg.Index, proto)
 		}
 		arg := proto.Params[int(specArg.Index)]
-		paramTyStr := getKernelType(arg.Type)
-		if !typesCompatible(specArg.Type, paramTyStr) {
-			return &ValidationWarn{s: fmt.Sprintf("type (%s) of argument %d does not match spec type (%s)\n", paramTyStr, specArg.Index, specArg.Type)}
+		err := checkTypesCompatibility(specArg.Type, "", arg.Type)
+		if err != nil {
+			return &ValidationWarn{s: fmt.Sprintf("validate argument %d failed: %v\n", specArg.Index, err)}
 		}
 	}
 
 	if kspec.Return {
-		retTyStr := getKernelType(proto.Return)
-		if !typesCompatible(kspec.ReturnArg.Type, retTyStr) {
-			return &ValidationWarn{s: fmt.Sprintf("return type (%s) does not match spec return type (%s)\n", retTyStr, kspec.ReturnArg.Type)}
+		err := checkTypesCompatibility(kspec.ReturnArg.Type, "", proto.Return)
+		if err != nil {
+			return &ValidationWarn{s: fmt.Sprintf("validate return type failed: %v\n", err)}
 		}
 	}
 
 	return nil
 }
 
-func getKernelType(arg btf.Type) string {
+func getBtfKernelType(arg btf.Type) string {
 	ptr, ok := arg.(*btf.Pointer)
 	if ok {
 		arg = ptr.Target
@@ -173,72 +173,90 @@ func getKernelType(arg btf.Type) string {
 	return arg.TypeName()
 }
 
-func typesCompatible(specTy string, kernelTy string) bool {
+// checkTypesCompatibility checks if the passed types are compatible
+//
+// specTy The spec type to check
+// kernelTy The kernel type to check against
+// btfTy The BTF Type to check against instead of kernelTy
+//
+// Returns an error if the types are not compatible
+func checkTypesCompatibility(specTy string, kernelTy string, btfTy btf.Type) error {
+	if btfTy != nil {
+		kernelTy = getBtfKernelType(btfTy)
+	}
+
 	switch specTy {
 	case "size_t":
 		switch kernelTy {
 		case "size_t":
-			return true
+			return nil
 		}
 	case "char_buf", "string":
 		switch kernelTy {
 		case "const char *", "char *":
-			return true
+			return nil
 		}
 	case "char_iovec":
 		switch kernelTy {
 		case "const struct iovec *", "struct iovec *":
-			return true
+			return nil
 		}
 	case "int", "fd":
 		switch kernelTy {
 		case "unsigned int", "int", "unsigned long", "long":
-			return true
+			return nil
 		}
 	case "filename":
 		switch kernelTy {
 		case "struct filename *":
-			return true
+		case "filename":
+			return nil
 		}
 	case "file":
 		switch kernelTy {
 		case "struct file *":
-			return true
+		case "file":
+			return nil
 		}
 	case "bpf_attr":
 		switch kernelTy {
 		case "union bpf_attr *":
-			return true
+		case "bpf_attr":
+			return nil
 		}
 	case "perf_event":
 		switch kernelTy {
 		case "struct perf_event *":
-			return true
+		case "perf_event":
+			return nil
 		}
 	case "bpf_map":
 		switch kernelTy {
 		case "struct bpf_map *":
-			return true
+		case "bpf_map":
+			return nil
 		}
 	case "user_namespace":
 		switch kernelTy {
 		case "struct user_namespace *":
-			return true
+		case "user_namespace":
+			return nil
 		}
 	case "capability":
 		switch kernelTy {
 		case "int":
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return fmt.Errorf("type (%s) does not match spec type (%s)", kernelTy, specTy)
 }
 
-func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
+func validateSyscall(kspec *v1alpha1.KProbeSpec, name string) error {
 	if kspec.Return {
-		if !typesCompatible(kspec.ReturnArg.Type, "long") {
-			return fmt.Errorf("unexpected syscall spec return type: %s", kspec.ReturnArg.Type)
+		err := checkTypesCompatibility(kspec.ReturnArg.Type, "long", nil)
+		if err != nil {
+			return fmt.Errorf("validate syscall return type failed: %s", err)
 		}
 	}
 
@@ -254,8 +272,9 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 		}
 
 		argTy := argsInfo[specArg.Index].Type
-		if !typesCompatible(specArg.Type, argTy) {
-			return &ValidationWarn{s: fmt.Sprintf("type (%s) of syscall argument %d does not match spec type (%s)\n", argTy, specArg.Index, specArg.Type)}
+		err := checkTypesCompatibility(specArg.Type, argTy, nil)
+		if err != nil {
+			return &ValidationWarn{s: fmt.Sprintf("validate syscall argument %d failed: %v\n", specArg.Index, err)}
 		}
 	}
 
