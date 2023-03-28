@@ -26,7 +26,7 @@ func main() {
 
 func new() *cobra.Command {
 	rootCmd = &cobra.Command{
-		Use:   "tetra",
+		Use:   "tetraok",
 		Short: "Tetragon CLI",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
