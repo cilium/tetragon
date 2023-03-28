@@ -20,6 +20,7 @@ contrib/tester-progs/sigkill-unprivileged-user-ns-tester
 
 # project tool artifacts
 .vagrant/
+.idea
 .vscode
 cscope.files
 cscope.po.out
