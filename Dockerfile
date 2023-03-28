@@ -47,7 +47,6 @@ RUN apk add --no-cache binutils git \
 FROM --platform=$BUILDPLATFORM quay.io/cilium/clang@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpftool-builder
 WORKDIR /bpftool
 ARG TARGETARCH BUILDARCH
-RUN echo $BUILDARCH
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then apt-get update && echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse\n\
 deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse\n\
