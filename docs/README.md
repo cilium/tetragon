@@ -34,3 +34,7 @@ hugo server
 
 Shortcut to the content:
 [content/en/docs](https://github.com/cilium/tetragon/tree/main/docs/content/en/docs).
+
+## Style
+
+We generally follow the Kuberentes docs style guide: https://kubernetes.io/docs/contribute/style/style-guide/
