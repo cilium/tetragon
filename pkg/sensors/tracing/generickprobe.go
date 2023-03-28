@@ -343,6 +343,17 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 		config.PolicyID = uint32(policyID)
 
 		argRetprobe = nil // holds pointer to arg for return handler
+
+		// modifying f.Call directly instead of writing to funcName
+		// because of BTF validation later using the whole v1alpha1.KProbeSpec object
+		if f.Syscall {
+			prefixedName, err := arch.AddSyscallPrefix(f.Call)
+			if err != nil {
+				logger.GetLogger().Warnf("kprobe syscall prefix: %v", err)
+			} else {
+				f.Call = prefixedName
+			}
+		}
 		funcName := f.Call
 
 		// Parse Arguments
