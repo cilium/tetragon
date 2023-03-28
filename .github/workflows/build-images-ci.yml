@@ -30,7 +30,7 @@ jobs:
             dockerfile: ./Dockerfile
 
           - name: tetragon-operator
-            dockerfile: ./operator.Dockerfile
+            dockerfile: ./Dockerfile.operator
 
     steps:
       # https://github.com/docker/setup-qemu-action

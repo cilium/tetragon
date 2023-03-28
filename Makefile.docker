@@ -100,7 +100,7 @@ endif
 endef
 
 # docker-tetragon-operator-image
-$(eval $(call DOCKER_IMAGE_TEMPLATE,docker-tetragon-operator-image,./operator.Dockerfile,tetragon-operator,$(DOCKER_IMAGE_TAG)))
+$(eval $(call DOCKER_IMAGE_TEMPLATE,docker-tetragon-operator-image,./Dockerfile.operator,tetragon-operator,$(DOCKER_IMAGE_TAG)))
 
 #
 # docker-*-all targets are mainly used from the CI
