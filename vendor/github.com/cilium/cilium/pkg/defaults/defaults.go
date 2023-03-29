@@ -20,7 +20,7 @@ import (
 
 const (
 	// AgentHealthPort is the default value for option.AgentHealthPort
-	AgentHealthPort = 9876
+	AgentHealthPort = 9879
 
 	// GopsPortAgent is the default value for option.GopsPort in the agent
 	GopsPortAgent = 9890
@@ -74,6 +74,13 @@ const (
 	// HubbleSockPathEnv is the environment variable to overwrite
 	// HubbleSockPath.
 	HubbleSockPathEnv = "HUBBLE_SOCK"
+
+	// HubbleRecorderStoragePath specifies the directory in which pcap files
+	// created via the Hubble Recorder API are stored
+	HubbleRecorderStoragePath = RuntimePath + "/pcaps"
+
+	// HubbleRecorderSinkQueueSize is the queue size for each recorder sink
+	HubbleRecorderSinkQueueSize = 1024
 
 	// MonitorSockPath1_2 is the path to the UNIX domain socket used to
 	// distribute BPF and agent events to listeners.
@@ -136,6 +143,10 @@ const (
 	// IdentityChangeGracePeriod is the default value for
 	// option.IdentityChangeGracePeriod
 	IdentityChangeGracePeriod = 5 * time.Second
+
+	// IdentityRestoreGracePeriod is the default value for
+	// option.IdentityRestoreGracePeriod
+	IdentityRestoreGracePeriod = 10 * time.Minute
 
 	// ExecTimeout is a timeout for executing commands.
 	ExecTimeout = 300 * time.Second
@@ -257,6 +268,10 @@ const (
 	// local caches with Kubernetes state before exiting.
 	K8sSyncTimeout = 3 * time.Minute
 
+	// AllocatorListTimeout specifies the standard time to allow for listing
+	// initial allocator state from kvstore before exiting.
+	AllocatorListTimeout = 3 * time.Minute
+
 	// K8sWatcherEndpointSelector specifies the k8s endpoints that Cilium
 	// should watch for.
 	K8sWatcherEndpointSelector = "metadata.name!=kube-scheduler,metadata.name!=kube-controller-manager,metadata.name!=etcd-operator,metadata.name!=gcp-controller-manager"
@@ -329,8 +344,8 @@ const (
 	IPAMPreAllocation = 8
 
 	// ENIFirstInterfaceIndex is the default value for
-	// CiliumNode.Spec.ENI.FirstInterfaceIndex if no value is set
-	ENIFirstInterfaceIndex = 1
+	// CiliumNode.Spec.ENI.FirstInterfaceIndex if no value is set.
+	ENIFirstInterfaceIndex = 0
 
 	// ParallelAllocWorkers is the default max number of parallel workers doing allocation in the operator
 	ParallelAllocWorkers = 50
@@ -410,4 +425,20 @@ const (
 
 	// KubeProxyReplacementHealthzBindAddr is the default kubeproxyReplacement healthz server bind addr
 	KubeProxyReplacementHealthzBindAddr = ""
+
+	// EnableBPFBypassFIBLookup instructs Cilium to enable the FIB lookup bypass optimization for nodeport reverse NAT handling.
+	EnableBPFBypassFIBLookup = true
+
+	// InstallNoConntrackRules instructs Cilium to install Iptables rules to skip netfilter connection tracking on all pod traffic.
+	InstallNoConntrackIptRules = false
+
+	// WireguardSubnetV4 is a default wireguard tunnel subnet
+	WireguardSubnetV4 = "172.16.43.0/24"
+
+	// WireguardSubnetV6 is a default wireguard tunnel subnet
+	WireguardSubnetV6 = "fdc9:281f:04d7:9ee9::1/64"
+
+	// ExternalClusterIP enables cluster external access to ClusterIP services.
+	// Defaults to false to retain prior behaviour of not routing external packets to ClusterIPs.
+	ExternalClusterIP = false
 )

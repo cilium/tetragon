@@ -1,0 +1,5 @@
+go 1.18
+
+use ./pkg/k8s
+
+replace github.com/blang/semver/v4 => github.com/blang/semver/v4 v4.0.0

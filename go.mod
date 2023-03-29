@@ -3,7 +3,7 @@ module github.com/cilium/tetragon
 go 1.18
 
 require (
-	github.com/cilium/cilium v1.9.16
+	github.com/cilium/cilium v1.10.14
 	github.com/cilium/ebpf v0.9.3
 	github.com/cilium/little-vm-helper v0.0.4-0.20230302123240-24dab6e359ff
 	github.com/cilium/lumberjack/v2 v2.3.0
@@ -60,6 +60,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

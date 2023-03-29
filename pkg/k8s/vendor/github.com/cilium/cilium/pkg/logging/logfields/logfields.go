@@ -31,6 +31,9 @@ const (
 	// NodeName is a human readable name for the node
 	NodeName = "nodeName"
 
+	// Endpoint is the endpoint name (e.g. wireguard)
+	Endpoint = "endpoint"
+
 	// EndpointID is the numeric endpoint identifier
 	EndpointID = "endpointID"
 
@@ -179,8 +182,14 @@ const (
 	// IPv6CIDRs is a list of IPv6 CIDRs
 	IPv6CIDRs = "ipv6CIDRs"
 
-	// CIDR is a IPv4/IPv4 subnet/CIDR
+	// CIDR is a IPv4/IPv6 subnet/CIDR
 	CIDR = "cidr"
+
+	// CIDRS is a list of IPv4/IPv6 CIDRs
+	CIDRS = "cidrs"
+
+	// IPAddrs is a lsit of IP addrs
+	IPAddrs = "ipAddrs"
 
 	// MTU is the maximum transmission unit of one interface
 	MTU = "mtu"
@@ -279,14 +288,14 @@ const (
 	// CiliumLocalRedirectPolicyName is the name of a CiliumLocalRedirectPolicy
 	CiliumLocalRedirectName = "ciliumLocalRedirectPolicyName"
 
+	// CiliumEgressNATPolicyName is the name of a CiliumEgressNATPolicy
+	CiliumEgressNATPolicyName = "ciliumEgressNATPolicyName"
+
 	// BPFMapKey is a key from a BPF map
 	BPFMapKey = "bpfMapKey"
 
 	// BPFMapValue is a value from a BPF map
 	BPFMapValue = "bpfMapValue"
-
-	// XDPDevice is the device name
-	XDPDevice = "xdpDevice"
 
 	// Device is the device name
 	Device = "device"
@@ -294,7 +303,7 @@ const (
 	// Devices is the devices name
 	Devices = "devices"
 
-	//DirectRoutingDevice is the name of the direct routing device
+	// DirectRoutingDevice is the name of the direct routing device
 	DirectRoutingDevice = "directRoutingDevice"
 
 	// IpvlanMasterDevice is the ipvlan master device name
@@ -483,6 +492,9 @@ const (
 	// Key is the identity of the encryption key
 	Key = "key"
 
+	// URL represents a Uniform Resource Locator.
+	URL = "url"
+
 	// SysParamName is the name of the kernel parameter (sysctl)
 	SysParamName = "sysParamName"
 
@@ -508,8 +520,32 @@ const (
 	// LRPBackendPorts are the parsed backend ports of the Local Redirect Policy.
 	LRPBackendPorts = "lrpBackendPorts"
 
+	// LRPType is the type of the Local Redirect Policy.
+	LRPType = "lrpType"
+
+	// LRPFrontendType is the parsed frontend type of the Local Redirect Policy.
+	LRPFrontendType = "lrpFrontendType"
+
+	// ENPName is the name of the egress nat policy
+	ENPName = "enpName"
+
 	// Mode describes an operations mode
 	Mode = "mode"
+
+	// PubKey is the public key
+	PubKey = "pubKey"
+
+	// NodeIPv4 is the node IPv4 addr
+	NodeIPv4 = "nodeIPv4"
+
+	// NodeIPv6 is the node IPv4 addr
+	NodeIPv6 = "nodeIPv6"
+
+	// OldNode refers to the node before the update
+	OldNode = "oldNode"
+
+	// NewNode refers to the node after the update
+	NewNode = "newNode"
 
 	// AttachedENIs are the ENIs which have been attached to the node
 	AttachedENIs = "attachedENIs"
@@ -517,9 +553,33 @@ const (
 	// ExpectedENIs are the ENIs which are expected to be available
 	ExpectedENIs = "expectedENIs"
 
+	// NumEntries is the number of entries counted
+	NumEntries = "entries"
+
 	// Hint helps nudge the user in the right direction when troubleshooting.
 	Hint = "hint"
 
 	// CEPUID is the UID of the CiliumEndpoint.
 	CEPUID = "ciliumEndpointUID"
+
+	// SourceIP is a source IP
+	SourceIP = "sourceIP"
+
+	// DestinationCIDR is a destination CIDR
+	DestinationCIDR = "destinationCIDR"
+
+	// EgressIP is the egress IP used in a given egress policy
+	EgressIP = "egressIP"
+
+	// GatewayIP is the gateway IP used in a given egress policy
+	GatewayIP = "gatewayIP"
+
+	// Chain is an Iptables chain
+	Chain = "chain"
+
+	// IPSec SPI
+	SPI = "spi"
+
+	// IPSec old SPI
+	OldSPI = "oldSPI"
 )

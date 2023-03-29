@@ -32,11 +32,14 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+## explicit; go 1.14
+github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.9.16
-## explicit; go 1.15
+# github.com/cilium/cilium v1.10.14
+## explicit; go 1.16
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/daemon
 github.com/cilium/cilium/api/v1/client/endpoint
@@ -44,12 +47,14 @@ github.com/cilium/cilium/api/v1/client/ipam
 github.com/cilium/cilium/api/v1/client/metrics
 github.com/cilium/cilium/api/v1/client/policy
 github.com/cilium/cilium/api/v1/client/prefilter
+github.com/cilium/cilium/api/v1/client/recorder
 github.com/cilium/cilium/api/v1/client/service
 github.com/cilium/cilium/api/v1/models
 github.com/cilium/cilium/pkg/alignchecker
 github.com/cilium/cilium/pkg/api
 github.com/cilium/cilium/pkg/byteorder
 github.com/cilium/cilium/pkg/client
+github.com/cilium/cilium/pkg/datapath/link
 github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/endpoint/id
 github.com/cilium/cilium/pkg/identity
@@ -61,6 +66,7 @@ github.com/cilium/cilium/pkg/labels
 github.com/cilium/cilium/pkg/lock
 github.com/cilium/cilium/pkg/logging
 github.com/cilium/cilium/pkg/logging/logfields
+github.com/cilium/cilium/pkg/mac
 github.com/cilium/cilium/pkg/monitor
 github.com/cilium/cilium/pkg/monitor/api
 github.com/cilium/cilium/pkg/monitor/notifications
