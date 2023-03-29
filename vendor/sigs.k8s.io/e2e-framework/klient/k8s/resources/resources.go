@@ -17,9 +17,14 @@ limitations under the License.
 package resources
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/remotecommand"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/k8s"
+	"sigs.k8s.io/e2e-framework/klient/k8s/watcher"
 )
 
 type Resources struct {
@@ -64,6 +70,11 @@ func New(cfg *rest.Config) (*Resources, error) {
 	}
 
 	return res, nil
+}
+
+// GetConfig hepls to get config type *rest.Config
+func (r *Resources) GetConfig() *rest.Config {
+	return r.config
 }
 
 func (r *Resources) WithNamespace(ns string) *Resources {
@@ -181,4 +192,64 @@ func (r *Resources) Label(obj k8s.Object, label map[string]string) {
 
 func (r *Resources) GetScheme() *runtime.Scheme {
 	return r.scheme
+}
+
+// GetClient return the controller-runtime client instance
+func (r *Resources) GetControllerRuntimeClient() cr.Client {
+	return r.client
+}
+
+func (r *Resources) Watch(object k8s.ObjectList, opts ...ListOption) *watcher.EventHandlerFuncs {
+	listOptions := &metav1.ListOptions{}
+
+	for _, fn := range opts {
+		fn(listOptions)
+	}
+
+	o := &cr.ListOptions{Raw: listOptions}
+
+	return &watcher.EventHandlerFuncs{
+		ListOptions: o,
+		K8sObject:   object,
+		Cfg:         r.GetConfig(),
+	}
+}
+
+func (r *Resources) ExecInPod(ctx context.Context, namespaceName, podName, containerName string, command []string, stdout, stderr *bytes.Buffer) error {
+	clientset, err := kubernetes.NewForConfig(r.config)
+	if err != nil {
+		return err
+	}
+
+	req := clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespaceName).
+		SubResource("exec")
+	newScheme := runtime.NewScheme()
+	if err := v1.AddToScheme(newScheme); err != nil {
+		return err
+	}
+	parameterCodec := runtime.NewParameterCodec(newScheme)
+	req.VersionedParams(&v1.PodExecOptions{
+		Container: containerName,
+		Command:   command,
+		Stdout:    true,
+		Stderr:    true,
+	}, parameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(r.config, "POST", req.URL())
+	if err != nil {
+		panic(err)
+	}
+
+	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

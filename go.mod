@@ -33,11 +33,11 @@ require (
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.2
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20220608195807-1a118fe229fc
-	github.com/vladimirvivien/gexe v0.1.1
+	github.com/vladimirvivien/gexe v0.2.0
 	go.uber.org/multierr v1.9.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.6.0
-	golang.org/x/time v0.2.0
+	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -48,7 +48,7 @@ require (
 	k8s.io/code-generator v0.26.0
 	k8s.io/klog/v2 v2.80.1
 	sigs.k8s.io/controller-tools v0.7.0
-	sigs.k8s.io/e2e-framework v0.0.7
+	sigs.k8s.io/e2e-framework v0.1.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -150,7 +150,7 @@ require (
 	go.opentelemetry.io/otel v1.11.2 // indirect
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/zap v1.23.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20221106115401-f9659909a136 // indirect
 	golang.org/x/mod v0.8.0 // indirect
@@ -166,8 +166,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
-	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
-	sigs.k8s.io/controller-runtime v0.13.1-0.20221201045826-d9912251cd81 // indirect
+	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 // indirect
+	sigs.k8s.io/controller-runtime v0.14.1 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
@@ -191,7 +191,7 @@ replace (
 	// as to why we are using a private fork.
 	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
 	// Pull in support for helm uninstall. TODO: remove this when 0.0.8 comes out.
-	sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.0.0-20220527132303-bc7888d1b4f0
+	sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.1.0
 )
 
 // Needed for now to resolve BTF issues in newer kernels. When we have 0.9.4 we can remove

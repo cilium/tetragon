@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -29,7 +28,7 @@ import (
 	"github.com/vladimirvivien/gexe"
 )
 
-var kindVersion = "v0.12.0"
+var kindVersion = "v0.17.0"
 
 type Cluster struct {
 	name        string
@@ -51,19 +50,17 @@ func (k *Cluster) WithVersion(ver string) *Cluster {
 func (k *Cluster) getKubeconfig() (string, error) {
 	kubecfg := fmt.Sprintf("%s-kubecfg", k.name)
 
-	p := k.e.StartProc(fmt.Sprintf(`kind get kubeconfig --name %s`, k.name))
+	p := k.e.RunProc(fmt.Sprintf(`kind get kubeconfig --name %s`, k.name))
 	if p.Err() != nil {
 		return "", fmt.Errorf("kind get kubeconfig: %w", p.Err())
 	}
+
 	var stdout bytes.Buffer
-	if _, err := stdout.ReadFrom(p.StdOut()); err != nil {
+	if _, err := stdout.ReadFrom(p.Out()); err != nil {
 		return "", fmt.Errorf("kind kubeconfig stdout bytes: %w", err)
 	}
-	if p.Wait().Err() != nil {
-		return "", fmt.Errorf("kind get kubeconfig: %s: %w", p.Result(), p.Err())
-	}
 
-	file, err := ioutil.TempFile("", fmt.Sprintf("kind-cluser-%s", kubecfg))
+	file, err := os.CreateTemp("", fmt.Sprintf("kind-cluser-%s", kubecfg))
 	if err != nil {
 		return "", fmt.Errorf("kind kubeconfig file: %w", err)
 	}

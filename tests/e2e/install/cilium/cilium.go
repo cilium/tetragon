@@ -164,7 +164,7 @@ func (c *ciliumCLI) status(ctx context.Context, wait bool) error {
 		return fmt.Errorf("cilium status command failed: %s: %s", p.Err(), p.Result())
 	}
 	var stdout bytes.Buffer
-	if _, err := stdout.ReadFrom(p.StdOut()); err != nil {
+	if _, err := stdout.ReadFrom(p.GetOutputPipe()); err != nil {
 		return fmt.Errorf("failed to read from cilium status stdout: %w", err)
 	}
 	if p.Wait().Err() != nil {
