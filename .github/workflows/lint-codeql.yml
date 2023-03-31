@@ -55,8 +55,8 @@ jobs:
         persist-credentials: false
         fetch-depth: 1
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@959cbb7472c4d4ad70cdfe6f4976053fe48ab394
+      uses: github/codeql-action/init@04df1262e6247151b5ac09cd2c303ac36ad3f62b
       with:
         languages: go
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@959cbb7472c4d4ad70cdfe6f4976053fe48ab394
+      uses: github/codeql-action/analyze@04df1262e6247151b5ac09cd2c303ac36ad3f62b
