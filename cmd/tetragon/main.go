@@ -35,7 +35,6 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/rthooks"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
@@ -315,20 +314,13 @@ func tetragonExecute() error {
 
 	// load sensor from configuration file
 	if len(option.Config.ConfigFile) > 0 {
-		var sens *sensors.Sensor
 		tp, err := config.PolicyFromYamlFilename(option.Config.ConfigFile)
 		if err != nil {
 			return err
 		}
 
-		sens, err = sensors.GetMergedSensorFromParserPolicy(tp)
+		err = observer.SensorManager.AddTracingPolicy(ctx, tp)
 		if err != nil {
-			return err
-		}
-
-		// NB: simlarly to the base sensor we are loading this
-		// statically (instead of the sensor manager).
-		if err := sens.Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
 			return err
 		}
 	}
