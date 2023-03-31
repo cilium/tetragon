@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
+
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -126,8 +127,7 @@ func (pod *podInfo) delContainers(id string) []containerInfo {
 }
 
 // containerExists checks returns true if a container exists in the pod
-// it uses log to log inconsistencies in the data.
-func (pod *podInfo) containerExists(log logrus.FieldLogger, containerID string, cgIDp *CgroupID) bool {
+func (m *state) containerExists(pod *podInfo, containerID string, cgIDp *CgroupID) bool {
 	for i := range pod.containers {
 		container := &pod.containers[i]
 		if container.id != containerID {
@@ -149,7 +149,8 @@ func (pod *podInfo) containerExists(log logrus.FieldLogger, containerID string, 
 		// NB: if this happens, we might end up with multiple cgroup
 		// ids for the same container. Since we have no way of knowing
 		// which one is the correct, we keep both.
-		log.WithFields(logrus.Fields{
+		m.log.WithFields(logrus.Fields{
+			"pod-id":        pod.id,
 			"container-id":  containerID,
 			"old-cgroup-id": container.cgID,
 			"new-cgroup-id": *cgIDp,
@@ -333,6 +334,7 @@ func (m *state) delPolicy(id PolicyID) *policy {
 	return nil
 }
 
+// find the pod with the given id
 func (m *state) findPod(id PodID) *podInfo {
 	for i := range m.pods {
 		if m.pods[i].id == id {
@@ -405,34 +407,7 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	return nil
 }
 
-func (m *state) addPod(podID PodID, namespace string, containers []containerInfo) error {
-	m.pods = append(m.pods, podInfo{
-		id:         podID,
-		namespace:  namespace,
-		containers: containers,
-	})
-	pod := &m.pods[len(m.pods)-1]
-	cgroupIDs := pod.cgroupIDs()
-	for polID := range m.policies {
-		pol := &m.policies[polID]
-		if !pol.podMatches(pod) {
-			continue
-		}
-
-		if err := pol.polMap.addCgroupIDs(cgroupIDs); err != nil {
-			// NB: depending on the error, we might want to schedule some retries here
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  polID,
-				"pod-id":     podID,
-				"cgroup-ids": cgroupIDs,
-			}).Warn("addPod: failed to update policy map")
-		}
-	}
-
-	return nil
-}
-
-func cgIDPtrStr(p *CgroupID) string {
+func cgIDPointerStr(p *CgroupID) string {
 	if p == nil {
 		return "(unknown)"
 	}
@@ -453,6 +428,83 @@ func (m *state) findCgroupID(podID PodID, containerID string) (CgroupID, error) 
 	return CgroupID(cgid), err
 }
 
+// addPodContainers adds a list of containers (ids) to a pod.
+// It will update the state for all containers that do not exist.
+// It takes an optional argument of a list of cgroup ids (one per container). If this list is empty,
+// the function will try to figure out the cgroup id on its own.
+// Finally, it will scan over all the matching policies for the pod and update the policy maps.
+func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs []CgroupID) {
+	// Find the containers that do not exist in our state, and for those find the cgroup id if
+	// one does not exist.
+	cinfo := make([]containerInfo, 0, len(containerIDs))
+	cgIDs := make([]CgroupID, 0, len(containerIDs))
+	for i, contID := range containerIDs {
+		var cgIDptr *CgroupID
+		if len(cgroupIDs) > i {
+			cgIDptr = &cgroupIDs[i]
+		}
+
+		if m.containerExists(pod, contID, cgIDptr) {
+			m.debugLogWithCallers(4).WithFields(logrus.Fields{
+				"pod-id":       pod.id,
+				"namespace":    pod.namespace,
+				"container-id": contID,
+				"cgroup-id":    cgIDPointerStr(cgIDptr),
+			}).Info("addPodContainers: container exists, skipping")
+			continue
+		}
+
+		if cgIDptr == nil {
+			if cgid, err := m.findCgroupID(pod.id, contID); err != nil {
+				// error: skip this container id
+				m.log.WithError(err).WithFields(logrus.Fields{
+					"pod-id":       pod.id,
+					"container-id": contID,
+				}).Warn("failed to find cgroup id. Skipping container.")
+				continue
+			} else {
+				cgIDptr = &cgid
+			}
+		}
+
+		cinfo = append(cinfo, containerInfo{contID, *cgIDptr})
+		cgIDs = append(cgIDs, *cgIDptr)
+	}
+
+	if len(cinfo) == 0 {
+		m.debugLogWithCallers(4).WithFields(logrus.Fields{
+			"pod-id":        pod.id,
+			"namespace":     pod.namespace,
+			"container-ids": containerIDs,
+		}).Info("addPodContainers: nothing to do, returning")
+		return
+	}
+
+	// update containers
+	pod.containers = append(pod.containers, cinfo...)
+	m.debugLogWithCallers(4).WithFields(logrus.Fields{
+		"pod-id":          pod.id,
+		"namespace":       pod.namespace,
+		"containers-info": cinfo,
+	}).Info("addPodContainers: container(s) added")
+
+	// update all policy maps
+	for i := range m.policies {
+		pol := &m.policies[i]
+		if !pol.podMatches(pod) {
+			continue
+		}
+
+		if err := pol.polMap.addCgroupIDs(cgIDs); err != nil {
+			m.log.WithError(err).WithFields(logrus.Fields{
+				"policy-id":  pol.id,
+				"pod-id":     pod.id,
+				"cgroup-ids": cgroupIDs,
+			}).Warn("failed to update policy map")
+		}
+	}
+}
+
 // AddPodContainer informs policyfilter about a new container in a pod.
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
@@ -461,72 +513,32 @@ func (m *state) AddPodContainer(podID PodID, namespace string, containerID strin
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	log := m.debugLogWithCallers(4).WithFields(logrus.Fields{
-		"pod-id":       podID,
-		"namespace":    namespace,
-		"container-id": containerID,
-		"cgroup-id":    cgIDPtrStr(cgIDp),
-	})
-
 	pod := m.findPod(podID)
 	if pod == nil {
-		// try to detrmine cgroup id, if not provided
-		var cgID CgroupID
-		var err error
-		if cgIDp != nil {
-			cgID = *cgIDp
-		} else if cgID, err = m.findCgroupID(podID, containerID); err != nil {
-			return fmt.Errorf("failed to determine cgroup id for new PodID=%s ContainerID=%s, err:%v", podID, containerID, err)
-		}
-		log.Info("AddPodContainer: adding new pod")
-		return m.addPod(podID, namespace, []containerInfo{{id: containerID, cgID: cgID}})
-	}
-
-	// sanity check: old and new namespace should match
-	if pod.namespace != namespace {
+		// add a new pod, if one does not exist already
+		m.pods = append(m.pods, podInfo{
+			id:         podID,
+			namespace:  namespace,
+			containers: nil,
+		})
+		pod = &m.pods[len(m.pods)-1]
+		m.debugLogWithCallers(4).WithFields(logrus.Fields{
+			"pod-id":       podID,
+			"namespace":    namespace,
+			"container-id": containerID,
+			"cgroup-id":    cgIDPointerStr(cgIDp),
+		}).Info("AddPodContainer: added pod")
+	} else if pod.namespace != namespace {
+		// sanity check: old and new namespace should match
 		return fmt.Errorf("conflicting namespaces for pod with id %s: old='%s' vs new='%s'", podID, pod.namespace, namespace)
 	}
 
-	if pod.containerExists(m.log.WithField("pod-id", podID), containerID, cgIDp) {
-		m.Debugf("AddPodContainer: container exists")
-		// container was already handled, return
-		return nil
-	}
-
-	// try to detrmine cgroup id, if not provided
-	var cgID CgroupID
-	var err error
+	var cgroupIDs []CgroupID
 	if cgIDp != nil {
-		cgID = *cgIDp
-	} else if cgID, err = m.findCgroupID(podID, containerID); err != nil {
-		return fmt.Errorf("failed to determine cgroup id for PodID=%s ContainerID=%s, err:%v", podID, containerID, err)
-	}
-	// add container to pod containers
-	pod.containers = append(pod.containers, containerInfo{
-		id:   containerID,
-		cgID: cgID,
-	})
-
-	cgroupIDs := []CgroupID{cgID}
-	// check what policies match the pod, and add the new cgroup id if they match
-	// NB(kkourt): matching info can be cached, but not sure if it is worth it
-	for polID := range m.policies {
-		pol := &m.policies[polID]
-		if !pol.podMatches(pod) {
-			continue
-		}
-
-		if err := pol.polMap.addCgroupIDs(cgroupIDs); err != nil {
-			// NB: depending on the error, we might want to schedule some retries here
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  polID,
-				"pod-id":     podID,
-				"cgroup-ids": cgroupIDs,
-			}).Warn("AddPodContainer: failed to update policy map")
-		}
+		cgroupIDs = append(cgroupIDs, *cgIDp)
 	}
 
-	log.Info("AddPodContainer: added container to existing pod")
+	m.addPodContainers(pod, []string{containerID}, cgroupIDs)
 	return nil
 }
 
