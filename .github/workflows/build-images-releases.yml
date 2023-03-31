@@ -76,9 +76,11 @@ jobs:
             quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ github.sha }}
 
       - name: Install Cosign
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
 
       - name: Sign Container Image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
@@ -86,6 +88,7 @@ jobs:
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Install Bom
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         shell: bash
         run: |
           curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
@@ -93,6 +96,7 @@ jobs:
           sudo chmod +x /usr/local/bin/bom
 
       - name: Generate SBOM
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         shell: bash
         # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
         run: |
@@ -101,11 +105,13 @@ jobs:
           --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.tag.outputs.tag }}
 
       - name: Attach SBOM to container image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         run: |
           cosign attach sbom --sbom sbom_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}@${{ steps.docker_build_release.outputs.digest }}
           cosign attach sbom --sbom sbom_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Sign SBOM Image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
