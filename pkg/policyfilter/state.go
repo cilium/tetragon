@@ -214,6 +214,25 @@ func New() (*state, error) {
 
 //revive:enable:unexported-return
 
+func (m *state) updatePodHandler(pod *v1.Pod) {
+	containerIDs := podContainersIDs(pod)
+	podID, err := uuid.Parse(string(pod.UID))
+	if err != nil {
+		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
+		return
+	}
+
+	namespace := pod.Namespace
+	err = m.UpdatePod(PodID(podID), namespace, containerIDs)
+	if err != nil {
+		m.log.WithError(err).WithFields(logrus.Fields{
+			"pod-id":        podID,
+			"container-ids": containerIDs,
+			"namespace":     namespace,
+		}).Warn("policyfilter, add pod-handler: AddPodContainer failed")
+	}
+}
+
 func (m *state) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -223,66 +242,16 @@ func (m *state) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 					logger.GetLogger().Warn("policyfilter, add-pod handler: unexpected object type: %T", pod)
 					return
 				}
-				containerIDs := podContainersIDs(pod)
-				podID, err := uuid.Parse(string(pod.UID))
-				if err != nil {
-					logger.GetLogger().WithField("pod-id", pod.UID).WithError(err).Warn("policyfilter, add-pod handler: failed to parse pod id")
-					return
+				m.updatePodHandler(pod)
 
-				}
-
-				namespace := pod.Namespace
-				for _, contID := range containerIDs {
-					err := m.AddPodContainer(PodID(podID), namespace, contID, nil)
-					if err != nil {
-						logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-							"pod-id":       podID,
-							"container-id": contID,
-							"namespace":    namespace,
-						}).Warn("policyfilter, add pod-handler: AddPodContainer failed")
-					}
-				}
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				pod1, ok1 := oldObj.(*v1.Pod)
-				pod2, ok2 := newObj.(*v1.Pod)
-				if !ok1 || !ok2 {
-					logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): old:%T new:%T", pod1, pod2)
+				pod, ok := newObj.(*v1.Pod)
+				if ok {
+					logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)
 					return
 				}
-				if pod1.UID != pod2.UID {
-					logger.GetLogger().Warn("policyfilter, update-pod: unexpected pod ids: old:%T new:%T", pod1.UID, pod2.UID)
-					return
-				}
-
-				podID, err := uuid.Parse(string(pod1.UID))
-				if err != nil {
-					logger.GetLogger().WithField("pod-id", pod1.UID).WithError(err).Warn("policyfilter, update-pod: failed to parse id")
-					return
-				}
-
-				namespace := pod1.Namespace
-				addedIDs, deletedIDs := podContainerDiff(pod1, pod2)
-				for _, contID := range deletedIDs {
-					m.DelPodContainer(PodID(podID), contID)
-					if err != nil {
-						logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-							"pod-id":       podID,
-							"container-id": contID,
-							"namespace":    namespace,
-						}).Warn("policyfilter, update-pod handler: DelPodContainer failed")
-					}
-				}
-				for _, contID := range addedIDs {
-					err := m.AddPodContainer(PodID(podID), namespace, contID, nil)
-					if err != nil {
-						logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-							"pod-id":       podID,
-							"container-id": contID,
-							"namespace":    namespace,
-						}).Warn("policyfilter, update-pod handler: AddPodContainer failed")
-					}
-				}
+				m.updatePodHandler(pod)
 			},
 			DeleteFunc: func(obj interface{}) {
 				// Remove all containers for this pod
@@ -509,7 +478,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
 // The pod might or might not have been encountered before.
-func (m *state) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp *CgroupID) error {
+func (m *state) AddPodContainer(podID PodID, namespace string, containerID string, cgID CgroupID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -526,19 +495,14 @@ func (m *state) AddPodContainer(podID PodID, namespace string, containerID strin
 			"pod-id":       podID,
 			"namespace":    namespace,
 			"container-id": containerID,
-			"cgroup-id":    cgIDPointerStr(cgIDp),
+			"cgroup-id":    cgID,
 		}).Info("AddPodContainer: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
 		return fmt.Errorf("conflicting namespaces for pod with id %s: old='%s' vs new='%s'", podID, pod.namespace, namespace)
 	}
 
-	var cgroupIDs []CgroupID
-	if cgIDp != nil {
-		cgroupIDs = append(cgroupIDs, *cgIDp)
-	}
-
-	m.addPodContainers(pod, []string{containerID}, cgroupIDs)
+	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID})
 	return nil
 }
 
@@ -604,5 +568,78 @@ func (m *state) DelPod(podID PodID) error {
 		return nil
 	}
 	m.delPodCgroupIDsFromPolicyMaps(pod, pod.containers)
+	return nil
+}
+
+func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string) {
+
+	// maintain a hash of new ids. The value indicate whether the id was seen in existing ids or
+	// not
+	newIDs := make(map[string]bool)
+	for _, cid := range newContainerIDs {
+		newIDs[cid] = false
+	}
+
+	addContIDs := []string{}
+	delContIDs := []string{}
+	for _, containerInfo := range pod.containers {
+		cid := containerInfo.id
+		if _, exists := newIDs[cid]; exists {
+			newIDs[cid] = true
+		} else {
+			delContIDs = append(delContIDs, cid)
+		}
+	}
+
+	for cid, seen := range newIDs {
+		if !seen {
+			addContIDs = append(addContIDs, cid)
+		}
+	}
+
+	return addContIDs, delContIDs
+}
+
+// UpdatePod updates the pod state for a pod
+// containerIDs contains all the container ids for the given pod.
+// so this function will:
+//   - remove the containers that are not part of the containerIDs list
+//   - add the ones that do not exist in the current state
+// It is intended to be used from k8s watchers (where no cgroup information is available)
+func (m *state) UpdatePod(podID PodID, namespace string, containerIDs []string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	dlog := m.debugLogWithCallers(4).WithFields(logrus.Fields{
+		"pod-id":        podID,
+		"namespace":     namespace,
+		"container-ids": containerIDs,
+	})
+
+	pod := m.findPod(podID)
+	if pod == nil {
+		// add a new pod, if one does not exist already
+		m.pods = append(m.pods, podInfo{
+			id:         podID,
+			namespace:  namespace,
+			containers: nil,
+		})
+		pod = &m.pods[len(m.pods)-1]
+		dlog.Info("UpdatePod: added pod")
+	} else if pod.namespace != namespace {
+		// sanity check: old and new namespace should match
+		return fmt.Errorf("conflicting namespaces for pod with id %s: old='%s' vs new='%s'", podID, pod.namespace, namespace)
+	}
+
+	addIDs, delIDs := pod.containerDiff(containerIDs)
+	for _, cid := range delIDs {
+		containers := pod.delContainers(cid)
+		if len(containers) != 1 {
+			m.Debugf("UpdatePod: pod-id=%s container-id=%s had %d containers: %v", podID, cid, len(containers), containers)
+		}
+		m.delPodCgroupIDsFromPolicyMaps(pod, containers)
+	}
+
+	m.addPodContainers(pod, addIDs, nil)
 	return nil
 }

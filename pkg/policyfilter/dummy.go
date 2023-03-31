@@ -19,7 +19,11 @@ func (s *dummy) DelPolicy(polID PolicyID) error {
 	return fmt.Errorf("DelPolicy has no effect because policyfilter is disabled")
 }
 
-func (s *dummy) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp *CgroupID) error {
+func (s *dummy) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp CgroupID) error {
+	return nil
+}
+
+func (s *dummy) UpdatePod(podID PodID, namespace string, containerIDs []string) error {
 	return nil
 }
 

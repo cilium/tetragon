@@ -58,11 +58,15 @@ type State interface {
 	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error
 
-	// AddPodContainer informs policyfilter about a new container in a pod.
-	// if the cgroup id of the container is known, cgID is not nil and it contains its value.
-	//
+	// AddPodContainer informs policyfilter about a new container and its cgroup id in a pod.
 	// The pod might or might not have been encountered before.
-	AddPodContainer(podID PodID, namespace string, containerID string, cgIDp *CgroupID) error
+	// This method is intended to update policyfilter state from container hooks
+	AddPodContainer(podID PodID, namespace string, containerID string, cgID CgroupID) error
+
+	// UpdatePod updates the pod state for a pod, where containerIDs contains all the container ids for the given pod.
+	// This method is intended to be used from k8s watchers (where no cgroup information is available)
+	UpdatePod(podID PodID, namespace string, containerIDs []string) error
+
 	// DelPodContainer informs policyfilter that a container was deleted from a pod
 	DelPodContainer(podID PodID, containerID string) error
 	// DelPod informs policyfilter that a pod has been deleted
