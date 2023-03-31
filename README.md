@@ -710,8 +710,7 @@ Otherwise Tetragon repository provides a [Vagrantfile](https://github.com/cilium
 that can be used to install a vagrant box for running Tetragon with BTF
 requirement. Other VM solutions work as well.
 
-To run with [vagrant](https://learn.hashicorp.com/tutorials/vagrant/getting-started-index?in=vagrant/getting-started)
-we provide a standard VagrantFile with the required components enabled. Simply run,
+To run with [vagrant](https://learn.hashicorp.com/tutorials/vagrant/getting-started-index?in=vagrant/getting-started):
 
 ```
  $ vagrant up
