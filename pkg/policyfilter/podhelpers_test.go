@@ -6,48 +6,47 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
 )
 
-func newPod(contID ...string) *v1.Pod {
-	pod := v1.Pod{}
+func newPodInfo(contID ...string) podInfo {
+	pod := podInfo{}
 	for _, id := range contID {
-		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, v1.ContainerStatus{
-			ContainerID: id,
+		pod.containers = append(pod.containers, containerInfo{
+			id: id,
 		})
 	}
-	return &pod
+	return pod
 }
 
 func TestPodContainerDiff(t *testing.T) {
 	testCases := []struct {
-		oldPod      *v1.Pod
-		newPod      *v1.Pod
+		oldinfo     podInfo
+		newids      []string
 		expectedAdd []string
 		expectedDel []string
 	}{
 		{
-			oldPod:      newPod(),
-			newPod:      newPod("c1"),
+			oldinfo:     newPodInfo(),
+			newids:      []string{"c1"},
 			expectedAdd: []string{"c1"},
 			expectedDel: []string{},
 		},
 		{
-			oldPod:      newPod("c1"),
-			newPod:      newPod(),
+			oldinfo:     newPodInfo("c1"),
+			newids:      []string{},
 			expectedAdd: []string{},
 			expectedDel: []string{"c1"},
 		},
 		{
-			oldPod:      newPod("c2"),
-			newPod:      newPod("c1"),
+			oldinfo:     newPodInfo("c2"),
+			newids:      []string{"c1"},
 			expectedAdd: []string{"c1"},
 			expectedDel: []string{"c2"},
 		},
 	}
 	for _, tc := range testCases {
-		add, del := podContainerDiff(tc.oldPod, tc.newPod)
-		require.ElementsMatch(t, tc.expectedAdd, add)
-		require.ElementsMatch(t, tc.expectedDel, del)
+		add, del := tc.oldinfo.containerDiff(tc.newids)
+		require.ElementsMatch(t, tc.expectedAdd, add, "expected add result failed for: %+v", tc)
+		require.ElementsMatch(t, tc.expectedDel, del, "expected del result failed for: %+v", tc)
 	}
 }
