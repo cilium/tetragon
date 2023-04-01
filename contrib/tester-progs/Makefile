@@ -11,6 +11,7 @@ PROGS = sigkill-tester \
 	nop \
 	exit-leader \
 	exit-tester \
+	exit-code \
 	uprobe-test-1 \
 	uprobe-test-2 \
 	lseek-pipe
@@ -29,7 +30,13 @@ exit-tester: exit-tester.c
 sigkill-unprivileged-user-ns-tester: sigkill-unprivileged-user-ns-tester.c
 	$(GCC) -Wall $< -o $@ -lcap
 
+nop: nop.c
+	$(GCC) -Wall $< -o $@ -lpthread
+
 exit-leader: exit-leader.c
+	$(GCC) -Wall $< -o $@ -lpthread
+
+exit-code: exit-code.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
 libuprobe.so: uprobe-lib.c

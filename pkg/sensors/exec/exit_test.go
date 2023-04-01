@@ -173,3 +173,88 @@ func TestExitZombie(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+// TestExitCode tests whether we properly return the exit code of the process.
+// see: tester-progs/exit-code.c for the program we use to test this.
+//
+// The program will:
+//   - return a exit code
+//
+// In our test we check whether the observed exit code equals the real exit code.
+func TestExitCode(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testExitCode := testutils.RepoRootPath("contrib/tester-progs/exit-code")
+
+	var exitCode, realCode uint32
+
+	// Test different exit codes
+	testCases := []int{
+		// Test some usual exit code
+		0,   // Generic success code.
+		1,   // Generic failure or unspecified error.
+		42,  // Arbitrary value
+		125, // If the error is with Docker daemon itself
+		126, // If the contained command cannot be invoked
+
+		// Test some -errno
+		-30, // -EROFS(Read-only file system)
+		-31, // -EMLINK(Too many links)
+		-32, // -EPIPE(Broken pipe)
+		-33, // -EDOM(Math argument out of domain of func)
+		-34, // -ERANGE(Math result not representable)
+	}
+
+	for _, tc := range testCases {
+		// The test executes 'exit-code' benary which return a exit code
+		if err := exec.Command(testExitCode, fmt.Sprintf("%d", tc)).Run(); err != nil {
+			realCode = 0
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				// handle ExitError
+				realCode = uint32(exitErr.ExitCode())
+			} else {
+				t.Fatalf("Failed to execute test binary: %s\n", err)
+			}
+		}
+
+		nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+			switch ev := event.(type) {
+			case *tetragon.ProcessExit:
+				if ev.Process.Binary == testExitCode {
+					exitCode = ev.Status
+				}
+				return false, nil
+			}
+			return false, nil
+		}
+		finalCheck := func(l *logrus.Logger) error {
+			t.Logf("exitCode %v\n", exitCode)
+
+			if exitCode == realCode {
+				return nil
+			}
+			return fmt.Errorf("tetragon returns the exit code of the process uncorrectly")
+		}
+
+		checker := &ec.FnEventChecker{
+			NextCheckFn:  nextCheck,
+			FinalCheckFn: finalCheck,
+		}
+
+		if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
+			t.Logf("error: %s", err)
+			t.Fail()
+		}
+	}
+}

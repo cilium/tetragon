@@ -8,6 +8,7 @@ nop
 sigkill-unprivileged-user-ns-tester
 exit-leader
 exit-tester
+exit-code
 libuprobe.so
 uprobe-test-1
 uprobe-test-2
