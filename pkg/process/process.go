@@ -187,6 +187,7 @@ func GetProcess(
 	return &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
+			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          cwd,
 			Binary:       path.GetBinaryAbsolutePath(process.Filename, cwd),
@@ -240,6 +241,20 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	} else {
 		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
 	}
+
+	// Ensure that exported events have the TID set. For events from Kernel
+	// we usually use PID == 0, so instead of checking against 0, assert that
+	// TGID == TID
+	if proc.process.Pid.GetValue() != proc.process.Tid.GetValue() {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"event.name":            "Execve",
+			"event.process.pid":     proc.process.Pid.GetValue(),
+			"event.process.tid":     proc.process.Tid.GetValue(),
+			"event.process.exec_id": proc.process.ExecId,
+			"event.process.binary":  proc.process.Binary,
+		}).Warn("ExecveEvent: process PID and TID mismatch")
+	}
+
 	procCache.add(proc)
 	return proc
 }

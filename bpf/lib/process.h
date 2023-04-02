@@ -93,7 +93,7 @@
  */
 #define CWD_MAX	     256
 #define BUFFER	     1024
-#define SIZEOF_EVENT 32
+#define SIZEOF_EVENT 40
 #define PADDED_BUFFER \
 	(BUFFER + MAXARGLENGTH + SIZEOF_EVENT + SIZEOF_EVENT + CWD_MAX)
 /* This is the usable buffer size for args and filenames. It is calculated
@@ -161,8 +161,10 @@ struct msg_execve_key {
  */
 struct msg_process {
 	__u32 size;
-	__u32 pid;
+	__u32 pid; // Process TGID
+	__u32 tid; // Process thread
 	__u32 nspid;
+	__u32 pad;
 	__u32 uid;
 	__u32 auid;
 	__u32 flags;
@@ -276,6 +278,9 @@ struct msg_execve_event {
 	__u32 binary;
 }; // All fields aligned so no 'packed' attribute.
 
+// The execve_map_value is tracked by the TGID of the thread group
+// the msg_execve_key.pid. The thread IDs are recorded on the
+// fly and sent with every corresponding event.
 struct execve_map_value {
 	struct msg_execve_key key;
 	struct msg_execve_key pkey;
