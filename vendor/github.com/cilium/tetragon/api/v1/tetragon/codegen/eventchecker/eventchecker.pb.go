@@ -2255,6 +2255,7 @@ type ProcessChecker struct {
 	Refcnt       *uint32                            `json:"refcnt,omitempty"`
 	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
 	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
+	Tid          *uint32                            `json:"tid,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -2358,6 +2359,14 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 				return fmt.Errorf("Ns check failed: %w", err)
 			}
 		}
+		if checker.Tid != nil {
+			if event.Tid == nil {
+				return fmt.Errorf("Tid is nil and does not match expected value %v", *checker.Tid)
+			}
+			if *checker.Tid != event.Tid.Value {
+				return fmt.Errorf("Tid has value %v which does not match expected value %v", event.Tid.Value, *checker.Tid)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2456,6 +2465,12 @@ func (checker *ProcessChecker) WithNs(check *NamespacesChecker) *ProcessChecker 
 	return checker
 }
 
+// WithTid adds a Tid check to the ProcessChecker
+func (checker *ProcessChecker) WithTid(check uint32) *ProcessChecker {
+	checker.Tid = &check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -2494,6 +2509,10 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	if event.Ns != nil {
 		checker.Ns = NewNamespacesChecker().FromNamespaces(event.Ns)
+	}
+	if event.Tid != nil {
+		val := event.Tid.Value
+		checker.Tid = &val
 	}
 	return checker
 }

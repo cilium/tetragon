@@ -637,6 +637,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | refcnt | [uint32](#uint32) |  |  |
 | cap | [Capabilities](#tetragon-Capabilities) |  |  |
 | ns | [Namespaces](#tetragon-Namespaces) |  |  |
+| tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | tid is the thread id. (For the thread group leader, tid is equal to pid.) |
 
 
 
