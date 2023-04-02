@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
@@ -248,7 +249,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
 	parent, err := Get(parentExecId)
 	if err != nil {
-		logger.GetLogger().WithField("parent-exec-id", parentExecId).Debug("AddCloneEvent: process not found in cache")
+		logger.GetLogger().WithFields(logrus.Fields{
+			"event.name":           "Clone",
+			"event.parent.pid":     event.Parent.Pid,
+			"event.parent.exec_id": parentExecId,
+		}).Debug("CloneEvent: process not found in cache")
 		return err
 	}
 	parent.RefInc()
@@ -257,6 +262,21 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		pi.process.ParentExecId = parentExecId
 		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 		pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
+		// Since from BPF side we only generate one clone event per
+		// thread group that is for the leader, assert on that.
+		if event.PID != event.TID {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"event.name":            "Clone",
+				"event.process.pid":     event.PID,
+				"event.process.tid":     event.TID,
+				"event.process.exec_id": pi.process.ExecId,
+				"event.parent.exec_id":  parentExecId,
+			}).Debug("CloneEvent: process PID and TID mismatch")
+		}
+		// This TID will be updated by the TID of the bpf execve event later,
+		// so set it to zero here and ensure that it will be updated later.
+		// Exported events must always be generated with a non zero TID.
+		pi.process.Tid = &wrapperspb.UInt32Value{Value: 0}
 		pi.process.Flags = strings.Join(exec.DecodeCommonFlags(event.Flags), " ")
 		pi.process.StartTime = ktime.ToProto(event.Ktime)
 		pi.process.Refcnt = 1
