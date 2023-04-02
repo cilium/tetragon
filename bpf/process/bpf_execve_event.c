@@ -124,8 +124,16 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid, __u3
 			flags |= EVENT_DATA_FILENAME;
 		}
 	}
+
 	curr->flags = flags;
+	/* get curr_pid from argument to avoid verifier errors and use
+	 * it for both pid and tid as we construct the execve event
+	 * late where the main thread is the only left thread after an
+	 * execve.
+	 */
 	curr->pid = curr_pid;
+	curr->tid = curr_pid;
+	curr->pad = 0;
 	curr->nspid = get_task_pid_vnr();
 	curr->ktime = ktime_get_ns();
 	curr->size = size + offsetof(struct msg_process, args);

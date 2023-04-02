@@ -19,7 +19,7 @@ const (
 	CGROUP_PATH_LENGTH = 4096
 
 	MSG_SIZEOF_MAXARG = 100
-	MSG_SIZEOF_EXECVE = 32
+	MSG_SIZEOF_EXECVE = 40
 	MSG_SIZEOF_CWD    = 256
 	MSG_SIZEOF_ARGS   = 1024
 	MSG_SIZEOF_BUFFER = MSG_SIZEOF_ARGS +
@@ -34,7 +34,9 @@ const (
 type MsgExec struct {
 	Size  uint32
 	PID   uint32
+	TID   uint32
 	NSPID uint32
+	PAD   uint32
 	UID   uint32
 	AUID  uint32
 	Flags uint32
@@ -126,6 +128,7 @@ type MsgNamespaces struct {
 type MsgProcess struct {
 	Size     uint32
 	PID      uint32
+	TID      uint32
 	NSPID    uint32
 	UID      uint32
 	AUID     uint32

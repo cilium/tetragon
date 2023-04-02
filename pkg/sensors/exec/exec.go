@@ -97,6 +97,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 
 	proc.Size = exec.Size
 	proc.PID = exec.PID
+	proc.TID = exec.TID
 	proc.NSPID = exec.NSPID
 	proc.UID = exec.UID
 	proc.Flags = exec.Flags

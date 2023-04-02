@@ -93,7 +93,7 @@
  */
 #define CWD_MAX	     256
 #define BUFFER	     1024
-#define SIZEOF_EVENT 32
+#define SIZEOF_EVENT 40
 #define PADDED_BUFFER \
 	(BUFFER + MAXARGLENGTH + SIZEOF_EVENT + SIZEOF_EVENT + CWD_MAX)
 /* This is the usable buffer size for args and filenames. It is calculated
@@ -162,7 +162,9 @@ struct msg_execve_key {
 struct msg_process {
 	__u32 size;
 	__u32 pid;
+	__u32 tid;
 	__u32 nspid;
+	__u32 pad;
 	__u32 uid;
 	__u32 auid;
 	__u32 flags;
