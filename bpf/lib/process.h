@@ -149,7 +149,7 @@
 #define DOCKER_ID_LENGTH 128
 
 struct msg_execve_key {
-	__u32 pid;
+	__u32 pid; // Process TGID
 	__u8 pad[4];
 	__u64 ktime;
 }; // All fields aligned so no 'packed' attribute.
@@ -177,6 +177,7 @@ struct msg_clone_event {
 	struct msg_common common;
 	struct msg_execve_key parent;
 	__u32 pid;
+	__u32 tid;
 	__u32 nspid;
 	__u32 flags;
 	__u64 ktime;

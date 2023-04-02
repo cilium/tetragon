@@ -257,6 +257,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		pi.process.ParentExecId = parentExecId
 		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 		pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
+		pi.process.Tid = &wrapperspb.UInt32Value{Value: event.TID}
 		pi.process.Flags = strings.Join(exec.DecodeCommonFlags(event.Flags), " ")
 		pi.process.StartTime = ktime.ToProto(event.Ktime)
 		pi.process.Refcnt = 1

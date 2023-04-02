@@ -95,6 +95,7 @@ message Process {
     uint32 refcnt = 13;
     Capabilities cap = 14;
     Namespaces ns = 15;
+    google.protobuf.UInt32Value tid = 16;
 }
 
 message ProcessExec {
