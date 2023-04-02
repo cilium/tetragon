@@ -97,6 +97,7 @@ type MsgCloneEvent struct {
 	Common MsgCommon
 	Parent MsgExecveKey
 	PID    uint32
+	TID    uint32
 	NSPID  uint32
 	Flags  uint32
 	Ktime  uint64
