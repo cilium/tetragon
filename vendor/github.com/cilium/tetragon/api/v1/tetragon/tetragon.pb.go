@@ -696,6 +696,7 @@ type Process struct {
 	Refcnt       uint32                  `protobuf:"varint,13,opt,name=refcnt,proto3" json:"refcnt,omitempty"`
 	Cap          *Capabilities           `protobuf:"bytes,14,opt,name=cap,proto3" json:"cap,omitempty"`
 	Ns           *Namespaces             `protobuf:"bytes,15,opt,name=ns,proto3" json:"ns,omitempty"`
+	Tid          *wrapperspb.UInt32Value `protobuf:"bytes,16,opt,name=tid,proto3" json:"tid,omitempty"` // tid is the thread id. (For the thread group leader, tid is equal to pid.)
 }
 
 func (x *Process) Reset() {
@@ -831,6 +832,13 @@ func (x *Process) GetCap() *Capabilities {
 func (x *Process) GetNs() *Namespaces {
 	if x != nil {
 		return x.Ns
+	}
+	return nil
+}
+
+func (x *Process) GetTid() *wrapperspb.UInt32Value {
+	if x != nil {
+		return x.Tid
 	}
 	return nil
 }
@@ -2888,7 +2896,7 @@ var file_tetragon_tetragon_proto_rawDesc = []byte{
 	0x4e, 0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x52, 0x06, 0x63, 0x67, 0x72, 0x6f, 0x75,
 	0x70, 0x12, 0x27, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x13, 0x2e, 0x74, 0x65, 0x74, 0x72, 0x61, 0x67, 0x6f, 0x6e, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x73,
-	0x70, 0x61, 0x63, 0x65, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x22, 0x94, 0x04, 0x0a, 0x07, 0x50,
+	0x70, 0x61, 0x63, 0x65, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x22, 0xc4, 0x04, 0x0a, 0x07, 0x50,
 	0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x65, 0x78, 0x65, 0x63, 0x5f, 0x69,
 	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x65, 0x78, 0x65, 0x63, 0x49, 0x64, 0x12,
 	0x2e, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67,
@@ -2922,7 +2930,10 @@ var file_tetragon_tetragon_proto_rawDesc = []byte{
 	0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x52, 0x03, 0x63, 0x61, 0x70, 0x12, 0x24, 0x0a, 0x02, 0x6e,
 	0x73, 0x18, 0x0f, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x65, 0x74, 0x72, 0x61, 0x67,
 	0x6f, 0x6e, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x73, 0x52, 0x02, 0x6e,
-	0x73, 0x22, 0x96, 0x01, 0x0a, 0x0b, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x45, 0x78, 0x65,
+	0x73, 0x12, 0x2e, 0x0a, 0x03, 0x74, 0x69, 0x64, 0x18, 0x10, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c,
+	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
+	0x2e, 0x55, 0x49, 0x6e, 0x74, 0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x03, 0x74, 0x69,
+	0x64, 0x22, 0x96, 0x01, 0x0a, 0x0b, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x45, 0x78, 0x65,
 	0x63, 0x12, 0x2b, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x0b, 0x32, 0x11, 0x2e, 0x74, 0x65, 0x74, 0x72, 0x61, 0x67, 0x6f, 0x6e, 0x2e, 0x50, 0x72,
 	0x6f, 0x63, 0x65, 0x73, 0x73, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x12, 0x29,
@@ -3313,53 +3324,54 @@ var file_tetragon_tetragon_proto_depIdxs = []int32{
 	5,  // 22: tetragon.Process.pod:type_name -> tetragon.Pod
 	6,  // 23: tetragon.Process.cap:type_name -> tetragon.Capabilities
 	8,  // 24: tetragon.Process.ns:type_name -> tetragon.Namespaces
-	9,  // 25: tetragon.ProcessExec.process:type_name -> tetragon.Process
-	9,  // 26: tetragon.ProcessExec.parent:type_name -> tetragon.Process
-	9,  // 27: tetragon.ProcessExec.ancestors:type_name -> tetragon.Process
-	9,  // 28: tetragon.ProcessExit.process:type_name -> tetragon.Process
-	9,  // 29: tetragon.ProcessExit.parent:type_name -> tetragon.Process
-	37, // 30: tetragon.ProcessExit.time:type_name -> google.protobuf.Timestamp
-	39, // 31: tetragon.KprobeCred.permitted:type_name -> tetragon.CapabilitiesType
-	39, // 32: tetragon.KprobeCred.effective:type_name -> tetragon.CapabilitiesType
-	39, // 33: tetragon.KprobeCred.inheritable:type_name -> tetragon.CapabilitiesType
-	40, // 34: tetragon.KprobeCapability.value:type_name -> google.protobuf.Int32Value
-	40, // 35: tetragon.KprobeUserNamespace.level:type_name -> google.protobuf.Int32Value
-	38, // 36: tetragon.KprobeUserNamespace.owner:type_name -> google.protobuf.UInt32Value
-	38, // 37: tetragon.KprobeUserNamespace.group:type_name -> google.protobuf.UInt32Value
-	7,  // 38: tetragon.KprobeUserNamespace.ns:type_name -> tetragon.Namespace
-	13, // 39: tetragon.KprobeArgument.skb_arg:type_name -> tetragon.KprobeSkb
-	14, // 40: tetragon.KprobeArgument.path_arg:type_name -> tetragon.KprobePath
-	15, // 41: tetragon.KprobeArgument.file_arg:type_name -> tetragon.KprobeFile
-	16, // 42: tetragon.KprobeArgument.truncated_bytes_arg:type_name -> tetragon.KprobeTruncatedBytes
-	12, // 43: tetragon.KprobeArgument.sock_arg:type_name -> tetragon.KprobeSock
-	17, // 44: tetragon.KprobeArgument.cred_arg:type_name -> tetragon.KprobeCred
-	20, // 45: tetragon.KprobeArgument.bpf_attr_arg:type_name -> tetragon.KprobeBpfAttr
-	21, // 46: tetragon.KprobeArgument.perf_event_arg:type_name -> tetragon.KprobePerfEvent
-	22, // 47: tetragon.KprobeArgument.bpf_map_arg:type_name -> tetragon.KprobeBpfMap
-	19, // 48: tetragon.KprobeArgument.user_namespace_arg:type_name -> tetragon.KprobeUserNamespace
-	18, // 49: tetragon.KprobeArgument.capability_arg:type_name -> tetragon.KprobeCapability
-	9,  // 50: tetragon.ProcessKprobe.process:type_name -> tetragon.Process
-	9,  // 51: tetragon.ProcessKprobe.parent:type_name -> tetragon.Process
-	23, // 52: tetragon.ProcessKprobe.args:type_name -> tetragon.KprobeArgument
-	23, // 53: tetragon.ProcessKprobe.return:type_name -> tetragon.KprobeArgument
-	0,  // 54: tetragon.ProcessKprobe.action:type_name -> tetragon.KprobeAction
-	9,  // 55: tetragon.ProcessTracepoint.process:type_name -> tetragon.Process
-	9,  // 56: tetragon.ProcessTracepoint.parent:type_name -> tetragon.Process
-	23, // 57: tetragon.ProcessTracepoint.args:type_name -> tetragon.KprobeArgument
-	9,  // 58: tetragon.ProcessUprobe.process:type_name -> tetragon.Process
-	9,  // 59: tetragon.ProcessUprobe.parent:type_name -> tetragon.Process
-	1,  // 60: tetragon.GetHealthStatusRequest.event_set:type_name -> tetragon.HealthStatusType
-	1,  // 61: tetragon.HealthStatus.event:type_name -> tetragon.HealthStatusType
-	2,  // 62: tetragon.HealthStatus.status:type_name -> tetragon.HealthStatusResult
-	29, // 63: tetragon.GetHealthStatusResponse.health_status:type_name -> tetragon.HealthStatus
-	9,  // 64: tetragon.ProcessLoader.process:type_name -> tetragon.Process
-	34, // 65: tetragon.RuntimeHookRequest.createContainer:type_name -> tetragon.CreateContainer
-	36, // 66: tetragon.CreateContainer.annotations:type_name -> tetragon.CreateContainer.AnnotationsEntry
-	67, // [67:67] is the sub-list for method output_type
-	67, // [67:67] is the sub-list for method input_type
-	67, // [67:67] is the sub-list for extension type_name
-	67, // [67:67] is the sub-list for extension extendee
-	0,  // [0:67] is the sub-list for field type_name
+	38, // 25: tetragon.Process.tid:type_name -> google.protobuf.UInt32Value
+	9,  // 26: tetragon.ProcessExec.process:type_name -> tetragon.Process
+	9,  // 27: tetragon.ProcessExec.parent:type_name -> tetragon.Process
+	9,  // 28: tetragon.ProcessExec.ancestors:type_name -> tetragon.Process
+	9,  // 29: tetragon.ProcessExit.process:type_name -> tetragon.Process
+	9,  // 30: tetragon.ProcessExit.parent:type_name -> tetragon.Process
+	37, // 31: tetragon.ProcessExit.time:type_name -> google.protobuf.Timestamp
+	39, // 32: tetragon.KprobeCred.permitted:type_name -> tetragon.CapabilitiesType
+	39, // 33: tetragon.KprobeCred.effective:type_name -> tetragon.CapabilitiesType
+	39, // 34: tetragon.KprobeCred.inheritable:type_name -> tetragon.CapabilitiesType
+	40, // 35: tetragon.KprobeCapability.value:type_name -> google.protobuf.Int32Value
+	40, // 36: tetragon.KprobeUserNamespace.level:type_name -> google.protobuf.Int32Value
+	38, // 37: tetragon.KprobeUserNamespace.owner:type_name -> google.protobuf.UInt32Value
+	38, // 38: tetragon.KprobeUserNamespace.group:type_name -> google.protobuf.UInt32Value
+	7,  // 39: tetragon.KprobeUserNamespace.ns:type_name -> tetragon.Namespace
+	13, // 40: tetragon.KprobeArgument.skb_arg:type_name -> tetragon.KprobeSkb
+	14, // 41: tetragon.KprobeArgument.path_arg:type_name -> tetragon.KprobePath
+	15, // 42: tetragon.KprobeArgument.file_arg:type_name -> tetragon.KprobeFile
+	16, // 43: tetragon.KprobeArgument.truncated_bytes_arg:type_name -> tetragon.KprobeTruncatedBytes
+	12, // 44: tetragon.KprobeArgument.sock_arg:type_name -> tetragon.KprobeSock
+	17, // 45: tetragon.KprobeArgument.cred_arg:type_name -> tetragon.KprobeCred
+	20, // 46: tetragon.KprobeArgument.bpf_attr_arg:type_name -> tetragon.KprobeBpfAttr
+	21, // 47: tetragon.KprobeArgument.perf_event_arg:type_name -> tetragon.KprobePerfEvent
+	22, // 48: tetragon.KprobeArgument.bpf_map_arg:type_name -> tetragon.KprobeBpfMap
+	19, // 49: tetragon.KprobeArgument.user_namespace_arg:type_name -> tetragon.KprobeUserNamespace
+	18, // 50: tetragon.KprobeArgument.capability_arg:type_name -> tetragon.KprobeCapability
+	9,  // 51: tetragon.ProcessKprobe.process:type_name -> tetragon.Process
+	9,  // 52: tetragon.ProcessKprobe.parent:type_name -> tetragon.Process
+	23, // 53: tetragon.ProcessKprobe.args:type_name -> tetragon.KprobeArgument
+	23, // 54: tetragon.ProcessKprobe.return:type_name -> tetragon.KprobeArgument
+	0,  // 55: tetragon.ProcessKprobe.action:type_name -> tetragon.KprobeAction
+	9,  // 56: tetragon.ProcessTracepoint.process:type_name -> tetragon.Process
+	9,  // 57: tetragon.ProcessTracepoint.parent:type_name -> tetragon.Process
+	23, // 58: tetragon.ProcessTracepoint.args:type_name -> tetragon.KprobeArgument
+	9,  // 59: tetragon.ProcessUprobe.process:type_name -> tetragon.Process
+	9,  // 60: tetragon.ProcessUprobe.parent:type_name -> tetragon.Process
+	1,  // 61: tetragon.GetHealthStatusRequest.event_set:type_name -> tetragon.HealthStatusType
+	1,  // 62: tetragon.HealthStatus.event:type_name -> tetragon.HealthStatusType
+	2,  // 63: tetragon.HealthStatus.status:type_name -> tetragon.HealthStatusResult
+	29, // 64: tetragon.GetHealthStatusResponse.health_status:type_name -> tetragon.HealthStatus
+	9,  // 65: tetragon.ProcessLoader.process:type_name -> tetragon.Process
+	34, // 66: tetragon.RuntimeHookRequest.createContainer:type_name -> tetragon.CreateContainer
+	36, // 67: tetragon.CreateContainer.annotations:type_name -> tetragon.CreateContainer.AnnotationsEntry
+	68, // [68:68] is the sub-list for method output_type
+	68, // [68:68] is the sub-list for method input_type
+	68, // [68:68] is the sub-list for extension type_name
+	68, // [68:68] is the sub-list for extension extendee
+	0,  // [0:68] is the sub-list for field type_name
 }
 
 func init() { file_tetragon_tetragon_proto_init() }
