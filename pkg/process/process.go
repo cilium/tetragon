@@ -186,6 +186,7 @@ func GetProcess(
 	return &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
+			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          cwd,
 			Binary:       path.GetBinaryAbsolutePath(process.Filename, cwd),
