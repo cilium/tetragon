@@ -75,7 +75,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 			.common.ktime = curr->key.ktime,
 			.parent = curr->pkey,
 			.pid = curr->key.pid,
-			.tid = curr->key.pid, /* Explicitly use the TGID */
+			.tid = curr->key.pid, /* Explicitly use the TGID as we generate one event */
 			.ktime = curr->key.ktime,
 			.nspid = curr->nspid,
 			.flags = curr->flags,
