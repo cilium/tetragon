@@ -5,21 +5,21 @@
 # or cancelling/failing jobs so that non-docs related PRs are not spamed with
 # Netlify notifications. See https://answers.netlify.com/t/deploy-notifications-cancel-vs-failure/37300.
 [build]
-  base = "/docs"
-  publish = "public"
-  command = "npm ci && hugo"
-  # The ignore command is used by Netlify deploy bot to filter if the PR should
-  # be previewed or not, and generally if the website should be built or not.
-  #
-  # CACHED_COMMIT_REF: reference ID (also known as “SHA” or “hash”) of the last
-  # commit that we built before the current build. When a build runs without
-  # cache, CACHED_COMMIT_REF will be the same as the COMMIT_REF.
-  #
-  # COMMIT_REF: reference ID (also known as “SHA” or “hash”) of the commit
-  # we’re building.
-  #
-  # See https://answers.netlify.com/t/support-guide-how-to-use-the-ignore-command/37517
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
+base = "/docs"
+publish = "public"
+command = "npm ci && hugo"
+# The ignore command is used by Netlify deploy bot to filter if the PR should
+# be previewed or not, and generally if the website should be built or not.
+#
+# CACHED_COMMIT_REF: reference ID (also known as “SHA” or “hash”) of the last
+# commit that we built before the current build. When a build runs without
+# cache, CACHED_COMMIT_REF will be the same as the COMMIT_REF.
+#
+# COMMIT_REF: reference ID (also known as “SHA” or “hash”) of the commit
+# we’re building.
+#
+# See https://answers.netlify.com/t/support-guide-how-to-use-the-ignore-command/37517
+ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 [build.environment]
-  HUGO_VERSION = "0.111.3"
+HUGO_VERSION = "0.111.3"
