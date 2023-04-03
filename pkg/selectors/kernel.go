@@ -740,7 +740,7 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 
 func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table) (*KernelSelectorState, error) {
-	kernelSelectors := newKernelSelectorState()
+	kernelSelectors := NewKernelSelectorState()
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))

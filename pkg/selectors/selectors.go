@@ -37,7 +37,7 @@ type KernelSelectorState struct {
 	newBinVals    map[uint32]string              // these should be added in the names_map
 }
 
-func newKernelSelectorState() *KernelSelectorState {
+func NewKernelSelectorState() *KernelSelectorState {
 	return &KernelSelectorState{
 		matchBinaries: make(map[int]*MatchBinariesMappings),
 		newBinVals:    make(map[uint32]string),
