@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-// NB: we are using a x64__ prefix. Should be easy to fix, but for now this
-// test should only be run in amd64.
-//go:build amd64 && linux
-// +build amd64,linux
-
 package tracing
 
 import (
@@ -15,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -39,7 +35,7 @@ func TestCharBufKprobe(t *testing.T) {
 	writeBufArgIdx := uint32(1)
 	writeSizeArgIdx := uint32(2)
 	writeBufArg := "pizzaisthebest"
-	call := "__x64_sys_write"
+	call := "sys_write"
 	spec := &v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{{
 			Call:    call,
@@ -76,7 +72,7 @@ func TestCharBufKprobe(t *testing.T) {
 	countOther := 0
 	eventFn := func(ev notify.Message) error {
 		if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if kpEvent.FuncName != call {
+			if kpEvent.FuncName != arch.AddSyscallPrefixTestHelper(t, call) {
 				return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
 			}
 			arg := string(kpEvent.Args[0].(tracingapi.MsgGenericKprobeArgBytes).Value)
