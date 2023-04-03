@@ -159,7 +159,7 @@ func TestNamespacedPolicies(t *testing.T) {
 	// filter lseek calls based on the bogusFD, and record their whence value.
 	// both policies are namespaced to namespace ns1
 	kpSpec := v1alpha1.KProbeSpec{
-		Call:    "__x64_sys_lseek",
+		Call:    "sys_lseek",
 		Return:  false,
 		Syscall: true,
 		ReturnArg: v1alpha1.KProbeArg{
