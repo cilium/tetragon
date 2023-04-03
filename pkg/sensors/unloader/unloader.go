@@ -200,3 +200,55 @@ func (u *RelinkUnloader) Relink() error {
 	u.IsLinked = true
 	return nil
 }
+
+// MultiRelinkUnloader is an unloader for multiple links that allows unlinking/relinking as well.
+type MultiRelinkUnloader struct {
+	// UnloadProg unloads the program
+	UnloadProg func() error
+	// IsLinked is true iff the program is linked
+	IsLinked bool
+	// Link is the link object (valid iff IsLinked)
+	Links []link.Link
+	// Function to relink (requires calling Unlink first)
+	RelinkFn func() ([]link.Link, error)
+}
+
+func (u *MultiRelinkUnloader) Unload() error {
+	var ret error
+	for _, link := range u.Links {
+		if err := link.Close(); err != nil {
+			ret = multierr.Append(ret, err)
+		}
+	}
+	ret = multierr.Append(ret, u.UnloadProg())
+	return ret
+}
+
+func (u *MultiRelinkUnloader) Unlink() error {
+	var ret error
+	if !u.IsLinked {
+		return errors.New("Unlink failed: program not linked")
+	}
+	for _, link := range u.Links {
+		if err := link.Close(); err != nil {
+			ret = multierr.Append(ret, err)
+		}
+	}
+	u.IsLinked = false
+	return nil
+}
+
+func (u *MultiRelinkUnloader) Relink() error {
+	if u.IsLinked {
+		return errors.New("Relink failed: program already linked")
+	}
+
+	links, err := u.RelinkFn()
+	if err != nil {
+		return fmt.Errorf("Relink failed: %w", err)
+	}
+
+	u.Links = links
+	u.IsLinked = true
+	return nil
+}
