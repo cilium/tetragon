@@ -9,8 +9,8 @@ require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
-	github.com/containerd/cgroups v1.0.3
-	github.com/containerd/containerd v1.6.10
+	github.com/containerd/cgroups v1.0.4
+	github.com/containerd/containerd v1.6.18
 	github.com/fatih/color v1.14.1
 	github.com/go-openapi/strfmt v0.21.2
 	github.com/gogo/protobuf v1.3.2
@@ -104,7 +104,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect

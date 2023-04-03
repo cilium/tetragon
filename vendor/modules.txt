@@ -109,13 +109,13 @@ github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io/v
 github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces
 github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1
 github.com/cilium/tetragon/pkg/k8s/version
-# github.com/containerd/cgroups v1.0.3
-## explicit; go 1.16
+# github.com/containerd/cgroups v1.0.4
+## explicit; go 1.17
 github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
 github.com/containerd/cgroups/v2
 github.com/containerd/cgroups/v2/stats
-# github.com/containerd/containerd v1.6.10
+# github.com/containerd/containerd v1.6.18
 ## explicit; go 1.17
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
@@ -326,7 +326,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.17
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
+# github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mennanov/fmutils v0.2.0
