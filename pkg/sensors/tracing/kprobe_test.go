@@ -2520,7 +2520,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13, 14}},
 
 		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 12, 14}},

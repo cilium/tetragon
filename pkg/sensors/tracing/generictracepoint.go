@@ -462,10 +462,6 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 		config.ArgM[i] = uint32(0)
 	}
 
-	if selectors.MatchActionSigKill(tp.Spec) {
-		config.Sigkill = 1
-	}
-
 	if selectors.HasEarlyBinaryFilter(tp.Spec.Selectors) {
 		config.Flags |= flagsEarlyFilter
 	}
