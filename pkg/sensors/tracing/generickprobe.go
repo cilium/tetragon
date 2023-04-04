@@ -462,13 +462,6 @@ func createGenericKprobeSensor(
 			config.Syscall = 0
 		}
 
-		has_sigkill := selectors.MatchActionSigKill(f)
-		if has_sigkill {
-			config.Sigkill = 1
-		} else {
-			config.Sigkill = 0
-		}
-
 		if selectors.HasEarlyBinaryFilter(f.Selectors) {
 			config.Flags |= flagsEarlyFilter
 		}

@@ -260,8 +260,7 @@ generic_kprobe_actions(void *ctx)
 	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&kprobe_calls,
-			       (struct bpf_map_def *)&override_tasks,
-			       (struct bpf_map_def *)&config_map);
+			       (struct bpf_map_def *)&override_tasks);
 }
 
 __attribute__((section("kprobe/12"), used)) int

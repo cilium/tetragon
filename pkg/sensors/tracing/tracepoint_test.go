@@ -439,7 +439,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 	}
 
 	if kernels.EnableLargeProgs() {
