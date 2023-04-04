@@ -25,6 +25,7 @@ const (
 	ActionTypeCopyFd     = 5
 	ActionTypeGetUrl     = 6
 	ActionTypeDnsLookup  = 7
+	ActionTypeNoPost     = 8
 )
 
 var actionTypeTable = map[string]uint32{
@@ -36,6 +37,7 @@ var actionTypeTable = map[string]uint32{
 	"copyfd":     ActionTypeCopyFd,
 	"geturl":     ActionTypeGetUrl,
 	"dnslookup":  ActionTypeDnsLookup,
+	"nopost":     ActionTypeNoPost,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -47,6 +49,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeCopyFd:     "copyfd",
 	ActionTypeGetUrl:     "geturl",
 	ActionTypeDnsLookup:  "dnslookup",
+	ActionTypeNoPost:     "nopost",
 }
 
 // Action argument table entry (for URL and FQDN arguments)
