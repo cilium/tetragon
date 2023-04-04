@@ -1,16 +1,5 @@
-// Copyright 2016-2017 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package monitor
 
@@ -20,12 +9,19 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+)
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+type DisplayFormat bool
+
+const (
+	DisplayLabel   DisplayFormat = false
+	DisplayNumeric DisplayFormat = true
 )
 
 type parserCache struct {
@@ -36,6 +32,7 @@ type parserCache struct {
 	icmp6   layers.ICMPv6
 	tcp     layers.TCP
 	udp     layers.UDP
+	sctp    layers.SCTP
 	decoded []gopacket.LayerType
 }
 
@@ -59,7 +56,8 @@ func initParser() {
 		parser = gopacket.NewDecodingLayerParser(
 			layers.LayerTypeEthernet,
 			&cache.eth, &cache.ip4, &cache.ip6,
-			&cache.icmp4, &cache.icmp6, &cache.tcp, &cache.udp)
+			&cache.icmp4, &cache.icmp6, &cache.tcp, &cache.udp,
+			&cache.sctp)
 	}
 }
 
@@ -121,6 +119,9 @@ func getConnectionInfoFromCache() (c *ConnectionInfo, hasIP, hasEth bool) {
 		case layers.LayerTypeUDP:
 			c.Proto = "udp"
 			c.SrcPort, c.DstPort = uint16(cache.udp.SrcPort), uint16(cache.udp.DstPort)
+		case layers.LayerTypeSCTP:
+			c.Proto = "sctp"
+			c.SrcPort, c.DstPort = uint16(cache.sctp.SrcPort), uint16(cache.sctp.DstPort)
 		case layers.LayerTypeIPSecAH:
 			c.Proto = "IPsecAH"
 		case layers.LayerTypeIPSecESP:
@@ -200,7 +201,7 @@ func Dissect(dissect bool, data []byte) {
 		defer dissectLock.Unlock()
 
 		initParser()
-		parser.DecodeLayers(data, &cache.decoded)
+		err := parser.DecodeLayers(data, &cache.decoded)
 
 		for _, typ := range cache.decoded {
 			switch typ {
@@ -214,6 +215,8 @@ func Dissect(dissect bool, data []byte) {
 				fmt.Println(gopacket.LayerString(&cache.tcp))
 			case layers.LayerTypeUDP:
 				fmt.Println(gopacket.LayerString(&cache.udp))
+			case layers.LayerTypeSCTP:
+				fmt.Println(gopacket.LayerString(&cache.sctp))
 			case layers.LayerTypeICMPv4:
 				fmt.Println(gopacket.LayerString(&cache.icmp4))
 			case layers.LayerTypeICMPv6:
@@ -224,6 +227,9 @@ func Dissect(dissect bool, data []byte) {
 		}
 		if parser.Truncated {
 			fmt.Println("  Packet has been truncated")
+		}
+		if err != nil {
+			fmt.Println("  Failed to decode layer:", err)
 		}
 
 	} else {
@@ -244,6 +250,7 @@ type DissectSummary struct {
 	IPv6     string `json:"ipv6,omitempty"`
 	TCP      string `json:"tcp,omitempty"`
 	UDP      string `json:"udp,omitempty"`
+	SCTP     string `json:"sctp,omitempty"`
 	ICMPv4   string `json:"icmpv4,omitempty"`
 	ICMPv6   string `json:"icmpv6,omitempty"`
 	L2       *Flow  `json:"l2,omitempty"`
@@ -282,6 +289,10 @@ func GetDissectSummary(data []byte) *DissectSummary {
 		case layers.LayerTypeUDP:
 			ret.UDP = gopacket.LayerString(&cache.udp)
 			src, dst := cache.udp.TransportFlow().Endpoints()
+			ret.L4 = &Flow{Src: src.String(), Dst: dst.String()}
+		case layers.LayerTypeSCTP:
+			ret.SCTP = gopacket.LayerString(&cache.sctp)
+			src, dst := cache.sctp.TransportFlow().Endpoints()
 			ret.L4 = &Flow{Src: src.String(), Dst: dst.String()}
 		case layers.LayerTypeICMPv4:
 			ret.ICMPv4 = gopacket.LayerString(&cache.icmp4)

@@ -1,28 +1,21 @@
-// Copyright 2016-2019 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package monitor
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"unsafe"
 
 	"github.com/cilium/cilium/pkg/byteorder"
+	"github.com/cilium/cilium/pkg/hubble/parser/getters"
+	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/types"
 )
@@ -58,8 +51,8 @@ type TraceNotifyV0 struct {
 	OrigLen  uint32
 	CapLen   uint16
 	Version  uint16
-	SrcLabel uint32
-	DstLabel uint32
+	SrcLabel identity.NumericIdentity
+	DstLabel identity.NumericIdentity
 	DstID    uint16
 	Reason   uint8
 	Flags    uint8
@@ -91,6 +84,7 @@ const (
 	TraceReasonCtReply
 	TraceReasonCtRelated
 	TraceReasonCtReopened
+	TraceReasonUnknown
 )
 
 var traceReasons = map[uint8]string{
@@ -99,6 +93,7 @@ var traceReasons = map[uint8]string{
 	TraceReasonCtReply:       "reply",
 	TraceReasonCtRelated:     "related",
 	TraceReasonCtReopened:    "reopened",
+	TraceReasonUnknown:       "unknown",
 }
 
 func connState(reason uint8) string {
@@ -109,12 +104,13 @@ func connState(reason uint8) string {
 	return fmt.Sprintf("%d", reason)
 }
 
-func fetchVersion(data []byte, tn *TraceNotify) (version uint16, err error) {
-	offset := unsafe.Offsetof(tn.Version)
-	length := unsafe.Sizeof(tn.Version)
-	reader := bytes.NewReader(data[offset : offset+length])
-	err = binary.Read(reader, byteorder.Native, &version)
-	return version, err
+func TraceReasonIsKnown(reason uint8) bool {
+	switch reason {
+	case TraceReasonUnknown:
+		return false
+	default:
+		return true
+	}
 }
 
 // DecodeTraceNotify will decode 'data' into the provided TraceNotify structure
@@ -123,19 +119,27 @@ func DecodeTraceNotify(data []byte, tn *TraceNotify) error {
 		return fmt.Errorf("Unknown trace event")
 	}
 
-	version, err := fetchVersion(data, tn)
-	if err != nil {
-		return err
-	}
+	offset := unsafe.Offsetof(tn.Version)
+	length := unsafe.Sizeof(tn.Version)
+	version := byteorder.Native.Uint16(data[offset : offset+length])
+
 	switch version {
 	case TraceNotifyVersion0:
-		err = binary.Read(bytes.NewReader(data), byteorder.Native, &tn.TraceNotifyV0)
+		return binary.Read(bytes.NewReader(data), byteorder.Native, &tn.TraceNotifyV0)
 	case TraceNotifyVersion1:
-		err = binary.Read(bytes.NewReader(data), byteorder.Native, tn)
-	default:
-		err = fmt.Errorf("Unrecognized trace event (version %d)", version)
+		return binary.Read(bytes.NewReader(data), byteorder.Native, tn)
 	}
-	return err
+	return fmt.Errorf("Unrecognized trace event (version %d)", version)
+}
+
+// dumpIdentity dumps the source and destination identities in numeric or
+// human-readable format.
+func (n *TraceNotify) dumpIdentity(buf *bufio.Writer, numeric DisplayFormat) {
+	if numeric {
+		fmt.Fprintf(buf, ", identity %d->%d", n.SrcLabel, n.DstLabel)
+	} else {
+		fmt.Fprintf(buf, ", identity %s->%s", n.SrcLabel, n.DstLabel)
+	}
 }
 
 func (n *TraceNotify) encryptReason() string {
@@ -154,7 +158,11 @@ func (n *TraceNotify) traceSummary() string {
 	case api.TraceToLxc:
 		return fmt.Sprintf("-> endpoint %d", n.DstID)
 	case api.TraceToProxy:
-		return "-> proxy"
+		pp := ""
+		if n.DstID != 0 {
+			pp = fmt.Sprintf(" port %d", n.DstID)
+		}
+		return "-> proxy" + pp
 	case api.TraceToHost:
 		return "-> host from"
 	case api.TraceToStack:
@@ -198,48 +206,59 @@ func (n *TraceNotify) DataOffset() uint {
 }
 
 // DumpInfo prints a summary of the trace messages.
-func (n *TraceNotify) DumpInfo(data []byte) {
+func (n *TraceNotify) DumpInfo(data []byte, numeric DisplayFormat, linkMonitor getters.LinkGetter) {
+	buf := bufio.NewWriter(os.Stdout)
 	hdrLen := n.DataOffset()
 	if n.encryptReason() != "" {
-		fmt.Printf("%s %s flow %#x identity %d->%d state %s ifindex %s orig-ip %s: %s\n",
-			n.traceSummary(), n.encryptReason(), n.Hash, n.SrcLabel, n.DstLabel,
-			n.traceReason(), ifname(int(n.Ifindex)), n.OriginalIP().String(), GetConnectionSummary(data[hdrLen:]))
+		fmt.Fprintf(buf, "%s %s flow %#x ",
+			n.traceSummary(), n.encryptReason(), n.Hash)
 	} else {
-		fmt.Printf("%s flow %#x identity %d->%d state %s ifindex %s orig-ip %s: %s\n",
-			n.traceSummary(), n.Hash, n.SrcLabel, n.DstLabel,
-			n.traceReason(), ifname(int(n.Ifindex)), n.OriginalIP().String(), GetConnectionSummary(data[hdrLen:]))
+		fmt.Fprintf(buf, "%s flow %#x ", n.traceSummary(), n.Hash)
 	}
+	n.dumpIdentity(buf, numeric)
+	ifname := linkMonitor.Name(n.Ifindex)
+	fmt.Fprintf(buf, " state %s ifindex %s orig-ip %s: %s\n", n.traceReason(),
+		ifname, n.OriginalIP().String(), GetConnectionSummary(data[hdrLen:]))
+	buf.Flush()
 }
 
 // DumpVerbose prints the trace notification in human readable form
-func (n *TraceNotify) DumpVerbose(dissect bool, data []byte, prefix string) {
-	fmt.Printf("%s MARK %#x FROM %d %s: %d bytes (%d captured), state %s",
+func (n *TraceNotify) DumpVerbose(dissect bool, data []byte, prefix string, numeric DisplayFormat, linkMonitor getters.LinkGetter) {
+	buf := bufio.NewWriter(os.Stdout)
+	fmt.Fprintf(buf, "%s MARK %#x FROM %d %s: %d bytes (%d captured), state %s",
 		prefix, n.Hash, n.Source, api.TraceObservationPoint(n.ObsPoint), n.OrigLen, n.CapLen, connState(n.Reason))
 
 	if n.Ifindex != 0 {
-		fmt.Printf(", interface %s", ifname(int(n.Ifindex)))
+		ifname := linkMonitor.Name(n.Ifindex)
+		fmt.Fprintf(buf, ", interface %s", ifname)
 	}
 
 	if n.SrcLabel != 0 || n.DstLabel != 0 {
-		fmt.Printf(", identity %d->%d", n.SrcLabel, n.DstLabel)
+		fmt.Fprintf(buf, ", ")
+		n.dumpIdentity(buf, numeric)
 	}
 
-	fmt.Printf(", orig-ip " + n.OriginalIP().String())
+	fmt.Fprintf(buf, ", orig-ip %s", n.OriginalIP().String())
 
 	if n.DstID != 0 {
-		fmt.Printf(", to endpoint %d\n", n.DstID)
+		dst := "endpoint"
+		if n.ObsPoint == api.TraceToProxy {
+			dst = "proxy-port"
+		}
+		fmt.Fprintf(buf, ", to %s %d\n", dst, n.DstID)
 	} else {
-		fmt.Printf("\n")
+		fmt.Fprintf(buf, "\n")
 	}
 
 	hdrLen := n.DataOffset()
 	if n.CapLen > 0 && len(data) > int(hdrLen) {
 		Dissect(dissect, data[hdrLen:])
 	}
+	buf.Flush()
 }
 
-func (n *TraceNotify) getJSON(data []byte, cpuPrefix string) (string, error) {
-	v := TraceNotifyToVerbose(n)
+func (n *TraceNotify) getJSON(data []byte, cpuPrefix string, linkMonitor getters.LinkGetter) (string, error) {
+	v := TraceNotifyToVerbose(n, linkMonitor)
 	v.CPUPrefix = cpuPrefix
 	hdrLen := n.DataOffset()
 	if n.CapLen > 0 && len(data) > int(hdrLen) {
@@ -251,8 +270,8 @@ func (n *TraceNotify) getJSON(data []byte, cpuPrefix string) (string, error) {
 }
 
 // DumpJSON prints notification in json format
-func (n *TraceNotify) DumpJSON(data []byte, cpuPrefix string) {
-	resp, err := n.getJSON(data, cpuPrefix)
+func (n *TraceNotify) DumpJSON(data []byte, cpuPrefix string, linkMonitor getters.LinkGetter) {
+	resp, err := n.getJSON(data, cpuPrefix, linkMonitor)
 	if err == nil {
 		fmt.Println(resp)
 	}
@@ -268,21 +287,22 @@ type TraceNotifyVerbose struct {
 	ObservationPoint string `json:"observationPoint"`
 	TraceSummary     string `json:"traceSummary"`
 
-	Source   uint16 `json:"source"`
-	Bytes    uint32 `json:"bytes"`
-	SrcLabel uint32 `json:"srcLabel"`
-	DstLabel uint32 `json:"dstLabel"`
-	DstID    uint16 `json:"dstID"`
+	Source   uint16                   `json:"source"`
+	Bytes    uint32                   `json:"bytes"`
+	SrcLabel identity.NumericIdentity `json:"srcLabel"`
+	DstLabel identity.NumericIdentity `json:"dstLabel"`
+	DstID    uint16                   `json:"dstID"`
 
 	Summary *DissectSummary `json:"summary,omitempty"`
 }
 
 // TraceNotifyToVerbose creates verbose notification from base TraceNotify
-func TraceNotifyToVerbose(n *TraceNotify) TraceNotifyVerbose {
+func TraceNotifyToVerbose(n *TraceNotify, linkMonitor getters.LinkGetter) TraceNotifyVerbose {
+	ifname := linkMonitor.Name(n.Ifindex)
 	return TraceNotifyVerbose{
 		Type:             "trace",
 		Mark:             fmt.Sprintf("%#x", n.Hash),
-		Ifindex:          ifname(int(n.Ifindex)),
+		Ifindex:          ifname,
 		State:            connState(n.Reason),
 		ObservationPoint: api.TraceObservationPoint(n.ObsPoint),
 		TraceSummary:     n.traceSummary(),
