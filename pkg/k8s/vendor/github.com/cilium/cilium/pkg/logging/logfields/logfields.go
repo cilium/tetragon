@@ -1,16 +1,5 @@
-// Copyright 2017-2018 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 // Package logfields defines common logging fields which are used across packages
 package logfields
@@ -28,8 +17,14 @@ const (
 	// Node is a host machine in the cluster, running cilium
 	Node = "node"
 
+	// NodeID is the node-scoped ID of the node as allocated by the agent
+	NodeID = "nodeID"
+
 	// NodeName is a human readable name for the node
 	NodeName = "nodeName"
+
+	// Endpoint is the endpoint name (e.g. wireguard)
+	Endpoint = "endpoint"
 
 	// EndpointID is the numeric endpoint identifier
 	EndpointID = "endpointID"
@@ -57,6 +52,9 @@ const (
 
 	// Identity is the identifier of a security identity
 	Identity = "identity"
+
+	// Ingress is the identifier of an ingress object
+	Ingress = "ingress"
 
 	// OldIdentity is a previously used security identity
 	OldIdentity = "oldIdentity"
@@ -95,6 +93,9 @@ const (
 	// L4PolicyID is the identifier of a L4 Policy
 	L4PolicyID = "PolicyID.L4"
 
+	// AuthType is an enum for the type of authentication required, if any.
+	AuthType = "AuthType"
+
 	// IsRedirect is a boolean for if the entry is a redirect or not
 	IsRedirect = "IsRedirect"
 
@@ -106,6 +107,9 @@ const (
 
 	// MACAddr is a MAC address
 	MACAddr = "macAddr"
+
+	// NextHop is an IPV4 or IPv6 address for the next hop
+	NextHop = "nextHop"
 
 	// IPAddr is an IPV4 or IPv6 address
 	IPAddr = "ipAddr"
@@ -139,6 +143,12 @@ const (
 
 	// V6HealthIP is an address used to contact the cilium-health endpoint
 	V6HealthIP = "v6healthIP.IPv6"
+
+	// V4IngressIP is an address used to contact the cilium-Ingress endpoint
+	V4IngressIP = "v4IngressIP.IPv4"
+
+	// V6IngressIP is an address used to contact the cilium-Ingress endpoint
+	V6IngressIP = "v6IngressIP.IPv6"
 
 	// V4CiliumHostIP is an address used for the cilium_host interface.
 	V4CiliumHostIP = "v4CiliumHostIP.IPv4"
@@ -179,17 +189,26 @@ const (
 	// IPv6CIDRs is a list of IPv6 CIDRs
 	IPv6CIDRs = "ipv6CIDRs"
 
-	// CIDR is a IPv4/IPv4 subnet/CIDR
+	// CIDR is a IPv4/IPv6 subnet/CIDR
 	CIDR = "cidr"
+
+	// CIDRS is a list of IPv4/IPv6 CIDRs
+	CIDRS = "cidrs"
+
+	// OldCIDR is the previous subnet/CIDR
+	OldCIDR = "oldCIDR"
+
+	// NewCIDR is the new subnet/CIDR
+	NewCIDR = "newCIDR"
+
+	// IPAddrs is a lsit of IP addrs
+	IPAddrs = "ipAddrs"
 
 	// MTU is the maximum transmission unit of one interface
 	MTU = "mtu"
 
 	// Interface is an interface id/name on the system
 	Interface = "interface"
-
-	// Ipvlan is a ipvlan object or ID
-	Ipvlan = "ipvlan"
 
 	// Veth is a veth object or ID
 	Veth = "veth"
@@ -243,14 +262,20 @@ const (
 	// ServiceHealthCheckNodePort is the port on which we serve health checks
 	ServiceHealthCheckNodePort = "svcHealthCheckNodePort"
 
-	// ServiceTrafficPolicy is the traffic policy of the service
-	ServiceTrafficPolicy = "svcTrafficPolicy"
+	// ServiceExtTrafficPolicy is the external traffic policy of the service
+	ServiceExtTrafficPolicy = "svcExtTrafficPolicy"
+
+	// ServiceIntTrafficPolicy is the internal traffic policy of the service
+	ServiceIntTrafficPolicy = "svcIntTrafficPolicy"
 
 	// BackendIDs is the map of backend IDs (lbmap) indexed by backend address
 	BackendIDs = "backendIDs"
 
 	// BackendID is the ID of the backend
 	BackendID = "backendID"
+
+	// BackendWeight is a weight of service backend.
+	BackendWeight = "backendWeight"
 
 	// Backends is the list of the service backends
 	Backends = "backends"
@@ -260,6 +285,18 @@ const (
 
 	// BackendSlot is the backend slot number in a service BPF map
 	BackendSlot = "backendSlot"
+
+	// L7LBProxyPort is the port number of the Envoy listener a L7 LB service redirects traffic to for load balancing.
+	L7LBProxyPort = "l7LBProxyPort"
+
+	// L7LBFrontendPorts is the list of frontend ports for load balancing.
+	L7LBFrontendPorts = "l7LBFrontendPorts"
+
+	// BackendState is the state of the backend
+	BackendState = "backendState"
+
+	// BackendPreferred is the indicator if this backend is preferred if active.
+	BackendPreferred = "backendPreferred"
 
 	// CiliumNetworkPolicy is a cilium specific NetworkPolicy
 	CiliumNetworkPolicy = "ciliumNetworkPolicy"
@@ -279,14 +316,23 @@ const (
 	// CiliumLocalRedirectPolicyName is the name of a CiliumLocalRedirectPolicy
 	CiliumLocalRedirectName = "ciliumLocalRedirectPolicyName"
 
+	// CiliumEgressGatewayPolicyName is the name of a CiliumEgressGatewayPolicy
+	CiliumEgressGatewayPolicyName = "ciliumEgressGatewayPolicyName"
+
+	// CiliumClusterwideEnvoyConfigName is the name of a CiliumClusterwideEnvoyConfig
+	CiliumClusterwideEnvoyConfigName = "ciliumClusterwideEnvoyConfigName"
+
+	// CiliumEnvoyConfigName is the name of a CiliumEnvoyConfig
+	CiliumEnvoyConfigName = "ciliumEnvoyConfigName"
+
+	// Listener is the name of an Envoy Listener defined in CEC or CCEC
+	Listener = "listener"
+
 	// BPFMapKey is a key from a BPF map
 	BPFMapKey = "bpfMapKey"
 
 	// BPFMapValue is a value from a BPF map
 	BPFMapValue = "bpfMapValue"
-
-	// XDPDevice is the device name
-	XDPDevice = "xdpDevice"
 
 	// Device is the device name
 	Device = "device"
@@ -294,11 +340,8 @@ const (
 	// Devices is the devices name
 	Devices = "devices"
 
-	//DirectRoutingDevice is the name of the direct routing device
+	// DirectRoutingDevice is the name of the direct routing device
 	DirectRoutingDevice = "directRoutingDevice"
-
-	// IpvlanMasterDevice is the ipvlan master device name
-	IpvlanMasterDevice = "ipvlanMasterDevice"
 
 	// DatapathMode is the datapath mode name
 	DatapathMode = "datapathMode"
@@ -483,6 +526,9 @@ const (
 	// Key is the identity of the encryption key
 	Key = "key"
 
+	// URL represents a Uniform Resource Locator.
+	URL = "url"
+
 	// SysParamName is the name of the kernel parameter (sysctl)
 	SysParamName = "sysParamName"
 
@@ -508,8 +554,32 @@ const (
 	// LRPBackendPorts are the parsed backend ports of the Local Redirect Policy.
 	LRPBackendPorts = "lrpBackendPorts"
 
+	// LRPType is the type of the Local Redirect Policy.
+	LRPType = "lrpType"
+
+	// LRPFrontendType is the parsed frontend type of the Local Redirect Policy.
+	LRPFrontendType = "lrpFrontendType"
+
+	// ENPName is the name of the egress nat policy
+	ENPName = "enpName"
+
 	// Mode describes an operations mode
 	Mode = "mode"
+
+	// PubKey is the public key
+	PubKey = "pubKey"
+
+	// NodeIPv4 is the node IPv4 addr
+	NodeIPv4 = "nodeIPv4"
+
+	// NodeIPv6 is the node IPv4 addr
+	NodeIPv6 = "nodeIPv6"
+
+	// OldNode refers to the node before the update
+	OldNode = "oldNode"
+
+	// NewNode refers to the node after the update
+	NewNode = "newNode"
 
 	// AttachedENIs are the ENIs which have been attached to the node
 	AttachedENIs = "attachedENIs"
@@ -520,6 +590,72 @@ const (
 	// Hint helps nudge the user in the right direction when troubleshooting.
 	Hint = "hint"
 
+	// CEPName is the name of the CiliumEndpoint.
+	CEPName = "ciliumEndpointName"
+
 	// CEPUID is the UID of the CiliumEndpoint.
 	CEPUID = "ciliumEndpointUID"
+
+	// CESName is the name of the CiliumEndpointSlice.
+	CESName = "ciliumEndpointSliceName"
+
+	// WorkQueueQPSLimit is the QPS limit for WorkQueues.
+	WorkQueueQPSLimit = "workQueueQPSLimit"
+
+	// WorkQueueBurstLimit is the burst limit for WorkQueues.
+	WorkQueueBurstLimit = "workQueueBurstLimit"
+
+	// WorkQueueSyncBackoff is the backoff time used by workqueues before an attempt to retry sync with k8s-apiserver.
+	WorkQueueSyncBackOff = "workQueueSyncBackOff"
+
+	// CESSliceMode indicates the name of algorithm used to batch CEPs in a CES.
+	CESSliceMode = "ciliumEndpointSliceMode"
+
+	// SourceIP is a source IP
+	SourceIP = "sourceIP"
+
+	// DestinationCIDR is a destination CIDR
+	DestinationCIDR = "destinationCIDR"
+
+	// EgressIP is the egress IP used in a given egress policy
+	EgressIP = "egressIP"
+
+	// GatewayIP is the gateway IP used in a given egress policy
+	GatewayIP = "gatewayIP"
+
+	// Number of Backends failed while restoration.
+	RestoredBackends = "restoredBackends"
+
+	// Number of Backends failed while restoration.
+	FailedBackends = "failedBackends"
+
+	// Number of Services failed while restoration.
+	RestoredSVCs = "restoredServices"
+
+	// Number of Services failed while restoration.
+	FailedSVCs = "failedServices"
+
+	// Chain is an Iptables chain
+	Chain = "chain"
+
+	// IPSec SPI
+	SPI = "spi"
+
+	// IPSec old SPI
+	OldSPI = "oldSPI"
+
+	// CGroupId is the numerical cgroup id
+	CGroupID = "cgroupID"
+
+	// Expected is an expected value
+	Expected = "expected"
+
+	// ConfigSource is a configuration source (for process options, e.g. agent)
+	ConfigSource = "configSource"
+
+	// ConfigKey is a single key in a configuration source
+	ConfigKey = "configKey"
+
+	// ConfigAnnotation is an annotation on a node
+	ConfigAnnotation = "configAnnotation"
 )
