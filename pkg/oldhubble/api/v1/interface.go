@@ -15,10 +15,10 @@
 package v1
 
 import (
+	pb "github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/pkg/identity"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/gogo/protobuf/types"
 	//nolint:staticcheck // SA1004 ignore this!
 	"github.com/golang/protobuf/proto"
 )
@@ -26,7 +26,7 @@ import (
 // Flow is an interface matching pb.Flow
 type Flow interface {
 	proto.Message
-	GetTime() *types.Timestamp
+	GetTime() *timestamppb.Timestamp
 	GetVerdict() pb.Verdict
 	GetDropReason() uint32
 	GetEthernet() *pb.Ethernet

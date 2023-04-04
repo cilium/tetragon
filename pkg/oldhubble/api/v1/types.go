@@ -18,8 +18,8 @@ import (
 	"net"
 	"sync"
 
+	pb "github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/pkg/identity"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 	"github.com/gogo/protobuf/types"
 )
 
