@@ -73,6 +73,7 @@ enum {
 	ACTION_COPYFD = 5,
 	ACTION_GETURL = 6,
 	ACTION_DNSLOOKUP = 7,
+	ACTION_NOPOST = 8,
 };
 
 enum {
@@ -1359,6 +1360,7 @@ static inline __attribute__((always_inline)) bool
 do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 	   struct bpf_map_def *override_tasks)
 {
+	bool nopost = false;
 	__u32 l, i = 0;
 
 #ifndef __LARGE_BPF_PROG
@@ -1366,14 +1368,16 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 #endif
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
-			return true;
+			return !nopost;
 
 		i = do_action(i, e, actions, override_tasks);
 		if (!i)
 			return false;
+
+		nopost |= actions->act[0] == ACTION_NOPOST;
 	}
 
-	return true;
+	return !nopost;
 }
 
 static inline __attribute__((always_inline)) long
