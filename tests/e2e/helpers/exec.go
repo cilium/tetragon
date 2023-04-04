@@ -46,7 +46,7 @@ func ExecInPod(ctx context.Context, client klient.Client, namespace, pod, contai
 		return fmt.Errorf("error while creating executor: %w", err)
 	}
 
-	return exec.Stream(remotecommand.StreamOptions{
+	return exec.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdout: stdout,
 		Stderr: stderr,
 	})
