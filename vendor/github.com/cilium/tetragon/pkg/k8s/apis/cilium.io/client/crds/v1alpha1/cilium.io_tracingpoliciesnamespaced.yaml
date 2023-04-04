@@ -172,6 +172,7 @@ spec:
                                   - Override
                                   - GetUrl
                                   - DnsLookup
+                                  - NoPost
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -529,6 +530,7 @@ spec:
                                   - Override
                                   - GetUrl
                                   - DnsLookup
+                                  - NoPost
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -831,6 +833,7 @@ spec:
                                   - Override
                                   - GetUrl
                                   - DnsLookup
+                                  - NoPost
                                   type: string
                                 argError:
                                   description: error value for override action
