@@ -15,6 +15,7 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "../argfilter_maps.h"
+#include "common.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -481,8 +482,8 @@ copy_capability(char *args, unsigned long arg)
 	return sizeof(struct capability_info_type);
 }
 
-#define ARGM_INDEX_MASK	 ((1 << 4) - 1)
-#define ARGM_RETURN_COPY (1 << 4)
+#define ARGM_RETURN_COPY BIT(4)
+#define ARGM_INDEX_MASK	 ARGM_RETURN_COPY - 1
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)

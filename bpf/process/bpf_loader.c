@@ -58,9 +58,9 @@ struct {
 #define VM_EXEC	      0x00000004
 #define MSG_OP_LOADER 26
 
-#define ATTR_BIT_MMAP	 (1ULL << 8)
-#define ATTR_BIT_MMAP2	 (1ULL << 23)
-#define ATTR_BIT_BUILDID (1ULL << 34)
+#define ATTR_BIT_MMAP	 BIT_ULL(8)
+#define ATTR_BIT_MMAP2	 BIT_ULL(23)
+#define ATTR_BIT_BUILDID BIT_ULL(34)
 
 __attribute__((section(("kprobe/perf_event_mmap_output")), used)) int
 loader_kprobe(struct pt_regs *ctx)
