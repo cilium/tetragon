@@ -17,7 +17,6 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -433,16 +432,11 @@ func TestLoadTracepointSensor(t *testing.T) {
 		// generic_tracepoint_arg**,base
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5}},
 
+		// all kprobe but generic_tracepoint_filter
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+
 		// shared with base sensor
 		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11}},
-	}
-
-	if kernels.EnableLargeProgs() {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
-	} else {
-		// all kprobe but generic_kprobe_process_filter,generic_kprobe_event
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 6, 7, 8, 9, 10}})
 	}
 
 	readHook := `

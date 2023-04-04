@@ -768,3 +768,23 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	}
 	return false
 }
+
+func HasEarlyBinaryFilter(selectors []v1alpha1.KProbeSelector) bool {
+	if len(selectors) == 0 {
+		return false
+	}
+	for _, s := range selectors {
+		if len(s.MatchPIDs) > 0 ||
+			len(s.MatchNamespaces) > 0 ||
+			len(s.MatchCapabilities) > 0 ||
+			len(s.MatchNamespaceChanges) > 0 ||
+			len(s.MatchCapabilityChanges) > 0 ||
+			len(s.MatchArgs) > 0 {
+			return false
+		}
+	}
+	if len(selectors) == 1 && len(selectors[0].MatchBinaries) > 0 {
+		return true
+	}
+	return false
+}
