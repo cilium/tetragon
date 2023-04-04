@@ -22,11 +22,13 @@ Kubernetes API server on which it is installed, for example `kubectl explain
 tracingpolicy.spec.kprobes` provides field-specific documentation and details
 on kprobe spec.
 
+{{< note >}}
 For bare metal or VM use cases without Kubernetes, the same YAML configuration
 can be passed via a flag to the Tetragon binary (using `--config-file`) or via
 the `tetra` CLI to load the policies via gRPC.
+{{< /note >}}
 
-### Getting started with Cilium Tracing Policy
+### Getting started with Tracing Policy
 
 To keep the Cilium Policy Definitions unified, the `TracingPolicy` follows the
 same CR logic and semantics that you might be familiar with from other Cilium
@@ -58,7 +60,7 @@ spec:
         - "/etc/shadow"
 ```
 
-**First required fields**
+#### Required fields
 
 The first part follows a common pattern among all Cilium Policies or more
 widely [Kubernetes object](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/).
@@ -73,13 +75,53 @@ metadata:
   name: "fd-install"
 ```
 
-**The specification**
+#### Specification
 
 The `spec` or `specification` can be composed of `kprobes` or `tracepoints` at
 the moment. It describes the arbitrary event in the kernel that will be traced.
+
+##### Kprobes
+
+Kprobes enables you to dynamically break into any kernel routine and collect
+debugging and performance information non-disruptively. kprobes are highly
+tight to your kernel version and might not be portable since the kernel symbols
+depend on your build.
+
+Conveniently, you can list all kernel symbols reading the `/proc/kallsyms`
+file. For example to search for the `write` syscall kernel function, you can
+execute `sudo grep sys_write /proc/kallsyms`, the output should be similar to
+this, minus the architecture specific prefixes.
+
+```
+ffffdeb14ea712e0 T __arm64_sys_writev
+ffffdeb14ea73010 T ksys_write
+ffffdeb14ea73140 T __arm64_sys_write
+ffffdeb14eb5a460 t proc_sys_write
+ffffdeb15092a700 d _eil_addr___arm64_sys_writev
+ffffdeb15092a740 d _eil_addr___arm64_sys_write
+```
+
+You can see that the exact name of the symbol for the write syscall on our
+kernel version is `__arm64_sys_write`. Note that on `x86_64`, the prefix should
+be `__x64_` instead of `__arm64_`.
+
+{{< caution >}}
+Kernel symbols contain an architecture specific prefix when they refer to
+syscall symbols. To write portable tracing policies, i.e. policies that can run
+on multiple architectures, just use the symbol name without the prefix.
+
+For example, instead of writing `call: "__arm64_sys_write"` or `call:
+"__x64_sys_write"`, just write `call: "sys_write"`, Tetragon will adapt and add
+the correct prefix based on the architecture of the underlying machine. Note
+that the event generated as output currently includes the prefix.
+{{< /caution >}}
+
 In our example, we will explore a `kprobe` hooking into the
 [`fd_install`](https://elixir.bootlin.com/linux/v6.1.9/source/fs/file.c#L602)
-kernel function.
+kernel function. The `fd_install` kernel function is called each time a file
+descriptor is installed into the file descriptor table of a process, typically
+referenced within system calls like `open` or `openat`. Hooking `fd_install`
+has its benefits and limitations, which are out of the scope of this document.
 
 ```yaml
 spec:
@@ -88,28 +130,87 @@ spec:
     syscall: false
 ```
 
-The `fd_install` kernel function is called each time a file descriptor is
-installed into the file descriptor table of a process, typically referenced
-within system calls like `open` or `openat`. Hooking `fd_install` has its
-benefits and limitation, which are out of the scope of this document.
+{{< note >}}
+Notice the `syscall` field, specific to a `kprobe` spec, with default value
+`false`, that indicates whether Tetragon will hook a syscall or just a regular
+kernel function. Tetragon needs this information because syscall and kernel
+function use a [different ABI](https://gitlab.com/x86-psABIs/x86-64-ABI).
+{{< /note >}}
 
-Note the `syscall` field, specific to a `kprobe` spec, that indicates whether
-we will be hooking a syscall or just a regular kernel function since they use a
-[different ABI](https://gitlab.com/x86-psABIs/x86-64-ABI).
 
-Similarly to other Policies, events can be defined independently in different
-policies, or together in the same Policy. For example, we can define trace
-multiple kprobes under the same `CiliumTracingPolicy`:
+As usual, kprobes calls can be defined independently in different policies,
+or together in the same Policy. For example, we can define trace multiple
+kprobes under the same tracing policy:
 ```yaml
 spec:
   kprobes:
-  - call: "__x64_sys_read"
+  - call: "sys_read"
     syscall: true
     # [...]
-  - call: "__x64_sys_write"
+  - call: "sys_write"
     syscall: true
     # [...]
 ```
+
+##### Tracepoints
+
+A tracepoint placed in the Linux kernel code provides a hook to call a function
+that you can provide at runtime using Tetragon. Tracepoints have the advantage
+of being stable across kernel versions and thus more portable than kprobes.
+
+To see the list of tracepoints available on your kernel, you can list them
+using `sudo ls /sys/kernel/debug/tracing/events`, the output should be similar
+to this.
+
+```
+alarmtimer    ext4            iommu           page_pool     sock
+avc           fib             ipi             pagemap       spi
+block         fib6            irq             percpu        swiotlb
+bpf_test_run  filelock        jbd2            power         sync_trace
+bpf_trace     filemap         kmem            printk        syscalls
+bridge        fs_dax          kvm             pwm           task
+btrfs         ftrace          libata          qdisc         tcp
+cfg80211      gpio            lock            ras           tegra_apb_dma
+cgroup        hda             mctp            raw_syscalls  thermal
+clk           hda_controller  mdio            rcu           thermal_power_allocator
+cma           hda_intel       migrate         regmap        thermal_pressure
+compaction    header_event    mmap            regulator     thp
+cpuhp         header_page     mmap_lock       rpm           timer
+cros_ec       huge_memory     mmc             rpmh          tlb
+dev           hwmon           module          rseq          tls
+devfreq       i2c             mptcp           rtc           udp
+devlink       i2c_slave       napi            sched         vmscan
+dma_fence     initcall        neigh           scmi          wbt
+drm           interconnect    net             scsi          workqueue
+emulation     io_uring        netlink         signal        writeback
+enable        iocost          oom             skb           xdp
+error_report  iomap           page_isolation  smbus         xhci-hcd
+```
+
+You can then choose the subsystem that you want to trace, and look the
+tracepoint you want to use and its format. For example, if we choose the
+`netif_receive_skb` tracepoints from the `net` subsystem, we can read its
+format with `sudo cat /sys/kernel/debug/tracing/events/net/netif_receive_skb/format`,
+the output should be similar to the following.
+
+```
+name: netif_receive_skb
+ID: 1398
+format:
+        field:unsigned short common_type;       offset:0;       size:2; signed:0;
+        field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+        field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+        field:int common_pid;   offset:4;       size:4; signed:1;
+
+        field:void * skbaddr;   offset:8;       size:8; signed:0;
+        field:unsigned int len; offset:16;      size:4; signed:0;
+        field:__data_loc char[] name;   offset:20;      size:4; signed:0;
+
+print fmt: "dev=%s skbaddr=%px len=%u", __get_str(name), REC->skbaddr, REC->len
+```
+
+Similarly to kprobes, tracepoints can also hook into system calls. For more
+details, see the `raw_syscalls` and `syscalls` subysystems.
 
 ### Arguments
 
@@ -152,12 +253,14 @@ pointer of the second argument. Similarly, if we would like to capture the the
 `__x64_sys_writev(long, iovec *, vlen)` syscall, then `iovec` has a size of
 `vlen`, which is going to be the 3rd argument.
 
-Please note that `sizeArgIndex` is inconsistent at the moment and does not take
-the index, but the number of the index (or index + 1). So if the size is the
-third argument, index 2, the value should be 3.
+{{< caution >}}
+`sizeArgIndex` is inconsistent at the moment and does not take the index, but
+the number of the index (or index + 1). So if the size is the third argument,
+index 2, the value should be 3.
+{{< /caution >}}
 
 ```yaml
-- call: "__x64_sys_write"
+- call: "sys_write"
   syscall: true
   args:
   - index: 0
@@ -170,10 +273,11 @@ third argument, index 2, the value should be 3.
     type: "size_t"
 ```
 
-Note, that you can specify which arguments you would like to print from a
+Note that you can specify which arguments you would like to print from a
 specific syscall. For example if you don't care about the file descriptor,
 which is the first `int` argument with `index: 0` and just want the `char_buf`,
 what is written, then you can leave this section out and just define:
+
 ```yaml
 args:
 - index: 1
@@ -342,7 +446,7 @@ the child processes are followed. The current limitation is 4 values.
 
 **Further examples**
 
-One example can be to monitor all the `__x64_sys_write` system calls which are
+One example can be to monitor all the `sys_write` system calls which are
 coming from the `/usr/sbin/sshd` binary and its child processes and writing to
 `stdin/stdout/stderr`.
 
@@ -350,7 +454,7 @@ This is how we can monitor what was written to the console by different users
 during different ssh sessions. The `matchBinaries` selector in this case is the
 following:
 ```yaml
-- matchBinarys:
+- matchBinaries:
   - operator: "In"
     values:
     - "/usr/sbin/sshd"
@@ -358,7 +462,7 @@ following:
 
 while the whole `kprobe` call is the following:
 ```yaml
-- call: "__x64_sys_write"
+- call: "sys_write"
   syscall: true
   args:
   - index: 0
@@ -406,7 +510,7 @@ This will match if: [`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
 
 - `namespace` can be: `Uts`, `Ipc`, `Mnt`, `Pid`, `PidForChildren`, `Net`,
   `Cgroup`, or `User`. `Time` and `TimeForChildren` are also available in Linux
-  >= 5.6.
+  \>= 5.6.
 - `operator` can be `In` or `NotIn`
 - `values` can be raw numeric values (i.e. obtained from `lsns`) or `"host_ns"`
   which will automatically be translated to the appropriate value.
@@ -676,21 +780,22 @@ matches. They are defined under `matchActions` and currently, the following
 - [DnsLookup action](#dnslookup-action)
 - [Post action](#post-action)
 
-Note that `Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD` and `Post`
-are executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
+{{< note >}}
+`Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD` and `Post` are
+executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
+{{< /note >}}
 
 ##### Sigkill action
 
 `Sigkill` action terminates synchronously the process that made the call that
 matches the appropriate selectors from the kernel. In the example below, every
-`__x64_sys_write` system call with a PID not equal to 1 or 0 attempting to
-write to `/etc/passwd` will be terminated. Indeed when using `kubectl exec`, a
-new process is spawned in the container PID namespace and is not a child of PID
-1.
+`sys_write` system call with a PID not equal to 1 or 0 attempting to write to
+`/etc/passwd` will be terminated. Indeed when using `kubectl exec`, a new
+process is spawned in the container PID namespace and is not a child of PID 1.
 
 ```yaml
-- call: "__x64_sys_write"
+- call: "sys_write"
   syscall: true
   args:
   - index: 0
@@ -731,7 +836,7 @@ string `/etc/passwd`:
 
 ```yaml
 kprobes:
-- call: "__x64_sys_symlinkat"
+- call: "sys_symlinkat"
   syscall: true
   args:
   - index: 0
@@ -750,10 +855,11 @@ kprobes:
     - action: Override
       argError: -1
 ```
-
-Note that `Override` can override the return value of any call but doing so in
-kernel functions can create unexpected code path execution. While syscall are a
-stable user interface that should handle errors gracefully.
+{{< caution >}}
+`Override` can override the return value of any call but doing so in kernel
+functions can create unexpected code path execution. While syscall are a stable
+user interface that should handle errors gracefully.
+{{< /caution >}}
 
 ##### FollowFD action
 
@@ -799,7 +905,7 @@ action.
 
 Let's take a look at the following example:
 ```yaml
-- call: "__x64_sys_close"
+- call: "sys_close"
   syscall: true
   args:
   - index: 0
@@ -825,17 +931,19 @@ matchActions:
   argFd: 0
 ```
 
-In this example, `argFD` is 0. So, the argument from the `__x64_sys_close`
-system call at `index: 0` will be deleted from the BPF map whenever a
-`__x64_sys_close` is executed.
+In this example, `argFD` is 0. So, the argument from the `sys_close` system
+call at `index: 0` will be deleted from the BPF map whenever a `sys_close` is
+executed.
 ```yaml
 - index: 0
   type: "int"
 ```
 
-Note, that whenever we would like to follow a file descriptor with a `FollowFD`
-block, there should be a matching `UnfollowFD` block, otherwise the BPF map
-will be broken.
+{{< caution >}}
+Whenever we would like to follow a file descriptor with a `FollowFD` block,
+there should be a matching `UnfollowFD` block, otherwise the BPF map will be
+broken.
+{{< /caution >}}
 
 ##### CopyFD action
 
@@ -846,7 +954,7 @@ typically be used tracking the `dup`, `dup2` or `dup3` syscalls.
 See the following example for illustration:
 
 ```yaml
-- call: "__x64_sys_dup2"
+- call: "sys_dup2"
   syscall: true
   args:
   - index: 0
@@ -860,7 +968,7 @@ See the following example for illustration:
     - action: CopyFD
       argFd: 0
       argName: 1
-- call: "__x64_sys_dup3"
+- call: "sys_dup3"
   syscall: true
   args:
   - index: 0
