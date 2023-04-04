@@ -1,0 +1,8 @@
+[note]
+other = "Note:"
+
+[caution]
+other = "Caution:"
+
+[warning]
+other = "Warning:"
