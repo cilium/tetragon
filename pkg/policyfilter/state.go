@@ -241,49 +241,52 @@ func (m *state) updatePodHandler(pod *v1.Pod) {
 	}
 }
 
+func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
+	return cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			pod, ok := obj.(*v1.Pod)
+			if !ok {
+				logger.GetLogger().Warn("policyfilter, add-pod handler: unexpected object type: %T", pod)
+				return
+			}
+			m.updatePodHandler(pod)
+
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			pod, ok := newObj.(*v1.Pod)
+			if ok {
+				logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)
+				return
+			}
+			m.updatePodHandler(pod)
+		},
+		DeleteFunc: func(obj interface{}) {
+			// Remove all containers for this pod
+			pod, ok := obj.(*v1.Pod)
+			if !ok {
+				logger.GetLogger().Warn("policyfilter, delete-pod handler: unexpected object type: %T", pod)
+				return
+			}
+			podID, err := uuid.Parse(string(pod.UID))
+			if err != nil {
+				logger.GetLogger().WithField("pod-id", pod.UID).WithError(err).Warn("policyfilter, delete-pod: failed to parse id")
+				return
+			}
+
+			namespace := pod.Namespace
+			err = m.DelPod(PodID(podID))
+			if err != nil {
+				logger.GetLogger().WithError(err).WithFields(logrus.Fields{
+					"pod-id":    podID,
+					"namespace": namespace,
+				}).Warn("policyfilter, delete-pod handler: DelPod failed")
+			}
+		},
+	}
+}
+
 func (m *state) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
-	podInformer.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				pod, ok := obj.(*v1.Pod)
-				if !ok {
-					logger.GetLogger().Warn("policyfilter, add-pod handler: unexpected object type: %T", pod)
-					return
-				}
-				m.updatePodHandler(pod)
-
-			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				pod, ok := newObj.(*v1.Pod)
-				if ok {
-					logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)
-					return
-				}
-				m.updatePodHandler(pod)
-			},
-			DeleteFunc: func(obj interface{}) {
-				// Remove all containers for this pod
-				pod, ok := obj.(*v1.Pod)
-				if !ok {
-					logger.GetLogger().Warn("policyfilter, delete-pod handler: unexpected object type: %T", pod)
-					return
-				}
-				podID, err := uuid.Parse(string(pod.UID))
-				if err != nil {
-					logger.GetLogger().WithField("pod-id", pod.UID).WithError(err).Warn("policyfilter, delete-pod: failed to parse id")
-					return
-				}
-
-				namespace := pod.Namespace
-				err = m.DelPod(PodID(podID))
-				if err != nil {
-					logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-						"pod-id":    podID,
-						"namespace": namespace,
-					}).Warn("policyfilter, delete-pod handler: DelPod failed")
-				}
-			},
-		})
+	podInformer.AddEventHandler(m.getPodEventHandlers())
 }
 
 // Close releases resources allocated by the Manager. Specifically, we close and unpin the policy filter map.
