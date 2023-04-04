@@ -22,7 +22,7 @@ import (
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/versioncheck"
 
-	"github.com/blang/semver"
+	semver "github.com/blang/semver/v4"
 	"k8s.io/client-go/kubernetes"
 )
 
