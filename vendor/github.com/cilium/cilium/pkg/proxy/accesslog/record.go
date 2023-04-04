@@ -1,16 +1,5 @@
-// Copyright 2016-2018 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package accesslog
 
@@ -46,6 +35,9 @@ const (
 
 	// VerdictError indicates that there was an error processing the flow
 	VerdictError = "Error"
+
+	// VerdictError indicates that the flow was redirected through the proxy
+	VerdictRedirected = "Redirected"
 )
 
 // ObservationPoint is the type used to describe point of observation
@@ -92,10 +84,6 @@ type EndpointInfo struct {
 
 	// Labels is the list of security relevant labels of the endpoint
 	Labels []string
-
-	// LabelsSHA256 is the hex encoded SHA-256 signature over the Labels
-	// slice, 64 characters in length
-	LabelsSHA256 string
 }
 
 // ServiceInfo contains information about the Kubernetes service
@@ -218,8 +206,10 @@ type LogRecordHTTP struct {
 	Protocol string
 
 	// Headers are all HTTP headers present in the request and response. Request records
-	// contain request headers, while response headers contain both request and response
-	// headers.
+	// contain request headers, while response headers contain response headers and the
+	// 'x-request-id' from the request headers, if any. If response headers already contain
+	// a 'x-request-id' with a different value then both will be included as two separate
+	// entries with the same key.
 	Headers http.Header
 
 	// MissingHeaders are HTTP request headers that were deemed missing from the request

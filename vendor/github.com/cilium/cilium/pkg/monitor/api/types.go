@@ -1,16 +1,5 @@
-// Copyright 2018-2019 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package api
 
@@ -50,6 +39,14 @@ const (
 	// which corresponds to policy_verdict_notify defined in bpf/lib/policy_log.h
 	MessageTypePolicyVerdict
 
+	// MessageTypeRecCapture is a BPF datapath notification carrying a RecorderCapture
+	// which corresponds to capture_msg defined in bpf/lib/pcap.h
+	MessageTypeRecCapture
+
+	// MessageTypeTraceSock is a BPF datapath notification carrying a TraceNotifySock
+	// which corresponds to trace_sock_notify defined in bpf/lib/trace_sock.h
+	MessageTypeTraceSock
+
 	// 129-255 are reserved for agent level events
 
 	// MessageTypeAccessLog contains a pkg/proxy/accesslog.LogRecord
@@ -67,6 +64,8 @@ const (
 	MessageTypeNameL7            = "l7"
 	MessageTypeNameAgent         = "agent"
 	MessageTypeNamePolicyVerdict = "policy-verdict"
+	MessageTypeNameRecCapture    = "recorder"
+	MessageTypeNameTraceSock     = "trace-sock"
 )
 
 type MessageTypeFilter []int
@@ -81,6 +80,8 @@ var (
 		MessageTypeNameL7:            MessageTypeAccessLog,
 		MessageTypeNameAgent:         MessageTypeAgent,
 		MessageTypeNamePolicyVerdict: MessageTypePolicyVerdict,
+		MessageTypeNameRecCapture:    MessageTypeRecCapture,
+		MessageTypeNameTraceSock:     MessageTypeTraceSock,
 	}
 )
 
@@ -170,22 +171,6 @@ func TraceObservationPoint(obsPoint uint8) string {
 	return fmt.Sprintf("%d", obsPoint)
 }
 
-// TraceObservationPointHasConnState returns true if the observation point
-// obsPoint populates the TraceNotify.Reason field with connection tracking
-// information.
-func TraceObservationPointHasConnState(obsPoint uint8) bool {
-	switch obsPoint {
-	case TraceToLxc,
-		TraceToProxy,
-		TraceToHost,
-		TraceToStack,
-		TraceToNetwork:
-		return true
-	default:
-		return false
-	}
-}
-
 // AgentNotify is a notification from the agent. The notification is stored
 // in its JSON-encoded representation
 type AgentNotify struct {
@@ -193,9 +178,9 @@ type AgentNotify struct {
 	Text string
 }
 
-// AgentNotify is a notification from the agent. It is similar to AgentNotify,
-// but the notification is an unencoded struct. See the *Message constructors
-// in this package for possible values.
+// AgentNotifyMessage is a notification from the agent. It is similar to
+// AgentNotify, but the notification is an unencoded struct. See the *Message
+// constructors in this package for possible values.
 type AgentNotifyMessage struct {
 	Type         AgentNotification
 	Notification interface{}
@@ -232,7 +217,8 @@ const (
 	AgentNotifyServiceDeleted
 )
 
-var notifyTable = map[AgentNotification]string{
+// AgentNotifications is a map of all supported agent notification types.
+var AgentNotifications = map[AgentNotification]string{
 	AgentNotifyUnspec:                    "unspecified",
 	AgentNotifyGeneric:                   "Message",
 	AgentNotifyStart:                     "Cilium agent started",
@@ -249,7 +235,7 @@ var notifyTable = map[AgentNotification]string{
 }
 
 func resolveAgentType(t AgentNotification) string {
-	if n, ok := notifyTable[t]; ok {
+	if n, ok := AgentNotifications[t]; ok {
 		return n
 	}
 
@@ -331,8 +317,8 @@ func EndpointRegenMessage(e notifications.RegenNotificationInfo, err error) Agen
 	}
 }
 
-// EndpointCreateNotification structures the endpoint create notification
-type EndpointCreateNotification struct {
+// EndpointNotification structures the endpoint create or delete notification
+type EndpointNotification struct {
 	EndpointRegenNotification
 	PodName   string `json:"pod-name,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
@@ -340,7 +326,7 @@ type EndpointCreateNotification struct {
 
 // EndpointCreateMessage constructs an agent notification message for endpoint creation
 func EndpointCreateMessage(e notifications.RegenNotificationInfo) AgentNotifyMessage {
-	notification := EndpointCreateNotification{
+	notification := EndpointNotification{
 		EndpointRegenNotification: EndpointRegenNotification{
 			ID:     e.GetID(),
 			Labels: e.GetOpLabels(),
@@ -355,16 +341,9 @@ func EndpointCreateMessage(e notifications.RegenNotificationInfo) AgentNotifyMes
 	}
 }
 
-// EndpointDeleteNotification structures the an endpoint delete notification
-type EndpointDeleteNotification struct {
-	EndpointRegenNotification
-	PodName   string `json:"pod-name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-}
-
 // EndpointDeleteMessage constructs an agent notification message for endpoint deletion
 func EndpointDeleteMessage(e notifications.RegenNotificationInfo) AgentNotifyMessage {
-	notification := EndpointDeleteNotification{
+	notification := EndpointNotification{
 		EndpointRegenNotification: EndpointRegenNotification{
 			ID:     e.GetID(),
 			Labels: e.GetOpLabels(),
@@ -438,10 +417,10 @@ type TimeNotification struct {
 	Time string `json:"time"`
 }
 
-// AgentStartMessage constructs an agent notification message when the agent starts
+// StartMessage constructs an agent notification message when the agent starts
 func StartMessage(t time.Time) AgentNotifyMessage {
 	notification := TimeNotification{
-		Time: t.String(),
+		Time: t.Format(time.RFC3339Nano),
 	}
 
 	return AgentNotifyMessage{
@@ -463,8 +442,11 @@ type ServiceUpsertNotification struct {
 	Frontend ServiceUpsertNotificationAddr   `json:"frontend-address"`
 	Backends []ServiceUpsertNotificationAddr `json:"backend-addresses"`
 
-	Type          string `json:"type,omitempty"`
-	TrafficPolicy string `json:"traffic-policy,omitempty"`
+	Type string `json:"type,omitempty"`
+	// Deprecated: superseded by ExtTrafficPolicy.
+	TrafficPolicy    string `json:"traffic-policy,omitempty"`
+	ExtTrafficPolicy string `json:"ext-traffic-policy,omitempty"`
+	IntTrafficPolicy string `json:"int-traffic-policy,omitempty"`
 
 	Name      string `json:"name,omitempty"`
 	Namespace string `json:"namespace,,omitempty"`
@@ -475,16 +457,18 @@ func ServiceUpsertMessage(
 	id uint32,
 	frontend ServiceUpsertNotificationAddr,
 	backends []ServiceUpsertNotificationAddr,
-	svcType, svcTrafficPolicy, svcName, svcNamespace string,
+	svcType, svcExtTrafficPolicy, svcIntTrafficPolicy, svcName, svcNamespace string,
 ) AgentNotifyMessage {
 	notification := ServiceUpsertNotification{
-		ID:            id,
-		Frontend:      frontend,
-		Backends:      backends,
-		Type:          svcType,
-		TrafficPolicy: svcTrafficPolicy,
-		Name:          svcName,
-		Namespace:     svcNamespace,
+		ID:               id,
+		Frontend:         frontend,
+		Backends:         backends,
+		Type:             svcType,
+		TrafficPolicy:    svcExtTrafficPolicy,
+		ExtTrafficPolicy: svcExtTrafficPolicy,
+		IntTrafficPolicy: svcIntTrafficPolicy,
+		Name:             svcName,
+		Namespace:        svcNamespace,
 	}
 
 	return AgentNotifyMessage{
@@ -531,6 +515,12 @@ const (
 
 	// PolicyMatchAll is the value of MatchType indicating an allow-all match
 	PolicyMatchAll = 4
+
+	// PolicyMatchL3Proto is the value of MatchType indicating a L3 and protocol match
+	PolicyMatchL3Proto = 5
+
+	// PolicyMatchProtoOnly is the value of MatchType indicating only a protocol match
+	PolicyMatchProtoOnly = 6
 )
 
 type PolicyMatchType int
@@ -547,7 +537,10 @@ func (m PolicyMatchType) String() string {
 		return "all"
 	case PolicyMatchNone:
 		return "none"
-
+	case PolicyMatchL3Proto:
+		return "L3-Proto"
+	case PolicyMatchProtoOnly:
+		return "Proto-Only"
 	}
 	return "unknown"
 }

@@ -47,6 +47,7 @@ type LinkAttrs struct {
 	NumRxQueues  int
 	GSOMaxSize   uint32
 	GSOMaxSegs   uint32
+	GROMaxSize   uint32
 	Vfs          []VfInfo // virtual functions available on link
 	Group        uint32
 	Slave        LinkSlave

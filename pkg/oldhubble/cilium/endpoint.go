@@ -97,7 +97,7 @@ func (s *State) consumeEndpointEvents() {
 			// sets the time when the endpoint was deleted. If not found, stores
 			// a new endpoint in the cache, as well with the time when the
 			// endpoint was deleted.
-			edn := monitorAPI.EndpointDeleteNotification{}
+			edn := monitorAPI.EndpointNotification{}
 			err := json.Unmarshal([]byte(an.Text), &edn)
 			if err != nil {
 				s.log.WithField("EndpointDeleteNotification", an.Text).Error("Unable to unmarshal EndpointDeleteNotification")
