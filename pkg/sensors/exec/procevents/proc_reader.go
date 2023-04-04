@@ -49,7 +49,7 @@ func stringToUTF8(s []byte) []byte {
 	return s
 }
 
-type Procs struct {
+type procs struct {
 	psize                uint32
 	ppid                 uint32
 	pnspid               uint32
@@ -79,9 +79,9 @@ type Procs struct {
 	user_ns              uint32
 }
 
-func procKernel() Procs {
+func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
-	return Procs{
+	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		ppid:        kernelPid,
 		pnspid:      0,
@@ -123,7 +123,7 @@ func getCWD(pid uint32) (string, uint32) {
 	return cwd, flags
 }
 
-func pushExecveEvents(p Procs) {
+func pushExecveEvents(p procs) {
 	var err error
 
 	args, filename := procsFilename(p.args)
@@ -193,7 +193,7 @@ func updateExecveMapStats(procs int64) {
 	}
 }
 
-func writeExecveMap(procs []Procs) {
+func writeExecveMap(procs []procs) {
 	mapDir := bpf.MapPrefixPath()
 
 	execveMap := base.GetExecveMap()
@@ -252,7 +252,7 @@ func writeExecveMap(procs []Procs) {
 	updateExecveMapStats(int64(len(procs)))
 }
 
-func pushEvents(procs []Procs) {
+func pushEvents(procs []procs) {
 	writeExecveMap(procs)
 
 	sort.Slice(procs, func(i, j int) bool {
@@ -264,13 +264,13 @@ func pushEvents(procs []Procs) {
 	}
 }
 
-func GetRunningProcs() []Procs {
-	var procs []Procs
+func GetRunningProcs() error {
+	var processes []procs
 
 	procFS, err := os.ReadDir(option.Config.ProcFS)
 	if err != nil {
-		logger.GetLogger().WithError(err).Errorf("Could not read directory %s", option.Config.ProcFS)
-		return nil
+		logger.GetLogger().WithError(err).Errorf("Failed to read directory %s", option.Config.ProcFS)
+		return err
 	}
 
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
@@ -415,7 +415,7 @@ func GetRunningProcs() []Procs {
 		pcmdsUTF := stringToUTF8(pcmdline)
 		cmdsUTF := stringToUTF8(cmdline)
 
-		p := Procs{
+		p := procs{
 			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
 			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			pktime: pktime,
@@ -478,10 +478,10 @@ func GetRunningProcs() []Procs {
 			}
 		}
 
-		procs = append(procs, p)
+		processes = append(processes, p)
 	}
-	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(procs), len(procFS))
+	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS))
 
-	pushEvents(procs)
-	return procs
+	pushEvents(processes)
+	return nil
 }

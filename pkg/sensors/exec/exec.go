@@ -244,7 +244,7 @@ type execProbe struct{}
 func (e *execProbe) LoadProbe(args sensors.LoadProbeArgs) error {
 	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
 	if err == nil {
-		procevents.GetRunningProcs()
+		err = procevents.GetRunningProcs()
 	}
 	return err
 }
