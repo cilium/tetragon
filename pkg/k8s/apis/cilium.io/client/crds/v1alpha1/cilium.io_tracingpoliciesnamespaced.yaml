@@ -192,6 +192,10 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
@@ -550,6 +554,10 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
@@ -851,6 +859,10 @@ spec:
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
                                   format: int32
                                   type: integer
                                 argUrl:

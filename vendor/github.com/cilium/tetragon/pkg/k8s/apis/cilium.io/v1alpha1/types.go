@@ -260,6 +260,9 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// error value for override action
 	ArgError int32 `json:"argError"`
+	// +kubebuilder:validation:Optional
+	// A signal number for signal action
+	ArgSig uint32 `json:"argSig"`
 }
 
 type TracepointSpec struct {
