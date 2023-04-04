@@ -275,9 +275,9 @@ func TestK8s(t *testing.T) {
 	<-watcherStarted
 
 	t.Run("namespaced pods", func(t *testing.T) {
-		err = st.AddPolicy(PolicyID(1), "ns1")
+		err = st.AddPolicy(PolicyID(1), "ns1", nil)
 		require.NoError(t, err)
-		err = st.AddPolicy(PolicyID(2), "ns2")
+		err = st.AddPolicy(PolicyID(2), "ns2", nil)
 		require.NoError(t, err)
 
 		ts.createPod(t, "p1", "ns1", "p1c1", "p1c2")

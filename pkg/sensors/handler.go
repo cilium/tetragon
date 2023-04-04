@@ -6,6 +6,7 @@ package sensors
 import (
 	"fmt"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -54,22 +55,60 @@ func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.Pol
 
 // revive:enable:exported
 
+// updatePolicyFilter will update the policyfilter state so that filtering for
+// i) namespaced policies and ii) pod label filters happens.
+//
+// It returns:
+//
+//	policyfilter.NoFilterID, nil if no filtering is needed
+//	policyfilter.PolicyID(tpID), nil if filtering is needed and policyfilter has been successfully set up
+//	_, err if an error occurred
+func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64) (policyfilter.PolicyID, error) {
+	var namespace string
+	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpNs.TpNamespace()
+	}
+
+	var selector *slimv1.LabelSelector
+	if ps := tp.TpSpec().PodSelector; ps != nil {
+		if len(ps.MatchLabels)+len(ps.MatchExpressions) > 0 {
+			selector = ps
+		}
+	}
+
+	// we do not call AddPolicy unless filtering is actually needed. This
+	// means that if policyfilter is disabled
+	// (option.Config.EnablePolicyFilter is false) then loading the policy
+	// will only fail if filtering is required.
+	if namespace == "" && selector == nil {
+		return policyfilter.NoFilterID, nil
+	}
+
+	filterID := policyfilter.PolicyID(tpID)
+	if err := h.pfState.AddPolicy(filterID, namespace, selector); err != nil {
+		return policyfilter.NoFilterID, err
+	}
+	return filterID, nil
+}
+
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if _, exists := h.collections[op.name]; exists {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 	}
 	tpID := h.allocPolicyID()
-	filterID := policyfilter.NoFilterID
 
-	// This is a namespaced policy, so update policy filter state before loading the sensors
-	// NB: the filterID is set to a non-zero value only if we need to apply
+	// update policy filter state before loading the sensors of the policy.
+	//
+	// The filterID is set to a non-zero value only if we need to apply
 	// filtering, so the policy handlers will receive a valid filter value
-	// only if we want to apply filtering and NoFilterID otherwise.
-	if tpNs, ok := op.tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		filterID = policyfilter.PolicyID(tpID)
-		if err := h.pfState.AddPolicy(filterID, tpNs.TpNamespace()); err != nil {
-			return err
-		}
+	// only if we want to apply filtering and NoFilterID otherwise. This
+	// allows us to have sensors that do not support policyfilter continue
+	// to work if no filtering is needed. A sensor that does not support
+	// policyfilter should return an error on PolicyHandler if a filter id
+	// other than filterID is passed.
+	filterID, err := h.updatePolicyFilter(op.tp, tpID)
+	if err != nil {
+		return err
 	}
 
 	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)

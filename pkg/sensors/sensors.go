@@ -87,6 +87,8 @@ func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor 
 
 type policyHandler interface {
 	// PolicyHandler returns a Sensor for a given policy
+	// sensors that support policyfilter can use the filterID to implement filtering.
+	// sensors that do not support policyfilter need to return an error if filterID != policyfilter.NoFilterID
 	PolicyHandler(policy tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) (*Sensor, error)
 }
 
