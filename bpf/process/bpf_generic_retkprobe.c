@@ -44,6 +44,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	bool walker = false;
 	int zero = 0;
 	__u32 ppid;
+	__u64 psid;
 	long total = 0;
 	long size = 0;
 	long ty_arg, do_copy;
@@ -109,6 +110,10 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->current.pad[3] = 0;
 
 	e->id = config->func_id;
+
+	psid = get_current_pid_tgid();
+	e->pid = psid >> 32;
+	e->tid = (u32)psid;
 
 	total = size;
 	total += generic_kprobe_common_size();

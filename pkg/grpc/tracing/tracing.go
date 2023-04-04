@@ -61,6 +61,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
+		// Write kprobe TID here so we cache it later in the event cache
+		tetragonProcess.Tid = &wrapperspb.UInt32Value{Value: event.TID}
 		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
@@ -320,6 +322,8 @@ type MsgGenericKprobeUnix struct {
 	Namespaces   processapi.MsgNamespaces
 	Capabilities processapi.MsgCapabilities
 	Id           uint64
+	PID          uint32
+	TID          uint32
 	Action       uint64
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg

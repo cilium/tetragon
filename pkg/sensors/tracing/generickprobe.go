@@ -833,6 +833,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Common = m.Common
 	unix.ProcessKey = m.ProcessKey
 	unix.Id = m.Id
+	unix.PID = m.PID
+	unix.TID = m.TID
 	unix.Action = m.ActionId
 	unix.FuncName = gk.funcName
 	unix.Namespaces = m.Namespaces

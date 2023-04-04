@@ -78,6 +78,10 @@ generic_kprobe_start_process_filter(void *ctx)
 		return 0;
 	msg->id = config->func_id;
 
+	__u64 psid = get_current_pid_tgid();
+	msg->pid = psid >> 32;
+	msg->tid = (u32)psid;
+
 	/* Initialize selector index to 0 */
 	msg->sel.curr = 0;
 #pragma unroll
