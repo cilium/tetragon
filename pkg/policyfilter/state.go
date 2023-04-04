@@ -4,11 +4,9 @@
 package policyfilter
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
@@ -189,8 +187,7 @@ type state struct {
 	// polify filters (outer) map handle
 	pfMap PfMap
 
-	// cgroup fs scanner
-	cgfsScanner fsscan.FsScanner
+	cgidFinder cgidFinder
 }
 
 // New creates a new State of the policy filter code. Callers should call Close() to release
@@ -198,10 +195,21 @@ type state struct {
 //
 //revive:disable:unexported-return
 func New() (*state, error) {
+	log := logger.GetLogger().WithField("subsystem", "policy-filter")
+	return newState(
+		log,
+		&cgfsFinder{fsscan.New(), log},
+	)
+}
+
+func newState(
+	log logrus.FieldLogger,
+	cgidFinder cgidFinder,
+) (*state, error) {
 	var err error
 	ret := &state{
-		log:         logger.GetLogger().WithField("subsystem", "policy-filter"),
-		cgfsScanner: fsscan.New(),
+		log:        log,
+		cgidFinder: cgidFinder,
 	}
 
 	ret.pfMap, err = newPfMap()
@@ -383,20 +391,6 @@ func cgIDPointerStr(p *CgroupID) string {
 	return fmt.Sprintf("%d", *p)
 }
 
-func (m *state) findCgroupID(podID PodID, containerID string) (CgroupID, error) {
-	path, err := m.cgfsScanner.FindContainerPath(uuid.UUID(podID), containerID)
-	if errors.Is(err, fsscan.ErrContainerPathWithoutMatchingPodID) {
-		m.log.WithFields(logrus.Fields{
-			"pod-id":       podID,
-			"container-id": containerID,
-		}).Info("findCgroupID: found path without matching pod id, continuing.")
-	} else if err != nil {
-		return CgroupID(0), err
-	}
-	cgid, err := cgroups.GetCgroupIdFromPath(path)
-	return CgroupID(cgid), err
-}
-
 // addPodContainers adds a list of containers (ids) to a pod.
 // It will update the state for all containers that do not exist.
 // It takes an optional argument of a list of cgroup ids (one per container). If this list is empty,
@@ -424,7 +418,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 		}
 
 		if cgIDptr == nil {
-			if cgid, err := m.findCgroupID(pod.id, contID); err != nil {
+			if cgid, err := m.cgidFinder.findCgroupID(pod.id, contID); err != nil {
 				// error: skip this container id
 				m.log.WithError(err).WithFields(logrus.Fields{
 					"pod-id":       pod.id,
