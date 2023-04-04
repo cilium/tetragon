@@ -24,6 +24,10 @@ ifeq ($(UNAME_M),aarch64)
 endif
 TARGET_ARCH ?= amd64
 
+# Set GOARCH to TARGET_ARCH only if it's not set so that we can still use both
+# GOARCH and TARGET_ARCH (make sense for pure Go program like tetragon-operator)
+GOARCH ?= $(TARGET_ARCH)
+
 ifeq ($(TARGET_ARCH),amd64)
 	BPF_TARGET_ARCH ?= x86
 endif
@@ -135,13 +139,14 @@ tetragon-alignchecker:
 ksyms:
 	$(GO) build ./cmd/ksyms/
 
+# GOARCH=$(GOARCH) is for logging purposes
 .PHONY: tetragon-image tetragon-operator-image
 tetragon-image:
-	CGO_ENABLED=1 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
-	CGO_ENABLED=1 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
 
 tetragon-operator-image:
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(TARGET_ARCH) $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
 
 .PHONY: install
 install:
