@@ -120,6 +120,9 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	if (!config)
 		return 0;
 
+	if (!generic_process_filter_binary(config))
+		return 0;
+
 	/* check policy filter */
 	if (!policy_filter_check(config->policy_id))
 		return 0;

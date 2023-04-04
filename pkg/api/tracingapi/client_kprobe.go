@@ -382,4 +382,5 @@ type EventConfig struct {
 	ArgReturnCopy int32                      `align:"argreturncopy"`
 	ArgReturn     int32                      `align:"argreturn"`
 	PolicyID      uint32                     `align:"policy_id"`
+	Flags         uint32                     `align:"flags"`
 }

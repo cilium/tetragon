@@ -48,7 +48,7 @@ func TestUprobeLoad(t *testing.T) {
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 7, 8, 9, 10, 12}},
 
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
+		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 12}},
 	}
 
 	nopHook := `

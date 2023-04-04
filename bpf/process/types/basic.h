@@ -93,6 +93,8 @@ struct selector_arg_filter {
 	__u8 value;
 } __attribute__((packed));
 
+#define FLAGS_EARLY_FILTER BIT(0)
+
 struct event_config {
 	__u32 func_id;
 	__s32 arg0;
@@ -119,6 +121,7 @@ struct event_config {
 	 * that the hook always applies and no check will be performed.
 	 */
 	__u32 policy_id;
+	__u32 flags;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
@@ -1010,7 +1013,17 @@ static inline __attribute__((always_inline)) int match_binaries(void *sel_names,
 }
 
 static inline __attribute__((always_inline)) int
-selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
+generic_process_filter_binary(struct event_config *config)
+{
+	/* single flag bit at the moment (FLAGS_EARLY_FILTER) */
+	if (config->flags & FLAGS_EARLY_FILTER)
+		return match_binaries(&sel_names_map, 0);
+	return 1;
+}
+
+static inline __attribute__((always_inline)) int
+selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
+		    bool early_binary_filter)
 {
 	struct selector_arg_filter *filter;
 	long seloff, argoff, pass;
@@ -1037,7 +1050,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	// check for match binary actions
-	if (!match_binaries(&sel_names_map, selidx))
+	if (!early_binary_filter && !match_binaries(&sel_names_map, selidx))
 		return 0;
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -1101,7 +1114,8 @@ static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
+filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
+	    bool early_binary_filter)
 {
 	__u8 *f;
 
@@ -1123,7 +1137,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 		return filter_args_reject(e->id);
 
 	if (e->sel.active[index]) {
-		int pass = selector_arg_offset(f, e, index);
+		int pass = selector_arg_offset(f, e, index, early_binary_filter);
 		if (pass)
 			return pass;
 	}
@@ -1338,13 +1352,17 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int pass, zero = 0;
 	size_t total;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	pass = filter_args(e, index, filter);
+	config = map_lookup_elem(config_map, &e->idx);
+	if (!config)
+		return 0;
+	pass = filter_args(e, index, filter, config->flags & FLAGS_EARLY_FILTER);
 	if (!pass) {
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index])
