@@ -20,6 +20,8 @@ const (
 	ActionCopyFd     = 5
 	ActionGetUrl     = 6
 	ActionLookupDns  = 7
+	ActionNoPost     = 8
+	ActionSignal     = 9
 )
 
 const (

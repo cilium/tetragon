@@ -840,6 +840,8 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | KPROBE_ACTION_COPYFD | 6 |  |
 | KPROBE_ACTION_GETURL | 7 |  |
 | KPROBE_ACTION_DNSLOOKUP | 8 |  |
+| KPROBE_ACTION_NOPOST | 9 |  |
+| KPROBE_ACTION_SIGNAL | 10 |  |
 
 
  
