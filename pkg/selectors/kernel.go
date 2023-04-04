@@ -26,6 +26,7 @@ const (
 	ActionTypeGetUrl     = 6
 	ActionTypeDnsLookup  = 7
 	ActionTypeNoPost     = 8
+	ActionTypeSignal     = 9
 )
 
 var actionTypeTable = map[string]uint32{
@@ -38,6 +39,7 @@ var actionTypeTable = map[string]uint32{
 	"geturl":     ActionTypeGetUrl,
 	"dnslookup":  ActionTypeDnsLookup,
 	"nopost":     ActionTypeNoPost,
+	"signal":     ActionTypeSignal,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -50,6 +52,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeGetUrl:     "geturl",
 	ActionTypeDnsLookup:  "dnslookup",
 	ActionTypeNoPost:     "nopost",
+	ActionTypeSignal:     "signal",
 }
 
 // Action argument table entry (for URL and FQDN arguments)
