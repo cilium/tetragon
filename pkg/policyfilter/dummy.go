@@ -5,25 +5,27 @@ package policyfilter
 import (
 	"fmt"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
 
 type dummy struct {
 }
 
-func (s *dummy) AddPolicy(polID PolicyID, namespace string) error {
-	return fmt.Errorf("AddPolicy has no effect because policyfilter is disabled")
+func (s *dummy) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector) error {
+	return fmt.Errorf("policyfilter is disabled")
 }
 
 func (s *dummy) DelPolicy(polID PolicyID) error {
-	return fmt.Errorf("DelPolicy has no effect because policyfilter is disabled")
+	return fmt.Errorf("policyfilter is disabled")
 }
 
-func (s *dummy) AddPodContainer(podID PodID, namespace string, containerID string, cgIDp CgroupID) error {
+func (s *dummy) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgIDp CgroupID) error {
 	return nil
 }
 
-func (s *dummy) UpdatePod(podID PodID, namespace string, containerIDs []string) error {
+func (s *dummy) UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error {
 	return nil
 }
 

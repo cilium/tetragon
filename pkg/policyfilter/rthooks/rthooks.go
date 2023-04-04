@@ -92,7 +92,6 @@ func createContainerHook(ctx context.Context, arg *rthooks.CreateContainerArg) e
 	}
 
 	namespace := pod.ObjectMeta.Namespace
-
 	log.WithFields(logrus.Fields{
 		"pod-id":       podID,
 		"namespace":    namespace,
@@ -100,7 +99,7 @@ func createContainerHook(ctx context.Context, arg *rthooks.CreateContainerArg) e
 		"cgroup-id":    cgID,
 	}).Trace("policyfilter: add pod container")
 	cgid := policyfilter.CgroupID(cgID)
-	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, containerID, cgid); err != nil {
+	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid); err != nil {
 		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
 	}
 

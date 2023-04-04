@@ -5,6 +5,8 @@ package policyfilter
 import (
 	"sync"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"k8s.io/client-go/tools/cache"
@@ -53,19 +55,26 @@ func ResetStateOnlyForTesting() {
 //   - policies being added and removed
 //   - pod containers being added and deleted.
 type State interface {
-	// AddPolicy adds a policy to the state
-	AddPolicy(polID PolicyID, namespace string) error
+	// AddPolicy adds a policy to the policyfilter state.
+	// This means that:
+	//  - existing containers of pods that match this policy will be added to the policyfilter map (pfMap)
+	//  - from now on, new containers of pods that match this policy will also be added to pfMap
+	// pods are matched with:
+	//  - namespace for namespaced pilicies (if namespace == "", then policy is not namespaced)
+	//  - label selector
+	AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector) error
+
 	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error
 
 	// AddPodContainer informs policyfilter about a new container and its cgroup id in a pod.
 	// The pod might or might not have been encountered before.
 	// This method is intended to update policyfilter state from container hooks
-	AddPodContainer(podID PodID, namespace string, containerID string, cgID CgroupID) error
+	AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgID CgroupID) error
 
 	// UpdatePod updates the pod state for a pod, where containerIDs contains all the container ids for the given pod.
 	// This method is intended to be used from k8s watchers (where no cgroup information is available)
-	UpdatePod(podID PodID, namespace string, containerIDs []string) error
+	UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error
 
 	// DelPodContainer informs policyfilter that a container was deleted from a pod
 	DelPodContainer(podID PodID, containerID string) error

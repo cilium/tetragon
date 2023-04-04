@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"sync"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
+	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
 
@@ -231,7 +233,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) {
 	}
 
 	namespace := pod.Namespace
-	err = m.UpdatePod(PodID(podID), namespace, containerIDs)
+	err = m.UpdatePod(PodID(podID), namespace, pod.Labels, containerIDs)
 	if err != nil {
 		m.log.WithError(err).WithFields(logrus.Fields{
 			"pod-id":        podID,
@@ -335,13 +337,18 @@ func (m *state) delPod(id PodID) *podInfo {
 }
 
 // AddPolicy adds a policy
-func (m *state) AddPolicy(polID PolicyID, namespace string) error {
+func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if p := m.findPolicy(polID); p != nil {
 		return fmt.Errorf("policy with id %d already exists: not adding new one", polID)
 	}
+
+	if podLabelSelector != nil {
+		return fmt.Errorf("pod selector is not yet implemented")
+	}
+
 	policy := policy{
 		id:        polID,
 		namespace: namespace,
@@ -475,7 +482,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
 // The pod might or might not have been encountered before.
-func (m *state) AddPodContainer(podID PodID, namespace string, containerID string, cgID CgroupID) error {
+func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgID CgroupID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -603,7 +610,7 @@ func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string)
 //   - remove the containers that are not part of the containerIDs list
 //   - add the ones that do not exist in the current state
 // It is intended to be used from k8s watchers (where no cgroup information is available)
-func (m *state) UpdatePod(podID PodID, namespace string, containerIDs []string) error {
+func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
