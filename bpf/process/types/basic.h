@@ -1322,6 +1322,11 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 {
 	/* Clang really doesn't want to unwind a loop here. */
 	long i = 0;
+
+	// post action has no action record
+	if (actions->actionlen == sizeof(*actions))
+		return true;
+
 	i = __do_action(i, e, actions, override_tasks, config_map);
 	if (i)
 		goto out;
