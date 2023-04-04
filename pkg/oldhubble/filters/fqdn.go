@@ -20,8 +20,8 @@ import (
 	"regexp"
 	"strings"
 
+	pb "github.com/cilium/cilium/api/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 )
 
 func sourceFQDN(ev *v1.Event) []string {

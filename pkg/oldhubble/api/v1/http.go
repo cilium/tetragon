@@ -15,7 +15,7 @@
 package v1
 
 import (
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
+	pb "github.com/cilium/cilium/api/v1/flow"
 )
 
 // LooseCompareHTTP returns true if both HTTP flows are loosely identical. This

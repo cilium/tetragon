@@ -23,8 +23,8 @@ import (
 
 	"github.com/cilium/cilium/pkg/monitor/api"
 
+	pb "github.com/cilium/cilium/api/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 )
 
 func httpMatchCompatibleEventFilter(types []*pb.EventTypeFilter) bool {
