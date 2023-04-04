@@ -442,8 +442,7 @@ func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector
 		}
 	}
 
-	// Zero length value is also default ActionTypePost action
-	// that bpf program reads when no other action is specified.
+	// No action (size value 4) defaults to post action.
 	WriteSelectorLength(k, loff)
 	return nil
 }
