@@ -454,6 +454,8 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		}
 		actionArgTable.AddEntry(&actionArg)
 		WriteSelectorUint32(k, uint32(actionArg.tableId.ID))
+	case ActionTypeSignal:
+		WriteSelectorUint32(k, action.ArgSig)
 	}
 	return nil
 }
