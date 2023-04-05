@@ -5,7 +5,7 @@ metadata:
 spec:
   kprobes:
   # __x64_sys_clock_settime(clockid_t which_clock, const struct kernel_timespec __user *tp)
-  - call: "__x64_sys_clock_settime"
+  - call: "sys_clock_settime"
     syscall: true
     args:
     - index: 0

@@ -5,7 +5,7 @@ metadata:
 spec:
   kprobes:
   # int setuid(uid_t uid);
-  - call: "__x64_sys_setuid"
+  - call: "sys_setuid"
     syscall: true
     args:
     - index: 0

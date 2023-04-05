@@ -5,7 +5,7 @@ metadata:
 spec:
   kprobes:
   # __x64_sys_pivot_root(const char new root, const char put_old)
-  - call: "__x64_sys_pivot_root"
+  - call: "sys_pivot_root"
     syscall: true
     args:
       - index: 0
