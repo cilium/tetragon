@@ -48,8 +48,7 @@ docker run --name tetragon \
    --rm -it -d --pid=host \
    --cgroupns=host --privileged \
    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
-   quay.io/cilium/tetragon-ci:latest \
-   bash -c "/usr/bin/tetragon"
+   quay.io/cilium/tetragon-ci:latest
 ```
 
 ## What's next
