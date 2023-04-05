@@ -25,7 +25,7 @@ spec:
       - action: FollowFD
         argFd: 0
         argName: 1
-  - call: "__x64_sys_close"
+  - call: "sys_close"
     syscall: true
     args:
     - index: 0
@@ -35,7 +35,7 @@ spec:
       - action: UnfollowFD
         argFd: 0
         argName: 0
-  - call: "__x64_sys_write"
+  - call: "sys_write"
     syscall: true
     args:
     - index: 0
