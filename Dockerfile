@@ -84,7 +84,7 @@ COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bi
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
 COPY --from=gops /go/src/github.com/google/gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
-CMD ["sh", "-c", "/usr/bin/tetragon"]
+ENTRYPOINT ["/usr/bin/tetragon"]
 
 # This target only builds with the `--target release` option and reduces the
 # size of the final image with a static build of bpftool without the LLVM

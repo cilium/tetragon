@@ -40,6 +40,6 @@ COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 COPY --from=builder /out/${TARGETOS}/${TARGETARCH}/usr/bin/tetragon-operator /usr/bin/tetragon-operator
 WORKDIR /
 ENV GOPS_CONFIG_DIR=/
-CMD ["/usr/bin/tetragon-operator"]
+ENTRYPOINT ["/usr/bin/tetragon-operator"]
 
 FROM release
