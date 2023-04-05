@@ -4,11 +4,9 @@
     {{- toYaml .Values.tetragon.securityContext | nindent 4 }}
   image: "{{ if .Values.tetragon.image.override }}{{ .Values.tetragon.image.override }}{{ else }}{{ .Values.tetragon.image.repository }}:{{ .Values.tetragon.image.tag | default .Chart.AppVersion }}{{ end }}"
   imagePullPolicy: {{ .Values.imagePullPolicy }}
-  command:
 {{- with .Values.tetragon.commandOverride }}
+  command:
   {{- toYaml . | nindent 2 }}
-{{- else }}
-    - /usr/bin/tetragon
 {{- end }}
   args:
     - --config-dir=/etc/tetragon/tetragon.conf.d/
@@ -82,8 +80,6 @@
 {{- define "container.tetragon.init-operator" -}}
 {{- if .Values.tetragonOperator.enabled -}}
 - name: {{ include "container.tetragon.name" . }}-operator
-  command:
-  - tetragon-operator
   image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
   imagePullPolicy: {{ .Values.imagePullPolicy }}
 {{- end }}
