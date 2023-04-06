@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -1782,6 +1783,255 @@ spec:
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
 	assert.Error(t, err)
+}
+
+func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChecker,
+	testFile string, testErr error, nopost bool, expectedSig syscall.Signal) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	if !bpf.HasOverrideHelper() {
+		t.Skip("skipping override test, bpf_override_return helper not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	configHook := []byte(hook)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, expectedSig)
+
+	fd, err := syscall.Open(testFile, syscall.O_RDWR, 0x777)
+	if fd >= 0 {
+		t.Logf("syscall.Open succeeded\n")
+		syscall.Close(fd)
+		t.Fatal()
+	}
+
+	if !errors.Is(err, testErr) {
+		t.Logf("syscall.Open succeeded\n")
+		syscall.Close(fd)
+		t.Fatal()
+	}
+
+	sig := <-sigs
+
+	if sig != expectedSig {
+		t.Fatalf("got wrong signal number %d, expocted %d", sig, expectedSig)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+
+	if nopost {
+		assert.Error(t, err)
+	} else {
+		assert.NoError(t, err)
+	}
+}
+
+func TestKprobeOverrideSignal(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	openAtHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat-override-signal"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Override
+        argError: -2
+      - action: Signal
+        argSig: 10
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGNAL)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeOverrideSignal(t, openAtHook, checker, file.Name(), syscall.ENOENT, false, syscall.SIGUSR1)
+}
+
+func TestKprobeSignalOverride(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	openAtHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat-signal-override"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Signal
+        argSig: 12
+      - action: Override
+        argError: -2
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeOverrideSignal(t, openAtHook, checker, file.Name(), syscall.ENOENT, false, syscall.SIGUSR2)
+}
+
+func TestKprobeSignalOverrideNopost(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	openAtHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat-signal-override"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Signal
+        argSig: 10
+      - action: Override
+        argError: -2
+      - action: NoPost
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeOverrideSignal(t, openAtHook, checker, file.Name(), syscall.ENOENT, true, syscall.SIGUSR1)
 }
 
 func runKprobe_char_iovec(t *testing.T, configHook string,
