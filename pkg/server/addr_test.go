@@ -1,4 +1,4 @@
-package main
+package server
 
 import "testing"
 
@@ -26,7 +26,7 @@ func TestSplitListenAddr(t *testing.T) {
 	}
 
 	for _, c := range testCases {
-		proto, addr, err := splitListenAddr(c.arg)
+		proto, addr, err := SplitListenAddr(c.arg)
 		if c.expectedErr {
 			if err == nil {
 				t.Fatalf("expected error for %s", c.arg)
