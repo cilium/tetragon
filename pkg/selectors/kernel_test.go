@@ -381,6 +381,24 @@ func TestParseMatchAction(t *testing.T) {
 	}
 }
 
+func TestParseMatchActionMax(t *testing.T) {
+	var actionArgTable idtable.Table
+
+	actions := []v1alpha1.ActionSelector{
+		v1alpha1.ActionSelector{Action: "post"},
+		v1alpha1.ActionSelector{Action: "post"},
+		v1alpha1.ActionSelector{Action: "post"},
+		v1alpha1.ActionSelector{Action: "post"},
+	}
+
+	k := &KernelSelectorState{off: 0}
+
+	err := ParseMatchActions(k, actions, &actionArgTable)
+	if err == nil {
+		t.Errorf("ParseMatchActions expected to fail")
+	}
+}
+
 // NB(kkourt):
 func TestMultipleSelectorsExample(t *testing.T) {
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
