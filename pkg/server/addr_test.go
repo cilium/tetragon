@@ -15,9 +15,13 @@ func TestSplitListenAddr(t *testing.T) {
 			proto: "unix",
 			addr:  "/var/run/tetragon/tetragon.sock",
 		}, {
-			arg:   "localhost:51234",
+			arg:   "localhost:54321",
 			proto: "tcp",
-			addr:  "localhost:51234",
+			addr:  "localhost:54321",
+		}, {
+			arg:   "localhost",
+			proto: "tcp",
+			addr:  "localhost:54321",
 		}, {
 			// NB: expect error on relative paths
 			arg:         "unix://var/run/tetragon/tetragon.sock",
