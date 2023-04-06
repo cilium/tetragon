@@ -465,10 +465,10 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	return nil
 }
 
-func Serve(ctx context.Context, listenAddr string, server *server.Server) error {
+func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {
 	grpcServer := grpc.NewServer()
-	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, server)
-	proto, addr, err := splitListenAddr(listenAddr)
+	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, srv)
+	proto, addr, err := server.SplitListenAddr(listenAddr)
 	if err != nil {
 		return fmt.Errorf("failed to parse listen address: %w", err)
 	}
