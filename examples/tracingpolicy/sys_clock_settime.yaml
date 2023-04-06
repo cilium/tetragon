@@ -4,7 +4,7 @@ metadata:
   name: "sys-clock-settime"
 spec:
   kprobes:
-  # __x64_sys_clock_settime(clockid_t which_clock, const struct kernel_timespec __user *tp)
+  # clock_settime(clockid_t which_clock, const struct kernel_timespec __user *tp)
   - call: "sys_clock_settime"
     syscall: true
     args:
