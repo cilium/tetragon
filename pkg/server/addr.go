@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ import (
 // "ipv6" for tcp connections.
 // Hence, because we want the same string to work the same way both on the client and the server, we
 // only support the two addresses above.
-func splitListenAddr(arg string) (string, string, error) {
+func SplitListenAddr(arg string) (string, string, error) {
 
 	if strings.HasPrefix(arg, "unix://") {
 		path := strings.TrimPrefix(arg, "unix://")
