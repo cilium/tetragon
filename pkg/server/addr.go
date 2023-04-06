@@ -30,6 +30,14 @@ func SplitListenAddr(arg string) (string, string, error) {
 		return "unix", path, nil
 	}
 
+	// Some recent changes to the way we input the address string in Helm have introduced
+	// an unfortunate compatibility breakage with the old default values which did not
+	// include a port number in the address string. To provide backward compatibility
+	// here, let's just assume a default of `:54321` when the port is not present.
+	if !strings.Contains(arg, ":") {
+		arg += ":54321"
+	}
+
 	// assume everything else is TCP to support strings such as "localhost:51234" and let
 	// net.Listen figure things out.
 	return "tcp", arg, nil
