@@ -453,6 +453,13 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 }
 
 func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
+	maxActions := 2
+	if kernels.EnableLargeProgs() {
+		maxActions = 3
+	}
+	if len(actions) > maxActions {
+		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", maxActions, len(actions))
+	}
 	loff := AdvanceSelectorLength(k)
 	for _, a := range actions {
 		if err := ParseMatchAction(k, &a, actionArgTable); err != nil {
