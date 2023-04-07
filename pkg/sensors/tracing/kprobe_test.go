@@ -1588,7 +1588,7 @@ spec:
 // override
 
 func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
-	testFile string, testErr error) {
+	testFile string, testErr error, nopost bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -1626,7 +1626,12 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+
+	if nopost {
+		assert.Error(t, err)
+	} else {
+		assert.NoError(t, err)
+	}
 }
 
 func TestKprobeOverride(t *testing.T) {
@@ -1685,7 +1690,67 @@ spec:
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT)
+	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT, false)
+}
+
+func TestKprobeOverrideNopostAction(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	openAtHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat-override"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Override
+        argError: -2
+      - action: NoPost
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT, true)
 }
 
 func TestKprobeOverrideNonSyscall(t *testing.T) {
