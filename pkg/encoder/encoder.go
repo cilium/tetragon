@@ -10,6 +10,7 @@ import (
 	"io"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
@@ -159,8 +160,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, kprobe.Process)
-		switch kprobe.FunctionName {
-		case "__x64_sys_write":
+		switch arch.CutSyscallPrefix(kprobe.FunctionName) {
+		case "sys_write":
 			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
@@ -171,7 +172,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				bytes = p.Colorer.Cyan.Sprint(kprobe.Args[2].GetSizeArg(), " bytes")
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %v", event, processInfo, file, bytes), caps), nil
-		case "__x64_sys_read":
+		case "sys_read":
 			event := p.Colorer.Blue.Sprintf("📚 %-7s", "read")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
@@ -196,7 +197,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				file = p.Colorer.Cyan.Sprint(kprobe.Args[0].GetFileArg().Path)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
-		case "__x64_sys_mount":
+		case "sys_mount":
 			event := p.Colorer.Blue.Sprintf("💾 %-7s", "mount")
 			src := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
@@ -207,7 +208,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				dst = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetStringArg())
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, src, dst), caps), nil
-		case "__x64_sys_setuid":
+		case "sys_setuid":
 			event := p.Colorer.Blue.Sprintf("🔑 %-7s", "setuid")
 			uid := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
@@ -215,10 +216,10 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				uid = string(uidInt)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, uid), caps), nil
-		case "__x64_sys_clock_settime":
+		case "sys_clock_settime":
 			event := p.Colorer.Blue.Sprintf("⏰ %-7s", "clock_settime")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
-		case "__x64_sys_pivot_root":
+		case "sys_pivot_root":
 			event := p.Colorer.Blue.Sprintf("💾 %-7s", "pivot_root")
 			src := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
@@ -232,7 +233,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		case "proc_exec_connector":
 			event := p.Colorer.Blue.Sprintf("🔧 %-7s", "proc_exec_connector")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s", event, processInfo), caps), nil
-		case "__x64_sys_setns":
+		case "sys_setns":
 			netns := ""
 			event := p.Colorer.Blue.Sprintf("🔧 %-7s", "setns")
 			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
