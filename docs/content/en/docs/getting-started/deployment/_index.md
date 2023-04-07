@@ -1,6 +1,6 @@
 ---
 title: "Deployment"
-weight: 3
+weight: 4
 description: "Deploy Tetragon as a container or directly on a host"
 ---
 

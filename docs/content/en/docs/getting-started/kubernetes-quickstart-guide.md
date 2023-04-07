@@ -1,6 +1,6 @@
 ---
 title: "Kubernetes quickstart guide"
-weight: 1
+weight: 2
 description: "Deploy Tetragon on a Kubernetes cluster"
 ---
 
