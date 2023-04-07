@@ -15,6 +15,7 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "../argfilter_maps.h"
+#include "common.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -96,6 +97,8 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
+#define FLAGS_EARLY_FILTER BIT(0)
+
 struct event_config {
 	__u32 func_id;
 	__s32 arg0;
@@ -122,6 +125,7 @@ struct event_config {
 	 * that the hook always applies and no check will be performed.
 	 */
 	__u32 policy_id;
+	__u32 flags;
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
@@ -485,8 +489,8 @@ copy_capability(char *args, unsigned long arg)
 	return sizeof(struct capability_info_type);
 }
 
-#define ARGM_INDEX_MASK	 ((1 << 4) - 1)
-#define ARGM_RETURN_COPY (1 << 4)
+#define ARGM_RETURN_COPY BIT(4)
+#define ARGM_INDEX_MASK	 ARGM_RETURN_COPY - 1
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
@@ -1014,7 +1018,17 @@ static inline __attribute__((always_inline)) int match_binaries(void *sel_names,
 }
 
 static inline __attribute__((always_inline)) int
-selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
+generic_process_filter_binary(struct event_config *config)
+{
+	/* single flag bit at the moment (FLAGS_EARLY_FILTER) */
+	if (config->flags & FLAGS_EARLY_FILTER)
+		return match_binaries(&sel_names_map, 0);
+	return 1;
+}
+
+static inline __attribute__((always_inline)) int
+selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
+		    bool early_binary_filter)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
@@ -1042,7 +1056,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx)
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	// check for match binary actions
-	if (!match_binaries(&sel_names_map, selidx))
+	if (!early_binary_filter && !match_binaries(&sel_names_map, selidx))
 		return 0;
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -1120,7 +1134,8 @@ static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
+filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
+	    bool early_binary_filter)
 {
 	__u8 *f;
 
@@ -1142,7 +1157,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map)
 		return filter_args_reject(e->id);
 
 	if (e->sel.active[index]) {
-		int pass = selector_arg_offset(f, e, index);
+		int pass = selector_arg_offset(f, e, index, early_binary_filter);
 		if (pass)
 			return pass;
 	}
@@ -1342,6 +1357,11 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 {
 	/* Clang really doesn't want to unwind a loop here. */
 	long i = 0;
+
+	// post action has no action record
+	if (actions->actionlen == sizeof(*actions))
+		return true;
+
 	i = __do_action(i, e, actions, override_tasks, config_map);
 	if (i)
 		goto out;
@@ -1357,13 +1377,17 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int pass, zero = 0;
 	size_t total;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	pass = filter_args(e, index, filter);
+	config = map_lookup_elem(config_map, &e->idx);
+	if (!config)
+		return 0;
+	pass = filter_args(e, index, filter, config->flags & FLAGS_EARLY_FILTER);
 	if (!pass) {
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index])

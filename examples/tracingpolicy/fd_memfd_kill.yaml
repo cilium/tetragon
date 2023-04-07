@@ -5,7 +5,7 @@ metadata:
 spec:
   kprobes:
 # int close(int fd);
-  - call: "__x64_sys_close"
+  - call: "sys_close"
     syscall: true
     args:
     - index: 0
@@ -23,7 +23,7 @@ spec:
         argFd: 0
         argName: 0
   # int memfd_create(const char *name, unsigned int flags);
-  - call: "__x64_sys_memfd_create"
+  - call: "sys_memfd_create"
     syscall: true
     args:
     - index: 0
@@ -39,7 +39,7 @@ spec:
         - 0
         - 1
 # int execve(const char *pathname, char *const argv[],char *const envp[]);
-  - call: "__x64_sys_execve"
+  - call: "sys_execve"
     syscall: true
     args:
     - index: 0

@@ -70,7 +70,7 @@ func ParseEndpointFromModel(modelEP *models.Endpoint) *v1.Endpoint {
 
 // ParseEndpointFromEndpointDeleteNotification returns an endpoint parsed from
 // the EndpointDeleteNotification.
-func ParseEndpointFromEndpointDeleteNotification(edn monitorAPI.EndpointDeleteNotification) *v1.Endpoint {
+func ParseEndpointFromEndpointDeleteNotification(edn monitorAPI.EndpointNotification) *v1.Endpoint {
 	return &v1.Endpoint{
 		ID:           edn.ID,
 		PodName:      edn.PodName,

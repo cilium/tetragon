@@ -17,8 +17,8 @@ package filters
 import (
 	"context"
 
+	pb "github.com/cilium/cilium/api/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 )
 
 // FilterFunc is the function will be used to filter the given data.

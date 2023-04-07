@@ -1,16 +1,5 @@
-// Copyright 2018-2020 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package api
 
@@ -36,13 +25,14 @@ var errors = map[uint8]string{
 	8:   "LB, sock cgroup: Reverse entry stale",
 	9:   "Fragmented packet",
 	10:  "Fragmented packet entry update failed",
+	11:  "Missed tail call to custom program",
 	130: "Invalid source mac",      // Unused
 	131: "Invalid destination mac", // Unused
 	132: "Invalid source ip",
 	133: "Policy denied",
 	134: "Invalid packet",
 	135: "CT: Truncated or invalid header",
-	136: "CT: Missing TCP ACK flag", // Unused
+	136: "Fragmentation needed",
 	137: "CT: Unknown L4 protocol",
 	138: "CT: Can't create entry from packet", // Unused
 	139: "Unsupported L3 protocol",
@@ -66,7 +56,7 @@ var errors = map[uint8]string{
 	157: "IP fragmentation not supported",
 	158: "Service backend not found",
 	160: "No tunnel/encapsulation endpoint (datapath BUG!)",
-	161: "Failed to insert into proxymap", // Unused
+	161: "NAT 46/64 not enabled",
 	162: "Reached EDT rate-limiting drop horizon",
 	163: "Unknown connection tracking state",
 	164: "Local host is unreachable",
@@ -87,12 +77,35 @@ var errors = map[uint8]string{
 	179: "Socket assign failed",
 	180: "Proxy redirection not supported for protocol",
 	181: "Policy denied by denylist",
+	182: "VLAN traffic disallowed by VLAN filter",
+	183: "Incorrect VNI from VTEP",
+	184: "Failed to update or lookup TC buffer",
+	185: "No SID was found for the IP address",
+	186: "SRv6 state was removed during tail call",
+	187: "L3 translation from IPv4 to IPv6 failed (NAT46)",
+	188: "L3 translation from IPv6 to IPv4 failed (NAT64)",
+	189: "Authentication required",
+}
+
+func extendedReason(reason uint8, extError int8) string {
+	if extError == int8(0) {
+		return ""
+	}
+	return fmt.Sprintf("%d", extError)
+}
+
+func DropReasonExt(reason uint8, extError int8) string {
+	if err, ok := errors[reason]; ok {
+		if ext := extendedReason(reason, extError); ext == "" {
+			return err
+		} else {
+			return err + ", " + ext
+		}
+	}
+	return fmt.Sprintf("%d, %d", reason, extError)
 }
 
 // DropReason prints the drop reason in a human readable string
 func DropReason(reason uint8) string {
-	if err, ok := errors[reason]; ok {
-		return err
-	}
-	return fmt.Sprintf("%d", reason)
+	return DropReasonExt(reason, int8(0))
 }

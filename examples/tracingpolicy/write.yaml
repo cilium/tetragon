@@ -4,7 +4,7 @@ metadata:
   name: "sys-write"
 spec:
   kprobes:
-  - call: "__x64_sys_write"
+  - call: "sys_write"
     syscall: true
     args:
     - index: 0

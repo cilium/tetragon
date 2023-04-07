@@ -1,0 +1,36 @@
+// blockquotes and callouts
+
+body {
+  .alert {
+    // Override Docsy styles
+    padding: 0.4rem 0.4rem 0.4rem 1rem;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
+    border-radius: 0.25em;
+    border-left-width: 0.5em; // fallback in case calc() is missing
+    background: #fff;
+    color: #000;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+  // Set minimum width and radius for alert color
+  .alert {
+      border-left-width: calc(max(0.5em, 4px));
+      border-top-left-radius: calc(max(0.5em, 4px));
+      border-bottom-left-radius: calc(max(0.5em, 4px));
+  }
+  .alert.callout.caution {
+    border-left-color: #f0ad4e;
+  }
+  .alert.callout.note {
+    border-left-color: #428bca;
+  }
+  .alert.callout.warning {
+    border-left-color: #d9534f;
+  }
+
+  h1:first-of-type + .alert.callout {
+    margin-top: 1.5em;
+  }
+}

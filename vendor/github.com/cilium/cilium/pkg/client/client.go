@@ -1,16 +1,5 @@
-// Copyright 2016-2020 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package client
 
@@ -28,12 +17,12 @@ import (
 	"text/tabwriter"
 	"time"
 
+	runtime_client "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+
 	clientapi "github.com/cilium/cilium/api/v1/client"
 	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/pkg/defaults"
-
-	runtime_client "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 )
 
 type Client struct {
@@ -118,6 +107,11 @@ func NewDefaultClientWithTimeout(timeout time.Duration) (*Client, error) {
 // If host is nil then use SockPath provided by CILIUM_SOCK
 // or the cilium default SockPath
 func NewClient(host string) (*Client, error) {
+	clientTrans, err := NewRuntime(host)
+	return &Client{*clientapi.New(clientTrans, strfmt.Default)}, err
+}
+
+func NewRuntime(host string) (*runtime_client.Runtime, error) {
 	if host == "" {
 		host = DefaultSockPath()
 	}
@@ -140,7 +134,7 @@ func NewClient(host string) (*Client, error) {
 	httpClient := &http.Client{Transport: transport}
 	clientTrans := runtime_client.NewWithClient(tmp[1], clientapi.DefaultBasePath,
 		clientapi.DefaultSchemes, httpClient)
-	return &Client{*clientapi.New(clientTrans, strfmt.Default)}, nil
+	return clientTrans, nil
 }
 
 // Hint tries to improve the error message displayed to the user.
@@ -163,11 +157,8 @@ func Hint(err error) error {
 func timeSince(since time.Time) string {
 	out := "never"
 	if !since.IsZero() {
-		// Poor man's implementtion of time.Truncate(). Can be refined
-		// when we rebase to go 1.9
 		t := time.Since(since)
-		t -= t % time.Second
-		out = t.String() + " ago"
+		out = t.Truncate(time.Second).String() + " ago"
 	}
 
 	return out
@@ -296,26 +287,43 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 			sort.Strings(sr.Kubernetes.K8sAPIVersions)
 			fmt.Fprintf(w, "Kubernetes APIs:\t[\"%s\"]\n", strings.Join(sr.Kubernetes.K8sAPIVersions, "\", \""))
 		}
-		if sr.KubeProxyReplacement != nil {
-			devices := ""
-			if sr.KubeProxyReplacement.Mode != models.KubeProxyReplacementModeDisabled {
-				for i, dev := range sr.KubeProxyReplacement.Devices {
-					kubeProxyDevices += dev
-					if dev == sr.KubeProxyReplacement.DirectRoutingDevice {
-						kubeProxyDevices += " (Direct Routing)"
-					}
-					if i+1 != len(sr.KubeProxyReplacement.Devices) {
-						kubeProxyDevices += ", "
-					}
+
+	}
+	if sr.KubeProxyReplacement != nil {
+		devices := ""
+		if sr.KubeProxyReplacement.Mode != models.KubeProxyReplacementModeDisabled {
+			for i, dev := range sr.KubeProxyReplacement.DeviceList {
+				kubeProxyDevices += fmt.Sprintf("%s %s", dev.Name, strings.Join(dev.IP, " "))
+				if dev.Name == sr.KubeProxyReplacement.DirectRoutingDevice {
+					kubeProxyDevices += " (Direct Routing)"
 				}
-				if len(sr.KubeProxyReplacement.Devices) > 0 {
-					devices = "[" + kubeProxyDevices + "]"
+				if i+1 != len(sr.KubeProxyReplacement.Devices) {
+					kubeProxyDevices += ", "
 				}
 			}
-			fmt.Fprintf(w, "KubeProxyReplacement:\t%s\t%s\n",
-				sr.KubeProxyReplacement.Mode, devices)
+			if len(sr.KubeProxyReplacement.DeviceList) > 0 {
+				devices = "[" + kubeProxyDevices + "]"
+			}
 		}
+		fmt.Fprintf(w, "KubeProxyReplacement:\t%s\t%s\n",
+			sr.KubeProxyReplacement.Mode, devices)
 	}
+	if sr.HostFirewall != nil {
+		fmt.Fprintf(w, "Host firewall:\t%s", sr.HostFirewall.Mode)
+		if sr.HostFirewall.Mode != models.HostFirewallModeDisabled {
+			fmt.Fprintf(w, "\t[%s]", strings.Join(sr.HostFirewall.Devices, ", "))
+		}
+		fmt.Fprintf(w, "\n")
+	}
+
+	if sr.CniChaining != nil {
+		fmt.Fprintf(w, "CNI Chaining:\t%s\n", sr.CniChaining.Mode)
+	}
+
+	if sr.CniFile != nil {
+		fmt.Fprintf(w, "CNI Config file:\t%s\n", sr.CniFile.Msg)
+	}
+
 	if sr.Cilium != nil {
 		fmt.Fprintf(w, "Cilium:\t%s   %s\n", sr.Cilium.State, sr.Cilium.Msg)
 	}
@@ -356,7 +364,7 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 		fmt.Fprintf(w, "IPAM:\t%s\n", sr.Ipam.Status)
 		if sd.AllAddresses {
 			fmt.Fprintf(w, "Allocated addresses:\n")
-			out := []string{}
+			out := make([]string, 0, len(sr.Ipam.Allocations))
 			for ip, owner := range sr.Ipam.Allocations {
 				out = append(out, fmt.Sprintf("  %s (%s)", ip, owner))
 			}
@@ -382,12 +390,21 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 		}
 	}
 
+	if sr.IPV6BigTCP != nil {
+		status := "Enabled"
+		if !sr.IPV6BigTCP.Enabled {
+			status = "Disabled"
+		}
+		fmt.Fprintf(w, "IPv6 BIG TCP:\t%s\n", status)
+	}
+
 	if sr.BandwidthManager != nil {
 		var status string
 		if !sr.BandwidthManager.Enabled {
 			status = "Disabled"
 		} else {
-			status = fmt.Sprintf("EDT with BPF\t[%s]",
+			status = fmt.Sprintf("EDT with BPF [%s] [%s]",
+				strings.ToUpper(sr.BandwidthManager.CongestionControl),
 				strings.Join(sr.BandwidthManager.Devices, ", "))
 		}
 		fmt.Fprintf(w, "BandwidthManager:\t%s\n", status)
@@ -399,22 +416,46 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 
 	if sr.Masquerading != nil {
 		var status string
-		if !sr.Masquerading.Enabled {
-			status = "Disabled"
-		} else if sr.Masquerading.Mode == models.MasqueradingModeBPF {
-			if sr.Masquerading.IPMasqAgent {
-				status = "BPF (ip-masq-agent)"
-			} else {
-				status = "BPF"
+
+		enabled := func(enabled bool) string {
+			if enabled {
+				return "Enabled"
 			}
-			if sr.KubeProxyReplacement != nil {
-				status += fmt.Sprintf("\t[%s]\t%s",
-					strings.Join(sr.KubeProxyReplacement.Devices, ", "),
-					sr.Masquerading.SnatExclusionCidr)
+			return "Disabled"
+		}
+
+		if sr.Masquerading.EnabledProtocols == nil {
+			status = enabled(sr.Masquerading.Enabled)
+		} else if !sr.Masquerading.EnabledProtocols.IPV4 && !sr.Masquerading.EnabledProtocols.IPV6 {
+			status = enabled(false)
+		} else {
+			if sr.Masquerading.Mode == models.MasqueradingModeBPF {
+				if sr.Masquerading.IPMasqAgent {
+					status = "BPF (ip-masq-agent)"
+				} else {
+					status = "BPF"
+				}
+				if sr.KubeProxyReplacement != nil {
+					// When BPF Masquerading is enabled we don't do any masquerading for IPv6
+					// traffic so no SNAT Exclusion IPv6 CIDR is listed in status output.
+					devStr := ""
+					for i, dev := range sr.KubeProxyReplacement.DeviceList {
+						devStr += dev.Name
+						if i+1 != len(sr.KubeProxyReplacement.DeviceList) {
+							devStr += ", "
+						}
+					}
+					status += fmt.Sprintf("\t[%s]\t%s",
+						devStr,
+						sr.Masquerading.SnatExclusionCidrV4)
+				}
+
+			} else if sr.Masquerading.Mode == models.MasqueradingModeIptables {
+				status = "IPTables"
 			}
 
-		} else if sr.Masquerading.Mode == models.MasqueradingModeIptables {
-			status = "IPTables"
+			status = fmt.Sprintf("%s [IPv4: %s, IPv6: %s]", status,
+				enabled(sr.Masquerading.EnabledProtocols.IPV4), enabled(sr.Masquerading.EnabledProtocols.IPV6))
 		}
 		fmt.Fprintf(w, "Masquerading:\t%s\n", status)
 	}
@@ -487,6 +528,13 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 		fmt.Fprintf(w, "Proxy Status:\tNo managed proxy redirect\n")
 	}
 
+	if sr.IdentityRange != nil {
+		fmt.Fprintf(w, "Global Identity Range:\tmin %d, max %d\n",
+			sr.IdentityRange.MinIdentity, sr.IdentityRange.MaxIdentity)
+	} else {
+		fmt.Fprintf(w, "Global Identity Range:\tUnknown\n")
+	}
+
 	if sr.Hubble != nil {
 		var fields []string
 
@@ -550,17 +598,41 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 			eIP = "Enabled"
 		}
 
-		protocols := ""
-		if hs := sr.KubeProxyReplacement.Features.HostReachableServices; hs.Enabled {
-			protocols = strings.Join(hs.Protocols, ", ")
+		socketLB := "Disabled"
+		if slb := sr.KubeProxyReplacement.Features.SocketLB; slb.Enabled {
+			socketLB = "Enabled"
+		}
+
+		socketLBTracing := "Disabled"
+		if st := sr.KubeProxyReplacement.Features.SocketLBTracing; st.Enabled {
+			socketLBTracing = "Enabled"
+		}
+
+		gracefulTerm := "Disabled"
+		if sr.KubeProxyReplacement.Features.GracefulTermination.Enabled {
+			gracefulTerm = "Enabled"
+		}
+
+		nat46X64 := "Disabled"
+		nat46X64GW := "Disabled"
+		nat46X64SVC := "Disabled"
+		prefixes := ""
+		if sr.KubeProxyReplacement.Features.Nat46X64.Enabled {
+			nat46X64 = "Enabled"
+			if svc := sr.KubeProxyReplacement.Features.Nat46X64.Service; svc.Enabled {
+				nat46X64SVC = "Enabled"
+			}
+			if gw := sr.KubeProxyReplacement.Features.Nat46X64.Gateway; gw.Enabled {
+				nat46X64GW = "Enabled"
+				prefixes = strings.Join(gw.Prefixes, ", ")
+			}
 		}
 
 		fmt.Fprintf(w, "KubeProxyReplacement Details:\n")
 		tab := tabwriter.NewWriter(w, 0, 0, 3, ' ', 0)
 		fmt.Fprintf(tab, "  Status:\t%s\n", sr.KubeProxyReplacement.Mode)
-		if protocols != "" {
-			fmt.Fprintf(tab, "  Protocols:\t%s\n", protocols)
-		}
+		fmt.Fprintf(tab, "  Socket LB:\t%s\n", socketLB)
+		fmt.Fprintf(tab, "  Socket LB Tracing:\t%s\n", socketLBTracing)
 		if kubeProxyDevices != "" {
 			fmt.Fprintf(tab, "  Devices:\t%s\n", kubeProxyDevices)
 		}
@@ -571,6 +643,17 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 			fmt.Fprintf(tab, "  Backend Selection:\t%s\n", selection)
 		}
 		fmt.Fprintf(tab, "  Session Affinity:\t%s\n", affinity)
+		fmt.Fprintf(tab, "  Graceful Termination:\t%s\n", gracefulTerm)
+		if nat46X64 == "Disabled" {
+			fmt.Fprintf(tab, "  NAT46/64 Support:\t%s\n", nat46X64)
+		} else {
+			fmt.Fprintf(tab, "  NAT46/64 Support:\n")
+			fmt.Fprintf(tab, "  - Services:\t%s\n", nat46X64SVC)
+			fmt.Fprintf(tab, "  - Gateway:\t%s\n", nat46X64GW)
+			if nat46X64GW == "Enabled" && prefixes != "" {
+				fmt.Fprintf(tab, "    Prefixes:\t%s\n", prefixes)
+			}
+		}
 		if xdp != "" {
 			fmt.Fprintf(tab, "  XDP Acceleration:\t%s\n", xdp)
 		}
@@ -596,5 +679,23 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 			fmt.Fprintf(tab, "  %s\t%d\n", m.Name, m.Size)
 		}
 		tab.Flush()
+	}
+
+	if sr.Encryption != nil {
+		fields := []string{sr.Encryption.Mode}
+
+		if sr.Encryption.Msg != "" {
+			fields = append(fields, sr.Encryption.Msg)
+		} else if wg := sr.Encryption.Wireguard; wg != nil {
+			ifaces := make([]string, 0, len(wg.Interfaces))
+			for _, i := range wg.Interfaces {
+				iface := fmt.Sprintf("%s (Pubkey: %s, Port: %d, Peers: %d)",
+					i.Name, i.PublicKey, i.ListenPort, i.PeerCount)
+				ifaces = append(ifaces, iface)
+			}
+			fields = append(fields, fmt.Sprintf("[%s]", strings.Join(ifaces, ", ")))
+		}
+
+		fmt.Fprintf(w, "Encryption:\t%s\n", strings.Join(fields, "\t"))
 	}
 }

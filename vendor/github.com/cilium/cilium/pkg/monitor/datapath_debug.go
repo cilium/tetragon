@@ -1,16 +1,5 @@
-// Copyright 2016-2020 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package monitor
 
@@ -18,11 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+
 	// NOTE: syscall is deprecated, but it is replaced by golang.org/x/sys
 	//       which reuses syscall.Errno similarly to how we do below.
 	"syscall"
 
 	"github.com/cilium/cilium/pkg/byteorder"
+	"github.com/cilium/cilium/pkg/hubble/parser/getters"
 	"github.com/cilium/cilium/pkg/monitor/api"
 )
 
@@ -66,16 +57,16 @@ const (
 	DbgToHost
 	DbgToStack
 	DbgPktHash
-	DbgLb6LookupMaster
-	DbgLb6LookupMasterFail
+	DbgLb6LookupFrontend
+	DbgLb6LookupFrontendFail
 	DbgLb6LookupBackendSlot
 	DbgLb6LookupBackendSlotSuccess
 	DbgLb6LookupBackendSlotV2Fail
 	DbgLb6LookupBackendFail
 	DbgLb6ReverseNatLookup
 	DbgLb6ReverseNat
-	DbgLb4LookupMaster
-	DbgLb4LookupMasterFail
+	DbgLb4LookupFrontend
+	DbgLb4LookupFrontendFail
 	DbgLb4LookupBackendSlot
 	DbgLb4LookupBackendSlotSuccess
 	DbgLb4LookupBackendSlotV2Fail
@@ -109,6 +100,7 @@ const (
 	DbgSkLookup4
 	DbgSkLookup6
 	DbgSkAssign
+	DbgL7LB
 )
 
 // must be in sync with <bpf/lib/conntrack.h>
@@ -181,7 +173,7 @@ func ctLookup4Info2(n *DebugMsg) string {
 
 func ctCreate4Info(n *DebugMsg) string {
 	return fmt.Sprintf("proxy-port=%d revnat=%d src-identity=%d lb=%s",
-		n.Arg1>>16, byteorder.NetworkToHost(uint16(n.Arg1&0xFFFF)), n.Arg2, ip4Str(n.Arg3))
+		n.Arg1>>16, byteorder.NetworkToHost16(uint16(n.Arg1&0xFFFF)), n.Arg2, ip4Str(n.Arg3))
 }
 
 func ctLookup6Info1(n *DebugMsg) string {
@@ -191,7 +183,7 @@ func ctLookup6Info1(n *DebugMsg) string {
 
 func ctCreate6Info(n *DebugMsg) string {
 	return fmt.Sprintf("proxy-port=%d revnat=%d src-identity=%d",
-		n.Arg1>>16, byteorder.NetworkToHost(uint16(n.Arg1&0xFFFF)), n.Arg2)
+		n.Arg1>>16, byteorder.NetworkToHost16(uint16(n.Arg1&0xFFFF)), n.Arg2)
 }
 
 func skAssignInfo(n *DebugMsg) string {
@@ -202,32 +194,32 @@ func skAssignInfo(n *DebugMsg) string {
 }
 
 func verdictInfo(arg uint32) string {
-	revnat := byteorder.NetworkToHost(uint16(arg & 0xFFFF))
+	revnat := byteorder.NetworkToHost16(uint16(arg & 0xFFFF))
 	return fmt.Sprintf("revnat=%d", revnat)
 }
 
 func proxyInfo(arg1 uint32, arg2 uint32) string {
-	sport := byteorder.NetworkToHost(uint16(arg1 >> 16))
-	dport := byteorder.NetworkToHost(uint16(arg1 & 0xFFFF))
+	sport := byteorder.NetworkToHost16(uint16(arg1 >> 16))
+	dport := byteorder.NetworkToHost16(uint16(arg1 & 0xFFFF))
 	return fmt.Sprintf("sport=%d dport=%d saddr=%s", sport, dport, ip4Str(arg2))
 }
 
 func l4CreateInfo(n *DebugMsg) string {
 	src := n.Arg1
 	dst := n.Arg2
-	dport := byteorder.NetworkToHost(uint16(n.Arg3 >> 16))
+	dport := byteorder.NetworkToHost16(uint16(n.Arg3 >> 16))
 	proto := n.Arg3 & 0xFF
 	return fmt.Sprintf("src=%d dst=%d dport=%d proto=%d", src, dst, dport, proto)
 }
 
 func ip4Str(arg1 uint32) string {
 	ip := make(net.IP, 4)
-	byteorder.NetworkToHostPut(ip, arg1)
+	byteorder.Native.PutUint32(ip, arg1)
 	return ip.String()
 }
 
 func ip6Str(arg1 uint32) string {
-	ip6 := byteorder.NetworkToHost(arg1).(uint32)
+	ip6 := byteorder.NetworkToHost32(arg1)
 	return fmt.Sprintf("%x:%x", ip6>>16, ip6&0xFFFF)
 }
 
@@ -248,11 +240,12 @@ func (n *DebugMsg) DumpInfo(data []byte) {
 }
 
 // Dump prints the debug message in a human readable format.
-func (n *DebugMsg) Dump(prefix string) {
-	fmt.Printf("%s MARK %#x FROM %d DEBUG: %s\n", prefix, n.Hash, n.Source, n.subTypeString())
+func (n *DebugMsg) Dump(prefix string, linkMonitor getters.LinkGetter) {
+	fmt.Printf("%s MARK %#x FROM %d DEBUG: %s\n", prefix, n.Hash, n.Source, n.Message(linkMonitor))
 }
 
-func (n *DebugMsg) subTypeString() string {
+// Message returns the debug message in a human-readable format
+func (n *DebugMsg) Message(linkMonitor getters.LinkGetter) string {
 	switch n.SubType {
 	case DbgGeneric:
 		return fmt.Sprintf("No message, arg1=%d (%#x) arg2=%d (%#x)", n.Arg1, n.Arg1, n.Arg2, n.Arg2)
@@ -261,7 +254,11 @@ func (n *DebugMsg) subTypeString() string {
 	case DbgEncap:
 		return fmt.Sprintf("Encapsulating to node %d (%#x) from seclabel %d", n.Arg1, n.Arg1, n.Arg2)
 	case DbgLxcFound:
-		return fmt.Sprintf("Local container found ifindex %s seclabel %d", ifname(int(n.Arg1)), byteorder.NetworkToHost(uint16(n.Arg2)))
+		var ifname string
+		if linkMonitor != nil {
+			ifname = linkMonitor.Name(n.Arg1)
+		}
+		return fmt.Sprintf("Local container found ifindex %s seclabel %d", ifname, byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgPolicyDenied:
 		return fmt.Sprintf("Policy evaluation would deny packet from %d to %d", n.Arg1, n.Arg2)
 	case DbgCtLookup:
@@ -277,7 +274,7 @@ func (n *DebugMsg) subTypeString() string {
 		return fmt.Sprintf("CT created 1/2: %s %s",
 			ctInfo(n.Arg1, n.Arg2), verdictInfo(n.Arg3))
 	case DbgCtCreated2:
-		return fmt.Sprintf("CT created 2/2: %s revnat=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("CT created 2/2: %s revnat=%d", ip4Str(n.Arg1), byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgCtVerdict:
 		return fmt.Sprintf("CT verdict: %s, %s",
 			ctState(n.Arg1), verdictInfo(n.Arg2))
@@ -303,30 +300,30 @@ func (n *DebugMsg) subTypeString() string {
 		return fmt.Sprintf("Packet hash=%d (%#x), selected_service=%d", n.Arg1, n.Arg1, n.Arg2)
 	case DbgRRBackendSlotSel:
 		return fmt.Sprintf("RR backend slot selection hash=%d (%#x), selected_service=%d", n.Arg1, n.Arg1, n.Arg2)
-	case DbgLb6LookupMaster:
-		return fmt.Sprintf("Master service lookup, addr.p4=%x key.dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
-	case DbgLb6LookupMasterFail:
-		return fmt.Sprintf("Master service lookup failed, addr.p2=%x addr.p3=%x", n.Arg1, n.Arg2)
+	case DbgLb6LookupFrontend:
+		return fmt.Sprintf("Frontend service lookup, addr.p4=%x key.dport=%d", n.Arg1, byteorder.NetworkToHost16(uint16(n.Arg2)))
+	case DbgLb6LookupFrontendFail:
+		return fmt.Sprintf("Frontend service lookup failed, addr.p2=%x addr.p3=%x", n.Arg1, n.Arg2)
 	case DbgLb6LookupBackendSlot, DbgLb4LookupBackendSlot:
-		return fmt.Sprintf("Service backend slot lookup: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("Service backend slot lookup: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgLb6LookupBackendSlotV2Fail, DbgLb4LookupBackendSlotV2Fail:
-		return fmt.Sprintf("Service backend slot lookup failed: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("Service backend slot lookup failed: slot=%d, dport=%d", n.Arg1, byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgLb6LookupBackendFail, DbgLb4LookupBackendFail:
 		return fmt.Sprintf("Backend service lookup failed: backend_id=%d", n.Arg1)
 	case DbgLb6LookupBackendSlotSuccess:
-		return fmt.Sprintf("Service backend slot lookup result: target.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("Service backend slot lookup result: target.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgLb6ReverseNatLookup, DbgLb4ReverseNatLookup:
-		return fmt.Sprintf("Reverse NAT lookup, index=%d", byteorder.NetworkToHost(uint16(n.Arg1)))
+		return fmt.Sprintf("Reverse NAT lookup, index=%d", byteorder.NetworkToHost16(uint16(n.Arg1)))
 	case DbgLb6ReverseNat:
-		return fmt.Sprintf("Performing reverse NAT, address.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost(uint16(n.Arg2)))
-	case DbgLb4LookupMaster:
-		return fmt.Sprintf("Master service lookup, addr=%s key.dport=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
-	case DbgLb4LookupMasterFail:
-		return "Master service lookup failed"
+		return fmt.Sprintf("Performing reverse NAT, address.p4=%x port=%d", n.Arg1, byteorder.NetworkToHost16(uint16(n.Arg2)))
+	case DbgLb4LookupFrontend:
+		return fmt.Sprintf("Frontend service lookup, addr=%s key.dport=%d", ip4Str(n.Arg1), byteorder.NetworkToHost16(uint16(n.Arg2)))
+	case DbgLb4LookupFrontendFail:
+		return "Frontend service lookup failed"
 	case DbgLb4LookupBackendSlotSuccess:
-		return fmt.Sprintf("Service backend slot lookup result: target=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("Service backend slot lookup result: target=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgLb4ReverseNat:
-		return fmt.Sprintf("Performing reverse NAT, address=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost(uint16(n.Arg2)))
+		return fmt.Sprintf("Performing reverse NAT, address=%s port=%d", ip4Str(n.Arg1), byteorder.NetworkToHost16(uint16(n.Arg2)))
 	case DbgLb4LoopbackSnat:
 		return fmt.Sprintf("Loopback SNAT from=%s to=%s", ip4Str(n.Arg1), ip4Str(n.Arg2))
 	case DbgLb4LoopbackSnatRev:
@@ -341,7 +338,7 @@ func (n *DebugMsg) subTypeString() string {
 			proxyInfo(n.Arg1, n.Arg2), n.Arg3)
 	case DbgL4Policy:
 		return fmt.Sprintf("Resolved L4 policy to: %d / %s",
-			byteorder.NetworkToHost(uint16(n.Arg1)), ctDirection[int(n.Arg2)])
+			byteorder.NetworkToHost16(uint16(n.Arg1)), ctDirection[int(n.Arg2)])
 	case DbgNetdevInCluster:
 		return fmt.Sprintf("Destination is inside cluster prefix, source identity: %d", n.Arg1)
 	case DbgNetdevEncap4:
@@ -380,19 +377,21 @@ func (n *DebugMsg) subTypeString() string {
 		return fmt.Sprintf("Socket lookup: %s", ctLookup6Info1(n))
 	case DbgSkAssign:
 		return fmt.Sprintf("Socket assign: %s", skAssignInfo(n))
+	case DbgL7LB:
+		return fmt.Sprintf("L7 LB from %s to %s: proxy port %d", ip4Str(n.Arg1), ip4Str(n.Arg2), n.Arg3)
 	default:
 		return fmt.Sprintf("Unknown message type=%d arg1=%d arg2=%d", n.SubType, n.Arg1, n.Arg2)
 	}
 }
 
-func (n *DebugMsg) getJSON(cpuPrefix string) string {
+func (n *DebugMsg) getJSON(cpuPrefix string, linkMonitor getters.LinkGetter) string {
 	return fmt.Sprintf(`{"cpu":%q,"type":"debug","message":%q}`,
-		cpuPrefix, n.subTypeString())
+		cpuPrefix, n.Message(linkMonitor))
 }
 
 // DumpJSON prints notification in json format
-func (n *DebugMsg) DumpJSON(cpuPrefix string) {
-	fmt.Println(n.getJSON(cpuPrefix))
+func (n *DebugMsg) DumpJSON(cpuPrefix string, linkMonitor getters.LinkGetter) {
+	fmt.Println(n.getJSON(cpuPrefix, linkMonitor))
 }
 
 const (
@@ -415,21 +414,23 @@ type DebugCapture struct {
 }
 
 // DumpInfo prints a summary of the capture messages.
-func (n *DebugCapture) DumpInfo(data []byte) {
-	prefix := n.infoPrefix()
+func (n *DebugCapture) DumpInfo(data []byte, linkMonitor getters.LinkGetter) {
+	prefix := n.infoPrefix(linkMonitor)
 
 	if len(prefix) > 0 {
 		fmt.Printf("%s: %s\n", prefix, GetConnectionSummary(data[DebugCaptureLen:]))
 	}
 }
 
-func (n *DebugCapture) infoPrefix() string {
+func (n *DebugCapture) infoPrefix(linkMonitor getters.LinkGetter) string {
 	switch n.SubType {
 	case DbgCaptureDelivery:
-		return fmt.Sprintf("-> %s", ifname(int(n.Arg1)))
+		ifname := linkMonitor.Name(n.Arg1)
+		return fmt.Sprintf("-> %s", ifname)
 
 	case DbgCaptureFromLb:
-		return fmt.Sprintf("<- load-balancer %s", ifname(int(n.Arg1)))
+		ifname := linkMonitor.Name(n.Arg1)
+		return fmt.Sprintf("<- load-balancer %s", ifname)
 
 	case DbgCaptureAfterV46:
 		return fmt.Sprintf("== v4->v6 %d", n.Arg1)
@@ -438,7 +439,7 @@ func (n *DebugCapture) infoPrefix() string {
 		return fmt.Sprintf("== v6->v4 %d", n.Arg1)
 
 	case DbgCaptureProxyPost:
-		return fmt.Sprintf("-> proxy port %d", byteorder.NetworkToHost(uint16(n.Arg1)))
+		return fmt.Sprintf("-> proxy port %d", byteorder.NetworkToHost16(uint16(n.Arg1)))
 	default:
 		return ""
 	}
@@ -465,9 +466,9 @@ func (n *DebugCapture) subTypeString() string {
 	case DbgCaptureAfterV64:
 		return fmt.Sprintf("Packet after nat64 ifindex %d", n.Arg1)
 	case DbgCaptureProxyPre:
-		return fmt.Sprintf("Packet to proxy port %d (Pre)", byteorder.NetworkToHost(uint16(n.Arg1)))
+		return fmt.Sprintf("Packet to proxy port %d (Pre)", byteorder.NetworkToHost16(uint16(n.Arg1)))
 	case DbgCaptureProxyPost:
-		return fmt.Sprintf("Packet to proxy port %d (Post)", byteorder.NetworkToHost(uint16(n.Arg1)))
+		return fmt.Sprintf("Packet to proxy port %d (Post)", byteorder.NetworkToHost16(uint16(n.Arg1)))
 	case DbgCaptureSnatPre:
 		return fmt.Sprintf("Packet going into snat engine on ifindex %d", n.Arg1)
 	case DbgCaptureSnatPost:
@@ -477,9 +478,9 @@ func (n *DebugCapture) subTypeString() string {
 	}
 }
 
-func (n *DebugCapture) getJSON(data []byte, cpuPrefix string) (string, error) {
+func (n *DebugCapture) getJSON(data []byte, cpuPrefix string, linkMonitor getters.LinkGetter) (string, error) {
 
-	v := DebugCaptureToVerbose(n)
+	v := DebugCaptureToVerbose(n, linkMonitor)
 	v.CPUPrefix = cpuPrefix
 	v.Summary = GetConnectionSummary(data[DebugCaptureLen:])
 
@@ -488,8 +489,8 @@ func (n *DebugCapture) getJSON(data []byte, cpuPrefix string) (string, error) {
 }
 
 // DumpJSON prints notification in json format
-func (n *DebugCapture) DumpJSON(data []byte, cpuPrefix string) {
-	resp, err := n.getJSON(data, cpuPrefix)
+func (n *DebugCapture) DumpJSON(data []byte, cpuPrefix string, linkMonitor getters.LinkGetter) {
+	resp, err := n.getJSON(data, cpuPrefix, linkMonitor)
 	if err != nil {
 		fmt.Println(fmt.Sprintf(`{"type":"debug_capture_error","message":%q}`, err.Error()))
 		return
@@ -512,13 +513,13 @@ type DebugCaptureVerbose struct {
 }
 
 // DebugCaptureToVerbose creates verbose notification from base TraceNotify
-func DebugCaptureToVerbose(n *DebugCapture) DebugCaptureVerbose {
+func DebugCaptureToVerbose(n *DebugCapture, linkMonitor getters.LinkGetter) DebugCaptureVerbose {
 	return DebugCaptureVerbose{
 		Type:    "capture",
 		Mark:    fmt.Sprintf("%#x", n.Hash),
 		Source:  n.Source,
 		Bytes:   n.Len,
 		Message: n.subTypeString(),
-		Prefix:  n.infoPrefix(),
+		Prefix:  n.infoPrefix(linkMonitor),
 	}
 }

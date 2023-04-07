@@ -313,6 +313,19 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 	return nil
 }
 
+const (
+	flagsEarlyFilter = 1 << 0
+)
+
+func flagsString(flags uint32) string {
+	s := "none"
+
+	if flags&flagsEarlyFilter != 0 {
+		s = "early_filter"
+	}
+	return s
+}
+
 func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, policyID policyfilter.PolicyID) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -448,6 +461,10 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 			config.Sigkill = 0
 		}
 
+		if selectors.HasEarlyBinaryFilter(f.Selectors) {
+			config.Flags |= flagsEarlyFilter
+		}
+
 		// create a new entry on the table, and pass its id to BPF-side
 		// so that we can do the matching at event-generation time
 		kprobeEntry := genericKprobe{
@@ -552,7 +569,8 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 			program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
 		}
 
-		logger.GetLogger().Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+		logger.GetLogger().WithField("flags", flagsString(config.Flags)).
+			Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	}
 
 	if len(multiIDs) != 0 {

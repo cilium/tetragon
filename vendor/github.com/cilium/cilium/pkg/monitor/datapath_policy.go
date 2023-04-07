@@ -1,22 +1,14 @@
-// Copyright 2016-2017 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package monitor
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
+	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/monitor/api"
 )
 
@@ -57,7 +49,7 @@ type PolicyVerdictNotify struct {
 	OrigLen     uint32
 	CapLen      uint16
 	Version     uint16
-	RemoteLabel uint32
+	RemoteLabel identity.NumericIdentity
 	Verdict     int32
 	DstPort     uint16
 	Proto       uint8
@@ -103,12 +95,21 @@ func GetPolicyActionString(verdict int32, audit bool) string {
 }
 
 // DumpInfo prints a summary of the policy notify messages.
-func (n *PolicyVerdictNotify) DumpInfo(data []byte) {
+func (n *PolicyVerdictNotify) DumpInfo(data []byte, numeric DisplayFormat) {
+	buf := bufio.NewWriter(os.Stdout)
 	dir := "egress"
 	if n.IsTrafficIngress() {
 		dir = "ingress"
 	}
-	fmt.Printf("Policy verdict log: flow %#x local EP ID %d, remote ID %d, proto %d, %s, action %s, match %s, %s\n",
-		n.Hash, n.Source, n.RemoteLabel, n.Proto, dir, GetPolicyActionString(n.Verdict, n.IsTrafficAudited()),
-		n.GetPolicyMatchType(), GetConnectionSummary(data[PolicyVerdictNotifyLen:]))
+	fmt.Fprintf(buf, "Policy verdict log: flow %#x local EP ID %d", n.Hash, n.Source)
+	if numeric {
+		fmt.Fprintf(buf, ", remote ID %d", n.RemoteLabel)
+	} else {
+		fmt.Fprintf(buf, ", remote ID %s", n.RemoteLabel)
+	}
+	fmt.Fprintf(buf, ", proto %d, %s, action %s, match %s, %s\n", n.Proto, dir,
+		GetPolicyActionString(n.Verdict, n.IsTrafficAudited()),
+		n.GetPolicyMatchType(),
+		GetConnectionSummary(data[PolicyVerdictNotifyLen:]))
+	buf.Flush()
 }

@@ -49,4 +49,7 @@ struct bpf_map_def {
 };
 #endif
 
+#define BIT(nr)	    (1 << (nr))
+#define BIT_ULL(nr) (1ULL << (nr))
+
 #endif // _MSG_COMMON__

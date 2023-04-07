@@ -1,27 +1,19 @@
-// Copyright 2016-2019 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package identity
 
 import (
 	"errors"
 	"fmt"
+	"math"
+	"sort"
 	"strconv"
 
 	api "github.com/cilium/cilium/pkg/k8s/apis/cilium.io"
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/lock"
+	"github.com/cilium/cilium/pkg/option"
 )
 
 const (
@@ -33,17 +25,35 @@ const (
 	// a numeric identity to have local scope
 	LocalIdentityFlag = NumericIdentity(1 << 24)
 
+	// MinAllocatorLocalIdentity represents the minimal numeric identity
+	// that the localIdentityCache allocator can allocate for a local (CIDR)
+	// identity.
+	//
+	// Note that this does not represents the minimal value for a local
+	// identity, as the allocated ID will then be bitwise OR'ed with
+	// LocalIdentityFlag.
+	MinAllocatorLocalIdentity = 1
+
+	// MinLocalIdentity represents the actual minimal numeric identity value
+	// for a local (CIDR) identity.
+	MinLocalIdentity = MinAllocatorLocalIdentity | LocalIdentityFlag
+
+	// MaxAllocatorLocalIdentity represents the maximal numeric identity
+	// that the localIdentityCache allocator can allocate for a local (CIDR)
+	// identity.
+	//
+	// Note that this does not represents the maximal value for a local
+	// identity, as the allocated ID will then be bitwise OR'ed with
+	// LocalIdentityFlag.
+	MaxAllocatorLocalIdentity = 0xFFFFFF
+
+	// MaxLocalIdentity represents the actual maximal numeric identity value
+	// for a local (CIDR) identity.
+	MaxLocalIdentity = MaxAllocatorLocalIdentity | LocalIdentityFlag
+
 	// MinimalNumericIdentity represents the minimal numeric identity not
 	// used for reserved purposes.
 	MinimalNumericIdentity = NumericIdentity(256)
-
-	// MinimalAllocationIdentity is the minimum numeric identity handed out
-	// by the identity allocator.
-	MinimalAllocationIdentity = MinimalNumericIdentity
-
-	// MaximumAllocationIdentity is the maximum numeric identity handed out
-	// by the identity allocator
-	MaximumAllocationIdentity = NumericIdentity(^uint16(0))
 
 	// UserReservedNumericIdentity represents the minimal numeric identity that
 	// can be used by users for reserved purposes.
@@ -52,6 +62,16 @@ const (
 	// InvalidIdentity is the identity assigned if the identity is invalid
 	// or not determined yet
 	InvalidIdentity = NumericIdentity(0)
+)
+
+var (
+	// MinimalAllocationIdentity is the minimum numeric identity handed out
+	// by the identity allocator.
+	MinimalAllocationIdentity = MinimalNumericIdentity
+
+	// MaximumAllocationIdentity is the maximum numeric identity handed out
+	// by the identity allocator
+	MaximumAllocationIdentity = NumericIdentity((1<<ClusterIDShift)*(option.Config.ClusterID+1) - 1)
 )
 
 const (
@@ -78,34 +98,56 @@ const (
 	// local and remote clusters except for the local node.
 	ReservedIdentityRemoteNode
 
-	// --------------------------------------------------------------
-	// Special identities for well-known cluster components
+	// ReservedIdentityKubeAPIServer is the identity given to remote node(s) which
+	// have backend(s) serving the kube-apiserver running.
+	ReservedIdentityKubeAPIServer
 
+	// ReservedIdentityIngress is the identity given to the IP used as the source
+	// address for connections from Ingress proxies.
+	ReservedIdentityIngress
+)
+
+// Special identities for well-known cluster components
+// Each component has two identities. The first one is used for Kubernetes <1.21
+// or when the NamespaceDefaultLabelName feature gate is disabled. The second
+// one is used for Kubernetes >= 1.21 and when the NamespaceDefaultLabelName is
+// enabled.
+const (
 	// ReservedETCDOperator is the reserved identity used for the etcd-operator
 	// managed by Cilium.
-	ReservedETCDOperator NumericIdentity = 100
+	ReservedETCDOperator NumericIdentity = iota + 100
 
 	// ReservedCiliumKVStore is the reserved identity used for the kvstore
 	// managed by Cilium (etcd-operator).
-	ReservedCiliumKVStore NumericIdentity = 101
+	ReservedCiliumKVStore
 
 	// ReservedKubeDNS is the reserved identity used for kube-dns.
-	ReservedKubeDNS NumericIdentity = 102
+	ReservedKubeDNS
 
 	// ReservedEKSKubeDNS is the reserved identity used for kube-dns on EKS
-	ReservedEKSKubeDNS NumericIdentity = 103
+	ReservedEKSKubeDNS
 
 	// ReservedCoreDNS is the reserved identity used for CoreDNS
-	ReservedCoreDNS NumericIdentity = 104
+	ReservedCoreDNS
 
 	// ReservedCiliumOperator is the reserved identity used for the Cilium operator
-	ReservedCiliumOperator NumericIdentity = 105
+	ReservedCiliumOperator
 
 	// ReservedEKSCoreDNS is the reserved identity used for CoreDNS on EKS
-	ReservedEKSCoreDNS NumericIdentity = 106
+	ReservedEKSCoreDNS
 
 	// ReservedCiliumEtcdOperator is the reserved identity used for the Cilium etcd operator
-	ReservedCiliumEtcdOperator NumericIdentity = 107
+	ReservedCiliumEtcdOperator
+
+	// Second identities for all above components
+	ReservedETCDOperator2
+	ReservedCiliumKVStore2
+	ReservedKubeDNS2
+	ReservedEKSKubeDNS2
+	ReservedCoreDNS2
+	ReservedCiliumOperator2
+	ReservedEKSCoreDNS2
+	ReservedCiliumEtcdOperator2
 )
 
 // localNodeIdentity is the endpoint identity allocated for the local node
@@ -134,7 +176,9 @@ func (w wellKnownIdentities) add(i NumericIdentity, lbls []string) {
 		labelArray: labelMap.LabelArray(),
 	}
 
-	ReservedIdentityCache[i] = identity
+	cacheMU.Lock()
+	reservedIdentityCache[i] = identity
+	cacheMU.Unlock()
 }
 
 func (w wellKnownIdentities) LookupByLabels(lbls labels.Labels) *Identity {
@@ -158,6 +202,7 @@ func (w wellKnownIdentities) lookupByNumericIdentity(identity NumericIdentity) *
 type Configuration interface {
 	LocalClusterName() string
 	CiliumNamespaceName() string
+	LocalClusterID() uint32
 }
 
 // InitWellKnownIdentities establishes all well-known identities. Returns the
@@ -168,12 +213,15 @@ func InitWellKnownIdentities(c Configuration) int {
 	//   k8s:io.kubernetes.pod.namespace=<NAMESPACE>
 	//   k8s:io.cilium/app=etcd-operator
 	//   k8s:io.cilium.k8s.policy.cluster=default
-	WellKnown.add(ReservedETCDOperator, []string{
+	etcdOperatorLabels := []string{
 		"k8s:io.cilium/app=etcd-operator",
 		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceLabel, c.CiliumNamespaceName()),
 		fmt.Sprintf("k8s:%s=cilium-etcd-sa", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedETCDOperator, etcdOperatorLabels)
+	WellKnown.add(ReservedETCDOperator2, append(etcdOperatorLabels,
+		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceMetaNameLabel, c.CiliumNamespaceName())))
 
 	// cilium-etcd labels
 	//   k8s:app=etcd
@@ -185,26 +233,32 @@ func InitWellKnownIdentities(c Configuration) int {
 	// these 2 labels are ignored by cilium-agent as they can change over time
 	//   container:annotation.etcd.version=3.3.9
 	//   k8s:etcd_node=cilium-etcd-6snk6vsjcm
-	WellKnown.add(ReservedCiliumKVStore, []string{
+	ciliumEtcdLabels := []string{
 		"k8s:app=etcd",
 		"k8s:etcd_cluster=cilium-etcd",
 		"k8s:io.cilium/app=etcd-operator",
 		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceLabel, c.CiliumNamespaceName()),
 		fmt.Sprintf("k8s:%s=default", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedCiliumKVStore, ciliumEtcdLabels)
+	WellKnown.add(ReservedCiliumKVStore2, append(ciliumEtcdLabels,
+		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceMetaNameLabel, c.CiliumNamespaceName())))
 
 	// kube-dns labels
 	//   k8s:io.cilium.k8s.policy.serviceaccount=kube-dns
 	//   k8s:io.kubernetes.pod.namespace=kube-system
 	//   k8s:k8s-app=kube-dns
 	//   k8s:io.cilium.k8s.policy.cluster=default
-	WellKnown.add(ReservedKubeDNS, []string{
+	kubeDNSLabels := []string{
 		"k8s:k8s-app=kube-dns",
 		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceLabel),
 		fmt.Sprintf("k8s:%s=kube-dns", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedKubeDNS, kubeDNSLabels)
+	WellKnown.add(ReservedKubeDNS2, append(kubeDNSLabels,
+		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceMetaNameLabel)))
 
 	// kube-dns EKS labels
 	//   k8s:io.cilium.k8s.policy.serviceaccount=kube-dns
@@ -212,87 +266,143 @@ func InitWellKnownIdentities(c Configuration) int {
 	//   k8s:k8s-app=kube-dns
 	//   k8s:io.cilium.k8s.policy.cluster=default
 	//   k8s:eks.amazonaws.com/component=kube-dns
-	WellKnown.add(ReservedEKSKubeDNS, []string{
+	eksKubeDNSLabels := []string{
 		"k8s:k8s-app=kube-dns",
 		"k8s:eks.amazonaws.com/component=kube-dns",
 		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceLabel),
 		fmt.Sprintf("k8s:%s=kube-dns", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedEKSKubeDNS, eksKubeDNSLabels)
+	WellKnown.add(ReservedEKSKubeDNS2, append(eksKubeDNSLabels,
+		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceMetaNameLabel)))
 
-	// kube-dns EKS labels
+	// CoreDNS EKS labels
 	//   k8s:io.cilium.k8s.policy.serviceaccount=coredns
 	//   k8s:io.kubernetes.pod.namespace=kube-system
 	//   k8s:k8s-app=kube-dns
 	//   k8s:io.cilium.k8s.policy.cluster=default
 	//   k8s:eks.amazonaws.com/component=coredns
-	WellKnown.add(ReservedEKSCoreDNS, []string{
+	eksCoreDNSLabels := []string{
 		"k8s:k8s-app=kube-dns",
 		"k8s:eks.amazonaws.com/component=coredns",
 		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceLabel),
 		fmt.Sprintf("k8s:%s=coredns", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedEKSCoreDNS, eksCoreDNSLabels)
+	WellKnown.add(ReservedEKSCoreDNS2, append(eksCoreDNSLabels,
+		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceMetaNameLabel)))
 
 	// CoreDNS labels
 	//   k8s:io.cilium.k8s.policy.serviceaccount=coredns
 	//   k8s:io.kubernetes.pod.namespace=kube-system
 	//   k8s:k8s-app=kube-dns
 	//   k8s:io.cilium.k8s.policy.cluster=default
-	WellKnown.add(ReservedCoreDNS, []string{
+	coreDNSLabels := []string{
 		"k8s:k8s-app=kube-dns",
 		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceLabel),
 		fmt.Sprintf("k8s:%s=coredns", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedCoreDNS, coreDNSLabels)
+	WellKnown.add(ReservedCoreDNS2, append(coreDNSLabels,
+		fmt.Sprintf("k8s:%s=kube-system", api.PodNamespaceMetaNameLabel)))
 
 	// CiliumOperator labels
 	//   k8s:io.cilium.k8s.policy.serviceaccount=cilium-operator
 	//   k8s:io.kubernetes.pod.namespace=<NAMESPACE>
 	//   k8s:name=cilium-operator
 	//   k8s:io.cilium/app=operator
+	//   k8s:app.kubernetes.io/part-of=cilium
+	//   k8s:app.kubernetes.io/name=cilium-operator
 	//   k8s:io.cilium.k8s.policy.cluster=default
-	WellKnown.add(ReservedCiliumOperator, []string{
+	ciliumOperatorLabels := []string{
 		"k8s:name=cilium-operator",
 		"k8s:io.cilium/app=operator",
+		"k8s:app.kubernetes.io/part-of=cilium",
+		"k8s:app.kubernetes.io/name=cilium-operator",
 		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceLabel, c.CiliumNamespaceName()),
 		fmt.Sprintf("k8s:%s=cilium-operator", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedCiliumOperator, ciliumOperatorLabels)
+	WellKnown.add(ReservedCiliumOperator2, append(ciliumOperatorLabels,
+		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceMetaNameLabel, c.CiliumNamespaceName())))
 
 	// cilium-etcd-operator labels
 	//   k8s:io.cilium.k8s.policy.cluster=default
 	//   k8s:io.cilium.k8s.policy.serviceaccount=cilium-etcd-operator
 	//   k8s:io.cilium/app=etcd-operator
+	//   k8s:app.kubernetes.io/name: cilium-etcd-operator
+	//   k8s:app.kubernetes.io/part-of: cilium
 	//   k8s:io.kubernetes.pod.namespace=<NAMESPACE>
 	//   k8s:name=cilium-etcd-operator
-	WellKnown.add(ReservedCiliumEtcdOperator, []string{
+	ciliumEtcdOperatorLabels := []string{
 		"k8s:name=cilium-etcd-operator",
 		"k8s:io.cilium/app=etcd-operator",
+		"k8s:app.kubernetes.io/name: cilium-etcd-operator",
+		"k8s:app.kubernetes.io/part-of: cilium",
 		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceLabel, c.CiliumNamespaceName()),
 		fmt.Sprintf("k8s:%s=cilium-etcd-operator", api.PolicyLabelServiceAccount),
 		fmt.Sprintf("k8s:%s=%s", api.PolicyLabelCluster, c.LocalClusterName()),
-	})
+	}
+	WellKnown.add(ReservedCiliumEtcdOperator, ciliumEtcdOperatorLabels)
+	WellKnown.add(ReservedCiliumEtcdOperator2, append(ciliumEtcdOperatorLabels,
+		fmt.Sprintf("k8s:%s=%s", api.PodNamespaceMetaNameLabel, c.CiliumNamespaceName())))
+
+	InitMinMaxIdentityAllocation(c)
 
 	return len(WellKnown)
 }
 
+// InitMinMaxIdentityAllocation sets the minimal and maximum for identities that
+// should be allocated in the cluster.
+func InitMinMaxIdentityAllocation(c Configuration) {
+	if c.LocalClusterID() > 0 {
+		// For ClusterID > 0, the identity range just starts from cluster shift,
+		// no well-known-identities need to be reserved from the range.
+		MinimalAllocationIdentity = NumericIdentity((1 << ClusterIDShift) * c.LocalClusterID())
+		// The maximum identity also needs to be recalculated as ClusterID
+		// may be overwritten by runtime parameters.
+		MaximumAllocationIdentity = NumericIdentity((1<<ClusterIDShift)*(c.LocalClusterID()+1) - 1)
+	}
+}
+
 var (
 	reservedIdentities = map[string]NumericIdentity{
-		labels.IDNameHost:       ReservedIdentityHost,
-		labels.IDNameWorld:      ReservedIdentityWorld,
-		labels.IDNameUnmanaged:  ReservedIdentityUnmanaged,
-		labels.IDNameHealth:     ReservedIdentityHealth,
-		labels.IDNameInit:       ReservedIdentityInit,
-		labels.IDNameRemoteNode: ReservedIdentityRemoteNode,
+		labels.IDNameHost:          ReservedIdentityHost,
+		labels.IDNameWorld:         ReservedIdentityWorld,
+		labels.IDNameUnmanaged:     ReservedIdentityUnmanaged,
+		labels.IDNameHealth:        ReservedIdentityHealth,
+		labels.IDNameInit:          ReservedIdentityInit,
+		labels.IDNameRemoteNode:    ReservedIdentityRemoteNode,
+		labels.IDNameKubeAPIServer: ReservedIdentityKubeAPIServer,
+		labels.IDNameIngress:       ReservedIdentityIngress,
 	}
 	reservedIdentityNames = map[NumericIdentity]string{
-		ReservedIdentityHost:       labels.IDNameHost,
-		ReservedIdentityWorld:      labels.IDNameWorld,
-		ReservedIdentityUnmanaged:  labels.IDNameUnmanaged,
-		ReservedIdentityHealth:     labels.IDNameHealth,
-		ReservedIdentityInit:       labels.IDNameInit,
-		ReservedIdentityRemoteNode: labels.IDNameRemoteNode,
+		IdentityUnknown:               "unknown",
+		ReservedIdentityHost:          labels.IDNameHost,
+		ReservedIdentityWorld:         labels.IDNameWorld,
+		ReservedIdentityUnmanaged:     labels.IDNameUnmanaged,
+		ReservedIdentityHealth:        labels.IDNameHealth,
+		ReservedIdentityInit:          labels.IDNameInit,
+		ReservedIdentityRemoteNode:    labels.IDNameRemoteNode,
+		ReservedIdentityKubeAPIServer: labels.IDNameKubeAPIServer,
+		ReservedIdentityIngress:       labels.IDNameIngress,
+	}
+	reservedIdentityLabels = map[NumericIdentity]labels.Labels{
+		ReservedIdentityHost:       labels.LabelHost,
+		ReservedIdentityWorld:      labels.LabelWorld,
+		ReservedIdentityUnmanaged:  labels.NewLabelsFromModel([]string{"reserved:" + labels.IDNameUnmanaged}),
+		ReservedIdentityHealth:     labels.LabelHealth,
+		ReservedIdentityInit:       labels.NewLabelsFromModel([]string{"reserved:" + labels.IDNameInit}),
+		ReservedIdentityRemoteNode: labels.LabelRemoteNode,
+		ReservedIdentityKubeAPIServer: labels.Map2Labels(map[string]string{
+			labels.LabelKubeAPIServer.String(): "",
+			labels.LabelRemoteNode.String():    "",
+		}, ""),
+		ReservedIdentityIngress: labels.LabelIngress,
 	}
 
 	// WellKnown identities stores global state of all well-known identities.
@@ -344,15 +454,22 @@ func DelReservedNumericIdentity(identity NumericIdentity) error {
 // NumericIdentity is the numeric representation of a security identity.
 //
 // Bits:
-//    0-15: identity identifier
-//   16-23: cluster identifier
-//      24: LocalIdentityFlag: Indicates that the identity has a local scope
+//
+//	 0-15: identity identifier
+//	16-23: cluster identifier
+//	   24: LocalIdentityFlag: Indicates that the identity has a local scope
 type NumericIdentity uint32
+
+// MaxNumericIdentity is the maximum value of a NumericIdentity.
+const MaxNumericIdentity = math.MaxUint32
 
 func ParseNumericIdentity(id string) (NumericIdentity, error) {
 	nid, err := strconv.ParseUint(id, 0, 32)
 	if err != nil {
 		return NumericIdentity(0), err
+	}
+	if nid > MaxNumericIdentity {
+		return NumericIdentity(0), fmt.Errorf("%s: numeric identity too large", id)
 	}
 	return NumericIdentity(nid), nil
 }
@@ -405,24 +522,33 @@ func (id NumericIdentity) IsReservedIdentity() bool {
 }
 
 // ClusterID returns the cluster ID associated with the identity
-func (id NumericIdentity) ClusterID() int {
-	return int((uint32(id) >> 16) & 0xFF)
+func (id NumericIdentity) ClusterID() uint32 {
+	return (uint32(id) >> 16) & 0xFF
 }
 
-// GetAllReservedIdentities returns a list of all reserved numeric identities.
+// GetAllReservedIdentities returns a list of all reserved numeric identities
+// in ascending order.
+// NOTE: While this func is unused from the cilium repository, is it imported
+// and called by the hubble cli.
 func GetAllReservedIdentities() []NumericIdentity {
-	identities := []NumericIdentity{}
+	identities := make([]NumericIdentity, 0, len(reservedIdentities))
 	for _, id := range reservedIdentities {
 		identities = append(identities, id)
 	}
+	// Because our reservedIdentities source is a go map, and go map order is
+	// randomized, we need to sort the resulting slice before returning it.
+	sort.Slice(identities, func(i, j int) bool {
+		return identities[i].Uint32() < identities[j].Uint32()
+	})
 	return identities
 }
 
-// IterateReservedIdentities iterates over all reservedIdentities and executes
-// the given function for each key, value pair in reservedIdentities.
-func IterateReservedIdentities(f func(key string, value NumericIdentity)) {
-	for key, value := range reservedIdentities {
-		f(key, value)
+// iterateReservedIdentityLabels iterates over all reservedIdentityLabels and
+// executes the given function for each key, value pair in
+// reservedIdentityLabels.
+func iterateReservedIdentityLabels(f func(_ NumericIdentity, _ labels.Labels)) {
+	for ni, lbls := range reservedIdentityLabels {
+		f(ni, lbls)
 	}
 }
 

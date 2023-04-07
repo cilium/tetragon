@@ -22,8 +22,8 @@ import (
 	ciliumLabels "github.com/cilium/cilium/pkg/labels"
 	k8sLabels "k8s.io/apimachinery/pkg/labels"
 
+	pb "github.com/cilium/cilium/api/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	pb "github.com/cilium/tetragon/pkg/oldhubbleapi/v1/flow"
 )
 
 func sourceLabels(ev *v1.Event) k8sLabels.Labels {

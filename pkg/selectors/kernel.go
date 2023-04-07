@@ -460,8 +460,7 @@ func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector
 		}
 	}
 
-	// Zero length value is also default ActionTypePost action
-	// that bpf program reads when no other action is specified.
+	// No action (size value 4) defaults to post action.
 	WriteSelectorLength(k, loff)
 	return nil
 }
@@ -784,6 +783,26 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 				return true
 			}
 		}
+	}
+	return false
+}
+
+func HasEarlyBinaryFilter(selectors []v1alpha1.KProbeSelector) bool {
+	if len(selectors) == 0 {
+		return false
+	}
+	for _, s := range selectors {
+		if len(s.MatchPIDs) > 0 ||
+			len(s.MatchNamespaces) > 0 ||
+			len(s.MatchCapabilities) > 0 ||
+			len(s.MatchNamespaceChanges) > 0 ||
+			len(s.MatchCapabilityChanges) > 0 ||
+			len(s.MatchArgs) > 0 {
+			return false
+		}
+	}
+	if len(selectors) == 1 && len(selectors[0].MatchBinaries) > 0 {
+		return true
 	}
 	return false
 }

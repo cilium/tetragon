@@ -1,16 +1,5 @@
-// Copyright 2018 Authors of Cilium
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
 
 package monitor
 
@@ -19,8 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/cilium/pkg/proxy/accesslog"
 	"github.com/miekg/dns"
+
+	"github.com/cilium/cilium/pkg/proxy/accesslog"
 )
 
 // LogRecordNotify is a proxy access log notification
@@ -71,8 +61,8 @@ func (l *LogRecordNotify) DumpInfo() {
 
 	case accesslog.TypeResponse:
 		fmt.Printf("%s %s %s to %d (%s) from %d (%s), identity %d->%d, verdict %s",
-			l.direction(), l.Type, l.l7Proto(), l.SourceEndpoint.ID, l.SourceEndpoint.Labels,
-			l.DestinationEndpoint.ID, l.DestinationEndpoint.Labels,
+			l.direction(), l.Type, l.l7Proto(), l.DestinationEndpoint.ID, l.DestinationEndpoint.Labels,
+			l.SourceEndpoint.ID, l.SourceEndpoint.Labels,
 			l.SourceEndpoint.Identity, l.DestinationEndpoint.Identity,
 			l.Verdict)
 	}
@@ -99,16 +89,10 @@ func (l *LogRecordNotify) DumpInfo() {
 
 		switch {
 		case l.Type == accesslog.TypeRequest:
-			fmt.Printf(" DNS Query: %s %s", l.DNS.Query, qTypeStr)
+			fmt.Printf(" DNS %s: %s %s", l.DNS.ObservationSource, l.DNS.Query, qTypeStr)
 
 		case l.Type == accesslog.TypeResponse:
-			sourceType := "Query"
-			switch l.DNS.ObservationSource {
-			case accesslog.DNSSourceProxy:
-				sourceType = "Proxy"
-			}
-
-			fmt.Printf(" DNS %s: %s %s", sourceType, l.DNS.Query, qTypeStr)
+			fmt.Printf(" DNS %s: %s %s", l.DNS.ObservationSource, l.DNS.Query, qTypeStr)
 
 			ips := make([]string, 0, len(l.DNS.IPs))
 			for _, ip := range l.DNS.IPs {

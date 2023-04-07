@@ -891,6 +891,10 @@ const (
 	TCA_FQ_FLOW_REFILL_DELAY  // flow credit refill delay in usec
 	TCA_FQ_ORPHAN_MASK        // mask applied to orphaned skb hashes
 	TCA_FQ_LOW_RATE_THRESHOLD // per packet delay under this rate
+	TCA_FQ_CE_THRESHOLD       // DCTCP-like CE-marking threshold
+	TCA_FQ_TIMER_SLACK        // timer slack
+	TCA_FQ_HORIZON            // time horizon in us
+	TCA_FQ_HORIZON_DROP       // drop packets beyond horizon, or cap their EDT
 )
 
 const (

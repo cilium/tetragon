@@ -6,44 +6,16 @@
 #include "process/retprobe_map.h"
 #include "process/types/basic.h"
 
-/* DECLARE declares a unique usage of the union or struct 'x' on the stack.
- *
- * To prevent compiler from optimizing away the var, we pass a reference
- * to the var to a BPF helper function which accepts a reference as
- * an argument.
- *
- * We make the variable here pointer in order to fit all structs
- * even in this case object files contain all the required information
- */
-#define DECLARE(datatype, x, iter)               \
-	{                                        \
-		datatype x *s##iter = 0;         \
-		trace_printk("%p", 1, &s##iter); \
-		iter++;                          \
-	}
+struct msg_generic_kprobe _1;
+struct msg_execve_event _2;
+struct msg_exit _3;
+struct msg_test _4;
+struct msg_cgroup_event _5;
 
-/* This function is a placeholder for C struct definitions shared with Go,
- * it is never executed.
- */
-int main(void)
-{
-	int iter = 0;
-
-	// from perf_event_output
-	DECLARE(struct, msg_generic_kprobe, iter);
-	DECLARE(struct, msg_execve_event, iter);
-	DECLARE(struct, msg_exit, iter);
-	DECLARE(struct, msg_test, iter);
-	DECLARE(struct, msg_cgroup_event, iter);
-
-	// from maps
-	DECLARE(struct, event, iter);
-	DECLARE(struct, msg_execve_key, iter);
-	DECLARE(struct, execve_map_value, iter);
-	DECLARE(struct, event_config, iter);
-	DECLARE(struct, tetragon_conf, iter);
-	DECLARE(struct, cgroup_tracking_value, iter);
-
-	// avoid unused variable warning/error
-	return iter * 0;
-}
+// from maps
+struct event _6;
+struct msg_execve_key _7;
+struct execve_map_value _8;
+struct event_config _9;
+struct tetragon_conf _10;
+struct cgroup_tracking_value _11;
