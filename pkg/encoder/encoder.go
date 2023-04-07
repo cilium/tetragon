@@ -190,7 +190,21 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				file = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetFileArg().Path)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
-		case "__x64_sys_close":
+		case "sys_openat":
+			event := p.Colorer.Blue.Sprintf("📬️ %-7s", "openat")
+			file := ""
+			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetStringArg())
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
+		case "sys_open":
+			event := p.Colorer.Blue.Sprintf("📬️ %-7s", "open")
+			file := ""
+			if len(kprobe.Args) > 1 && kprobe.Args[1] != nil {
+				file = p.Colorer.Cyan.Sprint(kprobe.Args[1].GetStringArg())
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, file), caps), nil
+		case "sys_close":
 			event := p.Colorer.Blue.Sprintf("📪 %-7s", "close")
 			file := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
@@ -294,7 +308,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
-			event := p.Colorer.Blue.Sprintf("⁉️ %-7s", "syscall")
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
