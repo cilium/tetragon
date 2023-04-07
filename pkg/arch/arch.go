@@ -54,3 +54,13 @@ func AddSyscallPrefixTestHelper(t *testing.T, symbol string) string {
 	}
 	return syscallName
 }
+
+// CutSyscallPrefix removes a potential arch specific prefix from the symbol
+func CutSyscallPrefix(symbol string) string {
+	for _, prefix := range supportedArchPrefix {
+		if strings.HasPrefix(symbol, prefix) {
+			return symbol[len(prefix):]
+		}
+	}
+	return symbol
+}
