@@ -146,7 +146,8 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "⁉️ syscall kube-system/tetragon /usr/bin/curl unhandled_function", result)
+	assert.Equal(t, "❓ syscall kube-system/tetragon /usr/bin/curl unhandled_function", result)
+
 }
 
 func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
