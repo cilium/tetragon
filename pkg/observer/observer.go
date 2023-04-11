@@ -333,7 +333,10 @@ func (k *Observer) PrintStats() {
 	recvCntr := k.ReadReceivedEvents()
 	lostCntr := k.ReadLostEvents()
 	total := float64(recvCntr + lostCntr)
-	loss := (float64(lostCntr) * 100.0) / total
+	loss := float64(0)
+	if total > 0 {
+		loss = (float64(lostCntr) * 100.0) / total
+	}
 	k.log.Infof("BPF events statistics: %d received, %.2g%% events loss", recvCntr, loss)
 
 	k.log.WithFields(logrus.Fields{
