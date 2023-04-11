@@ -77,7 +77,7 @@ jobs:
 
       - name: Install Cosign
         if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
-        uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b
+        uses: sigstore/cosign-installer@9e9de2292db7abb3f51b7f4808d98f0d347a8919
 
       - name: Sign Container Image
         if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
