@@ -50,12 +50,9 @@ import (
 //  - deal with (C) to handle (2). Plan is:
 //       - add a label matcher to policies
 //       - use k8s watcher to retrieve labels for all pods (by their pod id).
-//  - use a gouritine and a channel instead locks for serilization
-//  - periodic (or via external command) rescans to ensure that everything is up-to-date
-//  - optimization: policy<->pod matching caching so that we can go from pod -> matching policies
-//  without having to check all policies. Note that this would have to account for new
-//  policies added. Since we are only matching on namespace, we iterate over all policies for now
-//  since the performance impact of above optimization would be small.
+//  - use a goroutine and a queue
+//  (https://github.com/kubernetes/client-go/blob/master/examples/workqueue/main.go) instead locks
+//  for serialization
 
 func init() {
 	podhooks.RegisterCallbacksAtInit(podhooks.Callbacks{
