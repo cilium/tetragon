@@ -69,7 +69,7 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
     else make -C src EXTRA_CFLAGS=--static -j $(nproc) && strip src/bpftool; fi
 
 # This stage downloads a stripped static version of bpftool with LLVM disassembler
-FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:408430f548a8390089b9b83020148b0ef80b0be1beb41a98a8bfe036709c196e as bpftool-downloader
+FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:af2c6ca089c65226d592317c8924caa82e2e6b18383594e6f1015035d9937c3a as bpftool-downloader
 ARG TARGETARCH
 ARG BPFTOOL_TAG=v7.2.0-snapshot.0
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
