@@ -13,7 +13,7 @@ updates:
       - dependency-name: "k8s.io/*"
       - dependency-name: "sigs.k8s.io/*"
     labels:
-    - enhancement
+    - kind/enhancement
     - release-blocker
 
   - package-ecosystem: github-actions
@@ -23,7 +23,7 @@ updates:
     open-pull-requests-limit: 1
     rebase-strategy: disabled
     labels:
-    - enhancement
+    - kind/enhancement
     - release-blocker
 
   - package-ecosystem: docker
@@ -32,6 +32,15 @@ updates:
       interval: daily
     open-pull-requests-limit: 1
     rebase-strategy: disabled
+    ignore:
+      # this dependency has tags beginning with `v` and some without, which
+      # means that for dependabot, 1.1 < v1.6.0. Let's ignore the first tags
+      # without the `v` letter. See more information here:
+      # https://github.com/cilium/tetragon/pull/909#pullrequestreview-1378642231
+      - dependency-name: "cilium/alpine-curl"
+        versions:
+          - "1.1"
+          - "1.0"
     labels:
-    - enhancement
+    - kind/enhancement
     - release-blocker
