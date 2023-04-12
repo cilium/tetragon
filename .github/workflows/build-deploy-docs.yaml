@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
-        uses: actions/upload-pages-artifact@253fd476ed429e83b7aae64a92a75b4ceb1a17cf
+        uses: actions/upload-pages-artifact@64bcae551a7b18bcb9a09042ddf1960979799187
         with:
           path: docs/public
 
