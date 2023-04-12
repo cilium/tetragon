@@ -169,6 +169,46 @@ func NoAttach(load *Program) AttachFunc {
 	}
 }
 
+func TracingAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		linkFn := func() (link.Link, error) {
+			return link.AttachTracing(link.TracingOptions{
+				Program: prog,
+			})
+		}
+		lnk, err := linkFn()
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       lnk,
+			RelinkFn:   linkFn,
+		}, nil
+	}
+}
+
+func LSMAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		linkFn := func() (link.Link, error) {
+			return link.AttachLSM(link.LSMOptions{
+				Program: prog,
+			})
+		}
+		lnk, err := linkFn()
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       lnk,
+			RelinkFn:   linkFn,
+		}, nil
+	}
+}
+
 func MultiKprobeAttach(load *Program) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		data, ok := load.AttachData.(*MultiKprobeAttachData)
@@ -246,6 +286,14 @@ func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) erro
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
 	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
+}
+
+func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(load), nil, verbose)
+}
+
+func LoadLSMProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{mapDir}, load, LSMAttach(load), nil, verbose)
 }
 
 func slimVerifierError(errStr string) string {
