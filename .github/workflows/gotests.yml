@@ -22,7 +22,7 @@ jobs:
         go-version: '1.18.3'
 
     - name: Checkout code
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       with:
         path: go/src/github.com/cilium/tetragon/
 

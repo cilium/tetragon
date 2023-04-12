@@ -50,7 +50,7 @@ jobs:
           echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Checkout Source Code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
 
       - name: Set up Go
         uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f
