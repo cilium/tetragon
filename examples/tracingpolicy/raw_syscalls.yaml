@@ -1,3 +1,4 @@
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "raw-syscalls"
@@ -8,7 +9,8 @@ spec:
       # args: add both the syscall id, and the array with the arguments
       args:
         - index: 4
-        - index: 5
+          type: "int64"
+      #  - index: 5
       #selectors:
       #- matchPIDs:
       #  - operator: In
