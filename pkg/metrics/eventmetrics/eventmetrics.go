@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/prometheus/client_golang/prometheus"
@@ -79,4 +80,5 @@ func handleProcessedEvent(processedEvent interface{}) {
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
 	handleOriginalEvent(originalEvent)
 	handleProcessedEvent(processedEvent)
+	syscallmetrics.Handle(processedEvent)
 }
