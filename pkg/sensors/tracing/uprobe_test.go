@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -34,21 +35,30 @@ func TestUprobeLoad(t *testing.T) {
 		9:  tus.SensorProg{Name: "generic_uprobe_filter_arg4", Type: ebpf.Kprobe},
 		10: tus.SensorProg{Name: "generic_uprobe_filter_arg5", Type: ebpf.Kprobe},
 		11: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
+		12: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
+		13: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all uprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
 
-		// generic_uprobe_process_filter,generic_uprobe_filter_arg*
-		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8, 9, 10, 11}},
+		// all but generic_uprobe_output
+		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
 
-		// generic_uprobe_filter_arg*,generic_retuprobe_event,base
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 7, 8, 9, 10, 12}},
+		// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
+		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
 
+		// generic_uprobe_output
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13}},
+	}
+
+	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 12}},
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 13}})
+	} else {
+		// shared with base sensor
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11}})
 	}
 
 	nopHook := `

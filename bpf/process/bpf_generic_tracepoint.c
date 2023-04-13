@@ -15,7 +15,7 @@
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 11);
+	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } tp_calls SEC(".maps");
@@ -302,6 +302,22 @@ generic_tracepoint_arg5(void *ctx)
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&tp_calls, (void *)0,
 			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("tracepoint/11"), used)) int
+generic_tracepoint_actions(void *ctx)
+{
+	return generic_actions(ctx, (struct bpf_map_def *)&tp_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&tp_calls,
+			       (void *)0,
+			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("tracepoint/12"), used)) int
+generic_tracepoint_output(void *ctx)
+{
+	return generic_output(ctx, (struct bpf_map_def *)&tp_heap);
 }
 
 char _license[] __attribute__((section("license"), used)) = "GPL";

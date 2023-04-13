@@ -25,7 +25,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 11);
+	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } uprobe_calls SEC(".maps");
@@ -212,4 +212,20 @@ generic_uprobe_filter_arg5(void *ctx)
 			       (struct bpf_map_def *)&uprobe_calls,
 			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("uprobe/11"), used)) int
+generic_uprobe_actions(void *ctx)
+{
+	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&uprobe_calls,
+			       (void *)0,
+			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("uprobe/12"), used)) int
+generic_uprobe_output(void *ctx)
+{
+	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap);
 }

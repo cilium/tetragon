@@ -17,6 +17,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -417,12 +418,16 @@ func TestLoadTracepointSensor(t *testing.T) {
 		9:  tus.SensorProg{Name: "generic_tracepoint_event3", Type: ebpf.TracePoint},
 		10: tus.SensorProg{Name: "generic_tracepoint_event4", Type: ebpf.TracePoint},
 		11: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
+		12: tus.SensorProg{Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
+		13: tus.SensorProg{Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all programs
-		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+
+		// all but generic_tracepoint_output
+		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
 
 		// only generic_tracepoint_event*
 		tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{6, 7, 8, 9, 10}},
@@ -430,14 +435,19 @@ func TestLoadTracepointSensor(t *testing.T) {
 		// all but generic_tracepoint_event,generic_tracepoint_filter
 		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
-		// generic_tracepoint_arg**,base
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 3, 4, 5}},
+		// generic_tracepoint_output
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12}},
+	}
 
+	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11}},
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11, 13}})
+	} else {
+		// shared with base sensor
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11}})
 	}
 
 	readHook := `
