@@ -76,6 +76,8 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	e->current.pad[1] = 0;
 	e->current.pad[2] = 0;
 	e->current.pad[3] = 0;
+
+	e->action = 0;
 }
 
 static inline __attribute__((always_inline)) int

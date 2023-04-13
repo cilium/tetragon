@@ -1379,7 +1379,6 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	int pass, zero = 0;
-	size_t total;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
@@ -1398,6 +1397,30 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
+	if (pass > 1) {
+		e->pass = pass;
+		tail_call(ctx, tailcalls, 11);
+	}
+
+	tail_call(ctx, tailcalls, 12);
+	return 1;
+}
+
+static inline __attribute__((always_inline)) long
+generic_actions(void *ctx, struct bpf_map_def *heap,
+		struct bpf_map_def *filter,
+		struct bpf_map_def *tailcalls,
+		struct bpf_map_def *override_tasks,
+		struct bpf_map_def *config_map)
+{
+	struct msg_generic_kprobe *e;
+	int pass, zero = 0;
+
+	e = map_lookup_elem(heap, &zero);
+	if (!e)
+		return 0;
+
+	pass = e->pass;
 	if (pass > 1) {
 		struct selector_arg_filters *arg;
 		struct selector_action *actions;
@@ -1425,6 +1448,21 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 				return 1;
 		}
 	}
+
+	tail_call(ctx, tailcalls, 12);
+	return 1;
+}
+
+static inline __attribute__((always_inline)) long
+generic_output(void *ctx, struct bpf_map_def *heap)
+{
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+	size_t total;
+
+	e = map_lookup_elem(heap, &zero);
+	if (!e)
+		return 0;
 
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */

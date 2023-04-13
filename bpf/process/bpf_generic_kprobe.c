@@ -26,7 +26,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 11);
+	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } kprobe_calls SEC(".maps");
@@ -257,6 +257,22 @@ generic_kprobe_filter_arg5(void *ctx)
 			       (struct bpf_map_def *)&kprobe_calls,
 			       (struct bpf_map_def *)&override_tasks,
 			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("kprobe/11"), used)) int
+generic_kprobe_actions(void *ctx)
+{
+	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&kprobe_calls,
+			       (struct bpf_map_def *)&override_tasks,
+			       (struct bpf_map_def *)&config_map);
+}
+
+__attribute__((section("kprobe/12"), used)) int
+generic_kprobe_output(void *ctx)
+{
+	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap);
 }
 
 __attribute__((section("kprobe/override"), used)) int

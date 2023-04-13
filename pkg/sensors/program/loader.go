@@ -298,7 +298,7 @@ func installTailCalls(mapDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		}
 		defer tailCallsMap.Close()
 
-		for i := 0; i < 11; i++ {
+		for i := 0; i < 13; i++ {
 			secName := fmt.Sprintf("%s/%d", secPrefix, i)
 			if progName, ok := secToProgName[secName]; ok {
 				if prog, ok := coll.Programs[progName]; ok {
