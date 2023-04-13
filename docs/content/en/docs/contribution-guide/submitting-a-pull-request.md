@@ -1,6 +1,7 @@
 ---
 title: "Submitting a pull request"
 weight: 4
+icon: "features"
 description: "Learn how to submit a pull request to the project"
 ---
 

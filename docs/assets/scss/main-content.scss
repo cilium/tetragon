@@ -1,0 +1,80 @@
+main {
+  position: relative;
+
+  .td-breadcrumbs {
+    &__single {
+      display: none;
+    }
+
+    .breadcrumb {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .td-content {
+    max-width: 800px;
+
+    >h1 {
+      margin-bottom: 24px;
+      font-weight: 700;
+      font-size: 42px;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      color: #253737;
+
+      @media screen and (max-width: 1024px) {
+        font-size: 38px;
+      }
+
+      @media screen and (max-width: 767px) {
+        margin-top: 0;
+        font-size: 36px;
+      }
+    }
+
+    figure {
+      // Apply a consistent margin strategy (matches our type styles).
+      margin: 32px 0 48px;
+    }
+
+    figcaption {
+      margin-top: 20px;
+      color: #5C6D70;
+      font-size: 14px;
+      line-height: 162.5%;
+    }
+
+    figcaption p {
+      margin: 0;
+    }
+  }
+
+  .section-index {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin: 26px 0;
+
+    @media screen and (max-width: 767px) {
+      gap: 14px;
+    }
+
+    @media screen and (max-width: 520px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  // Adjust anchors vs the fixed menu.
+@include media-breakpoint-up(md) {
+  h2[id]:before,
+  h3[id]:before,
+  h4[id]:before,
+  h5[id]:before {
+      display: inline-block;
+      content: " ";
+      margin-top: -5rem;
+      height: 5rem;
+      visibility: hidden;
+  }
+}
+}

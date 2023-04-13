@@ -1,6 +1,7 @@
 ---
 title: "Development setup"
 weight: 1
+icon: "overview"
 description: "This will help you getting started with your development setup to build Tetragon"
 ---
 
@@ -166,5 +167,5 @@ minikube ssh sudo "sh -c 'NODE_NAME=minikube /home/kkourt/src/tetragon/tetragon 
 
 ### What's next
 
-See how to [make your first changes](/docs/contribution-guide/making-changes).
+- See how to [make your first changes](/docs/contribution-guide/making-changes).
 

@@ -1,0 +1,86 @@
+.banner {
+  position: relative;
+  margin-bottom: 26px;
+  padding: 36px 42px;
+  background-color: #F4FBFB;
+  border: 1px solid #C6F1F1;
+  border-radius: 4px;
+  margin-top: 40px;
+
+  @media screen and (max-width: 1340px) {
+    padding: 18px 20px;
+  }
+
+  &__title {
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.375;
+    color: #253737;
+
+    @media screen and (max-width: 767px) {
+      font-size: 24px;
+    }
+  }
+
+  &__content-wrapper {
+    @media screen and (max-width: 1340px) {
+      max-width: 50%;
+    }
+
+    @media screen and (max-width: 562px) {
+      max-width: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  }
+
+  &__content {
+    margin-top: 8px !important;
+    margin-bottom: 24px !important;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.625;
+    color: #2B383B;
+  }
+
+  &__link {
+    display: inline-block;
+    vertical-align: middle;
+    padding: 17px 30px;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+    color: #253737;
+    background: linear-gradient(86.5deg, #84E1A3 2.87%, #74E2CF 100%);
+    border-radius: 84px;
+    transition: all 0.2s ease;
+
+    &:hover,
+    &:focus {
+      color: #253737;
+      background: linear-gradient(86.5deg, #90E4C8 2.87%, #81E4E4 100%);
+    }
+
+    @media screen and (max-width: 414px) {
+      width: 100%;
+    }
+  }
+
+  &__mascot {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+
+    @media screen and (max-width: 1024px) {
+      width: 250px;
+      right: 3%;
+    }
+
+    @media screen and (max-width: 562px) {
+      display: none;
+    }
+  }
+}

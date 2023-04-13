@@ -2,6 +2,7 @@
 title: "Observability with Tetragon"
 linkTitle: "Observability with Tetragon"
 weight: 3
+icon: "observability"
 description: >
    Tetragon uses eBPF to generate various types of events
 ---

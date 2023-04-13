@@ -1,0 +1,28 @@
+.td-sidebar-toc {
+  border-left: 1px solid #E5E7E7;
+
+  .td-page-meta {
+    margin-left: 8px !important;
+    padding-top: 25px !important;
+
+    a {
+      margin-bottom: 0.79rem;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #253737;
+      transition: color 0.2s;
+
+      >i {
+        font-size: 15px;
+        width: 1em;
+        margin-right: 5px;
+      }
+
+      &:hover,
+      &:focus {
+        color: #5C6D70;
+      }
+    }
+  }
+}

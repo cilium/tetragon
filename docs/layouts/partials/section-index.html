@@ -1,0 +1,40 @@
+<div class="section-index">
+  {{ $parent := .Page }}
+  {{ $pages := (where .Site.Pages "Section" .Section).ByWeight }}
+  {{ $pages = (where $pages "Type" "!=" "search") }}
+  {{ $pages = (where $pages ".Params.isShownInList" "!=" "true") }}
+  {{ $pages = (where $pages ".Params.hide_summary" "!=" true) }}
+  {{ $pages = (where $pages ".Parent" "!=" nil) }}
+  {{ $pages = (where $pages "Parent.File.UniqueID" "==" $parent.File.UniqueID) }}
+  {{ if or $parent.Params.no_list (eq (len $pages) 0) }}
+  {{/* If no_list is true or we don't have subpages we don't show a list of subpages */}}
+  {{ else if $parent.Params.simple_list }}
+  {{/* If simple_list is true we show a bulleted list of subpages */}}
+  <ul>
+    {{ range $pages }}
+    {{ $manualLink := cond (isset .Params "manuallink") .Params.manualLink ( cond (isset .Params "manuallinkrelref")
+    (relref . .Params.manualLinkRelref) .RelPermalink) }}
+    <li><a href="{{ $manualLink }}" {{ with .Params.manualLinkTitle }} title="{{ . }}" {{ end }}{{ with
+        .Params.manualLinkTarget }} target="{{ . }}" {{ if eq . "_blank" }} rel="noopener" {{ end }}{{ end }}>{{- .Title
+        -}}</a></li>
+    {{ end }}
+  </ul>
+  {{ else }}
+  {{/* Otherwise we show a nice formatted list of subpages with page descriptions */}}
+  {{ range $pages }}
+  {{ $manualLink := cond (isset .Params "manuallink") .Params.manualLink ( cond (isset .Params "manuallinkrelref")
+  (relref . .Params.manualLinkRelref) .RelPermalink) }}
+  {{ $icon := cond (isset .Params "icon") .Params.icon "reference" }}
+  <a class="page-card" href="{{ $manualLink }}" {{ with .Params.manualLinkTitle }} title="{{ . }}" {{ end }}{{ with
+    .Params.manualLinkTarget }} target="{{ . }}" {{ if eq . "_blank" }} rel="noopener" {{ end }}{{ end }}>
+    <div class="page-card__icon page-card__icon--{{ $icon }}">
+      <span class="sr-only">{{ $icon }} category</span>
+    </div>
+    <div class="page-card__content">
+      <h2 class="page-card__title">{{- .Title -}}</h2>
+      <p>{{ .Description | markdownify }}</p>
+    </div>
+  </a>
+  {{ end }}
+  {{ end }}
+</div>

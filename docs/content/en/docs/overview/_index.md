@@ -2,6 +2,7 @@
 title: "Overview"
 linkTitle: "Overview"
 weight: 1
+icon: "overview"
 description: >
   Discover Tetragon and its capabilities
 ---

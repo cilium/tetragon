@@ -1,8 +1,11 @@
 [note]
-other = "Note:"
+other = "Note"
 
 [caution]
-other = "Caution:"
+other = "Caution"
 
 [warning]
-other = "Warning:"
+other = "Warning"
+
+[tip]
+other = "Tip"

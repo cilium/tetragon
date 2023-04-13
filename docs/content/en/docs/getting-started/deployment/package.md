@@ -1,6 +1,7 @@
 ---
 title: "Package deployment"
 weight: 2
+icon: "reference"
 description: "Install Tetragon on your Linux host machines with systemd"
 ---
 
@@ -170,6 +171,6 @@ Tetragon also ships a gRPC client that can be used to receive events.
 
 ## What's next
 
-See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+- See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
 to learn more about how to see the Tetragon events.
 

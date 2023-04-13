@@ -1,0 +1,52 @@
+.footer {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding: 52px 80px;
+  min-height: auto;
+  background-color: #FAFAFA;
+
+  &__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @media screen and (max-width: 767px) {
+      flex-direction: column;
+      gap: 20px;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: #253737;
+  }
+
+  &__socials {
+    display: flex;
+    gap: 1.25rem;
+
+    a {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 100%;
+      width: 40px;
+      height: 40px;
+      background-color: #2b383b;
+      transition: all 0.2s ease;
+
+      svg {
+        width: 22px;
+      }
+
+      &:hover,
+      &:focus {
+        background-color: #415559;
+      }
+    }
+  }
+}

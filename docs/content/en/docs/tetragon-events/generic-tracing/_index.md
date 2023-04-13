@@ -1,6 +1,7 @@
 ---
 title: "Generic tracing"
 weight: 2
+icon: "reference"
 description: "Tetragon can observe tracepoints and arbitrary kernel calls via kprobes"
 ---
 
