@@ -1412,43 +1412,40 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *override_tasks,
 		struct bpf_map_def *config_map)
 {
+	struct selector_arg_filters *arg;
+	struct selector_action *actions;
 	struct msg_generic_kprobe *e;
-	int pass, zero = 0;
+	int actoff, pass, zero = 0;
+	bool postit;
+	__u8 *f;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
 
 	pass = e->pass;
-	if (pass > 1) {
-		struct selector_arg_filters *arg;
-		struct selector_action *actions;
-		int actoff;
-		__u8 *f;
+	if (pass <= 1)
+		return 0;
 
-		f = map_lookup_elem(filter, &e->idx);
-		if (f) {
-			bool postit;
+	f = map_lookup_elem(filter, &e->idx);
+	if (!f)
+		return 0;
 
-			asm volatile("%[pass] &= 0x7ff;\n"
-				     : [pass] "+r"(pass)
-				     :);
-			arg = (struct selector_arg_filters *)&f[pass];
+	asm volatile("%[pass] &= 0x7ff;\n"
+		     : [pass] "+r"(pass)
+		     :);
+	arg = (struct selector_arg_filters *)&f[pass];
 
-			actoff = pass + arg->arglen;
-			asm volatile("%[actoff] &= 0x7ff;\n"
-				     : [actoff] "+r"(actoff)
-				     :);
-			actions = (struct selector_action *)&f[actoff];
+	actoff = pass + arg->arglen;
+	asm volatile("%[actoff] &= 0x7ff;\n"
+		     : [actoff] "+r"(actoff)
+		     :);
+	actions = (struct selector_action *)&f[actoff];
 
-			postit = do_actions(e, actions, override_tasks,
-					    config_map);
-			if (!postit)
-				return 1;
-		}
-	}
-
-	tail_call(ctx, tailcalls, 12);
+	postit = do_actions(e, actions, override_tasks,
+			    config_map);
+	if (postit)
+		tail_call(ctx, tailcalls, 12);
 	return 1;
 }
 
