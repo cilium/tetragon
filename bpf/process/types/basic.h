@@ -1373,7 +1373,6 @@ out:
 static inline __attribute__((always_inline)) long
 filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks,
 		struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;

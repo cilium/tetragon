@@ -264,7 +264,7 @@ generic_tracepoint_arg1(void *ctx)
 {
 	return filter_read_arg(ctx, 0, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -273,7 +273,7 @@ generic_tracepoint_arg2(void *ctx)
 {
 	return filter_read_arg(ctx, 1, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -282,7 +282,7 @@ generic_tracepoint_arg3(void *ctx)
 {
 	return filter_read_arg(ctx, 2, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -291,7 +291,7 @@ generic_tracepoint_arg4(void *ctx)
 {
 	return filter_read_arg(ctx, 3, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -300,7 +300,7 @@ generic_tracepoint_arg5(void *ctx)
 {
 	return filter_read_arg(ctx, 4, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls, (void *)0,
+			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 

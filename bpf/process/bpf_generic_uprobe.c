@@ -170,7 +170,6 @@ generic_uprobe_filter_arg1(void *ctx)
 	return filter_read_arg(ctx, 0, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -180,7 +179,6 @@ generic_uprobe_filter_arg2(void *ctx)
 	return filter_read_arg(ctx, 1, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -190,7 +188,6 @@ generic_uprobe_filter_arg3(void *ctx)
 	return filter_read_arg(ctx, 2, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -200,7 +197,6 @@ generic_uprobe_filter_arg4(void *ctx)
 	return filter_read_arg(ctx, 3, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
 }
 
@@ -210,7 +206,6 @@ generic_uprobe_filter_arg5(void *ctx)
 	return filter_read_arg(ctx, 4, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)0,
 			       (struct bpf_map_def *)&config_map);
 }
 
