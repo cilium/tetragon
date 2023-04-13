@@ -1,0 +1,24 @@
+.td-card-deck.card-deck {
+  max-width: none;
+}
+
+.td-card {
+  &.card {
+    .highlight {
+      max-width: none;
+      border: none;
+    }
+  }
+
+  .card-body {
+    &.code {
+      background-color: #f8f9fa;
+      padding: 0 0 0 1ex;
+    }
+
+    pre {
+      margin: 0;
+      padding: 0 1rem 1rem 1rem;
+    }
+  }
+}

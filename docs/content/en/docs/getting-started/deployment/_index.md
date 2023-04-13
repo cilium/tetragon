@@ -1,6 +1,7 @@
 ---
 title: "Deployment"
 weight: 4
+icon: "observability"
 description: "Deploy Tetragon as a container or directly on a host"
 ---
 

@@ -1,0 +1,23 @@
+
+.pageinfo {
+  font-weight: 400;
+  background: #FAFAFA;
+  border-radius: 4px;
+  margin: 2rem 0;
+  padding: 20px 16px;
+  padding-bottom: 20px;
+  border: none !important;
+
+  p {
+    margin: 12px 0;
+  }
+
+  p:first-child,
+  p:first-child:last-child {
+    margin: 0;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}

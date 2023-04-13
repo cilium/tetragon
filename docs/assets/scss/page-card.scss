@@ -1,0 +1,105 @@
+.page-card {
+  display: flex;
+  padding: 20px 20px;
+  border: 1px solid #E5E7E7;
+  border-radius: 4px;
+
+  &__title {
+    margin-bottom: 0.25rem;
+    width: 100%;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.375;
+    transition: all 0.2s ease;
+
+    @media screen and (max-width: 767px) {
+      font-size: 16px;
+    }
+  }
+
+  &:hover,
+  &:focus {
+    .page-card__content {
+      h2 {
+        color: #5C6D70;
+      }
+    }
+  }
+
+  &__content {
+    h2 {
+      color: #253737;
+
+      &:hover,
+      &:focus {
+        color: #5C6D70;
+      }
+    }
+
+    p {
+      font-size: 14px;
+      color: #2B383B;
+      font-weight: 400;
+      margin-bottom: 0;
+      margin-top: 4px;
+
+      @media screen and (max-width: 767px) {
+        font-size: 13px;
+      }
+
+      @media screen and (max-width: 520px) {
+        margin-bottom: 0;
+      }
+
+    }
+  }
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    margin-right: 16px;
+    flex-shrink: 0;
+    background-color: #F4FBFB;
+    background-size: cover;
+    border-radius: 4px;
+
+    @media screen and (max-width: 767px) {
+      width: 42px;
+      height: 42px;
+    }
+
+    // TODO: add info on icons to Readme
+
+    &--overview {
+      background-image: url(/icons/overview-icon.svg);
+    }
+
+    &--reference {
+      background-image: url(/icons/reference-icon.svg);
+    }
+
+    &--observability {
+      background-image: url(/icons/observability-icon.svg);
+    }
+
+    &--features {
+      background-image: url(/icons/features-icon.svg);
+    }
+
+    &--tutorials {
+      background-image: url(/icons/tutorials-icon.svg);
+    }
+
+    &--contribution {
+      background-image: url(/icons/contribution-icon.svg);
+    }
+
+    &--faq {
+      background-image: url(/icons/faq-icon.svg);
+    }
+
+    &--resources {
+      background-image: url(/icons/resources-icon.svg);
+    }
+  }
+}

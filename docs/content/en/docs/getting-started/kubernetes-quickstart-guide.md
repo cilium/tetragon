@@ -1,6 +1,7 @@
 ---
 title: "Kubernetes quickstart guide"
 weight: 2
+icon: "overview"
 description: "Deploy Tetragon on a Kubernetes cluster"
 ---
 
@@ -94,5 +95,5 @@ xwing                        1/1     Running   0          10s
 
 ### What's next
 
-Learn how to checks this events in the next section [Explore security
+- Learn how to checks this events in the next section [Explore security
 observability events](/docs/getting-started/explore-security-observability-events).

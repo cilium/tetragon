@@ -1,0 +1,80 @@
+//
+// Right side toc
+//
+.td-sidebar-toc {
+  border-left: 1px solid $border-color;
+
+  @supports (position: sticky) {
+    position: sticky;
+    top: 0;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  order: 2;
+  padding-bottom: 1.5rem;
+  vertical-align: top;
+
+}
+
+.td-page-meta {
+  padding-bottom: 20px;
+
+  a {
+    display: block;
+    font-weight: $font-weight-medium;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
+.td-toc {
+  padding-top: 20px;
+  border-top: $border-width solid $border-color;
+
+  p {
+    font-size: 15px;
+    font-weight: 700;
+    color: #253737;
+    margin-bottom: 12px;
+  }
+
+  a {
+    display: block;
+    font-weight: $font-weight-light;
+    padding-bottom: .25rem;
+  }
+
+  li {
+    list-style: none;
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  li li {
+    margin-left: 0.5rem;
+  }
+
+  #TableOfContents {
+
+    // Hugo's ToC is a mouthful, this can be used to style the top level h2 entries.
+    >ul>li>ul>li>a {}
+
+    a {
+      color: #253737;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #5C6D70;
+        text-decoration: none;
+      }
+    }
+  }
+
+  ul {
+    padding-left: 0;
+  }
+}

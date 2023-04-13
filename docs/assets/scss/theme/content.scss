@@ -1,0 +1,193 @@
+//
+// Style Markdown content
+//
+
+.td-content {
+  order: 1;
+
+  p,
+  li,
+  td {
+    font-weight: $font-weight-body-text;
+  }
+
+  >h1 {
+    font-weight: $font-weight-bold;
+    margin-bottom: 24px;
+  }
+
+  >h2 {
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+
+  >h2:not(:first-child) {
+    margin-top: 48px;
+  }
+
+  >h2+h3 {
+    margin-top: 20px;
+  }
+
+  >h3,
+  >h4,
+  >h5,
+  >h6 {
+    margin-bottom: 12px;
+    margin-top: 28px !important;
+    font-weight: 600;
+  }
+
+  #whats-next {
+    font-size: 20px;
+    line-height: 162.5%;
+    padding-top: 44px;
+    margin-top: 36px;
+    border-top: 1px solid #dee2e6 !important;
+  }
+
+  p {
+    margin: 16px 0;
+  }
+
+  img {
+    @extend .img-fluid;
+  }
+
+  table {
+    @extend .table-striped;
+
+    @extend .table-responsive;
+
+    @extend .table;
+  }
+
+  blockquote {
+    padding: 16px 20px;
+    margin: 20px 0;
+    color: #253737;
+    border-left: 4px solid #AFB6B7;
+    background-color: #FAFAFA;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  details {
+    margin: 20px 0;
+
+    div.highlight,
+    p,
+    ul li,
+    ol li {
+      margin: 12px 0;
+    }
+
+    summary {
+      font-weight: 600;
+      list-style-type: none;
+      position: relative;
+      padding-left: 20px;
+      transition: color 0.2s;
+
+      &::before {
+        content: ' ';
+        display: block;
+        width: 12px;
+        height: 12px;
+        background-image: url(/icons/chevron.svg);
+        position: absolute;
+        top: 5px;
+        left: 0;
+        rotate: 0deg;
+        opacity: 1;
+        transition: rotate 0.3s, opacity 0.3s;
+      }
+    }
+
+    &:hover,
+    &:focus {
+      summary {
+        color: #5C6D70;
+
+        &::before {
+          opacity: 0.7;
+        }
+      }
+    }
+
+    &[open] summary::before {
+      rotate: 180deg;
+      top: 7px;
+    }
+  }
+
+  ul,
+  ol {
+    padding-left: 32px;
+  }
+
+  ul li,
+  ol li {
+    margin-bottom: 4px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  ul li {
+    list-style: none;
+    position: relative;
+
+    &:before {
+      content: ' ';
+      display: block;
+      width: 4px;
+      height: 4px;
+      background-color: #253737;
+      border-radius: 50%;
+      position: absolute;
+      top: 11px;
+      left: -12px;
+    }
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  .alert:not(:first-child) {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .lead {
+    margin-bottom: 12px;
+  }
+
+  >pre,
+  >.highlight,
+  >.lead,
+  >h1,
+  >h2,
+  >ul,
+  >ol,
+  >p,
+  >blockquote,
+  >dl dd,
+  .footnotes,
+  >.alert {
+    max-width: unset;
+  }
+}
+
+.td-title {
+  margin-top: 1rem;
+  margin-bottom: .5rem;
+
+  @include media-breakpoint-up(sm) {
+    font-size: 3rem;
+  }
+}

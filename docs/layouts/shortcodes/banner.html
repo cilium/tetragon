@@ -1,0 +1,14 @@
+<div class="banner">
+  <div class="banner__content-wrapper">
+    <h2 class="banner__title">
+      {{ .Get "title" }}
+    </h2>
+    <p class="banner__content">
+      {{ .Get "content" }}
+    </p>
+    {{ if .Get "link" }}
+    <a class="banner__link" href={{ .Get "link" }}>Getting started</a>
+    {{ end }}
+  </div>
+  <img class="banner__mascot" src="/images/jedi-bee-mascot.png" width="300" height="250" alt="Jedi bee" />
+</div>

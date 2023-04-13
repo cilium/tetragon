@@ -1,6 +1,7 @@
 ---
 title: "Verify Tetragon image signatures"
 weight: 1
+icon: "overview"
 description: "Learn how to verify Tetragon container images signatures."
 ---
 

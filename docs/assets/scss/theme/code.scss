@@ -1,0 +1,332 @@
+// Inline code
+code {
+  @include font-size($code-font-size);
+  color: $code-color;
+  word-wrap: break-word;
+
+  // Streamline the style when inside anchors to avoid broken underline and more
+  a>& {
+    color: inherit;
+  }
+}
+
+// User input typically entered via keyboard
+kbd {
+  padding: $kbd-padding-y $kbd-padding-x;
+  @include font-size($kbd-font-size);
+  color: $kbd-color;
+  background-color: $kbd-bg;
+  @include border-radius($border-radius-sm);
+  @include box-shadow($kbd-box-shadow);
+
+  kbd {
+    padding: 0;
+    @include font-size(100%);
+    font-weight: $nested-kbd-font-weight;
+    @include box-shadow(none);
+  }
+}
+
+// Blocks of code
+pre {
+  display: block;
+  @include font-size($code-font-size);
+  color: $pre-color;
+
+  // Account for some code outputs that place code tags in pre tags
+  code {
+    @include font-size(inherit);
+    color: inherit;
+    word-break: normal;
+  }
+}
+
+// Enable scrollable blocks of code
+.pre-scrollable {
+  max-height: $pre-scrollable-max-height;
+  overflow-y: scroll;
+}
+
+// Code formatting.
+
+.td-content {
+
+  // Highlighted code.
+  .highlight {
+    @extend .card;
+
+    margin: 2rem 0;
+    padding: 0;
+    position: relative;
+
+    code {
+      span[style*="font-weight:bold"] {
+        font-weight: 400 !important;
+      }
+    }
+
+    .click-to-copy {
+      display: block;
+      text-align: right;
+      height: 1ex;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+
+      // Default click-to-copy button
+
+      button {
+        position: absolute;
+        color: $gray-400;
+        border-radius: 3px;
+        border-width: 0;
+        background-color: inherit;
+        box-shadow: 1px 1px $gray-400;
+        right: 8px;
+        top: 6px;
+
+        &:hover {
+          color: $dark;
+          background-color: $gray-400;
+        }
+
+        &:active {
+          color: $dark;
+          background-color: $gray-400;
+          transform: translateY(2px);
+        }
+      }
+
+      .c2c-tooltip {
+        background: $dark;
+        color: $white;
+        padding: 2px 4px;
+        border-radius: 3px;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.5s linear;
+      }
+
+      .c2c-tooltip[show-tooltip] {
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+  }
+
+  // Inline code
+  p code,
+  li>code,
+  table code {
+    color: inherit;
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    word-break: normal;
+    background-color: rgba($black, 0.05);
+    border-radius: $border-radius;
+
+    br {
+      display: none;
+    }
+  }
+
+
+  // Code blocks
+  pre {
+    word-wrap: normal;
+    background-color: $gray-100;
+    padding: $spacer;
+
+
+    >code {
+      background-color: inherit !important;
+      padding: 0;
+      margin: 0;
+      font-size: 100%;
+      word-break: normal;
+      white-space: pre;
+      border: 0;
+    }
+  }
+
+  pre.mermaid {
+    background-color: inherit;
+    font-size: 0;
+  }
+}
+
+// Code formatting.
+
+.td-content {
+
+  // Highlighted code.
+  .highlight {
+    @extend .card;
+
+    margin: 20px 0;
+    padding: 0;
+    position: relative;
+    border-color: #E5E7E7;
+    border-radius: 4px;
+    overflow: hidden;
+
+    .click-to-copy {
+      display: block;
+      text-align: right;
+      height: 1ex;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      background-color: #FAFAFA !important;
+      border: none;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+
+      // Default click-to-copy button
+
+      button {
+        position: absolute;
+        color: $gray-400;
+        border-radius: 3px;
+        border-width: 0;
+        background-color: inherit;
+        box-shadow: 1px 1px $gray-400;
+        right: 8px;
+        top: 6px;
+
+        &:hover {
+          color: $dark;
+          background-color: $gray-400;
+        }
+
+        &:active {
+          color: $dark;
+          background-color: $gray-400;
+          transform: translateY(2px);
+        }
+      }
+
+      .c2c-tooltip {
+        background: $dark;
+        color: $white;
+        padding: 2px 4px;
+        border-radius: 3px;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.5s linear;
+      }
+
+      .c2c-tooltip[show-tooltip] {
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+  }
+
+  // Inline code
+  p code,
+  li>code,
+  table code {
+    color: inherit;
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    word-break: normal;
+    background-color: rgba($black, 0.05);
+    border-radius: $border-radius;
+
+    br {
+      display: none;
+    }
+  }
+
+
+  // Code blocks
+  pre {
+    word-wrap: normal;
+    background-color: #FAFAFA;
+    border-radius: 4px;
+    padding: $spacer;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+
+    >code {
+      background-color: inherit !important;
+      padding: 0;
+      margin: 0;
+      font-size: 100%;
+      word-break: normal;
+      white-space: pre;
+      border: 0;
+    }
+  }
+
+  pre.mermaid {
+    background-color: inherit;
+    font-size: 0;
+  }
+}
+
+.toolbar {
+  top: 16px !important;
+  right: 16px !important;
+}
+
+div.code-toolbar>.toolbar>.toolbar-item>button.copy-to-clipboard-button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  background: #FFFFFF;
+  border: 1px solid #E5E7E7;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  padding: 0;
+
+
+  &:before {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  &:hover:before {
+    opacity: 1;
+  }
+
+  & span {
+    display: none;
+  }
+
+  &[data-copy-state="copy"]:before {
+    content: " ";
+    background-image: url(/icons/copy.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  &[data-copy-state="copy-success"]:before {
+    content: " ";
+    background-image: url(/icons/copied.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 14px;
+    height: 14px;
+    display: block;
+    opacity: 0.5 !important;
+  }
+}

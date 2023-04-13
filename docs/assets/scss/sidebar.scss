@@ -1,0 +1,138 @@
+.td-sidebar {
+  background-color: #fff;
+  border-right: 1px solid #E5E7E7;
+
+  @media screen and (max-width: 767px) {
+    border-right: none;
+    padding-bottom: 0;
+  }
+
+  &__search {
+    margin-right: -35px;
+    margin-left: -10px;
+
+    .form-control {
+      box-shadow: none;
+      border: 1px solid #C9CECF;
+      border-radius: 4px;
+
+      &::placeholder {
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 1;
+        color: #5C6D70;
+      }
+    }
+
+    .td-search__icon:before {
+      color: #5C6D70;
+      font-weight: var(--fa-style, 600);
+    }
+  }
+
+  &-menu {
+    padding-top: 25px;
+  }
+
+  &-nav {
+    .td-sidebar-link {
+      padding-bottom: 10px;
+
+      &.tree-root {
+        display: none;
+      }
+    }
+
+    >.td-sidebar-nav__section {
+      padding-left: 20px;
+      padding-right: 0.5rem !important;
+
+      @media all and (max-width: 867px) {
+        padding-top: 0;
+      }
+
+      padding-top: 18px;
+
+    }
+
+    &__section {
+      .ul-1 ul {
+        padding-left: 1.25rem;
+      }
+    }
+
+    .ul-1>li {
+      padding-bottom: 0;
+      margin-bottom: 16px;
+    }
+
+    .ul-1>li>a {
+      padding-bottom: 0;
+    }
+
+    .ul-1>li.with-child>a {
+      padding-bottom: 0;
+      margin-bottom: 12px;
+    }
+
+    .ul-2>li>a {
+      padding-bottom: 0;
+      margin-bottom: 10px;
+    }
+
+    .ul-1>li>a {
+      padding-bottom: 0;
+    }
+
+    .ul-1>li.with-child>a {
+      padding-bottom: 0;
+      margin-bottom: 12px;
+    }
+
+    .ul-2>li>a {
+      padding-bottom: 0;
+      margin-bottom: 10px;
+
+      .ul-1>li>a {
+        padding-bottom: 16px;
+      }
+
+      &__section-title {
+        font-weight: 400;
+
+        a {
+          font-size: 14px;
+          line-height: 1.5;
+          color: #253737;
+
+          &.active {
+            font-weight: 600;
+          }
+
+          &:hover,
+          &:focus {
+            color: #5C6D70;
+          }
+        }
+
+        .with-child {
+          >a {
+            position: relative;
+
+            // TODO: restore when items collapsing is available
+            // &:after {
+            //   content: '\f077';
+            //   position: absolute;
+            //   right: 0;
+            //   top: 0;
+            //   bottom: 0;
+            //   margin: auto;
+            //   font-family: var(--fa-style-family, "Font Awesome 6 Free");
+            //   font-weight: var(--fa-style, 600);
+            // }
+          }
+        }
+      }
+    }
+  }
+}

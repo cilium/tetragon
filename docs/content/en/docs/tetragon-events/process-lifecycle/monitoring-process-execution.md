@@ -1,6 +1,7 @@
 ---
 title: "Use case: monitoring process execution"
 weight: 1
+icon: "overview"
 description: "Monitor process lifecycle with `process_exec` and `process_exit`"
 ---
 

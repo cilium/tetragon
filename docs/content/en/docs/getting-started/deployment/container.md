@@ -1,6 +1,7 @@
 ---
 title: "Container deployment"
 weight: 1
+icon: "overview"
 description: "Install Tetragon as a container without a Kubernetes cluster"
 ---
 
@@ -53,6 +54,6 @@ docker run --name tetragon \
 
 ## What's next
 
-See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+- See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
 to learn how to see the Tetragon events.
 

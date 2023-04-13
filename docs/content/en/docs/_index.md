@@ -1,13 +1,7 @@
 ---
-title: "Welcome to Tetragon documentation!"
+title: "Welcome to Tetragon documentation"
 linkTitle: "Documentation"
 weight: 10
 ---
 
-{{< figure
-    src="logo.png"
-    width=800px
-    alt="Tetragon logo"
->}}
-
-The documentation is divided into the following sections:
+{{< banner title="Getting Started with Tetragon" content="Quickly get started and learn how to install, deploy and configure it" link="getting-started/" >}}

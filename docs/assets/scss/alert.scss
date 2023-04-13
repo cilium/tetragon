@@ -1,0 +1,74 @@
+.alert {
+  // Override Docsy styles
+  padding: 16px 20px;
+  background-color: #FAFAFA;
+  border-left-width: 4px; // fallback in case calc() is missing
+  color: #000;
+  border-radius: 0px 1px 1px 0px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+}
+
+.alert.callout.caution {
+  border-left-color: #F6A855;
+}
+
+.alert.callout.note {
+  border-left-color: #70A0FF;
+}
+
+.alert.callout.warning {
+  border-left-color: #FF6673;
+}
+
+.alert.callout.tip {
+  border-left-color: #84E194;
+}
+
+.alert.callout strong {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.alert.callout.caution strong {
+  color: #B25C00;
+}
+
+.alert.callout.note strong {
+  color: #386EDC;
+}
+
+.alert.callout.warning strong {
+  color: #D92635;
+}
+
+.alert.callout.tip strong {
+  color: #178229;
+}
+
+.alert.callout p {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.alert.callout p:last-child {
+  margin-bottom: 0;
+}
+
+h1:first-of-type+.alert.callout {
+  margin-top: 1.5em;
+}
+
+code {
+  color: inherit;
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  word-break: normal;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.25rem;
+}

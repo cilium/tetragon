@@ -1,6 +1,7 @@
 ---
 title: "Use case: network observability"
 weight: 2
+icon: "reference"
 description: "Monitor TCP connect using kprobe hooks"
 ---
 
