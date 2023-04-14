@@ -44,6 +44,8 @@ type genericUprobe struct {
 	path          string
 	symbol        string
 	selectors     *selectors.KernelSelectorState
+	// policyName is the name of the policy that this uprobe belongs to
+	policyName string
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -169,7 +171,11 @@ func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
-func createGenericUprobeSensor(name string, uprobes []v1alpha1.UProbeSpec) (*sensors.Sensor, error) {
+func createGenericUprobeSensor(
+	name string,
+	uprobes []v1alpha1.UProbeSpec,
+	policyName string,
+) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -199,11 +205,12 @@ func createGenericUprobeSensor(name string, uprobes []v1alpha1.UProbeSpec) (*sen
 		}
 
 		uprobeEntry := &genericUprobe{
-			tableId:   idtable.UninitializedEntryID,
-			config:    config,
-			path:      spec.Path,
-			symbol:    spec.Symbol,
-			selectors: uprobeSelectorState,
+			tableId:    idtable.UninitializedEntryID,
+			config:     config,
+			path:       spec.Path,
+			symbol:     spec.Symbol,
+			selectors:  uprobeSelectorState,
+			policyName: policyName,
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
@@ -264,5 +271,6 @@ func (k *observerUprobeSensor) PolicyHandler(
 	}
 
 	name := fmt.Sprintf("gup-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-	return createGenericUprobeSensor(name, spec.UProbes)
+	policyName := p.TpName()
+	return createGenericUprobeSensor(name, spec.UProbes, policyName)
 }

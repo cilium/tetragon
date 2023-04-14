@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/reader/exec"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -34,6 +35,12 @@ var (
 		Help:        "The total number of events dropped because listener buffer was full",
 		ConstLabels: nil,
 	}, nil)
+
+	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "policy_stats",
+		Help:        "Policy events calls observed.",
+		ConstLabels: nil,
+	}, []string{"policy", "hook", "namespace", "pod", "binary"})
 )
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
@@ -60,7 +67,7 @@ func handleOriginalEvent(originalEvent interface{}) {
 	}
 }
 
-func handleProcessedEvent(processedEvent interface{}) {
+func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interface{}) {
 	var eventType, namespace, pod, binary string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
@@ -75,10 +82,21 @@ func handleProcessedEvent(processedEvent interface{}) {
 		eventType = "unknown"
 	}
 	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
+	if pInfo != nil && pInfo.Name != "" {
+		policyStats.
+			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, pod, binary).
+			Inc()
+	}
 }
 
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
 	handleOriginalEvent(originalEvent)
-	handleProcessedEvent(processedEvent)
+
+	var policyInfo tracingpolicy.PolicyInfo
+	if policyEv, ok := originalEvent.(tracingpolicy.PolicyEvent); ok {
+		policyInfo = policyEv.PolicyInfo()
+	}
+
+	handleProcessedEvent(&policyInfo, processedEvent)
 	syscallmetrics.Handle(processedEvent)
 }

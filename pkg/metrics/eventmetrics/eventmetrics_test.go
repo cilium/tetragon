@@ -16,47 +16,47 @@ import (
 
 func TestHandleProcessedEvent(t *testing.T) {
 	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
-	handleProcessedEvent(nil)
+	handleProcessedEvent(nil, nil)
 	// empty process
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{}}})
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{}}})
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{}}})
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{}}})
 
 	// empty pod
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
 		Process: &tetragon.Process{Binary: "binary_a"},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
 		Process: &tetragon.Process{Binary: "binary_b"},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
 		Process: &tetragon.Process{Binary: "binary_c"},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
 		Process: &tetragon.Process{Binary: "binary_e"},
 	}}})
 
 	// with pod
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
 		Process: &tetragon.Process{
 			Binary: "binary_a",
 			Pod:    &tetragon.Pod{Namespace: "namespace_a", Name: "pod_a"},
 		},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
 		Process: &tetragon.Process{
 			Binary: "binary_b",
 			Pod:    &tetragon.Pod{Namespace: "namespace_b", Name: "pod_b"},
 		},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
 		Process: &tetragon.Process{
 			Binary: "binary_c",
 			Pod:    &tetragon.Pod{Namespace: "namespace_c", Name: "pod_c"},
 		},
 	}}})
-	handleProcessedEvent(&tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
 		Process: &tetragon.Process{
 			Binary: "binary_e",
 			Pod:    &tetragon.Pod{Namespace: "namespace_e", Name: "pod_e"},

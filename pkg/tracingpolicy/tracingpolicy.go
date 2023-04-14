@@ -30,3 +30,12 @@ type TracingPolicyNamespaced interface {
 }
 
 // revive:enable:exported
+
+type PolicyInfo struct {
+	Name string
+	Hook string
+}
+
+type PolicyEvent interface {
+	PolicyInfo() PolicyInfo
+}

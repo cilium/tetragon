@@ -78,6 +78,9 @@ type genericTracepoint struct {
 	actionArgs idtable.Table
 
 	pinPathPrefix string
+
+	// policyName is the name of the policy that this tracepoint belongs to
+	policyName string
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -293,7 +296,12 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
-func createGenericTracepoint(sensorName string, conf *GenericTracepointConf, policyID policyfilter.PolicyID) (*genericTracepoint, error) {
+func createGenericTracepoint(
+	sensorName string,
+	conf *GenericTracepointConf,
+	policyID policyfilter.PolicyID,
+	policyName string,
+) (*genericTracepoint, error) {
 	tp := tracepoint.Tracepoint{
 		Subsys: conf.Subsystem,
 		Event:  conf.Event,
@@ -309,10 +317,11 @@ func createGenericTracepoint(sensorName string, conf *GenericTracepointConf, pol
 	}
 
 	ret := &genericTracepoint{
-		Info:     &tp,
-		Spec:     conf,
-		args:     tpArgs,
-		policyID: policyID,
+		Info:       &tp,
+		Spec:       conf,
+		args:       tpArgs,
+		policyID:   policyID,
+		policyName: policyName,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
@@ -321,11 +330,16 @@ func createGenericTracepoint(sensorName string, conf *GenericTracepointConf, pol
 }
 
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
-func createGenericTracepointSensor(name string, confs []GenericTracepointConf, policyID policyfilter.PolicyID) (*sensors.Sensor, error) {
+func createGenericTracepointSensor(
+	name string,
+	confs []GenericTracepointConf,
+	policyID policyfilter.PolicyID,
+	policyName string,
+) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {
-		tp, err := createGenericTracepoint(name, &confs[i], policyID)
+		tp, err := createGenericTracepoint(name, &confs[i], policyID, policyName)
 		if err != nil {
 			return nil, err
 		}
@@ -604,6 +618,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 
 	unix.Subsys = tp.Info.Subsys
 	unix.Event = tp.Info.Event
+	unix.PolicyName = tp.policyName
 
 	for idx, out := range tp.args {
 
