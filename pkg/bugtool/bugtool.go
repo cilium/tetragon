@@ -23,6 +23,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"go.uber.org/multierr"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -401,16 +402,15 @@ func (s *bugtoolInfo) execCmd(tarWriter *tar.Writer, dstFname string, cmdName st
 	// If, however, we use this with programs (not currently the case) that
 	// have outputs too large for memory, this would be problematic because
 	// it will lead to swapping or OOM.
-	buff := new(bytes.Buffer)
-	buff.WriteString("-------------------- stdout starts here --------------------\n")
-	if _, err = buff.ReadFrom(stdout); err != nil {
+	outbuff := new(bytes.Buffer)
+	if _, err = outbuff.ReadFrom(stdout); err != nil {
 		s.multiLog.WithField("cmd", cmd).WithError(err).Warnf("error reading stdout")
 	}
-	buff.WriteString("-------------------- stderr starts here --------------------\n")
-	if _, err = buff.ReadFrom(stderr); err != nil {
+
+	errbuff := new(bytes.Buffer)
+	if _, err = errbuff.ReadFrom(stderr); err != nil {
 		s.multiLog.WithField("cmd", cmd).WithError(err).Warnf("error reading stderr")
 	}
-	buff.WriteString("------------------------------------------------------------\n")
 
 	errStr := "0"
 	err = cmd.Wait()
@@ -418,7 +418,13 @@ func (s *bugtoolInfo) execCmd(tarWriter *tar.Writer, dstFname string, cmdName st
 		errStr = err.Error()
 	}
 	s.multiLog.WithField("cmd", cmd).WithField("ret", errStr).WithField("dstFname", dstFname).Info("executed command")
-	return s.tarAddBuff(tarWriter, dstFname, buff)
+
+	ret := s.tarAddBuff(tarWriter, dstFname, outbuff)
+	if errbuff.Len() > 0 {
+		errstderr := s.tarAddBuff(tarWriter, dstFname+".err", errbuff)
+		ret = multierr.Append(ret, errstderr)
+	}
+	return ret
 }
 
 // addTcInfo adds information about tc filters on the devices
