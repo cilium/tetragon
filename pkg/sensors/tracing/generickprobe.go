@@ -114,6 +114,9 @@ type genericKprobe struct {
 	actionArgs idtable.Table
 
 	pinPathPrefix string
+
+	// policyName is the name of the policy that this tracepoint belongs to
+	policyName string
 }
 
 // pendingEvent is an event waiting to be merged with another event.
@@ -326,7 +329,12 @@ func flagsString(flags uint32) string {
 	return s
 }
 
-func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, policyID policyfilter.PolicyID) (*sensors.Sensor, error) {
+func createGenericKprobeSensor(
+	name string,
+	kprobes []v1alpha1.KProbeSpec,
+	policyID policyfilter.PolicyID,
+	policyName string,
+) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 	var multiIDs, multiRetIDs []idtable.EntryID
@@ -479,6 +487,7 @@ func createGenericKprobeSensor(name string, kprobes []v1alpha1.KProbeSpec, polic
 			funcName:          funcName,
 			pendingEvents:     nil,
 			tableId:           idtable.UninitializedEntryID,
+			policyName:        policyName,
 		}
 
 		// Parse Filters into kernel filter logic
@@ -855,6 +864,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.FuncName = gk.funcName
 	unix.Namespaces = m.Namespaces
 	unix.Capabilities = m.Capabilities
+	unix.PolicyName = gk.policyName
 
 	returnEvent := m.Common.Flags > 0
 

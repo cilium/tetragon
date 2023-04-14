@@ -20,6 +20,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -65,7 +66,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 
 	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, 0)
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID, "policyName")
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
@@ -124,7 +125,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 
 	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, 0)
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, policyfilter.NoFilterID, "policyName")
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
