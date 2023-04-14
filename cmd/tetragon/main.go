@@ -91,6 +91,7 @@ func saveInitInfo() error {
 		BtfFname:    option.Config.BTF,
 		MetricsAddr: option.Config.MetricsServer,
 		ServerAddr:  option.Config.ServerAddress,
+		GopsAddr:    option.Config.GopsAddr,
 	}
 	return bugtool.SaveInitInfo(&info)
 }
