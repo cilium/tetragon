@@ -17,6 +17,12 @@ var (
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
+
+	MapDrops = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name:        consts.MetricNamePrefix + "map_drops",
+		Help:        "The total number of entries dropped per LRU map.",
+		ConstLabels: nil,
+	}, []string{"map"})
 )
 
 // Get a new handle on a mapSize metric for a mapName and totalCapacity
@@ -32,4 +38,8 @@ func MapSizeInc(mapName string, totalCapacity int) {
 // Set a mapSize metric to size for a mapName and totalCapacity
 func MapSizeSet(mapName string, totalCapacity int, size float64) {
 	GetMapSize(mapName, totalCapacity).Set(size)
+}
+
+func MapDropInc(mapName string) {
+	MapDrops.WithLabelValues(mapName).Inc()
 }

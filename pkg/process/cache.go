@@ -127,7 +127,12 @@ func (pc *Cache) Purge() {
 func NewCache(
 	processCacheSize int,
 ) (*Cache, error) {
-	lruCache, err := lru.New[string, *ProcessInternal](processCacheSize)
+	lruCache, err := lru.NewWithEvict(
+		processCacheSize,
+		func(_ string, _ *ProcessInternal) {
+			mapmetrics.MapDropInc("processLru")
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
