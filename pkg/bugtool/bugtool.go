@@ -42,6 +42,7 @@ type InitInfo struct {
 	BtfFname    string `json:"btf_fname"`
 	ServerAddr  string `json:"server_address"`
 	MetricsAddr string `json:"metrics_address"`
+	GopsAddr    string `json:"gops_address"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -217,6 +218,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.execCmd(tarWriter, "dmesg.out", "dmesg")
 	si.addTcInfo(tarWriter)
 	si.addBpftoolInfo(tarWriter)
+	si.addGopsInfo(tarWriter)
 	return nil
 }
 
@@ -453,4 +455,13 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "bpftool-maps.json", "bpftool", "map", "show", "-j")
 	s.execCmd(tarWriter, "bpftool-progs.json", "bpftool", "prog", "show", "-j")
 	s.execCmd(tarWriter, "bpftool-cgroups.json", "bpftool", "cgroup", "tree", "-j")
+}
+
+func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
+	if s.info.GopsAddr == "" {
+		return
+	}
+	s.execCmd(tarWriter, "gops.stack", "gops", "stack", s.info.GopsAddr)
+	s.execCmd(tarWriter, "gpos.stats", "gops", "stats", s.info.GopsAddr)
+	s.execCmd(tarWriter, "gops.memstats", "gops", "memstats", s.info.GopsAddr)
 }
