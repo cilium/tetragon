@@ -444,7 +444,7 @@ func (s *bugtoolInfo) addTcInfo(tarWriter *tar.Writer) error {
 
 // addBpftoolInfo adds information about loaded eBPF maps and programs
 func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
-	s.execCmd(tarWriter, "maps.dump", "bpftool", "map", "show")
-	s.execCmd(tarWriter, "progs.dump", "bpftool", "prog", "show")
-	s.execCmd(tarWriter, "cgroups.dump", "bpftool", "cgroup", "tree")
+	s.execCmd(tarWriter, "bpftool-maps.json", "bpftool", "map", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-progs.json", "bpftool", "prog", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-cgroups.json", "bpftool", "cgroup", "tree", "-j")
 }
