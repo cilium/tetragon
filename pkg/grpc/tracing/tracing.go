@@ -220,12 +220,16 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 }
 
 type MsgGenericTracepointUnix struct {
-	Common     processapi.MsgCommon
-	ProcessKey processapi.MsgExecveKey
-	Id         int64
-	Subsys     string
-	Event      string
-	Args       []tracingapi.MsgGenericTracepointArg
+	Common       processapi.MsgCommon
+	ProcessKey   processapi.MsgExecveKey
+	Namespaces   processapi.MsgNamespaces
+	Capabilities processapi.MsgCapabilities
+	Id           int64
+	PID          uint32
+	TID          uint32
+	Subsys       string
+	Event        string
+	Args         []tracingapi.MsgGenericTracepointArg
 }
 
 func (msg *MsgGenericTracepointUnix) Notify() bool {
@@ -251,6 +255,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
+		tetragonProcess.Tid = &wrapperspb.UInt32Value{Value: msg.TID}
 	}
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()

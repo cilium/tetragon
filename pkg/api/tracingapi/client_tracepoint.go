@@ -14,6 +14,8 @@ type MsgGenericTracepoint struct {
 	Capabilities processapi.MsgCapabilities
 	Id           int64
 	ThreadId     uint64
+	PID          uint32
+	TID          uint32
 	ActionId     uint64
 	ActionArgId  uint32
 	Pad          uint32

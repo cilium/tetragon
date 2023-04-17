@@ -569,6 +569,8 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		Common:     m.Common,
 		ProcessKey: m.ProcessKey,
 		Id:         m.Id,
+		PID:        m.PID,
+		TID:        m.TID,
 		Subsys:     "UNKNOWN",
 		Event:      "UNKNOWN",
 	}
@@ -667,6 +669,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
 		}
 	}
+
 	return []observer.Event{unix}, nil
 }
 
