@@ -697,18 +697,12 @@ filter_file_buf(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
-__copy_char_iovec(long off, unsigned long arg, unsigned long meta,
+__copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
 {
 	long size, off_orig = off;
-	int err, i = 0, cnt;
+	unsigned long i = 0;
 	int *s;
-
-	err = probe_read(&cnt, sizeof(cnt), &meta);
-	if (err < 0) {
-		char *args = args_off(e, off_orig);
-		return return_stack_error(args, 0, char_buf_pagefault);
-	}
 
 	size = 0;
 	off += 8;
