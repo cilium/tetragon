@@ -95,13 +95,8 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{unix}, err
 }
 
-func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeArgs) error {
 	load := args.Load
-
-	uprobeEntry, ok := load.LoaderData.(*genericUprobe)
-	if !ok {
-		return fmt.Errorf("invalid loadData type: expecting idtable.EntryID and got: %T (%v)", load.LoaderData, load.LoaderData)
-	}
 
 	// config_map data
 	var configData bytes.Buffer
@@ -157,6 +152,67 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return nil
 }
 
+func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
+	load := args.Load
+	sensors.AllPrograms = append(sensors.AllPrograms, load)
+
+	bin_buf := make([]bytes.Buffer, len(ids))
+
+	data := &program.MultiUprobeAttachData{}
+	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
+
+	for index, id := range ids {
+		uprobeEntry, err := genericUprobeTableGet(id)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", id)
+			return fmt.Errorf("Failed to match id")
+		}
+
+		binary.Write(&bin_buf[index], binary.LittleEndian, uprobeEntry.config)
+		config := &program.MapLoad{
+			Index: uint32(index),
+			Name:  "config_map",
+			Load: func(m *ebpf.Map, index uint32) error {
+				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+			},
+		}
+		load.MapLoad = append(load.MapLoad, config)
+
+		attach, ok := data.Attach[uprobeEntry.path]
+		if !ok {
+			attach = &program.MultiUprobeAttachSymbolsCookies{}
+		}
+
+		attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+		attach.Cookies = append(attach.Cookies, uint64(index))
+
+		data.Attach[uprobeEntry.path] = attach
+	}
+
+	load.SetAttachData(data)
+
+	if err := program.LoadMultiUprobeProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose); err == nil {
+		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+	load := args.Load
+
+	if entry, ok := load.LoaderData.(*genericUprobe); ok {
+		return loadSingleUprobeSensor(entry, args)
+	}
+	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
+		return loadMultiUprobeSensor(ids, args)
+	}
+	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
+		load.LoaderData, load.LoaderData)
+}
+
 func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	for _, s := range selectors {
 		if len(s.MatchArgs) > 0 ||
@@ -172,6 +228,36 @@ func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
+func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
+	var progs []*program.Program
+	var maps []*program.Map
+
+	loadProgName := "bpf_multi_uprobe_v60.o"
+
+	pinPath := sensors.PathJoin(sensorPath, "multi_uprobe")
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		fmt.Sprintf("%d functions", len(multiIDs)),
+		"uprobe.multi/generic_uprobe",
+		pinPath,
+		"generic_uprobe").
+		SetLoaderData(multiIDs)
+
+	progs = append(progs, load)
+
+	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
+	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
+
+	maps = append(maps, configMap, tailCalls, filterMap, selNamesMap)
+
+	filterMap.SetMaxEntries(len(multiIDs))
+	configMap.SetMaxEntries(len(multiIDs))
+	return progs, maps
+}
+
 func createGenericUprobeSensor(
 	name string,
 	uprobes []v1alpha1.UProbeSpec,
@@ -179,6 +265,8 @@ func createGenericUprobeSensor(
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
+	var useMulti bool
+	var multiIDs []idtable.EntryID
 
 	sensorPath := name
 
@@ -188,6 +276,8 @@ func createGenericUprobeSensor(
 	} else if kernels.EnableLargeProgs() {
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
+
+	useMulti = len(uprobes) > 1 && kernels.EnableV60Progs()
 
 	for i := range uprobes {
 		spec := &uprobes[i]
@@ -224,6 +314,14 @@ func createGenericUprobeSensor(
 			config.Flags |= flagsEarlyFilter
 		}
 
+		if useMulti {
+			multiIDs = append(multiIDs, uprobeEntry.tableId)
+			logger.GetLogger().
+				WithField("function", fmt.Sprintf("%s:%s", uprobeEntry.path, uprobeEntry.symbol)).
+				Infof("Added multi uprobe")
+			continue
+		}
+
 		pinPath := uprobeEntry.pinPathPrefix
 		pinProg := sensors.PathJoin(pinPath, "prog")
 
@@ -248,6 +346,10 @@ func createGenericUprobeSensor(
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
 		maps = append(maps, configMap, tailCalls, filterMap, selNamesMap)
+	}
+
+	if len(multiIDs) != 0 {
+		progs, maps = createMultiUprobeSensor(sensorPath, multiIDs)
 	}
 
 	return &sensors.Sensor{
