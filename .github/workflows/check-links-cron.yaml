@@ -47,7 +47,7 @@ jobs:
 
       - name: Close automated issue
         if: env.lychee_exit_code == 0 && steps.search-issue.outputs.issue_number != ''
-        uses: peter-evans/close-issue@1373cadf1f0c96c1420bc000cfba2273ea307fd1
+        uses: peter-evans/close-issue@3cd3bb0e4eb4e15fba873613c03255cbac3dffd6
         with:
           issue-number: ${{ steps.search-issue.outputs.issue_number }}
           comment: '[Periodic links check](https://github.com/cilium/tetragon/actions/workflows/check-links-cron.yaml) no longer finds broken links, closing issue.'
