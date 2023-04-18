@@ -30,11 +30,16 @@ type customInstall struct {
 }
 
 func RawAttach(targetFD int) AttachFunc {
+	return RawAttachWithFlags(targetFD, 0)
+}
+
+func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
 			Target:  targetFD,
 			Program: prog,
 			Attach:  spec.AttachType,
+			Flags:   flags,
 		})
 		if err != nil {
 			prog.Close()
