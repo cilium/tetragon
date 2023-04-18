@@ -559,38 +559,33 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	char *value = (char *)&filter->value;
 	long i, j = 0;
+	// arg length is 4 bytes before the value data
+	int a = *(int *)&args[value_off - 4];
 
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_STRING_VALUES; i++) {
 		__u32 length;
-		int err, a, postoff = 0;
+		int err, postoff = 0;
 
 		/* filter->vallen is pulled from user input so we also need to
 		 * ensure its bounded.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
+		j &= 0xff;
 		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0xff;\n" ::[length] "+r"(length)
-			     :);
-		// arg length is 4 bytes before the value data
-		a = *(int *)&args[value_off - 4];
+		length &= 0xff;
 		if (filter->op == op_filter_eq) {
 			if (length != a)
 				goto skip_string;
 		} else if (filter->op == op_filter_str_postfix) {
 			postoff = a - length;
-			asm volatile("%[postoff] &= 0x3f;\n" ::[postoff] "+r"(
-					     postoff)
-				     :);
 		}
 
 		/* This is redundant, but seems we lost 'j' bounds from
 		 * above so at the moment its necessary until we improve
 		 * compiler.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
+		j &= 0xff;
+		postoff &= 0x3f;
 		err = cmpbytes(&value[j + 4], &args[value_off + postoff], length);
 		if (!err)
 			return 1;
