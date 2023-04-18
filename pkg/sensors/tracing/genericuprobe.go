@@ -277,7 +277,7 @@ func createGenericUprobeSensor(
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 
-	useMulti = len(uprobes) > 1 && kernels.EnableV60Progs()
+	useMulti = len(uprobes) > 1 && kernels.EnableV60Progs() && !option.Config.DisableUprobeMulti
 
 	for i := range uprobes {
 		spec := &uprobes[i]
