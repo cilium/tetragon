@@ -997,6 +997,80 @@ spec:
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
+func testKprobeObjectFilterModeOpenHook(pidStr string, path string, mode int, valueFmt string) string {
+	return `
+  apiVersion: cilium.io/v1alpha1
+  metadata:
+    name: "sys-read"
+  spec:
+    kprobes:
+    - call: "sys_openat"
+      return: false
+      syscall: true
+      args:
+      - index: 0
+        type: int
+      - index: 1
+        type: "string"
+      - index: 2
+        type: "int"
+      - index: 3
+        type: "int"
+      selectors:
+      - matchPIDs:
+        - operator: In
+          followForks: true
+          values:
+          - ` + pidStr + `
+        matchArgs:
+        - index: 2
+          operator: "Mask"
+          values:
+          - ` + fmt.Sprintf(valueFmt, mode) + `
+  `
+}
+
+func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+		return ec.NewUnorderedEventChecker(
+			ec.NewProcessKprobeChecker("").
+				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+				WithArgs(ec.NewKprobeArgumentListMatcher().
+					WithOperator(lc.Ordered).
+					WithValues(
+						ec.NewKprobeArgumentChecker().WithIntArg(-100),
+						ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(filepath.Join(dir, "testfile"))),
+						ec.NewKprobeArgumentChecker(),
+						ec.NewKprobeArgumentChecker(),
+					)))
+	}
+
+	dir := t.TempDir()
+	openHook := testKprobeObjectFilterModeOpenHook(pidStr, dir, modeCheck, valueFmt)
+	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770)
+}
+
+func TestKprobeObjectFilterModeOpenMatchDec(t *testing.T) {
+	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC)
+}
+
+func TestKprobeObjectFilterModeOpenMatchHex(t *testing.T) {
+	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR)
+}
+
+func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
+	testKprobeObjectFilterModeOpenMatch(t, "0%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC)
+}
+
+func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := t.TempDir()
+	openHook := testKprobeObjectFilterModeOpenHook(pidStr, dir, syscall.O_TRUNC, "%d")
+	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+}
+
 func helloIovecWorldWritev() (err error) {
 	var arrayOfBytes = make([][]byte, 3)
 
