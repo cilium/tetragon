@@ -799,12 +799,24 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
 		__u64 w = v[i];
-		bool res = (*(u64 *)args == w);
+		bool res;
 
-		if (filter->op == op_filter_eq && res)
-			return 1;
-		if (filter->op == op_filter_neq && !res)
-			return 1;
+		switch (filter->op) {
+		case op_filter_eq:
+		case op_filter_neq:
+			res = (*(u64 *)args == w);
+
+			if (filter->op == op_filter_eq && res)
+				return 1;
+			if (filter->op == op_filter_neq && !res)
+				return 1;
+			break;
+		case op_filter_mask:
+			if (*(u64 *)args & w)
+				return 1;
+		default:
+			break;
+		}
 		j += 8;
 		if (j + 8 >= filter->vallen)
 			break;
@@ -857,6 +869,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	switch (filter->op) {
 	case op_filter_eq:
 	case op_filter_neq:
+	case op_filter_mask:
 		return filter_64ty_selector_val(filter, args);
 	case op_filter_inmap:
 	case op_filter_notinmap:
@@ -875,12 +888,24 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
 		__u32 w = v[i];
-		bool res = (*(u32 *)args == w);
+		bool res;
 
-		if (filter->op == op_filter_eq && res)
-			return 1;
-		if (filter->op == op_filter_neq && !res)
-			return 1;
+		switch (filter->op) {
+		case op_filter_eq:
+		case op_filter_neq:
+			res = (*(u32 *)args == w);
+
+			if (filter->op == op_filter_eq && res)
+				return 1;
+			if (filter->op == op_filter_neq && !res)
+				return 1;
+			break;
+		case op_filter_mask:
+			if (*(u32 *)args & w)
+				return 1;
+		default:
+			break;
+		}
 		// placed here to allow llvm unroll this loop
 		j += 4;
 		if (j + 8 >= filter->vallen)
@@ -919,6 +944,7 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	switch (filter->op) {
 	case op_filter_eq:
 	case op_filter_neq:
+	case op_filter_mask:
 		return filter_32ty_selector_val(filter, args);
 	case op_filter_inmap:
 	case op_filter_notinmap:

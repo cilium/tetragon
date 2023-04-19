@@ -202,6 +202,8 @@ const (
 	// Map ops
 	SelectorInMap    = 10
 	SelectorNotInMap = 11
+
+	SelectorOpMASK = 12
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -226,6 +228,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorInMap, nil
 	case "NotInMap":
 		return SelectorNotInMap, nil
+	case "mask", "Mask":
+		return SelectorOpMASK, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
