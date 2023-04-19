@@ -89,7 +89,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	option.Config.MapDir = bpf.MapPrefixPath()
 	obs := observer.NewObserver(configFile)
 
-	if err := obs.InitSensorManager(); err != nil {
+	if err := obs.InitSensorManager(nil); err != nil {
 		logger.GetLogger().Fatalf("InitSensorManager failed: %v", err)
 	}
 
