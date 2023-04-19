@@ -291,10 +291,10 @@ func (k *Observer) Start(ctx context.Context) error {
 	return nil
 }
 
-// InitSensorManager starts the sensor controller and stt manager.
-func (k *Observer) InitSensorManager() error {
+// InitSensorManager starts the sensor controller
+func (k *Observer) InitSensorManager(waitChan chan struct{}) error {
 	var err error
-	SensorManager, err = sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir)
+	SensorManager, err = sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir, waitChan)
 	return err
 }
 

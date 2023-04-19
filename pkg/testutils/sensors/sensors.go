@@ -34,7 +34,7 @@ type TestSensorManager struct {
 // will also register the necessary cleanup functions using t.Cleanup()
 func StartTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, path, "")
+	mgr, err := sensors.StartSensorManager(path, path, "", nil)
 	if err != nil {
 		t.Fatalf("startSensorController failed: %s", err)
 	}
