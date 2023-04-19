@@ -7,8 +7,11 @@ import (
 	"sync"
 	"testing"
 
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/logger"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -42,6 +45,23 @@ func TestThreadTesterParser(t *testing.T) {
 	assert.Equal(t, uint32(143564), cti.Thread1Pid)
 	assert.Equal(t, uint32(143565), cti.Thread1Tid)
 	assert.Equal(t, cti.ParentPid, cti.ParentThread1Pid)
+}
+
+func assertPidsTids(t *testing.T, tti *testutils.ThreadTesterInfo) {
+	require.NotZero(t, tti.ParentPid)
+	require.Equal(t, tti.ParentPid, tti.ParentTid)
+
+	require.NotZero(t, tti.Child1Pid)
+	require.NotZero(t, tti.Child1Tid)
+	require.Equal(t, tti.Child1Pid, tti.Child1Tid)
+
+	require.NotZero(t, tti.Thread1Pid)
+	require.NotZero(t, tti.Thread1Tid)
+	require.NotEqual(t, tti.Thread1Pid, tti.Thread1Tid)
+
+	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
+	require.Equal(t, tti.ParentChild1Pid, tti.ParentPid)
+	require.Equal(t, tti.ParentThread1Pid, tti.ParentPid)
 }
 
 func TestCloneThreadsTester(t *testing.T) {
@@ -78,17 +98,7 @@ func TestCloneThreadsTester(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
 	}
 
-	require.NotZero(t, tti.Child1Pid)
-	require.NotZero(t, tti.Child1Tid)
-	require.Equal(t, tti.Child1Pid, tti.Child1Tid)
-
-	require.NotZero(t, tti.Thread1Pid)
-	require.NotZero(t, tti.Thread1Tid)
-	require.NotEqual(t, tti.Thread1Pid, tti.Thread1Tid)
-
-	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
-	require.Equal(t, tti.ParentChild1Pid, tti.ParentPid)
-	require.Equal(t, tti.ParentThread1Pid, tti.ParentPid)
+	assertPidsTids(t, tti)
 }
 
 func TestMatchCloneThreadsIDs(t *testing.T) {
@@ -148,6 +158,8 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 		}
 	}
 
+	assertPidsTids(t, tti)
+
 	require.NotZero(t, execPID)
 	require.Equal(t, execPID, execTID)
 
@@ -162,4 +174,56 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 
 	// ensure that threads match on the thread group leader
 	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
+}
+
+func TestExecThreads(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/threads-tester")
+	testCmd := exec.CommandContext(ctx, testBin)
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cti := &testutils.ThreadTesterInfo{}
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	logWG.Wait()
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	assertPidsTids(t, cti)
+
+	binCheck := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("threads-tester")).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(binCheck)
+
+	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(binCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
