@@ -336,8 +336,19 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) e
 	return nil
 }
 
+func getBase(v string) int {
+	if strings.HasPrefix(v, "0x") {
+		return 16
+	}
+	if strings.HasPrefix(v, "0") {
+		return 8
+	}
+	return 10
+}
+
 func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
 	for _, v := range values {
+		base := getBase(v)
 		switch ty {
 		case argTypeFd, argTypeFile, argTypePath:
 			value, size := ArgSelectorValue(v)
@@ -348,25 +359,25 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
 		case argTypeS32, argTypeInt, argTypeSizet:
-			i, err := strconv.ParseInt(v, 10, 32)
+			i, err := strconv.ParseInt(v, base, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(k, int32(i))
 		case argTypeU32:
-			i, err := strconv.ParseUint(v, 10, 32)
+			i, err := strconv.ParseUint(v, base, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(k, uint32(i))
 		case argTypeS64:
-			i, err := strconv.ParseInt(v, 10, 64)
+			i, err := strconv.ParseInt(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt64(k, int64(i))
 		case argTypeU64:
-			i, err := strconv.ParseUint(v, 10, 64)
+			i, err := strconv.ParseUint(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
