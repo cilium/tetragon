@@ -59,6 +59,7 @@ type procs struct {
 	size                 uint32
 	uid                  uint32
 	pid                  uint32
+	tid                  uint32
 	nspid                uint32
 	auid                 uint32
 	flags                uint32
@@ -91,6 +92,7 @@ func procKernel() procs {
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		uid:         0,
 		pid:         kernelPid,
+		tid:         kernelPid,
 		nspid:       0,
 		auid:        0,
 		flags:       api.EventProcFS,
@@ -164,6 +166,7 @@ func pushExecveEvents(p procs) {
 
 	m.Process.Size = p.size
 	m.Process.PID = p.pid
+	m.Process.TID = p.tid
 	m.Process.NSPID = p.nspid
 	m.Process.UID = p.uid
 	m.Process.AUID = p.auid
@@ -417,11 +420,14 @@ func GetRunningProcs() error {
 
 		p := procs{
 			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
-			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			pktime: pktime,
-			uid:    euid, // use euid to be compatible with ps
-			auid:   auid,
-			pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
+			pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+			pktime:               pktime,
+			uid:                  euid, // use euid to be compatible with ps
+			auid:                 auid,
+			pid:                  uint32(pid),
+			tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
+			nspid:                nspid,
+			args:                 cmdsUTF,
 			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			ktime:                ktime,
 			permitted:            permitted,
