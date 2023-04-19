@@ -20,6 +20,7 @@ enum {
 	// map membership ops
 	op_filter_inmap = 10,
 	op_filter_notinmap = 11,
+	op_filter_mask = 12,
 };
 
 #endif // __OPERATIONS_H__

@@ -111,6 +111,9 @@ func TestSelectorOp(t *testing.T) {
 	if op, err := SelectorOp("neq"); op != SelectorOpNEQ || err != nil {
 		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNEQ, op, err)
 	}
+	if op, err := SelectorOp("Mask"); op != SelectorOpMASK || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpMASK, op, err)
+	}
 	if op, err := SelectorOp("In"); op != SelectorOpIn || err != nil {
 		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpIn, op, err)
 	}
