@@ -22,6 +22,7 @@ import (
 
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -227,10 +228,17 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		return nil, ret, err
 	}
 
-	cnf, _ := yaml.PolicyFromYamlFilename(o.observer.config)
-	if cnf != nil {
+	var tp tracingpolicy.TracingPolicy
+	if o.observer.config != "" {
 		var err error
-		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(cnf)
+		tp, err = yaml.PolicyFromYamlFilename(o.observer.config)
+		if err != nil {
+			return nil, ret, fmt.Errorf("failed to parse tracingpolicy: %w", err)
+		}
+	}
+	if tp != nil {
+		var err error
+		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(tp)
 		if err != nil {
 			return nil, ret, err
 		}
