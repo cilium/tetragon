@@ -267,16 +267,15 @@ func pushEvents(procs []procs) {
 	}
 }
 
-func GetRunningProcs() error {
+func listRunningProcs(procPath string) ([]procs, error) {
 	var processes []procs
 
-	procFS, err := os.ReadDir(option.Config.ProcFS)
+	procFS, err := os.ReadDir(procPath)
 	if err != nil {
-		logger.GetLogger().WithError(err).Errorf("Failed to read directory %s", option.Config.ProcFS)
-		return err
+		return nil, err
 	}
 
-	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, procPath)
 	// time and time_for_children namespaces introduced in kernel 5.6
 	hasTimeNs := (int64(kernelVer) >= kernels.KernelStringToNumeric("5.6.0"))
 
@@ -291,7 +290,7 @@ func GetRunningProcs() error {
 			continue
 		}
 
-		pathName := filepath.Join(option.Config.ProcFS, d.Name())
+		pathName := filepath.Join(procPath, d.Name())
 
 		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
 		if err != nil {
@@ -343,7 +342,7 @@ func GetRunningProcs() error {
 			}
 		}
 
-		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, d.Name(), "status"))
+		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))
 
 		uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
 		ipc_ns := namespace.GetPidNsInode(uint32(pid), "ipc")
@@ -371,7 +370,7 @@ func GetRunningProcs() error {
 
 		if _ppid != 0 {
 			var err error
-			parentPath := filepath.Join(option.Config.ProcFS, ppid)
+			parentPath := filepath.Join(procPath, ppid)
 
 			pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
 			if err != nil {
@@ -392,7 +391,7 @@ func GetRunningProcs() error {
 
 			if dockerId != "" {
 				// We have a container ID so let's get the nspid inside.
-				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, ppid, "status"))
+				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}
 		} else {
 			pcmdline = nil
@@ -401,13 +400,13 @@ func GetRunningProcs() error {
 			pnspid = 0
 		}
 
-		execPath, err := os.Readlink(filepath.Join(option.Config.ProcFS, d.Name(), "exe"))
+		execPath, err := os.Readlink(filepath.Join(procPath, d.Name(), "exe"))
 		if err == nil {
 			cmdline = proc.PrependPath(execPath, cmdline)
 		}
 
 		if _ppid != 0 {
-			pexecPath, err = os.Readlink(filepath.Join(option.Config.ProcFS, ppid, "exe"))
+			pexecPath, err = os.Readlink(filepath.Join(procPath, ppid, "exe"))
 			if err == nil {
 				pcmdline = proc.PrependPath(pexecPath, pcmdline)
 			}
@@ -486,8 +485,19 @@ func GetRunningProcs() error {
 
 		processes = append(processes, p)
 	}
+
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS))
 
-	pushEvents(processes)
+	return processes, nil
+}
+
+func GetRunningProcs() error {
+	procs, err := listRunningProcs(option.Config.ProcFS)
+	if err != nil {
+		logger.GetLogger().WithError(err).Errorf("Failed to list running processes from '%s'", option.Config.ProcFS)
+		return err
+	}
+
+	pushEvents(procs)
 	return nil
 }
