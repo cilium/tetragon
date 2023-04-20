@@ -47,23 +47,6 @@ func TestThreadTesterParser(t *testing.T) {
 	assert.Equal(t, cti.ParentPid, cti.ParentThread1Pid)
 }
 
-func assertPidsTids(t *testing.T, tti *testutils.ThreadTesterInfo) {
-	require.NotZero(t, tti.ParentPid)
-	require.Equal(t, tti.ParentPid, tti.ParentTid)
-
-	require.NotZero(t, tti.Child1Pid)
-	require.NotZero(t, tti.Child1Tid)
-	require.Equal(t, tti.Child1Pid, tti.Child1Tid)
-
-	require.NotZero(t, tti.Thread1Pid)
-	require.NotZero(t, tti.Thread1Tid)
-	require.NotEqual(t, tti.Thread1Pid, tti.Thread1Tid)
-
-	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
-	require.Equal(t, tti.ParentChild1Pid, tti.ParentPid)
-	require.Equal(t, tti.ParentThread1Pid, tti.ParentPid)
-}
-
 func TestCloneThreadsTester(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -98,7 +81,7 @@ func TestCloneThreadsTester(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
 	}
 
-	assertPidsTids(t, tti)
+	tti.AssertPidsTids(t)
 }
 
 func TestMatchCloneThreadsIDs(t *testing.T) {
@@ -158,7 +141,7 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 		}
 	}
 
-	assertPidsTids(t, tti)
+	tti.AssertPidsTids(t)
 
 	require.NotZero(t, execPID)
 	require.Equal(t, execPID, execTID)
@@ -209,7 +192,7 @@ func TestExecThreads(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
 	}
 
-	assertPidsTids(t, cti)
+	cti.AssertPidsTids(t)
 
 	binCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
