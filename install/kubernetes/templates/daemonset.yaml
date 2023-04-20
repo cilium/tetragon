@@ -24,12 +24,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: {{  toJson .Values.tetragon | sha256sum }}
-    {{- if .Values.podAnnotations }}
-    {{- with .Values.podAnnotations }}
+        checksum/configmap: {{ toJson .Values.tetragon | sha256sum }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- end }}
+      {{- end }}
       labels:
       {{- with .Values.podLabelsOverride }}
         {{- toYaml . | nindent 8 }}
