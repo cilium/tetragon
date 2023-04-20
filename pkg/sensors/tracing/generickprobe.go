@@ -88,7 +88,7 @@ type argPrinters struct {
 }
 
 type pendingEventKey struct {
-	threadId   uint64
+	eventId    uint64
 	ktimeEnter uint64
 }
 
@@ -107,7 +107,7 @@ type genericKprobe struct {
 	// for kprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
 	// generated. The events are maintained in the map below, using
-	// the thread_id and the enter ktime as the key.
+	// the retprobe_id (thread_id) and the enter ktime as the key.
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent]
 
 	tableId idtable.EntryID
@@ -883,9 +883,9 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, fmt.Errorf("Failed to read process call msg")
 	}
 
-	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.Id)})
+	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.Id)
+		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
 		return nil, fmt.Errorf("Failed to match id")
 	}
 
@@ -910,7 +910,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix := &tracing.MsgGenericKprobeUnix{}
 	unix.Common = m.Common
 	unix.ProcessKey = m.ProcessKey
-	unix.Id = m.Id
+	unix.Id = m.FuncId
 	unix.Action = m.ActionId
 	unix.FuncName = gk.funcName
 	unix.Namespaces = m.Namespaces
@@ -1173,7 +1173,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		// if an event exist already, try to merge them. Otherwise, add
 		// the one we have in the map.
 		curr := pendingEvent{ev: unix, returnEvent: returnEvent}
-		key := pendingEventKey{threadId: m.ThreadId, ktimeEnter: ktimeEnter}
+		key := pendingEventKey{eventId: m.RetProbeId, ktimeEnter: ktimeEnter}
 
 		if prev, exists := gk.pendingEvents.Get(key); exists {
 			gk.pendingEvents.Remove(key)

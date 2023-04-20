@@ -79,9 +79,9 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, fmt.Errorf("Failed to read process call msg")
 	}
 
-	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.Id)})
+	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.Id)
+		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
 		return nil, fmt.Errorf("Failed to match id")
 	}
 
