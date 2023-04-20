@@ -46,7 +46,7 @@ GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
-GOLANGCILINT_WANT_VERSION = 1.50.1
+GOLANGCILINT_WANT_VERSION = 1.52.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 
