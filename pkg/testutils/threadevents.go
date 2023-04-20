@@ -6,6 +6,9 @@ package testutils
 import (
 	"regexp"
 	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type ThreadTesterInfo struct {
@@ -60,4 +63,21 @@ func (tti *ThreadTesterInfo) ParseLine(l string) error {
 		}
 	}
 	return err
+}
+
+func (tti *ThreadTesterInfo) AssertPidsTids(t *testing.T) {
+	require.NotZero(t, tti.ParentPid)
+	require.Equal(t, tti.ParentPid, tti.ParentTid)
+
+	require.NotZero(t, tti.Child1Pid)
+	require.NotZero(t, tti.Child1Tid)
+	require.Equal(t, tti.Child1Pid, tti.Child1Tid)
+
+	require.NotZero(t, tti.Thread1Pid)
+	require.NotZero(t, tti.Thread1Tid)
+	require.NotEqual(t, tti.Thread1Pid, tti.Thread1Tid)
+
+	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
+	require.Equal(t, tti.ParentChild1Pid, tti.ParentPid)
+	require.Equal(t, tti.ParentThread1Pid, tti.ParentPid)
 }

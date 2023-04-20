@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <linux/sched.h>
 #include <linux/types.h>
 #include <sched.h>
@@ -27,13 +28,21 @@
 		exit(EXIT_FAILURE); \
 	} while (0)
 
+extern char *optarg;
+static const char *arg_sensor = NULL;
+
+enum {
+	DEFAULT_EXEC,
+	KPROBE,
+};
+
 /* Use direct syscalls and avoid NPTL POSIX standard */
 static inline pid_t sys_gettid(void)
 {
 	return (pid_t)syscall(__NR_gettid);
 }
 
-void do_open(const char *process, const char *pathname)
+static void do_open(const char *process, const char *pathname)
 {
 	FILE *fptr = fopen(pathname, "r");
 	if(fptr == NULL)
@@ -43,7 +52,7 @@ void do_open(const char *process, const char *pathname)
 	fclose(fptr);
 }
 
-void *thread(void *arg)
+static void *thread(void *arg)
 {
 	do_open("Thread 1:", FILENAME);
 
@@ -51,7 +60,7 @@ void *thread(void *arg)
 	return 0;
 }
 
-void child1()
+static void default_exec()
 {
 	pthread_t ttid;
 
@@ -64,9 +73,58 @@ void child1()
 	fflush(stdout);
 }
 
-int main(int argc, char **argv)
+static void kprobe()
+{
+	// Default exec and kprobe sensors need same events
+	default_exec();
+}
+
+static void help(char *prog) {
+
+        printf("%s [--sensor name]\n"
+		"  -h, --help		Show this help\n"
+		"  -s, --sensor=name	Run test for the sensor specified by name\n"
+		"			name can be: exec kprobe\n"
+		"     			example:  --sensor=exec\n",
+		prog);
+}
+
+
+int main(int argc, char *argv[])
 {
 	pid_t pid;
+	int c, sensor = DEFAULT_EXEC;
+
+	static const struct option options[] = {
+		{ "help",	no_argument,		NULL,	'h'	},
+		{ "sensor",	required_argument,	NULL,	's'	},
+		{}
+	};
+
+	while ((c = getopt_long(argc, argv, "hs:", options, NULL)) >= 0)
+		switch (c) {
+		case 'h':
+			help(argv[0]);
+			return 0;
+		case 's':
+			arg_sensor = optarg;
+			break;
+		case '?':
+			help(argv[0]);
+			return -EINVAL;
+		}
+
+	if (arg_sensor) {
+		if (strncmp(arg_sensor, "exec", 4) == 0)
+			sensor = DEFAULT_EXEC;
+		else if (strncmp(arg_sensor, "kprobe", 4) == 0)
+			sensor = KPROBE;
+		else {
+			printf("%s invalid sensor name: '%s'\n", argv[0], arg_sensor);
+			help(argv[0]);
+			return -EINVAL;
+		}
+	}
 
 	printf("parent:\t\t(pid:%d, tid:%d, ppid:%d)\tstarts\n", getpid(), sys_gettid(), getppid());
 
@@ -74,8 +132,14 @@ int main(int argc, char **argv)
 		perror("fork");
 		exit(1);
 	} else if (pid == 0) {
-		child1();
-		/* child */
+		switch (sensor) {
+		case DEFAULT_EXEC:
+			default_exec();
+			break;
+		case KPROBE:
+			kprobe();
+			break;
+		}
 		return 0;
 	}
 
