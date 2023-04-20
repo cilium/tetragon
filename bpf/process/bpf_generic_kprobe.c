@@ -78,7 +78,7 @@ generic_kprobe_start_process_filter(void *ctx)
 		return 0;
 	if (!policy_filter_check(config->policy_id))
 		return 0;
-	msg->id = config->func_id;
+	msg->func_id = config->func_id;
 
 	/* Initialize selector index to 0 */
 	msg->sel.curr = 0;

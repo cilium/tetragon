@@ -48,7 +48,7 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 		 * do it where it makes most sense.
 		 */
 		if (errv < 0)
-			return filter_args_reject(e->id);
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
@@ -121,12 +121,12 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 
 	generic_process_init(e, MSG_OP_GENERIC_KPROBE, config);
 
-	e->thread_id = retprobe_map_get_key(ctx);
+	e->retprobe_id = retprobe_map_get_key(ctx);
 
 	/* If return arg is needed mark retprobe */
 	ty = config->argreturn;
 	if (ty > 0)
-		retprobe_map_set(e->id, e->thread_id, e->common.ktime, 1);
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
 #endif
 
 #ifdef GENERIC_UPROBE
