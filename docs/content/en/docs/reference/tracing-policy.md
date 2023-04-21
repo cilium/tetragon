@@ -356,6 +356,7 @@ The available operators for `matchArgs` are:
 - `NotEqual`
 - `Prefix`
 - `Postfix`
+- `Mask`
 
 **Further examples**
 
@@ -1258,6 +1259,7 @@ There are different types supported for each operator. In case of `matchArgs`:
 * NotEqual
 * Prefix
 * Postfix
+* Mask
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
@@ -1307,6 +1309,29 @@ The above would be executed in the kernel as
 ```yaml
 arg != arg0 AND arg != arg1
 ```
+
+The operator type `Mask` performs and bitwise operation on the argument value
+and defined values. The argument type needs to be one of the value types.
+
+For example in following YAML snippet we match second argument for bits
+1 and 9 (0x200 value). We could use single value 0x201 as well.
+
+```yaml
+matchArgs:
+- index: 2
+  operator: "Mask"
+  values:
+  - 1
+  - 0x200
+```
+
+The above would be executed in the kernel as
+```yaml
+arg & 1 OR arg & 0x200
+```
+
+The value can be specified as hexadecimal (with 0x prefix) octal (with 0 prefix)
+or decimal value (no prefix).
 
 The type `Prefix` checks if the certain argument starts with the defined value,
 while the type `Postfix` compares if the argument matches to the defined value
