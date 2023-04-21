@@ -751,7 +751,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-		- "` + dir + `/foofile\0"
+        - "` + dir + `/foofile\0"
 `
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true)
 }
