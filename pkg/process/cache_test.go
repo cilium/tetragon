@@ -30,7 +30,7 @@ func TestProcessCache(t *testing.T) {
 			},
 		},
 	}
-	cache.Add(&proc)
+	cache.add(&proc)
 	assert.Equal(t, cache.len(), 1)
 
 	result, err := cache.get(proc.process.ExecId)
