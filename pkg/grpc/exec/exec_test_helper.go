@@ -206,7 +206,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 		},
 		Info: tetragonAPI.MsgExitInfo{
 			Code: 0,
-			Pad1: 0,
+			Tid:  Pid,
 		},
 	}
 
@@ -254,7 +254,7 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 		},
 		Info: tetragonAPI.MsgExitInfo{
 			Code: 0,
-			Pad1: 0,
+			Tid:  Pid,
 		},
 	}
 
