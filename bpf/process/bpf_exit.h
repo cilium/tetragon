@@ -56,6 +56,8 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx,
 		exit->current.pad[3] = 0;
 		exit->current.ktime = enter->key.ktime;
 
+		/* We track and report only thread leader so here tgid == tid */
+		exit->info.tid = tgid;
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));
 

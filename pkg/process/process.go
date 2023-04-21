@@ -154,6 +154,25 @@ func (pi *ProcessInternal) RefGet() uint32 {
 	return ref
 }
 
+// UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
+//
+// From BPF side as we track processes by their TGID we do not cache TIDs,
+// this is done on purpose since we only track clone and execve where
+// TGID == TID, and also to simplify things. From user space perspective
+// this works in general without any problem especially for execve events.
+// A cached process (user space procCache) will always have its TGID == TID.
+//
+// However for other events we want to be precise and report the right
+// thread that triggered an event. For such cases call this helper to
+// set the Process.Tid to the corresponding thread ID that was reported
+// from BPF side.
+//
+// There is no point on calling this helper on clone or execve events,
+// however on all other events it is perfectly fine.
+func UpdateEventProcessTid(process *tetragon.Process, tid uint32) {
+	process.Tid = &wrapperspb.UInt32Value{Value: tid}
+}
+
 func GetProcessID(pid uint32, ktime uint64) string {
 	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", nodeName, ktime, pid)))
 }
