@@ -772,6 +772,7 @@ Actions filters are a list of actions that execute when an appropriate selector
 matches. They are defined under `matchActions` and currently, the following
 `action` types are supported:
 - [Sigkill action](#sigkill-action)
+- [Signal action](#signal-action)
 - [Override action](#override-action)
 - [FollowFD action](#followfd-action)
 - [UnfollowFD action](#unfollowfd-action)
@@ -779,6 +780,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [GetUrl action](#geturl-action)
 - [DnsLookup action](#dnslookup-action)
 - [Post action](#post-action)
+- [NoPost action](#nopost-action)
 
 {{< note >}}
 `Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD` and `Post` are
@@ -820,6 +822,43 @@ process is spawned in the container PID namespace and is not a child of PID 1.
       - "/etc/passwd"
     matchActions:
     - action: Sigkill
+```
+
+##### Signal action
+
+`Signal` action sends specified signal to current process. The signal number
+is specified with `argSig` value.
+
+Following example is equivalent to the Sigkill action example above.
+The difference is to use the signal action with `SIGKILL(9)` signal.
+
+```yaml
+- call: "sys_write"
+  syscall: true
+  args:
+  - index: 0
+    type: "fd"
+  - index: 1
+    type: "char_buf"
+    sizeArgIndex: 3
+  - index: 2
+    type: "size_t"
+  selectors:
+  - matchPIDs:
+    - operator: NotIn
+      followForks: true
+      isNamespacePID: true
+      values:
+      - 0
+      - 1
+    matchArgs:
+    - index: 0
+      operator: "Prefix"
+      values:
+      - "/etc/passwd"
+    matchActions:
+    - action: Signal
+      argSig: 9
 ```
 
 ##### Override action
@@ -1016,6 +1055,44 @@ matchActions:
 The `Post` action is intended to create an event but at the moment should be
 considered as deprecated as all `TracingPolicy` will generate an event by
 default.
+
+##### NoPost action
+
+The `NoPost` action can be used to suppress the event to be generated, but at
+the same time all its defined actions are performed.
+
+It's useful when you are not interested in the event itself, just in the action
+being performed.
+
+Following example override openat syscall for "/etc/passwd" file but does not
+generate any event about that.
+
+
+```yaml
+- call: "sys_openat"
+  return: true
+  syscall: true
+  args:
+  - index: 0
+    type: int
+  - index: 1
+    type: "string"
+  - index: 2
+    type: "int"
+  returnArg:
+    type: "int"
+  selectors:
+  - matchPIDs:
+    matchArgs:
+    - index: 1
+      operator: "Equal"
+      values:
+      - "/etc/passwd"
+    matchActions:
+    - action: Override
+      argError: -2
+    - action: NoPost
+```
 
 ### Selector Semantics
 
