@@ -240,7 +240,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	} else {
 		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
 	}
-	procCache.Add(proc)
+	procCache.add(proc)
 	return proc
 }
 
@@ -289,7 +289,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 				pi.AddPodInfo(podInfo)
 			}
 		}
-		procCache.Add(pi)
+		procCache.add(pi)
 	}
 	return nil
 }
