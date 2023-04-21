@@ -206,7 +206,7 @@ enum {
 
 struct exit_info {
 	__u32 code;
-	__u32 pad;
+	__u32 tid; // Thread ID
 };
 
 struct msg_exit {
