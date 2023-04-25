@@ -336,6 +336,14 @@ func flagsString(flags uint32) string {
 	return s
 }
 
+func isGTOperator(op string) bool {
+	return op == "GT" || op == "GreaterThan"
+}
+
+func isLTOperator(op string) bool {
+	return op == "LT" || op == "LessThan"
+}
+
 func createGenericKprobeSensor(
 	name string,
 	kprobes []v1alpha1.KProbeSpec,
@@ -460,6 +468,19 @@ func createGenericKprobeSensor(
 		var userReturnFilters []v1alpha1.ArgSelector
 		for _, s := range f.Selectors {
 			for _, returnArg := range s.MatchReturnArgs {
+				// we allow integer values so far
+				for _, v := range returnArg.Values {
+					if _, err := strconv.Atoi(v); err != nil {
+						return nil, fmt.Errorf("ReturnArg value supports only integer values, got %s", v)
+					}
+				}
+				// only single value for GT,LT operators
+				if isGTOperator(returnArg.Operator) || isLTOperator(returnArg.Operator) {
+					if len(returnArg.Values) > 1 {
+						return nil, fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
+							returnArg.Operator, len(returnArg.Values))
+					}
+				}
 				userReturnFilters = append(userReturnFilters, returnArg)
 			}
 		}
@@ -1229,7 +1250,30 @@ func filterReturnArg(userReturnFilters []v1alpha1.ArgSelector, retArg *api.MsgGe
 				return false
 			}
 		}
-
+		if isGTOperator(uFilter.Operator) {
+			for _, v := range uFilter.Values {
+				if vint, err := strconv.Atoi(v); err == nil {
+					switch compare := (*retArg).(type) {
+					case api.MsgGenericKprobeArgInt:
+						if vint < int(compare.Value) {
+							return false
+						}
+					}
+				}
+			}
+		}
+		if isLTOperator(uFilter.Operator) {
+			for _, v := range uFilter.Values {
+				if vint, err := strconv.Atoi(v); err == nil {
+					switch compare := (*retArg).(type) {
+					case api.MsgGenericKprobeArgInt:
+						if vint > int(compare.Value) {
+							return false
+						}
+					}
+				}
+			}
+		}
 	}
 	// We walked all selectors and no selectors matched, eat the event.
 	return true
