@@ -1,0 +1,34 @@
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "/etc/passwd\0"
+      - index: 2
+        operator: "Mask"
+        values:
+        - 0x40 # CREATE
+        - 0x1  # WRONLY
+        - 0x2  # RDWR
+      matchReturnArgs:
+      - index: 0
+        operator: "GT"
+        values:
+        - 0
