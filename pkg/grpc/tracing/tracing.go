@@ -60,15 +60,15 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	var tetragonArgs []*tetragon.KprobeArgument
 	var tetragonReturnArg *tetragon.KprobeArgument
 
-	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
-	if process == nil {
+	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
-		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
@@ -214,8 +214,11 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		return nil
 	}
 
-	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+	if proc != nil {
+		tetragonEvent.Process = proc.GetProcessCopy()
+		// In case the process is cached it will have TGID == TID, so
+		// update the TID with the recorded TID from bpf.
+		process.UpdateEventProcessTid(tetragonEvent.Process, event.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
@@ -228,6 +231,7 @@ type MsgGenericTracepointUnix struct {
 	Common     processapi.MsgCommon
 	ProcessKey processapi.MsgExecveKey
 	Id         int64
+	Tid        uint32
 	Subsys     string
 	Event      string
 	Args       []tracingapi.MsgGenericTracepointArg
@@ -249,14 +253,14 @@ func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var tetragonParent, tetragonProcess *tetragon.Process
 
-	process, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
-	if process == nil {
+	proc, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
+	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
+		tetragonProcess = proc.UnsafeGetProcess()
 	}
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()
@@ -303,8 +307,11 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		return nil
 	}
 
-	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+	if proc != nil {
+		tetragonEvent.Process = proc.GetProcessCopy()
+		// In case the process is cached it will have TGID == TID, so
+		// update the TID with the recorded TID from bpf.
+		process.UpdateEventProcessTid(tetragonEvent.Process, msg.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
@@ -336,6 +343,7 @@ type MsgGenericKprobeUnix struct {
 	Capabilities processapi.MsgCapabilities
 	Id           uint64
 	Action       uint64
+	Tid          uint32
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
 	PolicyName   string

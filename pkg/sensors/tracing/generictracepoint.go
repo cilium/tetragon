@@ -584,6 +584,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		Common:     m.Common,
 		ProcessKey: m.ProcessKey,
 		Id:         m.FuncId,
+		Tid:        m.Tid,
 		Subsys:     "UNKNOWN",
 		Event:      "UNKNOWN",
 	}
