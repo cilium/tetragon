@@ -131,7 +131,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
-	SizeArgIndex uint32 `json:"sizeArgIndex"`
+	SizeArgIndex *uint32 `json:"sizeArgIndex"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// This field is used only for char_buf and char_iovec types.

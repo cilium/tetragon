@@ -171,10 +171,10 @@ func TestNamespaceValueStr(t *testing.T) {
 
 func TestParseMatchArg(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: nil, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -405,7 +405,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	var actionArgTable idtable.Table
 
 	args := []v1alpha1.KProbeArg{
-		{Index: 1, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "int", SizeArgIndex: nil, ReturnCopy: false},
 	}
 
 	pidSelector := []v1alpha1.PIDSelector{
@@ -676,10 +676,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		},
 	}
 	args := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: nil, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: nil, ReturnCopy: false},
 	}
 
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe

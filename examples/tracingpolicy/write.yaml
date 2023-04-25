@@ -11,7 +11,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeArgIndex: 2
     - index: 2
       type: "size_t"
     # follow any non-init pids stdout e.g. exec into container

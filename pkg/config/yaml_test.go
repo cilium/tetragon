@@ -37,7 +37,7 @@ spec:
         type: "int"
       - index: 1
         type: "char_buf"
-        sizeArgIndex: 3
+        sizeArgIndex: 2
       - index: 2
         type: "size_t"
     selectors:
@@ -90,6 +90,10 @@ spec:
             - "CAP_NET_RAW"
 `
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
 var expectedWrite = GenericTracingConf{
 	ApiVersion: "cilium.io/v1alpha1",
 	Metadata:   Metadata{Name: "sys-write"},
@@ -107,7 +111,7 @@ var expectedWrite = GenericTracingConf{
 					{
 						Index:        1,
 						Type:         "char_buf",
-						SizeArgIndex: 3,
+						SizeArgIndex: Ptr(uint32(2)),
 					},
 					{
 						Index: 2,

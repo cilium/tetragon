@@ -253,12 +253,6 @@ pointer of the second argument. Similarly, if we would like to capture the the
 `__x64_sys_writev(long, iovec *, vlen)` syscall, then `iovec` has a size of
 `vlen`, which is going to be the 3rd argument.
 
-{{< caution >}}
-`sizeArgIndex` is inconsistent at the moment and does not take the index, but
-the number of the index (or index + 1). So if the size is the third argument,
-index 2, the value should be 3.
-{{< /caution >}}
-
 ```yaml
 - call: "sys_write"
   syscall: true
@@ -268,7 +262,7 @@ index 2, the value should be 3.
   - index: 1
     type: "char_buf"
     returnCopy: true
-    sizeArgIndex: 3
+    sizeArgIndex: 2
   - index: 2
     type: "size_t"
 ```
@@ -283,7 +277,7 @@ args:
 - index: 1
   type: "char_buf"
   returnCopy: true
-  sizeArgIndex: 3
+  sizeArgIndex: 2
 - index: 2
   type: "size_t"
 ```
@@ -469,7 +463,7 @@ while the whole `kprobe` call is the following:
     type: "int"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:
@@ -804,7 +798,7 @@ process is spawned in the container PID namespace and is not a child of PID 1.
     type: "fd"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:
@@ -840,7 +834,7 @@ The difference is to use the signal action with `SIGKILL(9)` signal.
     type: "fd"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:

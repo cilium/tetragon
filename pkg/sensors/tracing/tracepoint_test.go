@@ -268,6 +268,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { syscall.Unlink("/tmp/testificate") }()
 
+	writeSizeArgIdx := uint32(7)
 	tracepointConf := GenericTracepointConf{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_write",
@@ -276,8 +277,8 @@ func TestGenericTracepointMeta(t *testing.T) {
 				Index: 5, /* fd */
 			},
 			{
-				Index:        6,     /* char *buf */
-				SizeArgIndex: 7 + 1, /* count */
+				Index:        6,                /* char *buf */
+				SizeArgIndex: &writeSizeArgIdx, /* count */
 
 			},
 		},

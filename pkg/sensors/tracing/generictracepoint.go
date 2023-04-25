@@ -145,8 +145,8 @@ type GenericTracepointConf = v1alpha1.TracepointSpec
 // getTracepointMetaArg is a temporary helper to find meta values while tracepoint
 // converts into new CRD and config formats.
 func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
-	if arg.SizeArgIndex > 0 {
-		return int(arg.SizeArgIndex)
+	if arg.SizeArgIndex != nil {
+		return int(*arg.SizeArgIndex)
 	}
 	if arg.ReturnCopy {
 		return -1
@@ -289,7 +289,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 		if err != nil {
 			return nil, err
 		}
-		ret[idx].MetaArg = int(a.ArgIdx) + 1
+		ret[idx].MetaArg = int(a.ArgIdx)
 	}
 	return ret, nil
 }

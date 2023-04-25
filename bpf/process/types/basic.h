@@ -495,7 +495,8 @@ copy_capability(char *args, unsigned long arg)
 }
 
 #define ARGM_RETURN_COPY BIT(4)
-#define ARGM_INDEX_MASK	 ARGM_RETURN_COPY - 1
+#define ARGM_ENABLE_INDEX BIT(3)
+#define ARGM_INDEX_MASK	 ARGM_ENABLE_INDEX - 1
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
@@ -506,17 +507,19 @@ hasReturnCopy(unsigned long argm)
 static inline __attribute__((always_inline)) unsigned long
 get_arg_meta(int meta, struct msg_generic_kprobe *e)
 {
-	switch (meta & ARGM_INDEX_MASK) {
-	case 1:
-		return e->a0;
-	case 2:
-		return e->a1;
-	case 3:
-		return e->a2;
-	case 4:
-		return e->a3;
-	case 5:
-		return e->a4;
+	if (meta & ARGM_ENABLE_INDEX) {
+		switch (meta & ARGM_INDEX_MASK) {
+		case 0:
+			return e->a0;
+		case 1:
+			return e->a1;
+		case 2:
+			return e->a2;
+		case 3:
+			return e->a3;
+		case 4:
+			return e->a4;
+		}
 	}
 	return 0;
 }

@@ -43,7 +43,7 @@ func TestCharBufKprobe(t *testing.T) {
 			Args: []v1alpha1.KProbeArg{{
 				Index:        writeBufArgIdx,
 				Type:         "char_buf",
-				SizeArgIndex: writeSizeArgIdx + 1,
+				SizeArgIndex: &writeSizeArgIdx,
 			}, {
 				Index: writeSizeArgIdx,
 				Type:  "size_t",
@@ -115,7 +115,7 @@ func TestCharBufTracepoint(t *testing.T) {
 			Args: []v1alpha1.KProbeArg{{
 				Index:        writeBufArgIdx,
 				Type:         "char_buf",
-				SizeArgIndex: writeSizeArgIdx + 1,
+				SizeArgIndex: &writeSizeArgIdx,
 			}, {
 				Index: writeSizeArgIdx,
 				Type:  "size_t",
