@@ -88,6 +88,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix := &tracing.MsgGenericUprobeUnix{}
 	unix.Common = m.Common
 	unix.ProcessKey = m.ProcessKey
+	unix.Tid = m.Tid
 	unix.Path = uprobeEntry.path
 	unix.Symbol = uprobeEntry.symbol
 
