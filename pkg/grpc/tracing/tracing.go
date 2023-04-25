@@ -469,6 +469,7 @@ func (msg *MsgProcessLoaderUnix) Cast(o interface{}) notify.Message {
 type MsgGenericUprobeUnix struct {
 	Common     processapi.MsgCommon
 	ProcessKey processapi.MsgExecveKey
+	Tid        uint32
 	Path       string
 	Symbol     string
 	PolicyName string
@@ -496,15 +497,15 @@ func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev not
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	var tetragonParent, tetragonProcess *tetragon.Process
 
-	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
-	if process == nil {
+	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
-		if err := process.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
 				Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
@@ -528,8 +529,11 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		return nil
 	}
 
-	if process != nil {
-		tetragonEvent.Process = process.GetProcessCopy()
+	if proc != nil {
+		tetragonEvent.Process = proc.GetProcessCopy()
+		// In case the process is cached it will have TGID == TID, so
+		// update the TID with the recorded TID from bpf.
+		process.UpdateEventProcessTid(tetragonEvent.Process, event.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
