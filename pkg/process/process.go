@@ -170,7 +170,9 @@ func (pi *ProcessInternal) RefGet() uint32 {
 // There is no point on calling this helper on clone or execve events,
 // however on all other events it is perfectly fine.
 func UpdateEventProcessTid(process *tetragon.Process, tid uint32) {
-	process.Tid = &wrapperspb.UInt32Value{Value: tid}
+	if process != nil && tid != 0 {
+		process.Tid = &wrapperspb.UInt32Value{Value: tid}
+	}
 }
 
 func GetProcessID(pid uint32, ktime uint64) string {
