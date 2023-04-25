@@ -72,6 +72,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	e->func_id = config->func_id;
 	e->retprobe_id = retprobe_map_get_key(ctx);
+	e->tid = (__u32)get_current_pid_tgid();
 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
