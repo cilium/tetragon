@@ -217,7 +217,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	if proc != nil {
 		tetragonEvent.Process = proc.GetProcessCopy()
 		// Use the bpf recorded TID to update the event
-		process.UpdateEventProcessTid(tetragonEvent.Process, event.Tid)
+		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
@@ -242,7 +242,7 @@ func (msg *MsgGenericTracepointUnix) Notify() bool {
 }
 
 func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, &msg.Tid, timestamp)
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -309,7 +309,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	if proc != nil {
 		tetragonEvent.Process = proc.GetProcessCopy()
 		// Use the bpf recorded TID to update the event
-		process.UpdateEventProcessTid(tetragonEvent.Process, msg.Tid)
+		process.UpdateEventProcessTid(tetragonEvent.Process, &msg.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
@@ -352,7 +352,7 @@ func (msg *MsgGenericKprobeUnix) Notify() bool {
 }
 
 func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, &msg.Tid, timestamp)
 }
 
 func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -438,7 +438,7 @@ func (msg *MsgProcessLoaderUnix) Notify() bool {
 }
 
 func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, nil, timestamp)
 }
 
 func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -485,7 +485,7 @@ func (msg *MsgGenericUprobeUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 }
 
 func (msg *MsgGenericUprobeUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, &msg.Tid, timestamp)
 }
 
 func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
@@ -530,7 +530,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	if proc != nil {
 		tetragonEvent.Process = proc.GetProcessCopy()
 		// Use the bpf recorded TID to update the event
-		process.UpdateEventProcessTid(tetragonEvent.Process, event.Tid)
+		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = parent.GetProcessCopy()
