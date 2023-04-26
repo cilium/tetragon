@@ -269,40 +269,46 @@ func (msg *MsgCloneEventUnix) Cast(o interface{}) notify.Message {
 	return &MsgCloneEventUnix{MsgCloneEvent: t}
 }
 
+func (event *MsgExitEventUnix) PushToEventCache(tetragonEvent notify.Event) {
+	eventcache.Get().Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+}
+
 // GetProcessExit returns Exit protobuf message for a given process.
 func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
-	var tetragonProcess, tetragonParent *tetragon.Process
+	tetragonEvent := &tetragon.ProcessExit{
+		Signal: readerexec.Signal(event.Info.Code & 0xFF),
+		Status: event.Info.Code >> 8,
+		Time:   ktime.ToProto(event.Common.Ktime),
+	}
 
+	var tetragonProcess, tetragonParent *tetragon.Process
 	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
+	}
+
 	if proc != nil {
 		tetragonProcess = proc.UnsafeGetProcess()
 	} else {
+		// This will go through the eventcache
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	}
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
 
-	code := event.Info.Code >> 8
-	signal := readerexec.Signal(event.Info.Code & 0xFF)
-
-	tetragonEvent := &tetragon.ProcessExit{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Signal:  signal,
-		Status:  code,
-		Time:    ktime.ToProto(event.Common.Ktime),
-	}
-	ec := eventcache.Get()
-	if ec != nil &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+	// Check if process or its parent are not cached or missing information, if so
+	// they must go through the eventcache to complete the full information from the
+	// execve info to the k8s and container one.
+	if process.InfoIsMissing(tetragonProcess, tetragonParent) {
+		tetragonEvent.Parent = tetragonParent
+		tetragonEvent.Process = tetragonProcess
+		// Event will be handled by the eventcache
+		event.PushToEventCache(tetragonEvent)
 		return nil
 	}
+
+	// Handle event here and return it
 	if parent != nil {
 		parent.RefDec()
 		tetragonEvent.Parent = parent.GetProcessCopy()

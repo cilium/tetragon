@@ -349,3 +349,43 @@ func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
 	endpoint, _ := cilium.GetCiliumState().GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
 	return endpoint
 }
+
+// We handle two race conditions here one where the event races with
+// a Tetragon execve event and the other -- much more common -- where we
+// race with K8s watcher
+// case 1 (execve race):
+//
+//	Its possible to receive this Tetragon event before the process event cache
+//	has been populated with a Tetragon execve event. In this case we need to
+//	cache the event until the process cache is populated.
+//
+// case 2 (k8s watcher race):
+//
+//	Its possible to receive an event before the k8s watcher receives the
+//	podInfo event and populates the local cache. If we expect podInfo,
+//	indicated by having a nonZero dockerID we cache the event until the
+//	podInfo arrives.
+func infoIsMissing(proc *tetragon.Process) bool {
+	if proc == nil {
+		return true
+	}
+	if option.Config.EnableK8s {
+		if proc.Docker != "" && proc.Pod == nil {
+			return true
+		}
+	}
+	if proc.Binary == "" {
+		return true
+	}
+	return false
+}
+
+// Returns true if the process or parent are still missing information and
+// need to go through the event cache.
+func InfoIsMissing(process, parent *tetragon.Process) bool {
+	if infoIsMissing(process) || (process.Pid.Value > 1 && infoIsMissing(parent)) {
+		return true
+	}
+
+	return false
+}
