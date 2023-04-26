@@ -22,7 +22,7 @@ var (
 
 // AttachFunc is the type for the various attachment functions. The function is
 // given the program and it's up to it to close it.
-type AttachFunc func(*ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
+type AttachFunc func(*ebpf.CollectionSpec, *ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
 type customInstall struct {
 	mapName   string
@@ -39,7 +39,7 @@ func RawAttach(targetFD int) AttachFunc {
 }
 
 func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
 			Target:  targetFD,
 			Program: prog,
@@ -65,7 +65,7 @@ func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 }
 
 func TracepointAttach(load *Program) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		parts := strings.Split(load.Attach, "/")
 		if len(parts) != 2 {
@@ -87,7 +87,7 @@ func TracepointAttach(load *Program) AttachFunc {
 }
 
 func RawTracepointAttach(load *Program) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		var lnk link.Link
 		var err error
 
@@ -114,7 +114,7 @@ func RawTracepointAttach(load *Program) AttachFunc {
 }
 
 func KprobeAttach(load *Program) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		var linkFn func() (link.Link, error)
 
 		if load.RetProbe {
@@ -137,7 +137,7 @@ func KprobeAttach(load *Program) AttachFunc {
 }
 
 func UprobeAttach(load *Program) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		data, ok := load.AttachData.(*UprobeAttachData)
 		if !ok {
 			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
@@ -165,7 +165,7 @@ func UprobeAttach(load *Program) AttachFunc {
 }
 
 func NoAttach() AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
 			unloader.PinUnloader{
 				Prog: prog,
@@ -215,7 +215,7 @@ func LSMAttach() AttachFunc {
 }
 
 func MultiKprobeAttach(load *Program) AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(coll *ebpf.CollectionSpec, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		data, ok := load.AttachData.(*MultiKprobeAttachData)
 		if !ok {
 			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
@@ -566,7 +566,7 @@ func doLoadProgram(
 			return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 		}
 
-		load.unloaderOverride, err = loadOpts.attach(progOverride, progOverrideSpec)
+		load.unloaderOverride, err = loadOpts.attach(spec, progOverride, progOverrideSpec)
 		if err != nil {
 			logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 		}
@@ -597,7 +597,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloader, err = loadOpts.attach(prog, progSpec)
+	load.unloader, err = loadOpts.attach(spec, prog, progSpec)
 	if err != nil {
 		if err := prog.Unpin(); err != nil {
 			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
