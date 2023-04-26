@@ -279,10 +279,6 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 	return loadProgram(bpfDir, []string{mapDir}, load, UprobeAttach(load), ci, verbose)
 }
 
-func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(), nil, verbose)
-}
-
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
 	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
