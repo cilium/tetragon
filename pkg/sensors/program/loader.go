@@ -29,6 +29,11 @@ type customInstall struct {
 	secPrefix string
 }
 
+type loadOpts struct {
+	attach AttachFunc
+	ci     *customInstall
+}
+
 func RawAttach(targetFD int) AttachFunc {
 	return RawAttachWithFlags(targetFD, 0)
 }
@@ -250,11 +255,18 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
+	opts := &loadOpts{
+		attach: TracepointAttach(load),
+		ci:     ci,
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, RawTracepointAttach(load), nil, verbose)
+	opts := &loadOpts{
+		attach: RawTracepointAttach(load),
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
@@ -265,7 +277,11 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+	opts := &loadOpts{
+		attach: KprobeAttach(load),
+		ci:     ci,
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
@@ -276,20 +292,33 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, UprobeAttach(load), ci, verbose)
+	opts := &loadOpts{
+		attach: UprobeAttach(load),
+		ci:     ci,
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
-	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
+	opts := &loadOpts{
+		attach: MultiKprobeAttach(load),
+		ci:     &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"},
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(), nil, verbose)
+	opts := &loadOpts{
+		attach: TracingAttach(),
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func LoadLSMProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, LSMAttach(), nil, verbose)
+	opts := &loadOpts{
+		attach: LSMAttach(),
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
 func slimVerifierError(errStr string) string {
@@ -378,8 +407,7 @@ func doLoadProgram(
 	bpfDir string,
 	mapDirs []string,
 	load *Program,
-	withProgram AttachFunc,
-	ci *customInstall,
+	loadOpts *loadOpts,
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
@@ -508,7 +536,7 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(mapDirs[0], spec, coll, ci)
+	err = installTailCalls(mapDirs[0], spec, coll, loadOpts.ci)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
@@ -545,7 +573,7 @@ func doLoadProgram(
 			return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 		}
 
-		load.unloaderOverride, err = withProgram(progOverride, progOverrideSpec)
+		load.unloaderOverride, err = loadOpts.attach(progOverride, progOverrideSpec)
 		if err != nil {
 			logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 		}
@@ -576,7 +604,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloader, err = withProgram(prog, progSpec)
+	load.unloader, err = loadOpts.attach(prog, progSpec)
 	if err != nil {
 		if err := prog.Unpin(); err != nil {
 			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
@@ -595,11 +623,10 @@ func loadProgram(
 	bpfDir string,
 	mapDirs []string,
 	load *Program,
-	withProgram AttachFunc,
-	ci *customInstall,
+	opts *loadOpts,
 	verbose int,
 ) error {
-	lc, err := doLoadProgram(bpfDir, mapDirs, load, withProgram, ci, verbose)
+	lc, err := doLoadProgram(bpfDir, mapDirs, load, opts, verbose)
 	if err != nil {
 		return err
 	}
@@ -614,8 +641,9 @@ func LoadProgram(
 	bpfDir string,
 	mapDirs []string,
 	load *Program,
-	withProgram AttachFunc,
+	attach AttachFunc,
 	verbose int,
 ) error {
-	return loadProgram(bpfDir, mapDirs, load, withProgram, nil, verbose)
+	opts := &loadOpts{attach: attach}
+	return loadProgram(bpfDir, mapDirs, load, opts, verbose)
 }
