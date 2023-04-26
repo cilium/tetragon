@@ -24,6 +24,8 @@ var (
 // given the program and it's up to it to close it.
 type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebpf.ProgramSpec) (unloader.Unloader, error)
 
+type OpenFunc func(*ebpf.CollectionSpec) error
+
 type customInstall struct {
 	mapName   string
 	secPrefix string
@@ -31,6 +33,7 @@ type customInstall struct {
 
 type loadOpts struct {
 	attach AttachFunc
+	open   OpenFunc
 	ci     *customInstall
 }
 
@@ -437,6 +440,12 @@ func doLoadProgram(
 	spec, err := ebpf.LoadCollectionSpec(load.Name)
 	if err != nil {
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
+	}
+
+	if loadOpts.open != nil {
+		if err := loadOpts.open(spec); err != nil {
+			return nil, fmt.Errorf("open spec function failed: %w", err)
+		}
 	}
 
 	for _, ms := range spec.Maps {
