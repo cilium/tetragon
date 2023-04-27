@@ -44,11 +44,11 @@ type MsgGenericKprobe struct {
 	ProcessKey   processapi.MsgExecveKey
 	Namespaces   processapi.MsgNamespaces
 	Capabilities processapi.MsgCapabilities
-	Id           uint64
-	ThreadId     uint64
+	FuncId       uint64
+	RetProbeId   uint64
 	ActionId     uint64
 	ActionArgId  uint32
-	Pad          uint32
+	Tid          uint32 // The recorded TID that triggered the event
 }
 
 type MsgGenericKprobeArgPath struct {

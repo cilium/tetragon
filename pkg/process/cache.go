@@ -165,7 +165,9 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 	return process, nil
 }
 
-func (pc *Cache) Add(process *ProcessInternal) bool {
+// Add a ProcessInternal structure to the cache. Must be called only from
+// clone or execve events
+func (pc *Cache) add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
 	if evicted {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)

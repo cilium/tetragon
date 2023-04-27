@@ -70,10 +70,11 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (!config)
 		return 0;
 
-	e->id = config->func_id;
-	e->thread_id = retprobe_map_get_key(ctx);
+	e->func_id = config->func_id;
+	e->retprobe_id = retprobe_map_get_key(ctx);
+	e->tid = (__u32)get_current_pid_tgid();
 
-	if (!retprobe_map_get(e->id, e->thread_id, &info))
+	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
 
 	*(unsigned long *)e->args = info.ktime_enter;
@@ -120,7 +121,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->current.pad[2] = 0;
 	e->current.pad[3] = 0;
 
-	e->id = config->func_id;
+	e->func_id = config->func_id;
 
 	total = size;
 	total += generic_kprobe_common_size();

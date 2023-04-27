@@ -129,7 +129,8 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	/* Tail call into filters. */
 	msg->idx = 0;
-	msg->id = config->func_id;
+	msg->func_id = config->func_id;
+	msg->retprobe_id = 0;
 
 	msg->a0 = ({
 		unsigned long ctx_off = config->t_arg0_ctx_off;

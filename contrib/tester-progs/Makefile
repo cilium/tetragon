@@ -14,12 +14,16 @@ PROGS = sigkill-tester \
 	exit-code \
 	uprobe-test-1 \
 	uprobe-test-2 \
-	lseek-pipe
+	lseek-pipe \
+	threads-tester
 
 all: $(PROGS)
 
 %: %.c
 	$(GCC) -Wall $< -o $@
+
+threads-tester: threads-tester.c
+	$(GCC) -Wall $< -o $@ -lcap -lpthread
 
 capabilities-tester: capabilities-tester.c
 	$(GCC) -Wall $< -o $@ -lcap

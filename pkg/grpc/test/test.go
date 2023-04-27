@@ -27,7 +27,7 @@ func (msg *MsgTestEventUnix) Notify() bool {
 }
 
 func (msg *MsgTestEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, 0, timestamp)
+	return eventcache.HandleGenericInternal(ev, 0, 0, timestamp)
 }
 
 func (msg *MsgTestEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {

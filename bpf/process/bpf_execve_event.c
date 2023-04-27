@@ -94,7 +94,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid, __u32 flags, void *filename)
+event_filename_builder(void *ctx, struct msg_process *curr, __u64 curr_pid, __u32 flags, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
@@ -124,8 +124,16 @@ event_filename_builder(void *ctx, struct msg_process *curr, __u32 curr_pid, __u3
 			flags |= EVENT_DATA_FILENAME;
 		}
 	}
+
 	curr->flags = flags;
-	curr->pid = curr_pid;
+	/* Send the TGID and TID, as during an execve all threads other
+	 * than the calling thread are destroyed, but since we hook late
+	 * during the execve then the calling thread at the hook time is
+	 * already the new thread group leader.
+	 */
+	curr->pid = curr_pid >> 32;
+	curr->tid = (__u32)curr_pid;
+	curr->pad = 0;
 	curr->nspid = get_task_pid_vnr();
 	curr->ktime = ktime_get_ns();
 	curr->size = size + offsetof(struct msg_process, args);
@@ -155,7 +163,7 @@ event_execve(struct sched_execve_args *ctx)
 	struct msg_process *execve;
 	bool walker = 0;
 	__u32 zero = 0;
-	__u32 pid;
+	__u64 pid;
 	unsigned short fileoff;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
@@ -171,7 +179,7 @@ event_execve(struct sched_execve_args *ctx)
 	 *  2. Set the event->process.flags to properly reflect errors.
 	 */
 
-	pid = (get_current_pid_tgid() >> 32);
+	pid = get_current_pid_tgid();
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;

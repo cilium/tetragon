@@ -271,45 +271,49 @@ func (msg *MsgCloneEventUnix) Cast(o interface{}) notify.Message {
 
 // GetProcessExit returns Exit protobuf message for a given process.
 func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
-	var tetragonProcess, tetragonParent *tetragon.Process
+	tetragonEvent := &tetragon.ProcessExit{
+		Signal: readerexec.Signal(event.Info.Code & 0xFF),
+		Status: event.Info.Code >> 8,
+		Time:   ktime.ToProto(event.Common.Ktime),
+	}
 
-	process, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
-	if process != nil {
-		tetragonProcess = process.UnsafeGetProcess()
+	var tetragonProcess, tetragonParent *tetragon.Process
+	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
+	}
+
+	if proc != nil {
+		tetragonProcess = proc.UnsafeGetProcess()
 	} else {
+		// This will go through the eventcache
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	}
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
 
-	code := event.Info.Code >> 8
-	signal := readerexec.Signal(event.Info.Code & 0xFF)
-
-	tetragonEvent := &tetragon.ProcessExit{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Signal:  signal,
-		Status:  code,
-		Time:    ktime.ToProto(event.Common.Ktime),
-	}
-	ec := eventcache.Get()
-	if ec != nil &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+	// Check if process or its parent are not cached or missing information, if so
+	// they must go through the eventcache to complete the full information from the
+	// execve info to the k8s and container one.
+	if process.InfoIsMissing(tetragonProcess, tetragonParent) {
+		tetragonEvent.Parent = tetragonParent
+		tetragonEvent.Process = tetragonProcess
+		// Event will be handled by the eventcache
+		event.PushToEventCache(tetragonEvent)
 		return nil
 	}
+
+	// Handle event here and return it
 	if parent != nil {
 		parent.RefDec()
 		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
-	if process != nil {
-		process.RefDec()
-		tetragonEvent.Process = process.GetProcessCopy()
+	if proc != nil {
+		proc.RefDec()
+		tetragonEvent.Process = proc.GetProcessCopy()
+		// Use the bpf recorded TID to update the event
+		process.UpdateEventProcessTid(tetragonEvent.Process, event.Info.Tid)
 	}
 	return tetragonEvent
 }
@@ -321,6 +325,10 @@ type MsgExitEventUnix struct {
 
 func (msg *MsgExitEventUnix) Notify() bool {
 	return true
+}
+
+func (msg *MsgExitEventUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Common.Ktime, msg.ProcessKey.Ktime, msg)
 }
 
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
@@ -343,7 +351,9 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 			internal.RefDec()
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
-		ev.SetProcess(internal.GetProcessCopy())
+		proc := internal.GetProcessCopy()
+		// Update the Process TID with the recorded one from BPF side
+		process.UpdateEventProcessTid(proc, msg.Info.Tid)
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		err = eventcache.ErrFailedToGetProcessInfo
@@ -426,15 +436,17 @@ func (msg *MsgProcessCleanupEventUnix) Retry(internal *process.ProcessInternal, 
 	return nil
 }
 
+func (msg *MsgProcessCleanupEventUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Ktime, msg.Ktime, msg)
+}
+
 func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	msg.RefCntDone = [2]bool{false, false}
 	if process, parent := process.GetParentProcessInternal(msg.PID, msg.Ktime); process != nil && parent != nil {
 		parent.RefDec()
 		process.RefDec()
 	} else {
-		if ec := eventcache.Get(); ec != nil {
-			ec.Add(nil, nil, msg.Ktime, msg.Ktime, msg)
-		}
+		msg.PushToEventCache(nil)
 	}
 	return nil
 }

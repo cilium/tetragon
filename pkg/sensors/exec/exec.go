@@ -97,6 +97,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 
 	proc.Size = exec.Size
 	proc.PID = exec.PID
+	proc.TID = exec.TID
 	proc.NSPID = exec.NSPID
 	proc.UID = exec.UID
 	proc.Flags = exec.Flags
@@ -243,7 +244,7 @@ type execProbe struct{}
 func (e *execProbe) LoadProbe(args sensors.LoadProbeArgs) error {
 	err := program.LoadTracepointProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose)
 	if err == nil {
-		procevents.GetRunningProcs()
+		err = procevents.GetRunningProcs()
 	}
 	return err
 }

@@ -23,14 +23,15 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct execve_map_value *curr, *parent;
 	struct task_struct *current_task;
 	struct tetragon_conf *config;
-	u32 pid = 0, ppid = 0, error_flags = 0;
+	u32 tgid = 0, ppid = 0, error_flags = 0;
 	int zero = 0;
 
 	if (!task)
 		return 0;
 
-	probe_read(&pid, sizeof(pid), _(&task->tgid));
-	curr = execve_map_get(pid);
+	tgid = BPF_CORE_READ(task, tgid);
+
+	curr = execve_map_get(tgid);
 	if (!curr)
 		return 0;
 
@@ -44,7 +45,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		current_task = (struct task_struct *)get_current_task();
 		probe_read(&ppid, sizeof(ppid), _(&current_task->tgid));
 		/* If they share same thread group nothing todo... */
-		if (pid != ppid) {
+		if (tgid != ppid) {
 			parent = execve_map_get(ppid);
 			if (parent)
 				__set_task_cgrpid_tracker(config, current_task,
@@ -52,14 +53,16 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		}
 	}
 
-	/* generate an EVENT_COMMON_FLAG_CLONE event only once per process */
+	/* Generate an EVENT_COMMON_FLAG_CLONE event once per process,
+	 * that is, thread group.
+	 */
 	if (curr->key.ktime != 0)
 		return 0;
 
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	parent = __event_find_parent(task);
 	if (parent) {
-		curr->key.pid = pid;
+		curr->key.pid = tgid;
 		curr->key.ktime = ktime_get_ns();
 		curr->nspid = get_task_pid_vnr();
 		curr->binary = parent->binary;
@@ -71,7 +74,12 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 			.common.size = size,
 			.common.ktime = curr->key.ktime,
 			.parent = curr->pkey,
-			.pid = curr->key.pid,
+			.tgid = curr->key.pid,
+			/* Since we generate one event per thread group, then when
+			 * the task wakes up, there will be only one thread here:
+			 * the thread group leader. Pass its thread id to user-space.
+			 */
+			.tid = BPF_CORE_READ(task, pid),
 			.ktime = curr->key.ktime,
 			.nspid = curr->nspid,
 			.flags = curr->flags,

@@ -49,7 +49,7 @@ func stringToUTF8(s []byte) []byte {
 	return s
 }
 
-type Procs struct {
+type procs struct {
 	psize                uint32
 	ppid                 uint32
 	pnspid               uint32
@@ -59,6 +59,7 @@ type Procs struct {
 	size                 uint32
 	uid                  uint32
 	pid                  uint32
+	tid                  uint32
 	nspid                uint32
 	auid                 uint32
 	flags                uint32
@@ -79,9 +80,9 @@ type Procs struct {
 	user_ns              uint32
 }
 
-func procKernel() Procs {
+func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
-	return Procs{
+	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		ppid:        kernelPid,
 		pnspid:      0,
@@ -91,6 +92,7 @@ func procKernel() Procs {
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		uid:         0,
 		pid:         kernelPid,
+		tid:         kernelPid,
 		nspid:       0,
 		auid:        0,
 		flags:       api.EventProcFS,
@@ -123,7 +125,7 @@ func getCWD(pid uint32) (string, uint32) {
 	return cwd, flags
 }
 
-func pushExecveEvents(p Procs) {
+func pushExecveEvents(p procs) {
 	var err error
 
 	args, filename := procsFilename(p.args)
@@ -164,6 +166,7 @@ func pushExecveEvents(p Procs) {
 
 	m.Process.Size = p.size
 	m.Process.PID = p.pid
+	m.Process.TID = p.tid
 	m.Process.NSPID = p.nspid
 	m.Process.UID = p.uid
 	m.Process.AUID = p.auid
@@ -193,7 +196,7 @@ func updateExecveMapStats(procs int64) {
 	}
 }
 
-func writeExecveMap(procs []Procs) {
+func writeExecveMap(procs []procs) {
 	mapDir := bpf.MapPrefixPath()
 
 	execveMap := base.GetExecveMap()
@@ -252,7 +255,7 @@ func writeExecveMap(procs []Procs) {
 	updateExecveMapStats(int64(len(procs)))
 }
 
-func pushEvents(procs []Procs) {
+func pushEvents(procs []procs) {
 	writeExecveMap(procs)
 
 	sort.Slice(procs, func(i, j int) bool {
@@ -264,16 +267,15 @@ func pushEvents(procs []Procs) {
 	}
 }
 
-func GetRunningProcs() []Procs {
-	var procs []Procs
+func listRunningProcs(procPath string) ([]procs, error) {
+	var processes []procs
 
-	procFS, err := os.ReadDir(option.Config.ProcFS)
+	procFS, err := os.ReadDir(procPath)
 	if err != nil {
-		logger.GetLogger().WithError(err).Errorf("Could not read directory %s", option.Config.ProcFS)
-		return nil
+		return nil, err
 	}
 
-	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, procPath)
 	// time and time_for_children namespaces introduced in kernel 5.6
 	hasTimeNs := (int64(kernelVer) >= kernels.KernelStringToNumeric("5.6.0"))
 
@@ -288,7 +290,7 @@ func GetRunningProcs() []Procs {
 			continue
 		}
 
-		pathName := filepath.Join(option.Config.ProcFS, d.Name())
+		pathName := filepath.Join(procPath, d.Name())
 
 		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
 		if err != nil {
@@ -340,7 +342,7 @@ func GetRunningProcs() []Procs {
 			}
 		}
 
-		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, d.Name(), "status"))
+		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))
 
 		uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
 		ipc_ns := namespace.GetPidNsInode(uint32(pid), "ipc")
@@ -368,7 +370,7 @@ func GetRunningProcs() []Procs {
 
 		if _ppid != 0 {
 			var err error
-			parentPath := filepath.Join(option.Config.ProcFS, ppid)
+			parentPath := filepath.Join(procPath, ppid)
 
 			pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
 			if err != nil {
@@ -389,7 +391,7 @@ func GetRunningProcs() []Procs {
 
 			if dockerId != "" {
 				// We have a container ID so let's get the nspid inside.
-				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, ppid, "status"))
+				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}
 		} else {
 			pcmdline = nil
@@ -398,13 +400,13 @@ func GetRunningProcs() []Procs {
 			pnspid = 0
 		}
 
-		execPath, err := os.Readlink(filepath.Join(option.Config.ProcFS, d.Name(), "exe"))
+		execPath, err := os.Readlink(filepath.Join(procPath, d.Name(), "exe"))
 		if err == nil {
 			cmdline = proc.PrependPath(execPath, cmdline)
 		}
 
 		if _ppid != 0 {
-			pexecPath, err = os.Readlink(filepath.Join(option.Config.ProcFS, ppid, "exe"))
+			pexecPath, err = os.Readlink(filepath.Join(procPath, ppid, "exe"))
 			if err == nil {
 				pcmdline = proc.PrependPath(pexecPath, pcmdline)
 			}
@@ -415,13 +417,16 @@ func GetRunningProcs() []Procs {
 		pcmdsUTF := stringToUTF8(pcmdline)
 		cmdsUTF := stringToUTF8(cmdline)
 
-		p := Procs{
+		p := procs{
 			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
-			pflags: api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			pktime: pktime,
-			uid:    euid, // use euid to be compatible with ps
-			auid:   auid,
-			pid:    uint32(pid), nspid: nspid, args: cmdsUTF,
+			pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+			pktime:               pktime,
+			uid:                  euid, // use euid to be compatible with ps
+			auid:                 auid,
+			pid:                  uint32(pid),
+			tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
+			nspid:                nspid,
+			args:                 cmdsUTF,
 			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			ktime:                ktime,
 			permitted:            permitted,
@@ -478,10 +483,21 @@ func GetRunningProcs() []Procs {
 			}
 		}
 
-		procs = append(procs, p)
+		processes = append(processes, p)
 	}
-	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(procs), len(procFS))
+
+	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS))
+
+	return processes, nil
+}
+
+func GetRunningProcs() error {
+	procs, err := listRunningProcs(option.Config.ProcFS)
+	if err != nil {
+		logger.GetLogger().WithError(err).Errorf("Failed to list running processes from '%s'", option.Config.ProcFS)
+		return err
+	}
 
 	pushEvents(procs)
-	return procs
+	return nil
 }
