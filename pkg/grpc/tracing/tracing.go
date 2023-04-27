@@ -406,23 +406,23 @@ func (event *ProcessLoaderNotify) SetParent(*tetragon.Process) {
 func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 	var tetragonProcess *tetragon.Process
 
-	process, _ := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
-	if process == nil {
+	proc, _ := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
+	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
+		tetragonProcess = proc.UnsafeGetProcess()
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
+	if process.InfoIsMissing(tetragonProcess, nil) {
 		tetragonEvent := &ProcessLoaderNotify{}
 		tetragonEvent.Process = tetragonProcess
 		tetragonEvent.Path = msg.Path
 		tetragonEvent.Buildid = msg.Buildid
-		ec.Add(nil, tetragonEvent, msg.Ktime, msg.ProcessKey.Ktime, msg)
+		// Event will be handled by the eventcache
+		msg.PushToEventCache(tetragonEvent)
 		return nil
 	}
 
@@ -433,6 +433,10 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 	}
 
 	return tetragonEvent
+}
+
+func (msg *MsgProcessLoaderUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Ktime, msg.ProcessKey.Ktime, msg)
 }
 
 func (msg *MsgProcessLoaderUnix) Notify() bool {
