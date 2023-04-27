@@ -495,8 +495,12 @@ func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev not
 }
 
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
-	var tetragonParent, tetragonProcess *tetragon.Process
+	tetragonEvent := &tetragon.ProcessUprobe{
+		Path:   event.Path,
+		Symbol: event.Symbol,
+	}
 
+	var tetragonParent, tetragonProcess *tetragon.Process
 	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if proc == nil {
 		tetragonProcess = &tetragon.Process{
@@ -515,17 +519,11 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	tetragonEvent := &tetragon.ProcessUprobe{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Path:    event.Path,
-		Symbol:  event.Symbol,
-	}
-
-	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+	if process.InfoIsMissing(tetragonProcess, tetragonParent) {
+		tetragonEvent.Parent = tetragonParent
+		tetragonEvent.Process = tetragonProcess
+		// Event will be handled by the eventcache
+		event.PushToEventCache(tetragonEvent)
 		return nil
 	}
 
@@ -540,6 +538,10 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	return tetragonEvent
+}
+
+func (msg *MsgGenericUprobeUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Common.Ktime, msg.ProcessKey.Ktime, msg)
 }
 
 func (msg *MsgGenericUprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
