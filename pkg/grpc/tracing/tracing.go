@@ -207,10 +207,9 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Action:       kprobeAction(event.Action),
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+	if process.InfoIsMissing(tetragonProcess, tetragonParent) {
+		// Event will be handled by the eventcache
+		event.PushToEventCache(tetragonEvent)
 		return nil
 	}
 
@@ -347,6 +346,10 @@ type MsgGenericKprobeUnix struct {
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
 	PolicyName   string
+}
+
+func (msg *MsgGenericKprobeUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Common.Ktime, msg.ProcessKey.Ktime, msg)
 }
 
 func (msg *MsgGenericKprobeUnix) Notify() bool {
