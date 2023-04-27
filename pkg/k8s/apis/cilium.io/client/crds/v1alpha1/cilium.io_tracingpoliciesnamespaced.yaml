@@ -231,6 +231,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -436,6 +440,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -651,6 +659,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -856,6 +868,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -958,6 +974,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1163,6 +1183,10 @@ spec:
                                   - NotEqual
                                   - Prefix
                                   - Postfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
