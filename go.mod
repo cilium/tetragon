@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cilium/cilium v1.13.1
-	github.com/cilium/ebpf v0.9.4-0.20221102092914-a9cf21df64c2
+	github.com/cilium/ebpf v0.10.0
 	github.com/cilium/little-vm-helper v0.0.4-0.20230302123240-24dab6e359ff
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
@@ -193,7 +193,3 @@ replace (
 	// Pull in support for helm uninstall. TODO: remove this when 0.0.8 comes out.
 	sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.0.0-20220527132303-bc7888d1b4f0
 )
-
-// Needed for now to resolve BTF issues in newer kernels. When we have 0.9.4 we can remove
-// this.
-replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d

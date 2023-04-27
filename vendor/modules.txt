@@ -122,7 +122,7 @@ github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/u8proto
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/ebpf v0.9.4-0.20221102092914-a9cf21df64c2 => github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d
+# github.com/cilium/ebpf v0.10.0
 ## explicit; go 1.18
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
@@ -1409,4 +1409,3 @@ sigs.k8s.io/yaml
 # gopkg.in/natefinch/lumberjack.v2 => github.com/chancez/lumberjack v0.0.0-20220314160755-2b78c6a5f7bc
 # sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
 # sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.0.0-20220527132303-bc7888d1b4f0
-# github.com/cilium/ebpf => github.com/cilium/ebpf v0.9.4-0.20221026141156-bcf6c12e189d
