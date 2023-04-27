@@ -269,10 +269,6 @@ func (msg *MsgCloneEventUnix) Cast(o interface{}) notify.Message {
 	return &MsgCloneEventUnix{MsgCloneEvent: t}
 }
 
-func (event *MsgExitEventUnix) PushToEventCache(tetragonEvent notify.Event) {
-	eventcache.Get().Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
-}
-
 // GetProcessExit returns Exit protobuf message for a given process.
 func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	tetragonEvent := &tetragon.ProcessExit{
@@ -329,6 +325,10 @@ type MsgExitEventUnix struct {
 
 func (msg *MsgExitEventUnix) Notify() bool {
 	return true
+}
+
+func (msg *MsgExitEventUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Common.Ktime, msg.ProcessKey.Ktime, msg)
 }
 
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
@@ -436,15 +436,17 @@ func (msg *MsgProcessCleanupEventUnix) Retry(internal *process.ProcessInternal, 
 	return nil
 }
 
+func (msg *MsgProcessCleanupEventUnix) PushToEventCache(ev notify.Event) {
+	eventcache.Get().Add(nil, ev, msg.Ktime, msg.Ktime, msg)
+}
+
 func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	msg.RefCntDone = [2]bool{false, false}
 	if process, parent := process.GetParentProcessInternal(msg.PID, msg.Ktime); process != nil && parent != nil {
 		parent.RefDec()
 		process.RefDec()
 	} else {
-		if ec := eventcache.Get(); ec != nil {
-			ec.Add(nil, nil, msg.Ktime, msg.Ktime, msg)
-		}
+		msg.PushToEventCache(nil)
 	}
 	return nil
 }
