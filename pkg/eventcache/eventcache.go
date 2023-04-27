@@ -41,11 +41,11 @@ type CacheObj struct {
 }
 
 type Cache struct {
-	objsChan chan CacheObj
-	done     chan bool
-	cache    []CacheObj
-	server   *server.Server
-	dur      time.Duration
+	objsChan     chan CacheObj
+	reinitialize chan bool // Used to run multiple tests
+	cache        []CacheObj
+	server       *server.Server
+	dur          time.Duration
 }
 
 var (
@@ -159,7 +159,8 @@ func (ec *Cache) loop() {
 			eventcachemetrics.EventCacheCount.Inc()
 			ec.cache = append(ec.cache, event)
 
-		case <-ec.done:
+		// A test wants to reinitialize the cache, drop from here
+		case <-ec.reinitialize:
 			return
 		}
 	}
@@ -205,15 +206,16 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 
 func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 	if cache != nil {
-		cache.done <- true
+		// Cache was already setup, so let's reinitialize
+		cache.reinitialize <- true
 	}
 
 	cache = &Cache{
-		objsChan: make(chan CacheObj),
-		done:     make(chan bool),
-		cache:    make([]CacheObj, 0),
-		server:   s,
-		dur:      dur,
+		objsChan:     make(chan CacheObj),
+		reinitialize: make(chan bool),
+		cache:        make([]CacheObj, 0),
+		server:       s,
+		dur:          dur,
 	}
 	nodeName = node.GetNodeNameForExport()
 	go cache.loop()
