@@ -1071,6 +1071,200 @@ func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
 	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
 
+func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
+	return `
+  apiVersion: cilium.io/v1alpha1
+  metadata:
+    name: "sys-read"
+  spec:
+    kprobes:
+    - call: "sys_openat"
+      return: true
+      syscall: true
+      args:
+      - index: 0
+        type: int
+      - index: 1
+        type: "string"
+      - index: 2
+        type: "int"
+      returnArg:
+        type: int
+      selectors:
+      - matchPIDs:
+        - operator: In
+          followForks: true
+          values:
+          - ` + pidStr + `
+        matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - "` + path + `\0"
+        matchReturnArgs:
+        - index: 0
+          operator: "GT"
+          values:
+          - 0
+  `
+}
+
+func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
+	return `
+  apiVersion: cilium.io/v1alpha1
+  metadata:
+    name: "sys-read"
+  spec:
+    kprobes:
+    - call: "sys_openat"
+      return: true
+      syscall: true
+      args:
+      - index: 0
+        type: int
+      - index: 1
+        type: "string"
+      - index: 2
+        type: "int"
+      returnArg:
+        type: int
+      selectors:
+      - matchPIDs:
+        - operator: In
+          followForks: true
+          values:
+          - ` + pidStr + `
+        matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - "` + path + `\0"
+        matchReturnArgs:
+        - index: 0
+          operator: "LT"
+          values:
+          - 0
+  `
+}
+
+func testKprobeObjectFilteredReturnValue(t *testing.T,
+	hook string,
+	checker ec.MultiEventChecker,
+	path string,
+	expectFailure bool) {
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	readConfigHook := []byte(hook)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	fd2, _ := syscall.Open(path, syscall.O_RDWR, 0x770)
+	t.Cleanup(func() { syscall.Close(fd2) })
+	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	assert.NoError(t, err)
+}
+
+func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := t.TempDir()
+	path := dir + "/testfile"
+	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
+
+	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+		return ec.NewUnorderedEventChecker(
+			ec.NewProcessKprobeChecker("").
+				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+				WithArgs(ec.NewKprobeArgumentListMatcher().
+					WithOperator(lc.Ordered).
+					WithValues(
+						ec.NewKprobeArgumentChecker().WithIntArg(-100),
+						ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(path)),
+						ec.NewKprobeArgumentChecker(),
+					)))
+	}
+
+	// Create file to open later
+	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
+	if fd < 0 {
+		t.Logf("File open failed: %s\n", errno)
+		t.Fatal()
+	}
+	syscall.Close(fd)
+	defer func() { syscall.Unlink(path) }()
+
+	// testfile exists
+	// we look for sys_openat(-100, "...testfile", ..) > 0
+	testKprobeObjectFilteredReturnValue(t, openHook, checker(path), path, false /* OK */)
+}
+
+func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := t.TempDir()
+	path := dir + "/testfile"
+	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
+
+	// testfile DOES NOT exist
+	// we look for sys_openat(-100, "...testfile", ..) > 0
+	testKprobeObjectFilteredReturnValue(t, openHook, getAnyChecker(), path, true /* FAIL */)
+}
+
+func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := t.TempDir()
+	path := dir + "/testfile"
+	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
+
+	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+		return ec.NewUnorderedEventChecker(
+			ec.NewProcessKprobeChecker("").
+				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+				WithArgs(ec.NewKprobeArgumentListMatcher().
+					WithOperator(lc.Ordered).
+					WithValues(
+						ec.NewKprobeArgumentChecker().WithIntArg(-100),
+						ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(path)),
+						ec.NewKprobeArgumentChecker(),
+					)))
+	}
+
+	// testfile DOES NOT exist
+	// we look for sys_openat(-100, "...testfile", ..) < 0
+	testKprobeObjectFilteredReturnValue(t, openHook, checker(path), path, false /* OK */)
+}
+
+func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	dir := t.TempDir()
+	path := dir + "/testfile"
+	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
+
+	// Create file to open later
+	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
+	if fd < 0 {
+		t.Logf("File open failed: %s\n", errno)
+		t.Fatal()
+	}
+	syscall.Close(fd)
+	defer func() { syscall.Unlink(path) }()
+
+	// testfile exists
+	// we look for sys_openat(-100, "...testfile", ..) < 0
+	testKprobeObjectFilteredReturnValue(t, openHook, getAnyChecker(), path, true /* FAIL */)
+}
+
 func helloIovecWorldWritev() (err error) {
 	var arrayOfBytes = make([][]byte, 3)
 
