@@ -359,13 +359,11 @@ type GetEventsRequest struct {
 	// deny_list specifies a list of filters to apply to exclude certain events
 	// from the results. If multiple filters are specified, at least one of
 	// them has to match for an event to be excluded.
-	//
 	// If both allow_list and deny_list are specified, the results contain the
 	// set difference allow_list - deny_list.
 	DenyList []*Filter `protobuf:"bytes,2,rep,name=deny_list,json=denyList,proto3" json:"deny_list,omitempty"`
 	// aggregation_options configures aggregation options for this request.
 	// If this field is not set, responses will not be aggregated.
-	//
 	// Note that currently only process_accept and process_connect events are
 	// aggregated. Other events remain unaggregated.
 	AggregationOptions *AggregationOptions `protobuf:"bytes,3,opt,name=aggregation_options,json=aggregationOptions,proto3" json:"aggregation_options,omitempty"`
@@ -566,7 +564,6 @@ type GetEventsResponse struct {
 	// Name of the node where this event was observed.
 	NodeName string `protobuf:"bytes,1000,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
 	// Timestamp at which this event was observed.
-	//
 	// For an aggregated response, this field to set to the timestamp at which
 	// the event was observed for the first time in a given aggregation time window.
 	Time *timestamppb.Timestamp `protobuf:"bytes,1001,opt,name=time,proto3" json:"time,omitempty"`
@@ -689,18 +686,25 @@ type isGetEventsResponse_Event interface {
 }
 
 type GetEventsResponse_ProcessExec struct {
+	// ProcessExec event includes information about the execution of
+	// binaries and other related process metadata.
 	ProcessExec *ProcessExec `protobuf:"bytes,1,opt,name=process_exec,json=processExec,proto3,oneof"`
 }
 
 type GetEventsResponse_ProcessExit struct {
+	// ProcessExit event indicates how and when a process terminates.
 	ProcessExit *ProcessExit `protobuf:"bytes,5,opt,name=process_exit,json=processExit,proto3,oneof"`
 }
 
 type GetEventsResponse_ProcessKprobe struct {
+	// ProcessKprobe event contains information about the pre-defined
+	// functions and the process that invoked them.
 	ProcessKprobe *ProcessKprobe `protobuf:"bytes,9,opt,name=process_kprobe,json=processKprobe,proto3,oneof"`
 }
 
 type GetEventsResponse_ProcessTracepoint struct {
+	// ProcessTracepoint contains information about the pre-defined
+	// tracepoint and the process that invoked them.
 	ProcessTracepoint *ProcessTracepoint `protobuf:"bytes,10,opt,name=process_tracepoint,json=processTracepoint,proto3,oneof"`
 }
 
