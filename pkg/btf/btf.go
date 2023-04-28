@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	btfObj  *btf.Spec
 	btfFile string
 )
 
@@ -89,14 +88,9 @@ func InitCachedBTF(ctx context.Context, lib, btf string) error {
 	if err != nil {
 		return fmt.Errorf("tetragon, aborting kernel autodiscovery failed: %w", err)
 	}
-	btfObj, err = NewBTF()
 	return err
 }
 
 func GetCachedBTFFile() string {
 	return btfFile
-}
-
-func GetCachedBTF() *btf.Spec {
-	return btfObj
 }
