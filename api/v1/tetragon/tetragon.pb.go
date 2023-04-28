@@ -39,17 +39,29 @@ const (
 type KprobeAction int32
 
 const (
-	KprobeAction_KPROBE_ACTION_UNKNOWN    KprobeAction = 0
-	KprobeAction_KPROBE_ACTION_POST       KprobeAction = 1
-	KprobeAction_KPROBE_ACTION_FOLLOWFD   KprobeAction = 2
-	KprobeAction_KPROBE_ACTION_SIGKILL    KprobeAction = 3
+	// Unknown action
+	KprobeAction_KPROBE_ACTION_UNKNOWN KprobeAction = 0
+	// Post action creates an event (default action).
+	KprobeAction_KPROBE_ACTION_POST KprobeAction = 1
+	// Post action creates a mapping between file descriptors and file names.
+	KprobeAction_KPROBE_ACTION_FOLLOWFD KprobeAction = 2
+	// Sigkill action synchronously terminates the process.
+	KprobeAction_KPROBE_ACTION_SIGKILL KprobeAction = 3
+	// Post action removes a mapping between file descriptors and file names.
 	KprobeAction_KPROBE_ACTION_UNFOLLOWFD KprobeAction = 4
-	KprobeAction_KPROBE_ACTION_OVERRIDE   KprobeAction = 5
-	KprobeAction_KPROBE_ACTION_COPYFD     KprobeAction = 6
-	KprobeAction_KPROBE_ACTION_GETURL     KprobeAction = 7
-	KprobeAction_KPROBE_ACTION_DNSLOOKUP  KprobeAction = 8
-	KprobeAction_KPROBE_ACTION_NOPOST     KprobeAction = 9
-	KprobeAction_KPROBE_ACTION_SIGNAL     KprobeAction = 10
+	// Override action modifies the return value of the call.
+	KprobeAction_KPROBE_ACTION_OVERRIDE KprobeAction = 5
+	// Post action dupplicates a mapping between file descriptors and file
+	// names.
+	KprobeAction_KPROBE_ACTION_COPYFD KprobeAction = 6
+	// GetURL action issue an HTTP Get request against an URL from userspace.
+	KprobeAction_KPROBE_ACTION_GETURL KprobeAction = 7
+	// GetURL action issue a DNS lookup against an URL from userspace.
+	KprobeAction_KPROBE_ACTION_DNSLOOKUP KprobeAction = 8
+	// NoPost action suppresses the transmission of the event to userspace.
+	KprobeAction_KPROBE_ACTION_NOPOST KprobeAction = 9
+	// Signal action sends specified signal to the process.
+	KprobeAction_KPROBE_ACTION_SIGNAL KprobeAction = 10
 )
 
 // Enum value maps for KprobeAction.
@@ -212,7 +224,10 @@ type Image struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id   string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Identifier of the container image composed of the registry path and the
+	// sha256.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Name of the container image composed of the registry path and the tag.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 }
 
@@ -267,12 +282,15 @@ type Container struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name  string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Identifier of the container.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Name of the container.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Image of the container.
 	Image *Image `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
 	// Start time of the container.
 	StartTime *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	// PID in the container namespace.
+	// Process identifier in the container namespace.
 	Pid *wrapperspb.UInt32Value `protobuf:"bytes,5,opt,name=pid,proto3" json:"pid,omitempty"`
 	// If this is set true, it means that the process might have been originated from
 	// a Kubernetes exec probe. For this field to be true, the following must be true:
@@ -362,12 +380,17 @@ type Pod struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Namespace string     `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Name      string     `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Labels    []string   `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty"`
+	// Kubernetes namespace of the Pod.
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// Name of the Pod.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Cilium identity labels of the Pod.
+	Labels []string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty"`
+	// Container of the Pod from which the process that triggered the event
+	// originates.
 	Container *Container `protobuf:"bytes,4,opt,name=container,proto3" json:"container,omitempty"`
-	// pod_labels field contains all the labels of the pod. Note that the labels field
-	// contains Cilium identity labels, which is a subset of pod labels.
+	// Contains all the labels of the pod. Note that the labels field contains
+	// Cilium identity labels, which is a subset of pod labels.
 	PodLabels map[string]string `protobuf:"bytes,5,rep,name=pod_labels,json=podLabels,proto3" json:"pod_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -443,8 +466,18 @@ type Capabilities struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Permitted   []CapabilitiesType `protobuf:"varint,1,rep,packed,name=permitted,proto3,enum=tetragon.CapabilitiesType" json:"permitted,omitempty"`
-	Effective   []CapabilitiesType `protobuf:"varint,2,rep,packed,name=effective,proto3,enum=tetragon.CapabilitiesType" json:"effective,omitempty"`
+	// Permitted set indicates what capabilities the process can use. This is a
+	// limiting superset for the effective capabilities that the thread may
+	// assume. It is also a limiting superset for the capabilities that may be
+	// added to the inheritable set by a thread without the CAP_SETPCAP in its
+	// effective set.
+	Permitted []CapabilitiesType `protobuf:"varint,1,rep,packed,name=permitted,proto3,enum=tetragon.CapabilitiesType" json:"permitted,omitempty"`
+	// Effective set indicates what capabilities are active in a process. This
+	// is the set used by the kernel to perform permission checks for the
+	// thread.
+	Effective []CapabilitiesType `protobuf:"varint,2,rep,packed,name=effective,proto3,enum=tetragon.CapabilitiesType" json:"effective,omitempty"`
+	// Inheritable set indicates which capabilities will be inherited by the
+	// current process when running as a root user.
 	Inheritable []CapabilitiesType `protobuf:"varint,3,rep,packed,name=inheritable,proto3,enum=tetragon.CapabilitiesType" json:"inheritable,omitempty"`
 }
 
@@ -506,8 +539,10 @@ type Namespace struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Inum   uint32 `protobuf:"varint,1,opt,name=inum,proto3" json:"inum,omitempty"`
-	IsHost bool   `protobuf:"varint,2,opt,name=is_host,json=isHost,proto3" json:"is_host,omitempty"`
+	// Inode number of the namespace.
+	Inum uint32 `protobuf:"varint,1,opt,name=inum,proto3" json:"inum,omitempty"`
+	// Indicates if namespace belongs to host.
+	IsHost bool `protobuf:"varint,2,opt,name=is_host,json=isHost,proto3" json:"is_host,omitempty"`
 }
 
 func (x *Namespace) Reset() {
@@ -561,16 +596,26 @@ type Namespaces struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uts             *Namespace `protobuf:"bytes,1,opt,name=uts,proto3" json:"uts,omitempty"`
-	Ipc             *Namespace `protobuf:"bytes,2,opt,name=ipc,proto3" json:"ipc,omitempty"`
-	Mnt             *Namespace `protobuf:"bytes,3,opt,name=mnt,proto3" json:"mnt,omitempty"`
-	Pid             *Namespace `protobuf:"bytes,4,opt,name=pid,proto3" json:"pid,omitempty"`
-	PidForChildren  *Namespace `protobuf:"bytes,5,opt,name=pid_for_children,json=pidForChildren,proto3" json:"pid_for_children,omitempty"`
-	Net             *Namespace `protobuf:"bytes,6,opt,name=net,proto3" json:"net,omitempty"`
-	Time            *Namespace `protobuf:"bytes,7,opt,name=time,proto3" json:"time,omitempty"`
+	// Hostname and NIS domain name.
+	Uts *Namespace `protobuf:"bytes,1,opt,name=uts,proto3" json:"uts,omitempty"`
+	// System V IPC, POSIX message queues.
+	Ipc *Namespace `protobuf:"bytes,2,opt,name=ipc,proto3" json:"ipc,omitempty"`
+	// Mount points.
+	Mnt *Namespace `protobuf:"bytes,3,opt,name=mnt,proto3" json:"mnt,omitempty"`
+	// Process IDs.
+	Pid *Namespace `protobuf:"bytes,4,opt,name=pid,proto3" json:"pid,omitempty"`
+	// Process IDs for children processes.
+	PidForChildren *Namespace `protobuf:"bytes,5,opt,name=pid_for_children,json=pidForChildren,proto3" json:"pid_for_children,omitempty"`
+	// Network devices, stacks, ports, etc.
+	Net *Namespace `protobuf:"bytes,6,opt,name=net,proto3" json:"net,omitempty"`
+	// Boot and monotonic clocks.
+	Time *Namespace `protobuf:"bytes,7,opt,name=time,proto3" json:"time,omitempty"`
+	// Boot and monotonic clocks for children processes.
 	TimeForChildren *Namespace `protobuf:"bytes,8,opt,name=time_for_children,json=timeForChildren,proto3" json:"time_for_children,omitempty"`
-	Cgroup          *Namespace `protobuf:"bytes,9,opt,name=cgroup,proto3" json:"cgroup,omitempty"`
-	User            *Namespace `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	// Cgroup root directory.
+	Cgroup *Namespace `protobuf:"bytes,9,opt,name=cgroup,proto3" json:"cgroup,omitempty"`
+	// User and group IDs.
+	User *Namespace `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
 }
 
 func (x *Namespaces) Reset() {
@@ -681,22 +726,93 @@ type Process struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Exec ID uniquely identifies the process over time across all the nodes in the cluster.
-	ExecId       string                  `protobuf:"bytes,1,opt,name=exec_id,json=execId,proto3" json:"exec_id,omitempty"`
-	Pid          *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=pid,proto3" json:"pid,omitempty"`
-	Uid          *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`
-	Cwd          string                  `protobuf:"bytes,4,opt,name=cwd,proto3" json:"cwd,omitempty"`
-	Binary       string                  `protobuf:"bytes,5,opt,name=binary,proto3" json:"binary,omitempty"`
-	Arguments    string                  `protobuf:"bytes,6,opt,name=arguments,proto3" json:"arguments,omitempty"`
-	Flags        string                  `protobuf:"bytes,7,opt,name=flags,proto3" json:"flags,omitempty"`
-	StartTime    *timestamppb.Timestamp  `protobuf:"bytes,8,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	Auid         *wrapperspb.UInt32Value `protobuf:"bytes,9,opt,name=auid,proto3" json:"auid,omitempty"`
-	Pod          *Pod                    `protobuf:"bytes,10,opt,name=pod,proto3" json:"pod,omitempty"`
-	Docker       string                  `protobuf:"bytes,11,opt,name=docker,proto3" json:"docker,omitempty"`
-	ParentExecId string                  `protobuf:"bytes,12,opt,name=parent_exec_id,json=parentExecId,proto3" json:"parent_exec_id,omitempty"`
-	Refcnt       uint32                  `protobuf:"varint,13,opt,name=refcnt,proto3" json:"refcnt,omitempty"`
-	Cap          *Capabilities           `protobuf:"bytes,14,opt,name=cap,proto3" json:"cap,omitempty"`
-	Ns           *Namespaces             `protobuf:"bytes,15,opt,name=ns,proto3" json:"ns,omitempty"`
-	Tid          *wrapperspb.UInt32Value `protobuf:"bytes,16,opt,name=tid,proto3" json:"tid,omitempty"` // tid is the thread id. (For the thread group leader, tid is equal to pid.)
+	ExecId string `protobuf:"bytes,1,opt,name=exec_id,json=execId,proto3" json:"exec_id,omitempty"`
+	// Process identifier from host PID namespace.
+	Pid *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=pid,proto3" json:"pid,omitempty"`
+	// User identifier associated with the process.
+	Uid *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`
+	// Current working directory of the process.
+	Cwd string `protobuf:"bytes,4,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	// Absolute path of the executed binary.
+	Binary string `protobuf:"bytes,5,opt,name=binary,proto3" json:"binary,omitempty"`
+	// Arguments passed to the binary at execution.
+	Arguments string `protobuf:"bytes,6,opt,name=arguments,proto3" json:"arguments,omitempty"`
+	// Flags are for debugging purposes only and should not be considered a
+	// reliable source of information. They hold various information about
+	// which syscalls generated events, use of internal Tetragon buffers,
+	// errors and more.
+	// - `execve` This event is generated by an execve syscall for a new
+	// process. See procFs for the other option. A correctly formatted event
+	// should either set execve or procFS (described next).
+	// - `procFS` This event is generated from a proc interface. This happens
+	// at Tetragon init when existing processes are being loaded into Tetragon
+	// event buffer. All events should have either execve or procFS set.
+	// - `truncFilename` Indicates a truncated processes filename because the
+	// buffer size is too small to contain the process filename. Consider
+	// increasing buffer size to avoid this.
+	// - `truncArgs` Indicates truncated the processes arguments because the
+	// buffer size was too small to contain all exec args. Consider increasing
+	// buffer size to avoid this.
+	// - `taskWalk` Primarily useful for debugging. Indicates a walked process
+	// hierarchy to find a parent process in the Tetragon buffer. This may
+	// happen when we did not receive an exec event for the immediate parent of
+	// a process. Typically means we are looking at a fork that in turn did
+	// another fork we don't currently track fork events exactly and instead
+	// push an event with the original parent exec data. This flag can provide
+	// this insight into the event if needed.
+	// - `miss` An error flag indicating we could not find parent info in the
+	// Tetragon event buffer. If this is set it should be reported to Tetragon
+	// developers for debugging. Tetragon will do its best to recover
+	// information about the process from available kernel data structures
+	// instead of using cached info in this case. However, args will not be
+	// available.
+	// - `needsAUID` An internal flag for Tetragon to indicate the audit has
+	// not yet been resolved. The BPF hooks look at this flag to determine if
+	// probing the audit system is necessary.
+	// - `errorFilename` An error flag indicating an error happened while
+	// reading the filename. If this is set it should be reported to Tetragon
+	// developers for debugging.
+	// - `errorArgs` An error flag indicating an error happened while reading
+	// the process args. If this is set it should be reported to Tetragon
+	// developers for debugging
+	// - `needsCWD` An internal flag for Tetragon to indicate the current
+	// working directory has not yet been resolved. The Tetragon hooks look at
+	// this flag to determine if probing the CWD is necessary.
+	// - `noCWDSupport` Indicates that CWD is removed from the event because
+	// the buffer size is too small. Consider increasing buffer size to avoid
+	// this.
+	// - `rootCWD` Indicates that CWD is the root directory. This is necessary
+	// to inform readers the CWD is not in the event buffer and is '/' instead.
+	// - `errorCWD` An error flag indicating an error occurred while reading
+	// the CWD of a process. If this is set it should be reported to Tetragon
+	// developers for debugging.
+	// - `clone` Indicates the process issued a clone before exec*. This is the
+	// general flow to exec* a new process, however its possible to replace the
+	// current process with a new process by doing an exec* without a clone. In
+	// this case the flag will be omitted and the same PID will be used by the
+	// kernel for both the old process and the newly exec'd process.
+	Flags string `protobuf:"bytes,7,opt,name=flags,proto3" json:"flags,omitempty"`
+	// Start time of the execution.
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	// Audit user ID, this ID is assigned to a user upon login and is inherited
+	// by every process even when the user's identity changes. For example, by
+	// switching user accounts with su - john.
+	Auid *wrapperspb.UInt32Value `protobuf:"bytes,9,opt,name=auid,proto3" json:"auid,omitempty"`
+	// Information about the the Kubernetes Pod where the event originated.
+	Pod *Pod `protobuf:"bytes,10,opt,name=pod,proto3" json:"pod,omitempty"`
+	// The 15 first digits of the container ID.
+	Docker string `protobuf:"bytes,11,opt,name=docker,proto3" json:"docker,omitempty"`
+	// Exec ID of the parent process.
+	ParentExecId string `protobuf:"bytes,12,opt,name=parent_exec_id,json=parentExecId,proto3" json:"parent_exec_id,omitempty"`
+	// Reference counter from the Tetragon process cache.
+	Refcnt uint32 `protobuf:"varint,13,opt,name=refcnt,proto3" json:"refcnt,omitempty"`
+	// Set of capabilities that define the permissions the process can execute with.
+	Cap *Capabilities `protobuf:"bytes,14,opt,name=cap,proto3" json:"cap,omitempty"`
+	// Linux namespaces of the process, disabled by default, can be enabled by
+	// the `--enable-process-ns` flag.
+	Ns *Namespaces `protobuf:"bytes,15,opt,name=ns,proto3" json:"ns,omitempty"`
+	// Thread ID, note that for the thread group leader, tid is equal to pid.
+	Tid *wrapperspb.UInt32Value `protobuf:"bytes,16,opt,name=tid,proto3" json:"tid,omitempty"`
 }
 
 func (x *Process) Reset() {
@@ -848,8 +964,10 @@ type ProcessExec struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Process that triggered the exec.
 	Process *Process `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
-	Parent  *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
+	// Immediate parent of the process.
+	Parent *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Ancestors of the process beyond the immediate parent.
 	Ancestors []*Process `protobuf:"bytes,3,rep,name=ancestors,proto3" json:"ancestors,omitempty"`
 }
@@ -912,11 +1030,20 @@ type ProcessExit struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Process *Process               `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
-	Parent  *Process               `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
-	Signal  string                 `protobuf:"bytes,3,opt,name=signal,proto3" json:"signal,omitempty"`
-	Status  uint32                 `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
-	Time    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=time,proto3" json:"time,omitempty"`
+	// Process that triggered the exit.
+	Process *Process `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
+	// Immediate parent of the process.
+	Parent *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
+	// Signal that the process received when it exited, for example SIGKILL or
+	// SIGTERM (list all signal names with `kill -l`). If there is no signal
+	// handler implemented for a specific process, we report the exit status
+	// code that can be found in the status field.
+	Signal string `protobuf:"bytes,3,opt,name=signal,proto3" json:"signal,omitempty"`
+	// Status code on process exit. For example, the status code can indicate
+	// if an error was encountered or the program exited successfully.
+	Status uint32 `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
+	// Date and time of the event.
+	Time *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=time,proto3" json:"time,omitempty"`
 }
 
 func (x *ProcessExit) Reset() {
@@ -2103,12 +2230,18 @@ type ProcessKprobe struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Process      *Process          `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
-	Parent       *Process          `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
-	FunctionName string            `protobuf:"bytes,3,opt,name=function_name,json=functionName,proto3" json:"function_name,omitempty"`
-	Args         []*KprobeArgument `protobuf:"bytes,4,rep,name=args,proto3" json:"args,omitempty"`
-	Return       *KprobeArgument   `protobuf:"bytes,5,opt,name=return,proto3" json:"return,omitempty"`
-	Action       KprobeAction      `protobuf:"varint,6,opt,name=action,proto3,enum=tetragon.KprobeAction" json:"action,omitempty"`
+	// Process that triggered the kprobe.
+	Process *Process `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
+	// Immediate parent of the process.
+	Parent *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
+	// Symbol on which the kprobe was attached.
+	FunctionName string `protobuf:"bytes,3,opt,name=function_name,json=functionName,proto3" json:"function_name,omitempty"`
+	// Arguments definition of the observed kprobe.
+	Args []*KprobeArgument `protobuf:"bytes,4,rep,name=args,proto3" json:"args,omitempty"`
+	// Return value definition of the observed kprobe.
+	Return *KprobeArgument `protobuf:"bytes,5,opt,name=return,proto3" json:"return,omitempty"`
+	// Action performed when the kprobe matched.
+	Action KprobeAction `protobuf:"varint,6,opt,name=action,proto3,enum=tetragon.KprobeAction" json:"action,omitempty"`
 }
 
 func (x *ProcessKprobe) Reset() {
@@ -2190,10 +2323,15 @@ type ProcessTracepoint struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Process that triggered the tracepoint.
 	Process *Process `protobuf:"bytes,1,opt,name=process,proto3" json:"process,omitempty"`
-	Parent  *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
-	Subsys  string   `protobuf:"bytes,4,opt,name=subsys,proto3" json:"subsys,omitempty"`
-	Event   string   `protobuf:"bytes,5,opt,name=event,proto3" json:"event,omitempty"`
+	// Immediate parent of the process.
+	Parent *Process `protobuf:"bytes,2,opt,name=parent,proto3" json:"parent,omitempty"`
+	// Subsystem of the tracepoint.
+	Subsys string `protobuf:"bytes,4,opt,name=subsys,proto3" json:"subsys,omitempty"`
+	// Event of the subsystem.
+	Event string `protobuf:"bytes,5,opt,name=event,proto3" json:"event,omitempty"`
+	// Arguments definition of the observed tracepoint.
 	// TODO: once we implement all we want, rename KprobeArgument to GenericArgument
 	Args []*KprobeArgument `protobuf:"bytes,6,rep,name=args,proto3" json:"args,omitempty"`
 }

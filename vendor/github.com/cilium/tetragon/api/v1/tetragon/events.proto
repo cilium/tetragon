@@ -84,13 +84,11 @@ message GetEventsRequest {
     // deny_list specifies a list of filters to apply to exclude certain events
     // from the results. If multiple filters are specified, at least one of
     // them has to match for an event to be excluded.
-    //
     // If both allow_list and deny_list are specified, the results contain the
     // set difference allow_list - deny_list.
     repeated Filter deny_list = 2;
     // aggregation_options configures aggregation options for this request.
     // If this field is not set, responses will not be aggregated.
-    //
     // Note that currently only process_accept and process_connect events are
     // aggregated. Other events remain unaggregated.
     AggregationOptions aggregation_options = 3;
@@ -123,9 +121,16 @@ message GetEventsResponse {
     oneof event {
         // Numbers must be in sync with
 
+        // ProcessExec event includes information about the execution of
+        // binaries and other related process metadata.
         ProcessExec process_exec = 1;
+        // ProcessExit event indicates how and when a process terminates.
         ProcessExit process_exit = 5;
+        // ProcessKprobe event contains information about the pre-defined
+        // functions and the process that invoked them.
         ProcessKprobe process_kprobe = 9;
+        // ProcessTracepoint contains information about the pre-defined
+        // tracepoint and the process that invoked them.
         ProcessTracepoint process_tracepoint = 10;
         ProcessLoader process_loader = 11;
         ProcessUprobe process_uprobe = 12;
@@ -135,7 +140,6 @@ message GetEventsResponse {
     // Name of the node where this event was observed.
     string node_name = 1000;
     // Timestamp at which this event was observed.
-    //
     // For an aggregated response, this field to set to the timestamp at which
     // the event was observed for the first time in a given aggregation time window.
     google.protobuf.Timestamp time = 1001;

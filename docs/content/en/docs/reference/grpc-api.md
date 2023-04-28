@@ -70,9 +70,9 @@ version 1 of this API is defined in
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| permitted | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
-| effective | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
-| inheritable | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
+| permitted | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Permitted set indicates what capabilities the process can use. This is a limiting superset for the effective capabilities that the thread may assume. It is also a limiting superset for the capabilities that may be added to the inheritable set by a thread without the CAP_SETPCAP in its effective set. |
+| effective | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Effective set indicates what capabilities are active in a process. This is the set used by the kernel to perform permission checks for the thread. |
+| inheritable | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Inheritable set indicates which capabilities will be inherited by the current process when running as a root user. |
 
 <a name="tetragon-Container"></a>
 
@@ -80,11 +80,11 @@ version 1 of this API is defined in
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| name | [string](#string) |  |  |
-| image | [Image](#tetragon-Image) |  |  |
+| id | [string](#string) |  | Identifier of the container. |
+| name | [string](#string) |  | Name of the container. |
+| image | [Image](#tetragon-Image) |  | Image of the container. |
 | start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Start time of the container. |
-| pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | PID in the container namespace. |
+| pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Process identifier in the container namespace. |
 | maybe_exec_probe | [bool](#bool) |  | If this is set true, it means that the process might have been originated from a Kubernetes exec probe. For this field to be true, the following must be true: 1. The binary field matches the first element of the exec command list for either liveness or readiness probe excluding the basename. For example, &#34;/bin/ls&#34; and &#34;ls&#34; are considered a match. 2. The arguments field exactly matches the rest of the exec command list. |
 
 <a name="tetragon-CreateContainer"></a>
@@ -142,8 +142,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| name | [string](#string) |  |  |
+| id | [string](#string) |  | Identifier of the container image composed of the registry path and the sha256. |
+| name | [string](#string) |  | Name of the container image composed of the registry path and the tag. |
 
 <a name="tetragon-KprobeArgument"></a>
 
@@ -301,8 +301,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| inum | [uint32](#uint32) |  |  |
-| is_host | [bool](#bool) |  |  |
+| inum | [uint32](#uint32) |  | Inode number of the namespace. |
+| is_host | [bool](#bool) |  | Indicates if namespace belongs to host. |
 
 <a name="tetragon-Namespaces"></a>
 
@@ -310,16 +310,16 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| uts | [Namespace](#tetragon-Namespace) |  |  |
-| ipc | [Namespace](#tetragon-Namespace) |  |  |
-| mnt | [Namespace](#tetragon-Namespace) |  |  |
-| pid | [Namespace](#tetragon-Namespace) |  |  |
-| pid_for_children | [Namespace](#tetragon-Namespace) |  |  |
-| net | [Namespace](#tetragon-Namespace) |  |  |
-| time | [Namespace](#tetragon-Namespace) |  |  |
-| time_for_children | [Namespace](#tetragon-Namespace) |  |  |
-| cgroup | [Namespace](#tetragon-Namespace) |  |  |
-| user | [Namespace](#tetragon-Namespace) |  |  |
+| uts | [Namespace](#tetragon-Namespace) |  | Hostname and NIS domain name. |
+| ipc | [Namespace](#tetragon-Namespace) |  | System V IPC, POSIX message queues. |
+| mnt | [Namespace](#tetragon-Namespace) |  | Mount points. |
+| pid | [Namespace](#tetragon-Namespace) |  | Process IDs. |
+| pid_for_children | [Namespace](#tetragon-Namespace) |  | Process IDs for children processes. |
+| net | [Namespace](#tetragon-Namespace) |  | Network devices, stacks, ports, etc. |
+| time | [Namespace](#tetragon-Namespace) |  | Boot and monotonic clocks. |
+| time_for_children | [Namespace](#tetragon-Namespace) |  | Boot and monotonic clocks for children processes. |
+| cgroup | [Namespace](#tetragon-Namespace) |  | Cgroup root directory. |
+| user | [Namespace](#tetragon-Namespace) |  | User and group IDs. |
 
 <a name="tetragon-Pod"></a>
 
@@ -327,11 +327,11 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| namespace | [string](#string) |  |  |
-| name | [string](#string) |  |  |
-| labels | [string](#string) | repeated |  |
-| container | [Container](#tetragon-Container) |  |  |
-| pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | pod_labels field contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
+| namespace | [string](#string) |  | Kubernetes namespace of the Pod. |
+| name | [string](#string) |  | Name of the Pod. |
+| labels | [string](#string) | repeated | Cilium identity labels of the Pod. |
+| container | [Container](#tetragon-Container) |  | Container of the Pod from which the process that triggered the event originates. |
+| pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
 
 <a name="tetragon-Pod-PodLabelsEntry"></a>
 
@@ -349,21 +349,21 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | exec_id | [string](#string) |  | Exec ID uniquely identifies the process over time across all the nodes in the cluster. |
-| pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| cwd | [string](#string) |  |  |
-| binary | [string](#string) |  |  |
-| arguments | [string](#string) |  |  |
-| flags | [string](#string) |  |  |
-| start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
-| auid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| pod | [Pod](#tetragon-Pod) |  |  |
-| docker | [string](#string) |  |  |
-| parent_exec_id | [string](#string) |  |  |
-| refcnt | [uint32](#uint32) |  |  |
-| cap | [Capabilities](#tetragon-Capabilities) |  |  |
-| ns | [Namespaces](#tetragon-Namespaces) |  |  |
-| tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | tid is the thread id. (For the thread group leader, tid is equal to pid.) |
+| pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Process identifier from host PID namespace. |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | User identifier associated with the process. |
+| cwd | [string](#string) |  | Current working directory of the process. |
+| binary | [string](#string) |  | Absolute path of the executed binary. |
+| arguments | [string](#string) |  | Arguments passed to the binary at execution. |
+| flags | [string](#string) |  | Flags are for debugging purposes only and should not be considered a reliable source of information. They hold various information about which syscalls generated events, use of internal Tetragon buffers, errors and more. - `execve` This event is generated by an execve syscall for a new process. See procFs for the other option. A correctly formatted event should either set execve or procFS (described next). - `procFS` This event is generated from a proc interface. This happens at Tetragon init when existing processes are being loaded into Tetragon event buffer. All events should have either execve or procFS set. - `truncFilename` Indicates a truncated processes filename because the buffer size is too small to contain the process filename. Consider increasing buffer size to avoid this. - `truncArgs` Indicates truncated the processes arguments because the buffer size was too small to contain all exec args. Consider increasing buffer size to avoid this. - `taskWalk` Primarily useful for debugging. Indicates a walked process hierarchy to find a parent process in the Tetragon buffer. This may happen when we did not receive an exec event for the immediate parent of a process. Typically means we are looking at a fork that in turn did another fork we don&#39;t currently track fork events exactly and instead push an event with the original parent exec data. This flag can provide this insight into the event if needed. - `miss` An error flag indicating we could not find parent info in the Tetragon event buffer. If this is set it should be reported to Tetragon developers for debugging. Tetragon will do its best to recover information about the process from available kernel data structures instead of using cached info in this case. However, args will not be available. - `needsAUID` An internal flag for Tetragon to indicate the audit has not yet been resolved. The BPF hooks look at this flag to determine if probing the audit system is necessary. - `errorFilename` An error flag indicating an error happened while reading the filename. If this is set it should be reported to Tetragon developers for debugging. - `errorArgs` An error flag indicating an error happened while reading the process args. If this is set it should be reported to Tetragon developers for debugging - `needsCWD` An internal flag for Tetragon to indicate the current working directory has not yet been resolved. The Tetragon hooks look at this flag to determine if probing the CWD is necessary. - `noCWDSupport` Indicates that CWD is removed from the event because the buffer size is too small. Consider increasing buffer size to avoid this. - `rootCWD` Indicates that CWD is the root directory. This is necessary to inform readers the CWD is not in the event buffer and is &#39;/&#39; instead. - `errorCWD` An error flag indicating an error occurred while reading the CWD of a process. If this is set it should be reported to Tetragon developers for debugging. - `clone` Indicates the process issued a clone before exec*. This is the general flow to exec* a new process, however its possible to replace the current process with a new process by doing an exec* without a clone. In this case the flag will be omitted and the same PID will be used by the kernel for both the old process and the newly exec&#39;d process. |
+| start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Start time of the execution. |
+| auid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Audit user ID, this ID is assigned to a user upon login and is inherited by every process even when the user&#39;s identity changes. For example, by switching user accounts with su - john. |
+| pod | [Pod](#tetragon-Pod) |  | Information about the the Kubernetes Pod where the event originated. |
+| docker | [string](#string) |  | The 15 first digits of the container ID. |
+| parent_exec_id | [string](#string) |  | Exec ID of the parent process. |
+| refcnt | [uint32](#uint32) |  | Reference counter from the Tetragon process cache. |
+| cap | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
+| ns | [Namespaces](#tetragon-Namespaces) |  | Linux namespaces of the process, disabled by default, can be enabled by the `--enable-process-ns` flag. |
+| tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
 
 <a name="tetragon-ProcessExec"></a>
 
@@ -371,8 +371,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| parent | [Process](#tetragon-Process) |  |  |
+| process | [Process](#tetragon-Process) |  | Process that triggered the exec. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 
 <a name="tetragon-ProcessExit"></a>
@@ -381,11 +381,11 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| parent | [Process](#tetragon-Process) |  |  |
-| signal | [string](#string) |  |  |
-| status | [uint32](#uint32) |  |  |
-| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| process | [Process](#tetragon-Process) |  | Process that triggered the exit. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| signal | [string](#string) |  | Signal that the process received when it exited, for example SIGKILL or SIGTERM (list all signal names with `kill -l`). If there is no signal handler implemented for a specific process, we report the exit status code that can be found in the status field. |
+| status | [uint32](#uint32) |  | Status code on process exit. For example, the status code can indicate if an error was encountered or the program exited successfully. |
+| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Date and time of the event. |
 
 <a name="tetragon-ProcessKprobe"></a>
 
@@ -393,12 +393,12 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| parent | [Process](#tetragon-Process) |  |  |
-| function_name | [string](#string) |  |  |
-| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated |  |
-| return | [KprobeArgument](#tetragon-KprobeArgument) |  |  |
-| action | [KprobeAction](#tetragon-KprobeAction) |  |  |
+| process | [Process](#tetragon-Process) |  | Process that triggered the kprobe. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| function_name | [string](#string) |  | Symbol on which the kprobe was attached. |
+| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed kprobe. |
+| return | [KprobeArgument](#tetragon-KprobeArgument) |  | Return value definition of the observed kprobe. |
+| action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the kprobe matched. |
 
 <a name="tetragon-ProcessLoader"></a>
 
@@ -417,11 +417,11 @@ loader sensor event triggered for loaded binary/library
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| parent | [Process](#tetragon-Process) |  |  |
-| subsys | [string](#string) |  |  |
-| event | [string](#string) |  |  |
-| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
+| process | [Process](#tetragon-Process) |  | Process that triggered the tracepoint. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| subsys | [string](#string) |  | Subsystem of the tracepoint. |
+| event | [string](#string) |  | Event of the subsystem. |
+| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed tracepoint. TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
 
 <a name="tetragon-ProcessUprobe"></a>
 
@@ -484,17 +484,17 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| KPROBE_ACTION_UNKNOWN | 0 |  |
-| KPROBE_ACTION_POST | 1 |  |
-| KPROBE_ACTION_FOLLOWFD | 2 |  |
-| KPROBE_ACTION_SIGKILL | 3 |  |
-| KPROBE_ACTION_UNFOLLOWFD | 4 |  |
-| KPROBE_ACTION_OVERRIDE | 5 |  |
-| KPROBE_ACTION_COPYFD | 6 |  |
-| KPROBE_ACTION_GETURL | 7 |  |
-| KPROBE_ACTION_DNSLOOKUP | 8 |  |
-| KPROBE_ACTION_NOPOST | 9 |  |
-| KPROBE_ACTION_SIGNAL | 10 |  |
+| KPROBE_ACTION_UNKNOWN | 0 | Unknown action |
+| KPROBE_ACTION_POST | 1 | Post action creates an event (default action). |
+| KPROBE_ACTION_FOLLOWFD | 2 | Post action creates a mapping between file descriptors and file names. |
+| KPROBE_ACTION_SIGKILL | 3 | Sigkill action synchronously terminates the process. |
+| KPROBE_ACTION_UNFOLLOWFD | 4 | Post action removes a mapping between file descriptors and file names. |
+| KPROBE_ACTION_OVERRIDE | 5 | Override action modifies the return value of the call. |
+| KPROBE_ACTION_COPYFD | 6 | Post action dupplicates a mapping between file descriptors and file names. |
+| KPROBE_ACTION_GETURL | 7 | GetURL action issue an HTTP Get request against an URL from userspace. |
+| KPROBE_ACTION_DNSLOOKUP | 8 | GetURL action issue a DNS lookup against an URL from userspace. |
+| KPROBE_ACTION_NOPOST | 9 | NoPost action suppresses the transmission of the event to userspace. |
+| KPROBE_ACTION_SIGNAL | 10 | Signal action sends specified signal to the process. |
 
 <a name="tetragon_events-proto"></a>
 
@@ -553,12 +553,8 @@ AggregationOptions defines configuration options for aggregating events.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | allow_list | [Filter](#tetragon-Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
-| deny_list | [Filter](#tetragon-Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded.
-
-If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
-| aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated.
-
-Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
+| deny_list | [Filter](#tetragon-Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded. If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
+| aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated. Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
 | field_filters | [FieldFilter](#tetragon-FieldFilter) | repeated | Fields to include or exclude for events in the GetEventsResponse. Omitting this field implies that all fields will be included. Exclusion always takes precedence over inclusion in the case of conflicts. |
 
 <a name="tetragon-GetEventsResponse"></a>
@@ -567,17 +563,15 @@ Note that currently only process_accept and process_connect events are aggregate
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process_exec | [ProcessExec](#tetragon-ProcessExec) |  |  |
-| process_exit | [ProcessExit](#tetragon-ProcessExit) |  |  |
-| process_kprobe | [ProcessKprobe](#tetragon-ProcessKprobe) |  |  |
-| process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  |  |
+| process_exec | [ProcessExec](#tetragon-ProcessExec) |  | ProcessExec event includes information about the execution of binaries and other related process metadata. |
+| process_exit | [ProcessExit](#tetragon-ProcessExit) |  | ProcessExit event indicates how and when a process terminates. |
+| process_kprobe | [ProcessKprobe](#tetragon-ProcessKprobe) |  | ProcessKprobe event contains information about the pre-defined functions and the process that invoked them. |
+| process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  | ProcessTracepoint contains information about the pre-defined tracepoint and the process that invoked them. |
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
-| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed.
-
-For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
+| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
 | aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
 
 <a name="tetragon-EventType"></a>
