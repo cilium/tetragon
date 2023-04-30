@@ -65,7 +65,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		// NB(kkourt): this is just for our vmtests VM
 		cmd := exec.Command("sudo", "mount", "-o", "remount,rw", cgroupFs)
 		cmd.Run()
-		control, err := cgroups.New(cgroups.Systemd, cgroups.Slice(slice, dir), &specs.LinuxResources{
+		control, err := cgroups.New(cgroups.V1, cgroups.Slice(slice, dir), &specs.LinuxResources{
 			Devices: []specs.LinuxDeviceCgroup{},
 			Memory:  &specs.LinuxMemory{},
 			CPU:     &specs.LinuxCPU{},
