@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -227,6 +228,12 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 			}
 		}
 		k.log.WithError(stopCtx.Err()).Info("Listening for events completed.")
+	}()
+
+	// Loading default program consumes some memory lets kick GC to give
+	// this back to the OS (K8s).
+	go func() {
+		runtime.GC()
 	}()
 
 	// Wait for context to be cancelled and then stop.
