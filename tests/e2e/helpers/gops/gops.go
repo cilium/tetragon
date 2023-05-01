@@ -21,14 +21,6 @@ func DumpHeapProfile(addr net.TCPAddr) ([]byte, error) {
 	return out, nil
 }
 
-func DumpBinary(addr net.TCPAddr) ([]byte, error) {
-	out, err := cmd(addr, signal.BinaryDump)
-	if err != nil {
-		return nil, fmt.Errorf("failed to dump binary: %w", err)
-	}
-	return out, nil
-}
-
 func DumpMemStats(addr net.TCPAddr) ([]byte, error) {
 	out, err := cmd(addr, signal.MemStats)
 	if err != nil {
