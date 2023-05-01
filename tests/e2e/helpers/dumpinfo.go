@@ -34,57 +34,55 @@ var (
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
 
-func DumpInfo() TestEnvFunc {
-	return func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
-		opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
-		if !ok {
-			return ctx, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
-		}
-
-		exportDir, err := GetExportDir(ctx)
-		if err != nil {
-			return ctx, err
-		}
-
-		klog.InfoS("Dumping test data", "dir", exportDir)
-		dumpCheckers(ctx, exportDir)
-
-		client, err := cfg.NewClient()
-		if err != nil {
-			return ctx, err
-		}
-		r := client.Resources(opts.Namespace)
-
-		podList := &corev1.PodList{}
-		if err = r.List(
-			ctx,
-			podList,
-			resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/name=%s", opts.DaemonSetName)),
-		); err != nil {
-			return ctx, err
-		}
-
-		for _, pod := range podList.Items {
-			if err := extractJson(&pod, exportDir); err != nil {
-				klog.ErrorS(err, "Failed to extract json events")
-			}
-			if err := extractLogs(&pod, exportDir, true); err != nil {
-				klog.ErrorS(err, "Failed to extract previous tetragon logs")
-			}
-			if err := extractLogs(&pod, exportDir, false); err != nil {
-				klog.ErrorS(err, "Failed to extract tetragon logs")
-			}
-			if err := describeTetragonPod(&pod, exportDir); err != nil {
-				klog.ErrorS(err, "Failed to describe tetragon pods")
-			}
-			if err := dumpPodSummary("pods.txt", exportDir); err != nil {
-				klog.ErrorS(err, "Failed to dump pod summary")
-			}
-			dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
-		}
-
-		return ctx, nil
+func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
+	if !ok {
+		return ctx, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
 	}
+
+	exportDir, err := GetExportDir(ctx)
+	if err != nil {
+		return ctx, err
+	}
+
+	klog.InfoS("Dumping test data", "dir", exportDir)
+	dumpCheckers(ctx, exportDir)
+
+	client, err := cfg.NewClient()
+	if err != nil {
+		return ctx, err
+	}
+	r := client.Resources(opts.Namespace)
+
+	podList := &corev1.PodList{}
+	if err = r.List(
+		ctx,
+		podList,
+		resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/name=%s", opts.DaemonSetName)),
+	); err != nil {
+		return ctx, err
+	}
+
+	for _, pod := range podList.Items {
+		if err := extractJson(&pod, exportDir); err != nil {
+			klog.ErrorS(err, "Failed to extract json events")
+		}
+		if err := extractLogs(&pod, exportDir, true); err != nil {
+			klog.ErrorS(err, "Failed to extract previous tetragon logs")
+		}
+		if err := extractLogs(&pod, exportDir, false); err != nil {
+			klog.ErrorS(err, "Failed to extract tetragon logs")
+		}
+		if err := describeTetragonPod(&pod, exportDir); err != nil {
+			klog.ErrorS(err, "Failed to describe tetragon pods")
+		}
+		if err := dumpPodSummary("pods.txt", exportDir); err != nil {
+			klog.ErrorS(err, "Failed to dump pod summary")
+		}
+		dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
+	}
+
+	return ctx, nil
 }
 
 func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error) {
@@ -107,7 +105,7 @@ func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error)
 func GetExportDir(ctx context.Context) (string, error) {
 	exportDir, ok := ctx.Value(state.ExportDir).(string)
 	if !ok {
-		return "", fmt.Errorf("export dir has not been created. Call helpers.CreateExportDir() first")
+		return "", fmt.Errorf("export dir has not been created. Call runner.CreateExportDir() first")
 	}
 
 	return exportDir, nil

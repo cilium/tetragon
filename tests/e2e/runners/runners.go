@@ -5,7 +5,6 @@ package runners
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -164,50 +164,32 @@ func (r *Runner) Init() *Runner {
 	}
 	r.Setup(r.installTetragon)
 
-	// Create the export dir before each test
-	r.BeforeEachTest(func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
-		ctx, err := helpers.CreateExportDir(ctx, t)
-		if err != nil {
-			return ctx, fmt.Errorf("failed to create export dir: %w", err)
-		}
-		exportDir, err := helpers.GetExportDir(ctx)
-		if err != nil {
-			return ctx, fmt.Errorf("failed to get export dir: %w", err)
-		}
-
-		// Start the metrics and gops dumpers
-		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
-		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
-
-		return ctx, nil
-	})
-
-	allTestsPassed := true
-
-	// Dump info after each test
+	// Store test success or failure
 	r.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
 		if t.Failed() {
-			allTestsPassed = false
+			return context.WithValue(ctx, state.TestFailure, true), nil
 		}
-		if t.Failed() || r.keepExportFiles {
-			ctx, err = helpers.DumpInfo()(ctx, cfg, t)
-		}
-		return context.WithValue(ctx, state.Test, nil), err
+		return ctx, err
 	})
 
 	r.Finish(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
+		failure, ok := ctx.Value(state.TestFailure).(bool)
+		if !ok {
+			failure = false
+		}
+		ctx = context.WithValue(ctx, state.TestFailure, nil)
 		// The test passed and we are not keeping export files, remove the export dir
 		// and return early
-		if !r.keepExportFiles && allTestsPassed {
+		if !r.keepExportFiles && !failure {
 			if exportDir, err := helpers.GetExportDir(ctx); err == nil {
 				klog.Info("test passed and keep-export not set, removing export dir")
 				if err := os.RemoveAll(exportDir); err != nil {
 					klog.ErrorS(err, "failed to remove export dir")
 				}
 			}
-			return context.WithValue(ctx, state.Test, nil), err
+			return ctx, err
 		}
-		return context.WithValue(ctx, state.Test, nil), nil
+		return helpers.DumpInfo(ctx, c)
 	})
 
 	if r.tetragonPortForward != nil {
@@ -233,4 +215,27 @@ func (r *Runner) cancelContext() {
 	} else {
 		klog.Warning("r.cancel() is nil, refusing to cancel context")
 	}
+}
+
+// Must be called at the beinning of every test.
+func (r *Runner) SetupExport(t *testing.T) {
+	setup := features.New("Setup Export").Assess("Setup Export", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+		ctx, err := helpers.CreateExportDir(ctx, t)
+		if err != nil {
+			t.Fatalf("failed to create export dir: %s", err)
+		}
+
+		exportDir, err := helpers.GetExportDir(ctx)
+		if err != nil {
+			t.Fatalf("failed to get export dir: %s", err)
+		}
+
+		// Start the metrics and gops dumpers
+		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
+		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
+
+		return ctx
+	}).Feature()
+
+	r.Test(t, setup)
 }

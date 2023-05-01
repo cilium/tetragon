@@ -21,10 +21,10 @@ var (
 	MinKernelVersion = Key{slug: "MinKernelVersion"}
 	// Stores a list of event checkers that were used in the test
 	EventCheckers = Key{slug: "EventCheckers"}
-	// Stores the most recent *testing.T
-	Test = Key{slug: "Test"}
 	// Key for storing the export directory for this test
 	ExportDir = Key{slug: "ExportDir"}
 	// Key for storing the cluster name
 	ClusterName = Key{slug: "ClusterName"}
+	// Key for storing test failure
+	TestFailure = Key{slug: "TestFailure"}
 )
