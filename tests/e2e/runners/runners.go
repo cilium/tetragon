@@ -179,15 +179,6 @@ func (r *Runner) Init() *Runner {
 		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
 		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
 
-		// The binary won't change, so dump it now at the beginning
-		if ports, ok := ctx.Value(state.GopsForwardedPorts).(map[string]int); ok {
-			for podName, port := range ports {
-				helpers.DumpBin(port, podName, exportDir)
-			}
-		} else {
-			klog.V(4).Info("failed to retrieve gops portforward, refusing to dump binary")
-		}
-
 		return ctx, nil
 	})
 

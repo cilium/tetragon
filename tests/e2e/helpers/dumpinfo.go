@@ -291,28 +291,6 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 	}()
 }
 
-// DumpBin dumps the Tetragon binary from gops. We keep this separate from dumpGops
-// because it is a more expensive operation and dumps something that is not expected to
-// change. Therefore we only want to call this once per test.
-func DumpBin(port int, podName string, exportDir string) {
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
-	if err != nil {
-		klog.ErrorS(err, "failed to resolve gops address")
-		return
-	}
-	klog.V(2).Info("contacting gops agent", "addr", addr)
-
-	out, err := gops.DumpBinary(*addr)
-	if err != nil {
-		klog.ErrorS(err, "failed to dump binary", "addr", addr)
-		return
-	}
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.bin", podName))
-	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write Tetragon binary to file", "file", fname, "addr", addr)
-	}
-}
-
 // dumpGops dumps the gops heap and and memstats
 func dumpGops(port int, podName string, exportDir string) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
@@ -321,8 +299,6 @@ func dumpGops(port int, podName string, exportDir string) {
 		return
 	}
 	klog.V(2).Info("contacting gops agent", "addr", addr)
-
-	// NOTE: We explicitly do not dump binary info here. See DumpBin() for details.
 
 	out, err := gops.DumpHeapProfile(*addr)
 	if err != nil {
