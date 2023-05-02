@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/option"
@@ -74,6 +75,7 @@ func (m PfMap) release() error {
 		return err
 	}
 
+	btf.FlushKernelSpec()
 	return nil
 }
 

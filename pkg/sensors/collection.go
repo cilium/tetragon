@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"go.uber.org/multierr"
 )
@@ -67,6 +68,9 @@ func (c *collection) load(ctx context.Context, bpfDir, mapDir, ciliumDir string,
 			}
 		}
 	}
+
+	// After collection is loaded release Kernel ebpf resources
+	btf.FlushKernelSpec()
 
 	return err
 }

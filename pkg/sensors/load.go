@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -61,6 +62,9 @@ func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir string, sens []*S
 	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
+	// We can't know when, if ever, a CRD configuration will come so lets
+	// flush the spec and conserve memory.
+	btf.FlushKernelSpec()
 	return nil
 }
 
