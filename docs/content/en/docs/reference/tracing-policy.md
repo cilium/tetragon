@@ -243,21 +243,27 @@ The indexing starts with 0. So, `index: 0` means, this is going to be the first
 argument of the function, `index: 1` means this is going to be the second
 argument of the function, etc.
 
-Note that for some args types, `char_buf` and `char_iovec`, there is an
-additional field named `returnCopy` and a `sizeArgIndex` field to specify to
-use one of the arguments to read the buffer correctly from the BPF code.
-
-This is the length that the BPF program is looking for in order to read the
-`char_buf`. So, `size_t` is the number of `char_buf` elements stored in the
-pointer of the second argument. Similarly, if we would like to capture the the
-`__x64_sys_writev(long, iovec *, vlen)` syscall, then `iovec` has a size of
-`vlen`, which is going to be the 3rd argument.
+Note that for some args types, `char_buf` and `char_iovec`, there are
+additional fields named `returnCopy` and `sizeArgIndex` available:
+- `returnCopy` indicates that the corresponding argument should be read later (when
+  the kretprobe for the symbol is triggered) because it might not be populated
+  when the kprobe is triggered at the entrance of the function. For example, a
+  buffer supplied to `read(2)` won't have content until kretprobe is triggered.
+- `sizeArgIndex` indicates the (1-based, see warning below) index of the arguments
+  that represents the size of the `char_buf` or `iovec`. For example, for
+  `write(2)`, the third argument, `size_t count` is the number of `char`
+  element that we can read from the `const void *buf` pointer from the second
+  argument. Similarly, if we would like to capture the `__x64_sys_writev(long,
+  iovec *, vlen)` syscall, then `iovec` has a size of `vlen`, which is going to
+  be the third argument.
 
 {{< caution >}}
 `sizeArgIndex` is inconsistent at the moment and does not take the index, but
 the number of the index (or index + 1). So if the size is the third argument,
 index 2, the value should be 3.
 {{< /caution >}}
+
+These flags can be combined, see the example below.
 
 ```yaml
 - call: "sys_write"
