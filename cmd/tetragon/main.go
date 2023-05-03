@@ -593,7 +593,7 @@ func execute() error {
 	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache")
 	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
 	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
-	flags.String(keyServerAddress, "localhost:54321", "gRPC server address")
+	flags.String(keyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
 	flags.String(keyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
 	flags.String(keyCiliumBPF, "", "Cilium BPF directory")
 	flags.Bool(keyEnableProcessCred, false, "Enable process_cred events")
