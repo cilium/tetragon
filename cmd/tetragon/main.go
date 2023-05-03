@@ -84,6 +84,8 @@ func getFieldFilters() ([]*tetragon.FieldFilter, error) {
 	return filters, nil
 }
 
+// Save daemon information so it is used by client cli but
+// also by bugtool
 func saveInitInfo() error {
 	info := bugtool.InitInfo{
 		ExportFname: option.Config.ExportFilename,

@@ -29,12 +29,6 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-const (
-	// initInfoFile is the file location for the info file.
-	// After initialization, initInfoFname will contain a json representation of InitInfo
-	initInfoFname = defaults.DefaultRunDir + "tetragon-info.json"
-)
-
 // InitInfo contains information about how Tetragon was initialized.
 type InitInfo struct {
 	ExportFname string `json:"export_fname"`
@@ -47,12 +41,12 @@ type InitInfo struct {
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
 func LoadInitInfo() (*InitInfo, error) {
-	return doLoadInitInfo(initInfoFname)
+	return doLoadInitInfo(defaults.InitInfoFile)
 }
 
 // SaveInitInfo saves InitInfo to the info file
 func SaveInitInfo(info *InitInfo) error {
-	return doSaveInitInfo(initInfoFname, info)
+	return doSaveInitInfo(defaults.InitInfoFile, info)
 }
 
 func doLoadInitInfo(fname string) (*InitInfo, error) {
