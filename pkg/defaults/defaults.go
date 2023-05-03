@@ -42,6 +42,11 @@ const (
 
 	// Default location for BPF programs and BTF files
 	DefaultTetragonLib = "/var/lib/tetragon/"
+
+	// InitInfoFile is the file location for the info file.
+	// After initialization, InitInfoFile will contain a json representation of InitInfo
+	// Used by both client cli to guess unix socket address and by bugtool
+	InitInfoFile = DefaultRunDir + "tetragon-info.json"
 )
 
 var (
