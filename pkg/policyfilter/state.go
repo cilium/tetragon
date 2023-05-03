@@ -745,8 +745,8 @@ func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string)
 }
 
 // UpdatePod updates the pod state for a pod
-// containerIDs contains all the container ids for the given pod.
-// so this function will:
+// containerIDs contains all the running container ids for the given pod.
+// This function will:
 //   - remove the containers that are not part of the containerIDs list
 //   - add the ones that do not exist in the current state
 //
