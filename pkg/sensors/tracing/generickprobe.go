@@ -171,19 +171,17 @@ func argReturnCopy(meta int) bool {
 // meta value format:
 // bits
 //
-// 0-2 : SizeArgIndex
-// 3   : EnableSizeArgIndex
+// 0-3 : SizeArgIndex
 // 4   : ReturnCopy
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
 	if arg.SizeArgIndex != nil {
 		// Note(mtardy): even if 3 bits can hold up to 8 maybe it's 5 since we cannot read more than that on BPF size
-		if *arg.SizeArgIndex > 8 {
-			return 0, fmt.Errorf("invalid SizeArgIndex value (>8): %v", arg.SizeArgIndex)
+		if *arg.SizeArgIndex > 15 {
+			return 0, fmt.Errorf("invalid SizeArgIndex value (>15): %v", arg.SizeArgIndex)
 		}
-		meta = int(*arg.SizeArgIndex)
-		meta |= argEnableSizeArgIndex
+		meta = int(*arg.SizeArgIndex) + 1
 	}
 	if arg.ReturnCopy {
 		meta |= argReturnCopyBit
