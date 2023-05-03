@@ -13,7 +13,9 @@ import (
 func podForAllContainers(pod *v1.Pod, fn func(c *v1.ContainerStatus)) {
 	run := func(s []v1.ContainerStatus) {
 		for i := range s {
-			fn(&s[i])
+			if s[i].State.Running != nil {
+				fn(&s[i])
+			}
 		}
 	}
 

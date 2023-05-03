@@ -144,6 +144,9 @@ func (tp *testPod) Pod() *v1.Pod {
 		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, v1.ContainerStatus{
 			Name:        cont.name,
 			ContainerID: cont.id,
+			State: v1.ContainerState{
+				Running: &v1.ContainerStateRunning{},
+			},
 		})
 	}
 
