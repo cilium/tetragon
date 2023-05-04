@@ -1,0 +1,54 @@
+name: Feature Request
+description: Suggest a feature to Tetragon
+labels: ["kind/enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to request a new feature! 
+
+        If you have usage questions, please join the [Cilium Slack](https://slack.cilium.io/) and ask questions in the [Tetragon channel](https://cilium.slack.com/archives/C03EV7KJPJ9). Please also consult the [FAQ](https://tetragon.cilium.io/docs/faq/) first.
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Please search to see if an issue already exists for the feature your request.
+      options:
+        - label: I have searched the existing issues
+          required: true
+  - type: textarea
+    id: related-problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: If so, please describe the problem
+      placeholder: I encountered a limitation with ...
+    validations:
+      required: false
+  - type: textarea
+    id: feature
+    attributes:
+      label: Describe the feature you would like
+      description: Include any specific requirements you need
+      placeholder: Tetragon could support ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Describe your proposed solution
+      placeholder: We can implement this feature by ...
+      description: |
+        Please complete this section if you have ideas / suggestions on how to implement the feature. We strongly recommend discussing your approach with Tetragon committers before spending lots of time implementing a change.
+        
+        For longer proposals, you are welcome to link to an external doc (e.g. a Google doc). We have a [Cilium Feature Proposal template](https://docs.google.com/document/d/1vtE82JExQHw8_-pX2Uhq5acN1BMPxNlS6cMQUezRTWg/edit) that you can use for Tetragon to help you structure your proposal - if you would like to use it, please make a copy and ensure it's publicly visible, and then add the link here.
+
+        Once the CFP is close to being finalized, please add it as a PR to the [design-cfps](https://github.com/cilium/design-cfps) repo for final approval.
+    validations:
+      required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/cilium/tetragon/blob/main/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
