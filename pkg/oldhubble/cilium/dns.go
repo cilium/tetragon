@@ -46,9 +46,8 @@ func (s *State) syncFQDNCache() {
 			time.Sleep(t)
 			t = 2 * t
 			continue
-		} else {
-			t = t0
 		}
+		t = t0
 
 		s.fqdnCache.InitializeFrom(entries)
 		s.log.WithField("entries", len(entries)).Debug("Fetched DNS cache from cilium")

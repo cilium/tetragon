@@ -475,16 +475,16 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 		}
 
 		if cgIDptr == nil {
-			if cgid, err := m.cgidFinder.findCgroupID(pod.id, contID); err != nil {
+			cgid, err := m.cgidFinder.findCgroupID(pod.id, contID)
+			if err != nil {
 				// error: skip this container id
 				m.log.WithError(err).WithFields(logrus.Fields{
 					"pod-id":       pod.id,
 					"container-id": contID,
 				}).Warn("failed to find cgroup id. Skipping container.")
 				continue
-			} else {
-				cgIDptr = &cgid
 			}
+			cgIDptr = &cgid
 		}
 
 		cinfo = append(cinfo, containerInfo{contID, *cgIDptr})
