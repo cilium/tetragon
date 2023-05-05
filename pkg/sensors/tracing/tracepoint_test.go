@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"sync"
 	"syscall"
 	"testing"
@@ -18,12 +19,14 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -480,4 +483,107 @@ spec:
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
 	sensors.UnloadAll()
+}
+
+func TestTracepointCloneThreads(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	lseekConf := GenericTracepointConf{
+		Subsystem: "syscalls",
+		Event:     "sys_enter_lseek",
+		Args: []v1alpha1.KProbeArg{
+			{Index: 7}, /* whence */
+			{Index: 5}, /* fd */
+		},
+	}
+
+	testBinPath := "contrib/tester-progs/threads-tester"
+	testBin := testutils.RepoRootPath(testBinPath)
+	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "tracepoint")
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	// initialize observer
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	sm := tus.StartTestSensorManager(ctx, t)
+	// create and add sensor
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID, "policyName")
+	if err != nil {
+		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
+	}
+	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
+
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cti := &testutils.ThreadTesterInfo{}
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	logWG.Wait()
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	cti.AssertPidsTids(t)
+
+	parentCheck := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(parentCheck)
+
+	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(parentCheck)
+
+	child1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Child1Pid).
+		WithTid(cti.Child1Tid)
+
+	child1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+			)).WithProcess(child1Checker).WithParent(parentCheck)
+
+	thread1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Thread1Pid).
+		WithTid(cti.Thread1Tid)
+
+	thread1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
+				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+			)).WithProcess(thread1Checker).WithParent(parentCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }

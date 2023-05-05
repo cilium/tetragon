@@ -31,9 +31,13 @@
 extern char *optarg;
 static const char *arg_sensor = NULL;
 
+const int whence_bogus_value = 4444;
+const int fd_bogus_value = -1;
+
 enum {
 	DEFAULT_EXEC,
 	KPROBE,
+	TRACEPOINT,
 };
 
 /* Use direct syscalls and avoid NPTL POSIX standard */
@@ -52,10 +56,23 @@ static void do_open(const char *process, const char *pathname)
 	fclose(fptr);
 }
 
+static void do_lseek(const char *process)
+{
+	lseek(fd_bogus_value, 0, whence_bogus_value);
+	printf("%s\t(pid:%d, tid:%d, ppid:%d)\tlseek() performed\n", process, getpid(), sys_gettid(), getppid());
+}
+
 static void *thread(void *arg)
 {
 	do_open("Thread 1:", FILENAME);
 
+	fflush(stdout);
+	return 0;
+}
+
+static void *thread_tracepoint(void *arg)
+{
+	do_lseek("Thread 1:");
 	fflush(stdout);
 	return 0;
 }
@@ -77,6 +94,19 @@ static void kprobe()
 {
 	// Default exec and kprobe sensors need same events
 	default_exec();
+}
+
+static void tracepoint()
+{
+	pthread_t ttid;
+
+	pthread_create(&ttid, NULL, thread_tracepoint, NULL);
+	fflush(stdout);
+	pthread_join(ttid, NULL);
+
+	do_lseek("Child 1:");
+
+	fflush(stdout);
 }
 
 static void help(char *prog) {
@@ -119,6 +149,8 @@ int main(int argc, char *argv[])
 			sensor = DEFAULT_EXEC;
 		else if (strncmp(arg_sensor, "kprobe", 4) == 0)
 			sensor = KPROBE;
+		else if (strncmp(arg_sensor, "tracepoint", 10) == 0)
+			sensor = TRACEPOINT;
 		else {
 			printf("%s invalid sensor name: '%s'\n", argv[0], arg_sensor);
 			help(argv[0]);
@@ -138,6 +170,9 @@ int main(int argc, char *argv[])
 			break;
 		case KPROBE:
 			kprobe();
+			break;
+		case TRACEPOINT:
+			tracepoint();
 			break;
 		}
 		return 0;
