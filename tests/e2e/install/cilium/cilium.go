@@ -71,7 +71,7 @@ func newCiliumCLI(opts *Opts) *ciliumCLI {
 	}
 }
 
-func (c *ciliumCLI) findOrInstall(ctx context.Context) error {
+func (c *ciliumCLI) findOrInstall() error {
 	if _, err := exec.LookPath(c.cmd); err != nil {
 		// TODO: try to install cilium-cli using `go install` or similar
 		return fmt.Errorf("cilium: cilium-cli not installed or could not be found: %w", err)
@@ -88,8 +88,8 @@ func (c *ciliumCLI) findOrInstall(ctx context.Context) error {
 	return nil
 }
 
-func (c *ciliumCLI) install(ctx context.Context) error {
-	if err := c.findOrInstall(ctx); err != nil {
+func (c *ciliumCLI) install() error {
+	if err := c.findOrInstall(); err != nil {
 		return err
 	}
 
@@ -97,7 +97,7 @@ func (c *ciliumCLI) install(ctx context.Context) error {
 	// e.g. by introducing a `cilium status --brief` flag reporting ready/not ready.
 
 	// Uninstall pre-existing Cilium installation.
-	_ = c.uninstall(ctx)
+	_ = c.uninstall()
 
 	var opts strings.Builder
 	if c.opts.Wait {
@@ -123,13 +123,13 @@ func (c *ciliumCLI) install(ctx context.Context) error {
 		return fmt.Errorf("cilium install command failed: %s: %s", p.Err(), p.Result())
 	}
 
-	c.status(ctx, true)
+	c.status(true)
 
 	return nil
 }
 
-func (c *ciliumCLI) uninstall(ctx context.Context) error {
-	if err := c.findOrInstall(ctx); err != nil {
+func (c *ciliumCLI) uninstall() error {
+	if err := c.findOrInstall(); err != nil {
 		return err
 	}
 
@@ -148,8 +148,8 @@ func (c *ciliumCLI) uninstall(ctx context.Context) error {
 	return nil
 }
 
-func (c *ciliumCLI) status(ctx context.Context, wait bool) error {
-	if err := c.findOrInstall(ctx); err != nil {
+func (c *ciliumCLI) status(wait bool) error {
+	if err := c.findOrInstall(); err != nil {
 		return err
 	}
 
@@ -180,7 +180,7 @@ func (c *ciliumCLI) status(ctx context.Context, wait bool) error {
 func Setup(options ...Option) env.Func {
 	o := processOpts(options...)
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		return ctx, newCiliumCLI(o).install(ctx)
+		return ctx, newCiliumCLI(o).install()
 	}
 }
 
@@ -188,6 +188,6 @@ func Setup(options ...Option) env.Func {
 func Finish(options ...Option) env.Func {
 	o := processOpts(options...)
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		return ctx, newCiliumCLI(o).uninstall(ctx)
+		return ctx, newCiliumCLI(o).uninstall()
 	}
 }

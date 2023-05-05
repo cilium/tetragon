@@ -4,7 +4,6 @@
 package sensors
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -130,7 +129,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		log.Printf("map dir `%s` still exists after test. Removing it.", path)
 		os.RemoveAll(path)
 	}()
-	if err := btf.InitCachedBTF(context.Background(), config.TetragonLib, ""); err != nil {
+	if err := btf.InitCachedBTF(config.TetragonLib, ""); err != nil {
 		fmt.Printf("InitCachedBTF failed: %v", err)
 	}
 	return m.Run()

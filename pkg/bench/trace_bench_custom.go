@@ -30,7 +30,7 @@ func (src traceBenchCustom) Run(_ context.Context, args *Arguments, _ *Summary) 
 	return err
 }
 
-func (src traceBenchCustom) ConfigFilename(ctx context.Context, args *Arguments) string {
+func (src traceBenchCustom) ConfigFilename(args *Arguments) string {
 	return args.Crd
 }
 

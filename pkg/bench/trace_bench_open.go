@@ -74,7 +74,7 @@ func (src traceBenchOpen) Run(ctx context.Context, _ *Arguments, _ *Summary) err
 	return nil
 }
 
-func (src traceBenchOpen) ConfigFilename(ctx context.Context, args *Arguments) string {
+func (src traceBenchOpen) ConfigFilename(_ *Arguments) string {
 	tmpl := `
 apiVersion: cilium.io/v1alpha1
 metadata:

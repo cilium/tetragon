@@ -3,7 +3,6 @@
 package sensors
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -30,7 +29,7 @@ func (c *collection) info() string {
 
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it
 // will attempt to unload the already loaded sensors.
-func (c *collection) load(ctx context.Context, bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) error {
+func (c *collection) load(bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) error {
 
 	var err error
 	for _, sensor := range c.sensors {
@@ -39,12 +38,12 @@ func (c *collection) load(ctx context.Context, bpfDir, mapDir, ciliumDir string,
 			// because that would complicate things.
 			continue
 		}
-		if err = sensor.FindPrograms(ctx); err != nil {
+		if err = sensor.FindPrograms(); err != nil {
 			err = fmt.Errorf("sensor %s programs from collection %s could not be found: %s", sensor.Name, c.name, err)
 			break
 		}
 
-		if err = sensor.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
+		if err = sensor.Load(bpfDir, mapDir, ciliumDir); err != nil {
 			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.Name, c.name, err)
 			break
 		}

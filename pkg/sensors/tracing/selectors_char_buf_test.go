@@ -63,7 +63,7 @@ func TestCharBufKprobe(t *testing.T) {
 		}},
 	}
 
-	loadGenericSensorTest(t, ctx, spec)
+	loadGenericSensorTest(t, spec)
 	t0 := time.Now()
 	loadElapsed := time.Since(t0)
 	t.Logf("loading sensors took: %s\n", loadElapsed)
@@ -135,7 +135,7 @@ func TestCharBufTracepoint(t *testing.T) {
 		}},
 	}
 
-	loadGenericSensorTest(t, ctx, spec)
+	loadGenericSensorTest(t, spec)
 	t0 := time.Now()
 	loadElapsed := time.Since(t0)
 	t.Logf("loading sensors took: %s\n", loadElapsed)

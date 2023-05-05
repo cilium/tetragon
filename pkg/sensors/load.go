@@ -4,7 +4,6 @@
 package sensors
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path"
@@ -56,16 +55,16 @@ const (
 )
 
 // LoadConfig loads the default sensor, including any from the configuration file.
-func LoadConfig(ctx context.Context, bpfDir, mapDir, ciliumDir string, sens []*Sensor) error {
+func LoadConfig(bpfDir, mapDir, ciliumDir string, sens []*Sensor) error {
 	load := mergeSensors(sens)
-	if err := load.Load(ctx, bpfDir, mapDir, ciliumDir); err != nil {
+	if err := load.Load(bpfDir, mapDir, ciliumDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 	return nil
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string) error {
+func (s *Sensor) Load(bpfDir, mapDir, ciliumDir string) error {
 	if s == nil {
 		return nil
 	}
@@ -75,7 +74,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	AllMaps = append(AllMaps, s.Maps...)
 
 	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
-	if _, err := observerMinReqs(stopCtx); err != nil {
+	if _, err := observerMinReqs(); err != nil {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
@@ -91,11 +90,11 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 	_, verStr, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	l.Infof("Loading kernel version %s", verStr)
 
-	if err := s.FindPrograms(stopCtx); err != nil {
+	if err := s.FindPrograms(); err != nil {
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.loadMaps(stopCtx, mapDir); err != nil {
+	if err := s.loadMaps(mapDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
@@ -106,7 +105,7 @@ func (s *Sensor) Load(stopCtx context.Context, bpfDir, mapDir, ciliumDir string)
 			continue
 		}
 
-		if err := observerLoadInstance(stopCtx, bpfDir, mapDir, ciliumDir, p); err != nil {
+		if err := observerLoadInstance(bpfDir, mapDir, ciliumDir, p); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
@@ -165,7 +164,7 @@ func (s *Sensor) findProgram(p *program.Program) error {
 }
 
 // FindPrograms finds all the BPF programs in the sensor on the filesytem.
-func (s *Sensor) FindPrograms(ctx context.Context) error {
+func (s *Sensor) FindPrograms() error {
 	for _, p := range s.Progs {
 		if err := s.findProgram(p); err != nil {
 			return err
@@ -180,7 +179,7 @@ func (s *Sensor) FindPrograms(ctx context.Context) error {
 }
 
 // loadMaps loads all the BPF maps in the sensor.
-func (s *Sensor) loadMaps(stopCtx context.Context, mapDir string) error {
+func (s *Sensor) loadMaps(mapDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
 		if m.PinState.IsLoaded() {
@@ -236,7 +235,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(stopCtx context.Context, bpfDir, mapDir, ciliumDir string, load *program.Program) error {
+func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program) error {
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return err
@@ -312,7 +311,7 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 	}
 }
 
-func observerMinReqs(ctx context.Context) (bool, error) {
+func observerMinReqs() (bool, error) {
 	_, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return false, fmt.Errorf("kernel version lookup failed, required for kprobe")

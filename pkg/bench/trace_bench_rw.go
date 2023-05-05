@@ -118,7 +118,7 @@ func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error
 	return nil
 }
 
-func (src traceBenchRw) ConfigFilename(ctx context.Context, args *Arguments) string {
+func (src traceBenchRw) ConfigFilename(_ *Arguments) string {
 	matchPid := strconv.Itoa(int(observer.GetMyPid()))
 
 	tmpl := `

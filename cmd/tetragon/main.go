@@ -249,7 +249,7 @@ func tetragonExecute() error {
 	obs.RemovePrograms()
 	os.Mkdir(defaults.DefaultRunDir, os.ModeDir)
 
-	err := btf.InitCachedBTF(ctx, option.Config.HubbleLib, option.Config.BTF)
+	err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func tetragonExecute() error {
 		return err
 	}
 
-	if err := process.InitCache(ctx, watcher, option.Config.EnableCilium, option.Config.ProcessCacheSize); err != nil {
+	if err := process.InitCache(watcher, option.Config.ProcessCacheSize); err != nil {
 		return err
 	}
 
@@ -323,7 +323,7 @@ func tetragonExecute() error {
 	obs.LogPinnedBpf(observerDir)
 
 	// load base sensor
-	if err := base.GetInitialSensor().Load(ctx, observerDir, observerDir, option.Config.CiliumDir); err != nil {
+	if err := base.GetInitialSensor().Load(observerDir, observerDir, option.Config.CiliumDir); err != nil {
 		return err
 	}
 

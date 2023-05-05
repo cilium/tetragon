@@ -12,7 +12,7 @@ import (
 )
 
 type TraceBench interface {
-	ConfigFilename(ctx context.Context, args *Arguments) string
+	ConfigFilename(args *Arguments) string
 	Run(ctx context.Context, args *Arguments, summary *Summary) error
 }
 

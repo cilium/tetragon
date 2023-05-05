@@ -50,7 +50,7 @@ func tpSpecReload(t *testing.T, tpSensor *sensors.Sensor, tpSpec *v1alpha1.Trace
 }
 
 // loadGenericSensorTest loads a tracing sensor for testing
-func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
+func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observer.InitDataCache: %s", err)
 	}
@@ -67,9 +67,9 @@ func loadGenericSensorTest(t *testing.T, ctx context.Context, spec *v1alpha1.Tra
 	}
 	tpSensor := ret[0]
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
-	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
-	tus.LoadSensor(ctx, t, tpSensor)
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, tpSensor)
 	return tpSensor
 }
 
@@ -232,7 +232,7 @@ func TestTracepointSelectors(t *testing.T) {
 		}
 	}
 
-	tpSensor := loadGenericSensorTest(t, ctx, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
+	tpSensor := loadGenericSensorTest(t, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
 	t0 := time.Now()
 	loadElapsed := time.Since(t0)
 	t.Logf("loading sensors took: %s\n", loadElapsed)
@@ -362,7 +362,7 @@ func TestKprobeSelectors(t *testing.T) {
 	}
 
 	t0 := time.Now()
-	kpSensor := loadGenericSensorTest(t, ctx, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
+	kpSensor := loadGenericSensorTest(t, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
 	loadElapsed := time.Since(t0)
 	t.Logf("loading sensors (kpSensor: %p)  took: %s\n", kpSensor, loadElapsed)
 	for i, tcs := range testCases {

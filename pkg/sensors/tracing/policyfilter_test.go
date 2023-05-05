@@ -119,8 +119,8 @@ func TestNamespacedPolicies(t *testing.T) {
 		policyfilter.ResetStateOnlyForTesting()
 	})
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
-	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
 	sm := tus.StartTestSensorManager(ctx, t)
 
 	// First, we create two lseek-pipe commands and add them to a different cgroup. See
