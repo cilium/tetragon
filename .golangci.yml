@@ -6,18 +6,24 @@ run:
 output:
   format: tab
 
+# See https://golangci-lint.run/usage/linters/ for description of linters
 linters:
   disable-all: true
   enable:
-    - goerr113
-    - goimports
+    # default linters
+    - gosimple
     - govet
     - ineffassign
-    - misspell
-    - revive
     - staticcheck
+    - typecheck
     - unused
-    - gosimple
+    # non default linters
+    - revive
+    - goerr113
+    - goimports
+    - misspell
+    - asciicheck
+    - bidichk
 
 issues:
   exclude-rules:
