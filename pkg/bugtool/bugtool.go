@@ -259,6 +259,11 @@ func (s *bugtoolInfo) addLibFiles(tarWriter *tar.Writer) error {
 				return nil
 			}
 
+			if !strings.HasSuffix(info.Name(), ".o") {
+				s.multiLog.WithField("path", path).Warn("not an object file, ignoring")
+				return nil
+			}
+
 			hdr, err := tar.FileInfoHeader(info, "" /* unused link target */)
 			if err != nil {
 				s.multiLog.WithField("path", path).Warn("error creating tar header")
