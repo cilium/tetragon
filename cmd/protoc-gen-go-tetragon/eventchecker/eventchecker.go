@@ -59,6 +59,7 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
+	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := generateEnumCheckers(g, files); err != nil {
 		return err
 	}

@@ -372,6 +372,7 @@ func (m *Map) Dump(hash map[string][]string) error {
 		hash[key.String()] = append(hash[key.String()], value.String())
 	}
 
+	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := m.DumpWithCallback(callback); err != nil {
 		return err
 	}
