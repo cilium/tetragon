@@ -54,7 +54,7 @@ func (s *State) processServiceEvent(an monitorAPI.AgentNotify) bool {
 			}).Error("Unable to unmarshal service upsert notification")
 			return false
 		}
-		return s.serviceCache.Upsert(int64(n.ID), n.Name, n.Type, n.Namespace, n.Frontend.IP, n.Frontend.Port)
+		return s.serviceCache.Upsert(int64(n.ID), n.Name, n.Namespace, n.Frontend.IP, n.Frontend.Port)
 	case monitorAPI.AgentNotifyServiceDeleted:
 		n := monitorAPI.ServiceDeleteNotification{}
 		if err := json.Unmarshal([]byte(an.Text), &n); err != nil {

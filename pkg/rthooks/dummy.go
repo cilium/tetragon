@@ -11,6 +11,6 @@ import (
 
 type DummyHookRunner struct{}
 
-func (o DummyHookRunner) RunHooks(ctx context.Context, req *tetragon.RuntimeHookRequest) error {
+func (o DummyHookRunner) RunHooks(_ context.Context, _ *tetragon.RuntimeHookRequest) error {
 	return nil
 }

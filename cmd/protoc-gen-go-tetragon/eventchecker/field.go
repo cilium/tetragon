@@ -275,7 +275,7 @@ func (field *Field) generateFieldCheck(g *protogen.GeneratedFile, msg *CheckedMe
 
 func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checkerVar, eventVar string) (string, error) {
 	if field.Oneof != nil {
-		return checkForOneof(g, field, checkerName, checkerVar, eventVar)
+		return checkForOneof(g, field, checkerName, checkerVar)
 	}
 
 	if field.isList() {
@@ -291,7 +291,7 @@ func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checke
 		return check, err
 	}
 
-	return checkForKind(g, field, checkerName, checkerVar, eventVar)
+	return checkForKind(g, field, checkerVar, eventVar)
 }
 
 // checkForMap returns the checker body for map fields and, as a special case, the
@@ -352,8 +352,8 @@ func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVa
 }
 
 // checkForOneof returns the event checker body for a Oneof.
-func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
-	inner, err := checkForKind(g, field, checkerName, checkerVar, fmt.Sprintf("event.%s", field.GoName))
+func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName string, checkerVar string) (string, error) {
+	inner, err := checkForKind(g, field, checkerVar, fmt.Sprintf("event.%s", field.GoName))
 	if err != nil {
 		return "", err
 	}
@@ -368,7 +368,7 @@ func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName, checker
 
 // checkForKind returns the event checker body based on the field's protogen kind. For
 // maps and oneofs, use check
-func checkForKind(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
+func checkForKind(g *protogen.GeneratedFile, field *Field, checkerVar, eventVar string) (string, error) {
 	kind := field.Desc.Kind()
 
 	// primitive types

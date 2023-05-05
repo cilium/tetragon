@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+// nolint:revive // ignore unused parameter alerts, dummy methods
 package server
 
 import (

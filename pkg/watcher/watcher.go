@@ -162,13 +162,13 @@ func (watcher *K8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
 	}
 
 	allPods := watcher.podInformer.GetStore().List()
-	if pod, ok := findPod(podID, allPods); ok {
+	if pod, ok := findPod(allPods); ok {
 		return pod, nil
 	}
 	return nil, fmt.Errorf("unable to find pod with ID %s (index pods=%d all pods=%d)", podID, len(objs), len(allPods))
 }
 
-func findPod(podID string, pods []interface{}) (*corev1.Pod, bool) {
+func findPod(pods []interface{}) (*corev1.Pod, bool) {
 	for i := range pods {
 		if pod, ok := pods[i].(*corev1.Pod); ok {
 			if pod.UID == podIdx {

@@ -156,7 +156,7 @@ Name=ens* enp* eth*
 DHCP=yes
 `
 
-func buildNetActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
+func buildNetActions(tmpDir string) ([]images.Action, error) {
 	ret := []images.Action{
 		// Allow easy login for root user from ssh
 		{Op: &images.AppendLineCommand{
@@ -217,7 +217,7 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 		return err
 	}
 
-	netActions, err := buildNetActions(rcnf, tmpDir)
+	netActions, err := buildNetActions(tmpDir)
 	if err != nil {
 		return err
 	}

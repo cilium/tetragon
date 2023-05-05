@@ -430,7 +430,7 @@ func TestLoadInitialSensor(t *testing.T) {
 
 	tus.CheckSensorLoad([]*sensors.Sensor{sensor}, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll(tus.Conf().TetragonLib)
+	sensors.UnloadAll()
 }
 
 func TestDocker(t *testing.T) {

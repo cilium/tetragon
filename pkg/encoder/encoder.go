@@ -320,7 +320,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
 		case "raw_syscalls/sys_enter":
 			event := p.Colorer.Blue.Sprintf("☎  %-7s", "syscall")
-			sysName := rawSyscallEnter(p, tp)
+			sysName := rawSyscallEnter(tp)
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sysName), caps), nil
 		default:
 			event := p.Colorer.Blue.Sprintf("⁉️ %-7s", "tracepoint")
@@ -331,7 +331,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 	return "", ErrUnknownEventType
 }
 
-func rawSyscallEnter(p *CompactEncoder, tp *tetragon.ProcessTracepoint) string {
+func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
 	sysID := int64(-1)
 	if len(tp.Args) > 0 && tp.Args[0] != nil {
 		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {

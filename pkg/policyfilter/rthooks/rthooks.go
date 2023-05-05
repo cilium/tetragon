@@ -30,7 +30,7 @@ const (
 	uidStringLen = len("00000000-0000-0000-0000-000000000000")
 )
 
-func createContainerHook(ctx context.Context, arg *rthooks.CreateContainerArg) error {
+func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) error {
 	var err error
 
 	log := logger.GetLogger().WithFields(logrus.Fields{

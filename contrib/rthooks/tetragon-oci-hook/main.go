@@ -30,7 +30,7 @@ const (
 	agentAddress = "unix:///var/run/cilium/tetragon/tetragon.sock"
 )
 
-func readJsonSpec(log logrus.FieldLogger, fname string) (*specs.Spec, error) {
+func readJsonSpec(fname string) (*specs.Spec, error) {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", fname, err)
@@ -86,7 +86,7 @@ func createContainerHook(log_ *logrus.Logger) {
 	// We use the cgroup name to determine the containerID
 	// We use the config.json file to get the cgroup name. (We could have used /proc/self/cgroup, but it's more complicated.)
 	var cgroupPath string
-	spec, err := readJsonSpec(log, configName)
+	spec, err := readJsonSpec(configName)
 	if err != nil {
 		log.WithError(err).Warnf("failed to read spec file: %s", configName)
 	} else if spec.Linux == nil {

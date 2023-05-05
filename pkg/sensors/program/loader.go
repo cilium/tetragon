@@ -159,7 +159,7 @@ func UprobeAttach(load *Program) AttachFunc {
 	}
 }
 
-func NoAttach(load *Program) AttachFunc {
+func NoAttach() AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
 			unloader.PinUnloader{
@@ -169,7 +169,7 @@ func NoAttach(load *Program) AttachFunc {
 	}
 }
 
-func TracingAttach(load *Program) AttachFunc {
+func TracingAttach() AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		linkFn := func() (link.Link, error) {
 			return link.AttachTracing(link.TracingOptions{
@@ -189,7 +189,7 @@ func TracingAttach(load *Program) AttachFunc {
 	}
 }
 
-func LSMAttach(load *Program) AttachFunc {
+func LSMAttach() AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		linkFn := func() (link.Link, error) {
 			return link.AttachLSM(link.LSMOptions{
@@ -280,7 +280,7 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 }
 
 func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(load), nil, verbose)
+	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(), nil, verbose)
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
@@ -289,11 +289,11 @@ func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) e
 }
 
 func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(load), nil, verbose)
+	return loadProgram(bpfDir, []string{mapDir}, load, TracingAttach(), nil, verbose)
 }
 
 func LoadLSMProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, LSMAttach(load), nil, verbose)
+	return loadProgram(bpfDir, []string{mapDir}, load, LSMAttach(), nil, verbose)
 }
 
 func slimVerifierError(errStr string) string {

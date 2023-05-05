@@ -114,7 +114,7 @@ func filterByDNSQueries(queryPatterns []string) (FilterFunc, error) {
 type FQDNFilter struct{}
 
 // OnBuildFilter builds a FQDN filter
-func (f *FQDNFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (f *FQDNFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceFqdn() != nil {

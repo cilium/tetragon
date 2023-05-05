@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestSimple(t *testing.T) {
+func TestSimple(_ *testing.T) {
 	fmt.Printf("Hello!\n")
 	stt0 := Stt{}
 	stt0.Append(0x10, "", []string{})

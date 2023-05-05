@@ -25,7 +25,7 @@ func expectError(t *testing.T, err error) error {
 	t.Logf("Got an error as expected: %s", err)
 	return nil
 }
-func expectOK(t *testing.T, err error) error {
+func expectOK(_ *testing.T, err error) error {
 	if err != nil {
 		return err
 	}

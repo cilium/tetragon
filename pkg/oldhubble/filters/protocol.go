@@ -90,7 +90,7 @@ func filterByProtocol(protocols []string) (FilterFunc, error) {
 type ProtocolFilter struct{}
 
 // OnBuildFilter builds a L4 protocol filter
-func (p *ProtocolFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (p *ProtocolFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetProtocol() != nil {

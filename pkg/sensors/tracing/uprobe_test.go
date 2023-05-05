@@ -86,7 +86,7 @@ spec:
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll(tus.Conf().TetragonLib)
+	sensors.UnloadAll()
 }
 
 func TestUprobeGeneric(t *testing.T) {

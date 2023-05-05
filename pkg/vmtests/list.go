@@ -35,7 +35,7 @@ func fromString(s string) GoTest {
 	return ret
 }
 
-func LoadTestsFromFile(fname string, testDir string) ([]GoTest, error) {
+func LoadTestsFromFile(fname string) ([]GoTest, error) {
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err

@@ -81,7 +81,7 @@ func filterByLabelSelectors(labelSelectors []string, getLabels func(*v1.Event) k
 type LabelsFilter struct{}
 
 // OnBuildFilter builds a labels filter
-func (l *LabelsFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (l *LabelsFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceLabel() != nil {

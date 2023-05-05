@@ -46,7 +46,7 @@ func filterByIdentity(identities []uint32, getEndpoint func(*v1.Event) *pb.Endpo
 type IdentityFilter struct{}
 
 // OnBuildFilter builds a security identity filter
-func (i *IdentityFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (i *IdentityFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceIdentity() != nil {
