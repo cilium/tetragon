@@ -242,8 +242,7 @@ func TestTracepointSelectors(t *testing.T) {
 			t.Logf("%d", i)
 			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
-			if i == 0 {
-			} else {
+			if i != 0 {
 				tpSpecReload(t, tpSensor, &spec.Tracepoints[0])
 			}
 
@@ -371,8 +370,7 @@ func TestKprobeSelectors(t *testing.T) {
 			t.Logf("%d", i)
 			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
-			if i == 0 {
-			} else {
+			if i != 0 {
 				// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
 				var argActionTable idtable.Table
 
