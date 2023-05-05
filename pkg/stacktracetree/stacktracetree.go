@@ -34,11 +34,11 @@ func (n *SttNode) merge(n2 *SttNode) {
 	s1 := n.Symbol
 	s2 := n2.Symbol
 
-	if s1 == "" && s2 == "" {
-		// nothing to do
-	} else if s1 != "" && s2 == "" {
-		// nothing to do
-	} else if s1 == "" && s2 != "" {
+	// if s1 == "" && s2 == "" {
+	// 	// nothing to do
+	// } else if s1 != "" && s2 == "" {
+	// 	// nothing to do
+	if s1 == "" && s2 != "" {
 		n.Symbol = s2
 	} else if s1 != s2 {
 		// both have symbols defined, but they are different, so
