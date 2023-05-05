@@ -26,6 +26,7 @@ func (enum *Enum) Generate(g *protogen.GeneratedFile) error {
 		return err
 	}
 
+	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := enum.generateChecker(g); err != nil {
 		return err
 	}

@@ -70,6 +70,7 @@ func (m PfMap) release() error {
 		return err
 	}
 
+	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := m.Unpin(); err != nil {
 		return err
 	}
