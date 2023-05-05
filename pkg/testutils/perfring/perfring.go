@@ -55,7 +55,7 @@ func loopEvents(events []observer.Event, eventFn EventFn, complChecker *testsens
 //
 //	import testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 //	import tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-//	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
+//	tus.LoadSensor(t, testsensor.GetTestSensor())
 //
 // If the test sensor is loaded, users can use TestCheckerMarkEnd to generate
 // the appropriate MsgTestEventUnix.

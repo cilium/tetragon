@@ -97,7 +97,7 @@ spec:
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(ctx, bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
+	initialSensor.Load(bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -2998,9 +2998,8 @@ spec:
  - call: "sys_write"
    syscall: true
 `
-	ctx := context.Background()
 	b := base.GetInitialSensor()
-	if err := b.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := b.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
 		return fmt.Errorf("load base sensor failed: %w", err)
 	}
 
@@ -3013,7 +3012,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	return sens.Load(ctx, option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir)
+	return sens.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir)
 }
 
 func TestKprobeBpfAttr(t *testing.T) {

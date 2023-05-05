@@ -111,8 +111,8 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
-	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
 
 	testBinPath := "contrib/tester-progs/threads-tester"
 	testBin := testutils.RepoRootPath(testBinPath)

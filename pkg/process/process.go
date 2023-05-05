@@ -4,7 +4,6 @@
 package process
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -56,7 +55,7 @@ var (
 	k8s         watcher.K8sResourceWatcher
 )
 
-func InitCache(ctx context.Context, w watcher.K8sResourceWatcher, enableCilium bool, size int) error {
+func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	var err error
 
 	if procCache != nil {

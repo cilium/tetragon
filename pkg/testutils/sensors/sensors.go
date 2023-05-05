@@ -9,13 +9,13 @@ import (
 )
 
 // LoadSensor is a helper for loading a sensor in tests
-func LoadSensor(ctx context.Context, t *testing.T, sensor *sensors.Sensor) {
+func LoadSensor(t *testing.T, sensor *sensors.Sensor) {
 
-	if err := sensor.FindPrograms(ctx); err != nil {
+	if err := sensor.FindPrograms(); err != nil {
 		t.Fatalf("ObserverFindProgs error: %s", err)
 	}
 	mapDir := bpf.MapPrefixPath()
-	if err := sensor.Load(ctx, mapDir, mapDir, ""); err != nil {
+	if err := sensor.Load(mapDir, mapDir, ""); err != nil {
 		t.Fatalf("observerLoadSensor error: %s", err)
 	}
 

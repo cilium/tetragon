@@ -601,26 +601,22 @@ func setupObserver(ctx context.Context, t *testing.T) *tus.TestSensorManager {
 // Test loading bpf cgroups programs
 func TestLoadCgroupsPrograms(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
-	tus.LoadSensor(ctx, t, testsensor.GetTestSensor())
-	tus.LoadSensor(ctx, t, testsensor.GetCgroupSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 }
 
 // Test `tg_conf_map` BPF map that it can hold runtime configuration
 func TestTgRuntimeConf(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	val, err := testutils.GetTgRuntimeConf()
 	assert.NoError(t, err)
@@ -651,7 +647,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	testManager := setupObserver(ctx, t)
 
@@ -703,7 +699,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	testManager := setupObserver(ctx, t)
 
@@ -1054,7 +1050,7 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
@@ -1076,7 +1072,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
@@ -1096,7 +1092,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	testManager := setupObserver(ctx, t)
 
@@ -1353,7 +1349,7 @@ func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
 
-	tus.LoadSensor(ctx, t, base.GetInitialSensor())
+	tus.LoadSensor(t, base.GetInitialSensor())
 
 	// Probe full environment detection
 	_, err := testutils.GetTgRuntimeConf()

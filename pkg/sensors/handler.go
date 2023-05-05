@@ -122,7 +122,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		tracingpolicy:   op.tp,
 		tracingpolicyID: uint64(tpID),
 	}
-	if err := col.load(op.ctx, h.bpfDir, h.mapDir, h.ciliumDir, nil); err != nil {
+	if err := col.load(h.bpfDir, h.mapDir, h.ciliumDir, nil); err != nil {
 		return err
 	}
 
@@ -202,7 +202,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 	// The idea is that sensors can get a handle to the stt manager when
 	// they are loaded which they can use to attach stt information to
 	// events. Need to revsit this, and until we do we keep LoadArg.
-	return col.load(op.ctx, h.bpfDir, h.mapDir, h.ciliumDir, &LoadArg{STTManagerHandle: op.sttManagerHandle})
+	return col.load(h.bpfDir, h.mapDir, h.ciliumDir, &LoadArg{STTManagerHandle: op.sttManagerHandle})
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {

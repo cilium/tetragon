@@ -46,7 +46,7 @@ func TestTestChecker(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
-	tus.LoadSensor(ctx, t, sensor)
+	tus.LoadSensor(t, sensor)
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
