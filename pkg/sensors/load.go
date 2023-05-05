@@ -344,7 +344,7 @@ func unloadProgram(prog *program.Program) {
 	log.Info("BPF prog was unloaded")
 }
 
-func UnloadAll(bpfDir string) {
+func UnloadAll() {
 	for _, l := range AllPrograms {
 		unloadProgram(l)
 	}

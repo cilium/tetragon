@@ -101,7 +101,7 @@ func (src traceBenchRw) benchRwWorker(ctx context.Context) {
 	}
 }
 
-func (src traceBenchRw) Run(ctx context.Context, args *Arguments, summary *Summary) error {
+func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 

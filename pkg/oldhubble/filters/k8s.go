@@ -75,7 +75,7 @@ func filterByNamespacedName(names []string, getName func(*v1.Event) (ns, name st
 type PodFilter struct{}
 
 // OnBuildFilter builds a Kubernetes pod name filter
-func (p *PodFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (p *PodFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourcePod() != nil {
@@ -101,7 +101,7 @@ func (p *PodFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]Fil
 type ServiceFilter struct{}
 
 // OnBuildFilter builds a Kubernetes service name filter
-func (s *ServiceFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (s *ServiceFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceService() != nil {

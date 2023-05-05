@@ -997,7 +997,7 @@ spec:
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
-func testKprobeObjectFilterModeOpenHook(pidStr string, path string, mode int, valueFmt string) string {
+func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
@@ -1048,7 +1048,7 @@ func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCrea
 	}
 
 	dir := t.TempDir()
-	openHook := testKprobeObjectFilterModeOpenHook(pidStr, dir, modeCheck, valueFmt)
+	openHook := testKprobeObjectFilterModeOpenHook(pidStr, modeCheck, valueFmt)
 	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770)
 }
 
@@ -1067,7 +1067,7 @@ func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
 func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
 	pidStr := strconv.Itoa(int(observer.GetMyPid()))
 	dir := t.TempDir()
-	openHook := testKprobeObjectFilterModeOpenHook(pidStr, dir, syscall.O_TRUNC, "%d")
+	openHook := testKprobeObjectFilterModeOpenHook(pidStr, syscall.O_TRUNC, "%d")
 	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
 
@@ -2988,7 +2988,7 @@ func TestKprobeMatchBinariesNotIn(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func loadTestCrd(t *testing.T) error {
+func loadTestCrd() error {
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -3044,7 +3044,7 @@ spec:
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	err = loadTestCrd(t)
+	err = loadTestCrd()
 	if err != nil {
 		t.Fatalf("Loading test CRD failed: %s", err)
 	}
@@ -3160,7 +3160,7 @@ spec:
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll(tus.Conf().TetragonLib)
+	sensors.UnloadAll()
 }
 
 func TestFakeSyscallError(t *testing.T) {

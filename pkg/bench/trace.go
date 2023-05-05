@@ -61,7 +61,7 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 		panic("unknown benchmark")
 	}
 
-	configFile := bench.ConfigFilename(ctx, args)
+	configFile := bench.ConfigFilename(args)
 
 	if args.Trace != "custom" {
 		defer os.Remove(configFile)

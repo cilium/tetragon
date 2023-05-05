@@ -10,7 +10,7 @@ import (
 )
 
 func RemovePrograms(bpfDir, mapDir string) {
-	sensors.UnloadAll(bpfDir)
+	sensors.UnloadAll()
 	os.Remove(bpfDir)
 	os.Remove(mapDir)
 }

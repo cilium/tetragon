@@ -199,12 +199,12 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 	}
 }
 
-func (s *Server) GetHealth(ctx context.Context, request *tetragon.GetHealthStatusRequest) (*tetragon.GetHealthStatusResponse, error) {
+func (s *Server) GetHealth(_ context.Context, request *tetragon.GetHealthStatusRequest) (*tetragon.GetHealthStatusResponse, error) {
 	logger.GetLogger().WithField("request", request).Debug("Received a GetHealth request")
 	return health.GetHealth()
 }
 
-func (s *Server) ListSensors(ctx context.Context, request *tetragon.ListSensorsRequest) (*tetragon.ListSensorsResponse, error) {
+func (s *Server) ListSensors(ctx context.Context, _ *tetragon.ListSensorsRequest) (*tetragon.ListSensorsResponse, error) {
 	logger.GetLogger().Debug("Received a ListSensors request")
 	list, err := s.observer.ListSensors(ctx)
 	if err != nil {
@@ -356,14 +356,14 @@ func (s *Server) SetSensorConfig(ctx context.Context, req *tetragon.SetSensorCon
 
 	return &tetragon.SetSensorConfigResponse{}, nil
 }
-func (s *Server) GetStackTraceTree(ctx context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
+func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTree request")
 	err := fmt.Errorf("Unsupported GetStackTraceTree")
 	logger.GetLogger().WithError(err).Warn("Server GetStackTraceTree failed")
 	return nil, err
 }
 
-func (s *Server) GetVersion(ctx context.Context, req *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
+func (s *Server) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
 	return &tetragon.GetVersionResponse{Version: version.Version}, nil
 }
 

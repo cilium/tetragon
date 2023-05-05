@@ -22,7 +22,7 @@ type SensorMap struct {
 	Progs []uint
 }
 
-func findMapForProg(coll *program.LoadedCollection, nam string, p *program.LoadedProgram, t *testing.T) *program.LoadedMap {
+func findMapForProg(coll *program.LoadedCollection, nam string, p *program.LoadedProgram) *program.LoadedMap {
 	for name, m := range coll.Maps {
 		if nam != name {
 			continue
@@ -43,7 +43,7 @@ type prog struct {
 	mark bool
 }
 
-func findProgram(cache []*prog, name string, typ ebpf.ProgramType, t *testing.T) *prog {
+func findProgram(cache []*prog, name string, typ ebpf.ProgramType) *prog {
 	for _, c := range cache {
 		if c.prog.Type != typ {
 			continue
@@ -158,7 +158,7 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 
 	// check that we loaded expected programs
 	for _, tp := range sensorProgs {
-		c := findProgram(cache, tp.Name, tp.Type, t)
+		c := findProgram(cache, tp.Name, tp.Type)
 		if c == nil {
 			t.Fatalf("could not find program %v in sensor", tp.Name)
 		}
@@ -194,12 +194,12 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		for _, idx := range tm.Progs {
 			tp := sensorProgs[idx]
 
-			c := findProgram(cache, tp.Name, tp.Type, t)
+			c := findProgram(cache, tp.Name, tp.Type)
 			if c == nil {
 				t.Fatalf("could not find program %v in sensor\n", tp.Name)
 			}
 
-			m := findMapForProg(c.coll, tm.Name, c.prog, t)
+			m := findMapForProg(c.coll, tm.Name, c.prog)
 			if m == nil {
 				t.Fatalf("could not find map %v in program %v\n", tm.Name, tp.Name)
 			}
@@ -222,7 +222,7 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 				continue
 			}
 
-			m := findMapForProg(c.coll, tm.Name, c.prog, t)
+			m := findMapForProg(c.coll, tm.Name, c.prog)
 			if m == nil {
 				continue
 			}

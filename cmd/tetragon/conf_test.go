@@ -1072,7 +1072,7 @@ var (
 	}
 )
 
-func writeDropInConf(t *testing.T, testPath string, fullDir string, options map[string]interface{}) error {
+func writeDropInConf(fullDir string, options map[string]interface{}) error {
 	for k, v := range options {
 		data := []byte(fmt.Sprint(v))
 		file := filepath.Join(fullDir, k)
@@ -1085,7 +1085,7 @@ func writeDropInConf(t *testing.T, testPath string, fullDir string, options map[
 	return nil
 }
 
-func setupConfig(t *testing.T, testPath string, test testCase) error {
+func setupConfig(testPath string, test testCase) error {
 
 	// Patch expected config-dir path with test path prefix
 	c := testCases[globalTestIndex]
@@ -1112,7 +1112,7 @@ func setupConfig(t *testing.T, testPath string, test testCase) error {
 			}
 
 			if c.write {
-				err = writeDropInConf(t, testPath, filepath.Join(testPath, c.path), c.options)
+				err = writeDropInConf(filepath.Join(testPath, c.path), c.options)
 				if err != nil {
 					return err
 				}
@@ -1142,7 +1142,7 @@ func setupConfig(t *testing.T, testPath string, test testCase) error {
 	return nil
 }
 
-func cleanupConfig(t *testing.T, root string, test testCase) {
+func cleanupConfig(root string, test testCase) {
 	for _, c := range test.confs {
 		if c.path != "" {
 			os.RemoveAll(filepath.Join(root, c.path))
@@ -1155,7 +1155,7 @@ func runTestCases(t *testing.T) {
 
 	c := testCases[globalTestIndex]
 
-	err := setupConfig(t, testDir, c)
+	err := setupConfig(testDir, c)
 	require.NoErrorf(t, err, "failed at test case %s", c.description)
 
 	defaultConfYamlFile := filepath.Join(testDir, adminTgConfDir)
@@ -1186,7 +1186,7 @@ func runTestCases(t *testing.T) {
 		}
 	}
 
-	cleanupConfig(t, testDir, c)
+	cleanupConfig(testDir, c)
 }
 
 func TestReadConfigSettings(t *testing.T) {

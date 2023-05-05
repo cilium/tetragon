@@ -668,7 +668,7 @@ func UpdateElementFromPointers(fd int, structPtr, sizeOfStruct uintptr) error {
 	return nil
 }
 
-func (e *EventMap) Update(fd int, ubaPtr, sizeOf uintptr) error {
+func (e *EventMap) Update(_ int, ubaPtr, sizeOf uintptr) error {
 	return UpdateElementFromPointers(e.fd, ubaPtr, sizeOf)
 }
 

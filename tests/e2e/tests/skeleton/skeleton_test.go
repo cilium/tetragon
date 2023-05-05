@@ -127,6 +127,7 @@ func TestSkeletonBasic(t *testing.T) {
 	runner.TestInParallel(t, runEventChecker, runWorkload)
 }
 
+// nolint:revive // ignore unused parameter because of comments
 func curlEventChecker(kernelVersion string) *checker.RPCChecker {
 	curlEventChecker := ec.NewUnorderedEventChecker(
 		// Checkers should be given a unique name. This shows up in the logs and can be

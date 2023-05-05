@@ -80,7 +80,7 @@ type testState struct {
 	cbAdds, cbUpds, cbDels atomic.Uint64
 }
 
-func newTestState(t *testing.T, log logrus.FieldLogger, client *fake.Clientset) *testState {
+func newTestState(client *fake.Clientset) *testState {
 	ts := testState{
 		client: client,
 		rnd:    rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -559,7 +559,7 @@ func TestK8s(t *testing.T) {
 	podInformer := informers.Core().V1().Pods().Informer()
 
 	// testState implements cgFinder
-	ts := newTestState(t, log, client)
+	ts := newTestState(client)
 	st, err := newState(log, ts)
 	if err != nil {
 		t.Skip(fmt.Sprintf("failed to initialize policy filter state: %s", err))

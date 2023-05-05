@@ -120,7 +120,7 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 	return op, events, err
 }
 
-func (k *Observer) receiveEvent(data []byte, cpu int) {
+func (k *Observer) receiveEvent(data []byte) {
 	atomic.AddUint64(&k.recvCntr, 1)
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(int(op))
@@ -217,7 +217,7 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 				}
 			} else {
 				if len(record.RawSample) > 0 {
-					k.receiveEvent(record.RawSample, record.CPU)
+					k.receiveEvent(record.RawSample)
 					ringbufmetrics.ReceivedSet(float64(k.ReadReceivedEvents()))
 				}
 

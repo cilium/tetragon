@@ -55,7 +55,7 @@ func (src traceBenchOpen) benchWorker(ctx context.Context) {
 	}
 }
 
-func (src traceBenchOpen) Run(ctx context.Context, args *Arguments, summary *Summary) error {
+func (src traceBenchOpen) Run(ctx context.Context, _ *Arguments, _ *Summary) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 

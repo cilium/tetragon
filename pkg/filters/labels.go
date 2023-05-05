@@ -43,7 +43,7 @@ func FilterByLabelSelectors(labelSelectors []string) (hubbleFilters.FilterFunc, 
 type LabelsFilter struct{}
 
 // OnBuildFilter builds a labels filter
-func (l *LabelsFilter) OnBuildFilter(ctx context.Context, filter *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (l *LabelsFilter) OnBuildFilter(_ context.Context, filter *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 
 	if filter.Labels != nil {

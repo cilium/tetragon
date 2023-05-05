@@ -22,7 +22,7 @@ type dummyHandler struct {
 	e error
 }
 
-func (d *dummyHandler) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfilter.PolicyID) (*Sensor, error) {
+func (d *dummyHandler) PolicyHandler(_ tracingpolicy.TracingPolicy, _ policyfilter.PolicyID) (*Sensor, error) {
 	return d.s, d.e
 }
 

@@ -71,7 +71,7 @@ func filterByPort(portStrs []string, getPort func(*v1.Event) (port uint16, ok bo
 type PortFilter struct{}
 
 // OnBuildFilter builds a L4 port filter
-func (p *PortFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (p *PortFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourcePort() != nil {

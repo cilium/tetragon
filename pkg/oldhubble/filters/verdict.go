@@ -41,7 +41,7 @@ func filterByVerdicts(vs []pb.Verdict) FilterFunc {
 type VerdictFilter struct{}
 
 // OnBuildFilter builds a forwarding verdict filter
-func (v *VerdictFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (v *VerdictFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetVerdict() != nil {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
+
+// nolint:revive // prevent unused-parameter alert, dummy method obviously don't use args
 package policyfilter
 
 import (

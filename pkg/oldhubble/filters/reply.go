@@ -43,7 +43,7 @@ func filterByReplyField(replyParams []bool) FilterFunc {
 type ReplyFilter struct{}
 
 // OnBuildFilter builds a reply filter
-func (r *ReplyFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (r *ReplyFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetReply() != nil {

@@ -26,7 +26,7 @@ func (watcher *FakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *
 }
 
 func (watcher *FakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
-	ret, ok := findPod(podID, watcher.pods)
+	ret, ok := findPod(watcher.pods)
 	if ok {
 		return ret, nil
 	}

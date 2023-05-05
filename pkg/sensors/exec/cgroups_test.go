@@ -241,7 +241,7 @@ func unmountCgroupv1Controllers(t *testing.T, cgroupRoot string, controllers []c
 	}
 }
 
-func prepareCgroupv1Hierarchies(t *testing.T, cgroupRoot string, controllers []cgroupController, usedController string, trackingCgrpLevel uint32) (map[string][]cgroupHierarchy, error) {
+func prepareCgroupv1Hierarchies(controllers []cgroupController, usedController string, trackingCgrpLevel uint32) (map[string][]cgroupHierarchy, error) {
 	kubeCgroupHierarchiesMap := make(map[string][]cgroupHierarchy, len(controllers))
 
 	for _, controller := range controllers {
@@ -1152,7 +1152,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 		unmountCgroupv1Controllers(t, cgroupRoot, controllers)
 	})
 
-	kubeCgroupHierarchiesMap, err := prepareCgroupv1Hierarchies(t, cgroupRoot, controllers, usedController, trackingCgrpLevel)
+	kubeCgroupHierarchiesMap, err := prepareCgroupv1Hierarchies(controllers, usedController, trackingCgrpLevel)
 	require.NoError(t, err)
 	// Ensure we remove all hierarchies
 	t.Cleanup(func() {

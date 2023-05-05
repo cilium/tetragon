@@ -87,7 +87,7 @@ func filterByHTTPStatusCode(statusCodePrefixes []string) (FilterFunc, error) {
 type HTTPFilter struct{}
 
 // OnBuildFilter builds a HTTP filter
-func (h *HTTPFilter) OnBuildFilter(ctx context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (h *HTTPFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetHttpStatusCode() != nil {
