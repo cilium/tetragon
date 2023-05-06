@@ -119,8 +119,8 @@ func logDefaultCgroupConfig(t *testing.T) {
 		cgroups.CgroupFsMagicStr(magic))
 }
 
-func logTetragonConfig(t *testing.T, mapDir string) error {
-	conf, err := testutils.ReadTgRuntimeConf(mapDir)
+func logTetragonConfig(t *testing.T, bpfDir string) error {
+	conf, err := testutils.ReadTgRuntimeConf(bpfDir)
 	if err != nil {
 		return err
 	}

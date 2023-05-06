@@ -50,7 +50,7 @@ func (s *statValue) DeepCopyMapValue() bpf.MapValue {
 func (k *Observer) startUpdateMapMetrics() {
 	update := func() {
 		for _, m := range sensors.AllMaps {
-			pin := filepath.Join(option.Config.MapDir, m.Name)
+			pin := filepath.Join(option.Config.BpfDir, m.Name)
 			pinStats := pin + "_stats"
 
 			mapLinkStats, err := bpf.OpenMap(pinStats)

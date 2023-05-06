@@ -9,8 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
-func RemovePrograms(bpfDir, mapDir string) {
+func RemovePrograms(bpfDir string) {
 	sensors.UnloadAll(bpfDir)
 	os.Remove(bpfDir)
-	os.Remove(mapDir)
 }

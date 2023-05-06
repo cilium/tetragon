@@ -137,11 +137,11 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 	sensors.AllPrograms = append(sensors.AllPrograms, load)
 
-	if err := program.LoadUprobeProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose); err != nil {
+	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Verbose); err != nil {
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(args.MapDir, base.NamesMap.Name), nil)
+	m, err := ebpf.LoadPinnedMap(filepath.Join(args.BPFDir, base.NamesMap.Name), nil)
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ type SensorStatus struct {
 // something is received. The intention of this is to allow the main function
 // to first load the base sensor before the sensor manager starts loading other sensors.
 func StartSensorManager(
-	bpfDir, mapDir, ciliumDir string,
+	bpfDir, ciliumDir string,
 	waitChan chan struct{},
 ) (*Manager, error) {
 	c := make(chan sensorOp)
@@ -40,7 +40,7 @@ func StartSensorManager(
 		STTManager: sttManager.StartSttManager(),
 		sensorCtl:  c,
 	}
-	handler, err := newHandler(bpfDir, mapDir, ciliumDir)
+	handler, err := newHandler(bpfDir, ciliumDir)
 	if err != nil {
 		return nil, err
 	}

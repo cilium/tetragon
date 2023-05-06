@@ -242,7 +242,7 @@ func MultiKprobeAttach(load *Program) AttachFunc {
 	}
 }
 
-func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
@@ -250,14 +250,14 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, TracepointAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{bpfDir}, load, TracepointAttach(load), ci, verbose)
 }
 
-func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
-	return loadProgram(bpfDir, []string{mapDir}, load, RawTracepointAttach(load), nil, verbose)
+func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
+	return loadProgram(bpfDir, []string{bpfDir}, load, RawTracepointAttach(load), nil, verbose)
 }
 
-func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" {
@@ -265,10 +265,10 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, KprobeAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{bpfDir}, load, KprobeAttach(load), ci, verbose)
 }
 
-func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "uprobe_calls" {
@@ -276,16 +276,16 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 			break
 		}
 	}
-	return loadProgram(bpfDir, []string{mapDir}, load, UprobeAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{bpfDir}, load, UprobeAttach(load), ci, verbose)
 }
 
 func LoadTailCallProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, []string{mapDir}, load, NoAttach(load), nil, verbose)
 }
 
-func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	ci := &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"}
-	return loadProgram(bpfDir, []string{mapDir}, load, MultiKprobeAttach(load), ci, verbose)
+	return loadProgram(bpfDir, []string{bpfDir}, load, MultiKprobeAttach(load), ci, verbose)
 }
 
 func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {

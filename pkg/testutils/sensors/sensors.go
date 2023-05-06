@@ -14,8 +14,8 @@ func LoadSensor(ctx context.Context, t *testing.T, sensor *sensors.Sensor) {
 	if err := sensor.FindPrograms(ctx); err != nil {
 		t.Fatalf("ObserverFindProgs error: %s", err)
 	}
-	mapDir := bpf.MapPrefixPath()
-	if err := sensor.Load(ctx, mapDir, mapDir, ""); err != nil {
+	bpfDir := bpf.MapPrefixPath()
+	if err := sensor.Load(ctx, bpfDir, ""); err != nil {
 		t.Fatalf("observerLoadSensor error: %s", err)
 	}
 
@@ -34,7 +34,7 @@ type TestSensorManager struct {
 // will also register the necessary cleanup functions using t.Cleanup()
 func StartTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, path, "", nil)
+	mgr, err := sensors.StartSensorManager(path, "", nil)
 	if err != nil {
 		t.Fatalf("startSensorController failed: %s", err)
 	}

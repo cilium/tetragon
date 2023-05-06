@@ -34,7 +34,6 @@ type config struct {
 	GopsAddr string
 
 	CiliumDir string
-	MapDir    string
 	BpfDir    string
 
 	LogOpts map[string]string
