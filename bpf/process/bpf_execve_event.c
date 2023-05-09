@@ -54,7 +54,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 	if (mm) {
 		unsigned long start_stack, end_stack;
 		struct execve_heap *heap;
-		__u32 zero = 0, size;
+		__u32 zero = 0, size, max;
 		char *args;
 		long off;
 
@@ -71,9 +71,22 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 			return;
 
 		/* poor man's strlen */
-		off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
-		if (off < 0)
-			return;
+		max = end_stack - start_stack;
+		if (max > 4096)
+			max = 4096;
+		else
+			max &= 0xfff;
+
+		off = probe_read_str(&heap->maxpath, max, (char *)start_stack);
+		if (off < 0) {
+			/* If probe_read_str, try probe_read directly. */
+			off = probe_read(&heap->maxpath, max, (char *)start_stack);
+			if (off < 0)
+				return;
+			off = probe_read_str(&heap->maxpath, max, (char *)&heap->maxpath);
+			if (off < 0)
+				return;
+		}
 
 		start_stack += off;
 
