@@ -606,7 +606,7 @@ __event_get_cgroup_info(struct task_struct *task,
 	memset(&msg->kube, 0, sizeof(struct msg_k8s));
 
 	pid = (get_current_pid_tgid() >> 32);
-	execve_val = execve_map_get(pid);
+	execve_val = execve_map_get_noinit(pid);
 	/* Even if execve_val is null we must continue collect information */
 
 	/* Check if cgroup configuration is set */
