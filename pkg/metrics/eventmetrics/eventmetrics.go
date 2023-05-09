@@ -43,7 +43,7 @@ var (
 	}, []string{"policy", "hook", "namespace", "pod", "binary"})
 )
 
-func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
+func GetProcessInfo(process *tetragon.Process) (type,binary, pod, namespace string) {
 	if process != nil {
 		binary = process.Binary
 		if process.Pod != nil {
@@ -81,13 +81,35 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
-	if pInfo != nil && pInfo.Name != "" {
-		policyStats.
-			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, pod, binary).
-			Inc()
+	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary){
+		for k,v :=range labels {
+			if !utf8.ValidString(v)
+			sanitizedvalue := sanitizeString(v)
+			labels[k] = sanitizedValue
+		}
 	}
+	counterVec.With(labels).Inc()
+
+	
 }
+func sanitizeString(input string) string {
+    
+    sanitized := make([]rune, 0, len(input))
+    for _, r := range input {
+        if r == utf8.RuneError {
+            continue
+        }
+        sanitized = append(sanitized, r)
+    }
+    return string(sanitized)
+}
+
+
+
+
+
+
+
 
 func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
 	handleOriginalEvent(originalEvent)
