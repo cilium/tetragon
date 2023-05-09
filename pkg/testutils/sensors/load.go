@@ -126,7 +126,7 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}},
 
 		// all but event_execve
-		SensorMap{Name: "execve_map_stats", Progs: []uint{0, 1, 2, 3}},
+		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2}},
 
 		// event_execve
 		SensorMap{Name: "names_map", Progs: []uint{0}},

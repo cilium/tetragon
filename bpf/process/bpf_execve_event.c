@@ -227,7 +227,7 @@ execve_send(struct sched_execve_args *ctx)
 
 	pid = (get_current_pid_tgid() >> 32);
 
-	curr = execve_map_get(pid);
+	curr = execve_map_get_noinit(pid);
 	if (curr) {
 		event->cleanup_key = curr->key;
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)

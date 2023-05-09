@@ -46,7 +46,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		probe_read(&ppid, sizeof(ppid), _(&current_task->tgid));
 		/* If they share same thread group nothing todo... */
 		if (tgid != ppid) {
-			parent = execve_map_get(ppid);
+			parent = execve_map_get_noinit(ppid);
 			if (parent)
 				__set_task_cgrpid_tracker(config, current_task,
 							  parent, &error_flags);

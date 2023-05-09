@@ -32,7 +32,7 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	path = (char *)ctx->args[1];
 	pid = (get_current_pid_tgid() >> 32);
 
-	curr = execve_map_get(pid);
+	curr = execve_map_get_noinit(pid);
 	if (curr) {
 		msg->common.ktime = curr->key.ktime;
 		msg->parent = curr->pkey;
