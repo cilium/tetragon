@@ -38,6 +38,7 @@ enum {
 	DEFAULT_EXEC,
 	KPROBE,
 	TRACEPOINT,
+	UPROBE,
 };
 
 /* Use direct syscalls and avoid NPTL POSIX standard */
@@ -62,6 +63,11 @@ static void do_lseek(const char *process)
 	printf("%s\t(pid:%d, tid:%d, ppid:%d)\tlseek() performed\n", process, getpid(), sys_gettid(), getppid());
 }
 
+void do_uprobe(const char *process)
+{
+	printf("%s\t(pid:%d, tid:%d, ppid:%d)\tdo_uprobe() performed\n", process, getpid(), sys_gettid(), getppid());
+}
+
 static void *thread(void *arg)
 {
 	do_open("Thread 1:", FILENAME);
@@ -73,6 +79,13 @@ static void *thread(void *arg)
 static void *thread_tracepoint(void *arg)
 {
 	do_lseek("Thread 1:");
+	fflush(stdout);
+	return 0;
+}
+
+static void *thread_uprobe(void *args)
+{
+	do_uprobe("Thread 1:");
 	fflush(stdout);
 	return 0;
 }
@@ -109,12 +122,25 @@ static void tracepoint()
 	fflush(stdout);
 }
 
+static void uprobe()
+{
+	pthread_t ttid;
+
+	pthread_create(&ttid, NULL, thread_uprobe, NULL);
+	fflush(stdout);
+	pthread_join(ttid, NULL);
+
+	do_uprobe("Child 1:");
+
+	fflush(stdout);
+}
+
 static void help(char *prog) {
 
         printf("%s [--sensor name]\n"
 		"  -h, --help		Show this help\n"
 		"  -s, --sensor=name	Run test for the sensor specified by name\n"
-		"			name can be: exec kprobe\n"
+		"			name can be: exec kprobe tracepoint uprobe\n"
 		"     			example:  --sensor=exec\n",
 		prog);
 }
@@ -151,6 +177,8 @@ int main(int argc, char *argv[])
 			sensor = KPROBE;
 		else if (strncmp(arg_sensor, "tracepoint", 10) == 0)
 			sensor = TRACEPOINT;
+		else if (strncmp(arg_sensor, "uprobe", 6) == 0)
+			sensor = UPROBE;
 		else {
 			printf("%s invalid sensor name: '%s'\n", argv[0], arg_sensor);
 			help(argv[0]);
@@ -173,6 +201,9 @@ int main(int argc, char *argv[])
 			break;
 		case TRACEPOINT:
 			tracepoint();
+			break;
+		case UPROBE:
+			uprobe();
 			break;
 		}
 		return 0;
