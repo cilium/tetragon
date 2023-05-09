@@ -52,4 +52,42 @@ and [linuxkit](https://github.com/linuxkit/linuxkit/issues/3755), the project
 used to build the kernel used by Docker Desktop. If you would like Docker
 Desktop to support BTF, feel free to support those issues.
 
+#### Go compiler is complaining about missing symbols in `pkg/bpf`
+
+You might end up with the output of the Go compiler looking similar to this:
+```
+# github.com/cilium/tetragon/pkg/bpf
+pkg/bpf/map_linux.go:174:9: undefined: bpfAttrObjOp
+pkg/bpf/map_linux.go:266:19: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:310:19: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:318:16: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:415:9: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:422:9: undefined: UpdateElementFromPointers
+pkg/bpf/map_linux.go:455:9: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:466:9: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:496:9: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:515:9: undefined: bpfAttrMapOpElem
+pkg/bpf/map_linux.go:515:9: too many errors
+```
+
+It is likely because this package uses [CGO](https://pkg.go.dev/cmd/cgo) and
+you might be missing a C compiler or the Go toolchain might fail detecting one.
+Also note from the [CGO documentation](https://pkg.go.dev/cmd/cgo) that CGO is
+disabled by default when cross-compiling:
+> The cgo tool is enabled by default for native builds on systems where it is
+> expected to work. It is disabled by default when cross-compiling as well as
+> when the CC environment variable is unset and the default C compiler
+> (typically gcc or clang) cannot be found on the system PATH. You can override
+> the default by setting the CGO_ENABLED environment variable when running the
+> go tool: set it to 1 to enable the use of cgo, and to 0 to disable it. [...]
+
+If you encounter the issue under Linux:
+- Check your Go environment information with `go env CC`. The output should be
+  similar to `gcc`. Verify that `gcc` is installed with `gcc --version`. If
+  it's not the case, install `gcc`.
+- If you prefer to use clang, you can manually set the `CC` env variable to
+  `clang`, for example building tetragon with `CC=clang make tetragon`. To
+  persistently change the value of the CC go environment variable you can use
+  `go env -w "CC=clang"`.
+
 
