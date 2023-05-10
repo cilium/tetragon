@@ -48,44 +48,44 @@ func TestTracepointLoadFormat(t *testing.T) {
 	}
 
 	fields := []FieldFormat{
-		FieldFormat{
+		{
 			FieldStr: "unsigned short common_type",
 			Offset:   0,
 			Size:     2,
 			IsSigned: false,
 		},
-		FieldFormat{
+		{
 			FieldStr: "unsigned char common_flags",
 			Offset:   2,
 			Size:     1,
 			IsSigned: false,
 		},
-		FieldFormat{
+		{
 			FieldStr: "unsigned char common_preempt_count",
 			Offset:   3,
 			Size:     1,
 			IsSigned: false,
 		},
-		FieldFormat{
+		{
 			FieldStr: "int common_pid",
 			Offset:   4,
 			Size:     4,
 			IsSigned: true,
 		},
-		FieldFormat{
+		{
 			FieldStr: "pid_t pid",
 			Offset:   8,
 			Size:     4,
 			IsSigned: true,
 		},
 		commField,
-		FieldFormat{
+		{
 			FieldStr: "unsigned long clone_flags",
 			Offset:   32,
 			Size:     8,
 			IsSigned: false,
 		},
-		FieldFormat{
+		{
 			FieldStr: "short oom_score_adj",
 			Offset:   40,
 			Size:     2,

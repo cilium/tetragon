@@ -174,13 +174,13 @@ func TestNamespaceValueStr(t *testing.T) {
 
 func TestParseMatchArg(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -439,10 +439,10 @@ func TestParseMatchActionMax(t *testing.T) {
 	var actionArgTable idtable.Table
 
 	actions := []v1alpha1.ActionSelector{
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
 	}
 
 	k := &KernelSelectorState{off: 0}
@@ -730,10 +730,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		},
 	}
 	args := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe

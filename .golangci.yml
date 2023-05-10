@@ -28,6 +28,7 @@ linters:
     - loggercheck
     - exportloopref
     - dupword
+    - gofmt
 
 issues:
   exclude-rules:
