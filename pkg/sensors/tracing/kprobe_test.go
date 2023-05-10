@@ -407,15 +407,13 @@ func createTestFile(t *testing.T) (int, int, string) {
 	// Create file with hello world to read
 	fd, errno := syscall.Open("/tmp/testfile", syscall.O_CREAT|syscall.O_TRUNC|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd) })
 	t.Cleanup(func() { os.Remove("/tmp/testfile") })
 	fd2, errno := syscall.Open("/tmp/testfile", syscall.O_RDWR, 0x770)
 	if fd2 < 0 {
-		t.Logf("File open fro read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open fro read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	return fd, fd2, fmt.Sprint(fd2)
@@ -443,15 +441,13 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	hello := []byte("hello world")
 	n, errno := syscall.Write(fd, hello)
 	if n < 0 {
-		t.Logf("syscall.Write failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Write failed: %s\n", errno)
 	}
 	syscall.Fsync(fd)
 	var readBytes = make([]byte, 100)
 	i, errno := syscall.Read(fd2, readBytes)
 	if i < 0 {
-		t.Logf("syscall.Read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Read failed: %s\n", errno)
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
@@ -584,8 +580,7 @@ func testKprobeObjectFiltered(t *testing.T,
 
 	if useMount == true {
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 		t.Cleanup(func() {
 			if err := syscall.Unmount(mntPath, 0); err != nil {
@@ -605,8 +600,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	// Create file to open later
 	fd, errno := syscall.Open(filePath, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 
@@ -624,8 +618,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	readyWG.Wait()
 	fd2, errno := syscall.Open(filePath, mode, perm)
 	if fd2 < 0 {
-		t.Logf("File open from read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open from read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	data := "hello world"
@@ -1201,8 +1194,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	// Create file to open later
 	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 	defer func() { syscall.Unlink(path) }()
@@ -1256,8 +1248,7 @@ func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
 	// Create file to open later
 	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 	defer func() { syscall.Unlink(path) }()
@@ -1569,8 +1560,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	// Create file to open later
 	fd, errno := syscall.Open(filePath, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 
@@ -1589,8 +1579,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 
 	fd2, errno := syscall.Open(filePath, syscall.O_RDWR, 0x770)
 	if fd2 < 0 {
-		t.Logf("File open from read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open from read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	data := "hello world"
@@ -1610,12 +1599,10 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("tmp%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 		if err := syscall.Mount("tmpfs", path, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -1649,8 +1636,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -1689,20 +1675,17 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("tmp%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 		if err := syscall.Mount("tmpfs", path, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 	}
 	for i := 0; i <= 16; i++ {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 		dirStack = append(dirStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -2606,8 +2589,7 @@ spec:
 func openFile(t *testing.T, file string) int {
 	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd) })
 	return fd
@@ -2620,8 +2602,7 @@ func readFile(t *testing.T, file string) int {
 	var readBytes = make([]byte, 32)
 	i, errno := syscall.Read(fd, readBytes)
 	if i < 0 {
-		t.Logf("syscall.Read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Read failed: %s\n", errno)
 	}
 	return fd
 }
