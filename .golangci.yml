@@ -25,6 +25,7 @@ linters:
     - asciicheck
     - bidichk
     - makezero
+    - loggercheck
 
 issues:
   exclude-rules:
