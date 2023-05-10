@@ -78,28 +78,28 @@ func (k *Observer) RemoveListener(listener Listener) {
 	}
 }
 
-type handlePerfUnknownOp struct {
+type handlePerfUnknownOpError struct {
 	op byte
 }
 
-func (e handlePerfUnknownOp) Error() string {
+func (e handlePerfUnknownOpError) Error() string {
 	return fmt.Sprintf("unknown op: %d", e.op)
 }
 
-type handlePerfHandlerErr struct {
+type handlePerfHandlerError struct {
 	op  byte
 	err error
 }
 
-func (e *handlePerfHandlerErr) Error() string {
+func (e *handlePerfHandlerError) Error() string {
 	return fmt.Sprintf("handler for op %d failed: %s", e.op, e.err)
 }
 
-func (e *handlePerfHandlerErr) Unwrap() error {
+func (e *handlePerfHandlerError) Unwrap() error {
 	return e.err
 }
 
-func (e *handlePerfHandlerErr) Cause() error {
+func (e *handlePerfHandlerError) Cause() error {
 	return e.err
 }
 
@@ -111,12 +111,12 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	handler, ok := eventHandler[op]
 	if !ok {
-		return op, nil, handlePerfUnknownOp{op: op}
+		return op, nil, handlePerfUnknownOpError{op: op}
 	}
 
 	events, err := handler(r)
 	if err != nil {
-		err = &handlePerfHandlerErr{op: op, err: err}
+		err = &handlePerfHandlerError{op: op, err: err}
 	}
 	return op, events, err
 }
@@ -134,9 +134,9 @@ func (k *Observer) receiveEvent(data []byte) {
 		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
 		errormetrics.HandlerErrorsInc(int(op), err)
 		switch e := err.(type) {
-		case handlePerfUnknownOp:
+		case handlePerfUnknownOpError:
 			k.log.WithField("opcode", e.op).Debug("unknown opcode ignored")
-		case *handlePerfHandlerErr:
+		case *handlePerfHandlerError:
 			k.log.WithError(e.err).WithField("opcode", e.op).Debug("error occurred in event handler")
 		default:
 			k.log.WithError(err).Debug("error occurred in event handler")

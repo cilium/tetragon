@@ -24,6 +24,7 @@ type Unloader interface {
 // Useful when a loading operation needs to be unwinded due to an error.
 type ChainUnloader []Unloader
 
+// nolint:errname // using plural Error postfix
 type chainUnloaderErrors struct {
 	errors []error
 }

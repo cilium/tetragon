@@ -29,6 +29,7 @@ linters:
     - exportloopref
     - dupword
     - gofmt
+    - errname
 
 issues:
   exclude-rules:
