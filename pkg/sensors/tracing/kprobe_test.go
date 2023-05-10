@@ -2680,7 +2680,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2720,7 +2720,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 		argVals[3] = "shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2760,7 +2760,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2800,7 +2800,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2836,7 +2836,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 		argVals[3] = "shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2872,7 +2872,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {

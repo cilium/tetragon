@@ -109,6 +109,7 @@ func stopProfile() {
 		// get up-to-date statistics
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(f); err != nil {
+			// nolint:gocritic // log.Fatal will exit without running defer but it's okay because fd will be gc
 			log.Fatal("could not write memory profile: ", err)
 		}
 	}
@@ -127,6 +128,7 @@ func tetragonExecute() error {
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
+		// nolint:gocritic // log.Fatal will exit without running defer but it's okay for ctx cancel
 		log.Fatal(err)
 	}
 

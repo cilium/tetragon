@@ -316,7 +316,7 @@ spec:
         values:
         - "` + binary + `"`
 
-			crd = crd + filter
+			crd += filter
 		}
 	}
 

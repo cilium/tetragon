@@ -268,8 +268,8 @@ func TestParseMatchArg(t *testing.T) {
 			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 		}
-		expected3 := append(length, expected1[:]...)
-		expected3 = append(expected3, expected2[:]...)
+		expected3 := append(length, expected1...)
+		expected3 = append(expected3, expected2...)
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := &KernelSelectorState{off: 0}
 		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -309,8 +309,8 @@ func TestParseMatchPid(t *testing.T) {
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	pid3 := []v1alpha1.PIDSelector{*pid1, *pid2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -349,8 +349,8 @@ func TestParseMatchNamespaces(t *testing.T) {
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	ns3 := []v1alpha1.NamespaceSelector{*ns1, *ns2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -396,8 +396,8 @@ func TestParseMatchCapabilities(t *testing.T) {
 	}
 
 	length := []byte{44, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	cap3 := []v1alpha1.CapabilitiesSelector{*cap1, *cap2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -425,8 +425,8 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 	}
 	length := []byte{12, 0x00, 0x00, 0x00}
-	expected := append(length, expected1[:]...)
-	expected = append(expected, expected2[:]...)
+	expected := append(length, expected1...)
+	expected = append(expected, expected2...)
 
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{off: 0}

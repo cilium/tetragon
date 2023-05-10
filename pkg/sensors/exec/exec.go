@@ -136,7 +136,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		if err != nil {
 			return proc, false, err
 		}
-		proc.Filename = string(data[:])
+		proc.Filename = string(data)
 		args = args[unsafe.Sizeof(desc):]
 	} else if exec.Flags&api.EventErrorFilename == 0 {
 		n := bytes.Index(args, []byte{0x00})

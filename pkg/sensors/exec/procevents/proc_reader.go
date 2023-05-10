@@ -458,15 +458,15 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			// next try to consume CWD space from child and finally start truncating args
 			// if necessary.
 			deduct = processapi.MSG_SIZEOF_CWD
-			p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
-			p.pflags = p.pflags | api.EventNoCWDSupport
+			p.pflags &= ^uint32(api.EventNeedsCWD)
+			p.pflags |= api.EventNoCWDSupport
 			p.psize -= deduct
 			need -= int32(deduct)
 			if need > 0 {
 				deduct = processapi.MSG_SIZEOF_CWD
 				p.size -= deduct
-				p.flags = p.flags & ^uint32(api.EventNeedsCWD)
-				p.flags = p.flags | api.EventNoCWDSupport
+				p.flags &= ^uint32(api.EventNeedsCWD)
+				p.flags |= api.EventNoCWDSupport
 				need -= int32(deduct)
 			}
 

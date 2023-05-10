@@ -69,6 +69,7 @@ func (n DummyNotifier[EXEC, EXIT]) RemoveListener(_ server.Listener) {}
 
 func (n DummyNotifier[EXEC, EXIT]) NotifyListener(original interface{}, processed *tetragon.GetEventsResponse) {
 	switch v := original.(type) {
+	// nolint:gocritic // confusion on caseOrder
 	case EXEC, EXIT:
 		if processed != nil {
 			AllEvents = append(AllEvents, processed)
@@ -80,7 +81,7 @@ func (n DummyNotifier[EXEC, EXIT]) NotifyListener(original interface{}, processe
 	}
 }
 
-func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64, Docker string) (*EXEC, *EXEC, *EXEC, *EXIT) {
+func CreateEvents[EXEC notify.Message, EXIT notify.Message](pid uint32, ktime uint64, parentPid uint32, parentKtime uint64, docker string) (*EXEC, *EXEC, *EXEC, *EXIT) {
 	// Create a parent event to hand events off of and convince execCache that parents are known. In order for this to
 	// work we set the Pid == 1 here so that system believes this is the root of the tree.
 	rootEv := tetragonAPI.MsgExecveEventUnix{
@@ -131,7 +132,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			NetNS:  4026531992,
 			Cid:    0,
 			Cgrpid: 0,
-			Docker: Docker,
+			Docker: docker,
 		},
 		Parent: tetragonAPI.MsgExecveKey{
 			Pid:   1,
@@ -141,12 +142,12 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
 			Size:     78,
-			PID:      ParentPid,
+			PID:      parentPid,
 			NSPID:    0,
 			UID:      1010,
 			AUID:     1010,
 			Flags:    16385,
-			Ktime:    ParentKtime,
+			Ktime:    parentKtime,
 			Filename: "/usr/bin/bash",
 			Args:     "--color=auto\x00/home/apapag/tetragon",
 		},
@@ -167,22 +168,22 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			NetNS:  4026531992,
 			Cid:    0,
 			Cgrpid: 0,
-			Docker: Docker,
+			Docker: docker,
 		},
 		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   ParentPid,
+			Pid:   parentPid,
 			Pad:   0,
-			Ktime: ParentKtime,
+			Ktime: parentKtime,
 		},
 		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
 			Size:     78,
-			PID:      Pid,
+			PID:      pid,
 			NSPID:    0,
 			UID:      1010,
 			AUID:     1010,
 			Flags:    16385,
-			Ktime:    Ktime,
+			Ktime:    ktime,
 			Filename: "/usr/bin/ls",
 			Args:     "--color=auto\x00/home/apapag/tetragon",
 		},
@@ -200,13 +201,13 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			Ktime:  21034976281104,
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
-			Pid:   Pid,
+			Pid:   pid,
 			Pad:   0,
-			Ktime: Ktime,
+			Ktime: ktime,
 		},
 		Info: tetragonAPI.MsgExitInfo{
 			Code: 0,
-			Tid:  Pid,
+			Tid:  pid,
 		},
 	}
 
@@ -216,7 +217,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	return &execRootMsg, &execParentMsg, &execMsg, &exitMsg
 }
 
-func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*CLONE, *EXIT) {
+func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](pid uint32, ktime uint64, parentPid uint32, parentKtime uint64) (*CLONE, *EXIT) {
 	cloneEv := tetragonAPI.MsgCloneEvent{
 		Common: tetragonAPI.MsgCommon{
 			Op:     23,
@@ -226,14 +227,14 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 			Ktime:  21034975126173,
 		},
 		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   ParentPid,
+			Pid:   parentPid,
 			Pad:   0,
-			Ktime: ParentKtime,
+			Ktime: parentKtime,
 		},
-		PID:   Pid,
+		PID:   pid,
 		NSPID: 0,
 		Flags: 16385,
-		Ktime: Ktime,
+		Ktime: ktime,
 	}
 
 	var cloneMsg CLONE
@@ -248,13 +249,13 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 			Ktime:  21034976291104,
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
-			Pid:   Pid,
+			Pid:   pid,
 			Pad:   0,
-			Ktime: Ktime,
+			Ktime: ktime,
 		},
 		Info: tetragonAPI.MsgExitInfo{
 			Code: 0,
-			Tid:  Pid,
+			Tid:  pid,
 		},
 	}
 
@@ -286,14 +287,14 @@ func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *s
 	return cancel
 }
 
-func GetProcessRefcntFromCache(t *testing.T, Pid uint32, Ktime uint64) uint32 {
-	procID := process.GetProcessID(Pid, Ktime)
+func GetProcessRefcntFromCache(t *testing.T, pid uint32, ktime uint64) uint32 {
+	procID := process.GetProcessID(pid, ktime)
 	proc, err := process.Get(procID)
 	if err == nil {
 		return proc.RefGet()
 	}
 
-	t.Fatalf("failed to find a process in the procCache pid: %d, ktime: %d, ID: %s ", Pid, Ktime, err)
+	t.Fatalf("failed to find a process in the procCache pid: %d, ktime: %d, ID: %s ", pid, ktime, err)
 	return 0
 }
 

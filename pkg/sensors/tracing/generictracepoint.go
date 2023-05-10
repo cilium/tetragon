@@ -548,7 +548,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		Index: 0,
 		Name:  "config_map",
 		Load: func(m *ebpf.Map, index uint32) error {
-			return m.Update(index, binBuf.Bytes()[:], ebpf.UpdateAny)
+			return m.Update(index, binBuf.Bytes(), ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, cfg)

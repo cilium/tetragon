@@ -186,10 +186,10 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 		meta = int(arg.SizeArgIndex)
 	}
 	if arg.ReturnCopy {
-		meta = meta | argReturnCopyBit
+		meta |= argReturnCopyBit
 	}
 	if arg.MaxData {
-		meta = meta | argMaxDataBit
+		meta |= argMaxDataBit
 	}
 	return meta, nil
 }
@@ -679,7 +679,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 		Index: 0,
 		Name:  "config_map",
 		Load: func(m *ebpf.Map, index uint32) error {
-			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+			return m.Update(index, configData.Bytes(), ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, config)
@@ -727,7 +727,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 			Index: uint32(index),
 			Name:  "config_map",
 			Load: func(m *ebpf.Map, index uint32) error {
-				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+				return m.Update(index, bin_buf[index].Bytes(), ebpf.UpdateAny)
 			},
 		}
 		load.MapLoad = append(load.MapLoad, config)
@@ -791,7 +791,7 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 		logger.GetLogger().WithError(err).Warnf("String with size %d type err", b)
 	}
 
-	strVal := string(outputStr[:])
+	strVal := string(outputStr)
 	lenStrVal := len(strVal)
 	if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
 		strVal = strVal[0 : lenStrVal-1]
@@ -999,7 +999,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			strVal := string(outputStr[:])
+			strVal := string(outputStr)
 			lenStrVal := len(strVal)
 			if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
 				strVal = strVal[0 : lenStrVal-1]

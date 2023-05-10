@@ -30,6 +30,7 @@ linters:
     - dupword
     - gofmt
     - errname
+    - gocritic
 
 issues:
   exclude-rules:
@@ -51,3 +52,11 @@ linters-settings:
       - "for"
       - "to"
       - "as"
+  gocritic:
+    disabled-checks:
+      - deprecatedComment
+      - commentFormatting
+      - singleCaseSwitch
+      - ifElseChain
+      - appendAssign
+      - dupSubExpr # seems confused with CGO

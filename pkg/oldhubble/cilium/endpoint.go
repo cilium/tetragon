@@ -41,7 +41,7 @@ func (s *State) syncEndpoints() {
 		if err != nil {
 			s.log.WithError(err).Error("Unable to get cilium endpoint list")
 			time.Sleep(t)
-			t = t * 2
+			t *= 2
 			continue
 		}
 
