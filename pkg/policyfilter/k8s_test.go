@@ -238,6 +238,7 @@ func (ts *testState) deletePod(t *testing.T, name string) {
 	var p *testPod
 	for idx, pod := range ts.pods {
 		if pod.name == name {
+			// nolint:exportloopref // directly followed by break
 			p = &pod
 			ts.pods = append(ts.pods[:idx], ts.pods[idx+1:]...)
 			break
@@ -258,6 +259,7 @@ func (ts *testState) findCgroupID(podID PodID, containerID string) (CgroupID, er
 	var p *testPod
 	for _, pod := range ts.pods {
 		if PodID(pod.id) == podID {
+			// nolint:exportloopref // directly followed by break
 			p = &pod
 			break
 		}
@@ -282,6 +284,7 @@ func (ts *testState) podsCgroupIDs(t *testing.T, podNames ...string) []uint64 {
 		var p *testPod
 		for _, pod := range ts.pods {
 			if pod.name == podName {
+				// nolint:exportloopref // directly followed by break
 				p = &pod
 				break
 			}

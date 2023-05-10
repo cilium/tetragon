@@ -1331,6 +1331,9 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 		if uint64(len(enterEv.Args)) > index {
 			enterEv.Args[index] = retArg
 		} else {
+			// retArg is reused and we are exporting pointers for loop variables
+			// shadowing with a local variable to make pointer export valid
+			retArg := retArg
 			enterEv.Args = append(enterEv.Args, retArg)
 			ret = &retArg
 		}

@@ -26,6 +26,7 @@ linters:
     - bidichk
     - makezero
     - loggercheck
+    - exportloopref
 
 issues:
   exclude-rules:
