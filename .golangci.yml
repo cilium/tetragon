@@ -24,6 +24,7 @@ linters:
     - misspell
     - asciicheck
     - bidichk
+    - makezero
 
 issues:
   exclude-rules:

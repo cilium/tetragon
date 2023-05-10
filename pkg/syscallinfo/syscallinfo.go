@@ -44,7 +44,7 @@ var syscallIDs = func() map[string]int {
 }()
 
 func SyscallsNames() []string {
-	ret := make([]string, len(syscallNames))
+	ret := make([]string, 0, len(syscallNames))
 
 	for _, v := range syscallNames {
 		ret = append(ret, v)

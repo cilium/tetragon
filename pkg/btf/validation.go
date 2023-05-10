@@ -295,10 +295,6 @@ spec:
 	for _, key := range syscallinfo.SyscallsNames() {
 		var fn *btf.Func
 
-		if key == "" {
-			continue
-		}
-
 		sym, err := arch.AddSyscallPrefix(key)
 		if err != nil {
 			return "", err
