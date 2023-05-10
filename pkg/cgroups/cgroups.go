@@ -756,8 +756,8 @@ func HostCgroupRoot() (string, error) {
 	}
 
 	err := multierr.Append(
-		fmt.Errorf("failed to set path %s as as cgroup root %w", path1, err1),
-		fmt.Errorf("failed to set path %s as as cgroup root %w", path2, err2),
+		fmt.Errorf("failed to set path %s as cgroup root %w", path1, err1),
+		fmt.Errorf("failed to set path %s as cgroup root %w", path2, err2),
 	)
 	return "", fmt.Errorf("failed to set cgroup root: %w", err)
 }
