@@ -19,6 +19,7 @@ linters:
     - staticcheck
     - unused
     - gosimple
+    - makezero
 
 linters-settings:
   goheader:
