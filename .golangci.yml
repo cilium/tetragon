@@ -27,6 +27,7 @@ linters:
     - makezero
     - loggercheck
     - exportloopref
+    - dupword
 
 issues:
   exclude-rules:
@@ -38,3 +39,13 @@ issues:
       text: "exported const"
     - linters: [revive]
       text: "var-naming"
+
+linters-settings:
+  dupword:
+    keywords:
+      - "the"
+      - "and"
+      - "a"
+      - "for"
+      - "to"
+      - "as"

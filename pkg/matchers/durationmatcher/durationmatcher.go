@@ -81,7 +81,7 @@ func (m *DurationMatcher) checkGreater(duration *time.Duration) error {
 	}
 
 	if !(*duration >= value.Duration) {
-		return fmt.Errorf("%s is not greater than than %s", *duration, value.Duration)
+		return fmt.Errorf("%s is not greater than %s", *duration, value.Duration)
 	}
 
 	return nil

@@ -46,7 +46,7 @@ func validate(btf bpf.BTF, spec *v1alpha1.KProbeSpec) (bpf.BtfID, error) {
 
 	llCallTy, err := btf.TypeByID(llCallID)
 	if err != nil {
-		fmt.Errorf("failed to to find syscall type by id: %w", err)
+		fmt.Errorf("failed to find syscall type by id: %w", err)
 	}
 
 	return btf.UnderlyingType(llCallTy)

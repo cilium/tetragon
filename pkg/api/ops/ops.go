@@ -34,8 +34,8 @@ type CgroupOpCode int
 
 // Cgroup Operations that are sent from BPF side. Right now
 // they are used only for logging and debugging, except for
-// for CGROUP_ATTACH_TASK which will be used to detect
-// cgroup configuration.
+// CGROUP_ATTACH_TASK which will be used to detect cgroup
+// configuration.
 const (
 	MSG_OP_CGROUP_UNDEF       CgroupOpCode = iota
 	MSG_OP_CGROUP_MKDIR       CgroupOpCode = 1

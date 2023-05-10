@@ -289,7 +289,7 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 	}()
 }
 
-// dumpGops dumps the gops heap and and memstats
+// dumpGops dumps the gops heap and memstats
 func dumpGops(port int, podName string, exportDir string) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {

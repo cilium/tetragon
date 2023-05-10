@@ -141,7 +141,7 @@ func IsKernelVersionLessThan(version string) bool {
 	return (int64(kernelVer) < KernelStringToNumeric(version))
 }
 
-// GenericKprobeObjs returns the generic kprobe and and generic retprobe objects
+// GenericKprobeObjs returns the generic kprobe and generic retprobe objects
 func GenericKprobeObjs() (string, string) {
 	if EnableV60Progs() {
 		return "bpf_generic_kprobe_v60.o", "bpf_generic_retkprobe_v60.o"
