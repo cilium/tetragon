@@ -165,6 +165,7 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 
 // Add a ProcessInternal structure to the cache. Must be called only from
 // clone or execve events
+// nolint:unparam // result is never used but it's okay
 func (pc *Cache) add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
 	if evicted {

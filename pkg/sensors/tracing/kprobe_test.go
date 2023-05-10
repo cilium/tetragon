@@ -572,6 +572,7 @@ func getAnyChecker() ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("anyKprobe"))
 }
 
+// nolint:unparam // perm always receives `0x770` but it's okay
 func testKprobeObjectFiltered(t *testing.T,
 	readHook string,
 	checker ec.MultiEventChecker,
@@ -1184,7 +1185,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1228,7 +1229,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -2613,6 +2614,7 @@ func openFile(t *testing.T, file string) int {
 }
 
 // reads 32 bytes from a file, this will trigger a sys_read.
+// nolint:unparam // result is never used but it's okay
 func readFile(t *testing.T, file string) int {
 	fd := openFile(t, file)
 	var readBytes = make([]byte, 32)

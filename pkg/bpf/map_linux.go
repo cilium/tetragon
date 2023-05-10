@@ -352,10 +352,7 @@ func (m *Map) DumpWithCallback(cb DumpCallback) error {
 // DumpWithCallbackIfExists is similar to DumpWithCallback, but returns earlier
 // if the given map does not exist.
 func (m *Map) DumpWithCallbackIfExists(cb DumpCallback) error {
-	found, err := m.exist()
-	if err != nil {
-		return err
-	}
+	found := m.exist()
 
 	if found {
 		return m.DumpWithCallback(cb)
@@ -383,10 +380,7 @@ func (m *Map) Dump(hash map[string][]string) error {
 // DumpIfExists dumps the contents of the map into hash via Dump() if the map
 // file exists
 func (m *Map) DumpIfExists(hash map[string][]string) error {
-	found, err := m.exist()
-	if err != nil {
-		return err
-	}
+	found := m.exist()
 
 	if found {
 		return m.Dump(hash)
@@ -503,13 +497,10 @@ func LookupElement(fd int, key, value unsafe.Pointer) error {
 	return LookupElementFromPointers(fd, uintptr(unsafe.Pointer(&uba)), unsafe.Sizeof(uba))
 }
 
-func (m *Map) exist() (bool, error) {
+func (m *Map) exist() bool {
 	path := m.Path()
-	if _, err := os.Stat(path); err == nil {
-		return true, nil
-	}
-
-	return false, nil
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func deleteElement(fd int, key unsafe.Pointer) (uintptr, unix.Errno) {

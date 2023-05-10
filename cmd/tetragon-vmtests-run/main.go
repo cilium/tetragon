@@ -76,10 +76,7 @@ func main() {
 			}
 
 			qemuBin := "qemu-system-x86_64"
-			qemuArgs, err := buildQemuArgs(log, &rcnf)
-			if err != nil {
-				return err
-			}
+			qemuArgs := buildQemuArgs(log, &rcnf)
 
 			if rcnf.qemuPrint {
 				var sb strings.Builder

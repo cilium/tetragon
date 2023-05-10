@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
+func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) []string {
 	qemuArgs := []string{
 		// no need for all the default devices
 		"-nodefaults",
@@ -70,5 +70,5 @@ func buildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 		qemuArgs = append(qemuArgs, rcnf.portForwards.QemuArgs()...)
 	}
 
-	return qemuArgs, nil
+	return qemuArgs
 }

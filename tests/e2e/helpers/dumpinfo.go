@@ -368,12 +368,12 @@ func dumpBpftool(ctx context.Context, client klient.Client, exportDir, podNamesp
 func runBpftool(ctx context.Context, client klient.Client, exportDir, fname, podNamespace, podName, containerName string, args ...string) error {
 	out, err := RunCommand(ctx, client, podNamespace, podName, containerName, "bpftool", args...)
 	if err != nil {
-		klog.ErrorS(err, "failed to run bpftool")
+		return fmt.Errorf("failed to run bpftool: %w", err)
 	}
 
 	fname = filepath.Join(exportDir, fname)
 	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to bpftool output file", "file", fname)
+		return fmt.Errorf("failed to write to bpftool output file %s: %w", fname, err)
 	}
 
 	return nil
