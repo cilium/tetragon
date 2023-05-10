@@ -20,6 +20,7 @@ linters:
     - unused
     - gosimple
     - makezero
+    - dupword
 
 linters-settings:
   goheader:
@@ -29,6 +30,8 @@ linters-settings:
     template: |-
       SPDX-License-Identifier: Apache-2.0
       Copyright Authors of {{ PROJECT }}
+  dupword:
+    keywords: ["the", "and", "a", "for", "to", "as", "in", "of", "with", "by", "on", "at", "from"]
 
 issues:
   exclude-rules:

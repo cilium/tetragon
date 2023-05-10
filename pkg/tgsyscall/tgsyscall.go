@@ -3,7 +3,7 @@
 
 /*
  * This package contains low-level operating system privimitives
- * that are missing from the the default syscall package
+ * that are missing from the default syscall package
  */
 
 package tgsyscall
