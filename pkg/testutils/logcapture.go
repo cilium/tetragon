@@ -5,6 +5,7 @@ package testutils
 
 import (
 	"io"
+	"strings"
 	"testing"
 
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -18,8 +19,11 @@ type LogCapturer struct {
 }
 
 func (tl LogCapturer) Write(p []byte) (n int, err error) {
-	tl.Logf((string)(p))
-	return len(p), nil
+	// Since we are calling T.Log() here, we want to avoid appending multiple "\n", so
+	// trim whatever was added by the inner logger.
+	s := strings.TrimRight(string(p), "\n")
+	tl.T.Log(s)
+	return len(s), nil
 }
 
 // CaptureLog redirects logrus output to testing.Log
