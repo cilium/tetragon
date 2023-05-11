@@ -118,7 +118,7 @@ func parseTy(tyFields []string) (interface{}, error) {
 		} else {
 			retTy = IntTy{Base: IntTyLong, Unsigned: unsigned}
 		}
-	case unsigned == true:
+	case unsigned:
 		// we are doing something wrong if we hit this because we are ignoring the unsigned qualifier
 		return nil, &ParseError{r: "unexpected unsigned"}
 	case ty == "u8":

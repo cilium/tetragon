@@ -85,10 +85,8 @@ func (k *Observer) startUpdateMapMetrics() {
 	ticker := time.NewTicker(30 * time.Second)
 	go func() {
 		for {
-			select {
-			case <-ticker.C:
-				update()
-			}
+			<-ticker.C
+			update()
 		}
 	}()
 }

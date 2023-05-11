@@ -456,7 +456,7 @@ func createGenericKprobeSensor(
 		// Mark remaining arguments as 'nops' the kernel side will skip
 		// copying 'nop' args.
 		for j, a := range argsBTFSet {
-			if a == false {
+			if !a {
 				if j != api.ReturnArgIndex {
 					config.Arg[j] = gt.GenericNopType
 					config.ArgM[j] = 0

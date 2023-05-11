@@ -145,10 +145,8 @@ func NewCache(
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {
 		for {
-			select {
-			case <-ticker.C:
-				update()
-			}
+			<-ticker.C
+			update()
 		}
 	}()
 	pm.cacheGarbageCollector()

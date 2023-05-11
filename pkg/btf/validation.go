@@ -310,7 +310,7 @@ spec:
 		}
 
 		crd = crd + "\n" + fmt.Sprintf("  - call: \"%s\"", key)
-		crd = crd + "\n" + fmt.Sprintf("    syscall: true")
+		crd = crd + "\n" + "    syscall: true"
 
 		if binary != "" {
 			filter := `

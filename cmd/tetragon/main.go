@@ -346,7 +346,7 @@ func tetragonExecute() error {
 	}
 
 	// k8s should have metrics, so periodically log only in a non k8s
-	if option.Config.EnableK8s == false {
+	if !option.Config.EnableK8s {
 		go logStatus(ctx, obs)
 	}
 

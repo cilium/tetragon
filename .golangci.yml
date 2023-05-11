@@ -17,6 +17,7 @@ linters:
     - revive
     - staticcheck
     - unused
+    - gosimple
 
 issues:
   exclude-rules:

@@ -28,7 +28,7 @@ func readConfigFile(path string, file string) error {
 	if err != nil {
 		return err
 	}
-	if st.Mode().IsRegular() == false {
+	if !st.Mode().IsRegular() {
 		return fmt.Errorf("failed to read config file '%s' not a regular file", file)
 	}
 
@@ -46,7 +46,7 @@ func readConfigDir(path string) error {
 	if err != nil {
 		return err
 	}
-	if st.IsDir() == false {
+	if !st.IsDir() {
 		return fmt.Errorf("'%s' is not a directory", path)
 	}
 

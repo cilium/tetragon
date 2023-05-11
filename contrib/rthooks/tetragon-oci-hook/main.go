@@ -144,6 +144,4 @@ func main() {
 	default:
 		log.WithField("hook", hookName).Warn("hook called with unknown hook")
 	}
-
-	return
 }

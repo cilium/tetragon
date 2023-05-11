@@ -114,10 +114,7 @@ func MinKernelVersion(kernel string) bool {
 	runningVersion := int(KernelStringToNumeric(release))
 	minVersion := int(KernelStringToNumeric(kernel))
 
-	if minVersion <= runningVersion {
-		return true
-	}
-	return false
+	return minVersion <= runningVersion
 }
 
 func EnableV60Progs() bool {

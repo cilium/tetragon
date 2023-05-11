@@ -60,7 +60,7 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 	//       context anyway.
 	//       If that address is set try it, if it fails for any reason then retry
 	//       last time with the server address.
-	if viper.IsSet(KeyServerAddress) == false {
+	if !viper.IsSet(KeyServerAddress) {
 		// server-address was not set by user, try the tetragon-info.json file
 		serverAddr, err = getActiveServAddr(defaults.InitInfoFile)
 		if err == nil && serverAddr != "" {

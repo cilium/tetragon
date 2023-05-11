@@ -123,20 +123,18 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	clonePID, cloneTID := uint32(0), uint32(0)
 	events := perfring.RunTestEvents(t, ctx, ops)
 	for _, ev := range events {
-		switch ev.(type) {
+		switch ev := ev.(type) {
 		case *grpcexec.MsgExecveEventUnix:
-			exec := ev.(*grpcexec.MsgExecveEventUnix)
-			if exec.Process.Filename == testBin {
-				execPID = exec.Process.PID
-				execTID = exec.Process.TID
+			if ev.Process.Filename == testBin {
+				execPID = ev.Process.PID
+				execTID = ev.Process.TID
 			}
 		case *grpcexec.MsgCloneEventUnix:
-			msg := ev.(*grpcexec.MsgCloneEventUnix)
 			// We found the exec parent then catch the single per thread
 			// clone event
 			if execPID != 0 && clonePID == 0 {
-				clonePID = msg.PID
-				cloneTID = msg.TID
+				clonePID = ev.PID
+				cloneTID = ev.TID
 			}
 		}
 	}

@@ -495,7 +495,7 @@ func doLoadProgram(
 					if verbose < 2 {
 						fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
 					} else {
-						fmt.Println(fmt.Sprintf("%+v", ve))
+						fmt.Printf("%+v\n", ve)
 					}
 				}
 			}

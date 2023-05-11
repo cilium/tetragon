@@ -375,7 +375,7 @@ func (k *Observer) LogPinnedBpf(observerDir string) {
 		return
 	}
 
-	if finfo.IsDir() == false {
+	if !finfo.IsDir() {
 		err := fmt.Errorf("is not a directory")
 		k.log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: checking BPF resources failed")
 		// Do not fail, let bpf part handle it

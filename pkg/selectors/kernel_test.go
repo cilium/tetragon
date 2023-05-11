@@ -740,7 +740,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	var actionArgTable idtable.Table
 
 	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
-	if bytes.Equal(expected[0:len(expected)], b[0:len(expected)]) == false {
+	if bytes.Equal(expected[0:], b[0:len(expected)]) == false {
 		t.Errorf("InitKernelSelectors: expected %v bytes %v\n", expected, b[0:len(expected)])
 	}
 }

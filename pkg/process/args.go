@@ -10,10 +10,7 @@ import (
 )
 
 func argsDecoderTrim(r rune) bool {
-	if r == 0x00 {
-		return true
-	}
-	return false
+	return r == 0x00
 }
 
 func ArgsDecoder(s string, flags uint32) (string, string) {

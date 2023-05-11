@@ -562,7 +562,7 @@ func TestK8s(t *testing.T) {
 	ts := newTestState(client)
 	st, err := newState(log, ts)
 	if err != nil {
-		t.Skip(fmt.Sprintf("failed to initialize policy filter state: %s", err))
+		t.Skipf("failed to initialize policy filter state: %s", err)
 	}
 	defer st.Close()
 

@@ -286,7 +286,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		var pexecPath string
 		var pnspid uint32
 
-		if d.IsDir() == false {
+		if !d.IsDir() {
 			continue
 		}
 
