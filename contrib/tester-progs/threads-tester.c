@@ -33,12 +33,14 @@ static const char *arg_sensor = NULL;
 
 const int whence_bogus_value = 4444;
 const int fd_bogus_value = -1;
+const int exit_thread_code = 255;
 
 enum {
 	DEFAULT_EXEC,
 	KPROBE,
 	TRACEPOINT,
 	UPROBE,
+	EXIT,
 };
 
 /* Use direct syscalls and avoid NPTL POSIX standard */
@@ -90,6 +92,43 @@ static void *thread_uprobe(void *args)
 	return 0;
 }
 
+// This is used mostely for debugging
+void thread_exit_sig_handler(int sig)
+{
+	printf("Thread 1: received signal %d\n", sig);
+}
+
+static void *thread_exit(void *args)
+{
+	int cnt = 5;
+
+	// Use SIGCONT to easily inspect logs, debug and assert that
+	// we printed the received signal, and make it per thread.
+	signal(SIGCONT, thread_exit_sig_handler);
+
+	while (cnt--) {
+		sleep(1);
+	}
+
+	do_open("Thread 1:", FILENAME);
+	fflush(stdout);
+
+	// Do another round of sleep to allow test to check that task is
+	// still active, then ensure it is removed and we receive the
+	// exit event. All of this without an explicit execve call.
+	cnt = 5;
+	while (cnt--) {
+		sleep(1);
+	}
+
+	fflush(stdout);
+
+	// After last thread terminates the process will always exit(0) so
+	// let's explicitly exit with a non zero to assert
+	// thread/process/exit_status
+	exit(exit_thread_code);
+}
+
 static void default_exec()
 {
 	pthread_t ttid;
@@ -135,12 +174,25 @@ static void uprobe()
 	fflush(stdout);
 }
 
+// Thread leader will exit before new thread which will wait, do an open then thread_exit
+// This test makes sense when it is trigerred from go tests.
+static void handle_exit()
+{
+	pthread_t ttid;
+	do_open("Child 1:", FILENAME);
+	pthread_create(&ttid, NULL, thread_exit, NULL);
+
+	fflush(stdout);
+	int ret = 0;
+	pthread_exit(&ret);
+}
+
 static void help(char *prog) {
 
         printf("%s [--sensor name]\n"
 		"  -h, --help		Show this help\n"
 		"  -s, --sensor=name	Run test for the sensor specified by name\n"
-		"			name can be: exec kprobe tracepoint uprobe\n"
+		"			name can be: exec exit kprobe tracepoint uprobe\n"
 		"     			example:  --sensor=exec\n",
 		prog);
 }
@@ -179,6 +231,8 @@ int main(int argc, char *argv[])
 			sensor = TRACEPOINT;
 		else if (strncmp(arg_sensor, "uprobe", 6) == 0)
 			sensor = UPROBE;
+		else if (strncmp(arg_sensor, "exit", 4) == 0)
+			sensor = EXIT;
 		else {
 			printf("%s invalid sensor name: '%s'\n", argv[0], arg_sensor);
 			help(argv[0]);
@@ -205,14 +259,42 @@ int main(int argc, char *argv[])
 		case UPROBE:
 			uprobe();
 			break;
+		case EXIT:
+			handle_exit();
+			break;
 		}
 		return 0;
 	}
 
-	/* wait for child1 to exit */
-	int status;
-	pid = wait(&status);
-	printf("parent:\t\t(pid:%d, tid:%d, ppid:%d)\tchild1 (%d) exited with: %d\n", getpid(), sys_gettid(), getppid(), pid, status);
+	if (sensor == EXIT) {
+		siginfo_t infop;
+		int ret = waitid(P_ALL, -1, &infop, WEXITED|WCONTINUED);
+		if (ret < 0) {
+			errExit("failed at test sensor 'exit' waittid(): ");
+		}
+		printf("parent:\t\t(pid:%d, tid:%d, ppid:%d)\tchild1 (%d) exited with: %d\n", getpid(), sys_gettid(), getppid(), infop.si_pid, infop.si_status);
+		if (infop.si_pid != pid) {
+			printf("Error: waitid() returned different PID %d != %d\n", pid, infop.si_pid);
+			exit(-EINVAL);
+		}
+		if (infop.si_status != exit_thread_code)  {
+			printf("Error: waitid() returned unxpected status code: %d != %d\n", exit_thread_code, infop.si_status);
+			exit(-EINVAL);
+		}
+		if (infop.si_code != CLD_EXITED) {
+			printf("Error: waitid() returned unxpected code: %d != %d\n", CLD_KILLED, infop.si_code);
+			exit(-EINVAL);
+		}
+		exit(exit_thread_code);
+	} else {
+		int process_wait;
+		pid_t pid2 = waitpid(-1, &process_wait, WEXITED);
+		printf("parent:\t\t(pid:%d, tid:%d, ppid:%d)\tchild1 (%d) exited with: %d\n", getpid(), sys_gettid(), getppid(), pid2, process_wait);
+		if (pid2 != pid) {
+			printf("Error: wait returned different PID %d != %d\n", pid, pid2);
+			exit(-EINVAL);
+		}
+	}
 
 	return 0;
 }

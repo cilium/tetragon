@@ -3,9 +3,14 @@ package exec
 import (
 	"context"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
+
+	"golang.org/x/sys/unix"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
@@ -14,6 +19,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -203,6 +209,102 @@ func TestExecThreads(t *testing.T) {
 		WithProcess(binCheck)
 
 	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(binCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestExitThreads(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/threads-tester")
+	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "exit")
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cti := &testutils.ThreadTesterInfo{}
+	cti.InitChannels()
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	leaderZombie := false
+	threadSleeping := false
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	// Do the child thread status assertion from go tests
+	go func(ctx context.Context, cti *testutils.ThreadTesterInfo, leader, thread *bool) {
+		err := cti.WaitForParentParsed(ctx)
+		if err == nil {
+			err = cti.WaitForChildParsed(ctx)
+		}
+		if err == nil {
+			err = cti.WaitForThreadParsed(ctx)
+		}
+		if err != nil {
+			return
+		}
+		if cti.Child1Pid == cti.Thread1Pid && cti.Thread1Tid != 0 {
+			v := strconv.FormatUint(uint64(cti.Child1Tid), 10)
+			status, err := proc.GetStatus(filepath.Join(option.Config.ProcFS, v))
+			if err == nil && status.State == "Z" {
+				*leader = true
+			}
+			v = strconv.FormatInt(int64(cti.Thread1Tid), 10)
+			status, err = proc.GetStatus(filepath.Join(option.Config.ProcFS, v))
+			// Ensure sleeping
+			if err == nil && status.State == "S" {
+				// Ensure signaling on the process and log sigcont
+				if syscall.Kill(int(cti.Thread1Tid), unix.SIGSTOP) == nil &&
+					syscall.Kill(int(cti.Thread1Tid), unix.SIGCONT) == nil {
+					*thread = true
+				}
+			}
+		}
+	}(ctx, cti, &leaderZombie, &threadSleeping)
+	logWG.Wait()
+	if err := testCmd.Wait(); err == nil {
+		t.Fatalf("Command %s succeeded where it should have failed", testBin)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("Command %s failed at Context error: %v", testBin, ctx.Err())
+	}
+	t.Logf("Command %s failed as expected: %s", testBin, err)
+
+	require.Equalf(t, true, leaderZombie, "Thread leader should be a zombie")
+	require.Equalf(t, true, threadSleeping, "Thread should be sleeping")
+
+	cti.AssertPidsTids(t)
+
+	binCheck := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(binCheck)
+
+	// exitThreadCode propagated from thread to parent that performed the exec
+	exitThreadCode := uint32(255)
+	exitCheck := ec.NewProcessExitChecker("").
+		WithStatus(exitThreadCode).
 		WithProcess(binCheck)
 
 	checker := ec.NewUnorderedEventChecker(execCheck, exitCheck)
