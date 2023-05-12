@@ -1,6 +1,6 @@
 ---
 title: "Configuration"
-weight: 5
+weight: 6
 description: "Tetragon configuration files and options"
 ---
 
