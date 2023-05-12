@@ -1,21 +1,9 @@
 ---
-title: "Container deployment"
-weight: 1
-icon: "overview"
-description: "Install Tetragon as a container without a Kubernetes cluster"
+title: "Deploy as a container"
+weight: 2
+description: "Install and manage Tetragon as a container without a Kubernetes cluster"
 ---
 
-## BTF Requirement
-
-The base kernel should support BTF or a BTF file should be bind mounted on top
-of `/var/lib/tetragon/btf` inside container.
-
-To check if BTF is enabled on your Linux host system check for the BTF file in
-the standard location:
-
-```shell
-ls /sys/kernel/btf/
-```
 
 ## Deployment
 

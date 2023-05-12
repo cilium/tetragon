@@ -2,9 +2,5 @@
 title: "Deployment"
 weight: 4
 icon: "observability"
-description: "Deploy Tetragon as a container or directly on a host"
+description: "Learn how to deploy and manage Tetragon"
 ---
-
-In addition to the Kubernetes deployment, it is possible to deploy Tetragon as
-a container or as a service managed by systemd.
-
