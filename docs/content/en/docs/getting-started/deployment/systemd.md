@@ -1,21 +1,8 @@
 ---
-title: "Package deployment"
-weight: 2
-icon: "reference"
-description: "Install Tetragon on your Linux host machines with systemd"
+title: "Deploy on Systemd"
+weight: 3
+description: "Install and manage Tetragon on your Linux host machine with systemd"
 ---
-
-## Requirement
-
-### BTF
-
-Many common Linux distributions now ship with BTF enabled and do not require
-any extra work. To check if BTF is enabled on your Linux system, the standard
-location is:
-
-```
-$ ls /sys/kernel/btf/
-```
 
 ### systemd
 
