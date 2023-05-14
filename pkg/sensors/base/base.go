@@ -22,10 +22,10 @@ var (
 
 	Exit = program.Builder(
 		"bpf_exit.o",
-		"sched/sched_process_exit",
-		"tracepoint/sys_exit",
-		"event_exit",
-		"tracepoint",
+		"sched/sched_process_free",
+		"raw_tracepoint/sched_process_free",
+		"tg_tp_process_free",
+		"raw_tracepoint",
 	)
 
 	Fork = program.Builder(
