@@ -23,7 +23,6 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
-	yaml "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -35,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -3003,7 +3003,7 @@ spec:
 		return fmt.Errorf("load base sensor failed: %w", err)
 	}
 
-	tp, _ := yaml.PolicyFromYaml(testHook)
+	tp, _ := tracingpolicy.PolicyFromYAML(testHook)
 	if tp == nil {
 		return nil
 	}
@@ -3179,7 +3179,7 @@ spec:
 	_, err := observer.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib)
 	assert.NoError(t, err)
 
-	tp, err := yaml.PolicyFromYaml(testHook)
+	tp, err := tracingpolicy.PolicyFromYAML(testHook)
 	assert.NoError(t, err)
 	assert.NotNil(t, tp)
 

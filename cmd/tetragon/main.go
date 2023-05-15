@@ -23,7 +23,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
@@ -38,6 +37,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -334,7 +334,7 @@ func tetragonExecute() error {
 
 	// load sensor from configuration file
 	if len(option.Config.ConfigFile) > 0 {
-		tp, err := config.PolicyFromYamlFilename(option.Config.ConfigFile)
+		tp, err := tracingpolicy.PolicyFromYAMLFilename(option.Config.ConfigFile)
 		if err != nil {
 			return err
 		}

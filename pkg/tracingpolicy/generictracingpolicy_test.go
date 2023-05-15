@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package config
+package tracingpolicy
 
 import (
 	"bytes"
@@ -17,7 +17,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,7 +89,7 @@ spec:
             - "CAP_NET_RAW"
 `
 
-var expectedWrite = GenericTracingConf{
+var expectedWrite = GenericTracingPolicy{
 	ApiVersion: "cilium.io/v1alpha1",
 	Metadata:   Metadata{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
@@ -252,7 +251,7 @@ spec:
             - "CAP_SYS_ADMIN"
 `
 
-var expectedData = GenericTracingConf{
+var expectedData = GenericTracingPolicy{
 	ApiVersion: "cilium.io/v1alpha1",
 	Metadata:   Metadata{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
@@ -365,22 +364,22 @@ var expectedData = GenericTracingConf{
 }
 
 func TestYamlWritev(t *testing.T) {
-	pol, err := PolicyFromYaml(writev)
+	pol, err := PolicyFromYAML(writev)
 	if err != nil {
 		t.Errorf("YamlWritev error %s", err)
 	}
-	k := pol.(*GenericTracingConf)
+	k := pol.(*GenericTracingPolicy)
 	if reflect.DeepEqual(*k, expectedWrite) != true {
 		t.Errorf("not equal\nk=%v\ne= %v\n", k, expectedWrite)
 	}
 }
 
 func TestYamlData(t *testing.T) {
-	pol, err := PolicyFromYaml(data)
+	pol, err := PolicyFromYAML(data)
 	if err != nil {
 		t.Errorf("YamlData error %s", err)
 	}
-	k := pol.(*GenericTracingConf)
+	k := pol.(*GenericTracingPolicy)
 	if reflect.DeepEqual(*k, expectedData) != true {
 		t.Errorf("not equal\nk=%v\ne=%v\n", *k, expectedData)
 	}
@@ -391,7 +390,7 @@ var lseekExample string
 
 func TestYamlLseek(t *testing.T) {
 
-	expected := GenericTracingConf{
+	expected := GenericTracingPolicy{
 		ApiVersion: "cilium.io/v1alpha1",
 		Metadata:   Metadata{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
@@ -423,11 +422,11 @@ func TestYamlLseek(t *testing.T) {
 		},
 	}
 
-	pol, err := PolicyFromYaml(lseekExample)
+	pol, err := PolicyFromYAML(lseekExample)
 	if err != nil {
 		t.Errorf("YamlData error %s", err)
 	}
-	k := pol.(*GenericTracingConf)
+	k := pol.(*GenericTracingPolicy)
 	if err != nil {
 		t.Errorf("ReadConfigYaml failed: %s", err)
 	}
@@ -438,7 +437,7 @@ func TestYamlLseek(t *testing.T) {
 }
 
 // Read a config file and sub in templated values
-func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingConf, error) {
+func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingPolicy, error) {
 	templ, err := template.ParseFiles(fileName)
 	if err != nil {
 		return nil, err
@@ -447,11 +446,11 @@ func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingC
 	var buf bytes.Buffer
 	templ.Execute(&buf, data)
 
-	pol, err := PolicyFromYaml(buf.String())
+	pol, err := PolicyFromYAML(buf.String())
 	if err != nil {
 		return nil, fmt.Errorf("PolicyFromYaml error %s", err)
 	}
-	return pol.(*GenericTracingConf), nil
+	return pol.(*GenericTracingPolicy), nil
 }
 
 func TestExamplesSmoke(t *testing.T) {
@@ -493,7 +492,7 @@ metadata:
   name: "invalid_name"`
 
 func TestReadConfigYamlInvalidName(t *testing.T) {
-	_, err := PolicyFromYaml(invalidNameYaml)
+	_, err := PolicyFromYAML(invalidNameYaml)
 	assert.Error(t, err)
 }
 
@@ -509,8 +508,8 @@ spec:
 `
 
 func TestYamlNamespaced(t *testing.T) {
-	tp, err := PolicyFromYaml(tpNamespaced)
+	tp, err := PolicyFromYAML(tpNamespaced)
 	require.NoError(t, err)
-	_, ok := tp.(tracingpolicy.TracingPolicyNamespaced)
+	_, ok := tp.(TracingPolicyNamespaced)
 	require.True(t, ok)
 }

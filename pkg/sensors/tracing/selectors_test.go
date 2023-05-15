@@ -15,7 +15,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -30,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -55,8 +55,8 @@ func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sens
 		t.Fatalf("observer.InitDataCache: %s", err)
 	}
 
-	tp := &config.GenericTracingConf{
-		Metadata: config.Metadata{Name: "name"},
+	tp := &tracingpolicy.GenericTracingPolicy{
+		Metadata: tracingpolicy.Metadata{Name: "name"},
 		Spec:     *spec,
 	}
 	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)

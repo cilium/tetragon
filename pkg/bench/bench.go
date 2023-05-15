@@ -22,7 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/cilium"
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc"
@@ -34,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/watcher"
 
 	// Imported to allow sensors to be initialized inside init().
@@ -114,7 +114,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		}
 	}
 
-	tp, err := config.PolicyFromYamlFilename(configFile)
+	tp, err := tracingpolicy.PolicyFromYAMLFilename(configFile)
 	if err != nil {
 		log.Fatalf("PolicyFromYamlFilename: %v", err)
 	}
