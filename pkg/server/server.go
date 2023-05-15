@@ -11,7 +11,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/aggregator"
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -225,7 +224,7 @@ func (s *Server) ListSensors(ctx context.Context, _ *tetragon.ListSensorsRequest
 }
 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
-	tp, err := config.PolicyFromYaml(req.GetYaml())
+	tp, err := tracingpolicy.PolicyFromYAML(req.GetYaml())
 	if err != nil {
 		logger.GetLogger().WithError(err).Warn("Server AddTracingPolicy request failed")
 		return nil, err
@@ -251,7 +250,7 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 }
 
 func (s *Server) DelTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
-	tp, err := config.PolicyFromYaml(req.GetYaml())
+	tp, err := tracingpolicy.PolicyFromYAML(req.GetYaml())
 	if err != nil {
 		logger.GetLogger().WithError(err).Warn("Server DeleteTracingPolicy request failed")
 		return nil, err

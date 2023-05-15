@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package config
+package tracingpolicy
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
@@ -19,33 +18,33 @@ type Metadata struct {
 	Name string `yaml:"name"`
 }
 
-type GenericTracingConf struct {
+type GenericTracingPolicy struct {
 	ApiVersion string                     `json:"apiVersion"`
 	Kind       string                     `json:"kind"`
 	Metadata   Metadata                   `json:"metadata"`
 	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
-func (cnf *GenericTracingConf) TpName() string {
-	return cnf.Metadata.Name
+func (gtp *GenericTracingPolicy) TpName() string {
+	return gtp.Metadata.Name
 }
 
-func (cnf *GenericTracingConf) TpSpec() *v1alpha1.TracingPolicySpec {
-	return &cnf.Spec
+func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
+	return &gtp.Spec
 }
 
-func (cnf *GenericTracingConf) TpInfo() string {
-	return cnf.Metadata.Name
+func (gtp *GenericTracingPolicy) TpInfo() string {
+	return gtp.Metadata.Name
 }
 
-func PolicyFromYaml(data string) (tracingpolicy.TracingPolicy, error) {
-	var k GenericTracingConf
+func PolicyFromYAML(data string) (TracingPolicy, error) {
+	var k GenericTracingPolicy
 
 	err := yaml.UnmarshalStrict([]byte(data), &k)
 	// if yaml file contains a namespace field, parsing will fail. Retry
 	// again to parse it as a namespaced policy.
 	if err != nil {
-		return NamespacedPolicyFromYaml(data)
+		return NamespacedPolicyFromYAML(data)
 	}
 
 	// validates that metadata.name value is compliant with RFC 1123 for the
@@ -59,12 +58,12 @@ func PolicyFromYaml(data string) (tracingpolicy.TracingPolicy, error) {
 	return &k, nil
 }
 
-func PolicyFromYamlFilename(fileName string) (tracingpolicy.TracingPolicy, error) {
-	config, err := os.ReadFile(fileName)
+func PolicyFromYAMLFilename(fileName string) (TracingPolicy, error) {
+	policy, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	return PolicyFromYaml(string(config))
+	return PolicyFromYAML(string(policy))
 }
 
 type MetadataNamespaced struct {
@@ -72,31 +71,31 @@ type MetadataNamespaced struct {
 	Namespace string `yaml:"namespace"`
 }
 
-type GenericTracingConfNamespaced struct {
+type GenericTracingPolicyNamespaced struct {
 	ApiVersion string                     `json:"apiVersion"`
 	Kind       string                     `json:"kind"`
 	Metadata   MetadataNamespaced         `json:"metadata"`
 	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
-func (cnf *GenericTracingConfNamespaced) TpNamespace() string {
-	return cnf.Metadata.Namespace
+func (gtp *GenericTracingPolicyNamespaced) TpNamespace() string {
+	return gtp.Metadata.Namespace
 }
 
-func (cnf *GenericTracingConfNamespaced) TpName() string {
-	return cnf.Metadata.Name
+func (gtp *GenericTracingPolicyNamespaced) TpName() string {
+	return gtp.Metadata.Name
 }
 
-func (cnf *GenericTracingConfNamespaced) TpSpec() *v1alpha1.TracingPolicySpec {
-	return &cnf.Spec
+func (gtp *GenericTracingPolicyNamespaced) TpSpec() *v1alpha1.TracingPolicySpec {
+	return &gtp.Spec
 }
 
-func (cnf *GenericTracingConfNamespaced) TpInfo() string {
-	return cnf.Metadata.Name
+func (gtp *GenericTracingPolicyNamespaced) TpInfo() string {
+	return gtp.Metadata.Name
 }
 
-func NamespacedPolicyFromYaml(data string) (tracingpolicy.TracingPolicy, error) {
-	var k GenericTracingConfNamespaced
+func NamespacedPolicyFromYAML(data string) (TracingPolicy, error) {
+	var k GenericTracingPolicyNamespaced
 
 	err := yaml.UnmarshalStrict([]byte(data), &k)
 	if err != nil {

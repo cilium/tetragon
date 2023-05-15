@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
-	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 func expectError(t *testing.T, err error) error {
@@ -66,7 +66,7 @@ func TestSpecs(t *testing.T) {
 		specFname := testFiles[fi].specFname
 		t.Run(specFname, func(t *testing.T) {
 			specFname := filepath.Join(testdataPath, specFname)
-			tp, err := config.PolicyFromYamlFilename(specFname)
+			tp, err := tracingpolicy.PolicyFromYAMLFilename(specFname)
 			if err != nil {
 				t.Fatal(err)
 			}

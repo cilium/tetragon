@@ -30,7 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
-	yaml "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
@@ -231,7 +230,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	var tp tracingpolicy.TracingPolicy
 	if o.observer.config != "" {
 		var err error
-		tp, err = yaml.PolicyFromYamlFilename(o.observer.config)
+		tp, err = tracingpolicy.PolicyFromYAMLFilename(o.observer.config)
 		if err != nil {
 			return nil, ret, fmt.Errorf("failed to parse tracingpolicy: %w", err)
 		}

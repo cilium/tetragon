@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	tgcgroups "github.com/cilium/tetragon/pkg/cgroups"
-	"github.com/cilium/tetragon/pkg/config"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -31,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/google/uuid"
 
 	"github.com/containerd/cgroups"
@@ -177,8 +177,8 @@ func TestNamespacedPolicies(t *testing.T) {
 			}}},
 		},
 	}
-	kpPolicyConf := config.GenericTracingConfNamespaced{
-		Metadata: config.MetadataNamespaced{
+	kpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
+		Metadata: tracingpolicy.MetadataNamespaced{
 			Name:      "lseek-test",
 			Namespace: "ns1",
 		},
@@ -206,8 +206,8 @@ func TestNamespacedPolicies(t *testing.T) {
 			}}},
 		},
 	}
-	tpPolicyConf := config.GenericTracingConfNamespaced{
-		Metadata: config.MetadataNamespaced{
+	tpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
+		Metadata: tracingpolicy.MetadataNamespaced{
 			Name:      "lseek-test",
 			Namespace: "ns1",
 		},
