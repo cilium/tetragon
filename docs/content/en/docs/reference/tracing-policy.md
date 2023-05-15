@@ -24,8 +24,8 @@ on kprobe spec.
 
 {{< note >}}
 For bare metal or VM use cases without Kubernetes, the same YAML configuration
-can be passed via a flag to the Tetragon binary (using `--config-file`) or via
-the `tetra` CLI to load the policies via gRPC.
+can be passed via a flag to the Tetragon binary (using `--tracing-policy`) or
+via the `tetra` CLI to load the policies via gRPC.
 {{< /note >}}
 
 ### Getting started with Tracing Policy

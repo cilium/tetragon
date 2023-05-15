@@ -26,7 +26,7 @@
 # code. First thing is replace {{.Pid}} in this CRD with the PID of terminal 2.
 #
 # In terminal 1:
-# $ sudo ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --config-file examples/tracingpolicy/match_capability_changes.yaml --enable-process-cred
+# $ sudo ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --tracing-policy examples/tracingpolicy/match_capability_changes.yaml --enable-process-cred
 # $ # <wait for events> (i.e. run the commands in terminal 2)
 # $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events

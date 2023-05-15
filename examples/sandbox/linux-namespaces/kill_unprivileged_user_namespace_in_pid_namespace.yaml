@@ -13,7 +13,7 @@ metadata:
 # This CRD requires a 5.3.0 kernel to perform a sigkill.
 #
 # To test load Tetragon with this CRD:
-#   sudo ./tetragon --bpf-lib bpf/objs/ --config-file examples/sandbox/linux-namespaces/kill_unprivileged_user_namespace_in_pid_namespace.yaml
+#   sudo ./tetragon --bpf-lib bpf/objs/ --tracing-policy examples/sandbox/linux-namespaces/kill_unprivileged_user_namespace_in_pid_namespace.yaml
 #
 # Then run:
 #   sudo ./contrib/tester-progs/sigkill-unprivileged-user-ns-tester pidns
