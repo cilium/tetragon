@@ -142,13 +142,13 @@ docker run --name tetragon-container --rm --pull always \
     -v $PWD/tracing_policy.yaml:/tracing_policy.yaml    \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \
     quay.io/cilium/tetragon-ci:latest                   \
-    --config-file /tracing_policy.yaml
+    --tracing-policy /tracing_policy.yaml
 ```
 
 We added two flags to our commands:
 - `-v $(pwd)/tracing_policy.yaml:/tracing_policy.yaml` mounts the created local
   file into the container filesystem.
-- `--config-file /tracing_policy.yaml` indicates Tetragon to load the policy in
+- `--tracing-policy /tracing_policy.yaml` indicates Tetragon to load the policy in
   the provided file.
 
 Now again, in another terminal, open the `tetra` CLI to see the new events

@@ -210,7 +210,7 @@ func tetragonExecute() error {
 	}
 
 	// Get observer from configFile
-	obs := observer.NewObserver(option.Config.ConfigFile)
+	obs := observer.NewObserver(option.Config.TracingPolicy)
 	defer func() {
 		obs.PrintStats()
 		obs.RemovePrograms()
@@ -332,9 +332,9 @@ func tetragonExecute() error {
 	sensorMgWait = nil
 	observer.SensorManager.LogSensorsAndProbes(ctx)
 
-	// load sensor from configuration file
-	if len(option.Config.ConfigFile) > 0 {
-		tp, err := tracingpolicy.PolicyFromYAMLFilename(option.Config.ConfigFile)
+	// load sensor from tracing policy file
+	if len(option.Config.TracingPolicy) > 0 {
+		tp, err := tracingpolicy.PolicyFromYAMLFilename(option.Config.TracingPolicy)
 		if err != nil {
 			return err
 		}
@@ -600,8 +600,12 @@ func execute() error {
 	flags.Bool(keyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
 
-	// Config files
+	// Tracing policy file
+	flags.String(keyTracingPolicy, "", "Tracing policy file to load at startup")
+	// --config-file is the deprecated flag for the new --tracing-policy
+	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
 	flags.String(keyConfigFile, "", "Configuration file to load from")
+	flags.MarkHidden(keyConfigFile)
 
 	// Options for debugging/development, not visible to users
 	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")

@@ -38,6 +38,7 @@ const (
 	keyEnableProcessCred = "enable-process-cred"
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
+	keyTracingPolicy     = "tracing-policy"
 
 	keyCpuProfile = "cpuprofile"
 	keyMemProfile = "memprofile"
@@ -107,7 +108,6 @@ func readAndSetFlags() {
 	option.Config.MetricsServer = viper.GetString(keyMetricsServer)
 	option.Config.ServerAddress = viper.GetString(keyServerAddress)
 	option.Config.CiliumDir = viper.GetString(keyCiliumBPF)
-	option.Config.ConfigFile = viper.GetString(keyConfigFile)
 
 	option.Config.ExportFilename = viper.GetString(keyExportFilename)
 	option.Config.ExportFileMaxSizeMB = viper.GetInt(keyExportFileMaxSizeMB)
@@ -129,4 +129,15 @@ func readAndSetFlags() {
 	option.Config.ReleasePinned = viper.GetBool(keyReleasePinnedBPF)
 	option.Config.EnablePolicyFilter = viper.GetBool(keyEnablePolicyFilter)
 	option.Config.EnablePolicyFilterDebug = viper.GetBool(keyEnablePolicyFilterDebug)
+
+	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
+	// manually handle the deprecation of --config-file
+	if viper.IsSet(keyConfigFile) {
+		log.Warnf("Flag --%s has been deprecated, please use --%s instead", keyConfigFile, keyTracingPolicy)
+		option.Config.TracingPolicy = viper.GetString(keyConfigFile)
+	}
+	// if both --config-file and --tracing-policy are set, the latter takes priority
+	if viper.IsSet(keyTracingPolicy) {
+		option.Config.TracingPolicy = viper.GetString(keyTracingPolicy)
+	}
 }

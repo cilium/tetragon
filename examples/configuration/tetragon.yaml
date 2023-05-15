@@ -12,7 +12,7 @@ bpf-lib: /var/lib/tetragon/
 btf:
 cilium-bpf:
 config-dir:
-config-file:
+tracing-policy:
 debug: false
 disable-kprobe-multi: false
 enable-cilium-api: false

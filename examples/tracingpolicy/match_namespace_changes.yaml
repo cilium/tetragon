@@ -8,7 +8,7 @@
 #
 # Terminal 1:
 # $ rm -f events.json
-# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file examples/tracingpolicy/match_namespace_changes.yaml
+# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --tracing-policy examples/tracingpolicy/match_namespace_changes.yaml
 # $ # <wait for events>
 # $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events
@@ -25,7 +25,7 @@
 #
 # Terminal 1:
 # $ rm -f events.json
-# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --config-file examples/tracingpolicy/match_namespace_changes.yaml
+# $ ./tetragon --btf /sys/kernel/btf/vmlinux  --bpf-lib ./bpf/objs/ --export-filename events.json --enable-process-ns --tracing-policy examples/tracingpolicy/match_namespace_changes.yaml
 # $ # <wait for events>
 # $ # kill tetragon
 # $ grep kprobe events.json | grep \"__x64_sys_write\" | grep strange | jq . # get the write kprobe events

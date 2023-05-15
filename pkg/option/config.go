@@ -47,7 +47,7 @@ type config struct {
 
 	MetricsServer string
 	ServerAddress string
-	ConfigFile    string
+	TracingPolicy string
 
 	ExportFilename             string
 	ExportFileMaxSizeMB        int

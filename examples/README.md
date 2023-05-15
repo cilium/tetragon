@@ -20,9 +20,9 @@ kubectl apply -f tracingpolicy/write.yaml
 
 ### Standalone
 
-Pass the file with the `--config-file` flag:
+Pass the file with the `--tracing-policy` flag:
 ```shell
-sudo ./tetragon --bpf-lib bpf/objs --config-file tracingpolicy/write.yaml
+sudo ./tetragon --bpf-lib bpf/objs --tracing-policy tracingpolicy/write.yaml
 ```
 
 ### Tetra CLI
