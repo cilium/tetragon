@@ -139,18 +139,18 @@ type KProbeArg struct {
 	SizeArgIndex uint32 `json:"sizeArgIndex"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-    // This field is used only for char_buf and char_iovec types. It indicates
-    // that this argument should be read later (when the kretprobe for the
-    // symbol is triggered) because it might not be populated when the kprobe
-    // is triggered at the entrance of the function. For example, a buffer
-    // supplied to read(2) won't have content until kretprobe is triggered.
+	// This field is used only for char_buf and char_iovec types. It indicates
+	// that this argument should be read later (when the kretprobe for the
+	// symbol is triggered) because it might not be populated when the kprobe
+	// is triggered at the entrance of the function. For example, a buffer
+	// supplied to read(2) won't have content until kretprobe is triggered.
 	ReturnCopy bool `json:"returnCopy"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-    // Read maximum possible data (currently 327360). This field is only used
-    // for char_buff data. When this value is false (default), the bpf program
-    // will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
-    // supports fetching up to 327360 bytes if this flag is turned on
+	// Read maximum possible data (currently 327360). This field is only used
+	// for char_buff data. When this value is false (default), the bpf program
+	// will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+	// supports fetching up to 327360 bytes if this flag is turned on
 	MaxData bool `json:"maxData"`
 }
 

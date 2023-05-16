@@ -1042,8 +1042,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Mark = skb.Mark
 			arg.Saddr = network.GetIP(skb.Saddr).String()
 			arg.Daddr = network.GetIP(skb.Daddr).String()
-			arg.Sport = uint32(network.SwapByte(uint16(skb.Sport)))
-			arg.Dport = uint32(network.SwapByte(uint16(skb.Dport)))
+			arg.Sport = skb.Sport
+			arg.Dport = skb.Dport
 			arg.Proto = skb.Proto
 			arg.SecPathLen = skb.SecPathLen
 			arg.SecPathOLen = skb.SecPathOLen
@@ -1065,8 +1065,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Priority = sock.Priority
 			arg.Saddr = network.GetIP(sock.Daddr).String()
 			arg.Daddr = network.GetIP(sock.Saddr).String()
-			arg.Sport = uint32(network.SwapByte(sock.Sport))
-			arg.Dport = uint32(network.SwapByte(sock.Dport))
+			arg.Sport = uint32(sock.Sport)
+			arg.Dport = uint32(sock.Dport)
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericSizeType, gt.GenericU64Type:
 			var output uint64

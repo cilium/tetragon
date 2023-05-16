@@ -42,5 +42,6 @@ set_event_from_sock(struct sk_type *event, struct sock *sk)
 		   _(&common->skc_rcv_saddr));
 	probe_read(&event->sport, sizeof(event->sport), _(&common->skc_num));
 	probe_read(&event->dport, sizeof(event->dport), _(&common->skc_dport));
+	event->dport = bpf_ntohs(event->dport);
 }
 #endif // __SOCK_H__

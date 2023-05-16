@@ -62,6 +62,8 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 			probe_read(&event->dport, sizeof(event->dport),
 				   _(&udp->dest));
 		}
+		event->sport = bpf_ntohs(event->sport);
+		event->dport = bpf_ntohs(event->dport);
 
 		if (bpf_core_field_exists(skb->active_extensions)) {
 			struct sec_path *sp;
