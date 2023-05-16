@@ -90,4 +90,44 @@ If you encounter the issue under Linux:
   persistently change the value of the CC go environment variable you can use
   `go env -w "CC=clang"`.
 
+#### Tetragon failed to start complaining about a missing BTF file
+
+You might have encountered the following issues:
+```
+level=info msg="BTF discovery: default kernel btf file does not exist" btf-file=/sys/kernel/btf/vmlinux
+level=info msg="BTF discovery: candidate btf file does not exist" btf-file=/var/lib/tetragon/metadata/vmlinux-5.15.49-linuxkit
+level=info msg="BTF discovery: candidate btf file does not exist" btf-file=/var/lib/tetragon/btf
+[...]
+level=fatal msg="Failed to start tetragon" error="tetragon, aborting kernel autodiscovery failed: Kernel version \"5.15.49-linuxkit\" BTF search failed kernel is not included in supported list. Please check Tetragon requirements documentation, then use --btf option to specify BTF path and/or '--kernel' to specify kernel version"
+```
+
+Tetragon needs BTF ([BPF Type Format](https://www.kernel.org/doc/html/latest/bpf/btf.html))
+support to load its BPF programs using CO-RE ([Compile Once - Run Everywhere](https://nakryiko.com/posts/bpf-core-reference-guide/)).
+In brief, CO-RE is useful to load BPF programs that have been compiled on a
+different kernel version than the target kernel. Indeed, kernel structures
+change between versions and BPF programs need to access fields in them. So
+CO-RE uses the [BTF file of the kernel](https://nakryiko.com/posts/btf-dedup/)
+in which you are loading the BPF program to know the differences between the
+struct and patch the fields offset in the accessed structures. CO-RE allows
+portability of the BPF programs but requires a kernel with BTF enabled.
+
+Most of the [common Linux distributions](https://github.com/libbpf/libbpf#bpf-co-re-compile-once--run-everywhere)
+now ship with BTF enabled and do not require any extra work, this is kernel
+option `CONFIG_DEBUG_INFO_BTF=y`. To check if BTF is enabled on your Linux
+system and see the BTF data file of your kernel, the standard location is
+`/sys/kernel/btf/vmlinux`. By default, Tetragon will look for this file (this
+is the first line in the log output above).
+
+If your kernel does not support BTF you can:
+- Retrieve the BTF file for your kernel version from an external source.
+- Build the BTF file from your kernel debug symbols. You will need pahole to
+  add BTF metadata to the debugging symbols and LLVM minimize the medata size.
+- Rebuild your kernel with `CONFIG_DEBUG_INFO_BTF` to `y`.
+
+Tetragon will also look into `/var/lib/tetragon/btf` for the `vmlinux` file
+(this is the third line in the log output above). Or you can use the `--btf`
+flag to directly indicate Tetragon where to locate the file.
+
+If you encounter this issue while using Docker Desktop on macOS, please refer
+to [can I run Tetragon on Mac computers](#can-i-run-tetragon-on-mac-computers).
 
