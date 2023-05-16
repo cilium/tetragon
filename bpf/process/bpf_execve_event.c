@@ -40,13 +40,12 @@ static inline __attribute__((always_inline)) void
 event_args_builder(void *ctx, struct msg_execve_event *event)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	struct msg_process *p, *c;
+	struct msg_process *p;
 	struct mm_struct *mm;
 
 	/* Calculate absolute offset into buffer */
-	c = &event->process;
-	c->auid = get_auid();
-	p = c;
+	p = &event->process;
+	p->auid = get_auid();
 
 	/* We use flags in asm to indicate overflow */
 	compiler_barrier();
