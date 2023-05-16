@@ -97,10 +97,11 @@ read_args(void *ctx, struct msg_execve_event *event)
 }
 
 static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *p, __u64 curr_pid, __u32 flags, void *filename)
+event_filename_builder(void *ctx, struct msg_process *p, void *filename)
 {
 	struct execve_heap *heap;
 	int64_t size = 0;
+	__u32 flags = 0;
 	__u32 zero = 0;
 	uint32_t *value;
 	char *earg;
@@ -128,19 +129,8 @@ event_filename_builder(void *ctx, struct msg_process *p, __u64 curr_pid, __u32 f
 		}
 	}
 
-	p->flags = flags;
-	/* Send the TGID and TID, as during an execve all threads other
-	 * than the calling thread are destroyed, but since we hook late
-	 * during the execve then the calling thread at the hook time is
-	 * already the new thread group leader.
-	 */
-	p->pid = curr_pid >> 32;
-	p->tid = (__u32)curr_pid;
-	p->pad = 0;
-	p->nspid = get_task_pid_vnr();
-	p->ktime = ktime_get_ns();
-	p->size = size + offsetof(struct msg_process, args);
-
+	p->size += size;
+	p->flags |= flags;
 	// skip binaries check for long (> 255) filenames for now
 	if (flags & EVENT_DATA_FILENAME)
 		return 0;
@@ -191,10 +181,22 @@ event_execve(struct sched_execve_args *ctx)
 	}
 
 	p = &event->process;
+	p->flags = EVENT_EXECVE;
+	/* Send the TGID and TID, as during an execve all threads other
+	 * than the calling thread are destroyed, but since we hook late
+	 * during the execve then the calling thread at the hook time is
+	 * already the new thread group leader.
+	 */
+	p->pid = pid >> 32;
+	p->tid = (__u32)pid;
+	p->pad = 0;
+	p->nspid = get_task_pid_vnr();
+	p->ktime = ktime_get_ns();
+	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 
 	fileoff = ctx->filename & 0xFFFF;
-	event->binary = event_filename_builder(ctx, p, pid, EVENT_EXECVE, (char *)ctx + fileoff);
+	event->binary = event_filename_builder(ctx, p, (char *)ctx + fileoff);
 
 	p->size += read_args(ctx, event);
 
