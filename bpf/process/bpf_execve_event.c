@@ -78,29 +78,6 @@ read_args(void *ctx, struct msg_execve_event *event)
 	return total;
 }
 
-/* event_args_builder: copies args into char *buffer
- * event: pointer to event storage
- * pargs: kernel address of args structure
- *
- * returns: void, because we are using asm_goto here we can't easily
- * also provide return values. To avoid having to try and introspect
- * what happened here this routine should always return with a good
- * event msg that could be passed to userspace.
- */
-static inline __attribute__((always_inline)) void
-event_args_builder(void *ctx, struct msg_execve_event *event)
-{
-	struct msg_process *p;
-
-	/* Calculate absolute offset into buffer */
-	p = &event->process;
-	p->auid = get_auid();
-
-	/* We use flags in asm to indicate overflow */
-	compiler_barrier();
-	p->size += read_args(ctx, event);
-}
-
 static inline __attribute__((always_inline)) uint32_t
 event_filename_builder(void *ctx, struct msg_process *p, __u64 curr_pid, __u32 flags, void *filename)
 {
@@ -196,10 +173,15 @@ event_execve(struct sched_execve_args *ctx)
 	}
 
 	p = &event->process;
+	p->auid = get_auid();
+
 	fileoff = ctx->filename & 0xFFFF;
 	event->binary = event_filename_builder(ctx, p, pid, EVENT_EXECVE, (char *)ctx + fileoff);
 
-	event_args_builder(ctx, event);
+	/* We use flags in asm to indicate overflow */
+	compiler_barrier();
+	p->size += read_args(ctx, event);
+
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
 
