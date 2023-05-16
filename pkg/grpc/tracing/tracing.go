@@ -111,6 +111,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				Sport:       e.Sport,
 				Dport:       e.Dport,
 				Proto:       e.Proto,
+				Protocol:    network.InetProtocol(uint16(e.Proto)),
 				SecPathLen:  e.SecPathLen,
 				SecPathOlen: e.SecPathOLen,
 			}

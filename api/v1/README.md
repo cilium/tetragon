@@ -476,6 +476,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | proto | [uint32](#uint32) |  |  |
 | sec_path_len | [uint32](#uint32) |  |  |
 | sec_path_olen | [uint32](#uint32) |  |  |
+| protocol | [string](#string) |  |  |
 
 
 

@@ -251,6 +251,7 @@ message KprobeSkb {
     uint32 proto = 9;
     uint32 sec_path_len = 10;
     uint32 sec_path_olen = 11;
+    string protocol = 12;
 }
 
 message KprobePath {
