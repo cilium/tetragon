@@ -178,8 +178,6 @@ event_execve(struct sched_execve_args *ctx)
 	fileoff = ctx->filename & 0xFFFF;
 	event->binary = event_filename_builder(ctx, p, pid, EVENT_EXECVE, (char *)ctx + fileoff);
 
-	/* We use flags in asm to indicate overflow */
-	compiler_barrier();
 	p->size += read_args(ctx, event);
 
 	compiler_barrier();
