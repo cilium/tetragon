@@ -145,17 +145,22 @@ func (m MsgGenericKprobeArgSize) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeSock struct {
-	Family   uint16
-	Type     uint16
-	Protocol uint16
-	Pad      uint16
-	Mark     uint32
-	Priority uint32
+type MsgGenericKprobeTuple struct {
 	Saddr    uint32
 	Daddr    uint32
 	Sport    uint16
 	Dport    uint16
+	Protocol uint16
+	Pad      uint16
+}
+
+type MsgGenericKprobeSock struct {
+	Tuple    MsgGenericKprobeTuple
+	Mark     uint32
+	Priority uint32
+	Family   uint16
+	Type     uint16
+	Pad      uint32
 }
 
 type MsgGenericKprobeArgSock struct {
@@ -180,15 +185,11 @@ func (m MsgGenericKprobeArgSock) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeSkb struct {
+	Tuple       MsgGenericKprobeTuple
 	Hash        uint32
 	Len         uint32
 	Priority    uint32
 	Mark        uint32
-	Saddr       uint32
-	Daddr       uint32
-	Sport       uint32
-	Dport       uint32
-	Proto       uint32
 	SecPathLen  uint32
 	SecPathOLen uint32
 }
