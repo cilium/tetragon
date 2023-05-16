@@ -1040,11 +1040,11 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Len = skb.Len
 			arg.Priority = skb.Priority
 			arg.Mark = skb.Mark
-			arg.Saddr = network.GetIP(skb.Saddr).String()
-			arg.Daddr = network.GetIP(skb.Daddr).String()
-			arg.Sport = skb.Sport
-			arg.Dport = skb.Dport
-			arg.Proto = skb.Proto
+			arg.Saddr = network.GetIP(skb.Tuple.Saddr).String()
+			arg.Daddr = network.GetIP(skb.Tuple.Daddr).String()
+			arg.Sport = uint32(skb.Tuple.Sport)
+			arg.Dport = uint32(skb.Tuple.Dport)
+			arg.Proto = uint32(skb.Tuple.Protocol)
 			arg.SecPathLen = skb.SecPathLen
 			arg.SecPathOLen = skb.SecPathOLen
 			unix.Args = append(unix.Args, arg)
@@ -1060,13 +1060,13 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Index = uint64(a.index)
 			arg.Family = sock.Family
 			arg.Type = sock.Type
-			arg.Protocol = sock.Protocol
+			arg.Protocol = sock.Tuple.Protocol
 			arg.Mark = sock.Mark
 			arg.Priority = sock.Priority
-			arg.Saddr = network.GetIP(sock.Daddr).String()
-			arg.Daddr = network.GetIP(sock.Saddr).String()
-			arg.Sport = uint32(sock.Sport)
-			arg.Dport = uint32(sock.Dport)
+			arg.Saddr = network.GetIP(sock.Tuple.Daddr).String()
+			arg.Daddr = network.GetIP(sock.Tuple.Saddr).String()
+			arg.Sport = uint32(sock.Tuple.Sport)
+			arg.Dport = uint32(sock.Tuple.Dport)
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericSizeType, gt.GenericU64Type:
 			var output uint64

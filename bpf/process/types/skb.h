@@ -4,16 +4,14 @@
 #ifndef __SKB_H__
 #define __SKB_H__
 
+#include "tuple.h"
+
 struct skb_type {
+	struct tuple_type tuple;
 	__u32 hash;
 	__u32 len;
 	__u32 priority;
 	__u32 mark;
-	__u32 saddr;
-	__u32 daddr;
-	__u32 sport;
-	__u32 dport;
-	__u32 proto;
 	__u32 secpath_len;
 	__u32 secpath_olen;
 };
@@ -41,29 +39,29 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 		u8 v4_prot;
 		probe_read(&v4_prot, 1, _(&ip->protocol));
 
-		event->proto = v4_prot;
+		event->tuple.protocol = v4_prot;
 
-		probe_read(&event->saddr, sizeof(event->saddr), _(&ip->saddr));
-		probe_read(&event->daddr, sizeof(event->daddr), _(&ip->daddr));
+		probe_read(&event->tuple.saddr, sizeof(event->tuple.saddr), _(&ip->saddr));
+		probe_read(&event->tuple.daddr, sizeof(event->tuple.daddr), _(&ip->daddr));
 		typeof(skb->transport_header) l4_off;
 		probe_read(&l4_off, sizeof(l4_off), _(&skb->transport_header));
 		if (v4_prot == IPPROTO_TCP) { // TCP
 			struct tcphdr *tcp =
 				(struct tcphdr *)(skb_head + l4_off);
-			probe_read(&event->sport, sizeof(event->sport),
+			probe_read(&event->tuple.sport, sizeof(event->tuple.sport),
 				   _(&tcp->source));
-			probe_read(&event->dport, sizeof(event->dport),
+			probe_read(&event->tuple.dport, sizeof(event->tuple.dport),
 				   _(&tcp->dest));
 		} else if (v4_prot == IPPROTO_UDP) { // UDP
 			struct udphdr *udp =
 				(struct udphdr *)(skb_head + l4_off);
-			probe_read(&event->sport, sizeof(event->sport),
+			probe_read(&event->tuple.sport, sizeof(event->tuple.sport),
 				   _(&udp->source));
-			probe_read(&event->dport, sizeof(event->dport),
+			probe_read(&event->tuple.dport, sizeof(event->tuple.dport),
 				   _(&udp->dest));
 		}
-		event->sport = bpf_ntohs(event->sport);
-		event->dport = bpf_ntohs(event->dport);
+		event->tuple.sport = bpf_ntohs(event->tuple.sport);
+		event->tuple.dport = bpf_ntohs(event->tuple.dport);
 
 		if (bpf_core_field_exists(skb->active_extensions)) {
 			struct sec_path *sp;
