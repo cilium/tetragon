@@ -33,11 +33,13 @@ read_args(void *ctx, struct msg_execve_event *event)
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_process *p = &event->process;
 	unsigned long start_stack, end_stack;
-	__u32 zero = 0, total = 0, size;
+	unsigned long free_size, args_size;
+	__u32 zero = 0, size = 0;
 	struct execve_heap *heap;
 	struct mm_struct *mm;
 	char *args;
 	long off;
+	int err;
 
 	probe_read(&mm, sizeof(mm), _(&task->mm));
 	if (!mm)
@@ -62,20 +64,36 @@ read_args(void *ctx, struct msg_execve_event *event)
 
 	start_stack += off;
 
-	args = (char *)p + p->size;
+	size = p->size & 0x1ff /* 2*MAXARGLENGTH - 1*/;
+	args = (char *)p + size;
 
 	if (args >= (char *)&event->process + BUFFER)
 		return 0;
 
-	size = data_event_bytes(ctx, (struct data_event_desc *)args,
-				(unsigned long)start_stack,
-				end_stack - start_stack,
-				(struct bpf_map_def *)&data_heap);
-	if (size < 0)
-		return 0;
-	p->flags |= EVENT_DATA_ARGS;
-	total += size;
-	return total;
+	/* Read arguments either to rest of the space in the event,
+	 * or use data event to send it separatelly.
+	 */
+	free_size = (char *)&event->process + BUFFER - args;
+	args_size = end_stack - start_stack;
+
+	if (args_size < BUFFER && args_size < free_size) {
+		size = args_size & 0x3ff /* BUFFER - 1 */;
+		err = probe_read(args, size, (char *)start_stack);
+		if (err < 0) {
+			p->flags |= EVENT_ERROR_ARGS;
+			size = 0;
+		}
+	} else {
+		size = data_event_bytes(ctx, (struct data_event_desc *)args,
+					(unsigned long)start_stack,
+					args_size,
+					(struct bpf_map_def *)&data_heap);
+		if (size > 0)
+			p->flags |= EVENT_DATA_ARGS;
+		else
+			size = 0;
+	}
+	return size;
 }
 
 static inline __attribute__((always_inline)) uint32_t
