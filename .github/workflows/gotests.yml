@@ -17,7 +17,7 @@ jobs:
         os: [ ubuntu-20.04 ]
     steps:
     - name: Install Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
       with:
         go-version: '1.18.3'
 
