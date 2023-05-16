@@ -27,6 +27,57 @@ struct {
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
 
+static inline __attribute__((always_inline)) __u32
+read_args(void *ctx, struct msg_execve_event *event)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct msg_process *p = &event->process;
+	unsigned long start_stack, end_stack;
+	__u32 zero = 0, total = 0, size;
+	struct execve_heap *heap;
+	struct mm_struct *mm;
+	char *args;
+	long off;
+
+	probe_read(&mm, sizeof(mm), _(&task->mm));
+	if (!mm)
+		return 0;
+
+	probe_read(&start_stack, sizeof(start_stack),
+		   _(&mm->arg_start));
+	probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
+
+	if (!start_stack || !end_stack)
+		return 0;
+
+	/* skip first argument - binary path */
+	heap = map_lookup_elem(&execve_heap, &zero);
+	if (!heap)
+		return 0;
+
+	/* poor man's strlen */
+	off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
+	if (off < 0)
+		return 0;
+
+	start_stack += off;
+
+	args = (char *)p + p->size;
+
+	if (args >= (char *)&event->process + BUFFER)
+		return 0;
+
+	size = data_event_bytes(ctx, (struct data_event_desc *)args,
+				(unsigned long)start_stack,
+				end_stack - start_stack,
+				(struct bpf_map_def *)&data_heap);
+	if (size < 0)
+		return 0;
+	p->flags |= EVENT_DATA_ARGS;
+	total += size;
+	return total;
+}
+
 /* event_args_builder: copies args into char *buffer
  * event: pointer to event storage
  * pargs: kernel address of args structure
@@ -39,9 +90,7 @@ struct {
 static inline __attribute__((always_inline)) void
 event_args_builder(void *ctx, struct msg_execve_event *event)
 {
-	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_process *p;
-	struct mm_struct *mm;
 
 	/* Calculate absolute offset into buffer */
 	p = &event->process;
@@ -49,47 +98,7 @@ event_args_builder(void *ctx, struct msg_execve_event *event)
 
 	/* We use flags in asm to indicate overflow */
 	compiler_barrier();
-	probe_read(&mm, sizeof(mm), _(&task->mm));
-	if (mm) {
-		unsigned long start_stack, end_stack;
-		struct execve_heap *heap;
-		__u32 zero = 0, size;
-		char *args;
-		long off;
-
-		probe_read(&start_stack, sizeof(start_stack),
-			   _(&mm->arg_start));
-		probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
-
-		if (!start_stack || !end_stack)
-			return;
-
-		/* skip first argument - binary path */
-		heap = map_lookup_elem(&execve_heap, &zero);
-		if (!heap)
-			return;
-
-		/* poor man's strlen */
-		off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
-		if (off < 0)
-			return;
-
-		start_stack += off;
-
-		args = (char *)p + p->size;
-
-		if (args >= (char *)&event->process + BUFFER)
-			return;
-
-		size = data_event_bytes(ctx, (struct data_event_desc *)args,
-					(unsigned long)start_stack,
-					end_stack - start_stack,
-					(struct bpf_map_def *)&data_heap);
-		if (size < 0)
-			return;
-		p->size += size;
-		p->flags |= EVENT_DATA_ARGS;
-	}
+	p->size += read_args(ctx, event);
 }
 
 static inline __attribute__((always_inline)) uint32_t
