@@ -6,8 +6,8 @@ description: "Discover and experiment with Tetragon on your local Linux host"
 
 {{< caution >}}
 This guide is not a tutorial on how to deploy Tetragon standalone (i.e. without
-Kubernetes), you can see the [container deployment](/docs/getting-started/deployment/container)
-and [package deployment](/docs/getting-started/deployment/package) guides for
+Kubernetes), you can see the [container deployment]({{< ref "/docs/getting-started/deployment/container" >}})
+and [package deployment]({{< ref "/docs/getting-started/deployment/package" >}}) guides for
 that. This is just a walkthrough to try and experiment Tetragon for the first
 time.
 {{< /caution >}}
