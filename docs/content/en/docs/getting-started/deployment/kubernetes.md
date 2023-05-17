@@ -1,5 +1,7 @@
 ---
 title: "Deploy on Kubernetes"
+linkTitle: "Kubernetes"
+icon: "tutorials"
 weight: 1
 description: "Deploy and manage Tetragon on Kubernetes"
 ---
@@ -14,10 +16,10 @@ To install the latest release of the Tetragon helm chart, use the following
 command.
 
 {{< note >}}
-You can find the chart and its documentation with all availabe values for
+You can find the chart and its documentation with all available values for
 configuration in [install/kubernetes](https://github.com/cilium/tetragon/tree/main/install/kubernetes)
-in the Tetragon repository. You can use any of the value and override them with
-`--set KEY1=VALUE1,KEY2=VALUE2`.
+in the Tetragon repository. You can use any of the values and override them
+with `--set KEY1=VALUE1,KEY2=VALUE2`.
 {{< /note >}}
 
 ```shell
@@ -33,6 +35,12 @@ kubectl rollout status -n kube-system ds/tetragon -w
 
 {{< note >}}
 By default, pods in the kube-system namespace are filtered-out.
+{{< /note >}}
+
+{{< note >}}
+If Tetragon does not to start due to BTF issues, please refer to the
+[corresponding question in the FAQ]({{< ref "/docs/faq/#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}})
+for details and solutions.
 {{< /note >}}
 
 ## Configuration

@@ -112,7 +112,7 @@ make tarball
 ```
 
 The produced tarball will be inside directory `./build/`, then follow the
-[Package deployment guide](/docs/getting-started/deployment/package/) to
+[package deployment guide]({{< ref "/docs/getting-started/deployment/package" >}}) to
 install it as a systemd service.
 
 ### Running Tetragon in kind
