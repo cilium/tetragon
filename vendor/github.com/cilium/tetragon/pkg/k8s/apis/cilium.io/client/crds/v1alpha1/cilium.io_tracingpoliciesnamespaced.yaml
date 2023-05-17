@@ -252,6 +252,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -461,6 +466,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -689,6 +699,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -898,6 +913,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1004,6 +1024,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1213,6 +1238,11 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - SPort
+                                  - DPort
+                                  - SAddr
+                                  - DAddr
+                                  - Protocol
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

@@ -178,6 +178,9 @@ func TestParseMatchArg(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -208,6 +211,54 @@ func TestParseMatchArg(t *testing.T) {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, k.e[nextArg:k.off], arg2)
 	}
 
+	nextArg = k.off
+	arg3 := &v1alpha1.ArgSelector{Index: 5, Operator: "SAddr", Values: []string{"127.0.0.1", "10.1.2.3/24", "192.168.254.254/20"}}
+	expected3 := []byte{
+		0x05, 0x00, 0x00, 0x00, // Index == 5
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		32, 0x00, 0x00, 0x00, // length == 32
+		0x07, 0x00, 0x00, 0x00, // value type == sock
+		127, 0, 0, 1, // IP address = 127.0.0.1
+		0xff, 0xff, 0xff, 0xff, // mask len = 32
+		10, 1, 2, 0, // IP address = 10.1.2.0 masked from 10.1.2.3
+		0xff, 0xff, 0xff, 0x00, // mask len = 24
+		192, 168, 240, 0, // IP address = 192.168.240.0 masked from 192.168.254.254
+		0xff, 0xff, 0xf0, 0x00, // mask len = 20
+	}
+	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, k.e[nextArg:k.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, k.e[nextArg:k.off], arg3)
+	}
+
+	nextArg = k.off
+	arg4 := &v1alpha1.ArgSelector{Index: 6, Operator: "SPort", Values: []string{"8081", "25", "31337"}}
+	expected4 := []byte{
+		0x06, 0x00, 0x00, 0x00, // Index == 6
+		15, 0x00, 0x00, 0x00, // operator == sport
+		20, 0x00, 0x00, 0x00, // length == 20
+		0x05, 0x00, 0x00, 0x00, // value type == skb
+		0x91, 0x1f, 0, 0, // port = 8081
+		25, 0, 0, 0, // port = 25
+		0x69, 0x7a, 0, 0, // port = 31337
+	}
+	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, k.e[nextArg:k.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, k.e[nextArg:k.off], arg4)
+	}
+
+	nextArg = k.off
+	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
+	expected5 := []byte{
+		0x07, 0x00, 0x00, 0x00, // Index == 6
+		17, 0x00, 0x00, 0x00, // operator == sport
+		20, 0x00, 0x00, 0x00, // length == 20
+		0x05, 0x00, 0x00, 0x00, // value type == skb
+		3, 0x00, 0x00, 0x00, // protocol = 3
+		17, 0x00, 0x00, 0x00, // protocol = 17 (UDP)
+		6, 0x00, 0x00, 0x00, // protocol = 6 (TCP)
+	}
+	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, k.e[nextArg:k.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, k.e[nextArg:k.off], arg5)
+	}
+
 	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
 		length := []byte{
 			74, 0x00, 0x00, 0x00,
@@ -219,9 +270,9 @@ func TestParseMatchArg(t *testing.T) {
 		}
 		expected3 := append(length, expected1[:]...)
 		expected3 = append(expected3, expected2[:]...)
-		arg3 := []v1alpha1.ArgSelector{*arg1, *arg2}
+		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := &KernelSelectorState{off: 0}
-		if err := ParseMatchArgs(ks, arg3, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
+		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:k.off], arg3)
 		}
 	}

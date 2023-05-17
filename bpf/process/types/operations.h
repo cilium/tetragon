@@ -21,6 +21,12 @@ enum {
 	op_filter_inmap = 10,
 	op_filter_notinmap = 11,
 	op_filter_mask = 12,
+	// socket ops
+	op_filter_saddr = 13,
+	op_filter_daddr = 14,
+	op_filter_sport = 15,
+	op_filter_dport = 16,
+	op_filter_protocol = 17,
 };
 
 #endif // __OPERATIONS_H__

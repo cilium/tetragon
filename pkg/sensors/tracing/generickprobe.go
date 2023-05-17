@@ -1063,8 +1063,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Protocol = sock.Tuple.Protocol
 			arg.Mark = sock.Mark
 			arg.Priority = sock.Priority
-			arg.Saddr = network.GetIP(sock.Tuple.Daddr).String()
-			arg.Daddr = network.GetIP(sock.Tuple.Saddr).String()
+			arg.Saddr = network.GetIP(sock.Tuple.Saddr).String()
+			arg.Daddr = network.GetIP(sock.Tuple.Daddr).String()
 			arg.Sport = uint32(sock.Tuple.Sport)
 			arg.Dport = uint32(sock.Tuple.Dport)
 			unix.Args = append(unix.Args, arg)

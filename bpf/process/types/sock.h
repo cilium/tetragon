@@ -41,8 +41,8 @@ set_event_from_sock(struct sk_type *event, struct sock *sk)
 	probe_read(&event->priority, sizeof(event->priority),
 		   _(&sk->sk_priority));
 
-	probe_read(&event->tuple.saddr, sizeof(event->tuple.saddr), _(&common->skc_daddr));
-	probe_read(&event->tuple.daddr, sizeof(event->tuple.daddr), _(&common->skc_rcv_saddr));
+	probe_read(&event->tuple.saddr, sizeof(event->tuple.saddr), _(&common->skc_rcv_saddr));
+	probe_read(&event->tuple.daddr, sizeof(event->tuple.daddr), _(&common->skc_daddr));
 	probe_read(&event->tuple.sport, sizeof(event->tuple.sport), _(&common->skc_num));
 	probe_read(&event->tuple.dport, sizeof(event->tuple.dport), _(&common->skc_dport));
 	event->tuple.dport = bpf_ntohs(event->tuple.dport);
