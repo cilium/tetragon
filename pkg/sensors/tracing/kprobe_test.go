@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -3395,4 +3396,197 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 	testMaxData(t, data, checker, writeHook, fd2)
+}
+
+func miniTcpNopServer(c chan<- bool) {
+	conn, err := net.Listen("tcp4", "127.0.0.1:9919")
+	if err != nil {
+		panic(err)
+	}
+	c <- true
+	ses, _ := conn.Accept()
+	ses.Close()
+	conn.Close()
+}
+
+func TestKprobeSock(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tcp-connect"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "127.0.0.1"
+      - index: 0
+        operator: "DPort"
+        values:
+        - "9919"
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+`
+	hookPart := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tcp-connect"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DPort"
+        values:
+        - "9919"
+`
+
+	if kernels.EnableLargeProgs() {
+		createCrdFile(t, hookFull)
+	} else {
+		createCrdFile(t, hookPart)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	tcpReady := make(chan bool)
+	go miniTcpNopServer(tcpReady)
+	<-tcpReady
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
+	assert.NoError(t, err)
+	_, err = net.DialTCP("tcp", nil, addr)
+	assert.NoError(t, err)
+	//conn.Close()
+
+	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
+		WithFunctionName(sm.Full("tcp_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockArg(ec.NewKprobeSockChecker().
+					WithDaddr(sm.Full("127.0.0.1")).
+					WithDport(9919).
+					WithProtocol(sm.Full("IPPROTO_TCP")),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeSkb(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "__cgroup_bpf_run_filter_skb"
+    syscall: false
+    args:
+    - index: 1
+      type: "skb"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "DAddr"
+        values:
+        - "127.0.0.1"
+      - index: 1
+        operator: "DPort"
+        values:
+        - "53"
+      - index: 1
+        operator: "Protocol"
+        values:
+        - "IPPROTO_UDP"
+`
+	hookPart := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "__cgroup_bpf_run_filter_skb"
+    syscall: false
+    args:
+    - index: 1
+      type: "skb"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "DPort"
+        values:
+        - "53"
+`
+
+	if kernels.EnableLargeProgs() {
+		createCrdFile(t, hookFull)
+	} else {
+		createCrdFile(t, hookPart)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	res := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			dial := net.Dialer{}
+			return dial.Dial("udp", "127.0.0.1:53")
+		},
+	}
+	res.LookupIP(context.Background(), "ip4", "ebpf.io")
+
+	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
+		WithFunctionName(sm.Full("__cgroup_bpf_run_filter_skb")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSkbArg(ec.NewKprobeSkbChecker().
+					WithDaddr(sm.Full("127.0.0.1")).
+					WithDport(53).
+					WithProtocol(sm.Full("IPPROTO_UDP")),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
