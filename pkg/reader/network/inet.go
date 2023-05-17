@@ -74,3 +74,12 @@ func InetProtocol(proto uint16) string {
 	}
 	return fmt.Sprintf("%d", proto)
 }
+
+func InetProtocolNumber(proto string) (uint16, error) {
+	for protonum, protostr := range inetProtocol {
+		if proto == protostr {
+			return protonum, nil
+		}
+	}
+	return 0, fmt.Errorf("protocol string not known")
+}

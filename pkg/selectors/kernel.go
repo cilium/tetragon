@@ -6,6 +6,7 @@ package selectors
 import (
 	"encoding/binary"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/network"
 )
 
 const (
@@ -204,6 +206,13 @@ const (
 	SelectorNotInMap = 11
 
 	SelectorOpMASK = 12
+
+	// socket ops
+	SelectorOpSaddr    = 13
+	SelectorOpDaddr    = 14
+	SelectorOpSport    = 15
+	SelectorOpDport    = 16
+	SelectorOpProtocol = 17
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -230,6 +239,16 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorNotInMap, nil
 	case "mask", "Mask":
 		return SelectorOpMASK, nil
+	case "saddr", "Saddr", "SAddr":
+		return SelectorOpSaddr, nil
+	case "daddr", "Daddr", "DAddr":
+		return SelectorOpDaddr, nil
+	case "sport", "Sport", "SPort":
+		return SelectorOpSport, nil
+	case "dport", "Dport", "DPort":
+		return SelectorOpDport, nil
+	case "protocol", "Protocol":
+		return SelectorOpProtocol, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -346,7 +365,27 @@ func getBase(v string) int {
 	return 10
 }
 
-func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error {
+func parseAddr(v string) (uint32, uint32, error) {
+	ipaddr := net.ParseIP(v)
+	if ipaddr != nil {
+		ipaddr = ipaddr.To4()
+		if ipaddr == nil {
+			return 0, 0, fmt.Errorf("IP address is not IPv4")
+		}
+		return binary.LittleEndian.Uint32(ipaddr), 0xffffffff, nil
+	}
+	_, ipnet, err := net.ParseCIDR(v)
+	if err != nil {
+		return 0, 0, err
+	}
+	ipaddr = ipnet.IP.To4()
+	if ipaddr == nil {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	}
+	return binary.LittleEndian.Uint32(ipaddr), binary.LittleEndian.Uint32(ipnet.Mask), nil
+}
+
+func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
@@ -382,7 +421,33 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty uint32) error 
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint64(k, uint64(i))
-		case argTypeSock, argTypeSkb, argTypeCharIovec:
+		case argTypeSock, argTypeSkb:
+			switch op {
+			case SelectorOpSport, SelectorOpDport:
+				i, err := strconv.ParseUint(v, base, 32)
+				if err != nil {
+					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+				}
+				WriteSelectorUint32(k, uint32(i))
+			case SelectorOpSaddr, SelectorOpDaddr:
+				addr, mask, err := parseAddr(v)
+				if err != nil {
+					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+				}
+				WriteSelectorUint32(k, addr)
+				WriteSelectorUint32(k, mask)
+			case SelectorOpProtocol:
+				protocol, err := network.InetProtocolNumber(v)
+				if err != nil {
+					protocol32, err := strconv.ParseUint(v, base, 16)
+					if err != nil {
+						return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+					}
+					protocol = uint16(protocol32)
+				}
+				WriteSelectorUint32(k, uint32(protocol))
+			}
+		case argTypeCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
 	}
@@ -410,7 +475,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("writeMatchValuesInMap error: %w", err)
 		}
 	default:
-		err = writeMatchValues(k, arg.Values, ty)
+		err = writeMatchValues(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchValues error: %w", err)
 		}

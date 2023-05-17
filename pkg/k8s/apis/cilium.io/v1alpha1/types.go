@@ -250,7 +250,7 @@ type ArgSelector struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument to apply fhe filter to.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;Postfix;GreaterThan;LessThan;GT;LT
+	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;Postfix;GreaterThan;LessThan;GT;LT;SPort;DPort;SAddr;DAddr;Protocol
 	// Filter operation.
 	Operator string `json:"operator"`
 	// Value to compare the argument against.

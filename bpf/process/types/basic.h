@@ -697,6 +697,97 @@ filter_file_buf(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+struct ip_ver {
+	u8 ihl : 4;
+	u8 version : 4;
+};
+
+/* filter_inet: runs a comparison between the IPv4 addresses and ports in
+ * the sock or skb in the args aginst the filter parameters.
+ */
+static inline __attribute__((always_inline)) long
+filter_inet(struct selector_arg_filter *filter, char *args)
+{
+	__u32 *v = (__u32 *)&filter->value;
+	int i, j = 0;
+	__u32 addr = 0;
+	__u16 port = 0;
+	__u16 protocol = 0;
+	struct sk_type *sk = 0;
+	struct skb_type *skb = 0;
+	struct tuple_type *tuple = 0;
+
+	switch (filter->type) {
+	case sock_type:
+		sk = (struct sk_type *)args;
+		tuple = &sk->tuple;
+		break;
+	case skb_type:
+		skb = (struct skb_type *)args;
+		tuple = &skb->tuple;
+		break;
+	default:
+		return 0;
+	}
+
+	switch (filter->op) {
+	case op_filter_saddr:
+		addr = tuple->saddr;
+		break;
+	case op_filter_daddr:
+		addr = tuple->daddr;
+		break;
+	case op_filter_sport:
+		port = tuple->sport;
+		break;
+	case op_filter_dport:
+		port = tuple->dport;
+		break;
+	case op_filter_protocol:
+		protocol = tuple->protocol;
+		break;
+	default:
+		return 0;
+	}
+
+#pragma unroll
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		switch (filter->op) {
+		case op_filter_saddr:
+		case op_filter_daddr: {
+			__u32 cidraddr = v[i * 2];
+			__u32 cidrmask = v[i * 2 + 1];
+			__u32 maskedaddr = addr & cidrmask;
+
+			if (cidraddr == maskedaddr)
+				return 1;
+			// placed here to allow llvm unroll this loop
+			j += 8;
+			if (j + 8 >= filter->vallen)
+				return 0;
+		} break;
+		case op_filter_sport:
+		case op_filter_dport:
+			if (v[i] == port)
+				return 1;
+			// placed here to allow llvm unroll this loop
+			j += 4;
+			if (j + 4 >= filter->vallen)
+				return 0;
+			break;
+		case op_filter_protocol:
+			if (v[i] == protocol)
+				return 1;
+			// placed here to allow llvm unroll this loop
+			j += 4;
+			if (j + 4 >= filter->vallen)
+				return 0;
+			break;
+		}
+	}
+	return 0;
+}
+
 static inline __attribute__((always_inline)) long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
@@ -1174,6 +1265,9 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		case u32_ty:
 			pass &= filter_32ty(filter, args);
 			break;
+		case skb_type:
+		case sock_type:
+			pass &= filter_inet(filter, args);
 		default:
 			break;
 		}
