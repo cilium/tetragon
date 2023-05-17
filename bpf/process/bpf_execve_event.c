@@ -96,21 +96,17 @@ read_args(void *ctx, struct msg_execve_event *event)
 	return size;
 }
 
-static inline __attribute__((always_inline)) uint32_t
-event_filename_builder(void *ctx, struct msg_process *p, void *filename)
+static inline __attribute__((always_inline)) __u32
+read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
+	struct msg_process *p = &event->process;
 	struct execve_heap *heap;
-	int64_t size = 0;
+	__u32 size = 0;
 	__u32 flags = 0;
 	__u32 zero = 0;
 	uint32_t *value;
 	char *earg;
 
-	/* This is a bit parnoid but was previously having trouble on
-	 * 4.14 kernels tracking offset of curr through filename_builder
-	 * resulting in a a verifier error. We can optimize this a bit
-	 * later perhaps and push as an argument.
-	 */
 	earg = (void *)p + offsetof(struct msg_process, args);
 
 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
@@ -129,35 +125,35 @@ event_filename_builder(void *ctx, struct msg_process *p, void *filename)
 		}
 	}
 
-	p->size += size;
 	p->flags |= flags;
 	// skip binaries check for long (> 255) filenames for now
 	if (flags & EVENT_DATA_FILENAME)
-		return 0;
+		return size;
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
-		return 0;
+		return size;
 
 	memset(heap->pathname, 0, PATHNAME_SIZE);
+	size &= 0xff /* PATHNAME_SIZE - 1 */;
 	probe_read_str(heap->pathname, size, filename);
 	value = map_lookup_elem(&names_map, heap->pathname);
 	if (value)
-		return *value;
-	return 0;
+		event->binary = *value;
+	return size;
 }
 
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
+	char *filename = (char *)ctx + (ctx->filename & 0xFFFF);
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
 	bool walker = 0;
 	__u32 zero = 0;
 	__u64 pid;
-	unsigned short fileoff;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -195,9 +191,7 @@ event_execve(struct sched_execve_args *ctx)
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 
-	fileoff = ctx->filename & 0xFFFF;
-	event->binary = event_filename_builder(ctx, p, (char *)ctx + fileoff);
-
+	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 
 	compiler_barrier();
