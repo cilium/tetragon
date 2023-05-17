@@ -62,4 +62,4 @@ where the upper layer that is the user space layer may generate a low number
 of events, where the lower kernel layers could generate a high number of events.
 
 Depending on the use case, users should chose the right layer at which they want to
-monitor process credentials and apply the corresponding [Tracing Policies](/docs/reference/tracing-policy).
+monitor process credentials and apply the corresponding [Tracing Policies]({{< ref "/docs/concepts/tracing-policy" >}}).

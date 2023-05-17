@@ -1,8 +1,8 @@
 ---
 title: "Tracing Policy"
-weight: 1
 icon: "overview"
-description: "Reference for the TracingPolicy custom resource"
+weight: 3
+description: "Documentation for the TracingPolicy custom resource"
 ---
 
 `TracingPolicy` is a user-configurable Kubernetes custom resource (CR) that

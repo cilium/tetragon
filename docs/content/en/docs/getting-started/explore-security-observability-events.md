@@ -59,6 +59,3 @@ The `tetra` CLI is also available inside `tetragon` container.
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact
 ```
 
-### What's next
-
-- [Tetragon events](/docs/tetragon-events/): Learn about the detail of events.
