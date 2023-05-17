@@ -80,6 +80,6 @@ a chance to complete the syscall and potentially run additional syscalls.
 
 ## What's next?
 
-- [Getting Started](/docs/getting-started/): Get started with Tetragon.
-- [Tetragon events](/docs/tetragon-events/): Learn about Tetragon events.
+- [Getting Started]({{< ref "docs/getting-started" >}}) Get started with Tetragon.
+- [Concepts]({{< ref "docs/concepts" >}}): Learn about Tetragon events.
 

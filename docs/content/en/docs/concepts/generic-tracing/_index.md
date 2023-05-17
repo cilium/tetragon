@@ -22,5 +22,5 @@ can be passed via the `--tracing-policy` flag to the Tetragon binary or via the
 ## What's next
 
 For more information on TracingPolicy and how to write them, see the
-[reference documentation on TracingPolicy](/docs/reference/tracing-policy/).
+[documentation on TracingPolicy]({{< ref "docs/concepts/tracing-policy" >}}).
 
