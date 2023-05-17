@@ -100,11 +100,8 @@ static inline __attribute__((always_inline)) __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
-	struct execve_heap *heap;
 	__u32 size = 0;
 	__u32 flags = 0;
-	__u32 zero = 0;
-	uint32_t *value;
 	char *earg;
 
 	earg = (void *)p + offsetof(struct msg_process, args);
@@ -126,21 +123,29 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	}
 
 	p->flags |= flags;
+	return size;
+}
+
+static inline __attribute__((always_inline)) __u32
+binary_filter(void *ctx, struct msg_execve_event *event, void *filename)
+{
+	struct msg_process *p = &event->process;
+	struct execve_heap *heap;
+	uint32_t *value;
+	__u32 zero = 0;
+
 	// skip binaries check for long (> 255) filenames for now
-	if (flags & EVENT_DATA_FILENAME)
-		return size;
+	if (p->flags & EVENT_DATA_FILENAME)
+		return 0;
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
-		return size;
+		return 0;
 
 	memset(heap->pathname, 0, PATHNAME_SIZE);
-	size &= 0xff /* PATHNAME_SIZE - 1 */;
-	probe_read_str(heap->pathname, size, filename);
+	probe_read_str(heap->pathname, PATHNAME_SIZE, filename);
 	value = map_lookup_elem(&names_map, heap->pathname);
-	if (value)
-		event->binary = *value;
-	return size;
+	return value ? *value : 0;
 }
 
 __attribute__((section("tracepoint/sys_execve"), used)) int
@@ -193,6 +198,8 @@ event_execve(struct sched_execve_args *ctx)
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
+
+	event->binary = binary_filter(ctx, event, filename);
 
 	compiler_barrier();
 	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
