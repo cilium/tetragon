@@ -17,6 +17,7 @@ v1:
 		--user "$(shell id -u):$(shell id -g)" \
 		$(BUILDER_IMAGE) \
 		make -C /src -f Makefile.protoc
+	./export-docs.sh ../docs/content/en/docs/reference/grpc-api.md
 
 .PHONY: vendor
 vendor:
