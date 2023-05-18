@@ -171,15 +171,6 @@ event_execve(struct sched_execve_args *ctx)
 	if (!event)
 		return 0;
 
-	/*
-	 * The event we allocate above includes uninitiated data, which is
-	 * zeroed out or initialized in __event_get_task_info. If code
-	 * changes so that we return before __event_get_task_info is called,
-	 * ensure that:
-	 *  1. The necessary fields are zeroed out or properly initialized.
-	 *  2. Set the event->process.flags to properly reflect errors.
-	 */
-
 	pid = get_current_pid_tgid();
 	parent = event_find_parent();
 	if (parent) {
@@ -202,15 +193,23 @@ event_execve(struct sched_execve_args *ctx)
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
+	p->uid = get_current_uid_gid();
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
 
+	event->common.op = MSG_OP_EXECVE;
+	event->common.ktime = p->ktime;
+	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
+
 	event->binary = binary_filter(ctx, event, filename);
 
-	compiler_barrier();
-	__event_get_task_info(event, MSG_OP_EXECVE);
+	BPF_CORE_READ_INTO(&event->kube.net_ns, task, nsproxy, net_ns, ns.inum);
+
+	get_current_subj_caps(&event->caps, task);
+	get_namespaces(&event->ns, task);
+	__event_get_cgroup_info(task, event);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
