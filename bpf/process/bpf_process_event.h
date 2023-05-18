@@ -645,40 +645,31 @@ __event_get_cgroup_info(struct task_struct *task,
  * Edit: pahole has been fixed need to update toolchain.
  */
 static inline __attribute__((always_inline)) void
-__event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker,
-		      bool cwd_always)
+__event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker)
 {
 	struct msg_process *process;
 	struct task_struct *task;
+	__u32 offset;
+	int err;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
 	process = &msg->process;
 
-	if (cwd_always || process->flags & EVENT_NEEDS_CWD) {
-		__u32 offset;
-		int err;
-		bool prealloc = false;
-
-		/* In the cwd always case we have no reserved memory for
-		 * CWD so insert CWD directly after the curr->size. In
-		 * EVENT_NEEDS_CWD case this is a procFS entry that we
-		 * need to insert CWD for and memory has been reserved
-		 * already. Finally if ERROR_CWD flag is set skip there
-		 * is no point in continuing to bang on it if its not
-		 * working.
-		 */
-		offset = process->size;
-		if (!cwd_always) {
-			offset -= CWD_MAX + 1;
-			prealloc = true;
-		}
-		if (!(process->flags & EVENT_ERROR_CWD)) {
-			err = getcwd(process, offset, process->pid, prealloc);
-			if (!err)
-				process->flags = process->flags & ~(EVENT_NEEDS_CWD |
-								    EVENT_ERROR_CWD);
-		}
+	/* In the cwd always case we have no reserved memory for
+	 * CWD so insert CWD directly after the curr->size. In
+	 * EVENT_NEEDS_CWD case this is a procFS entry that we
+	 * need to insert CWD for and memory has been reserved
+	 * already. Finally if ERROR_CWD flag is set skip there
+	 * is no point in continuing to bang on it if its not
+	 * working.
+	 */
+	offset = process->size;
+	if (!(process->flags & EVENT_ERROR_CWD)) {
+		err = getcwd(process, offset, process->pid, false);
+		if (!err)
+			process->flags = process->flags & ~(EVENT_NEEDS_CWD |
+							    EVENT_ERROR_CWD);
 	}
 	if (process->flags & EVENT_NEEDS_AUID) {
 		__u32 flags = process->flags & ~EVENT_NEEDS_AUID;
