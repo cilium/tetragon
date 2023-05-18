@@ -202,7 +202,7 @@ event_execve(struct sched_execve_args *ctx)
 	event->binary = binary_filter(ctx, event, filename);
 
 	compiler_barrier();
-	__event_get_task_info(event, MSG_OP_EXECVE, walker, true);
+	__event_get_task_info(event, MSG_OP_EXECVE, walker);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
