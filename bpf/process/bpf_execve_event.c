@@ -127,6 +127,14 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 }
 
 static inline __attribute__((always_inline)) __u32
+read_cwd(void *ctx, struct msg_process *p)
+{
+	if (p->flags & EVENT_ERROR_CWD)
+		return 0;
+	return getcwd(p, p->size, p->pid);
+}
+
+static inline __attribute__((always_inline)) __u32
 binary_filter(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
@@ -197,6 +205,7 @@ event_execve(struct sched_execve_args *ctx)
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
+	p->size += read_cwd(ctx, p);
 
 	event->binary = binary_filter(ctx, event, filename);
 
