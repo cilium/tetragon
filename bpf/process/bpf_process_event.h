@@ -640,24 +640,11 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op)
 {
 	struct msg_process *process;
 	struct task_struct *task;
-	__u32 offset;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
 	process = &msg->process;
 
-	/* In the cwd always case we have no reserved memory for
-	 * CWD so insert CWD directly after the curr->size. In
-	 * EVENT_NEEDS_CWD case this is a procFS entry that we
-	 * need to insert CWD for and memory has been reserved
-	 * already. Finally if ERROR_CWD flag is set skip there
-	 * is no point in continuing to bang on it if its not
-	 * working.
-	 */
-	offset = process->size;
-	if (!(process->flags & EVENT_ERROR_CWD)) {
-		process->size += getcwd(process, offset, process->pid);
-	}
 	if (process->flags & EVENT_NEEDS_AUID) {
 		__u32 flags = process->flags & ~EVENT_NEEDS_AUID;
 
