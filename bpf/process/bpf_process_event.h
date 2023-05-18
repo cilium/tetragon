@@ -624,44 +624,4 @@ __event_get_cgroup_info(struct task_struct *task,
 	/* Get the cgroup name of this event. TODO: pass the tracking cgroup ID. */
 	__event_get_current_cgroup_name(cgrp, msg);
 }
-
-/* Pahole bug does not convert to btf correctly with arbitrary byte holes not
- * near a cacheline. To work-around this we can specify a define with the
- * CGROUPS_OFFSET we read directly out of debug_info section. Note other
- * reads, subsys[], cgroup are the first element of the structure so we can
- * "just" read those. Then cid, kn, and name all appear to be before byte
- * holes on kernels I checked so leave them alone for now.
- *
- * Todo, fix pahole to avoid doing extra steps to lookup offsets.
- * Edit: pahole has been fixed need to update toolchain.
- */
-static inline __attribute__((always_inline)) void
-__event_get_task_info(struct msg_execve_event *msg, __u8 op)
-{
-	struct msg_process *process;
-	struct task_struct *task;
-
-	msg->common.op = op;
-	msg->common.ktime = ktime_get_ns();
-	process = &msg->process;
-
-	if (process->flags & EVENT_NEEDS_AUID) {
-		__u32 flags = process->flags & ~EVENT_NEEDS_AUID;
-
-		process->auid = get_auid();
-		process->flags = flags;
-	}
-	msg->common.size =
-		offsetof(struct msg_execve_event, process) + process->size;
-	process->uid = get_current_uid_gid();
-
-	task = (struct task_struct *)get_current_task();
-	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
-
-	get_current_subj_caps(&msg->caps, task);
-	get_namespaces(&(msg->ns), task);
-
-	/* Last operation: gather current task cgroup information */
-	__event_get_cgroup_info(task, msg);
-}
 #endif
