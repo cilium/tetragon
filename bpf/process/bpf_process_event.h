@@ -365,10 +365,10 @@ d_path_local(const struct path *path, int *buflen, int *error)
 }
 
 static inline __attribute__((always_inline)) int64_t
-getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
+getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 {
 	struct task_struct *task = get_task_from_pid(proc_pid);
-	__u32 orig_size = curr->size, orig_offset = offset;
+	__u32 orig_offset = offset;
 	struct fs_struct *fs;
 	int flags = 0, size = 0;
 	char *buffer;
@@ -397,13 +397,6 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid, bool prealloc)
 		curr->flags |= EVENT_ROOT_CWD;
 	if (flags & UNRESOLVED_PATH_COMPONENTS)
 		curr->flags |= EVENT_ERROR_PATH_COMPONENTS;
-
-	/* If the size was preallocated from user space side (ProcFS entry)
-	 * then we need to keep the same size so we can find parent/child
-	 * entries.
-	 */
-	if (prealloc)
-		curr->size = orig_size;
 	return 0;
 }
 
@@ -666,7 +659,7 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker)
 	 */
 	offset = process->size;
 	if (!(process->flags & EVENT_ERROR_CWD)) {
-		err = getcwd(process, offset, process->pid, false);
+		err = getcwd(process, offset, process->pid);
 		if (!err)
 			process->flags = process->flags & ~(EVENT_NEEDS_CWD |
 							    EVENT_ERROR_CWD);
