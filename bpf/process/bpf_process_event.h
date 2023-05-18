@@ -364,13 +364,12 @@ d_path_local(const struct path *path, int *buflen, int *error)
 	return buffer;
 }
 
-static inline __attribute__((always_inline)) int64_t
+static inline __attribute__((always_inline)) __u32
 getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 {
 	struct task_struct *task = get_task_from_pid(proc_pid);
-	__u32 orig_offset = offset;
 	struct fs_struct *fs;
-	int flags = 0, size = 0;
+	int flags = 0, size;
 	char *buffer;
 
 	probe_read(&fs, sizeof(fs), _(&task->fs));
@@ -389,15 +388,14 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 		     :);
 	probe_read((char *)curr + offset, size, buffer);
 
-	offset += size;
-	curr->size = offset;
 	// Unfortunate special case for '/' where nothing was added we need
 	// to truncate with '\n' for parser.
-	if (curr->size == orig_offset)
+	if (size == 0)
 		curr->flags |= EVENT_ROOT_CWD;
 	if (flags & UNRESOLVED_PATH_COMPONENTS)
 		curr->flags |= EVENT_ERROR_PATH_COMPONENTS;
-	return 0;
+	curr->flags = curr->flags & ~(EVENT_NEEDS_CWD | EVENT_ERROR_CWD);
+	return (__u32)size;
 }
 
 static inline __attribute__((always_inline)) void
@@ -643,7 +641,6 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op)
 	struct msg_process *process;
 	struct task_struct *task;
 	__u32 offset;
-	int err;
 
 	msg->common.op = op;
 	msg->common.ktime = ktime_get_ns();
@@ -659,10 +656,7 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op)
 	 */
 	offset = process->size;
 	if (!(process->flags & EVENT_ERROR_CWD)) {
-		err = getcwd(process, offset, process->pid);
-		if (!err)
-			process->flags = process->flags & ~(EVENT_NEEDS_CWD |
-							    EVENT_ERROR_CWD);
+		process->size += getcwd(process, offset, process->pid);
 	}
 	if (process->flags & EVENT_NEEDS_AUID) {
 		__u32 flags = process->flags & ~EVENT_NEEDS_AUID;
