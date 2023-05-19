@@ -233,10 +233,8 @@ func TestEventExecveLongPath(t *testing.T) {
 		}
 	})
 
-	// and copy nop binary into the testBin
-	fmt.Printf("Copy: /usr/bin/cp -f " + testNop + " " + testBin + "\n")
-
-	if err := exec.Command("/usr/bin/cp", "-f", testNop, testBin).Run(); err != nil {
+	// and link nop binary into the testBin
+	if err := testutils.CopyFile(testBin, testNop, 0755); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
@@ -364,10 +362,8 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 		}
 	})
 
-	// and copy nop binary into the testBin
-	fmt.Printf("Copy: /usr/bin/cp -f " + testNop + " " + testBin + "\n")
-
-	if err := exec.Command("/usr/bin/cp", "-f", testNop, testBin).Run(); err != nil {
+	// and link nop binary into the testBin
+	if err := testutils.CopyFile(testBin, testNop, 0755); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
