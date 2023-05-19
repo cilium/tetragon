@@ -54,8 +54,6 @@ func TestExit(t *testing.T) {
 }
 
 func TestExitLeader(t *testing.T) {
-	t.Skip("due to github.com/cilium/tetragon/pull/987")
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -132,8 +130,6 @@ func TestExitLeader(t *testing.T) {
 //
 // In our test we check that the parent of the /bin/echo command is the exit-tester program.
 func TestExitZombie(t *testing.T) {
-	t.Skip("due to github.com/cilium/tetragon/pull/987")
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
