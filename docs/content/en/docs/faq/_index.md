@@ -5,24 +5,24 @@ icon: "faq"
 description: "List of frequently asked questions"
 ---
 
-#### Can I install and use Tetragon in standalone mode (outside of k8s)?
+### Can I install and use Tetragon in standalone mode (outside of k8s)?
 
 Yes! You can run `make` to generate standalone binaries and run them directly.
 Make sure to take a look at the [Development Setup](/docs/contribution-guide/development-setup/)
 guide for the build requirements. Then use `sudo ./tetragon --bpf-lib bpf/objs`
 to run Tetragon.
 
-#### CI is complaining about Go module vendoring, what do I do?
+### CI is complaining about Go module vendoring, what do I do?
 
 You can run `make vendor` then add and commit your changes.
 
-#### CI is complaining about a missing "signed-off-by" line. What do I do?
+### CI is complaining about a missing "signed-off-by" line. What do I do?
 
 You need to add a signed-off-by line to your commit messages. The easiest way
 to do this is with `git fetch origin/main && git rebase --signoff origin/main`.
 Then push your changes.
 
-#### Can I run Tetragon on Mac computers?
+### Can I run Tetragon on Mac computers?
 
 Yes! You can run Tetragon locally by running a Linux virtual machine on your
 Mac.
@@ -53,7 +53,7 @@ and [linuxkit](https://github.com/linuxkit/linuxkit/issues/3755), the project
 used to build the kernel used by Docker Desktop. If you would like Docker
 Desktop to support BTF, feel free to support those issues.
 
-#### Go compiler is complaining about missing symbols in `pkg/bpf`
+### Go compiler is complaining about missing symbols in `pkg/bpf`
 
 You might end up with the output of the Go compiler looking similar to this:
 ```
@@ -91,7 +91,7 @@ If you encounter the issue under Linux:
   persistently change the value of the CC go environment variable you can use
   `go env -w "CC=clang"`.
 
-#### Tetragon failed to start complaining about a missing BTF file
+### Tetragon failed to start complaining about a missing BTF file
 
 You might have encountered the following issues:
 ```
