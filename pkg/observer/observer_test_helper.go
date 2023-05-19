@@ -31,7 +31,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/exporter"
-	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -66,6 +65,8 @@ type testObserverOptions struct {
 type testExporterOptions struct {
 	watcher     watcher.K8sResourceWatcher
 	ciliumState *hubbleCilium.State
+	allowList   []*tetragon.Filter
+	denyList    []*tetragon.Filter
 }
 
 type TestOptions struct {
@@ -74,6 +75,27 @@ type TestOptions struct {
 }
 
 type TestOption func(*TestOptions)
+
+// Filter for the gotest process and its children in the export
+func WithMyPid() TestOption {
+	return func(o *TestOptions) {
+		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
+			PidSet: []uint32{GetMyPid()},
+		})
+	}
+}
+
+func WithAllowList(allowList *tetragon.Filter) TestOption {
+	return func(o *TestOptions) {
+		o.exporter.allowList = append(o.exporter.allowList, allowList)
+	}
+}
+
+func WithDenyList(denyList *tetragon.Filter) TestOption {
+	return func(o *TestOptions) {
+		o.exporter.denyList = append(o.exporter.denyList, denyList)
+	}
+}
 
 func withPretty() TestOption {
 	return func(o *TestOptions) {
@@ -184,6 +206,8 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 		exporter: testExporterOptions{
 			watcher:     watcher.NewFakeK8sWatcher(nil),
 			ciliumState: ciliumState,
+			allowList:   []*tetragon.Filter{},
+			denyList:    []*tetragon.Filter{},
 		},
 	}
 	// apply user options
@@ -297,24 +321,41 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 	return getDefaultObserver(t, ctx, base, opts...)
 }
 
-func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string) (*Observer, error) {
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*Observer, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, withPretty())
+	opts = append(opts, WithLib(lib))
+
+	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string) (*Observer, error) {
+func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*Observer, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, withPretty())
+	opts = append(opts, WithLib(lib))
+
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string) ([]*sensors.Sensor, error) {
+func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, withPretty())
+	opts = append(opts, WithLib(lib))
+
 	b := base.GetInitialSensor()
-	_, sens, err := getDefaultObserverSensors(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib))
+	_, sens, err := getDefaultObserverSensors(t, ctx, b, opts...)
 	return sens, err
 }
 
-func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool) (*Observer, error) {
+func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*Observer, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, withPretty())
+	opts = append(opts, WithLib(lib))
+	opts = append(opts, withNotestfail(fail))
+
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(file), withPretty(), WithLib(lib), withNotestfail(fail))
+	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
 func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testExporterOptions, oo *testObserverOptions) error {
@@ -370,15 +411,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	}
 	encoder := json.NewEncoder(outF)
 
-	// temporarily disable the allow list while we fixup TLS events
-	// to include parent reference as well
-	f := "" //fmt.Sprintf(`{"pid_set":[%d]}`, GetMyPid())
-	allowList, err := filters.ParseFilterList(f)
-	if err != nil {
-		t.Fatalf("observerLoadExporter: %s\n", err)
-	}
-	denyList, _ := filters.ParseFilterList("")
-	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList}
+	req := tetragon.GetEventsRequest{AllowList: opts.allowList, DenyList: opts.denyList}
 	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
 	exporter.Start()
@@ -546,14 +579,23 @@ func WriteConfigFile(fileName, config string) error {
 	return out.Sync()
 }
 
-func GetDefaultObserver(t *testing.T, ctx context.Context, lib string) (*Observer, error) {
+func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, withPretty(), WithLib(lib))
+
+	opts = append(opts, withPretty())
+	opts = append(opts, WithLib(lib))
+
+	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithLib(t *testing.T, ctx context.Context, config, lib string) (*Observer, error) {
+func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, WithConfig(config), WithLib(lib))
+
+	opts = append(opts, withPretty())
+	opts = append(opts, WithConfig(config))
+	opts = append(opts, WithLib(lib))
+
+	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
 func GetMyPid() uint32 {
