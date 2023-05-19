@@ -50,33 +50,35 @@ referred to as aarch64 or Apple Silicon for Mac computers.
 {{< tabpane persistLang=false >}}
 
 {{< tab header="Linux amd64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-linux-amd64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-linux-amd64.tar.gz | tar -xz
+sudo mv tetra /usr/local/bin
 {{< /tab >}}
 
 {{< tab header="Linux arm64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-linux-arm64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-linux-arm64.tar.gz | tar -xz
+sudo mv tetra /usr/local/bin
 {{< /tab >}}
 
 {{< tab header="macOS amd64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-darwin-amd64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-darwin-amd64.tar.gz | tar -xz
+sudo mv tetra /usr/local/bin
 {{< /tab >}}
 
 {{< tab header="macOS arm64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-darwin-arm64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-darwin-arm64.tar.gz | tar -xz
+sudo mv tetra /usr/local/bin
 {{< /tab >}}
 
 {{< tab header="Windows amd64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-amd64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-amd64.tar.gz
+tar -xz tetra-windows-amd64.tar.gz
+# move the binary in a directory in your PATH
 {{< /tab >}}
 
 {{< tab header="Windows arm64" lang="shell" >}}
-curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-arm64.tar.gz | tar -xz
-mv tetra /usr/local/bin
+curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-arm64.tar.gz
+tar -xz tetra-windows-arm64.tar.gz
+# move the binary in a directory in your PATH
 {{< /tab >}}
 {{< /tabpane >}}
 
