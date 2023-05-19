@@ -69,7 +69,7 @@ func TestCopyFd(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

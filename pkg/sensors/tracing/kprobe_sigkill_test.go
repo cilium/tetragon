@@ -77,7 +77,7 @@ func TestKprobeSigkill(t *testing.T) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("child pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -165,7 +165,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("parent pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
