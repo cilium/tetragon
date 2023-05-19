@@ -99,8 +99,8 @@ func TestExitLeader(t *testing.T) {
 		fmt.Printf("exitTime %v\n", exitTime)
 		fmt.Printf("delta %v\n", delta)
 
-		if delta < 3*time.Second {
-			return fmt.Errorf("unexpected delta < 3 seconds")
+		if delta < 5*time.Second {
+			return fmt.Errorf("unexpected delta < 5 seconds")
 		}
 		return nil
 	}
