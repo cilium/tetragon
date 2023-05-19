@@ -64,7 +64,7 @@ func TestCloneThreadsTester(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -175,7 +175,7 @@ func TestExecThreads(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
