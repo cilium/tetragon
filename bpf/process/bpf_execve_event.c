@@ -156,7 +156,6 @@ event_execve(struct sched_execve_args *ctx)
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
-	bool walker = 0;
 	__u32 zero = 0;
 	__u64 pid;
 
@@ -202,7 +201,7 @@ event_execve(struct sched_execve_args *ctx)
 	event->binary = binary_filter(ctx, event, filename);
 
 	compiler_barrier();
-	__event_get_task_info(event, MSG_OP_EXECVE, walker);
+	__event_get_task_info(event, MSG_OP_EXECVE);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;

@@ -638,7 +638,7 @@ __event_get_cgroup_info(struct task_struct *task,
  * Edit: pahole has been fixed need to update toolchain.
  */
 static inline __attribute__((always_inline)) void
-__event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker)
+__event_get_task_info(struct msg_execve_event *msg, __u8 op)
 {
 	struct msg_process *process;
 	struct task_struct *task;
@@ -673,8 +673,6 @@ __event_get_task_info(struct msg_execve_event *msg, __u8 op, bool walker)
 	msg->common.size =
 		offsetof(struct msg_execve_event, process) + process->size;
 	process->uid = get_current_uid_gid();
-	if (walker)
-		process->flags |= EVENT_TASK_WALK;
 
 	task = (struct task_struct *)get_current_task();
 	BPF_CORE_READ_INTO(&msg->kube.net_ns, task, nsproxy, net_ns, ns.inum);
