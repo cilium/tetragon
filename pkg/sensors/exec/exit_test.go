@@ -199,12 +199,10 @@ func TestExitCode(t *testing.T) {
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	testExitCode := testutils.RepoRootPath("contrib/tester-progs/exit-code")
-
-	var exitCode, realCode uint32
+	testExitCodeBinary := testutils.RepoRootPath("contrib/tester-progs/exit-code")
 
 	// Test different exit codes
-	testCases := []int{
+	testCases := []int8{
 		// Test some usual exit code
 		0,   // Generic success code.
 		1,   // Generic failure or unspecified error.
@@ -220,45 +218,29 @@ func TestExitCode(t *testing.T) {
 		-34, // -ERANGE(Math result not representable)
 	}
 
-	for _, tc := range testCases {
-		// The test executes 'exit-code' benary which return a exit code
-		if err := exec.Command(testExitCode, fmt.Sprintf("%d", tc)).Run(); err != nil {
-			realCode = 0
+	checker := ec.NewUnorderedEventChecker()
+	testerBinaryCheck := ec.NewProcessChecker().WithBinary(sm.Suffix("tester-progs/exit-code"))
+
+	for _, testCaseCode := range testCases {
+		// convert the code to an unsigned 8 bits integer (example: -30 -> 226)
+		// since Linux will return an unsigned integer after execution
+		expectedCode := uint8(testCaseCode)
+
+		if err := exec.Command(testExitCodeBinary, fmt.Sprint(testCaseCode)).Run(); err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				// handle ExitError
-				realCode = uint32(exitErr.ExitCode())
-			} else {
-				t.Fatalf("Failed to execute test binary: %s\n", err)
-			}
-		}
-
-		nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
-			switch ev := event.(type) {
-			case *tetragon.ProcessExit:
-				if ev.Process.Binary == testExitCode {
-					exitCode = ev.Status
+				if uint8(exitErr.ExitCode()) != expectedCode {
+					t.Errorf("unexpected: wanted exit code %d, execution returned %d", expectedCode, exitErr.ExitCode())
 				}
-				return false, nil
+			} else {
+				t.Fatalf("failed to execute the test binary %q with exit code %d", err, expectedCode)
 			}
-			return false, nil
-		}
-		finalCheck := func(l *logrus.Logger) error {
-			t.Logf("exitCode %v\n", exitCode)
-
-			if exitCode == realCode {
-				return nil
-			}
-			return fmt.Errorf("tetragon returns the exit code of the process uncorrectly")
 		}
 
-		checker := &ec.FnEventChecker{
-			NextCheckFn:  nextCheck,
-			FinalCheckFn: finalCheck,
-		}
-
-		if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
-			t.Logf("error: %s", err)
-			t.Fail()
-		}
+		checker.AddChecks(
+			ec.NewProcessExitChecker(fmt.Sprintf("exitCode%d", expectedCode)).WithProcess(testerBinaryCheck).WithStatus(uint32(expectedCode)),
+		)
 	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
