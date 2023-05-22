@@ -57,7 +57,7 @@ var (
 // Generic internal lookup happens when events are received out of order and
 // this event was handled before an exec event so it wasn't able to populate
 // the process info yet.
-func HandleGenericInternal(ev notify.Event, pid uint32, timestamp uint64) (*process.ProcessInternal, error) {
+func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp uint64) (*process.ProcessInternal, error) {
 	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
 
@@ -69,7 +69,12 @@ func HandleGenericInternal(ev notify.Event, pid uint32, timestamp uint64) (*proc
 	}
 
 	if internal != nil {
-		ev.SetProcess(internal.GetProcessCopy())
+		proc := internal.GetProcessCopy()
+		// The TID of the cached process can be different from the
+		// TID that triggered the event, so always use the recorded
+		// one from bpf.
+		process.UpdateEventProcessTid(proc, tid)
+		ev.SetProcess(proc)
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		err = ErrFailedToGetProcessInfo

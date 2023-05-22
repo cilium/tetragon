@@ -12,9 +12,9 @@ type MsgGenericTracepoint struct {
 	ProcessKey   processapi.MsgExecveKey
 	Namespaces   processapi.MsgNamespaces
 	Capabilities processapi.MsgCapabilities
-	Id           int64
-	ThreadId     uint64
+	FuncId       int64
+	RetProbeId   uint64
 	ActionId     uint64
 	ActionArgId  uint32
-	Pad          uint32
+	Tid          uint32 // The recorded TID that triggered the event
 }

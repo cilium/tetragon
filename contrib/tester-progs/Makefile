@@ -23,7 +23,7 @@ all: $(PROGS)
 	$(GCC) -Wall $< -o $@
 
 threads-tester: threads-tester.c
-	$(GCC) -Wall $< -o $@ -lcap -lpthread
+	$(GCC) -Wall -fno-inline $< -o $@ -lcap -lpthread
 
 capabilities-tester: capabilities-tester.c
 	$(GCC) -Wall $< -o $@ -lcap

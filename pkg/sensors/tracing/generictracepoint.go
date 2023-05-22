@@ -583,14 +583,15 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	unix := &tracing.MsgGenericTracepointUnix{
 		Common:     m.Common,
 		ProcessKey: m.ProcessKey,
-		Id:         m.Id,
+		Id:         m.FuncId,
+		Tid:        m.Tid,
 		Subsys:     "UNKNOWN",
 		Event:      "UNKNOWN",
 	}
 
-	tp, err := genericTracepointTable.getTracepoint(int(m.Id))
+	tp, err := genericTracepointTable.getTracepoint(int(m.FuncId))
 	if err != nil {
-		logger.GetLogger().WithField("id", m.Id).WithError(err).Warnf("genericTracepoint info not found")
+		logger.GetLogger().WithField("id", m.FuncId).WithError(err).Warnf("genericTracepoint info not found")
 		return []observer.Event{unix}, nil
 	}
 

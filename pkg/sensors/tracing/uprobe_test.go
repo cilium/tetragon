@@ -12,11 +12,13 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -257,4 +259,100 @@ func TestUprobeBinariesMatchNot(t *testing.T) {
 	uprobeTest2 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-2")
 	err := uprobeBinariesMatch(t, uprobeTest2)
 	assert.Error(t, err)
+}
+
+func TestUprobeCloneThreads(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBinPath := "contrib/tester-progs/threads-tester"
+	testBin := testutils.RepoRootPath(testBinPath)
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBin + `"
+    symbol: "do_uprobe"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + testBin + `"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "uprobe")
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	// initialize observer
+	t.Logf("starting observer")
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cti := &testutils.ThreadTesterInfo{}
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	logWG.Wait()
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	cti.AssertPidsTids(t)
+
+	parentCheck := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(parentCheck)
+
+	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(parentCheck)
+
+	child1Checker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).
+		WithPid(cti.Child1Pid).
+		WithTid(cti.Child1Tid)
+
+	child1UpChecker := ec.NewProcessUprobeChecker("").
+		WithSymbol(sm.Full("do_uprobe")).
+		WithProcess(child1Checker).WithParent(parentCheck)
+
+	thread1Checker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).
+		WithPid(cti.Thread1Pid).
+		WithTid(cti.Thread1Tid)
+
+	thread1UpChecker := ec.NewProcessUprobeChecker("").
+		WithSymbol(sm.Full("do_uprobe")).
+		WithProcess(thread1Checker).WithParent(parentCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, child1UpChecker, thread1UpChecker, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }

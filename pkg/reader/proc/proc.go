@@ -14,6 +14,8 @@ import (
 // Status reflects fields of `/proc/[pid]/status` and other
 // fields that we want
 type Status struct {
+	State string
+
 	// Real, effective, saved, and filesystem.
 	Uids []string
 
@@ -103,6 +105,10 @@ func fillStatus(file string, status *Status) error {
 
 		if len(fields) < 2 {
 			continue
+		}
+
+		if fields[0] == "State:" {
+			status.State = fields[1]
 		}
 
 		if fields[0] == "Uid:" {

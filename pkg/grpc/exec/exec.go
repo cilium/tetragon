@@ -311,7 +311,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		proc.RefDec()
 		tetragonEvent.Process = proc.GetProcessCopy()
 		// Use the bpf recorded TID to update the event
-		process.UpdateEventProcessTid(tetragonEvent.Process, event.Info.Tid)
+		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Info.Tid)
 	}
 	return tetragonEvent
 }
@@ -347,7 +347,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 		}
 		proc := internal.GetProcessCopy()
 		// Update the Process TID with the recorded one from BPF side
-		process.UpdateEventProcessTid(proc, msg.Info.Tid)
+		process.UpdateEventProcessTid(proc, &msg.Info.Tid)
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
 		err = eventcache.ErrFailedToGetProcessInfo

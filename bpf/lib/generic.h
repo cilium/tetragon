@@ -34,11 +34,11 @@ struct msg_generic_kprobe {
 	struct msg_execve_key current;
 	struct msg_ns ns;
 	struct msg_capabilities caps;
-	__u64 id;
-	__u64 thread_id;
+	__u64 func_id;
+	__u64 retprobe_id;
 	__u64 action;
 	__u32 action_arg_id; // only one URL or FQDN action can be fired per match
-	__u32 pad;
+	__u32 tid; // Thread ID that triggered the event
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
