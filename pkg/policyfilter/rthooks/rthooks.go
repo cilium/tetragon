@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
+	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/google/uuid"
@@ -102,6 +103,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid); err != nil {
 		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
 	}
+	pfmetrics.OpInc("rthooks", "add-container", err)
 
 	return nil
 }
