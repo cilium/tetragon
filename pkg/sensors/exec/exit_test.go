@@ -167,7 +167,7 @@ func TestExitZombie(t *testing.T) {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// Process exited with a non-zero exit code
 			exitCode := exitError.ExitCode()
-			fmt.Printf("Process exited with code: %d\n", exitCode)
+		fmt.Printf("Process exited with code: %d\n", exitCode)
 	}else{
 		fmt.Printf("Error waiting for process to exit: %v\n", err)
 	}else{
