@@ -28,6 +28,18 @@
       color: #5C6D70;
       font-weight: var(--fa-style, 600);
     }
+
+    @media screen and (max-width: 767px) {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      margin: 0 !important;
+
+      .td-sidebar__toggle {
+        flex-shrink: 0;
+        margin-left: 0 !important;
+      }
+    }
   }
 
   &-menu {

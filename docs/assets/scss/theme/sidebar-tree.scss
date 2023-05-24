@@ -110,7 +110,7 @@
 
 .td-sidebar {
   @include media-breakpoint-up(md) {
-    padding-top: 0;
+    padding-top: 5rem;
     background-color: $td-sidebar-bg-color;
     padding-right: 1rem;
     border-right: 1px solid $td-sidebar-border-color;
