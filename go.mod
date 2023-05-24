@@ -11,7 +11,7 @@ require (
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.0
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.15.0
 	github.com/go-openapi/strfmt v0.21.3
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
