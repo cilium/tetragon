@@ -31,7 +31,7 @@ func (msg *MsgTestEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 }
 
 func (msg *MsgTestEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, nil)
 }
 
 func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {

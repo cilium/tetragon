@@ -90,14 +90,19 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 // so we only need to wait for the internal link to the process context to
 // resolve PodInfo. This happens when the msg populates the internal state
 // but that event is not fully populated yet.
-func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event) error {
+func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
 		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
 		return ErrFailedToGetPodInfo
 	}
 
-	ev.SetProcess(internal.GetProcessCopy())
+	proc := internal.GetProcessCopy()
+	// The TID of the cached process can be different from the
+	// TID that triggered the event, so always use the recorded
+	// one from bpf.
+	process.UpdateEventProcessTid(proc, tid)
+	ev.SetProcess(proc)
 	return nil
 }
 
