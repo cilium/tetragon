@@ -247,7 +247,7 @@ func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp ui
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Tid)
 }
 
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -357,7 +357,7 @@ func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64
 }
 
 func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Tid)
 }
 
 func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -444,7 +444,7 @@ func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64
 
 func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	LoaderMetricInc(LoaderResolvedRetry)
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, nil)
 }
 
 func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -490,7 +490,7 @@ func (msg *MsgGenericUprobeUnix) RetryInternal(ev notify.Event, timestamp uint64
 }
 
 func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Tid)
 }
 
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {

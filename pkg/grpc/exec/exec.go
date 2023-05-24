@@ -360,7 +360,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 }
 
 func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Info.Tid)
 }
 
 func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
