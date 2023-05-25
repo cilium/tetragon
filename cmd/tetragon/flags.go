@@ -74,6 +74,8 @@ const (
 	keyEnablePolicyFilter      = "enable-policy-filter"
 	keyEnablePolicyFilterDebug = "enable-policy-filter-debug"
 
+	keyEnablePidSetFilter = "enable-pid-set-filter"
+
 	keyEnableMsgHandlingLatency = "enable-msg-handling-latency"
 )
 
@@ -132,6 +134,8 @@ func readAndSetFlags() {
 	option.Config.EnablePolicyFilter = viper.GetBool(keyEnablePolicyFilter)
 	option.Config.EnablePolicyFilterDebug = viper.GetBool(keyEnablePolicyFilterDebug)
 	option.Config.EnableMsgHandlingLatency = viper.GetBool(keyEnableMsgHandlingLatency)
+
+	option.Config.EnablePidSetFilter = viper.GetBool(keyEnablePidSetFilter)
 
 	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
 	// manually handle the deprecation of --config-file

@@ -17,6 +17,7 @@ package filters
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -27,7 +28,7 @@ import (
 )
 
 // ParseFilterList parses a list of process filters in JSON format into protobuf messages.
-func ParseFilterList(filters string) ([]*tetragon.Filter, error) {
+func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filter, error) {
 	if filters == "" {
 		return nil, nil
 	}
@@ -40,6 +41,9 @@ func ParseFilterList(filters string) ([]*tetragon.Filter, error) {
 				break
 			}
 			return nil, err
+		}
+		if len(result.PidSet) != 0 && !enablePidSetFilters {
+			return nil, fmt.Errorf("pidSet filters use a best-effort approach for tracking PIDs and are intended for testing/development, not for production (pass the --enable-pid-set-filter to ignore)")
 		}
 		results = append(results, &result)
 	}
