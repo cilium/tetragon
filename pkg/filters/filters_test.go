@@ -34,7 +34,7 @@ func TestParseFilterList(t *testing.T) {
 {"pid_set":[1]}
 {"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_TRACEPOINT"]}
 {"arguments_regex":["^--version$","^-a -b -c$"]}`
-	filterProto, err := ParseFilterList(f)
+	filterProto, err := ParseFilterList(f, true)
 	assert.NoError(t, err)
 	if diff := cmp.Diff(
 		[]*tetragon.Filter{
@@ -52,10 +52,13 @@ func TestParseFilterList(t *testing.T) {
 	); diff != "" {
 		t.Errorf("filter mismatch (-want +got):\n%s", diff)
 	}
-	_, err = ParseFilterList("invalid filter json")
+	_, err = ParseFilterList("invalid filter json", true)
 	assert.Error(t, err)
-	filterProto, err = ParseFilterList("")
+	filterProto, err = ParseFilterList("", true)
 	assert.NoError(t, err)
+	assert.Empty(t, filterProto)
+	filterProto, err = ParseFilterList(`{"pid_set":[1]}`, false)
+	assert.Error(t, err)
 	assert.Empty(t, filterProto)
 }
 

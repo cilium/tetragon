@@ -62,11 +62,11 @@ var (
 )
 
 func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
-	allowList, err := filters.ParseFilterList(viper.GetString(keyExportAllowlist))
+	allowList, err := filters.ParseFilterList(viper.GetString(keyExportAllowlist), viper.GetBool(keyEnablePidSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
-	denyList, err := filters.ParseFilterList(viper.GetString(keyExportDenylist))
+	denyList, err := filters.ParseFilterList(viper.GetString(keyExportDenylist), viper.GetBool(keyEnablePidSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -648,6 +648,9 @@ func execute() error {
 	// this is set to false by default.
 	flags.Bool(keyEnablePolicyFilter, false, "Enable policy filter code (beta)")
 	flags.Bool(keyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
+
+	// Provide option to enable the pidSet export filters.
+	flags.Bool(keyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
 
 	flags.Bool(keyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 

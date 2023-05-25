@@ -72,6 +72,8 @@ type config struct {
 	EnablePolicyFilter      bool
 	EnablePolicyFilterDebug bool
 
+	EnablePidSetFilter bool
+
 	EnableMsgHandlingLatency bool
 }
 
