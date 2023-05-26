@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -49,11 +50,21 @@ func New() *cobra.Command {
 		Short: "list tracing policies",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+			output := viper.GetString(common.KeyOutput)
+			switch output {
+			case "json", "text":
+				// valid
+			default:
+				logger.GetLogger().WithField(common.KeyOutput, output).Fatal("invalid output flag")
+			}
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				listTragingPolicies(ctx, cli)
+				listTracingPolicies(ctx, cli, output)
 			})
 		},
 	}
+	tpListFlags := tpListCmd.Flags()
+	tpListFlags.StringP(common.KeyOutput, "o", "text", "Output format. json or text")
+	viper.BindPFlags(tpListFlags)
 
 	tpGenerateCmd := &cobra.Command{
 		Use:   "generate",
@@ -87,14 +98,7 @@ func addTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsCl
 	}
 }
 
-func listTragingPolicies(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
-
-	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
-	if err != nil || res == nil {
-		fmt.Printf("failed to list tracing policies: %s\n", err)
-		return
-	}
-
+func listTracingPoliciesText(res *tetragon.ListTracingPoliciesResponse) {
 	for _, pol := range res.Policies {
 		namespace := pol.Namespace
 		if namespace == "" {
@@ -103,6 +107,27 @@ func listTragingPolicies(ctx context.Context, client tetragon.FineGuidanceSensor
 
 		sensors := strings.Join(pol.Sensors, ",")
 		fmt.Printf("%d %s (%s) %s %s\n", pol.Id, pol.Name, pol.Info, namespace, sensors)
+	}
+}
+
+func listTracingPolicies(
+	ctx context.Context,
+	client tetragon.FineGuidanceSensorsClient,
+	output string) {
+
+	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
+	if err != nil || res == nil {
+		logger.GetLogger().WithError(err).Fatal("failed to list tracing policies")
+	}
+
+	if output == "json" {
+		b, err := res.MarshalJSON()
+		if err != nil {
+			logger.GetLogger().WithError(err).Fatal("failed to generate json")
+		}
+		fmt.Println(string(b))
+	} else {
+		listTracingPoliciesText(res)
 	}
 }
 
