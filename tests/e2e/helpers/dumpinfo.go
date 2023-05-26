@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -54,32 +55,68 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	}
 	r := client.Resources(opts.Namespace)
 
-	podList := &corev1.PodList{}
+	tetragonPodList := &corev1.PodList{}
 	if err = r.List(
 		ctx,
-		podList,
+		tetragonPodList,
 		resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/name=%s", opts.DaemonSetName)),
 	); err != nil {
 		return ctx, err
 	}
 
-	for _, pod := range podList.Items {
+	if err := dumpPodSummary("pods.txt", exportDir); err != nil {
+		klog.ErrorS(err, "Failed to dump pod summary")
+	}
+
+	for _, pod := range tetragonPodList.Items {
 		if err := extractJson(&pod, exportDir); err != nil {
 			klog.ErrorS(err, "Failed to extract json events")
 		}
-		if err := extractLogs(&pod, exportDir, true); err != nil {
-			klog.ErrorS(err, "Failed to extract previous tetragon logs")
-		}
-		if err := extractLogs(&pod, exportDir, false); err != nil {
-			klog.ErrorS(err, "Failed to extract tetragon logs")
-		}
-		if err := describeTetragonPod(&pod, exportDir); err != nil {
-			klog.ErrorS(err, "Failed to describe tetragon pods")
-		}
-		if err := dumpPodSummary("pods.txt", exportDir); err != nil {
-			klog.ErrorS(err, "Failed to dump pod summary")
-		}
 		dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
+	}
+
+	namespaceList := &corev1.NamespaceList{}
+	if err = r.List(ctx, namespaceList); err != nil {
+		return ctx, err
+	}
+
+	for _, ns := range namespaceList.Items {
+		// List pods in the namespace
+		nsResources := client.Resources(ns.Name)
+		podList := &corev1.PodList{}
+		if err = nsResources.List(ctx, podList); err != nil {
+			return ctx, err
+		}
+		// If there are no pods to dump, skip this namespace
+		if len(podList.Items) == 0 {
+			continue
+		}
+		// Create an export directory for this namespace if we have pods to dump
+		nsExportDir := path.Join(exportDir, "pods", ns.Name)
+		err = os.MkdirAll(nsExportDir, 0766)
+		if err != nil {
+			return ctx, fmt.Errorf("unable to create namespaced export directory: %w", err)
+		}
+		// Dump relevant info for each pod in the namespace
+		for _, pod := range podList.Items {
+			var containerName string
+			// If it's a Tetragon pod, we want to default to Tetragon logs, not exportStdout
+			if label, ok := pod.Labels["app.kubernetes.io/name"]; ok && label == opts.DaemonSetName {
+				containerName = TetragonContainerName
+			}
+
+			if err := extractLogs(&pod, nsExportDir, containerName, true); err != nil {
+				klog.ErrorS(err, "Failed to extract previous logs for pod %s/%s", ns.Name, pod.Name)
+			}
+
+			if err := extractLogs(&pod, nsExportDir, containerName, false); err != nil {
+				klog.ErrorS(err, "Failed to extract logs for pod %s/%s", ns.Name, pod.Name)
+			}
+
+			if err := describePod(&pod, nsExportDir); err != nil {
+				klog.ErrorS(err, "Failed to describe pod %s/%s", ns.Name, pod.Name)
+			}
+		}
 	}
 
 	return ctx, nil
@@ -119,7 +156,7 @@ func extractJson(pod *corev1.Pod, exportDir string) error {
 		filepath.Join(exportDir, fmt.Sprintf("%s.json", pod.Name)))
 }
 
-func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
+func extractLogs(pod *corev1.Pod, exportDir string, containerName string, prev bool) error {
 	var fname string
 	if prev {
 		fname = fmt.Sprintf("%s.prev.log", pod.Name)
@@ -129,11 +166,11 @@ func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
 	return kubectlLogs(filepath.Join(exportDir, fname),
 		pod.Namespace,
 		pod.Name,
-		TetragonContainerName,
+		containerName,
 		prev)
 }
 
-func describeTetragonPod(pod *corev1.Pod, exportDir string) error {
+func describePod(pod *corev1.Pod, exportDir string) error {
 	fname := fmt.Sprintf("%s.describe", pod.Name)
 	return kubectlDescribe(filepath.Join(exportDir, fname),
 		pod.Namespace,
@@ -169,7 +206,12 @@ func kubectlCp(podNamespace, podName, containerName, src, dst string) error {
 }
 
 func kubectlLogs(fname, podNamespace, podName, containerName string, prev bool) error {
-	args := fmt.Sprintf("logs -c %s -n %s %s", containerName, podNamespace, podName)
+	var args string
+	if containerName != "" {
+		args = fmt.Sprintf("logs -c %s -n %s %s", containerName, podNamespace, podName)
+	} else {
+		args = fmt.Sprintf("logs -n %s %s", podNamespace, podName)
+	}
 	if prev {
 		args += " --previous"
 	}
