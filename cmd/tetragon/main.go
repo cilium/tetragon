@@ -649,6 +649,8 @@ func execute() error {
 	flags.Bool(keyEnablePolicyFilter, false, "Enable policy filter code (beta)")
 	flags.Bool(keyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
 
+	flags.Bool(keyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }

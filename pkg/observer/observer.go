@@ -122,7 +122,10 @@ func HandlePerfData(data []byte) (byte, []Event, error) {
 }
 
 func (k *Observer) receiveEvent(data []byte) {
-	timer := time.Now()
+	var timer time.Time
+	if option.Config.EnableMsgHandlingLatency {
+		timer = time.Now()
+	}
 	atomic.AddUint64(&k.recvCntr, 1)
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(int(op))
@@ -142,7 +145,9 @@ func (k *Observer) receiveEvent(data []byte) {
 	for _, event := range events {
 		k.observerListeners(event)
 	}
-	opcodemetrics.LatencyStats.WithLabelValues(fmt.Sprint(op)).Observe(float64(time.Since(timer).Microseconds()))
+	if option.Config.EnableMsgHandlingLatency {
+		opcodemetrics.LatencyStats.WithLabelValues(fmt.Sprint(op)).Observe(float64(time.Since(timer).Microseconds()))
+	}
 }
 
 // Gets final size for single perf ring buffer rounded from
