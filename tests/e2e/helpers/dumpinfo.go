@@ -116,15 +116,15 @@ func extractJson(pod *corev1.Pod, exportDir string) error {
 		pod.Name,
 		TetragonContainerName,
 		TetragonJsonPathname,
-		filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.json", pod.Name)))
+		filepath.Join(exportDir, fmt.Sprintf("%s.json", pod.Name)))
 }
 
 func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
 	var fname string
 	if prev {
-		fname = fmt.Sprintf("tetragon.%s.prev.log", pod.Name)
+		fname = fmt.Sprintf("%s.prev.log", pod.Name)
 	} else {
-		fname = fmt.Sprintf("tetragon.%s.log", pod.Name)
+		fname = fmt.Sprintf("%s.log", pod.Name)
 	}
 	return kubectlLogs(filepath.Join(exportDir, fname),
 		pod.Namespace,
@@ -134,7 +134,7 @@ func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
 }
 
 func describeTetragonPod(pod *corev1.Pod, exportDir string) error {
-	fname := fmt.Sprintf("tetragon.%s.describe", pod.Name)
+	fname := fmt.Sprintf("%s.describe", pod.Name)
 	return kubectlDescribe(filepath.Join(exportDir, fname),
 		pod.Namespace,
 		pod.Name)
@@ -252,7 +252,7 @@ func dumpMetrics(port string, podName string, exportDir string) {
 		return
 	}
 
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.metrics", podName))
+	fname := filepath.Join(exportDir, fmt.Sprintf("%s.metrics", podName))
 	if err := os.WriteFile(fname, buff.Bytes(), os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to metrics file", "file", fname, "addr", metricsAddr)
 	}
@@ -303,7 +303,7 @@ func dumpGops(port int, podName string, exportDir string) {
 		klog.ErrorS(err, "failed to dump heap profile", "addr", addr)
 		return
 	}
-	fname := filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.heap", podName))
+	fname := filepath.Join(exportDir, fmt.Sprintf("%s.heap", podName))
 	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to heap file", "file", fname, "addr", addr)
 	}
@@ -313,7 +313,7 @@ func dumpGops(port int, podName string, exportDir string) {
 		klog.ErrorS(err, "failed to dump memstats", "addr", addr)
 		return
 	}
-	fname = filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.memstats", podName))
+	fname = filepath.Join(exportDir, fmt.Sprintf("%s.memstats", podName))
 	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
 		klog.ErrorS(err, "failed to write to memstats file", "file", fname, "addr", addr)
 	}
@@ -352,13 +352,13 @@ func StartGopsDumper(ctx context.Context, exportDir string, interval time.Durati
 
 // dumpBpftool dumps bpftool progs and maps for a pod
 func dumpBpftool(ctx context.Context, client klient.Client, exportDir, podNamespace, podName, containerName string) {
-	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("tetragon.%s.progs", podName), podNamespace, podName, containerName, "prog", "show"); err != nil {
+	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("%s.progs", podName), podNamespace, podName, containerName, "prog", "show"); err != nil {
 		klog.ErrorS(err, "failed to dump programs", "pod", podName, "namespace", podNamespace)
 	}
-	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("tetragon.%s.maps", podName), podNamespace, podName, containerName, "map", "show"); err != nil {
+	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("%s.maps", podName), podNamespace, podName, containerName, "map", "show"); err != nil {
 		klog.ErrorS(err, "failed to dump maps", "pod", podName, "namespace", podNamespace)
 	}
-	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("tetragon.%s.cgroups", podName), podNamespace, podName, containerName, "cgroup", "tree"); err != nil {
+	if err := runBpftool(ctx, client, exportDir, fmt.Sprintf("%s.cgroups", podName), podNamespace, podName, containerName, "cgroup", "tree"); err != nil {
 		klog.ErrorS(err, "failed to dump cgroup tree", "pod", podName, "namespace", podNamespace)
 	}
 }
