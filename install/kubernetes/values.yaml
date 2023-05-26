@@ -146,6 +146,8 @@ tetragon:
   enablePolicyFilter: false
   # Enable policy filter debug messages.
   enablePolicyFilterDebug: false
+  # Enable latency monitoring in message handling
+  enableMsgHandlingLatency: false
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true

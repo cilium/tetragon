@@ -48,6 +48,7 @@ Helm chart for Tetragon
 | tetragon.commandOverride | list | `[]` |  |
 | tetragon.enableCiliumAPI | bool | `false` |  |
 | tetragon.enableK8sAPI | bool | `true` |  |
+| tetragon.enableMsgHandlingLatency | bool | `false` |  |
 | tetragon.enablePolicyFilter | bool | `false` |  |
 | tetragon.enablePolicyFilterDebug | bool | `false` |  |
 | tetragon.enableProcessCred | bool | `false` |  |

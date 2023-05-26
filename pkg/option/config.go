@@ -71,6 +71,8 @@ type config struct {
 
 	EnablePolicyFilter      bool
 	EnablePolicyFilterDebug bool
+
+	EnableMsgHandlingLatency bool
 }
 
 var (
