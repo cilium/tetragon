@@ -223,7 +223,7 @@ func TestTracepointSelectors(t *testing.T) {
 					return nil
 				}
 
-				ret[whence] = ret[whence] + 1
+				ret[whence]++
 			}
 			return nil
 		})
@@ -350,7 +350,7 @@ func TestKprobeSelectors(t *testing.T) {
 					return nil
 				}
 
-				ret[whence] = ret[whence] + 1
+				ret[whence]++
 				return nil
 			}
 			return nil

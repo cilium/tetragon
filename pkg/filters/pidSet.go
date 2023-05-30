@@ -44,7 +44,7 @@ func filterByPidSet(pids []uint32) hubbleFilters.FilterFunc {
 		if parent == nil {
 			return false
 		}
-		if pidSet[parent.Pid.GetValue()] == true {
+		if pidSet[parent.Pid.GetValue()] {
 			return true
 		}
 		for _, pid := range pids {

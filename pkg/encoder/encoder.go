@@ -78,7 +78,7 @@ const (
 
 func CapTrailorPrinter(str string, caps string) string {
 	if len(caps) == 0 {
-		return fmt.Sprintf("%s", str)
+		return str
 	}
 	padding := 0
 	if len(str) < capsPad {

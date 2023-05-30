@@ -142,6 +142,7 @@ func (h *handler) delTracingPolicy(op *tracingPolicyDel) error {
 	return err
 }
 
+// nolint:unparam // error is always nil, needed because of StartSensorManager
 func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 	ret := tetragon.ListTracingPoliciesResponse{}
 	for name, col := range h.collections {
@@ -215,6 +216,7 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 	return col.unload(&UnloadArg{STTManagerHandle: op.sttManagerHandle})
 }
 
+// nolint:unparam // error is always nil, needed because of StartSensorManager
 func (h *handler) listSensors(op *sensorList) error {
 	ret := make([]SensorStatus, 0)
 	for _, col := range h.collections {

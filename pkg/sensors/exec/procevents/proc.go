@@ -72,7 +72,7 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 	// We trust BPF part that it will always return null terminated
 	// DOCKER_ID_LENGTH. For other cases where we read through /proc/
 	// strings are not truncated.
-	if bpfSource == true && len(subdir) >= processapi.DOCKER_ID_LENGTH-1 {
+	if bpfSource && len(subdir) >= processapi.DOCKER_ID_LENGTH-1 {
 		idTruncated = true
 	}
 
@@ -86,7 +86,7 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 	// walkParent argument set and get its parent cgroup
 	if !strings.HasSuffix(container, "service") &&
 		((len(container) >= ContainerIdLength) ||
-			(idTruncated == true && len(container) >= BpfContainerIdLength)) {
+			(idTruncated && len(container) >= BpfContainerIdLength)) {
 		// Return first 31 chars. If the string is less than 31 chars
 		// it's not a docker ID so skip it. For example docker.server
 		// will get here.

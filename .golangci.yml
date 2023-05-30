@@ -6,17 +6,32 @@ run:
 output:
   format: tab
 
+# See https://golangci-lint.run/usage/linters/ for description of linters
 linters:
   disable-all: true
   enable:
-    - goerr113
-    - goimports
+    # default linters
+    - gosimple
     - govet
     - ineffassign
-    - misspell
-    - revive
     - staticcheck
+    - typecheck
     - unused
+    # non default linters
+    - revive
+    - goerr113
+    - goimports
+    - misspell
+    - asciicheck
+    - bidichk
+    - makezero
+    - loggercheck
+    - exportloopref
+    - dupword
+    - gofmt
+    - errname
+    - gocritic
+    - unparam
 
 issues:
   exclude-rules:
@@ -28,3 +43,21 @@ issues:
       text: "exported const"
     - linters: [revive]
       text: "var-naming"
+
+linters-settings:
+  dupword:
+    keywords:
+      - "the"
+      - "and"
+      - "a"
+      - "for"
+      - "to"
+      - "as"
+  gocritic:
+    disabled-checks:
+      - deprecatedComment
+      - commentFormatting
+      - singleCaseSwitch
+      - ifElseChain
+      - appendAssign
+      - dupSubExpr # seems confused with CGO

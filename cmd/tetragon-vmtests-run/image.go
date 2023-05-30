@@ -246,7 +246,7 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 
 	forest, err := images.NewImageForest(&cnf, false)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	res := forest.BuildAllImages(&images.BuildConf{

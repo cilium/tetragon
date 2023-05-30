@@ -205,7 +205,7 @@ func TestEventExecveLongPath(t *testing.T) {
 		for i := 0; i < 254; i++ {
 			testDir = fmt.Sprintf("%s%c", testDir, 'a'+d)
 		}
-		testDir = testDir + "/"
+		testDir += "/"
 	}
 
 	// and add the file
@@ -336,7 +336,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 		for i := 0; i < 254; i++ {
 			testDir = fmt.Sprintf("%s%c", testDir, 'a'+d)
 		}
-		testDir = testDir + "/"
+		testDir += "/"
 	}
 
 	// and add the file

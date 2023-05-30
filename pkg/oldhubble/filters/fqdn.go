@@ -48,10 +48,10 @@ func parseFQDNFilter(pattern string) (*regexp.Regexp, error) {
 	}
 
 	// "." becomes a literal .
-	pattern = strings.Replace(pattern, ".", "[.]", -1)
+	pattern = strings.ReplaceAll(pattern, ".", "[.]")
 
 	// "*" becomes a zero or more of the allowed characters
-	pattern = strings.Replace(pattern, "*", fqdnFilterAllowedChars, -1)
+	pattern = strings.ReplaceAll(pattern, "*", fqdnFilterAllowedChars)
 
 	return regexp.Compile("^" + pattern + "$")
 }

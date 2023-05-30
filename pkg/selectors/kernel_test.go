@@ -174,13 +174,13 @@ func TestNamespaceValueStr(t *testing.T) {
 
 func TestParseMatchArg(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -268,8 +268,8 @@ func TestParseMatchArg(t *testing.T) {
 			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 		}
-		expected3 := append(length, expected1[:]...)
-		expected3 = append(expected3, expected2[:]...)
+		expected3 := append(length, expected1...)
+		expected3 = append(expected3, expected2...)
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := &KernelSelectorState{off: 0}
 		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -309,8 +309,8 @@ func TestParseMatchPid(t *testing.T) {
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	pid3 := []v1alpha1.PIDSelector{*pid1, *pid2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -349,8 +349,8 @@ func TestParseMatchNamespaces(t *testing.T) {
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	ns3 := []v1alpha1.NamespaceSelector{*ns1, *ns2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -396,8 +396,8 @@ func TestParseMatchCapabilities(t *testing.T) {
 	}
 
 	length := []byte{44, 0x00, 0x00, 0x00}
-	expected3 := append(length, expected1[:]...)
-	expected3 = append(expected3, expected2[:]...)
+	expected3 := append(length, expected1...)
+	expected3 = append(expected3, expected2...)
 	cap3 := []v1alpha1.CapabilitiesSelector{*cap1, *cap2}
 	ks := &KernelSelectorState{off: 0}
 	if err := ParseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
@@ -425,8 +425,8 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 	}
 	length := []byte{12, 0x00, 0x00, 0x00}
-	expected := append(length, expected1[:]...)
-	expected = append(expected, expected2[:]...)
+	expected := append(length, expected1...)
+	expected = append(expected, expected2...)
 
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{off: 0}
@@ -439,10 +439,10 @@ func TestParseMatchActionMax(t *testing.T) {
 	var actionArgTable idtable.Table
 
 	actions := []v1alpha1.ActionSelector{
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
-		v1alpha1.ActionSelector{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
+		{Action: "post"},
 	}
 
 	k := &KernelSelectorState{off: 0}
@@ -730,17 +730,17 @@ func TestInitKernelSelectors(t *testing.T) {
 		},
 	}
 	args := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
 	var actionArgTable idtable.Table
 
 	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
-	if bytes.Equal(expected[0:len(expected)], b[0:len(expected)]) == false {
+	if bytes.Equal(expected[0:], b[0:len(expected)]) == false {
 		t.Errorf("InitKernelSelectors: expected %v bytes %v\n", expected, b[0:len(expected)])
 	}
 }

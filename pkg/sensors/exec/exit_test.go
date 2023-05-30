@@ -41,9 +41,7 @@ func TestExit(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procChecker)
 	exitChecker := ec.NewProcessExitChecker("exit").WithProcess(procChecker)
 
-	var checker *ec.UnorderedEventChecker
-
-	checker = ec.NewUnorderedEventChecker(execChecker, exitChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
 
 	if err := exec.Command(testNop).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)

@@ -186,10 +186,10 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 		meta = int(arg.SizeArgIndex)
 	}
 	if arg.ReturnCopy {
-		meta = meta | argReturnCopyBit
+		meta |= argReturnCopyBit
 	}
 	if arg.MaxData {
-		meta = meta | argMaxDataBit
+		meta |= argMaxDataBit
 	}
 	return meta, nil
 }
@@ -301,11 +301,11 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 		}
 
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
-			if warn, ok := err.(*btf.ValidationWarn); ok {
+			if warn, ok := err.(*btf.ValidationWarnError); ok {
 				logger.GetLogger().WithFields(logrus.Fields{
 					"sensor": name,
 				}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-			} else if e, ok := err.(*btf.ValidationFailed); ok {
+			} else if e, ok := err.(*btf.ValidationFailedError); ok {
 				return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
 			} else {
 				err = fmt.Errorf("invalid or old kprobe spec: %s", err)
@@ -456,7 +456,7 @@ func createGenericKprobeSensor(
 		// Mark remaining arguments as 'nops' the kernel side will skip
 		// copying 'nop' args.
 		for j, a := range argsBTFSet {
-			if a == false {
+			if !a {
 				if j != api.ReturnArgIndex {
 					config.Arg[j] = gt.GenericNopType
 					config.ArgM[j] = 0
@@ -679,7 +679,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 		Index: 0,
 		Name:  "config_map",
 		Load: func(m *ebpf.Map, index uint32) error {
-			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+			return m.Update(index, configData.Bytes(), ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, config)
@@ -727,7 +727,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 			Index: uint32(index),
 			Name:  "config_map",
 			Load: func(m *ebpf.Map, index uint32) error {
-				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+				return m.Update(index, bin_buf[index].Bytes(), ebpf.UpdateAny)
 			},
 		}
 		load.MapLoad = append(load.MapLoad, config)
@@ -791,7 +791,7 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 		logger.GetLogger().WithError(err).Warnf("String with size %d type err", b)
 	}
 
-	strVal := string(outputStr[:])
+	strVal := string(outputStr)
 	lenStrVal := len(strVal)
 	if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
 		strVal = strVal[0 : lenStrVal-1]
@@ -999,7 +999,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			strVal := string(outputStr[:])
+			strVal := string(outputStr)
 			lenStrVal := len(strVal)
 			if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
 				strVal = strVal[0 : lenStrVal-1]
@@ -1331,6 +1331,9 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 		if uint64(len(enterEv.Args)) > index {
 			enterEv.Args[index] = retArg
 		} else {
+			// retArg is reused and we are exporting pointers for loop variables
+			// shadowing with a local variable to make pointer export valid
+			retArg := retArg
 			enterEv.Args = append(enterEv.Args, retArg)
 			ret = &retArg
 		}

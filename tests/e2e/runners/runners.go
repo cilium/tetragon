@@ -62,11 +62,9 @@ var DefaultRunner = Runner{
 	installTetragon: tetragon.Install(tetragon.WithHelmOptions(map[string]string{
 		"tetragon.exportAllowList": "",
 	})),
-	tetragonPortForward: func(testenv env.Environment) env.Func {
-		return helpers.PortForwardTetragonPods(testenv)
-	},
-	hasCalledInit:   false,
-	keepExportFiles: false,
+	tetragonPortForward: helpers.PortForwardTetragonPods,
+	hasCalledInit:       false,
+	keepExportFiles:     false,
 }
 
 func NewRunner() *Runner {
@@ -206,6 +204,7 @@ func (r *Runner) Run(m *testing.M) {
 		klog.Fatal("runner.Init() must be called")
 	}
 	defer r.cancelContext()
+	// nolint:gocritic // log.Fatal will exit without running defer but it's okay for ctx cancel
 	os.Exit(r.Environment.Run(m))
 }
 

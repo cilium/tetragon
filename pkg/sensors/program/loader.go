@@ -478,7 +478,7 @@ func doLoadProgram(
 		for {
 			coll, err = ebpf.NewCollectionWithOptions(spec, opts)
 			if errors.Is(err, unix.ENOSPC) {
-				opts.Programs.LogSize = opts.Programs.LogSize * 2
+				opts.Programs.LogSize *= 2
 				continue
 			}
 			break
@@ -495,7 +495,7 @@ func doLoadProgram(
 					if verbose < 2 {
 						fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
 					} else {
-						fmt.Println(fmt.Sprintf("%+v", ve))
+						fmt.Printf("%+v\n", ve)
 					}
 				}
 			}

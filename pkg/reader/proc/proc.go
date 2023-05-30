@@ -35,7 +35,7 @@ const (
 	// If Tetragon is not run in this initial mapping due to user namespaces or runtime
 	// modifications then reading uids of pids from /proc may return the overflow UID 65534
 	// if the mapping config where Tetragon is running does not have a mapping of the
-	// the uid of the target pid.
+	// uid of the target pid.
 	// The overflow UID is runtime config at /proc/sys/kernel/{overflowuid,overflowgid}.
 	//
 	// The overflow UID historically is also the "nobody" UID, so there is some confusion
@@ -43,7 +43,7 @@ const (
 	// the "nobody" user that some distributions use.
 	//
 	// The UID 4294967295 (-1 as an unsigned integer) is an invalid UID, the kernel
-	// ignores and return it in some cases where there is no mapping or to indicate an
+	// ignores and return it in some cases where there is no mapping or to indicate
 	// an invalid UID. So we use it to initialize our UIDs and return it on errors.
 	InvalidUid = ^uint32(0) // 4294967295 (2^32 - 1)
 )

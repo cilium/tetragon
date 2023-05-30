@@ -657,7 +657,7 @@ func ParseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.Names
 	if len(actions) > 1 {
 		return fmt.Errorf("matchNamespaceChanges supports only a single filter (current number of filters is %d)", len(actions))
 	}
-	if (len(actions) == 1) && (kernels.EnableLargeProgs() == false) {
+	if (len(actions) == 1) && !kernels.EnableLargeProgs() {
 		return fmt.Errorf("matchNamespaceChanges is only supported in kernels >= 5.3")
 	}
 	loff := AdvanceSelectorLength(k)
@@ -869,7 +869,7 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	for _, s := range spec.Selectors {
 		for _, action := range s.MatchActions {
-			act, _ := actionTypeTable[strings.ToLower(action.Action)]
+			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {
 				return true
 			}

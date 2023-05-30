@@ -60,8 +60,8 @@ func WithValuesFile(file string) Option {
 	return func(o *flags.HelmOptions) { o.ValuesFile = file }
 }
 
-func WithBTF(BTF string) Option {
-	return func(o *flags.HelmOptions) { o.BTF = BTF }
+func WithBTF(btf string) Option {
+	return func(o *flags.HelmOptions) { o.BTF = btf }
 }
 
 func WithHelmOptions(options map[string]string) Option {

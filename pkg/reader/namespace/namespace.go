@@ -42,7 +42,7 @@ func GetMyPidG() uint32 {
 	if procfs := os.Getenv("TETRAGON_PROCFS"); procfs != "" {
 		procFS, _ := os.ReadDir(procfs)
 		for _, d := range procFS {
-			if d.IsDir() == false {
+			if !d.IsDir() {
 				continue
 			}
 			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))

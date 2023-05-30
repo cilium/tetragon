@@ -14,7 +14,7 @@ import (
 
 var (
 	glblState   State
-	glblError   error
+	errGlbl     error
 	setGlobalPf sync.Once
 )
 
@@ -23,13 +23,13 @@ func GetState() (State, error) {
 	setGlobalPf.Do(func() {
 		if option.Config.EnablePolicyFilter {
 			logger.GetLogger().Info("Enabling policy filtering")
-			glblState, glblError = New()
+			glblState, errGlbl = New()
 		} else {
 			glblState = &dummy{}
-			glblError = nil
+			errGlbl = nil
 		}
 	})
-	return glblState, glblError
+	return glblState, errGlbl
 }
 
 // ResetStateOnlyForTesting resets the global policyfilter state.
@@ -43,10 +43,10 @@ func ResetStateOnlyForTesting() {
 	}
 	if option.Config.EnablePolicyFilter {
 		logger.GetLogger().Info("Enabling policy filtering")
-		glblState, glblError = New()
+		glblState, errGlbl = New()
 	} else {
 		glblState = &dummy{}
-		glblError = nil
+		errGlbl = nil
 	}
 }
 

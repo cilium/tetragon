@@ -64,7 +64,7 @@ func (src traceBenchRw) benchRwWorker(ctx context.Context) {
 		for {
 			n, errno := f.Write(buffer[:size()])
 			if n < 0 {
-				log.Fatalf("syscall.Write failed: %s\n", errno)
+				log.Panicf("syscall.Write failed: %s\n", errno)
 			}
 
 			// give us a chance to catch up
@@ -82,7 +82,7 @@ func (src traceBenchRw) benchRwWorker(ctx context.Context) {
 		for {
 			n, errno := f.Read(buffer[:size()])
 			if n < 0 {
-				log.Fatalf("syscall.Read failed: %s\n", errno)
+				log.Panicf("syscall.Read failed: %s\n", errno)
 			}
 
 			// give us a chance to catch up
@@ -173,6 +173,7 @@ spec:
 
 	err = template.Must(template.New("crd").Parse(tmpl)).Execute(f, templateArgs)
 	if err != nil {
+		// nolint:gocritic // log.Fatal will exit without running defer but it's okay because fd will be gc
 		log.Fatal(err)
 	}
 	return f.Name()

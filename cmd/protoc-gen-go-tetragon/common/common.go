@@ -86,38 +86,31 @@ func Logger(g *protogen.GeneratedFile) string {
 }
 
 func ProcessIdent(g *protogen.GeneratedFile) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/api/v1/tetragon")
-	return GoIdent(g, importPath, "Process")
+	return GoIdent(g, "github.com/cilium/tetragon/api/v1/tetragon", "Process")
 }
 
 func ListMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/listmatcher")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/matchers/listmatcher", name)
 }
 
 func StringMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/stringmatcher")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/matchers/stringmatcher", name)
 }
 
 func BytesMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/bytesmatcher")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/matchers/bytesmatcher", name)
 }
 
 func DurationMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/durationmatcher")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/matchers/durationmatcher", name)
 }
 
 func TimestampMatcherIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/timestampmatcher")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/matchers/timestampmatcher", name)
 }
 
 func PkgProcessIdent(g *protogen.GeneratedFile, name string) string {
-	importPath := filepath.Join("github.com/cilium/tetragon/pkg/process")
-	return GoIdent(g, importPath, name)
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/process", name)
 }
 
 // FmtErrorf is a convenience helper that generates a call to fmt.Errorf
@@ -134,11 +127,7 @@ func FmtSprintf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
 
 // EventFieldCheck returns true if the event has the field
 func EventFieldCheck(msg *protogen.Message, field string) bool {
-	if msg.Desc.Fields().ByName(protoreflect.Name(field)) != nil {
-		return true
-	}
-
-	return false
+	return msg.Desc.Fields().ByName(protoreflect.Name(field)) != nil
 }
 
 // IsProcessEvent returns true if the message is an Tetragon event that has a process field

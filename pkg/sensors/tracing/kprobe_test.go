@@ -407,15 +407,13 @@ func createTestFile(t *testing.T) (int, int, string) {
 	// Create file with hello world to read
 	fd, errno := syscall.Open("/tmp/testfile", syscall.O_CREAT|syscall.O_TRUNC|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd) })
 	t.Cleanup(func() { os.Remove("/tmp/testfile") })
 	fd2, errno := syscall.Open("/tmp/testfile", syscall.O_RDWR, 0x770)
 	if fd2 < 0 {
-		t.Logf("File open fro read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open fro read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	return fd, fd2, fmt.Sprint(fd2)
@@ -443,15 +441,13 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	hello := []byte("hello world")
 	n, errno := syscall.Write(fd, hello)
 	if n < 0 {
-		t.Logf("syscall.Write failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Write failed: %s\n", errno)
 	}
 	syscall.Fsync(fd)
 	var readBytes = make([]byte, 100)
 	i, errno := syscall.Read(fd2, readBytes)
 	if i < 0 {
-		t.Logf("syscall.Read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Read failed: %s\n", errno)
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
@@ -572,6 +568,7 @@ func getAnyChecker() ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("anyKprobe"))
 }
 
+// nolint:unparam // perm always receives `0x770` but it's okay
 func testKprobeObjectFiltered(t *testing.T,
 	readHook string,
 	checker ec.MultiEventChecker,
@@ -583,8 +580,7 @@ func testKprobeObjectFiltered(t *testing.T,
 
 	if useMount == true {
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 		t.Cleanup(func() {
 			if err := syscall.Unmount(mntPath, 0); err != nil {
@@ -604,8 +600,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	// Create file to open later
 	fd, errno := syscall.Open(filePath, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 
@@ -623,8 +618,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	readyWG.Wait()
 	fd2, errno := syscall.Open(filePath, mode, perm)
 	if fd2 < 0 {
-		t.Logf("File open from read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open from read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	data := "hello world"
@@ -1184,7 +1178,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1200,8 +1194,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	// Create file to open later
 	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 	defer func() { syscall.Unlink(path) }()
@@ -1228,7 +1221,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1255,8 +1248,7 @@ func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
 	// Create file to open later
 	fd, errno := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 	defer func() { syscall.Unlink(path) }()
@@ -1568,8 +1560,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	// Create file to open later
 	fd, errno := syscall.Open(filePath, syscall.O_CREAT|syscall.O_RDWR, 0x777)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	syscall.Close(fd)
 
@@ -1588,8 +1579,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 
 	fd2, errno := syscall.Open(filePath, syscall.O_RDWR, 0x770)
 	if fd2 < 0 {
-		t.Logf("File open from read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open from read failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
 	data := "hello world"
@@ -1609,12 +1599,10 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("tmp%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 		if err := syscall.Mount("tmpfs", path, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -1648,8 +1636,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -1688,20 +1675,17 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 		path = filepath.Join(path, fmt.Sprintf("tmp%d", i))
 		pathStack = append(pathStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 		if err := syscall.Mount("tmpfs", path, "tmpfs", 0, ""); err != nil {
-			t.Logf("Mount failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mount failed: %s\n", err)
 		}
 	}
 	for i := 0; i <= 16; i++ {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 		dirStack = append(dirStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
+			t.Skipf("Mkdir failed: %s\n", err)
 		}
 	}
 	t.Cleanup(func() {
@@ -2605,21 +2589,20 @@ spec:
 func openFile(t *testing.T, file string) int {
 	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
 	if fd < 0 {
-		t.Logf("File open failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("File open failed: %s\n", errno)
 	}
 	t.Cleanup(func() { syscall.Close(fd) })
 	return fd
 }
 
 // reads 32 bytes from a file, this will trigger a sys_read.
+// nolint:unparam // result is never used but it's okay
 func readFile(t *testing.T, file string) int {
 	fd := openFile(t, file)
 	var readBytes = make([]byte, 32)
 	i, errno := syscall.Read(fd, readBytes)
 	if i < 0 {
-		t.Logf("syscall.Read failed: %s\n", errno)
-		t.Fatal()
+		t.Fatalf("syscall.Read failed: %s\n", errno)
 	}
 	return fd
 }
@@ -2680,7 +2663,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2720,7 +2703,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 		argVals[3] = "shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2760,7 +2743,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
+	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2800,7 +2783,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2836,7 +2819,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 		argVals[3] = "shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -2872,7 +2855,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals))
 
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -3068,45 +3051,45 @@ spec:
 func TestLoadKprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// kprobe
-		0:  tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-		1:  tus.SensorProg{Name: "generic_kprobe_process_event0", Type: ebpf.Kprobe},
-		2:  tus.SensorProg{Name: "generic_kprobe_process_event1", Type: ebpf.Kprobe},
-		3:  tus.SensorProg{Name: "generic_kprobe_process_event2", Type: ebpf.Kprobe},
-		4:  tus.SensorProg{Name: "generic_kprobe_process_event3", Type: ebpf.Kprobe},
-		5:  tus.SensorProg{Name: "generic_kprobe_process_event4", Type: ebpf.Kprobe},
-		6:  tus.SensorProg{Name: "generic_kprobe_filter_arg1", Type: ebpf.Kprobe},
-		7:  tus.SensorProg{Name: "generic_kprobe_filter_arg2", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_kprobe_filter_arg3", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_kprobe_filter_arg4", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_kprobe_filter_arg5", Type: ebpf.Kprobe},
-		11: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-		12: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-		13: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+		0:  {Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+		1:  {Name: "generic_kprobe_process_event0", Type: ebpf.Kprobe},
+		2:  {Name: "generic_kprobe_process_event1", Type: ebpf.Kprobe},
+		3:  {Name: "generic_kprobe_process_event2", Type: ebpf.Kprobe},
+		4:  {Name: "generic_kprobe_process_event3", Type: ebpf.Kprobe},
+		5:  {Name: "generic_kprobe_process_event4", Type: ebpf.Kprobe},
+		6:  {Name: "generic_kprobe_filter_arg1", Type: ebpf.Kprobe},
+		7:  {Name: "generic_kprobe_filter_arg2", Type: ebpf.Kprobe},
+		8:  {Name: "generic_kprobe_filter_arg3", Type: ebpf.Kprobe},
+		9:  {Name: "generic_kprobe_filter_arg4", Type: ebpf.Kprobe},
+		10: {Name: "generic_kprobe_filter_arg5", Type: ebpf.Kprobe},
+		11: {Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+		12: {Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+		13: {Name: "generic_kprobe_output", Type: ebpf.Kprobe},
 		// retkprobe
-		14: tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+		14: {Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all kprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+		{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
 		// all but generic_kprobe_output,generic_retkprobe_event
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
+		{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
 
 		// only retkprobe
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{14}},
+		{Name: "process_call_heap", Progs: []uint{14}},
 
 		// generic_kprobe_process_filter,generic_kprobe_filter_arg*,
 		// generic_kprobe_actions,generic_kprobe_output
-		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
+		{Name: "filter_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
 
 		// generic_kprobe_actions
-		tus.SensorMap{Name: "override_tasks", Progs: []uint{12}},
+		{Name: "override_tasks", Progs: []uint{12}},
 
 		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 12, 14}},
+		{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 12, 14}},
 	}
 
 	if kernels.EnableLargeProgs() {

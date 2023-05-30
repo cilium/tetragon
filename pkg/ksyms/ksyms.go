@@ -111,7 +111,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 	}
 
 	if needsSort {
-		sort.Slice(ksyms.table[:], func(i1, i2 int) bool { return ksyms.table[i1].addr < ksyms.table[i2].addr })
+		sort.Slice(ksyms.table, func(i1, i2 int) bool { return ksyms.table[i1].addr < ksyms.table[i2].addr })
 	}
 
 	fc, err := lru.New[uint64, fnOffsetVal](1024)

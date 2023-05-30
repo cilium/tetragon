@@ -154,7 +154,7 @@ func PortForwardPod(testenv env.Environment, pod *corev1.Pod, out, outErr *os.Fi
 
 		go func() {
 			if err := pfwd.ForwardPorts(); err != nil {
-				klog.ErrorS(fmt.Errorf("error during portforward: %w", err),
+				klog.ErrorS(err, "error during portforward",
 					"pod", pod.Name,
 					"namespace", pod.Namespace,
 					"ports", ports)

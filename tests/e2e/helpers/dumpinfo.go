@@ -215,17 +215,17 @@ func dumpCheckers(ctx context.Context, exportDir string) {
 
 			yamlStr, err := checker.CheckerYaml()
 			if err != nil {
-				klog.ErrorS(err, "failed to dump checker yaml for %s", name)
+				klog.ErrorS(err, "failed to dump checker yaml", "name", name)
 			}
 
 			fname := filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.yaml", name))
 			if err := os.WriteFile(fname, []byte(yamlStr), os.FileMode(0o644)); err != nil {
-				klog.ErrorS(err, "failed to write checker yaml to file %s", fname, err)
+				klog.ErrorS(err, "failed to write checker yaml to file", "file", fname)
 			}
 
 			fname = filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.log", name))
 			if err := os.WriteFile(fname, checker.Logs(), os.FileMode(0o644)); err != nil {
-				klog.ErrorS(err, "failed to write checker logs to file %s", fname)
+				klog.ErrorS(err, "failed to write checker logs to file", "file", fname)
 			}
 		}
 		return
@@ -289,7 +289,7 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 	}()
 }
 
-// dumpGops dumps the gops heap and and memstats
+// dumpGops dumps the gops heap and memstats
 func dumpGops(port int, podName string, exportDir string) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
@@ -368,12 +368,12 @@ func dumpBpftool(ctx context.Context, client klient.Client, exportDir, podNamesp
 func runBpftool(ctx context.Context, client klient.Client, exportDir, fname, podNamespace, podName, containerName string, args ...string) error {
 	out, err := RunCommand(ctx, client, podNamespace, podName, containerName, "bpftool", args...)
 	if err != nil {
-		klog.ErrorS(err, "failed to run bpftool")
+		return fmt.Errorf("failed to run bpftool: %w", err)
 	}
 
 	fname = filepath.Join(exportDir, fname)
 	if err := os.WriteFile(fname, out, os.FileMode(0o644)); err != nil {
-		klog.ErrorS(err, "failed to write to bpftool output file", "file", fname)
+		return fmt.Errorf("failed to write to bpftool output file %s: %w", fname, err)
 	}
 
 	return nil
