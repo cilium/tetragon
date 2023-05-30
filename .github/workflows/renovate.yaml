@@ -1,0 +1,68 @@
+name: Renovate
+on:
+  # runnig twice a day, around 11:00am CEST and 11:00am PST
+  schedule:
+    - cron: '0 9,18 * * *'
+  # allow to manually trigger this workflow
+  workflow_dispatch:
+    inputs:
+      renovate_log_level_debug:
+        type: boolean
+        default: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    env:
+      buildx_version: 'v0.10.5'
+    steps:
+      # we need special permission to be able to operate renovate (view, list,
+      # create issues, PR, etc.) and we use a GitHub application with fine
+      # grained permissions installed in the repository for that.
+      - name: Get token
+        id: get_token
+        uses: cilium/actions-app-token@350a14155dd9be79227f081310f4d77fdf792e76 # v0.21.0
+        with:
+          APP_PEM: ${{ secrets.CILIUM_RENOVATE_PEM }}
+          APP_ID: ${{ secrets.CILIUM_RENOVATE_APP_ID }}
+
+      # buildx is not installed in the renovate container image and we need it
+      # for the postUpgradeTasks's commands. We take advantage of the fact that
+      # the renovate GitHub action mounts the /tmp folder in the container to
+      # transfer the docker CLI plugin binary.
+      - name: Cache Buildx CLI plugin download
+        id: cache-buildx
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        with:
+          path: /tmp/docker-buildx
+          key: ${{ runner.os }}-${{ env.buildx_version }}-buildx
+
+      - name: Download and set permissions for buildx
+        if: steps.cache-buildx.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o /tmp/docker-buildx https://github.com/docker/buildx/releases/download/${{ env.buildx_version }}/buildx-${{ env.buildx_version }}.linux-amd64
+          chmod +x /tmp/docker-buildx
+
+      # this is not strictly necessary but makes the renovate
+      # postUpgradeTasks's commands shorter and understandable.
+      - name: Create and set permissions for install buildx bash script
+        run: |
+          echo '#!/bin/bash' > /tmp/install-buildx
+          echo 'DIR="$HOME/.docker/cli-plugins"' >> /tmp/install-buildx
+          echo 'mkdir -p "$DIR" && ln -sf /tmp/docker-buildx "$DIR/docker-buildx"' >> /tmp/install-buildx
+          chmod +x /tmp/install-buildx
+
+      # renovate clones the repository again in its container fs but it needs
+      # the renovate configuration to start.
+      - name: Checkout
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+
+      - name: Self-hosted Renovate
+        uses: renovatebot/github-action@f9a5a67d4271f326b1e80695ea86dd9398b61d58 # v38.1.0
+        env:
+          LOG_LEVEL: ${{ github.event.inputs.renovate_log_level_debug == 'true' && 'DEBUG' || 'INFO' }}
+        with:
+          configurationFile: .github/renovate.json5
+          token: '${{ steps.get_token.outputs.app_token }}'
+          mount-docker-socket: true
+

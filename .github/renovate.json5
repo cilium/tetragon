@@ -1,0 +1,201 @@
+{
+  // self-hosted configuration
+  "username": "cilium-renovate[bot]",
+  "repositories": ["cilium/tetragon"],
+  "allowedPostUpgradeCommands": [
+    "^/tmp/install-buildx$", 
+    "^make codegen$", 
+    "^make generate$", 
+    "^install/kubernetes/test.sh$"
+  ],
+  // repository configuration
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":gitSignOff",
+    "helpers:pinGitHubActionDigests"
+  ],
+  // this ensures that the gitAuthor and gitSignOff fields match
+  "gitAuthor": "renovate[bot] <bot@renovateapp.com>",
+  "includePaths": [
+    ".github/workflows/**",
+    "go.mod",
+    "go.sum",
+    "api/go.mod",
+    "api/go.sum",
+    "pkg/k8s/go.mod",
+    "pkg/k8s/go.sum",
+    "Dockerfile*",
+    "install/kubernetes/values.yaml",
+  ],
+  postUpdateOptions: [
+    "gomodTidy"
+  ],
+  "pinDigests": true,
+  "ignorePresets": [":prHourlyLimit2"],
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "separateMinorPatch": true,
+  "pruneStaleBranches": true,
+  "baseBranches": [
+    "main"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "labels": [
+    "kind/enhancement",
+    "priority/release-blocker"
+  ],
+  schedule: [
+    "on monday and friday"
+  ],
+  // about packageRules: To enable grouping, you configure the groupName field
+  // to something non-null.
+  "packageRules": [
+    {
+      "groupName": "all github action dependencies",
+      "groupSlug": "all-github-action",
+      "matchPaths": [
+        ".github/workflows/**"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ]
+    },
+    {
+      // not grouping these together
+      // "groupName": "all go dependencies main",
+      // "groupSlug": "all-go-deps-main",
+      "matchFiles": [
+        "go.mod",
+        "go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
+      ],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+      matchBaseBranches: [
+        "main"
+      ],
+    },
+    {
+      // grouping these together because the number of dependencies is limited
+      "groupName": "all API go dependencies main",
+      "groupSlug": "all-api-go-deps-main",
+      "matchFiles": [
+        "api/go.mod",
+        "api/go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
+      ],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+      matchBaseBranches: [
+        "main"
+      ],
+    },
+    {
+      // not grouping these together
+      // "groupName": "all k8s pkg go dependencies main",
+      // "groupSlug": "all-k8s-pkg-go-deps-main",
+      "matchFiles": [
+        "pkg/k8s/go.mod",
+        "pkg/k8s/go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
+      ],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+      matchBaseBranches: [
+        "main"
+      ],
+    },
+    {
+      // Images that directly use docker.io/library/golang for building.
+      "groupName": "golang-images",
+      "matchFiles": [
+        "Dockerfile",
+        "Makefile"
+      ]
+    },
+    {
+      "matchPackageNames": [
+        "docker.io/library/busybox"
+      ],
+      "matchPaths": [
+        "Dockerfile"
+      ],
+    },
+    {
+      "groupName": "Go",
+      "matchDepNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+    },
+    {
+      // Group golangci-lint updates to overrule grouping of version updates in the GHA files.
+      // Without this, golangci-lint updates are not in sync for GHA files and other usages.
+      "groupName": "golangci-lint",
+      "matchDepNames": [
+        "golangci/golangci-lint"
+      ]
+    },
+    {
+      "matchFiles": [
+        "install/kubernetes/values.yaml",
+      ],
+      // lint and generate files for helm chart
+      postUpgradeTasks: {
+        "commands": ["install/kubernetes/test.sh"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      }
+    }
+  ]
+}
