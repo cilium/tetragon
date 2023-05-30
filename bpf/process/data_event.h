@@ -136,7 +136,7 @@ do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 	return -1;
 }
 
-static inline __attribute__((always_inline)) int data_event(
+static inline __attribute__((always_inline)) size_t data_event(
 	void *ctx, struct data_event_desc *desc, unsigned long uptr,
 	size_t size, struct bpf_map_def *heap,
 	long (*do_data_event)(void *, struct msg_data *, unsigned long, size_t))
@@ -146,7 +146,7 @@ static inline __attribute__((always_inline)) int data_event(
 
 	msg = map_lookup_elem(heap, &zero);
 	if (!msg)
-		return -1;
+		return 0;
 
 	msg->common.op = MSG_OP_DATA;
 	msg->common.flags = 0;
@@ -171,6 +171,17 @@ static inline __attribute__((always_inline)) int data_event(
 	return sizeof(*desc);
 }
 
+/**
+ * data_event_bytes - sends data event for raw data
+ *
+ * @uptr: pointer to data
+ * @size: size of the data
+ *
+ * Sends data event with raw data specified by @uptr and @size and
+ * writes status values into @desc object.
+ *
+ * Returns size of struct @desc object or 0 in case of error.
+ */
 static inline __attribute__((always_inline)) size_t
 data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 		 size_t size, struct bpf_map_def *heap)
@@ -178,6 +189,16 @@ data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 	return data_event(ctx, desc, uptr, size, heap, do_bytes);
 }
 
+/**
+ * data_event_str - sends data event for string
+ *
+ * @uptr: pointer to string
+ *
+ * Sends data event with string specified by @uptr and writes status
+ * values into @desc object.
+ *
+ * Returns size of struct @desc object or 0 in case of error.
+ */
 static inline __attribute__((always_inline)) size_t
 data_event_str(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 	       struct bpf_map_def *heap)
