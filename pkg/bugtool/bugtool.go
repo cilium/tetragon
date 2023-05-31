@@ -213,6 +213,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addTcInfo(tarWriter)
 	si.addBpftoolInfo(tarWriter)
 	si.addGopsInfo(tarWriter)
+	si.execCmd(tarWriter, "tetra_tracincpolicy_list.json", "tetra", "tracingpolicy", "list", "-o", "json")
 	return nil
 }
 
