@@ -215,7 +215,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 	// The idea is that sensors can get a handle to the stt manager when
 	// they are loaded which they can use to attach stt information to
 	// events. Need to revsit this, and until we do we keep LoadArg.
-	return col.load(h.bpfDir, h.mapDir, h.ciliumDir, &LoadArg{STTManagerHandle: op.sttManagerHandle})
+	return col.load(h.bpfDir, h.mapDir, h.ciliumDir, &LoadArg{})
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {
@@ -225,7 +225,7 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 	}
 
 	// NB: see LoadArg for sensorEnable
-	return col.unload(&UnloadArg{STTManagerHandle: op.sttManagerHandle})
+	return col.unload(&UnloadArg{})
 }
 
 func (h *handler) listSensors(op *sensorList) error {

@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
-	sttManager "github.com/cilium/tetragon/pkg/stt"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -37,8 +36,7 @@ func StartSensorManager(
 ) (*Manager, error) {
 	c := make(chan sensorOp)
 	m := Manager{
-		STTManager: sttManager.StartSttManager(),
-		sensorCtl:  c,
+		sensorCtl: c,
 	}
 	handler, err := newHandler(bpfDir, mapDir, ciliumDir)
 	if err != nil {
@@ -100,10 +98,9 @@ func StartSensorManager(
 func (h *Manager) EnableSensor(ctx context.Context, name string) error {
 	retc := make(chan error)
 	op := &sensorEnable{
-		ctx:              ctx,
-		name:             name,
-		sttManagerHandle: h.STTManager,
-		retChan:          retc,
+		ctx:     ctx,
+		name:    name,
+		retChan: retc,
 	}
 
 	h.sensorCtl <- op
@@ -130,10 +127,9 @@ func (h *Manager) AddSensor(ctx context.Context, name string, sensor *Sensor) er
 func (h *Manager) DisableSensor(ctx context.Context, name string) error {
 	retc := make(chan error)
 	op := &sensorDisable{
-		ctx:              ctx,
-		name:             name,
-		sttManagerHandle: h.STTManager,
-		retChan:          retc,
+		ctx:     ctx,
+		name:    name,
+		retChan: retc,
 	}
 
 	h.sensorCtl <- op
@@ -301,8 +297,7 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {
-	sensorCtl  sensorCtlHandle
-	STTManager sttManager.Handle
+	sensorCtl sensorCtlHandle
 }
 
 // There are 6 commands that can be passed to the controller goroutine:
@@ -357,18 +352,16 @@ type sensorRemove struct {
 
 // sensorEnable enables a sensor
 type sensorEnable struct {
-	ctx              context.Context
-	name             string
-	sttManagerHandle sttManager.Handle
-	retChan          chan error
+	ctx     context.Context
+	name    string
+	retChan chan error
 }
 
 // sensorDisable disables a sensor
 type sensorDisable struct {
-	ctx              context.Context
-	name             string
-	sttManagerHandle sttManager.Handle
-	retChan          chan error
+	ctx     context.Context
+	name    string
+	retChan chan error
 }
 
 // sensorList returns a list of the active sensors
@@ -402,9 +395,7 @@ type sensorCtlStop struct {
 	retChan chan error
 }
 
-type LoadArg struct {
-	STTManagerHandle sttManager.Handle
-}
+type LoadArg struct{}
 type UnloadArg = LoadArg
 
 // trivial sensorOpDone implementations for commands
