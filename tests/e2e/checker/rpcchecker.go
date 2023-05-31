@@ -229,6 +229,7 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 		checker, ok := rc.checker.(interface{ GetRemainingChecks() []ec.EventChecker })
 		if !ok {
 			klog.ErrorS(fmt.Errorf("checker has no method GetRemainingChecks()"), "unable to dump remaining checks")
+			return
 		}
 		if err := dumpChecks(ctx, rc.Name(), checker.GetRemainingChecks()); err != nil {
 			klog.ErrorS(err, "failed to dump unmatched checks")
