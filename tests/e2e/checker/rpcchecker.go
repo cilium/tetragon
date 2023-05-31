@@ -74,14 +74,14 @@ func NewRPCChecker(checker ec.MultiEventChecker, name string) *RPCChecker {
 }
 
 // WithEventLimit sets the event limit for an RPCChecker. If RPCChecker.Check sees more
-// events than the limit, it returns an error.
+// events than the limit, it stops the check loop, calls FinalCheck(), and returns its value.
 func (rc *RPCChecker) WithEventLimit(limit uint32) *RPCChecker {
 	rc.eventLimit = limit
 	return rc
 }
 
 // WithTimeLimit sets the time limit for an RPCChecker. RPCChecker.Check takes longer
-// than the time limit, it returns an error.
+// than the time limit, it stops the check loop, calls FinalCheck(), and returns its value.
 func (rc *RPCChecker) WithTimeLimit(limit time.Duration) *RPCChecker {
 	rc.timeLimit = limit
 	return rc
@@ -215,9 +215,6 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 	// When the checks are finished, we want to once again mark that the checker not yet
 	// started (in case other goroutines want to wait for the same checker again).
 	defer rc.checkerStartedWG.Add(1)
-	// When the checks are finished, call FinalCheck() to reset the internal checker's
-	// state.
-	defer rc.checker.FinalCheck(nil)
 	// Flush the event writer at the end
 	defer func() {
 		if rc.eventWriter != nil {
@@ -249,13 +246,15 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			continue
 		case <-timeout.C:
 			if rc.timeLimit > 0 {
-				return fmt.Errorf("event checker %s timed out after %v", rc.name, rc.timeLimit)
+				klog.Info("event checker %s timed out after %v", rc.name, rc.timeLimit)
+				return rc.checker.FinalCheck(nil)
 			}
 		case res := <-c:
 			err := res.Error
 			event := res.GetEventsResponse
 
 			if event == nil || err != nil && !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
+				rc.checker.FinalCheck(nil) // reset event checker
 				return fmt.Errorf("event checker %s failed to receive event: %w", rc.name, err)
 			}
 
@@ -272,7 +271,8 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			prefix := fmt.Sprintf("%s:%d", eventType, eventCount)
 
 			if rc.eventLimit > 0 && eventCount > rc.eventLimit {
-				return fmt.Errorf("event limit of %d exceeded for checker %s", rc.eventLimit, rc.name)
+				klog.Infof("event limit of %d exceeded for checker %s", rc.eventLimit, rc.name)
+				return rc.checker.FinalCheck(nil)
 			}
 
 			// FIXME: refactor eventchecker so we can use klog here
@@ -284,11 +284,13 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			if done && err == nil {
 				log.Infof("%s => FINAL MATCH ", prefix)
 				log.Infof("DONE!")
+				rc.checker.FinalCheck(nil) // reset event checker
 				return nil
 			} else if err == nil {
 				log.Infof("%s => MATCH, continuing", prefix)
 			} else if done {
 				log.Errorf("%s => terminating error: %s", prefix, err)
+				rc.checker.FinalCheck(nil) // reset event checker
 				return err
 			} else {
 				log.Infof("%s => no match: %s, continuing", prefix, err)
