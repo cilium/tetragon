@@ -15,9 +15,12 @@ import (
 type collection struct {
 	sensors []*Sensor
 	name    string
+	err     error
 	// fields below are only set for tracing policies
 	tracingpolicy   tracingpolicy.TracingPolicy
 	tracingpolicyID uint64
+	// if this is not zero, then the policy is filtered
+	policyfilterID uint64
 }
 
 func (c *collection) info() string {

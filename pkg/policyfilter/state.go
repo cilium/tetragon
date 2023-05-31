@@ -420,6 +420,11 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 
 // DelPolicy will destroly all information for the provided policy
 func (m *state) DelPolicy(polID PolicyID) error {
+
+	if polID == NoFilterPolicyID {
+		return nil
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	policy := m.delPolicy(polID)

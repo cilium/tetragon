@@ -121,6 +121,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		name:            op.name,
 		tracingpolicy:   op.tp,
 		tracingpolicyID: uint64(tpID),
+		policyfilterID:  uint64(filterID),
 	}
 	if err := col.load(h.bpfDir, h.mapDir, h.ciliumDir, nil); err != nil {
 		return err
@@ -138,8 +139,20 @@ func (h *handler) delTracingPolicy(op *tracingPolicyDel) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)
 	}
 	err := col.unload(nil)
+	if err != nil {
+		col.err = fmt.Errorf("failed to unload tracing policy: %w", err)
+		return err
+	}
+
+	filterID := policyfilter.PolicyID(col.policyfilterID)
+	err = h.pfState.DelPolicy(filterID)
+	if err != nil {
+		col.err = fmt.Errorf("failed to remove from policyfilter: %w", err)
+		return err
+	}
+
 	delete(h.collections, op.name)
-	return err
+	return nil
 }
 
 func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
@@ -152,7 +165,7 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 		pol := tetragon.TracingPolicyStatus{
 			Id:   col.tracingpolicyID,
 			Name: name,
-			Info: col.tracingpolicy.TpInfo(),
+			Info: fmt.Sprintf("%s filterID:%d error:%v", col.tracingpolicy.TpInfo(), col.policyfilterID, col.err),
 		}
 
 		pol.Namespace = ""
