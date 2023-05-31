@@ -541,7 +541,7 @@ AggregationOptions defines configuration options for aggregating events.
 | namespace | [string](#string) | repeated |  |
 | health_check | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  |  |
 | pid | [uint32](#uint32) | repeated |  |
-| pid_set | [uint32](#uint32) | repeated |  |
+| pid_set | [uint32](#uint32) | repeated | Filter by the PID of a process and any of its descendants. Note that this filter is intended for testing and development purposes only and should not be used in production. In particular, PID cycling in the OS over longer periods of time may cause unexpected events to pass this filter. |
 | event_set | [EventType](#tetragon-EventType) | repeated |  |
 | pod_regex | [string](#string) | repeated | Filter by process.pod.name field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | arguments_regex | [string](#string) | repeated | Filter by process.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
