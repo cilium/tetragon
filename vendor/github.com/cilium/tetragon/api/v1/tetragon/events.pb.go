@@ -162,8 +162,12 @@ type Filter struct {
 	Namespace   []string              `protobuf:"bytes,2,rep,name=namespace,proto3" json:"namespace,omitempty"`
 	HealthCheck *wrapperspb.BoolValue `protobuf:"bytes,3,opt,name=health_check,json=healthCheck,proto3" json:"health_check,omitempty"`
 	Pid         []uint32              `protobuf:"varint,4,rep,packed,name=pid,proto3" json:"pid,omitempty"`
-	PidSet      []uint32              `protobuf:"varint,5,rep,packed,name=pid_set,json=pidSet,proto3" json:"pid_set,omitempty"`
-	EventSet    []EventType           `protobuf:"varint,6,rep,packed,name=event_set,json=eventSet,proto3,enum=tetragon.EventType" json:"event_set,omitempty"`
+	// Filter by the PID of a process and any of its descendants. Note that this filter is
+	// intended for testing and development purposes only and should not be used in
+	// production. In particular, PID cycling in the OS over longer periods of time may
+	// cause unexpected events to pass this filter.
+	PidSet   []uint32    `protobuf:"varint,5,rep,packed,name=pid_set,json=pidSet,proto3" json:"pid_set,omitempty"`
+	EventSet []EventType `protobuf:"varint,6,rep,packed,name=event_set,json=eventSet,proto3,enum=tetragon.EventType" json:"event_set,omitempty"`
 	// Filter by process.pod.name field using RE2 regular expression syntax:
 	// https://github.com/google/re2/wiki/Syntax
 	PodRegex []string `protobuf:"bytes,7,rep,name=pod_regex,json=podRegex,proto3" json:"pod_regex,omitempty"`
