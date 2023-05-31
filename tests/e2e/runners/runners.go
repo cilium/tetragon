@@ -60,7 +60,8 @@ var DefaultRunner = Runner{
 		return ctx, nil
 	},
 	installTetragon: tetragon.Install(tetragon.WithHelmOptions(map[string]string{
-		"tetragon.exportAllowList": "",
+		"tetragon.exportAllowList":    "",
+		"tetragon.enablePolicyFilter": "true",
 	})),
 	tetragonPortForward: func(testenv env.Environment) env.Func {
 		return helpers.PortForwardTetragonPods(testenv)
