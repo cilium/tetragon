@@ -100,7 +100,7 @@ func GetLogLevel() logrus.Level {
 	return DefaultLogger.GetLevel()
 }
 
-func setLogLevel(logLevel logrus.Level) {
+func SetLogLevel(logLevel logrus.Level) {
 	DefaultLogger.SetLevel(logLevel)
 }
 
@@ -149,7 +149,7 @@ func SetupLogging(o LogOptions, debug bool) error {
 	if debug {
 		setLogLevelToDebug()
 	} else {
-		setLogLevel(o.getLogLevel())
+		SetLogLevel(o.getLogLevel())
 	}
 
 	// always suppress the default logger so libraries don't print things
