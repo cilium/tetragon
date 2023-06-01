@@ -267,29 +267,29 @@ lint:
 .PHONY: image image-operator image-test image-codegen
 image:
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) .
-	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 image-operator:
 	$(CONTAINER_ENGINE) build -f Dockerfile.operator -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
 
 image-codegen:
 	$(CONTAINER_ENGINE) build -f Dockerfile.codegen -t "cilium/tetragon-codegen:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-clang
 image-clang:
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang --build-arg VERSION=1:15.0.7-0ubuntu0.22.04.2 -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)echo "Push like this when ready:"
-	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: tarball tarball-release tarball-clean
 # Share same build environment as docker image
