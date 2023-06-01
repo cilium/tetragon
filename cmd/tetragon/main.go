@@ -37,6 +37,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
+	"github.com/cilium/tetragon/pkg/tgsyscall"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
@@ -122,8 +123,8 @@ func tetragonExecute() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	sigs := make(chan os.Signal, 0)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, tgsyscall.SIGRTMIN_30)
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
@@ -216,13 +217,29 @@ func tetragonExecute() error {
 		obs.RemovePrograms()
 	}()
 
-	go func() {
-		// if we receive a signal, call cancel so that contexts are finalized, which will
-		// leads to normally return from tetragonExecute().
-		s := <-sigs
-		log.Infof("Received signal %s, shutting down...", s)
-		cancel()
-	}()
+	go func(obs *observer.Observer) {
+		finish := false
+		for {
+			// Let's finish without closing sigs channel so we don't panic
+			// on signals on closed channels
+			if finish == true {
+				break
+			}
+
+			// if we receive a signal, call cancel so that contexts are finalized, which will
+			// leads to normally return from tetragonExecute().
+			s := <-sigs
+			switch s {
+			case syscall.SIGINT, syscall.SIGTERM:
+				finish = true
+				log.Infof("Received signal %s, shutting down...", s)
+				cancel()
+			case tgsyscall.SIGRTMIN_30: // SIGRTMIN+30
+				log.Info("Received signal SIGRTMIN+30, dumping statistics")
+				obs.DumpStats()
+			}
+		}
+	}(obs)
 
 	// start sensor manager, and have it wait on sensorMgWait until we load
 	// the base sensor. note that this means that calling methods on the

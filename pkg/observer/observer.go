@@ -24,9 +24,11 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 
 	"github.com/sirupsen/logrus"
 )
@@ -361,6 +363,24 @@ func (k *Observer) PrintStats() {
 		"filterPass": k.filterPass,
 		"filterDrop": k.filterDrop,
 	}).Info("Observer events statistics")
+}
+
+func (k *Observer) DumpStats() {
+	lruLen, err := process.GetProcessCacheLen()
+	if err != nil {
+		k.log.WithError(err).Warn("Dump statistics failed to read process cache size")
+	}
+
+	execveStats, err := execvemap.LookupExecveMapStats()
+	if err != nil {
+		k.log.WithError(err).Warn("Dump statistics failed to read execve_map_stats")
+	}
+
+	k.log.WithFields(logrus.Fields{
+		"processLru":       lruLen,
+		"execve_map_stats": execveStats,
+	}).Info("Process cache statistics")
+	k.PrintStats()
 }
 
 func (k *Observer) RemovePrograms() {

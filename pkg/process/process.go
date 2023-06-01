@@ -371,3 +371,11 @@ func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
 	endpoint, _ := cilium.GetCiliumState().GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
 	return endpoint
 }
+
+func GetProcessCacheLen() (int, error) {
+	if procCache == nil {
+		return -1, fmt.Errorf("process cache is not initialized")
+	}
+
+	return procCache.len(), nil
+}

@@ -5,10 +5,13 @@ package execvemap
 
 import (
 	"fmt"
+	"path/filepath"
 	"unsafe"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 )
 
 type ExecveKey struct {
@@ -39,4 +42,26 @@ func (v *ExecveValue) String() string {
 func (v *ExecveValue) GetValuePtr() unsafe.Pointer { return unsafe.Pointer(v) }
 func (v *ExecveValue) DeepCopyMapValue() bpf.MapValue {
 	return &ExecveValue{}
+}
+
+func LookupExecveMapStats() (int64, error) {
+	execveMapStats := base.GetExecveMapStats()
+	m, err := ebpf.LoadPinnedMap(filepath.Join(bpf.MapPrefixPath(), execveMapStats.Name), nil)
+	if err != nil {
+		return -1, err
+	}
+
+	defer m.Close()
+
+	var sum int64
+	var v []int64
+	err = m.Lookup(uint32(0), &v)
+	if err != nil {
+		return -1, err
+	}
+
+	for _, val := range v {
+		sum += val
+	}
+	return sum, nil
 }
