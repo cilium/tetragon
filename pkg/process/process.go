@@ -80,6 +80,7 @@ func FreeCache() {
 	procCache = nil
 }
 
+// GetProcessCopy() duplicates tetragon.Process and returns it
 func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	if pi.process == nil {
 		return nil
@@ -91,7 +92,9 @@ func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	return proc
 }
 
-func (pi *ProcessInternal) GetProcessInternalCopy() *ProcessInternal {
+// cloneInternalProcessCopy() duplicates ProcessInternal, sets its refcnt to 1
+// and returns it
+func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
 	return &ProcessInternal{
@@ -287,7 +290,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		return err
 	}
 	parent.RefInc()
-	pi := parent.GetProcessInternalCopy()
+	pi := parent.cloneInternalProcessCopy()
 	if pi.process != nil {
 		pi.process.ParentExecId = parentExecId
 		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
