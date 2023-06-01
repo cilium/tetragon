@@ -327,8 +327,15 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 		return err
 	}
 
+	// NB(kkourt): we use the global that was set up by InitSensorManager(). We should clean
+	// this up and remove/hide the global variable.
+	sensorManager := SensorManager
+	t.Cleanup(func() {
+		sensorManager.StopSensorManager(context.TODO())
+	})
+
 	if oo.crd {
-		crd.WatchTracePolicy(ctx, SensorManager)
+		crd.WatchTracePolicy(ctx, sensorManager)
 	}
 
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, ""); err != nil {
@@ -360,7 +367,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
 	option.Config.EnableCilium = false
-	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, SensorManager, hookRunner)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, sensorManager, hookRunner)
 	if err != nil {
 		return err
 	}
