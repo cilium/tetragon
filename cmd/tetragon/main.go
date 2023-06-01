@@ -124,7 +124,8 @@ func tetragonExecute() error {
 	defer cancel()
 
 	sigs := make(chan os.Signal, 0)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, tgsyscall.SIGRTMIN_30)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, tgsyscall.SIGRTMIN_20,
+		tgsyscall.SIGRTMIN_21, tgsyscall.SIGRTMIN_22, tgsyscall.SIGRTMIN_30)
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
@@ -217,6 +218,8 @@ func tetragonExecute() error {
 		obs.RemovePrograms()
 	}()
 
+	defaultLevel := logger.GetLogLevel()
+
 	go func(obs *observer.Observer) {
 		finish := false
 		for {
@@ -234,6 +237,17 @@ func tetragonExecute() error {
 				finish = true
 				log.Infof("Received signal %s, shutting down...", s)
 				cancel()
+			case tgsyscall.SIGRTMIN_20: // SIGRTMIN+20
+				currentLevel := logger.GetLogLevel()
+				logger.SetLogLevel(logrus.DebugLevel)
+				log.Infof("Received signal SIGRTMIN+20: switching from LogLevel '%s' to '%s'", currentLevel, logger.GetLogLevel())
+			case tgsyscall.SIGRTMIN_21: // SIGRTMIN+21
+				currentLevel := logger.GetLogLevel()
+				logger.SetLogLevel(logrus.TraceLevel)
+				log.Infof("Received signal SIGRTMIN+21: switching from LogLevel '%s' to '%s'", currentLevel, logger.GetLogLevel())
+			case tgsyscall.SIGRTMIN_22: // SIGRTMIN+22
+				logger.SetLogLevel(defaultLevel)
+				log.Infof("Received signal SIGRTMIN+22: reset original LogLevel '%s'", logger.GetLogLevel())
 			case tgsyscall.SIGRTMIN_30: // SIGRTMIN+30
 				log.Info("Received signal SIGRTMIN+30, dumping statistics")
 				obs.DumpStats()
