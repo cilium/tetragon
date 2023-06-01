@@ -136,10 +136,6 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	return nil
 }
 
-func (pi *ProcessInternal) UnsafeGetProcessCap() *tetragon.Capabilities {
-	return pi.capabilities
-}
-
 func (pi *ProcessInternal) RefDec() {
 	procCache.refDec(pi)
 }
@@ -149,8 +145,7 @@ func (pi *ProcessInternal) RefInc() {
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
-	ref := atomic.LoadUint32(&pi.refcnt)
-	return ref
+	return atomic.LoadUint32(&pi.refcnt)
 }
 
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
