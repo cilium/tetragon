@@ -108,12 +108,12 @@ func (pi *ProcessInternal) AddPodInfo(pod *tetragon.Pod) {
 	pi.mu.Unlock()
 }
 
-func (pi *ProcessInternal) GetProcess() *tetragon.Process {
+func (pi *ProcessInternal) getProcess() *tetragon.Process {
 	pi.mu.Lock()
 	return pi.process
 }
 
-func (pi *ProcessInternal) PutProcess() {
+func (pi *ProcessInternal) putProcess() {
 	pi.mu.Unlock()
 }
 
@@ -122,8 +122,8 @@ func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
 }
 
 func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
-	process := pi.GetProcess()
-	defer pi.PutProcess()
+	process := pi.getProcess()
+	defer pi.putProcess()
 	if process == nil {
 		return fmt.Errorf("Process is nil")
 	}
