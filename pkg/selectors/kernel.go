@@ -516,6 +516,40 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
 	WriteSelectorUint32(k, act)
+
+	// User specifies argRateLimit in seconds, minutes or hours, but we store it in milliseconds.
+	if len(action.ArgRateLimit) == 0 {
+		WriteSelectorUint32(k, 0)
+	} else {
+		if !kernels.EnableLargeProgs() {
+			return fmt.Errorf("parseMatchAction: argRateLimit is only available on kernel v5.3 onwards")
+		}
+		multiplier := uint32(0)
+		switch action.ArgRateLimit[len(action.ArgRateLimit)-1] {
+		case 's', 'S':
+			multiplier = 1
+		case 'm', 'M':
+			multiplier = 60
+		case 'h', 'H':
+			multiplier = 60 * 60
+		}
+		var rateLimit uint64
+		var err error
+		if multiplier != 0 {
+			if len(action.ArgRateLimit) == 1 {
+				return fmt.Errorf("parseMatchAction: argRateLimit value %s is invalid", action.ArgRateLimit)
+			}
+			rateLimit, err = strconv.ParseUint(action.ArgRateLimit[:len(action.ArgRateLimit)-1], 10, 32)
+		} else {
+			rateLimit, err = strconv.ParseUint(action.ArgRateLimit, 10, 32)
+			multiplier = 1
+		}
+		if err != nil {
+			return fmt.Errorf("parseMatchAction: argRateLimit value %s is invalid", action.ArgRateLimit)
+		}
+		WriteSelectorUint32(k, uint32(rateLimit)*multiplier*1000)
+	}
+
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
 		WriteSelectorUint32(k, action.ArgFd)

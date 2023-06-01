@@ -219,6 +219,12 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix).
+                                  type: string
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -666,6 +672,12 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix).
+                                  type: string
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -991,6 +1003,12 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix).
+                                  type: string
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
