@@ -282,6 +282,10 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// A signal number for signal action
 	ArgSig uint32 `json:"argSig"`
+	// +kubebuilder:validation:Optional
+	// A time period within which repeated messages will not be posted. Can be specified in seconds (default or with
+	// 's' suffix), minutes ('m' suffix) or hours ('h' suffix).
+	ArgRateLimit string `json:"argRateLimit"`
 }
 
 type TracepointSpec struct {

@@ -833,6 +833,20 @@ executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
 
+All actions can be rate limited by adding the rateLimit parameter with a
+time value. This value defaults to seconds, but post-fixing 'm' or 'h' will
+cause the value to be interpreted in minutes or hours. When this parameter is
+specified for an action, that action will check if the same action has fired
+within the time window, with the same inspected arguments. (Only the first 16
+bytes of each inspected argument is used in the matching. Only supported on
+kernels v5.3 onwards.)
+
+```yaml
+matchActions:
+- action: Post
+  rateLimit: 5m
+```
+
 ##### Sigkill action
 
 `Sigkill` action terminates synchronously the process that made the call that

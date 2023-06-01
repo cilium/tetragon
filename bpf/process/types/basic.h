@@ -1434,17 +1434,126 @@ do_action_signal(int signal)
 #define do_action_signal(signal)
 #endif /* __LARGE_BPF_PROG */
 
+/* The number of bytes per argument to include in the key
+ * that we use to check for repeating data.
+ * 16 is good for IPv4 data. Should increase for IPv6.
+ * Be aware that we use (KEY_BYTES_PER_ARG - 1) as a bit
+ * mask to limit indicies to 0 - (KEY_BYTES_PER_ARG - 1)
+ * later on, so any increase needs to accommodate this
+ * restriction.
+ */
+#define KEY_BYTES_PER_ARG 16
+
+struct ratelimit_key {
+	__u64 func_id;
+	__u64 retprobe_id;
+	__u64 action;
+	__u64 tid;
+	char data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
+};
+
+struct ratelimit_value {
+	__u64 ktime;
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 32768);
+	__type(key, struct ratelimit_key);
+	__type(value, struct ratelimit_value);
+} ratelimit_map SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct ratelimit_key);
+} ratelimit_heap SEC(".maps");
+
+#ifdef __LARGE_BPF_PROG
+static inline __attribute__((always_inline)) bool
+rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
+{
+	__u64 curr_time = ktime_get_ns();
+	__u64 *last_repeat_entry;
+	struct ratelimit_key *key;
+	__u32 zero = 0;
+	__u32 index = 0;
+	__u32 key_index = 0;
+	__u64 *data64 = 0;
+	int arg_size;
+	int i;
+	__u8 *dst;
+
+	if (!ratelimit_interval)
+		return false;
+
+	key = map_lookup_elem(&ratelimit_heap, &zero);
+	if (!key)
+		return false;
+
+	key->func_id = e->func_id;
+	key->retprobe_id = e->retprobe_id;
+	key->action = e->action;
+	key->tid = e->tid;
+
+	data64 = (__u64 *)key->data;
+	for (i = 0; i < (MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG) / 8; i++)
+		data64[i] = 0;
+
+	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		if (e->argsoff[i] >= e->common.size)
+			break;
+		if (i < MAX_POSSIBLE_ARGS - 1)
+			arg_size = e->argsoff[i + 1] - e->argsoff[i];
+		else
+			arg_size = e->common.size - e->argsoff[i];
+		if (arg_size > 0) {
+			key_index = e->argsoff[i] & 16383;
+			arg_size = arg_size & (KEY_BYTES_PER_ARG - 1);
+			asm volatile("%[dst] = %[data64];\n"
+				     : [dst] "=r"(dst)
+				     : [data64] "r"(data64)
+				     :);
+			memcpy(&dst[index], &e->args[key_index], 16);
+			index += arg_size;
+		}
+	}
+
+	last_repeat_entry = map_lookup_elem(&ratelimit_map, key);
+	if (last_repeat_entry) {
+		/* ratelimit_interval is in milliseconds. */
+		if (*last_repeat_entry > curr_time - (ratelimit_interval * 1000000)) {
+			/* This event is too soon after the last matching event. */
+			return true;
+		}
+	}
+	/* As we're acting on this event, update the map with the current time. */
+	map_update_elem(&ratelimit_map, key, &curr_time, 0);
+	return false;
+}
+#endif
+
 static inline __attribute__((always_inline)) __u32
 do_action(__u32 i, struct msg_generic_kprobe *e,
 	  struct selector_action *actions, struct bpf_map_def *override_tasks)
 {
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
+	__u64 ratelimit_interval __maybe_unused = actions->act[++i];
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
 	int err = 0;
 	__u64 id;
+
+#ifdef __LARGE_BPF_PROG
+	// Only support rate limiting on later kernels
+	if (rate_limit(ratelimit_interval, e)) {
+		/* This action is rate-limited. */
+		return 0;
+	}
+#endif
 
 	switch (action) {
 	case ACTION_UNFOLLOWFD:
