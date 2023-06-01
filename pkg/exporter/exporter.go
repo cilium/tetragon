@@ -37,7 +37,6 @@ type Exporter struct {
 	encoder     ExportEncoder
 	closer      io.Closer
 	rateLimiter *ratelimit.RateLimiter
-	done        chan bool
 }
 
 func NewExporter(
@@ -48,7 +47,7 @@ func NewExporter(
 	closer io.Closer,
 	rateLimiter *ratelimit.RateLimiter,
 ) *Exporter {
-	return &Exporter{ctx, request, server, encoder, closer, rateLimiter, make(chan bool)}
+	return &Exporter{ctx, request, server, encoder, closer, rateLimiter}
 }
 
 func (e *Exporter) Start() {
@@ -60,7 +59,6 @@ func (e *Exporter) Start() {
 				logger.GetLogger().WithError(err).Error("Failed to start JSON exporter")
 			}
 		}
-		e.done <- true
 	}()
 	readyWG.Wait()
 }
