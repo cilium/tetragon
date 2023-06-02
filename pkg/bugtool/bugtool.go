@@ -17,12 +17,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"go.uber.org/multierr"
 
 	"github.com/sirupsen/logrus"
@@ -37,6 +39,7 @@ type InitInfo struct {
 	ServerAddr  string `json:"server_address"`
 	MetricsAddr string `json:"metrics_address"`
 	GopsAddr    string `json:"gops_address"`
+	MapDir      string `json:"map_dir"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -120,6 +123,14 @@ func doTarAddBuff(tarWriter *tar.Writer, fname string, buff *bytes.Buffer) error
 func (s *bugtoolInfo) tarAddBuff(tarWriter *tar.Writer, fname string, buff *bytes.Buffer) error {
 	name := filepath.Join(s.prefixDir, fname)
 	return doTarAddBuff(tarWriter, name, buff)
+}
+
+func (s *bugtoolInfo) tarAddJson(tarWriter *tar.Writer, fname string, obj interface{}) error {
+	b, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return s.tarAddBuff(tarWriter, fname, bytes.NewBuffer(b))
 }
 
 func (s *bugtoolInfo) tarAddFile(tarWriter *tar.Writer, fnameSrc string, fnameDst string) error {
@@ -214,6 +225,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addBpftoolInfo(tarWriter)
 	si.addGopsInfo(tarWriter)
 	si.execCmd(tarWriter, "tetra_tracincpolicy_list.json", "tetra", "tracingpolicy", "list", "-o", "json")
+	si.dumpPolicyFilterMap(tarWriter)
 	return nil
 }
 
@@ -464,4 +476,20 @@ func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "gops.stack", "gops", "stack", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gpos.stats", "gops", "stats", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gops.memstats", "gops", "memstats", s.info.GopsAddr)
+}
+
+func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
+	fname := path.Join(s.info.MapDir, policyfilter.MapName)
+	m, err := policyfilter.OpenMap(fname)
+	if err != nil {
+		s.multiLog.WithError(err).Warnf("failed to open policyfilter map")
+		return err
+	}
+
+	obj, err := m.Dump()
+	if err != nil {
+		s.multiLog.WithError(err).Warnf("failed to dump policyfilter map")
+		return err
+	}
+	return s.tarAddJson(tarWriter, policyfilter.MapName+".json", obj)
 }

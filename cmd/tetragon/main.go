@@ -94,6 +94,7 @@ func saveInitInfo() error {
 		MetricsAddr: option.Config.MetricsServer,
 		ServerAddr:  option.Config.ServerAddress,
 		GopsAddr:    option.Config.GopsAddr,
+		MapDir:      bpf.MapPrefixPath(),
 	}
 	return bugtool.SaveInitInfo(&info)
 }
