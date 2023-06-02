@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
+
 package podinfo
 
 import (
@@ -18,6 +19,8 @@ func getExecCommand(probe *coreV1.Probe) []string {
 	return nil
 }
 
+// Function not used
+
 func GetPodInfoOfIp(ip net.IP) *tetragon.Pod {
 	ciliumState := cilium.GetCiliumState()
 	ipcacheEntry, ok := ciliumState.GetIPCache().GetIPIdentity(ip)
@@ -31,6 +34,8 @@ func GetPodInfoOfIp(ip net.IP) *tetragon.Pod {
 		Container: nil,
 	}
 }
+
+// Function not used
 
 func GetProbes(pod *coreV1.Pod, containerStatus *coreV1.ContainerStatus) ([]string, []string) {
 	for _, container := range pod.Spec.Containers {
