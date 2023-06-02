@@ -26,13 +26,13 @@ func ParseURL(s string) (KernelURL, error) {
 	}
 
 	switch kurl.Scheme {
-	case "git":
+	case "git", "https":
 		return NewGitURL(kurl)
 
 	// NB: there are also git repos using http so we would need
 	// some detection based on the suffix, e.g., .git vs .tgz
-	case "http", "https":
-		return nil, fmt.Errorf("%s support comming soon!", kurl.Scheme)
+	case "http":
+		return nil, fmt.Errorf("%s support coming soon!", kurl.Scheme)
 
 	default:
 		return nil, fmt.Errorf("Unsupported URL: '%s'", kurl)
