@@ -593,38 +593,35 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	char *value = (char *)&filter->value;
 	long i, j = 0;
+	// arg length is 4 bytes before the value data
+	int a = *(int *)&args[value_off - 4];
 
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_STRING_VALUES; i++) {
 		__u32 length;
-		int err, a, postoff = 0;
+		int err, postoff = 0;
 
 		/* filter->vallen is pulled from user input so we also need to
 		 * ensure its bounded.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
+		j &= 0xff;
 		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0xff;\n" ::[length] "+r"(length)
-			     :);
-		// arg length is 4 bytes before the value data
-		a = *(int *)&args[value_off - 4];
+		length &= 0xff;
 		if (filter->op == op_filter_eq) {
 			if (length != a)
 				goto skip_string;
 		} else if (filter->op == op_filter_str_postfix) {
 			postoff = a - length;
-			asm volatile("%[postoff] &= 0x3f;\n" ::[postoff] "+r"(
-					     postoff)
-				     :);
+		} else {
+			/* prefix match: do nothing */
 		}
 
 		/* This is redundant, but seems we lost 'j' bounds from
 		 * above so at the moment its necessary until we improve
 		 * compiler.
 		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
+		j &= 0xff;
+		postoff &= 0x3f;
 		err = cmpbytes(&value[j + 4], &args[value_off + postoff], length);
 		if (!err)
 			return 1;
@@ -640,13 +637,14 @@ static inline __attribute__((always_inline)) long
 __filter_file_buf(char *value, char *args, __u32 op)
 {
 	int err;
-	__u64 v, a;
+	__u64 v, a, a_off;
 
 	/* filter->vallen is pulled from user input so we also need to
 	 * ensure its bounded.
 	 */
 	v = (unsigned int)value[0];
 	a = (unsigned int)args[0];
+	a_off = 4;
 	/* There are cases where file pointer may not contain a path.
 	 * An example is using an unnamed pipe. This is not a match.
 	 */
@@ -659,12 +657,13 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		if (a < v)
 			goto skip_string;
 	} else if (op == op_filter_str_postfix) {
-		err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
-		if (!err)
-			return 0;
-		goto skip_string;
+		if (a < v)
+			goto skip_string;
+		a_off += (a - v);
+		bpf_printk("a=%d v=%d", a, v);
 	}
-	err = cmpbytes(&value[4], &args[4], v);
+	a_off &= 0x7f;
+	err = cmpbytes(&value[4], &args[a_off], v);
 	if (!err)
 		return 0;
 skip_string:
@@ -1239,22 +1238,21 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 
 		switch (filter->type) {
 		case fd_ty:
-			/* Advance args past fd */
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf(filter, args);
-			break;
 		case string_type:
+		case char_buf: {
 			/* for strings, we just encode the length */
-			pass &= filter_char_buf(filter, args, 4);
-			break;
-		case char_buf:
+			int len = 4;
 			/* for buffers, we just encode the expected length and the
 			 * length that was actually read (see: __copy_char_buf)
 			 */
-			pass &= filter_char_buf(filter, args, 8);
+			if (filter->type == char_buf)
+				len = 8;
+			pass &= filter_char_buf(filter, args, len);
 			break;
+		}
 		case s64_ty:
 		case u64_ty:
 			pass &= filter_64ty(filter, args);
