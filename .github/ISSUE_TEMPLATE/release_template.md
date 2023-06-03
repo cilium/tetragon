@@ -14,6 +14,15 @@ assignees: ''
 
       export RELEASE=v0.8.1
 
+- [ ] Set `BRANCH` environment variable. For example, if you are releasing `v0.8.1`:
+
+      export BRANCH=v0.8
+
+- [ ] Check out the release branch or create it if necessary.
+
+      git checkout $BRANCH && git pull origin $BRANCH || git checkout main && \
+        git pull origin main && git checkout -b $BRANCH && git push -u origin HEAD
+
 - [ ] Open a pull request to update the Helm chart version:
 
       git checkout -b pr/prepare-$RELEASE
@@ -25,10 +34,13 @@ assignees: ''
       git commit -s -m "Prepare for $RELEASE release"
       git push origin HEAD
 
-- [ ] Once the pull request gets merged, create a tag for the release:
+- [ ] After your pull request is merged, check out the release branch again and update it.
 
-      git checkout main
-      git pull origin main
+      git checkout $BRANCH && git pull origin $BRANCH
+
+- [ ] Create a tag for the release:
+
+      git checkout $BRANCH && git pull origin $BRANCH
       git tag -a $RELEASE -m "$RELEASE release" -s
       git push origin $RELEASE
 
