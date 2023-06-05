@@ -49,6 +49,9 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
                           maxData:
                             default: false
                             description: Read maximum possible data (currently 327360).
@@ -121,6 +124,9 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
+                        label:
+                          description: Label to output in the JSON
+                          type: string
                         maxData:
                           default: false
                           description: Read maximum possible data (currently 327360).
@@ -563,6 +569,9 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
                           maxData:
                             default: false
                             description: Read maximum possible data (currently 327360).

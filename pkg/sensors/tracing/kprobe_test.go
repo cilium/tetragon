@@ -3518,6 +3518,7 @@ spec:
     args:
     - index: 1
       type: "skb"
+      label: "datagram"
     selectors:
     - matchArgs:
       - index: 1
@@ -3544,6 +3545,7 @@ spec:
     args:
     - index: 1
       type: "skb"
+      label: "datagram"
     selectors:
     - matchArgs:
       - index: 1
@@ -3577,12 +3579,14 @@ spec:
 	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
 		WithFunctionName(sm.Full("__cgroup_bpf_run_filter_skb")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSkbArg(ec.NewKprobeSkbChecker().
-					WithDaddr(sm.Full("127.0.0.1")).
-					WithDport(53).
-					WithProtocol(sm.Full("IPPROTO_UDP")),
-				),
+				ec.NewKprobeArgumentChecker().WithLabel(sm.Full("datagram")).
+					WithSkbArg(ec.NewKprobeSkbChecker().
+						WithDaddr(sm.Full("127.0.0.1")).
+						WithDport(53).
+						WithProtocol(sm.Full("IPPROTO_UDP")),
+					),
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)

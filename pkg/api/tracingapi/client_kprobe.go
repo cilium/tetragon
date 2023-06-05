@@ -55,6 +55,7 @@ type MsgGenericKprobeArgPath struct {
 	Index uint64
 	Value string
 	Flags uint32
+	Label string
 }
 
 func (m MsgGenericKprobeArgPath) GetIndex() uint64 {
@@ -69,6 +70,7 @@ type MsgGenericKprobeArgFile struct {
 	Index uint64
 	Value string
 	Flags uint32
+	Label string
 }
 
 func (m MsgGenericKprobeArgFile) GetIndex() uint64 {
@@ -82,6 +84,7 @@ func (m MsgGenericKprobeArgFile) IsReturnArg() bool {
 type MsgGenericKprobeArgString struct {
 	Index uint64
 	Value string
+	Label string
 }
 
 func (m MsgGenericKprobeArgString) GetIndex() uint64 {
@@ -96,6 +99,7 @@ type MsgGenericKprobeArgBytes struct {
 	Index    uint64
 	OrigSize uint64 // if len(Value) < OrigSize, then the result was truncated
 	Value    []byte
+	Label    string
 }
 
 func (m MsgGenericKprobeArgBytes) GetIndex() uint64 {
@@ -109,6 +113,7 @@ func (m MsgGenericKprobeArgBytes) IsReturnArg() bool {
 type MsgGenericKprobeArgInt struct {
 	Index uint64
 	Value int32
+	Label string
 }
 
 func (m MsgGenericKprobeArgInt) GetIndex() uint64 {
@@ -122,6 +127,7 @@ func (m MsgGenericKprobeArgInt) IsReturnArg() bool {
 type MsgGenericKprobeArgUInt struct {
 	Index uint64
 	Value uint32
+	Label string
 }
 
 func (m MsgGenericKprobeArgUInt) GetIndex() uint64 {
@@ -135,6 +141,7 @@ func (m MsgGenericKprobeArgUInt) IsReturnArg() bool {
 type MsgGenericKprobeArgSize struct {
 	Index uint64
 	Value uint64
+	Label string
 }
 
 func (m MsgGenericKprobeArgSize) GetIndex() uint64 {
@@ -174,6 +181,7 @@ type MsgGenericKprobeArgSock struct {
 	Daddr    string
 	Sport    uint32
 	Dport    uint32
+	Label    string
 }
 
 func (m MsgGenericKprobeArgSock) GetIndex() uint64 {
@@ -207,6 +215,7 @@ type MsgGenericKprobeArgSkb struct {
 	Proto       uint32
 	SecPathLen  uint32
 	SecPathOLen uint32
+	Label       string
 }
 
 func (m MsgGenericKprobeArgSkb) GetIndex() uint64 {
@@ -228,6 +237,7 @@ type MsgGenericKprobeArgCred struct {
 	Permitted   uint64
 	Effective   uint64
 	Inheritable uint64
+	Label       string
 }
 
 func (m MsgGenericKprobeArgCred) GetIndex() uint64 {
@@ -247,6 +257,7 @@ type MsgGenericKprobeArgCapability struct {
 	Index uint64
 	Value int32
 	Pad   int32
+	Label string
 }
 
 func (m MsgGenericKprobeArgCapability) GetIndex() uint64 {
@@ -270,6 +281,7 @@ type MsgGenericKprobeArgUserNamespace struct {
 	Owner  uint32
 	Group  uint32
 	NsInum uint32
+	Label  string
 }
 
 func (m MsgGenericKprobeArgUserNamespace) GetIndex() uint64 {
@@ -291,6 +303,7 @@ type MsgGenericKprobeArgBpfAttr struct {
 	ProgType uint32
 	InsnCnt  uint32
 	ProgName string
+	Label    string
 }
 
 func (m MsgGenericKprobeArgBpfAttr) GetIndex() uint64 {
@@ -314,6 +327,7 @@ type MsgGenericKprobeArgPerfEvent struct {
 	Type        uint32
 	Config      uint64
 	ProbeOffset uint64
+	Label       string
 }
 
 func (m MsgGenericKprobeArgPerfEvent) GetIndex() uint64 {
@@ -339,6 +353,7 @@ type MsgGenericKprobeArgBpfMap struct {
 	ValueSize  uint32
 	MaxEntries uint32
 	MapName    string
+	Label      string
 }
 
 func (m MsgGenericKprobeArgBpfMap) GetIndex() uint64 {

@@ -232,6 +232,19 @@ args:
   type: "file"
 ```
 
+Each argument can optionally include a 'label' parameter, which will be included
+in the output. This can be used to annotate the arguments to help with understanding
+and processing the output. As an example, here is the same definition, with an
+appropriate label on the int argument:
+```yaml
+args:
+- index: 0
+  type: "int"
+  label: "FD"
+- index: 1
+  type: "file"
+```
+
 To properly read and hook onto the `fd_install(unsigned int fd, struct file
 *file)` function, the YAML snippet above tells the BPF code that the first
 argument is an `int` and the second argument is a `file`, which is the
