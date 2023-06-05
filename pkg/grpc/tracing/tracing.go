@@ -81,12 +81,16 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		switch e := arg.(type) {
 		case api.MsgGenericKprobeArgInt:
 			a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgUInt:
 			a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgSize:
 			a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgString:
 			a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgSock:
 			sockArg := &tetragon.KprobeSock{
 				Family:   network.InetFamily(e.Family),
@@ -100,6 +104,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				Dport:    e.Dport,
 			}
 			a.Arg = &tetragon.KprobeArgument_SockArg{SockArg: sockArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgSkb:
 			skbArg := &tetragon.KprobeSkb{
 				Hash:        e.Hash,
@@ -116,6 +121,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				SecPathOlen: e.SecPathOLen,
 			}
 			a.Arg = &tetragon.KprobeArgument_SkbArg{SkbArg: skbArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgCred:
 			capsArg := &tetragon.KprobeCred{
 				Permitted:   caps.GetCapabilitiesTypes(e.Permitted),
@@ -123,6 +129,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				Inheritable: caps.GetCapabilitiesTypes(e.Inheritable),
 			}
 			a.Arg = &tetragon.KprobeArgument_CredArg{CredArg: capsArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgBytes:
 			if e.OrigSize > uint64(len(e.Value)) {
 				a.Arg = &tetragon.KprobeArgument_TruncatedBytesArg{
@@ -134,18 +141,21 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			} else {
 				a.Arg = &tetragon.KprobeArgument_BytesArg{BytesArg: e.Value}
 			}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgFile:
 			fileArg := &tetragon.KprobeFile{
 				Path:  e.Value,
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
 			a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgPath:
 			pathArg := &tetragon.KprobePath{
 				Path:  e.Value,
 				Flags: path.FilePathFlagsToStr(e.Flags),
 			}
 			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgBpfAttr:
 			bpfAttrArg := &tetragon.KprobeBpfAttr{
 				ProgType: bpf.GetProgType(e.ProgType),
@@ -153,6 +163,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				ProgName: e.ProgName,
 			}
 			a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgPerfEvent:
 			perfEventArg := &tetragon.KprobePerfEvent{
 				KprobeFunc:  e.KprobeFunc,
@@ -161,6 +172,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				ProbeOffset: e.ProbeOffset,
 			}
 			a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgBpfMap:
 			bpfMapArg := &tetragon.KprobeBpfMap{
 				MapType:    bpf.GetBpfMapType(e.MapType),
@@ -170,6 +182,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				MapName:    e.MapName,
 			}
 			a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgUserNamespace:
 			nsArg := &tetragon.KprobeUserNamespace{
 				Level: &wrapperspb.Int32Value{Value: e.Level},
@@ -183,12 +196,14 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				nsArg.Ns.IsHost = true
 			}
 			a.Arg = &tetragon.KprobeArgument_UserNamespaceArg{UserNamespaceArg: nsArg}
+			a.Label = e.Label
 		case api.MsgGenericKprobeArgCapability:
 			cArg := &tetragon.KprobeCapability{
 				Value: &wrapperspb.Int32Value{Value: e.Value},
 			}
 			cArg.Name, _ = caps.GetCapability(e.Value)
 			a.Arg = &tetragon.KprobeArgument_CapabilityArg{CapabilityArg: cArg}
+			a.Label = e.Label
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}

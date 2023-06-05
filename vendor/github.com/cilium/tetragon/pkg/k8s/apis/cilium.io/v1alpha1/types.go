@@ -152,6 +152,9 @@ type KProbeArg struct {
 	// will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
 	// supports fetching up to 327360 bytes if this flag is turned on
 	MaxData bool `json:"maxData"`
+	// +kubebuilder:validation:Optional
+	// Label to output in the JSON
+	Label string `json:"label"`
 }
 
 type BinarySelector struct {

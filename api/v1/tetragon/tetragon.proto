@@ -330,6 +330,7 @@ message KprobeArgument {
 	KprobeUserNamespace user_namespace_arg = 16;
 	KprobeCapability capability_arg = 17;
     }
+    string label = 18;
 }
 
 enum KprobeAction {
