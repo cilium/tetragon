@@ -23,3 +23,6 @@ spec:
           operator: "Protocol"
           values:
           - "IPPROTO_UDP"
+        matchActions:
+        - action: Post
+          rateLimit: 5

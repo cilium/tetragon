@@ -285,7 +285,7 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be specified in seconds (default or with
 	// 's' suffix), minutes ('m' suffix) or hours ('h' suffix).
-	ArgRateLimit string `json:"argRateLimit"`
+	RateLimit string `json:"rateLimit"`
 }
 
 type TracepointSpec struct {
