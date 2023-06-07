@@ -517,15 +517,15 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	}
 	WriteSelectorUint32(k, act)
 
-	// User specifies argRateLimit in seconds, minutes or hours, but we store it in milliseconds.
-	if len(action.ArgRateLimit) == 0 {
+	// User specifies rateLimit in seconds, minutes or hours, but we store it in milliseconds.
+	if len(action.RateLimit) == 0 {
 		WriteSelectorUint32(k, 0)
 	} else {
 		if !kernels.EnableLargeProgs() {
-			return fmt.Errorf("parseMatchAction: argRateLimit is only available on kernel v5.3 onwards")
+			return fmt.Errorf("parseMatchAction: rateLimit is only available on kernel v5.3 onwards")
 		}
 		multiplier := uint32(0)
-		switch action.ArgRateLimit[len(action.ArgRateLimit)-1] {
+		switch action.RateLimit[len(action.RateLimit)-1] {
 		case 's', 'S':
 			multiplier = 1
 		case 'm', 'M':
@@ -536,18 +536,22 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		var rateLimit uint64
 		var err error
 		if multiplier != 0 {
-			if len(action.ArgRateLimit) == 1 {
-				return fmt.Errorf("parseMatchAction: argRateLimit value %s is invalid", action.ArgRateLimit)
+			if len(action.RateLimit) == 1 {
+				return fmt.Errorf("parseMatchAction: rateLimit value %s is invalid", action.RateLimit)
 			}
-			rateLimit, err = strconv.ParseUint(action.ArgRateLimit[:len(action.ArgRateLimit)-1], 10, 32)
+			rateLimit, err = strconv.ParseUint(action.RateLimit[:len(action.RateLimit)-1], 10, 32)
 		} else {
-			rateLimit, err = strconv.ParseUint(action.ArgRateLimit, 10, 32)
+			rateLimit, err = strconv.ParseUint(action.RateLimit, 10, 32)
 			multiplier = 1
 		}
 		if err != nil {
-			return fmt.Errorf("parseMatchAction: argRateLimit value %s is invalid", action.ArgRateLimit)
+			return fmt.Errorf("parseMatchAction: rateLimit value %s is invalid", action.RateLimit)
 		}
-		WriteSelectorUint32(k, uint32(rateLimit)*multiplier*1000)
+		rateLimit = rateLimit * uint64(multiplier) * 1000
+		if rateLimit > 0xffffffff {
+			rateLimit = 0xffffffff
+		}
+		WriteSelectorUint32(k, uint32(rateLimit))
 	}
 
 	switch act {
