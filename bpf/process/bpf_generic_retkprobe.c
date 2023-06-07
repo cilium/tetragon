@@ -59,6 +59,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	long total = 0;
 	long size = 0;
 	long ty_arg, do_copy;
+	__u64 pid_tgid;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -72,7 +73,8 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	e->func_id = config->func_id;
 	e->retprobe_id = retprobe_map_get_key(ctx);
-	e->tid = (__u32)get_current_pid_tgid();
+	pid_tgid = get_current_pid_tgid();
+	e->tid = (__u32)pid_tgid;
 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
@@ -82,8 +84,19 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
-	if (ty_arg)
+	if (ty_arg) {
 		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap_ptr);
+#ifdef __LARGE_BPF_PROG
+		switch (config->argreturnaction) {
+		case ACTION_TRACKSOCK:
+			map_update_elem(&socktrack_map, &ret, &pid_tgid, BPF_ANY);
+			break;
+		case ACTION_UNTRACKSOCK:
+			map_delete_elem(&socktrack_map, &ret);
+			break;
+		}
+#endif
+	}
 
 	/*
 	 * 0x1000 should be maximum argument length, so masking

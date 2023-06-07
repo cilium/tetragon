@@ -501,6 +501,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | daddr | [string](#string) |  |  |
 | sport | [uint32](#uint32) |  |  |
 | dport | [uint32](#uint32) |  |  |
+| cookie | [uint64](#uint64) |  |  |
 
 
 

@@ -333,6 +333,62 @@ The `maxData` flag does not work with `returnCopy` flag at the moment, so it's
 usable only for syscalls/functions that do not require return probe to read the
 data.
 
+### Return Values
+
+A `TracingPolicy` can specify that the return value should be reported in the
+tracing output. To do this, the `return` parameter of the call needs to be set to
+`true`, and the `returnArg` parameter needs to be set to specify the `type` of the
+return argument. For example:
+
+```yaml
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+      - index: 1
+        type: int
+        label: "family"
+    returnArg:
+      type: sock
+```
+
+In this case, the `sk_alloc` hook is specified to return a value of type `sock`
+(a pointer to a `struct sock`). Whenever the `sk_alloc` hook is hit, not only
+will it report the `family` parameter in index 1, it will also report the socket
+that was created.
+
+#### Return Values Socket Tracking
+
+A unique feature of a `sock` being returned from a hook such as `sk_alloc` is that
+the socket it refers to can be tracked. Most networking hooks in the network stack
+are run in a context that is not that of the process that owns the socket for which
+the actions relate; this is because networking happens asynchronously and not
+entirely in-line with the process. The `sk_alloc` hook does, however, occur in the
+context of the process, such that the task, the PID, and the TGID are of the process
+that requested that the socket was created.
+
+Specifying socket tracking tells Tetragon to store a mapping between the socket
+and the process' PID and TGID; and to use that mapping when it sees the socket in a
+`sock` argument in another hook to replace the PID and TGID of the context with the
+process that actually owns the socket. This can be done by adding a `returnArgAction`
+to the call. Available actions are `TrackSock` and `UntrackSock`.
+See [`TrackSock`](#tracksock-action) and [`UntrackSock`](#untracksock-action).
+
+```yaml
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+      - index: 1
+        type: int
+        label: "family"
+    returnArg:
+      type: sock
+    returnArgAction: TrackSock
+```
+
+Socket tracking is only available on kernels >=5.3.
+
 ### Selectors
 
 A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
@@ -826,9 +882,12 @@ matches. They are defined under `matchActions` and currently, the following
 - [DnsLookup action](#dnslookup-action)
 - [Post action](#post-action)
 - [NoPost action](#nopost-action)
+- [TrackSock action](#tracksock-action)
+- [UntrackSock action](#untracksock-action)
 
 {{< note >}}
-`Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD` and `Post` are
+`Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
+`TrackSock` and `UntrackSock` are
 executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
@@ -1152,6 +1211,61 @@ generate any event about that.
       argError: -2
     - action: NoPost
 ```
+
+##### TrackSock action
+
+The `TrackSock` action allows to create a mapping using a BPF map between sockets
+and processes. It however needs to maintain a state
+correctly, see [`UntrackSock`](#untracksock-action) related action. `TrackSock`
+works similarly to `FollowFD`, specifying the argument with the `sock` type using
+`argSock` instead of specifying the FD argument with `argFd`.
+
+It is however more likely that socket tracking will be performed on the return
+value of `sk_alloc` as described above.
+
+Socket tracking is only available on kernel >=5.3.
+
+##### UntrackSock action
+
+The `UntrackSock` action takes a struct sock pointer from a function call and deletes
+the corresponding entry from the BPF map, where it was put under the `TrackSock`
+action.
+
+Let's take a look at the following example:
+```yaml
+- call: "__sk_free"
+  syscall: false
+  args:
+    - index: 0
+      type: sock
+  selectors:
+    - matchActions:
+      - action: UntrackSock
+        argSock: 0
+```
+
+Similar to the `TrackSock` action, the index of the sock is described under `argSock`:
+```yaml
+- matchActions:
+  - action: UntrackSock
+    argSock: 0
+```
+
+In this example, `argSock` is 0. So, the argument from the `__sk_free` function
+call at `index: 0` will be deleted from the BPF map whenever a `__sk_free` is
+executed.
+```yaml
+- index: 0
+  type: "sock"
+```
+
+{{< caution >}}
+Whenever we would like to track a socket with a `TrackSock` block,
+there should be a matching `UntrackSock` block, otherwise the BPF map will be
+broken.
+{{< /caution >}}
+
+Socket tracking is only available on kernel >=5.3.
 
 ### Selector Semantics
 

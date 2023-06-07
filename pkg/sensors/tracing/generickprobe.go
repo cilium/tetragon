@@ -241,6 +241,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
 	maps = append(maps, selNamesMap)
 
+	if kernels.EnableLargeProgs() {
+		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
+		maps = append(maps, socktrack)
+	}
+
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
@@ -378,6 +383,15 @@ func createGenericKprobeSensor(
 
 		config := &api.EventConfig{}
 		config.PolicyID = uint32(policyID)
+		if len(f.ReturnArgAction) > 0 {
+			if !kernels.EnableLargeProgs() {
+				return nil, fmt.Errorf("ReturnArgAction requires kernel >=5.3")
+			}
+			config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
+			if config.ArgReturnAction == selectors.ActionTypeInvalid {
+				return nil, fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction)
+			}
+		}
 
 		argRetprobe = nil // holds pointer to arg for return handler
 		funcName := f.Call
@@ -585,6 +599,11 @@ func createGenericKprobeSensor(
 		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
 		maps = append(maps, selNamesMap)
 
+		if kernels.EnableLargeProgs() {
+			socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
+			maps = append(maps, socktrack)
+		}
+
 		if setRetprobe {
 			pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
 			loadret := program.Builder(
@@ -604,8 +623,11 @@ func createGenericKprobeSensor(
 			maps = append(maps, retConfigMap)
 
 			// add maps with non-default paths (pins) to the retprobe
-			program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+			program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
 			program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
+			if kernels.EnableLargeProgs() {
+				program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
+			}
 		}
 
 		logger.GetLogger().WithField("flags", flagsString(config.Flags)).
@@ -1075,6 +1097,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Daddr = network.GetIP(sock.Tuple.Daddr).String()
 			arg.Sport = uint32(sock.Tuple.Sport)
 			arg.Dport = uint32(sock.Tuple.Dport)
+			arg.Sockaddr = sock.Sockaddr
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericSizeType, gt.GenericU64Type:
