@@ -13,8 +13,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-20.04, buildjet-2vcpu-ubuntu-2204-arm ]
     steps:
     - name: Checkout code
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -37,6 +38,8 @@ jobs:
         echo `which llc`
         echo `clang --version`
 
+    - name: Install bpftool
+      uses: mtardy/setup-bpftool@0ddbda441f5986a9ad1886a922fcb789625cde52 # v1.0.0
 
     - name: Ensure BPF programs pass verifier
       run: |
@@ -45,7 +48,7 @@ jobs:
 
     - name: Run go tests
       env:
-        GOPATH: /home/runner/work/tetragon/tetragon/go
+        GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
         SUDO: sudo -E
       run: |
         cd go/src/github.com/cilium/tetragon/
