@@ -19,42 +19,49 @@ import (
 )
 
 const (
-	ActionTypePost       = 0
-	ActionTypeFollowFd   = 1
-	ActionTypeSigKill    = 2
-	ActionTypeUnfollowFd = 3
-	ActionTypeOverride   = 4
-	ActionTypeCopyFd     = 5
-	ActionTypeGetUrl     = 6
-	ActionTypeDnsLookup  = 7
-	ActionTypeNoPost     = 8
-	ActionTypeSignal     = 9
+	ActionTypeInvalid     = -1
+	ActionTypePost        = 0
+	ActionTypeFollowFd    = 1
+	ActionTypeSigKill     = 2
+	ActionTypeUnfollowFd  = 3
+	ActionTypeOverride    = 4
+	ActionTypeCopyFd      = 5
+	ActionTypeGetUrl      = 6
+	ActionTypeDnsLookup   = 7
+	ActionTypeNoPost      = 8
+	ActionTypeSignal      = 9
+	ActionTypeTrackSock   = 10
+	ActionTypeUntrackSock = 11
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":       ActionTypePost,
-	"followfd":   ActionTypeFollowFd,
-	"unfollowfd": ActionTypeUnfollowFd,
-	"sigkill":    ActionTypeSigKill,
-	"override":   ActionTypeOverride,
-	"copyfd":     ActionTypeCopyFd,
-	"geturl":     ActionTypeGetUrl,
-	"dnslookup":  ActionTypeDnsLookup,
-	"nopost":     ActionTypeNoPost,
-	"signal":     ActionTypeSignal,
+	"post":        ActionTypePost,
+	"followfd":    ActionTypeFollowFd,
+	"unfollowfd":  ActionTypeUnfollowFd,
+	"sigkill":     ActionTypeSigKill,
+	"override":    ActionTypeOverride,
+	"copyfd":      ActionTypeCopyFd,
+	"geturl":      ActionTypeGetUrl,
+	"dnslookup":   ActionTypeDnsLookup,
+	"nopost":      ActionTypeNoPost,
+	"signal":      ActionTypeSignal,
+	"tracksock":   ActionTypeTrackSock,
+	"untracksock": ActionTypeUntrackSock,
 }
 
 var actionTypeStringTable = map[uint32]string{
-	ActionTypePost:       "post",
-	ActionTypeFollowFd:   "followfd",
-	ActionTypeUnfollowFd: "unfollowfd",
-	ActionTypeSigKill:    "sigkill",
-	ActionTypeOverride:   "override",
-	ActionTypeCopyFd:     "copyfd",
-	ActionTypeGetUrl:     "geturl",
-	ActionTypeDnsLookup:  "dnslookup",
-	ActionTypeNoPost:     "nopost",
-	ActionTypeSignal:     "signal",
+	ActionTypePost:        "post",
+	ActionTypeFollowFd:    "followfd",
+	ActionTypeUnfollowFd:  "unfollowfd",
+	ActionTypeSigKill:     "sigkill",
+	ActionTypeOverride:    "override",
+	ActionTypeCopyFd:      "copyfd",
+	ActionTypeGetUrl:      "geturl",
+	ActionTypeDnsLookup:   "dnslookup",
+	ActionTypeNoPost:      "nopost",
+	ActionTypeSignal:      "signal",
+	ActionTypeTrackSock:   "tracksock",
+	ActionTypeUntrackSock: "untracksock",
 }
 
 // Action argument table entry (for URL and FQDN arguments)
@@ -316,6 +323,14 @@ func ArgTypeToString(t uint32) string {
 	return argTypeStringTable[t]
 }
 
+func ActionTypeFromString(action string) int32 {
+	act, ok := actionTypeTable[strings.ToLower(action)]
+	if !ok {
+		return ActionTypeInvalid
+	}
+	return int32(act)
+}
+
 func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, error) {
 	for _, s := range sig {
 		if arg.Index == s.Index {
@@ -574,6 +589,8 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(k, uint32(actionArg.tableId.ID))
 	case ActionTypeSignal:
 		WriteSelectorUint32(k, action.ArgSig)
+	case ActionTypeTrackSock, ActionTypeUntrackSock:
+		WriteSelectorUint32(k, action.ArgSock)
 	}
 	return nil
 }

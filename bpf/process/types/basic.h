@@ -76,6 +76,8 @@ enum {
 	ACTION_DNSLOOKUP = 7,
 	ACTION_NOPOST = 8,
 	ACTION_SIGNAL = 9,
+	ACTION_TRACKSOCK = 10,
+	ACTION_UNTRACKSOCK = 11,
 };
 
 enum {
@@ -122,6 +124,10 @@ struct event_config {
 	__u32 syscall;
 	__s32 argreturncopy;
 	__s32 argreturn;
+	/* arg return action specifies to act on the return value; currently
+	 * supported actions include: TrackSock and UntrackSock.
+	 */
+	__u32 argreturnaction;
 	/* policy id identifies the policy of this generic hook and is used to
 	 * apply policies only on certain processes. A value of 0 indicates
 	 * that the hook always applies and no check will be performed.
@@ -1534,6 +1540,86 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 }
 #endif
 
+#ifdef __LARGE_BPF_PROG
+// socktrack_map maintains a mapping of sock to pid_tgid
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 32000);
+	__type(key, __u64);
+	__type(value, __u64);
+} socktrack_map SEC(".maps");
+
+static inline __attribute__((always_inline)) int
+tracksock(struct msg_generic_kprobe *e, int socki, bool track)
+{
+	long sockoff;
+	int err = 0;
+	__u64 sockaddr;
+	__u64 pid_tgid;
+	struct sk_type *skt;
+
+	/* Satisfies verifier but is a bit ugly, ideally we
+	 * can just '&' and drop the '>' case.
+	 */
+	asm volatile("%[socki] &= 0xf;\n"
+		     : [socki] "+r"(socki)
+		     :);
+	if (socki > 5)
+		return 0;
+
+	sockoff = e->argsoff[socki];
+	asm volatile("%[sockoff] &= 0x7ff;\n"
+		     : [sockoff] "+r"(sockoff)
+		     :);
+	skt = (struct sk_type *)&e->args[sockoff];
+	sockaddr = skt->sockaddr;
+	pid_tgid = get_current_pid_tgid();
+
+	if (track)
+		map_update_elem(&socktrack_map, &sockaddr, &pid_tgid, BPF_ANY);
+	else
+		err = map_delete_elem(&socktrack_map, &sockaddr);
+
+	return err;
+}
+
+/* update_pid_tid_from_sock(e, sock)
+ *
+ * Look up the socket in the map and populate the pid and tid.
+ */
+static inline __attribute__((unused)) void
+update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
+{
+	__u64 *pid_tgid;
+	__u32 pid;
+	struct execve_map_value *value;
+
+	pid_tgid = map_lookup_elem(&socktrack_map, &sockaddr);
+	if (!pid_tgid)
+		return;
+
+	pid = (*pid_tgid) >> 32;
+	value = execve_map_get_noinit(pid);
+	if (!value)
+		return;
+
+	e->current.pid = value->key.pid;
+	e->current.ktime = value->key.ktime;
+	e->tid = (__u32)(*pid_tgid);
+}
+#else
+static inline __attribute__((always_inline)) int
+tracksock(struct msg_generic_kprobe *e, int socki, bool track)
+{
+	return 0;
+}
+
+static inline __attribute__((unused)) void
+update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
+{
+}
+#endif
+
 static inline __attribute__((always_inline)) __u32
 do_action(__u32 i, struct msg_generic_kprobe *e,
 	  struct selector_action *actions, struct bpf_map_def *override_tasks)
@@ -1544,6 +1630,7 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
+	int socki;
 	int err = 0;
 	__u64 id;
 
@@ -1593,6 +1680,11 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 	case ACTION_DNSLOOKUP:
 		/* Set the URL or DNS action */
 		e->action_arg_id = actions->act[++i];
+		break;
+	case ACTION_TRACKSOCK:
+	case ACTION_UNTRACKSOCK:
+		socki = actions->act[++i];
+		err = tracksock(e, socki, action == ACTION_TRACKSOCK);
 		break;
 	default:
 		break;
@@ -1865,6 +1957,8 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		break;
 	case sock_type:
 		size = copy_sock(args, arg);
+		// Look up socket in our sock->pid_tgid map
+		update_pid_tid_from_sock(e, arg);
 		break;
 	case cred_type:
 		size = copy_cred(args, arg);

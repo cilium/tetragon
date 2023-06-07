@@ -93,6 +93,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgSock:
 			sockArg := &tetragon.KprobeSock{
+				Cookie:   e.Sockaddr,
 				Family:   network.InetFamily(e.Family),
 				Type:     network.InetType(e.Type),
 				Protocol: network.InetProtocol(e.Protocol),

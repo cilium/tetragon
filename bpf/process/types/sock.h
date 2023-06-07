@@ -6,8 +6,12 @@
 
 #include "tuple.h"
 
+// The sockaddr field is specifically a __u64 to deter from trying to dereference it.
+// If an application needs more fields from the sock then they should be added to
+// sk_type and copied with set_event_from_sock().
 struct sk_type {
 	struct tuple_type tuple;
+	__u64 sockaddr;
 	__u32 mark;
 	__u32 priority;
 	__u16 family;
@@ -23,6 +27,8 @@ static inline __attribute__((unused)) void
 set_event_from_sock(struct sk_type *event, struct sock *sk)
 {
 	struct sock_common *common = (struct sock_common *)sk;
+
+	event->sockaddr = (__u64)sk;
 
 	event->family = 0;
 

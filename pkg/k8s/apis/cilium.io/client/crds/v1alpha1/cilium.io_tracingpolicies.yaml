@@ -181,6 +181,13 @@ spec:
                       - index
                       - type
                       type: object
+                    returnArgAction:
+                      description: An action to perform on the return argument.
+                      enum:
+                      - Post
+                      - TrackSock
+                      - UntrackSock
+                      type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
                         Selectors are ORed.
@@ -206,6 +213,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -227,6 +236,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
@@ -503,6 +517,7 @@ spec:
                       type: boolean
                   required:
                   - call
+                  - returnArgAction
                   type: object
                 type: array
               loader:
@@ -662,6 +677,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -683,6 +700,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
@@ -993,6 +1015,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1014,6 +1038,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
