@@ -5,11 +5,11 @@ RUN apt-get install -y linux-libc-dev
 COPY . ./
 RUN make tetragon-bpf LOCAL_CLANG=1
 
-FROM quay.io/cilium/cilium-bpftool AS bpftool
+FROM quay.io/cilium/cilium-bpftool@sha256:1832b32d118e7006ea2ce530b14ae5b28acd55fa15d8ab270f354736ae4f77e9 AS bpftool
 COPY . ./
 
 
-FROM golang:1.20.4
+FROM golang:1.20.4@sha256:690e4135bf2a4571a572bfd5ddfa806b1cb9c3dea0446ebadaf32bc2ea09d4f9
 RUN apt-get update -y &&    \
     apt-get upgrade -y &&   \
     apt-get install -y      \
