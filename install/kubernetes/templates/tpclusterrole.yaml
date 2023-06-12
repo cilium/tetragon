@@ -1,0 +1,43 @@
+{{- if .Values.serviceAccount.create }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{.Chart.Name}}-pod-controller-role
+  labels:
+  {{- include "tetragonPod-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - cilium.io
+    resources:
+      - tetragonpods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - cilium.io
+    resources:
+      - tetragonpods/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - cilium.io
+    resources:
+      - tetragonpods/status
+    verbs:
+      - get
+      - patch
+      - update
+{{- end }}

@@ -44,11 +44,14 @@ func initializeFlags() {
 
 	flags.String(operatorOption.KubeCfgPath, "", "Kubeconfig filepath to connect to k8s")
 
+	flags.Bool(operatorOption.SkipTetragonPodCRD, false, "When true, TetragonPod Custom Resource Definition (CRD) will not be created")
+
 	viper.BindPFlags(flags)
 }
 
-// Populate sets all options with the values from viper.
+// configPopulate sets all options with the values from viper.
 func configPopulate() {
 	operatorOption.Config.SkipCRDCreation = viper.GetBool(operatorOption.SkipCRDCreation)
 	operatorOption.Config.KubeCfgPath = viper.GetString(operatorOption.KubeCfgPath)
+	operatorOption.Config.SkipTetragonPodCRD = viper.GetBool(operatorOption.SkipTetragonPodCRD)
 }

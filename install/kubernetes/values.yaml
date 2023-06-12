@@ -148,6 +148,13 @@ tetragon:
   enablePolicyFilterDebug: false
   # Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
+tetragonPod:
+  enabled: false
+  # -- tetragon-operator image.
+  image:
+    override: ~
+    repository: quay.io/cilium/tetragon-operator
+    tag: v0.8.3
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true
@@ -158,6 +165,7 @@ tetragonOperator:
     tag: v0.10.0
     # tetragon-operator image-digest
     suffix: ""
+  skipTetragonPodCRD: false
 export:
   # "stdout". "" to disable.
   mode: "stdout"

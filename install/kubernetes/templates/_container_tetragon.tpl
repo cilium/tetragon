@@ -82,5 +82,7 @@
 - name: {{ include "container.tetragon.name" . }}-operator
   image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
   imagePullPolicy: {{ .Values.imagePullPolicy }}
+  args:
+    - "--skip-tetragon-pod-crd={{ .Values.tetragonOperator.skipTetragonPodCRD }}"
 {{- end }}
 {{- end -}}

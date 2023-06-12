@@ -44,6 +44,7 @@ rules:
     resourceNames:
       - tracingpolicies.cilium.io
       - tracingpoliciesnamespaced.cilium.io
+      - tetragonpods.cilium.io
     verbs:
       - update
       - get
