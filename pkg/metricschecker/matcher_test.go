@@ -97,6 +97,42 @@ func TestNumericMatchersInt32(t *testing.T) {
 			val:         12,
 			expectedErr: true,
 		},
+		{
+			name:        "equalGood",
+			matcher:     metricschecker.Equal[int32](13),
+			val:         13,
+			expectedErr: false,
+		},
+		{
+			name:        "equalBad",
+			matcher:     metricschecker.Equal[int32](13),
+			val:         12,
+			expectedErr: true,
+		},
+		{
+			name:        "rangeGood1",
+			matcher:     metricschecker.Range[int32](0, 13),
+			val:         12,
+			expectedErr: false,
+		},
+		{
+			name:        "rangeGood2",
+			matcher:     metricschecker.Range[int32](0, 13),
+			val:         0,
+			expectedErr: false,
+		},
+		{
+			name:        "rangeBad1",
+			matcher:     metricschecker.Range[int32](0, 13),
+			val:         13,
+			expectedErr: true,
+		},
+		{
+			name:        "rangeBad2",
+			matcher:     metricschecker.Range[int32](0, 13),
+			val:         14,
+			expectedErr: true,
+		},
 	}
 
 	for _, tc := range testCases {
