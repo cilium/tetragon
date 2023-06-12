@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - cilium.io.tetragon.cilium.io
+  resources:
+  - podinfoes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cilium.io.tetragon.cilium.io
+  resources:
+  - podinfoes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cilium.io.tetragon.cilium.io
+  resources:
+  - podinfoes/status
+  verbs:
+  - get
+  - patch
+  - update

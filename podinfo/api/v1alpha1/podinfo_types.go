@@ -35,7 +35,6 @@ type PodInfoSpec struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 
 // PodInfo is the Schema for the podinfoes API
 type PodInfo struct {
