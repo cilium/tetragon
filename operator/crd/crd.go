@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/version"
 	version2 "github.com/cilium/tetragon/pkg/version"
+	tetragonClient "github.com/cilium/tetragon/tetragonpod/api/v1alpha1/client"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
@@ -57,6 +58,13 @@ func RegisterCRDs() {
 	if !option.Config.SkipCRDCreation {
 		if err := client.RegisterCRDs(k8sAPIExtClient); err != nil {
 			log.WithError(err).Fatal("Unable to register CRDs")
+		}
+		if !option.Config.SkipTetragonPodCRD {
+			log.Info("Registering the TetragonPod CRD")
+			// Register TetragonPod CRD
+			if err := tetragonClient.RegisterCRD(k8sAPIExtClient); err != nil {
+				log.WithError(err).Fatal("Unable to register TetragonPod CRDs")
+			}
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")
