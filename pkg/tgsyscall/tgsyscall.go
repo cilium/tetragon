@@ -26,4 +26,5 @@ const (
 	SIGRTMIN    = syscall.Signal(0x22) // SIGRTMIN
 	SIGRTMIN_20 = SIGRTMIN + 20        // SIGRTMIN+20 used to set log level to debug
 	SIGRTMIN_21 = SIGRTMIN + 21        // SIGRTMIN+21 used to set log level to trace
+	SIGRTMIN_22 = SIGRTMIN + 22        // SIGRTMIN+22 restore original configured log level
 )
