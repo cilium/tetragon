@@ -7,4 +7,14 @@ layout:
 - go.kubebuilder.io/v4
 projectName: podinfo
 repo: github.com/cilium/tetragon
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tetragon.cilium.io
+  group: cilium.io
+  kind: PodInfo
+  path: github.com/cilium/tetragon/api/v1alpha1
+  version: v1alpha1
 version: "3"
