@@ -20,9 +20,10 @@ import (
 	"path/filepath"
 
 	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
+	ciliumClient "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/version"
+	tetragonClient "github.com/cilium/tetragon/tetragonpod/api/v1alpha1/client"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -53,6 +54,7 @@ var (
 	}
 )
 
+// getConfig is used to get the Kubernetes Config file
 func getConfig() (*rest.Config, error) {
 	if operatorOption.Config.KubeCfgPath != "" {
 		return clientcmd.BuildConfigFromFlags("", operatorOption.Config.KubeCfgPath)
@@ -94,8 +96,19 @@ func operatorExecute() {
 	// Register the CRDs after validating that we are running on a supported
 	// version of K8s.
 	if !operatorOption.Config.SkipCRDCreation {
-		if err := client.RegisterCRDs(k8sAPIExtClient); err != nil {
+
+		log.Info("Registering the CRDs")
+		// Register Tracing Policy CRD
+		if err := ciliumClient.RegisterCRDs(k8sAPIExtClient); err != nil {
 			log.WithError(err).Fatal("Unable to register CRDs")
+		}
+
+		if !operatorOption.Config.SkipTetragonPodCRD {
+			log.Info("Registering the TetragonPod CRD")
+			// Register TetragonPod CRD
+			if err := tetragonClient.RegisterCRD(k8sAPIExtClient); err != nil {
+				log.WithError(err).Fatal("Unable to register TetragonPod CRDs")
+			}
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")
