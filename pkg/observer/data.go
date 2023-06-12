@@ -57,19 +57,19 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 func DataGet(id dataapi.DataEventId) ([]byte, error) {
 	data, ok := dataMap.Get(id)
 	if !ok {
-	        DataEventMetricInc(EventNotMatched, "HandleData")
+	        DataEventMetricInc(EventNotMatched)
 		return nil, fmt.Errorf("failed to find data for id: %v", id)
 	}
 
 	dataMap.Remove(id)
-	DataEventMetricInc(EventMatched, "HandleData")
+	DataEventMetricInc(EventMatched)
 	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", id, len(data))
 	return data, nil
 }
 
 func HandleData(r *bytes.Reader) ([]Event, error) {
 	m := dataapi.MsgData{}
-	DataEventMetricInc(EventReceived, "HandleData")
+	DataEventMetricInc(EventReceived)
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read data msg")
