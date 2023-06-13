@@ -78,11 +78,27 @@ func createContainerHook(log_ *logrus.Logger) {
 	rootDir, err := os.Getwd()
 	var configName string
 	if err != nil {
-		log.Warnf("failed to retrieve CWD: %s", err)
-		configName = "./../config.json"
-	} else {
-		// Use full path for config.json for better log messages
-		configName = filepath.Join(rootDir, "..", "config.json")
+		log.Warnf("failed to retrieve CWD: %s, using '.'", err)
+		rootDir = "."
+	}
+
+	configPaths := []string{
+		"../config.json",          // containerd
+		"../userdata/config.json", // cri-o
+	}
+
+	configName = ""
+	for _, path := range configPaths {
+		p := filepath.Join(rootDir, path)
+		if _, err := os.Stat(p); err == nil {
+			configName = p
+			break
+		}
+	}
+
+	if configName == "" {
+		log.Warnf("failed to find spec file. Tried the following dirs: %v", configPaths)
+		return
 	}
 
 	// We use the cgroup name to determine the containerID
