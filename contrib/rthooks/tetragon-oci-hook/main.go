@@ -10,6 +10,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -25,9 +26,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	logfname     = "/var/log/tetragon-oci-hook.log"
-	agentAddress = "unix:///var/run/cilium/tetragon/tetragon.sock"
+var (
+	logFname     = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
+	agentAddress = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
+	grpcTimeout  = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
 )
 
 func readJsonSpec(fname string) (*specs.Spec, error) {
@@ -53,11 +55,11 @@ func hookRequest(req *tetragon.RuntimeHookRequest) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, 10*time.Second)
+	connCtx, connCancel := context.WithTimeout(ctx, *grpcTimeout)
 	defer connCancel()
-	conn, err := grpc.DialContext(connCtx, agentAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(connCtx, *agentAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		return fmt.Errorf("connecting to agent (%s) failed: %s", err, agentAddress)
+		return fmt.Errorf("connecting to agent (%s) failed: %s", err, *agentAddress)
 	}
 	defer conn.Close()
 
@@ -120,20 +122,23 @@ func createContainerHook(log_ *logrus.Logger) {
 }
 
 func main() {
+	flag.Parse()
+
 	log := logrus.New()
 	log.SetOutput(&lumberjack.Logger{
-		Filename:   logfname,
+		Filename:   *logFname,
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,
 		MaxAge:     7, //days
 	})
 
-	if len(os.Args) < 2 {
-		log.Warn("hook called without arguments, bailing out")
+	args := flag.Args()
+	if len(args) < 1 {
+		log.Warn("hook called without event, bailing out")
 		return
 	}
 
-	hookName := os.Args[1]
+	hookName := args[0]
 	switch hookName {
 	case "createContainer":
 		createContainerHook(log)

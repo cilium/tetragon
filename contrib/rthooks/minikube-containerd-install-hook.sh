@@ -10,7 +10,7 @@ BASEHOOKNAME=$(basename $HOOKNAME)
 LOCALHOOK="$SCRIPTPATH/$BASEHOOKNAME/$BASEHOOKNAME"
 
 xdir=$(mktemp -d /tmp/minikube-containerd-hook-XXXXXX)
-trap 'echo removing temporar directory; rm -rf -- "$xdir"' EXIT
+trap 'echo removing temporary directory; rm -rf -- "$xdir"' EXIT
 echo "temporary directory: $xdir"
 
 set -x
