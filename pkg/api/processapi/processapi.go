@@ -29,6 +29,10 @@ const (
 
 	// MsgUnixSize of msg
 	MsgUnixSize uint32 = 640
+
+	// Special values to identify entries related to kernel in the process cache
+	KernelBinary = "<kernel>"
+	KernelPid    = uint32(0)
 )
 
 type MsgExec struct {

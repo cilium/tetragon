@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
@@ -169,8 +170,20 @@ func (pi *ProcessInternal) RefGet() uint32 {
 // There is no point on calling this helper on clone or execve events,
 // however on all other events it is perfectly fine.
 func UpdateEventProcessTid(process *tetragon.Process, tid *uint32) {
-	if process != nil && tid != nil {
+	if process == nil {
+		return
+	}
+
+	if tid != nil {
 		process.Tid = &wrapperspb.UInt32Value{Value: *tid}
+	}
+
+	// This is a special entry about generated kernel pids
+	// let's clear our ParentExecId
+	if process.Pid.GetValue() == processapi.KernelPid &&
+		process.GetBinary() == processapi.KernelBinary &&
+		process.GetExecId() == process.GetParentExecId() {
+		process.ParentExecId = ""
 	}
 }
 
