@@ -20,9 +20,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,7 +27,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/api/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/api/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
 )
 
 // PodInfoReconciler reconciles a PodInfo object

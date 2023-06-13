@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/api/v1alpha1"
-	"github.com/cilium/tetragon/internal/controller"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
+	"github.com/cilium/tetragon/podinfo/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
