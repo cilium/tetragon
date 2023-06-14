@@ -156,6 +156,9 @@ func (c *LRU[K, V]) removeOldest() {
 
 // removeElement is used to remove a given list element from the cache
 func (c *LRU[K, V]) removeElement(e *entry[K, V]) {
+	if e == nil {
+		return
+	}
 	c.evictList.remove(e)
 	delete(c.items, e.key)
 	if c.onEvict != nil {
