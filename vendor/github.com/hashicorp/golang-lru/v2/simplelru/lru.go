@@ -94,7 +94,7 @@ func (c *LRU[K, V]) Peek(key K) (value V, ok bool) {
 // Remove removes the provided key from the cache, returning if the
 // key was contained.
 func (c *LRU[K, V]) Remove(key K) (present bool) {
-	if ent, ok := c.items[key]; ok {
+	if ent, ok := c.items[key]; ok && ent != nil {
 		c.removeElement(ent)
 		return true
 	}
