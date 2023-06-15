@@ -73,6 +73,7 @@ func (pc *Cache) cacheGarbageCollector() {
 					if ref != 0 {
 						continue
 					}
+					p.mu.Lock()
 					if p.color == deleteReady {
 						p.color = deleted
 						if p.process == nil {
@@ -84,9 +85,12 @@ func (pc *Cache) cacheGarbageCollector() {
 						newQueue = append(newQueue, p)
 						p.color = deleteReady
 					}
+					p.mu.Unlock()
 				}
 				deleteQueue = newQueue
 			case p := <-pc.deleteChan:
+				p.mu.Lock()
+				defer p.mu.Unlock()
 				// duplicate deletes can happen, if they do reset
 				// color to pending and move along. This will cause
 				// the GC to keep it alive for at least another pass.
