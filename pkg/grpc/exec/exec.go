@@ -47,14 +47,14 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	var tetragonParent *tetragon.Process
 
 	proc := process.AddExecEvent(&event.MsgExecveEventUnix)
-	tetragonProcess := proc.UnsafeGetProcess()
+	tetragonProcess := proc.GetProcessCopy()
 
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
 	parent, err := process.Get(parentId)
 	if err == nil {
-		tetragonParent = parent.UnsafeGetProcess()
+		tetragonParent = parent.GetProcessCopy()
 	}
 
 	// Set the cap field only if --enable-process-cred flag is set.
@@ -275,7 +275,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 
 	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if proc != nil {
-		tetragonProcess = proc.UnsafeGetProcess()
+		tetragonProcess = proc.GetProcessCopy()
 	} else {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
@@ -283,7 +283,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		}
 	}
 	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
+		tetragonParent = parent.GetProcessCopy()
 	}
 
 	code := event.Info.Code >> 8

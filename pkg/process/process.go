@@ -37,15 +37,15 @@ import (
 // wouldn't make much sense by itself.
 type ProcessInternal struct {
 	// mu protects the modifications to process.
-	mu sync.Mutex
+	mu_ sync.Mutex
 	// externally visible process struct.
-	process *tetragon.Process
+	process_ *tetragon.Process
 	// additional internal fields below
-	capabilities *tetragon.Capabilities
-	namespaces   *tetragon.Namespaces
+	capabilities_ *tetragon.Capabilities
+	namespaces_   *tetragon.Namespaces
 	// garbage collector metadata
-	color  int
-	refcnt uint32
+	color_  int
+	refcnt_ uint32
 }
 
 var (
@@ -81,63 +81,47 @@ func FreeCache() {
 }
 
 func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
-	if pi.process == nil {
+	pi.mu_.Lock()
+	defer pi.mu_.Unlock()
+	if pi.process_ == nil {
 		return nil
 	}
-	pi.mu.Lock()
-	proc := proto.Clone(pi.process).(*tetragon.Process)
-	pi.mu.Unlock()
-	proc.Refcnt = atomic.LoadUint32(&pi.refcnt)
+	proc := proto.Clone(pi.process_).(*tetragon.Process)
+	proc.Refcnt = atomic.LoadUint32(&pi.refcnt_)
 	return proc
 }
 
 func (pi *ProcessInternal) GetProcessInternalCopy() *ProcessInternal {
-	pi.mu.Lock()
-	defer pi.mu.Unlock()
+	pi.mu_.Lock()
+	defer pi.mu_.Unlock()
 	return &ProcessInternal{
-		process:      proto.Clone(pi.process).(*tetragon.Process),
-		capabilities: pi.capabilities,
-		namespaces:   pi.namespaces,
-		refcnt:       1,
+		process_:      proto.Clone(pi.process_).(*tetragon.Process),
+		capabilities_: pi.capabilities_,
+		namespaces_:   pi.namespaces_,
+		refcnt_:       1,
 	}
 }
 
 func (pi *ProcessInternal) AddPodInfo(pod *tetragon.Pod) {
-	pi.mu.Lock()
-	pi.process.Pod = pod
-	pi.mu.Unlock()
-}
-
-func (pi *ProcessInternal) GetProcess() *tetragon.Process {
-	pi.mu.Lock()
-	return pi.process
-}
-
-func (pi *ProcessInternal) PutProcess() {
-	pi.mu.Unlock()
-}
-
-func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
-	return pi.process
+	pi.mu_.Lock()
+	pi.process_.Pod = pod
+	pi.mu_.Unlock()
 }
 
 func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
-	process := pi.GetProcess()
-	defer pi.PutProcess()
+	pi.mu_.Lock()
+	defer pi.mu_.Unlock()
+	process := pi.process_
 	if process == nil {
 		return fmt.Errorf("Process is nil")
 	}
 	if cred {
-		process.Cap = pi.capabilities
+		process.Cap = pi.capabilities_
 	}
 	if ns {
-		process.Ns = pi.namespaces
+		process.Ns = pi.namespaces_
 	}
 	return nil
-}
-
-func (pi *ProcessInternal) UnsafeGetProcessCap() *tetragon.Capabilities {
-	return pi.capabilities
 }
 
 func (pi *ProcessInternal) RefDec() {
@@ -149,8 +133,7 @@ func (pi *ProcessInternal) RefInc() {
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
-	ref := atomic.LoadUint32(&pi.refcnt)
-	return ref
+	return atomic.LoadUint32(&pi.refcnt_)
 }
 
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
@@ -205,7 +188,7 @@ func GetProcess(
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
 	return &ProcessInternal{
-		process: &tetragon.Process{
+		process_: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
 			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
@@ -221,9 +204,9 @@ func GetProcess(
 			ParentExecId: parentExecID,
 			Refcnt:       0,
 		},
-		capabilities: caps,
-		namespaces:   ns,
-		refcnt:       1,
+		capabilities_: caps,
+		namespaces_:   ns,
+		refcnt_:       1,
 	}, endpoint
 }
 
@@ -244,8 +227,10 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 		return nil, nil
 	}
 
-	if parent, err = procCache.get(process.process.ParentExecId); err != nil {
-		logger.GetLogger().WithField("id in event", process.process.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
+	process.mu_.Lock()
+	defer process.mu_.Unlock()
+	if parent, err = procCache.get(process.process_.ParentExecId); err != nil {
+		logger.GetLogger().WithField("id in event", process.process_.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
 		return process, nil
 	}
 	return process, parent
@@ -262,16 +247,18 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc, _ = GetProcess(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
 	}
 
+	// NB: proc was just created, no need to lock
+
 	// Ensure that exported events have the TID set. For events from Kernel
 	// we usually use PID == 0, so instead of checking against 0, assert that
 	// TGID == TID
-	if proc.process.Pid.GetValue() != proc.process.Tid.GetValue() {
+	if proc.process_.Pid.GetValue() != proc.process_.Tid.GetValue() {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":            "Execve",
-			"event.process.pid":     proc.process.Pid.GetValue(),
-			"event.process.tid":     proc.process.Tid.GetValue(),
-			"event.process.exec_id": proc.process.ExecId,
-			"event.process.binary":  proc.process.Binary,
+			"event.process.pid":     proc.process_.Pid.GetValue(),
+			"event.process.tid":     proc.process_.Tid.GetValue(),
+			"event.process.exec_id": proc.process_.ExecId,
+			"event.process.binary":  proc.process_.Binary,
 		}).Warn("ExecveEvent: process PID and TID mismatch")
 	}
 
@@ -293,10 +280,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	}
 	parent.RefInc()
 	pi := parent.GetProcessInternalCopy()
-	if pi.process != nil {
-		pi.process.ParentExecId = parentExecId
-		pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
-		pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
+	// pi is a copy, so we are single owners for now: no log needed
+	if pi.process_ != nil {
+		pi.process_.ParentExecId = parentExecId
+		pi.process_.ExecId = GetProcessID(event.PID, event.Ktime)
+		pi.process_.Pid = &wrapperspb.UInt32Value{Value: event.PID}
 		// Since from BPF side we only generate one clone event per
 		// thread group that is for the leader, assert on that.
 		if event.PID != event.TID {
@@ -304,23 +292,23 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 				"event.name":            "Clone",
 				"event.process.pid":     event.PID,
 				"event.process.tid":     event.TID,
-				"event.process.exec_id": pi.process.ExecId,
+				"event.process.exec_id": pi.process_.ExecId,
 				"event.parent.exec_id":  parentExecId,
 			}).Debug("CloneEvent: process PID and TID mismatch")
 		}
 		// This TID will be updated by the TID of the bpf execve event later,
 		// so set it to zero here and ensure that it will be updated later.
 		// Exported events must always be generated with a non zero TID.
-		pi.process.Tid = &wrapperspb.UInt32Value{Value: 0}
-		pi.process.Flags = strings.Join(exec.DecodeCommonFlags(event.Flags), " ")
-		pi.process.StartTime = ktime.ToProto(event.Ktime)
-		pi.process.Refcnt = 1
-		if pi.process.Pod != nil && pi.process.Pod.Container != nil {
+		pi.process_.Tid = &wrapperspb.UInt32Value{Value: 0}
+		pi.process_.Flags = strings.Join(exec.DecodeCommonFlags(event.Flags), " ")
+		pi.process_.StartTime = ktime.ToProto(event.Ktime)
+		pi.process_.Refcnt = 1
+		if pi.process_.Pod != nil && pi.process_.Pod.Container != nil {
 			// Set the pid inside the container
-			pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
+			pi.process_.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 		}
-		if option.Config.EnableK8s && pi.process.Docker != "" && pi.process.Pod == nil {
-			if podInfo, _ := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
+		if option.Config.EnableK8s && pi.process_.Docker != "" && pi.process_.Pod == nil {
+			if podInfo, _ := GetPodInfo(pi.process_.Docker, pi.process_.Binary, pi.process_.Arguments, event.NSPID); podInfo != nil {
 				pi.AddPodInfo(podInfo)
 			}
 		}

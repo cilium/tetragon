@@ -69,39 +69,45 @@ func (pc *Cache) cacheGarbageCollector() {
 					 * later if we care. Also we may try to delete the
 					 * process a second time, but that is harmless.
 					 */
-					ref := atomic.LoadUint32(&p.refcnt)
+					ref := atomic.LoadUint32(&p.refcnt_)
 					if ref != 0 {
 						continue
 					}
-					if p.color == deleteReady {
-						p.color = deleted
-						pc.remove(p.process)
+					p.mu_.Lock()
+					if p.color_ == deleteReady {
+						p.color_ = deleted
+						pc.remove(p.process_)
 					} else {
 						newQueue = append(newQueue, p)
-						p.color = deleteReady
+						p.color_ = deleteReady
 					}
+					p.mu_.Unlock()
 				}
 				deleteQueue = newQueue
 			case p := <-pc.deleteChan:
+				p.mu_.Lock()
 				// duplicate deletes can happen, if they do reset
 				// color to pending and move along. This will cause
 				// the GC to keep it alive for at least another pass.
 				// Notice color is only ever touched inside GC behind
 				// select channel logic so should be safe to work on
 				// and assume its visible everywhere.
-				if p.color != inUse {
-					p.color = deletePending
+				if p.color_ != inUse {
+					p.color_ = deletePending
+					p.mu_.Unlock()
 					continue
 				}
 				// The object has already been deleted let if fall of
 				// the edge of the world. Hitting this could mean our
 				// GC logic deleted a process too early.
 				// TBD add a counter around this to alert on it.
-				if p.color == deleted {
+				if p.color_ == deleted {
+					p.mu_.Unlock()
 					continue
 				}
-				p.color = deletePending
+				p.color_ = deletePending
 				deleteQueue = append(deleteQueue, p)
+				p.mu_.Unlock()
 			}
 		}
 	}()
@@ -112,14 +118,14 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 }
 
 func (pc *Cache) refDec(p *ProcessInternal) {
-	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
+	ref := atomic.AddUint32(&p.refcnt_, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
 }
 
 func (pc *Cache) refInc(p *ProcessInternal) {
-	atomic.AddUint32(&p.refcnt, 1)
+	atomic.AddUint32(&p.refcnt_, 1)
 }
 
 func (pc *Cache) Purge() {
@@ -174,7 +180,9 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 // Add a ProcessInternal structure to the cache. Must be called only from
 // clone or execve events
 func (pc *Cache) add(process *ProcessInternal) bool {
-	evicted := pc.cache.Add(process.process.ExecId, process)
+	process.mu_.Lock()
+	defer process.mu_.Unlock()
+	evicted := pc.cache.Add(process.process_.ExecId, process)
 	if evicted {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
 	}

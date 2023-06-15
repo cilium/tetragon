@@ -19,11 +19,11 @@ func TestProcessCache(t *testing.T) {
 	pid := wrapperspb.UInt32Value{Value: 1234}
 	execID := "process1"
 	proc := ProcessInternal{
-		process: &tetragon.Process{
+		process_: &tetragon.Process{
 			ExecId: execID,
 			Pid:    &pid,
 		},
-		capabilities: &tetragon.Capabilities{
+		capabilities_: &tetragon.Capabilities{
 			Permitted: []tetragon.CapabilitiesType{
 				tetragon.CapabilitiesType_CAP_AUDIT_READ,
 				tetragon.CapabilitiesType_CAP_AUDIT_WRITE,
@@ -33,14 +33,14 @@ func TestProcessCache(t *testing.T) {
 	cache.add(&proc)
 	assert.Equal(t, cache.len(), 1)
 
-	result, err := cache.get(proc.process.ExecId)
+	result, err := cache.get(proc.process_.ExecId)
 	assert.NoError(t, err)
-	assert.Equal(t, proc.process.ExecId, result.process.ExecId)
-	assert.Equal(t, proc.capabilities, result.capabilities)
+	assert.Equal(t, proc.process_.ExecId, result.process_.ExecId)
+	assert.Equal(t, proc.capabilities_, result.capabilities_)
 
 	// remove the entry from cache.
-	assert.True(t, cache.remove(proc.process))
+	assert.True(t, cache.remove(proc.process_))
 	assert.Equal(t, cache.len(), 0)
-	_, err = cache.get(proc.process.ExecId)
+	_, err = cache.get(proc.process_.ExecId)
 	assert.Error(t, err)
 }

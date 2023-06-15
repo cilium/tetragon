@@ -91,13 +91,12 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 // resolve PodInfo. This happens when the msg populates the internal state
 // but that event is not fully populated yet.
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
-	p := internal.UnsafeGetProcess()
-	if option.Config.EnableK8s && p.Pod == nil {
+	proc := internal.GetProcessCopy()
+	if option.Config.EnableK8s && proc.Pod == nil {
 		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
 		return ErrFailedToGetPodInfo
 	}
 
-	proc := internal.GetProcessCopy()
 	// The TID of the cached process can be different from the
 	// TID that triggered the event, so always use the recorded
 	// one from bpf.

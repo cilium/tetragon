@@ -67,13 +67,13 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
+		tetragonProcess = proc.GetProcessCopy()
 		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
 		}
 	}
 	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
+		tetragonParent = parent.GetProcessCopy()
 	}
 
 	for _, arg := range event.Args {
@@ -276,10 +276,10 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
+		tetragonProcess = proc.GetProcessCopy()
 	}
 	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
+		tetragonParent = parent.GetProcessCopy()
 	}
 
 	var tetragonArgs []*tetragon.KprobeArgument
@@ -428,7 +428,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = process.UnsafeGetProcess()
+		tetragonProcess = process.GetProcessCopy()
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -519,7 +519,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
+		tetragonProcess = proc.GetProcessCopy()
 		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
 				Debugf("Failed to annotate process with capabilities and namespaces info")
@@ -527,7 +527,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
+		tetragonParent = parent.GetProcessCopy()
 	}
 
 	tetragonEvent := &tetragon.ProcessUprobe{
