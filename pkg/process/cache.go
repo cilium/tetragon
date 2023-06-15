@@ -182,6 +182,10 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 // Add a ProcessInternal structure to the cache. Must be called only from
 // clone or execve events
 func (pc *Cache) add(process *ProcessInternal) bool {
+	if process.process == nil {
+		logger.GetLogger().Warnf("tried to add processInternal with nil process: %v", process)
+		return false
+	}
 	evicted := pc.cache.Add(process.process.ExecId, process)
 	if evicted {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
