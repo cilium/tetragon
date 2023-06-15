@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode"
 
 	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
@@ -169,6 +170,16 @@ func GetExecIDFromKey(key *tetragonAPI.MsgExecveKey) string {
 	return GetProcessID(key.Pid, key.Ktime)
 }
 
+// cleanString removes non-printable characters from a string.
+func cleanString(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsPrint(r) {
+			return r
+		}
+		return -1
+	}, s)
+}
+
 func GetProcess(
 	process tetragonAPI.MsgProcess,
 	containerID string,
@@ -187,13 +198,17 @@ func GetProcess(
 	protoPod, endpoint := GetPodInfo(containerID, process.Filename, args, process.NSPID)
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
+
+	bin := cleanString(process.Filename)
+	cwd = cleanString(cwd)
+
 	return &ProcessInternal{
 		process_: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
 			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          cwd,
-			Binary:       path.GetBinaryAbsolutePath(process.Filename, cwd),
+			Binary:       path.GetBinaryAbsolutePath(bin, cwd),
 			Arguments:    args,
 			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
 			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
