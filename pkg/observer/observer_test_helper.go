@@ -55,7 +55,6 @@ var (
 )
 
 type testObserverOptions struct {
-	pretty     bool
 	crd        bool
 	config     string
 	lib        string
@@ -94,12 +93,6 @@ func WithAllowList(allowList *tetragon.Filter) TestOption {
 func WithDenyList(denyList *tetragon.Filter) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.denyList = append(o.exporter.denyList, denyList)
-	}
-}
-
-func withPretty() TestOption {
-	return func(o *TestOptions) {
-		o.observer.pretty = true
 	}
 }
 
@@ -198,7 +191,6 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
-			pretty: false,
 			crd:    false,
 			config: "",
 			lib:    "",
@@ -323,7 +315,6 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 
 func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
@@ -331,7 +322,6 @@ func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Se
 
 func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	b := base.GetInitialSensor()
@@ -340,7 +330,6 @@ func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib str
 
 func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	b := base.GetInitialSensor()
@@ -350,7 +339,6 @@ func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib stri
 
 func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 	opts = append(opts, withNotestfail(fail))
 
@@ -589,7 +577,6 @@ func WriteConfigFile(fileName, config string) error {
 func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
 
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
@@ -598,7 +585,6 @@ func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...T
 func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
 
-	opts = append(opts, withPretty())
 	opts = append(opts, WithConfig(config))
 	opts = append(opts, WithLib(lib))
 
