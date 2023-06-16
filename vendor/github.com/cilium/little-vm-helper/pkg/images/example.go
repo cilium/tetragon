@@ -22,7 +22,7 @@ var ExampleImagesConf = []ImgConf{
 	},
 	{
 		Name:   "k8s.qcow2",
-		Parent: "base",
+		Parent: "base.img",
 		Packages: []string{
 			"docker.io",
 		},
