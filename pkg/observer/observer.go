@@ -17,6 +17,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -108,6 +109,10 @@ func (e *handlePerfHandlerErr) Cause() error {
 func HandlePerfData(data []byte) (byte, []Event, error) {
 	op := data[0]
 	r := bytes.NewReader(data)
+	if op == ops.MSG_OP_EXECVE {
+		fmt.Println(data)
+		fmt.Println("-------------------")
+	}
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	handler, ok := eventHandler[op]
 	if !ok {
