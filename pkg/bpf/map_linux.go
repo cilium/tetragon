@@ -144,14 +144,17 @@ func OpenMap(name string) (*Map, error) {
 
 	info, err := GetMapInfo(os.Getpid(), fd)
 	if err != nil {
+		unix.Close(fd)
 		return nil, err
 	}
 
 	if info.MapType == 0 {
+		unix.Close(fd)
 		return nil, fmt.Errorf("Unable to determine map type")
 	}
 
 	if info.KeySize == 0 {
+		unix.Close(fd)
 		return nil, fmt.Errorf("Unable to determine map key size")
 	}
 
