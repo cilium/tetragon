@@ -28,7 +28,7 @@ func (k *statKey) String() string            { return fmt.Sprintf("key=%d", k.Ke
 func (k *statKey) GetKeyPtr() unsafe.Pointer { return unsafe.Pointer(k) }
 func (k *statKey) NewValue() bpf.MapValue {
 	return &statValue{
-		Value: make([]int64, runtime.NumCPU()),
+		Value: make([]int64, bpf.GetNumPossibleCPUs()),
 	}
 }
 func (k *statKey) DeepCopyMapKey() bpf.MapKey { return &statKey{k.Key} }
@@ -41,7 +41,7 @@ func (s *statValue) GetValuePtr() unsafe.Pointer {
 }
 func (s *statValue) DeepCopyMapValue() bpf.MapValue {
 	v := &statValue{
-		Value: make([]int64, runtime.NumCPU()),
+		Value: make([]int64, len(s.Value)),
 	}
 	copy(v.Value, s.Value)
 	return v
