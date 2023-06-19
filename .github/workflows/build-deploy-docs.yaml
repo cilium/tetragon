@@ -47,7 +47,7 @@ jobs:
 
       - name: Build the Hugo website
         working-directory: docs
-        run: hugo --minify --baseURL "https://tetragon.cilium.io/"
+        run: hugo --minify --baseURL "https://cilium.github.io/tetragon/"
 
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
