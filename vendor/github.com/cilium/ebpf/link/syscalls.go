@@ -24,6 +24,7 @@ const (
 	XDPType           = sys.BPF_LINK_TYPE_XDP
 	PerfEventType     = sys.BPF_LINK_TYPE_PERF_EVENT
 	KprobeMultiType   = sys.BPF_LINK_TYPE_KPROBE_MULTI
+	UprobeMultiType   = sys.BPF_LINK_TYPE_UPROBE_MULTI
 )
 
 var haveProgAttach = internal.NewFeatureTest("BPF_PROG_ATTACH", "4.10", func() error {
@@ -46,7 +47,7 @@ var haveProgAttach = internal.NewFeatureTest("BPF_PROG_ATTACH", "4.10", func() e
 	return nil
 })
 
-var haveProgAttachReplace = internal.NewFeatureTest("BPF_PROG_ATTACH atomic replacement", "5.5", func() error {
+var haveProgAttachReplace = internal.NewFeatureTest("BPF_PROG_ATTACH atomic replacement of MULTI progs", "5.5", func() error {
 	if err := haveProgAttach(); err != nil {
 		return err
 	}
