@@ -27,7 +27,7 @@ func (ex *Executable) UprobeMulti(symbols []string, cookies []uint64, prog *ebpf
 			return nil, err
 		}
 
-		opts.Paths = append(opts.Paths, ex.path)
+		opts.Path = ex.path
 		opts.Offsets = append(opts.Offsets, uintptr(offset))
 		opts.Cookies = append(opts.Cookies, cookies[idx])
 	}
@@ -49,7 +49,7 @@ func uprobeMulti(prog *ebpf.Program, opts UprobeMultiOptions, flags uint32) (Lin
 	refctrs := uint32(len(opts.RefCtrOffsets))
 	cookies := uint32(len(opts.Cookies))
 
-	if path == "" {
+	if path == 0 {
 		return nil, fmt.Errorf("Paths is required: %w", errInvalidInput)
 	}
 	if offsets == 0 && refctrs == 0 {
@@ -66,7 +66,7 @@ func uprobeMulti(prog *ebpf.Program, opts UprobeMultiOptions, flags uint32) (Lin
 	}
 
 	attr.Count = offsets
-	attr.Path = sys.NewStringSlicePointer(opts.Path)
+	attr.Path = sys.NewStringPointer(opts.Path)
 	attr.Offsets = sys.NewPointer(unsafe.Pointer(&opts.Offsets[0]))
 	if refctrs > 0 {
 		attr.RefCtrOffsets = sys.NewPointer(unsafe.Pointer(&opts.RefCtrOffsets[0]))
