@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
@@ -112,6 +113,36 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 		str = fmt.Sprintf("%s %s", ts, str)
 	}
 	fmt.Fprintln(p.Writer, str)
+	return nil
+}
+
+type ProtojsonEncoder struct {
+	w io.Writer
+}
+
+func NewProtojsonEncoder(w io.Writer) *ProtojsonEncoder {
+	return &ProtojsonEncoder{
+		w,
+	}
+}
+
+func (p *ProtojsonEncoder) Encode(v interface{}) error {
+	// TODO(WF): We may want to implement a streaming API here, similar to what they do in
+	// encoding/json. For now, I think this is probably fine though.
+	event, ok := v.(*tetragon.GetEventsResponse)
+	if !ok {
+		return ErrInvalidEvent
+	}
+	out, err := protojson.MarshalOptions{
+		// Our old exporter's behaviour was to use the snake_case names rather than
+		// camelCase. We want to maintain backward compatibility here so let's do the
+		// same thing in the protojson encoder.
+		UseProtoNames: true,
+	}.Marshal(event)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(p.w, string(out))
 	return nil
 }
 
