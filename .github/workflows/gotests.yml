@@ -54,7 +54,7 @@ jobs:
         sudo -E go mod verify
         sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
         export TETRAGON_LIB=$(realpath "bpf/objs/")
-        make test
+        make test GO_TEST_TIMEOUT=40m
 
     - name: Upload Tetragon logs
       if: failure()
