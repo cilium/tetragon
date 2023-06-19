@@ -10,7 +10,6 @@ package observer
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/encoder"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -404,7 +404,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	if err != nil {
 		return err
 	}
-	encoder := json.NewEncoder(outF)
+	encoder := encoder.NewProtojsonEncoder(outF)
 
 	req := tetragon.GetEventsRequest{AllowList: opts.allowList, DenyList: opts.denyList}
 	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)

@@ -5,10 +5,10 @@ package ratelimit
 
 import (
 	"context"
-	"encoding/json"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"golang.org/x/time/rate"
@@ -30,7 +30,7 @@ func getLimit(numEvents int, interval time.Duration) rate.Limit {
 	return rate.Every(interval / time.Duration(numEvents))
 }
 
-func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, encoder *json.Encoder) *RateLimiter {
+func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, encoder encoder.EventEncoder) *RateLimiter {
 	if numEvents < 0 {
 		return nil
 	}
@@ -54,7 +54,7 @@ type InfoEvent struct {
 	Time          time.Time `json:"time"`
 }
 
-func (r *RateLimiter) reportRateLimitInfo(encoder *json.Encoder) {
+func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 	ticker := time.NewTicker(r.reportInterval)
 	for {
 		select {

@@ -5,7 +5,6 @@ package getevents
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -64,7 +63,7 @@ var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool,
 	if compact {
 		return encoder.NewCompactEncoder(w, colorMode, timestamps)
 	}
-	return json.NewEncoder(w)
+	return encoder.NewProtojsonEncoder(w)
 }
 
 // GetFilter returns a filter for an event stream based on configuration options.
