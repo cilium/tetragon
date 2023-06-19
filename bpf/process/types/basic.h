@@ -1646,7 +1646,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
  *
  * Look up the socket in the map and populate the pid and tid.
  */
-static inline __attribute__((unused)) void
+static inline __attribute__((always_inline)) void
 update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
 	__u64 *pid_tgid;
@@ -1673,7 +1673,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	return 0;
 }
 
-static inline __attribute__((unused)) void
+static inline __attribute__((always_inline)) void
 update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
 }
