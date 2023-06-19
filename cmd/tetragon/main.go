@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
@@ -462,7 +462,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		}()
 	}
 
-	encoder := json.NewEncoder(writer)
+	encoder := encoder.NewProtojsonEncoder(writer)
 	var rateLimiter *ratelimit.RateLimiter
 	if option.Config.ExportRateLimit >= 0 {
 		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, encoder)
