@@ -17,6 +17,7 @@
   ],
   // this ensures that the gitAuthor and gitSignOff fields match
   "gitAuthor": "renovate[bot] <bot@renovateapp.com>",
+  "commitMessage": "{{{replace ({{{commitMessagePrefix}}} {{{commitMessageAction}}} {{{commitMessageTopic}}} {{{commitMessageExtra}}} {{{commitMessageSuffix}}}) /(.{1,75}).*/ '$1'}}}",
   "includePaths": [
     ".github/workflows/**",
     "go.mod",
