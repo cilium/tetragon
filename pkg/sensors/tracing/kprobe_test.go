@@ -139,6 +139,9 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
+	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
+		WithFunctionName(sm.Suffix("sys_lseek"))
+
 	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
@@ -147,6 +150,9 @@ spec:
 	readyWG.Wait()
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(-1, 0, 4444)
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	assert.NoError(t, err)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
