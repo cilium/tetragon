@@ -17,12 +17,12 @@ jobs:
         os: [ ubuntu-20.04 ]
     steps:
     - name: Install Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version: '1.18.3'
 
     - name: Checkout code
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -58,7 +58,7 @@ jobs:
 
     - name: Upload Tetragon logs
       if: failure()
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
       with:
         name: tetragon-json
         path: /tmp/tetragon.gotest*
@@ -66,7 +66,7 @@ jobs:
 
     - name: Upload bugtool dumps
       if: failure()
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
       with:
         name: tetragon-bugtool
         path: /tmp/tetragon-bugtool*
