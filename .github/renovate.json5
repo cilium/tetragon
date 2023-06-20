@@ -63,6 +63,7 @@
         "major",
         "minor",
         "patch",
+        "digest",
         "pin",
         "pinDigest"
       ]
@@ -88,6 +89,7 @@
         "major",
         "minor",
         "patch",
+        "digest",
         "pin",
         "pinDigest"
       ],
@@ -116,6 +118,7 @@
         "major",
         "minor",
         "patch",
+        "digest",
         "pin",
         "pinDigest"
       ],
@@ -144,6 +147,7 @@
         "major",
         "minor",
         "patch",
+        "digest",
         "pin",
         "pinDigest"
       ],
