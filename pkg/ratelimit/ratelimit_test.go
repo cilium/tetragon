@@ -4,12 +4,14 @@
 package ratelimit
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func Test_getLimit(t *testing.T) {
@@ -28,12 +30,21 @@ func Test_getLimit(t *testing.T) {
 }
 
 func Test_rateLimitJSON(t *testing.T) {
-	ev := InfoEvent{
-		RateLimitInfo: &Info{NumberOfDroppedProcessEvents: 10},
-		NodeName:      "my-node",
-		Time:          time.Time{},
+	ev := &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_RateLimitInfo{
+			RateLimitInfo: &tetragon.RateLimitInfo{
+				NumberOfDroppedProcessEvents: 10,
+			},
+		},
+		NodeName: "my-node",
+		Time:     timestamppb.New(time.Time{}),
 	}
-	b, err := json.Marshal(ev)
+	b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(ev)
 	assert.NoError(t, err)
-	assert.Equal(t, `{"rate_limit_info":{"number_of_dropped_process_events":10},"node_name":"my-node","time":"0001-01-01T00:00:00Z"}`, string(b))
+
+	ev2 := &tetragon.GetEventsResponse{}
+	err = ev2.UnmarshalJSON(b)
+	assert.NoError(t, err)
+
+	assert.Equal(t, ev, ev2)
 }
