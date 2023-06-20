@@ -52,7 +52,7 @@ jobs:
         echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
 
     - name: Pull Tetragon Images
-      uses: nick-invision/retry@v2
+      uses: nick-invision/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2
       with:
         timeout_minutes: 2
         max_attempts: 30
