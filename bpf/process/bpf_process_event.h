@@ -224,8 +224,8 @@ cwd_read(struct cwd_read_data *data)
 	return 0;
 }
 
-#ifdef __V60_BPF_PROG
-static long cwd_read_v60(__u32 index, void *data)
+#ifdef __V61_BPF_PROG
+static long cwd_read_v61(__u32 index, void *data)
 {
 	return cwd_read(data);
 }
@@ -249,15 +249,15 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
 	data.mnt = real_mount(data.vfsmnt);
 
-#ifndef __V60_BPF_PROG
+#ifndef __V61_BPF_PROG
 #pragma unroll
 	for (int i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
 		if (cwd_read(&data))
 			break;
 	}
 #else
-	loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v60, (void *)&data, 0);
-#endif /* __V60_BPF_PROG */
+	loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v61, (void *)&data, 0);
+#endif /* __V61_BPF_PROG */
 
 	if (data.bptr == *buffer) {
 		*buflen = 0;

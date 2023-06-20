@@ -183,8 +183,8 @@ func createGenericUprobeSensor(
 	sensorPath := name
 
 	loadProgName := "bpf_generic_uprobe.o"
-	if kernels.EnableV60Progs() {
-		loadProgName = "bpf_generic_uprobe_v60.o"
+	if kernels.EnableV61Progs() {
+		loadProgName = "bpf_generic_uprobe_v61.o"
 	} else if kernels.EnableLargeProgs() {
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
