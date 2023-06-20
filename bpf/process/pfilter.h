@@ -141,16 +141,19 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 			 struct msg_capabilities *c)
 {
 	__u32 sel, inum = 0;
+	__u64 o = (__u64)off;
 
-	if (off > 1000)
-		sel = 0;
-	else {
-		__u64 o = (__u64)off;
-		o = o / 4;
-		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
-			     :);
-		sel = f[o];
-	}
+	o = o / 4;
+
+	asm volatile("if %[off] > 1000 goto +2\n;"
+		     "%[o] &= 0x3ff;\n"
+		     "goto +1\n"
+		     "%[o] = 0;\n"
+		     :
+		     : [o] "+r"(o), [off] "+r"(off)
+		     :);
+
+	sel = o ? f[o] : 0;
 
 	nsid &= 0xf;
 	inum = n->inum[nsid];
