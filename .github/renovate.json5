@@ -12,10 +12,10 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base",
+    ":gitSignOff",
     "helpers:pinGitHubActionDigests"
   ],
   "gitAuthor": "cilium-renovate[bot] <134692979+cilium-renovate[bot]@users.noreply.github.com>",
-  "commitBody": "Signed-off-by: Cilium Renovate Bot <bot@cilium.io>",
   "includePaths": [
     ".github/workflows/**",
     "go.mod",
