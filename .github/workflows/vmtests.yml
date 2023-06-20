@@ -54,7 +54,7 @@ jobs:
         tar cz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
 
     - name: upload build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar
@@ -141,7 +141,7 @@ jobs:
       run: |
         touch /tmp/tetragon.tar
     - name: Upload truncated file
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar
