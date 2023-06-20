@@ -196,6 +196,13 @@
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       }
+    },
+    {
+      // do not update those packages as they are replaced by the local copy
+      // see https://github.com/cilium/tetragon/blob/7623babdf54e9a38326420c1b188308f6cf96fff/go.mod#L178-L179
+      "matchPackageNames": ["github.com/cilium/tetragon/api", "github.com/cilium/tetragon/pkg/k8s"],
+      "matchManagers": ["gomod"],
+      "enabled": false
     }
   ]
 }
