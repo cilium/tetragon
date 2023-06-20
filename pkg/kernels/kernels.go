@@ -120,12 +120,12 @@ func MinKernelVersion(kernel string) bool {
 	return false
 }
 
-func EnableV60Progs() bool {
+func EnableV61Progs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
 	}
 	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	return (int64(kernelVer) >= KernelStringToNumeric("6.0.0"))
+	return (int64(kernelVer) >= KernelStringToNumeric("6.1.0"))
 }
 
 func EnableLargeProgs() bool {
@@ -146,8 +146,8 @@ func IsKernelVersionLessThan(version string) bool {
 
 // GenericKprobeObjs returns the generic kprobe and and generic retprobe objects
 func GenericKprobeObjs() (string, string) {
-	if EnableV60Progs() {
-		return "bpf_generic_kprobe_v60.o", "bpf_generic_retkprobe_v60.o"
+	if EnableV61Progs() {
+		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_kprobe_v53.o", "bpf_generic_retkprobe_v53.o"
 	} else {

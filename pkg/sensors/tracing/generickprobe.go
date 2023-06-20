@@ -201,9 +201,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
 	loadProgRetName := "bpf_multi_retkprobe_v53.o"
-	if kernels.EnableV60Progs() {
-		loadProgName = "bpf_multi_kprobe_v60.o"
-		loadProgRetName = "bpf_multi_retkprobe_v60.o"
+	if kernels.EnableV61Progs() {
+		loadProgName = "bpf_multi_kprobe_v61.o"
+		loadProgRetName = "bpf_multi_retkprobe_v61.o"
 	}
 
 	pinPath := sensors.PathJoin(sensorPath, "multi_kprobe")

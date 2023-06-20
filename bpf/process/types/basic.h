@@ -927,7 +927,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 
 		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
 		break;
-#ifdef __V60_BPF_PROG
+#ifdef __V61_BPF_PROG
 	case ITER_UBUF:
 		tmp = _(&iov_iter->ubuf);
 		probe_read(&buf, sizeof(buf), tmp);
@@ -937,7 +937,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 
 		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
 		break;
-#endif // __V60_BPF_PROG
+#endif // __V61_BPF_PROG
 	default:
 		s = (int *)args_off(e, off);
 		s[0] = s[1] = 0;

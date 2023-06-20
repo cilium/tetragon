@@ -355,8 +355,8 @@ func createGenericTracepointSensor(
 	}
 
 	progName := "bpf_generic_tracepoint.o"
-	if kernels.EnableV60Progs() {
-		progName = "bpf_generic_tracepoint_v60.o"
+	if kernels.EnableV61Progs() {
+		progName = "bpf_generic_tracepoint_v61.o"
 	} else if kernels.EnableLargeProgs() {
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
