@@ -12,11 +12,10 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base",
-    ":gitSignOff",
     "helpers:pinGitHubActionDigests"
   ],
-  // this ensures that the gitAuthor and gitSignOff fields match
-  "gitAuthor": "renovate[bot] <bot@renovateapp.com>",
+  "gitAuthor": "cilium-renovate[bot] <134692979+cilium-renovate[bot]@users.noreply.github.com>",
+  "commitBody": "Signed-off-by: Cilium Renovate Bot <bot@cilium.io>",
   "includePaths": [
     ".github/workflows/**",
     "go.mod",
@@ -31,6 +30,7 @@
   postUpdateOptions: [
     "gomodTidy"
   ],
+  "rebaseWhen": "conflicted",
   "pinDigests": true,
   "ignorePresets": [":prHourlyLimit2"],
   "separateMajorMinor": true,
@@ -45,7 +45,7 @@
   },
   "labels": [
     "kind/enhancement",
-    "priority/release-blocker"
+    "release-blocker"
   ],
   schedule: [
     "on monday and friday"
@@ -62,7 +62,6 @@
       "matchUpdateTypes": [
         "major",
         "minor",
-        "digest",
         "patch",
         "pin",
         "pinDigest"
@@ -88,7 +87,6 @@
       "matchUpdateTypes": [
         "major",
         "minor",
-        "digest",
         "patch",
         "pin",
         "pinDigest"
@@ -117,7 +115,6 @@
       "matchUpdateTypes": [
         "major",
         "minor",
-        "digest",
         "patch",
         "pin",
         "pinDigest"
@@ -146,7 +143,6 @@
       "matchUpdateTypes": [
         "major",
         "minor",
-        "digest",
         "patch",
         "pin",
         "pinDigest"
