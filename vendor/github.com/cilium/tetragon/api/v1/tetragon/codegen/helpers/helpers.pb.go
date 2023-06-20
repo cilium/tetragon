@@ -36,6 +36,8 @@ func ResponseTypeString(response *tetragon.GetEventsResponse) (string, error) {
 		return tetragon.EventType_PROCESS_UPROBE.String(), nil
 	case *tetragon.GetEventsResponse_Test:
 		return tetragon.EventType_TEST.String(), nil
+	case *tetragon.GetEventsResponse_RateLimitInfo:
+		return tetragon.EventType_RATE_LIMIT_INFO.String(), nil
 
 	}
 	return "", fmt.Errorf("Unhandled response type %T", event)
