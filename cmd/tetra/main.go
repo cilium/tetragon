@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -19,7 +18,6 @@ var (
 
 func main() {
 	if err := New().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
