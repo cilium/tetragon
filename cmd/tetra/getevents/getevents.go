@@ -44,8 +44,11 @@ var (
 	includeFields []string
 	excludeFields []string
 	namespaces    []string
+	namespace     []string // deprecated: use namespaces
 	processes     []string
+	process       []string // deprecated: use processes
 	pods          []string
+	pod           []string // deprecated: use pods
 	host          bool
 	timestamps    bool
 	ttyEncode     string
@@ -146,6 +149,12 @@ func New() *cobra.Command {
 			if color != "auto" && color != "always" && color != "never" {
 				return fmt.Errorf("invalid value for %q flag: %s", "color", color)
 			}
+
+			// merge deprecated to new flags, appending since order does not matter
+			namespaces = append(namespaces, namespace...)
+			pods = append(pods, pod...)
+			processes = append(processes, process...)
+
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -165,9 +174,19 @@ func New() *cobra.Command {
 	flags.StringVar(&color, "color", "auto", "Colorize compact output. auto, always, or never")
 	flags.StringSliceVarP(&includeFields, "include-fields", "f", nil, "Include only fields in events")
 	flags.StringSliceVarP(&excludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
-	flags.StringSliceVarP(&namespaces, "namespace", "n", nil, "Get events by Kubernetes namespaces")
-	flags.StringSliceVar(&processes, "process", nil, "Get events by process name regex")
-	flags.StringSliceVar(&pods, "pod", nil, "Get events by pod name regex")
+
+	flags.StringSliceVarP(&namespaces, "namespaces", "n", nil, "Get events by Kubernetes namespaces")
+	flags.StringSliceVar(&namespace, "namespace", nil, "Get events by Kubernetes namespace")
+	flags.MarkDeprecated("namespace", "please use --namespaces instead")
+
+	flags.StringSliceVar(&processes, "processes", nil, "Get events by processes name regex")
+	flags.StringSliceVar(&process, "process", nil, "Get events by process name regex")
+	flags.MarkDeprecated("process", "please use --processes instead")
+
+	flags.StringSliceVar(&pods, "pods", nil, "Get events by pods name regex")
+	flags.StringSliceVar(&pod, "pod", nil, "Get events by pod name regex")
+	flags.MarkDeprecated("pod", "please use --pods instead")
+
 	flags.BoolVar(&host, "host", false, "Get host events")
 	flags.BoolVar(&timestamps, "timestamps", false, "Include timestamps in compact output")
 	flags.StringVarP(&ttyEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
