@@ -38,6 +38,19 @@ redirection of events to the stdin. Examples:
   # Include only process and parent.pod fields
   %[1]s getevents -f process,parent.pod`
 
+var (
+	output        string
+	color         string
+	includeFields []string
+	excludeFields []string
+	namespaces    []string
+	processes     []string
+	pods          []string
+	host          bool
+	timestamps    bool
+	ttyEncode     string
+)
+
 // GetEncoder returns an encoder for an event stream based on configuration options.
 var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string) encoder.EventEncoder {
 	if tty != "" {
@@ -51,11 +64,6 @@ var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool,
 
 // GetFilter returns a filter for an event stream based on configuration options.
 var GetFilter = func() *tetragon.Filter {
-	host := viper.GetBool("host")
-	namespaces := viper.GetStringSlice("namespace")
-	processes := viper.GetStringSlice("process")
-	pods := viper.GetStringSlice("pod")
-
 	if host {
 		// Host events can be matched by an empty namespace string.
 		namespaces = append(namespaces, "")
@@ -106,19 +114,12 @@ func getRequest(includeFields, excludeFields []string, filter *tetragon.Filter) 
 }
 
 func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
-	timestamps := viper.GetBool("timestamps")
-	compact := viper.GetString(common.KeyOutput) == "compact"
-	colorMode := encoder.ColorMode(viper.GetString(common.KeyColor))
-	includeFields := viper.GetStringSlice("include-fields")
-	excludeFields := viper.GetStringSlice("exclude-fields")
-	tty := viper.GetString(common.KeyTty)
-
 	request := getRequest(includeFields, excludeFields, GetFilter())
 	stream, err := client.GetEvents(ctx, request)
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
 	}
-	eventEncoder := GetEncoder(os.Stdout, colorMode, timestamps, compact, tty)
+	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(color), timestamps, output == "compact", ttyEncode)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -138,6 +139,15 @@ func New() *cobra.Command {
 		Use:   "getevents",
 		Short: "Print events",
 		Long:  fmt.Sprintf(DocLong, "tetra"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if output != "json" && output != "compact" {
+				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, output)
+			}
+			if color != "auto" && color != "always" && color != "never" {
+				return fmt.Errorf("invalid value for %q flag: %s", "color", color)
+			}
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			fi, _ := os.Stdin.Stat()
 			if fi.Mode()&os.ModeNamedPipe != 0 {
@@ -151,16 +161,15 @@ func New() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringP(common.KeyOutput, "o", "json", "Output format. json or compact")
-	flags.String("color", "auto", "Colorize compact output. auto, always, or never")
-	flags.StringSliceP("include-fields", "f", nil, "Include only fields in events")
-	flags.StringSliceP("exclude-fields", "F", nil, "Exclude fields from events")
-	flags.StringSliceP("namespace", "n", nil, "Get events by Kubernetes namespaces")
-	flags.StringSlice("process", nil, "Get events by process name regex")
-	flags.StringSlice("pod", nil, "Get events by pod name regex")
-	flags.Bool("host", false, "Get host events")
-	flags.Bool("timestamps", false, "Include timestamps in compact output")
-	flags.StringP("tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
-	viper.BindPFlags(flags)
+	flags.StringVarP(&output, common.KeyOutput, "o", "json", "Output format. json or compact")
+	flags.StringVar(&color, "color", "auto", "Colorize compact output. auto, always, or never")
+	flags.StringSliceVarP(&includeFields, "include-fields", "f", nil, "Include only fields in events")
+	flags.StringSliceVarP(&excludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
+	flags.StringSliceVarP(&namespaces, "namespace", "n", nil, "Get events by Kubernetes namespaces")
+	flags.StringSliceVar(&processes, "process", nil, "Get events by process name regex")
+	flags.StringSliceVar(&pods, "pod", nil, "Get events by pod name regex")
+	flags.BoolVar(&host, "host", false, "Get host events")
+	flags.BoolVar(&timestamps, "timestamps", false, "Include timestamps in compact output")
+	flags.StringVarP(&ttyEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
 	return &cmd
 }
