@@ -34,7 +34,8 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_tracepoint_v61.o \
 	  bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
 	  bpf_generic_uprobe_v61.o \
-	  bpf_loader.o
+	  bpf_loader.o \
+	  bpf_killer.o bpf_multi_killer.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o bpf_globals.o
@@ -119,6 +120,12 @@ objs/%_v53.ll:
 
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
+
+objs/bpf_multi_killer.ll: process/bpf_killer.c
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
+
+$(DEPSDIR)/bpf_multi_killer.d: process/bpf_killer.c
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__MULTI_KPROBE -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
 $(DEPSDIR)%_v53.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
