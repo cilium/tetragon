@@ -1,0 +1,34 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill-syscalls"
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+  killers:
+  - syscalls:
+    - "list:dups"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "uint64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:dups"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/bash"
+      matchActions:
+      - action: "NotifyKiller"
+        argError: -1
+        argSig: 9
