@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"golang.org/x/sys/unix"
 )
@@ -36,12 +37,19 @@ func observerFindBTF(lib, btf string) (string, error) {
 			return tetragonBtfEnv, nil
 		}
 
-		var uname unix.Utsname
-		err := unix.Uname(&uname)
-		if err != nil {
-			return btf, fmt.Errorf("Kernel version lookup (uname -r) failing. Use '--kernel' to set manually: %w", err)
+		var kernelVersion string
+
+		// Force configured kernel version
+		if option.Config.KernelVersion != "" {
+			kernelVersion = option.Config.KernelVersion
+		} else {
+			var uname unix.Utsname
+			err := unix.Uname(&uname)
+			if err != nil {
+				return btf, fmt.Errorf("Kernel version lookup (uname -r) failing. Use '--kernel' to set manually: %w", err)
+			}
+			kernelVersion = unix.ByteSliceToString(uname.Release[:])
 		}
-		kernelVersion := unix.ByteSliceToString(uname.Release[:])
 
 		// Preference of BTF files, first search for kernel exposed BTF, then
 		// check for vmlinux- hubble metadata, and finally if all those are missing
