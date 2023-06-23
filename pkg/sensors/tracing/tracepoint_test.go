@@ -57,8 +57,8 @@ func TestGenericTracepointSimple(t *testing.T) {
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
-			{Index: 7}, /* whence */
-			{Index: 5}, /* fd */
+			{Index: 7},                 /* whence */
+			{Index: 5, Type: "sint32"}, /* fd */
 		},
 	}
 
@@ -83,7 +83,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(fdBogusValue), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
 			))
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -202,7 +202,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 }
 
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
-	fd_u := uint64(100)
+	fd_u := int32(100)
 	fd := 100
 	whence_u := uint64(whenceBogusValue)
 	whenceStr := fmt.Sprintf("%d", whenceBogusValue)
@@ -216,7 +216,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 				Index: 7, /* whence */
 			},
 			{
-				Index: 5, /* fd */
+				Index: 5, Type: "sint32", /* fd */
 			},
 		},
 		Selectors: []v1alpha1.KProbeSelector{
@@ -250,11 +250,11 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		if xwhence != whence_u {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
 		}
-		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_SizeArg)
+		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_IntArg)
 		if !ok {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[1])
 		}
-		xfd := arg1.SizeArg
+		xfd := arg1.IntArg
 		if xfd != fd_u {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xfd, fd)
 		}
@@ -497,8 +497,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
-			{Index: 7}, /* whence */
-			{Index: 5}, /* fd */
+			{Index: 7},                 /* whence */
+			{Index: 5, Type: "sint32"}, /* fd */
 		},
 	}
 
@@ -564,7 +564,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
 			)).WithProcess(child1Checker).WithParent(parentCheck)
 
 	thread1Checker := ec.NewProcessChecker().
@@ -579,7 +579,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
 			)).WithProcess(thread1Checker).WithParent(parentCheck)
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
