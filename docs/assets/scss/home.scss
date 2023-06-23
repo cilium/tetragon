@@ -1,0 +1,346 @@
+.home {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1216px;
+  
+    // dirty hack that should be changed if we change the size of the navbar
+    .navbar-placeholder {
+      height: 80px;
+    }
+
+    .section {
+      margin-top: 9rem;
+      margin-bottom: 9rem;
+
+      .section-title {
+        line-height: 1.25;
+        font-size: 42px;
+        text-align: center;
+        margin-bottom: 3.5rem;
+      }
+    }
+  
+    .button {
+      padding: 0.75rem 1.75rem;
+      border-radius: 9999px;
+      transition: opacity 0.2s;
+    }
+
+    .button:hover {
+      opacity: 80%;
+    }
+  
+    ul {
+      padding-inline-start: 0;
+      list-style: none;
+    }
+  
+    a {
+      color: inherit;
+    }
+  
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "intro logo" "users users";
+  
+      padding-bottom: 2rem;
+      padding-top: 2rem;
+
+      .intro {
+        grid-area: intro;
+  
+        h1 {
+          font-size: 50px;
+          line-height: 1.25;
+          font-weight: 600;
+          margin-top: 5rem;
+          margin-bottom: 0;
+        }
+  
+        p {
+          font-size: 14px;
+          margin-top: 1.25rem;
+          line-height: 1.625;
+          color: rgb(65, 85, 89);
+        }
+  
+        .getting-started-container {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+        }
+  
+        .getting-started-button {
+          border: 0 solid;
+          background-image: linear-gradient(86.5deg, #84e1a3 2.87%, #74e2cf);
+        }
+      }
+  
+      .main-logo {
+        grid-area: logo;
+      }
+  
+      .users {
+        grid-area: users;
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+        
+        h2 {
+          font-weight: 300;
+          font-size: 15px;
+        }
+
+        ul {
+          margin-bottom: 2.25rem;
+          margin-top: 2.25rem;
+    
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          // flex-wrap: wrap;
+          gap: 10px 40px;
+
+          li {
+            flex-shrink: 1;
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+          }
+        }
+      }
+    }
+  
+    .feature {
+      ul {
+        display: flex;
+      }
+  
+      li {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+        text-align: center;
+  
+        h3 {
+          margin-top: 2rem;
+          font-size: 20px;
+          line-height: 1.375;
+          font-weight: 400;
+        }
+  
+        p {
+          line-height: 1.625;
+          margin-top: 0.5rem;
+          font-size: 14px;
+        }
+      }
+    }
+  
+    .diagram {
+      img {
+        width: 100%;
+      }
+    }
+  
+    .videos {
+      .button-container {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 3.5rem;
+        margin-top: 3.5rem;
+      }
+  
+      .video-button {
+        border: 1px solid black;
+      }
+  
+      ul {
+        flex-wrap: nowrap;
+        gap: 1.75rem;
+        justify-content: space-between;
+  
+        margin-top: 3rem;
+        display: flex;
+      }
+  
+      li {
+        display: flex;
+        flex: 1 1 0px;
+        flex-direction: column;
+        a:hover {
+          h3 {
+            opacity: 60%;
+          }
+        }
+        h3 {
+          margin-top: 1.5rem;
+          line-height: 1.375;
+          font-size: 18px;
+          transition: opacity 0.2s;
+        }
+        p {
+          line-height: 1.5;
+          font-size: 14px;
+          margin-top: 0.5rem;
+          opacity: 70%;
+        }
+        img {
+          width: 100%;
+        }
+      }
+    }
+  
+    @media (max-width: 1279px) {
+      .hero {
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+  
+        .intro h1 {
+          font-size: 42px;
+        }
+      }
+  
+      .section {
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+        margin-bottom: 7rem;
+        margin-top: 7rem;
+      }
+  
+      .section-title {
+        font-size: 36px;
+        margin-bottom: 3rem;
+      }
+    }
+  
+    @media (max-width: 1023px) {
+      .hero {
+        grid-template-columns: 1fr;
+        grid-template-areas: "intro" "logo" "users" "users";
+  
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+  
+        .intro {
+          max-width: 660px;
+          margin-left: auto;
+          margin-right: auto;
+          text-align: center;
+  
+          p {
+            max-width: 85%;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+          }
+  
+          h1 {
+            font-size: 36px;
+            margin-top: 0.75rem;
+          }
+        }
+  
+        .main-logo {
+          margin-bottom: 1.5rem;
+          margin-top: 1.5rem;
+          margin-left: auto;
+          margin-right: auto;
+          max-width: 370px;
+        }
+  
+        .button-container {
+          margin-top: 1.5rem;
+        }
+  
+        .users-title {
+          text-align: center;
+        }
+  
+        ul {
+          margin-bottom: 1rem;
+          margin-top: 1rem;
+        }
+      }
+  
+      .section {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        margin-bottom: 5rem;
+        margin-top: 5rem;
+      }
+  
+      .section-title {
+        font-size: 32px;
+        margin-bottom: 2rem;
+      }
+    }
+  
+    @media (max-width: 767px) {
+      .hero {
+        padding-left: 0;
+        padding-right: 0;
+  
+        .intro h1 {
+          font-size: 28px;
+        }
+
+        ul {
+          flex-wrap: wrap;
+          justify-content: space-evenly;
+        }
+      }
+
+      .navbar-placeholder {
+        height: 0px;
+      }
+  
+      .feature {
+        ul {
+          flex-direction: column;
+          li {
+            padding-left: 0;
+            padding-right: 0;
+            p {
+              padding-left: 2rem;
+              padding-right: 2rem;
+            }
+          }
+        }
+      }
+  
+      .videos {
+        ul {
+          max-width: 384px;
+          margin-top: 2rem;
+          flex-direction: column;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+  
+      .diagram { 
+        img {
+          max-width: 440px;
+          display: block;
+          margin-right: auto;
+          margin-left: auto;
+        }
+      }
+  
+      .section {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        margin-bottom: 4rem;
+        margin-top: 4rem;
+      }
+  
+      .section-title {
+        font-size: 24px;
+      }
+    }
+  }
+  

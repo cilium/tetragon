@@ -1,15 +1,153 @@
 +++
 title = "Tetragon"
 linkTitle = "Tetragon"
-
 +++
 
-{{< blocks/cover title="Tetragon" image_anchor="top" height="full" >}}
-<div class="mx-auto">
-	<a class="btn btn-lg btn-secondary mr-3 mb-4" href="https://github.com/cilium/tetragon">
-		Tetragon repository <i class="fab fa-github ml-2 "></i>
-	</a>
+<div class="home">
+  <div class="navbar-placeholder"></div>
+
+  <div class="hero">
+    <div class="intro">
+      <h1>
+        eBPF-based Security Observability and Runtime Enforcement
+      </h1>
+      <p>
+        Tetragon is a flexible Kubernetes-aware security observability
+        and runtime enforcement tool that applies policy and filtering
+        directly with eBPF, allowing for reduced observation overhead,
+        tracking of any process, and real-time enforcement of policies.
+      </p>
+      <div class="getting-started-container">
+        <a href="/docs/getting-started/" class="button getting-started-button">Getting started</a>
+      </div>
+    </div>
+
+    <div class="main-logo">
+      <img src="images/hero-illustration.png" alt="Tetragon logo illustration" width="100%">
+    </div>
+
+    <div class="users">
+      <h2 class="users-title">
+        TECH LEADERS USE TETRAGON
+      </h2>
+      <ul>
+        <li>
+          <img src="svgs/palantir-logo.svg" alt="Palantir Logo">
+        </li>
+        <li>
+          <img src="svgs/frsca-logo.svg" alt="FRSCA Logo">
+        </li>
+        <li>
+          <img src="svgs/github-logo.svg" alt="GitHub Logo">
+        </li>
+        <li>
+          <img src="svgs/bell-logo.svg" alt="Bell Logo">
+        </li>
+        <li>
+          <img src="svgs/g-research-logo.svg" alt="G Research Logo">
+        </li>
+        <li>
+          <img src="svgs/ripple-logo.svg" alt="Ripple Logo">
+        </li>
+        <li>
+          <img src="svgs/nationwide-logo.svg" alt="Nationwide Logo">
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="feature section">
+    <h2 class="section-title">
+      Revolutionize Your Observability and Security
+    </h2>
+    <ul>
+      <li>
+        <img src="svgs/monitor-feature.svg" alt="logo for monitor process execution">
+        <h3>
+          Monitor Process Execution
+        </h3>
+        <p>
+          Observe the complete lifecycle of every process on your machine
+          with Kubernetes context awareness
+        </p>
+      </li>
+      <li>
+        <img src="svgs/runtime-feature.svg" alt="logo for runtime security policies">
+        <h3>
+          Runtime Security Policies
+        </h3>
+        <p>
+          Translate high level policies for file monitoring, network
+          observability, container security, and more into low overhead
+          eBPF programs
+        </p>
+      </li>
+      <li>
+        <img src="svgs/real-time-feature.svg" alt="logo for real time enforcement">
+        <h3>
+          Real Time Enforcement
+        </h3>
+        <p>
+          Synchronous monitoring, filtering, and enforcement completely in
+          the kernel with eBPF
+        </p>
+      </li>
+    </ul>
+  </div>
+
+  <div class="diagram section">
+    <h2 class="section-title">
+      How does Tetragon work
+    </h2>
+    <picture>
+      <source srcset="images/diagram-illustration.png"
+          media="(min-width: 767px)">
+      <img src="images/diagram-illustration-mobile.png" alt="diagram showing Tetragon architecture and interfaces" />
+    </picture>
+  </div>
+
+  <div class="videos section">
+    <h2 class="section-title">
+      Watch videos on Tetragon
+    </h2>
+    <!-- find a way to generate that -->
+    <ul>
+      <li>
+        <a href="https://www.youtube.com/watch?v=u8HKg5pENj4">
+          <img src="images/cover-log4shell.jpg" alt="youtube video cover of log4shell presentation">
+          <h3>
+            The Next Log4jshell?! Preparing for CVEs with eBPF!
+          </h3>
+          <p>
+            John Fastabend & Natalia Reka Ivanko • Apr, 2023
+          </p>
+        </a>
+      </li>
+      <li>
+        <a href="https://www.youtube.com/watch?v=kTGU-Nc2Db0">
+          <img src="images/cover-workshop.jpg" alt="youtube video cover of Tetragon workshop presentation">
+          <h3>
+            Tutorial: Getting Familiar with Security Observability Using eBPF & Cilium Tetragon
+          </h3>
+          <p>
+            Duffie Cooley & Raphaël Pinson • Apr, 2023
+          </p>
+        </a>
+      </li>
+      <li>
+        <a href="https://www.youtube.com/watch?v=UBVTJ0LeXxc">
+          <img src="images/cover-securing-bpf.jpg" alt="youtube video cover of eBPF presentation">
+          <h3>
+            Securing the Superpowers: Who Loaded That EBPF Program?
+          </h3>
+          <p>
+            John Fastabend & Natalia Reka Ivanko • Feb, 2023
+          </p>
+        </a>
+      </li>
+    </ul>
+    <div class="button-container">
+      <a href="/docs/resources/" class="button video-button">See more videos</a>
+    </div>
+  </div>
 </div>
-{{< /blocks/cover >}}
-
-
