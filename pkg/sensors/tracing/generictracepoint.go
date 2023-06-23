@@ -110,6 +110,9 @@ type genericTracepointArg struct {
 
 	// bpf generic type
 	genericTypeId int
+
+	// user type overload
+	userType string
 }
 
 // tracepointTable is, for now, an array.
@@ -167,6 +170,10 @@ func (out *genericTracepointArg) setGenericTypeId() (int, error) {
 // getGenericTypeId: returns the generic type Id of a tracepoint argument
 // if such an id cannot be termined, it returns an GenericInvalidType and an error
 func (out *genericTracepointArg) getGenericTypeId() (int, error) {
+
+	if out.userType != "" {
+		return gt.GenericTypeFromString(out.userType), nil
+	}
 
 	if out.format == nil {
 		return gt.GenericInvalidType, errors.New("format is nil")
@@ -245,6 +252,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 			nopTy:         false,
 			format:        &field,
 			genericTypeId: gt.GenericInvalidType,
+			userType:      specArg.Type,
 		})
 	}
 
@@ -634,6 +642,22 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 
 		case gt.GenericS64Type:
 			var val int64
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+			}
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericU32Type:
+			var val uint32
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+			}
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericS32Type:
+			var val int32
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
