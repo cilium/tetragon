@@ -33,6 +33,17 @@ import (
 
 type kindContextKey string
 
+// GetKindClusterFromContext helps extract the kind.Cluster object from the context.
+// This can be used to setup and run tests of multi cluster kind.
+func GetKindClusterFromContext(ctx context.Context, clusterName string) (*kind.Cluster, bool) {
+	kindCluster := ctx.Value(kindContextKey(clusterName))
+	if kindCluster == nil {
+		return nil, false
+	}
+	cluster, ok := kindCluster.(*kind.Cluster)
+	return cluster, ok
+}
+
 // CreateKindCluster returns an env.Func that is used to
 // create a kind cluster that is then injected in the context
 // using the name as a key.

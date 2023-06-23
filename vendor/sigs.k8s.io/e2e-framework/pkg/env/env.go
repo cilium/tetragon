@@ -38,8 +38,6 @@ type (
 	Environment = types.Environment
 	Func        = types.EnvFunc
 	FeatureFunc = types.FeatureEnvFunc
-
-	actionRole uint8
 )
 
 type testEnv struct {
@@ -187,7 +185,7 @@ func (e *testEnv) processTestActions(t *testing.T, actions []action) {
 	var err error
 	for _, action := range actions {
 		if e.ctx, err = action.runWithT(e.ctx, e.cfg, t); err != nil {
-			t.Fatalf("BeforeEachTest failure: %s", err)
+			t.Fatalf("%s failure: %s", action.role, err)
 		}
 	}
 }
@@ -196,25 +194,23 @@ func (e *testEnv) processTestActions(t *testing.T, actions []action) {
 // workflow of orchestrating the feature execution be running the action configured by BeforeEachFeature /
 // AfterEachFeature.
 func (e *testEnv) processTestFeature(t *testing.T, featureName string, feature types.Feature) {
-	var err error
-
-	// execute each feature
-	beforeFeatureActions := e.getBeforeFeatureActions()
-	afterFeatureActions := e.getAfterFeatureActions()
-
-	for _, action := range beforeFeatureActions {
-		if e.ctx, err = action.runWithFeature(e.ctx, e.cfg, t, deepCopyFeature(feature)); err != nil {
-			t.Fatalf("BeforeEachTest failure: %s", err)
-		}
-	}
+	// execute beforeEachFeature actions
+	e.processFeatureActions(t, feature, e.getBeforeFeatureActions())
 
 	// execute feature test
 	e.ctx = e.execFeature(e.ctx, t, featureName, feature)
 
-	// execute beforeFeature actions
-	for _, action := range afterFeatureActions {
+	// execute afterEachFeature actions
+	e.processFeatureActions(t, feature, e.getAfterFeatureActions())
+}
+
+// processFeatureActions is used to run a series of feature action that were configured as
+// BeforeEachFeature or AfterEachFeature
+func (e *testEnv) processFeatureActions(t *testing.T, feature types.Feature, actions []action) {
+	var err error
+	for _, action := range actions {
 		if e.ctx, err = action.runWithFeature(e.ctx, e.cfg, t, deepCopyFeature(feature)); err != nil {
-			t.Fatalf("BeforeEachTest failure: %s", err)
+			t.Fatalf("%s failure: %s", action.role, err)
 		}
 	}
 }
@@ -327,7 +323,6 @@ func (e *testEnv) Finish(funcs ...Func) types.Environment {
 // package.  This method will all Env.Setup operations prior to
 // starting the tests and run all Env.Finish operations after
 // before completing the suite.
-//
 func (e *testEnv) Run(m *testing.M) int {
 	if e.ctx == nil {
 		panic("context not set") // something is terribly wrong.
@@ -336,26 +331,38 @@ func (e *testEnv) Run(m *testing.M) int {
 	setups := e.getSetupActions()
 	// fail fast on setup, upon err exit
 	var err error
+
+	defer func() {
+		// Recover and see if the panic handler is disabled. If it is disabled, panic and stop the workflow.
+		// Otherwise, log and continue with running the Finish steps of the Test suite
+		rErr := recover()
+		if rErr != nil {
+			if e.cfg.DisableGracefulTeardown() {
+				panic(rErr)
+			}
+			klog.Error("Recovering from panic and running finish actions", rErr)
+		}
+
+		finishes := e.getFinishActions()
+		// attempt to gracefully clean up.
+		// Upon error, log and continue.
+		for _, fin := range finishes {
+			// context passed down to each finish step
+			if e.ctx, err = fin.run(e.ctx, e.cfg); err != nil {
+				klog.V(2).ErrorS(err, "Cleanup failed", "action", fin.role)
+			}
+		}
+	}()
+
 	for _, setup := range setups {
 		// context passed down to each setup
 		if e.ctx, err = setup.run(e.ctx, e.cfg); err != nil {
-			klog.Fatal(err)
+			klog.Fatalf("%s failure: %s", setup.role, err)
 		}
 	}
 
-	exitCode := m.Run() // exec test suite
-
-	finishes := e.getFinishActions()
-	// attempt to gracefully clean up.
-	// Upon error, log and continue.
-	for _, fin := range finishes {
-		// context passed down to each finish step
-		if e.ctx, err = fin.run(e.ctx, e.cfg); err != nil {
-			klog.V(2).ErrorS(err, "Finish action handlers")
-		}
-	}
-
-	return exitCode
+	// Execute the test suite
+	return m.Run()
 }
 
 func (e *testEnv) getActionsByRole(r actionRole) []action {

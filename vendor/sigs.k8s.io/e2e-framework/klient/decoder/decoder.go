@@ -132,7 +132,7 @@ func DecodeEach(ctx context.Context, manifest io.Reader, handlerFn HandlerFunc, 
 	return nil
 }
 
-// Decode a stream of  documents of any Kind using either the innate typing of the scheme.
+// DecodeAll is a stream of  documents of any Kind using either the innate typing of the scheme.
 // Falls back to the unstructured.Unstructured type if a matching type cannot be found for the Kind.
 // Options may be provided to configure the behavior of the decoder.
 func DecodeAll(ctx context.Context, manifest io.Reader, options ...DecodeOption) ([]k8s.Object, error) {
@@ -144,7 +144,7 @@ func DecodeAll(ctx context.Context, manifest io.Reader, options ...DecodeOption)
 	return objects, err
 }
 
-// Decode any single-document YAML or JSON input using either the innate typing of the scheme.
+// DecodeAny decodes any single-document YAML or JSON input using either the innate typing of the scheme.
 // Falls back to the unstructured.Unstructured type if a matching type cannot be found for the Kind.
 // Options may be provided to configure the behavior of the decoder.
 func DecodeAny(manifest io.Reader, options ...DecodeOption) (k8s.Object, error) {
