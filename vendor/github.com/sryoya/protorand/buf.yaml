@@ -1,0 +1,16 @@
+version: v1
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+  ignore_only:
+    ENUM_VALUE_PREFIX:
+      - testdata/test.proto
+    ENUM_ZERO_VALUE_SUFFIX:
+      - testdata/test.proto
+    PACKAGE_DIRECTORY_MATCH:
+      - testdata/test.proto
+    PACKAGE_VERSION_SUFFIX:
+      - testdata/test.proto
