@@ -38,21 +38,23 @@ redirection of events to the stdin. Examples:
   # Include only process and parent.pod fields
   %[1]s getevents -f process,parent.pod`
 
-var (
-	output        string
-	color         string
-	includeFields []string
-	excludeFields []string
-	namespaces    []string
-	namespace     []string // deprecated: use namespaces
-	processes     []string
-	process       []string // deprecated: use processes
-	pods          []string
-	pod           []string // deprecated: use pods
-	host          bool
-	timestamps    bool
-	ttyEncode     string
-)
+type Opts struct {
+	Output        string
+	Color         string
+	IncludeFields []string
+	ExcludeFields []string
+	Namespaces    []string
+	Namespace     []string // deprecated: use Namespaces
+	Processes     []string
+	Process       []string // deprecated: use Processes
+	Pods          []string
+	Pod           []string // deprecated: use Pods
+	Host          bool
+	Timestamps    bool
+	TTYEncode     string
+}
+
+var Options Opts
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
 var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string) encoder.EventEncoder {
@@ -67,23 +69,23 @@ var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool,
 
 // GetFilter returns a filter for an event stream based on configuration options.
 var GetFilter = func() *tetragon.Filter {
-	if host {
+	if Options.Host {
 		// Host events can be matched by an empty namespace string.
-		namespaces = append(namespaces, "")
+		Options.Namespaces = append(Options.Namespaces, "")
 	}
 	// Only set these filters if they are not empty. We currently rely on Protobuf to
 	// marshal empty lists as nil for filters to function properly. It doesn't work with
 	// stdin mode since it doesn't go over the wire, causing all events to get filtered
 	// out because empty allowlist does not match anything.
 	filter := tetragon.Filter{}
-	if len(processes) > 0 {
-		filter.BinaryRegex = processes
+	if len(Options.Processes) > 0 {
+		filter.BinaryRegex = Options.Processes
 	}
-	if len(namespaces) > 0 {
-		filter.Namespace = namespaces
+	if len(Options.Namespaces) > 0 {
+		filter.Namespace = Options.Namespaces
 	}
-	if len(pods) > 0 {
-		filter.PodRegex = pods
+	if len(Options.Pods) > 0 {
+		filter.PodRegex = Options.Pods
 	}
 
 	return &filter
@@ -117,12 +119,12 @@ func getRequest(includeFields, excludeFields []string, filter *tetragon.Filter) 
 }
 
 func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
-	request := getRequest(includeFields, excludeFields, GetFilter())
+	request := getRequest(Options.IncludeFields, Options.ExcludeFields, GetFilter())
 	stream, err := client.GetEvents(ctx, request)
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
 	}
-	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(color), timestamps, output == "compact", ttyEncode)
+	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -143,17 +145,17 @@ func New() *cobra.Command {
 		Short: "Print events",
 		Long:  fmt.Sprintf(DocLong, "tetra"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if output != "json" && output != "compact" {
-				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, output)
+			if Options.Output != "json" && Options.Output != "compact" {
+				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, Options.Output)
 			}
-			if color != "auto" && color != "always" && color != "never" {
-				return fmt.Errorf("invalid value for %q flag: %s", "color", color)
+			if Options.Color != "auto" && Options.Color != "always" && Options.Color != "never" {
+				return fmt.Errorf("invalid value for %q flag: %s", "color", Options.Color)
 			}
 
 			// merge deprecated to new flags, appending since order does not matter
-			namespaces = append(namespaces, namespace...)
-			pods = append(pods, pod...)
-			processes = append(processes, process...)
+			Options.Namespaces = append(Options.Namespaces, Options.Namespace...)
+			Options.Pods = append(Options.Pods, Options.Pod...)
+			Options.Processes = append(Options.Processes, Options.Process...)
 
 			return nil
 		},
@@ -170,25 +172,25 @@ func New() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&output, common.KeyOutput, "o", "json", "Output format. json or compact")
-	flags.StringVar(&color, "color", "auto", "Colorize compact output. auto, always, or never")
-	flags.StringSliceVarP(&includeFields, "include-fields", "f", nil, "Include only fields in events")
-	flags.StringSliceVarP(&excludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
+	flags.StringVarP(&Options.Output, common.KeyOutput, "o", "json", "Output format. json or compact")
+	flags.StringVar(&Options.Color, "color", "auto", "Colorize compact output. auto, always, or never")
+	flags.StringSliceVarP(&Options.IncludeFields, "include-fields", "f", nil, "Include only fields in events")
+	flags.StringSliceVarP(&Options.ExcludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
 
-	flags.StringSliceVarP(&namespaces, "namespaces", "n", nil, "Get events by Kubernetes namespaces")
-	flags.StringSliceVar(&namespace, "namespace", nil, "Get events by Kubernetes namespace")
+	flags.StringSliceVarP(&Options.Namespaces, "namespaces", "n", nil, "Get events by Kubernetes namespaces")
+	flags.StringSliceVar(&Options.Namespace, "namespace", nil, "Get events by Kubernetes namespace")
 	flags.MarkDeprecated("namespace", "please use --namespaces instead")
 
-	flags.StringSliceVar(&processes, "processes", nil, "Get events by processes name regex")
-	flags.StringSliceVar(&process, "process", nil, "Get events by process name regex")
+	flags.StringSliceVar(&Options.Processes, "processes", nil, "Get events by processes name regex")
+	flags.StringSliceVar(&Options.Process, "process", nil, "Get events by process name regex")
 	flags.MarkDeprecated("process", "please use --processes instead")
 
-	flags.StringSliceVar(&pods, "pods", nil, "Get events by pods name regex")
-	flags.StringSliceVar(&pod, "pod", nil, "Get events by pod name regex")
+	flags.StringSliceVar(&Options.Pods, "pods", nil, "Get events by pods name regex")
+	flags.StringSliceVar(&Options.Pod, "pod", nil, "Get events by pod name regex")
 	flags.MarkDeprecated("pod", "please use --pods instead")
 
-	flags.BoolVar(&host, "host", false, "Get host events")
-	flags.BoolVar(&timestamps, "timestamps", false, "Include timestamps in compact output")
-	flags.StringVarP(&ttyEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
+	flags.BoolVar(&Options.Host, "host", false, "Get host events")
+	flags.BoolVar(&Options.Timestamps, "timestamps", false, "Include timestamps in compact output")
+	flags.StringVarP(&Options.TTYEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
 	return &cmd
 }
