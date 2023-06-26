@@ -560,6 +560,9 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
+# github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc
+## explicit; go 1.17
+github.com/sryoya/protorand
 # github.com/stretchr/testify v1.8.4
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
