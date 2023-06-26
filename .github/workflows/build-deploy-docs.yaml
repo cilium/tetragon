@@ -24,6 +24,10 @@ jobs:
         with:
           fetch-depth: 0         # Fetch all history for .GitInfo and .Lastmod
 
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@f156874f8191504dae5b037505266ed5dda6c382 # v3.0.6
+
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@16361eb4acea8698b220b76c0d4e84e1fd22c61d # v2.6.0
         with:
@@ -47,7 +51,7 @@ jobs:
 
       - name: Build the Hugo website
         working-directory: docs
-        run: hugo --minify --baseURL "https://cilium.github.io/tetragon/"
+        run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
 
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
