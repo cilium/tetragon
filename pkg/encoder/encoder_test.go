@@ -5,13 +5,18 @@ package encoder
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"testing"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/sryoya/protorand"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompactEncoder_InvalidEventToString(t *testing.T) {
@@ -488,4 +493,45 @@ func TestCompactEncoder_EncodeWithTimestamp(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "1970-01-01T00:00:00.000000000Z 🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
+}
+
+func FuzzProtojsonCompatibility(f *testing.F) {
+	for _, n := range []int64{
+		1337,
+		78776406,
+		56343416,
+		68876713,
+		51156281,
+		45544244,
+		4011756,
+	} {
+		f.Add(n)
+	}
+	f.Fuzz(func(t *testing.T, seed int64) {
+		pr := protorand.New()
+		pr.Seed(seed)
+		ev := &tetragon.GetEventsResponse{}
+		msg, err := pr.Gen(ev)
+		require.NoError(t, err)
+
+		var buf1 bytes.Buffer
+		protojsonEncoder := NewProtojsonEncoder(&buf1)
+		err = protojsonEncoder.Encode(msg)
+		require.NoError(t, err)
+
+		var buf2 bytes.Buffer
+		jsonEncoder := json.NewEncoder(&buf2)
+		err = jsonEncoder.Encode(msg)
+		require.NoError(t, err)
+
+		msgProtojson := &tetragon.GetEventsResponse{}
+		err = protojson.Unmarshal(buf2.Bytes(), msgProtojson)
+		require.NoError(t, err)
+		msgJson := &tetragon.GetEventsResponse{}
+		err = json.Unmarshal(buf2.Bytes(), msgJson)
+		require.NoError(t, err)
+
+		assert.True(t, proto.Equal(msgJson, msgProtojson))
+		assert.True(t, proto.Equal(msg, msgProtojson))
+	})
 }
