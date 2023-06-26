@@ -664,6 +664,9 @@ func execute() error {
 	// Allow to disable kprobe multi interface
 	flags.Bool(keyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
 
+	// Allow to disable uprobe multi interface
+	flags.Bool(keyDisableUprobeMulti, false, "Allow to disable uprobe multi interface")
+
 	// Allow to specify perf ring buffer size
 	flags.Int(keyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
 	flags.Int(keyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")

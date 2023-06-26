@@ -30,6 +30,7 @@ type config struct {
 	K8sKubeConfigPath string
 
 	DisableKprobeMulti bool
+	DisableUprobeMulti bool
 
 	GopsAddr string
 

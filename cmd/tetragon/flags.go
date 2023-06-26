@@ -63,6 +63,7 @@ const (
 	keyNetnsDir = "netns-dir"
 
 	keyDisableKprobeMulti = "disable-kprobe-multi"
+	keyDisableUprobeMulti = "disable-uprobe-multi"
 
 	keyRBSize      = "rb-size"
 	keyRBSizeTotal = "rb-size-total"
@@ -96,6 +97,7 @@ func readAndSetFlags() {
 	option.Config.K8sKubeConfigPath = viper.GetString(keyK8sKubeConfigPath)
 
 	option.Config.DisableKprobeMulti = viper.GetBool(keyDisableKprobeMulti)
+	option.Config.DisableUprobeMulti = viper.GetBool(keyDisableUprobeMulti)
 
 	option.Config.RBSize = viper.GetInt(keyRBSize)
 	option.Config.RBSizeTotal = viper.GetInt(keyRBSizeTotal)

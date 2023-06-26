@@ -159,6 +159,50 @@ func UprobeAttach(load *Program) AttachFunc {
 	}
 }
 
+func MultiUprobeAttach(load *Program) AttachFunc {
+	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		data, ok := load.AttachData.(*MultiUprobeAttachData)
+		if !ok {
+			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
+		}
+
+		linkFn := func() ([]link.Link, error) {
+			var links []link.Link
+			var lnk link.Link
+
+			for path, attach := range data.Attach {
+				exec, err := link.OpenExecutable(path)
+				if err != nil {
+					return nil, err
+				}
+				lnk, err = exec.UprobeMulti(attach.Symbols, attach.Cookies, prog)
+				if err != nil {
+					return nil, err
+				}
+				links = append(links, lnk)
+			}
+			return links, nil
+		}
+
+		links, err := linkFn()
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+
+		return &unloader.MultiRelinkUnloader{
+			UnloadProg: unloader.ChainUnloader{
+				unloader.PinUnloader{
+					Prog: prog,
+				},
+			}.Unload,
+			IsLinked: true,
+			Links:    links,
+			RelinkFn: linkFn,
+		}, nil
+
+	}
+}
+
 func NoAttach() AttachFunc {
 	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
@@ -294,6 +338,11 @@ func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error
 
 func LoadLSMProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, []string{mapDir}, load, LSMAttach(), nil, verbose)
+}
+
+func LoadMultiUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	ci := &customInstall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
+	return loadProgram(bpfDir, []string{mapDir}, load, MultiUprobeAttach(load), ci, verbose)
 }
 
 func slimVerifierError(errStr string) string {
