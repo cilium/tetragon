@@ -587,3 +587,109 @@ func TestTracepointCloneThreads(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestTracepointForceType(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	lseekConfigHook_ := `
+kind: TracingPolicy
+metadata:
+  name: "raw-syscalls"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    # args: add both the syscall id, and the array with the arguments
+    args:
+    # fd argument
+    - index: 5
+      type: "sint32"
+    # whence argument
+    - index: 7
+      type: "sint32"
+`
+
+	lseekConfigHook := []byte(lseekConfigHook_)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testBinPath := "contrib/tester-progs/threads-tester"
+	testBin := testutils.RepoRootPath(testBinPath)
+	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "tracepoint")
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	cti := &testutils.ThreadTesterInfo{}
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	logWG.Wait()
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	cti.AssertPidsTids(t)
+
+	parentCheck := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(parentCheck)
+
+	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(parentCheck)
+
+	child1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Child1Pid).
+		WithTid(cti.Child1Tid)
+
+	child1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(whenceBogusValue)),
+			)).WithProcess(child1Checker).WithParent(parentCheck)
+
+	thread1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Thread1Pid).
+		WithTid(cti.Thread1Tid)
+
+	thread1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(whenceBogusValue)),
+			)).WithProcess(thread1Checker).WithParent(parentCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
