@@ -71,7 +71,7 @@ Helm chart for Tetragon
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v0.8.3"` |  |
+| tetragon.image.tag | string | `"v0.8.4"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |

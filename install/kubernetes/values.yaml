@@ -49,7 +49,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v0.8.3
+    tag: v0.8.4
   resources: {}
   extraArgs: {}
   extraEnv: []
