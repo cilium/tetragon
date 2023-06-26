@@ -350,6 +350,49 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 					bpfmap.MapName, bpfmap.KeySize, bpfmap.ValueSize, bpfmap.MaxEntries)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_file_permission":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_file_permission")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+				file := kprobe.Args[0].GetFileArg()
+				action := kprobe.Args[1].GetIntArg()
+				if action == 0x02 {
+					event = p.Colorer.Blue.Sprintf("📝 %-7s", "write")
+				} else if action == 0x04 {
+					event = p.Colorer.Blue.Sprintf("📚 %-7s", "read")
+				}
+				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_mmap_file":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_mmap_file")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+				file := kprobe.Args[0].GetFileArg()
+				action := kprobe.Args[1].GetUintArg()
+				eventTag := "mmap-"
+				if action&0x01 != 0 { // PROT_READ
+					eventTag += "r"
+				}
+				if action&0x02 != 0 { // PROT_WRITE
+					eventTag += "w"
+				}
+				if action&0x04 != 0 { // PROT_EXEC
+					eventTag += "x"
+				}
+				event = p.Colorer.Blue.Sprintf("📝 %-7s", eventTag)
+				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_path_truncate":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_path_truncate")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				path := kprobe.Args[0].GetPathArg()
+				attr = p.Colorer.Cyan.Sprintf("%s", path.Path)
+				event = p.Colorer.Blue.Sprintf("📝 %-7s", "truncate")
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
 			event := p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
