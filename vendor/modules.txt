@@ -1371,7 +1371,7 @@ sigs.k8s.io/controller-tools/pkg/schemapatcher
 sigs.k8s.io/controller-tools/pkg/schemapatcher/internal/yaml
 sigs.k8s.io/controller-tools/pkg/version
 sigs.k8s.io/controller-tools/pkg/webhook
-# sigs.k8s.io/e2e-framework v0.0.7 => github.com/kubernetes-sigs/e2e-framework v0.0.8
+# sigs.k8s.io/e2e-framework v0.0.8 => github.com/kubernetes-sigs/e2e-framework v0.0.8
 ## explicit; go 1.18
 sigs.k8s.io/e2e-framework/klient
 sigs.k8s.io/e2e-framework/klient/conf
