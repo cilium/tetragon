@@ -23,15 +23,27 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// PodInfoSpec defines the desired state of PodInfo. It contains the pod IP and metadata that will be populated by the operator.
 type PodInfoSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// PodName is the IP address of the pod
-	PodIP string `json:"podIP"`
-	// PodName contains the additional details like name, version, labels etc.
-	PodMetadata string `json:"podMetadata"`
+	// Host networking requested for this pod. Use the host's network namespace.
+	// If this option is set, the ports that will be used must be specified.
+	HostNetwork bool `json:"hostNetwork,omitempty"`
+}
+
+type PodInfoStatus struct {
+	// IP address allocated to the pod. Routable at least within the cluster.
+	// Empty if not yet allocated.
+	PodIP string `json:"podIP,omitempty"`
+
+	// List of Ip addresses allocated to the pod. 0th entry must be same as PodIP.
+	PodIPs []PodIP `json:"podIPs,omitempty"`
+}
+
+type PodIP struct {
+	// ip is an IP address (IPv4 or IPv6) assigned to the pod
+	IP string `json:"ip,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -41,10 +53,12 @@ type PodInfo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec PodInfoSpec `json:"spec,omitempty"`
+	Spec   PodInfoSpec   `json:"spec,omitempty"`
+	Status PodInfoStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // PodInfoList contains a list of PodInfo
 type PodInfoList struct {
