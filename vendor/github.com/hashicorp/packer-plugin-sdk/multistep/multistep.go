@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // multistep is a library for building up complex actions using individual,
 // discrete steps.
 package multistep

@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cilium/cilium v1.13.1
 	github.com/cilium/ebpf v0.10.0
-	github.com/cilium/little-vm-helper v0.0.4-0.20230302123240-24dab6e359ff
+	github.com/cilium/little-vm-helper v0.0.7
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -100,9 +100,9 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/packer-plugin-sdk v0.3.0 // indirect
+	github.com/hashicorp/packer-plugin-sdk v0.4.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/imdario/mergo v0.3.13 // indirect
+	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
