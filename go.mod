@@ -42,11 +42,11 @@ require (
 	google.golang.org/grpc v1.54.1
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.26.2
-	k8s.io/apiextensions-apiserver v0.26.0
-	k8s.io/apimachinery v0.26.2
-	k8s.io/client-go v0.26.2
-	k8s.io/code-generator v0.26.0
+	k8s.io/api v0.26.6
+	k8s.io/apiextensions-apiserver v0.26.6
+	k8s.io/apimachinery v0.26.6
+	k8s.io/client-go v0.26.6
+	k8s.io/code-generator v0.26.6
 	k8s.io/klog/v2 v2.90.1
 	sigs.k8s.io/controller-tools v0.7.0
 	sigs.k8s.io/e2e-framework v0.0.7
