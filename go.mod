@@ -14,7 +14,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gops v0.3.27
 	github.com/google/uuid v1.3.0
