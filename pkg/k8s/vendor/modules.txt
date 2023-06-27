@@ -545,7 +545,7 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# sigs.k8s.io/controller-tools v0.7.0 => github.com/christarazi/controller-tools v0.3.1-0.20200911184030-7e668c1fb4c2
+# sigs.k8s.io/controller-tools v0.12.0 => github.com/christarazi/controller-tools v0.3.1-0.20200911184030-7e668c1fb4c2
 ## explicit; go 1.13
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd
