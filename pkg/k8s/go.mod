@@ -72,7 +72,7 @@ require (
 replace (
 	github.com/miekg/dns => github.com/cilium/dns v1.1.4-0.20190417235132-8e25ec9a0ff3
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
-	github.com/vishvananda/netlink => github.com/jrfastab/netlink v1.1.1
+	github.com/vishvananda/netlink => github.com/jrfastab/netlink v1.1.2
 
 	// Use a fork of lumberjack with patches to ensure compressed logs are created atomically
 	gopkg.in/natefinch/lumberjack.v2 => github.com/chancez/lumberjack v0.0.0-20220314160755-2b78c6a5f7bc
