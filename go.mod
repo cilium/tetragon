@@ -12,7 +12,7 @@ require (
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.0
 	github.com/fatih/color v1.15.0
-	github.com/go-openapi/strfmt v0.21.3
+	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
@@ -56,7 +56,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -147,7 +147,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.6 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.6 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.6 // indirect
-	go.mongodb.org/mongo-driver v1.10.0 // indirect
+	go.mongodb.org/mongo-driver v1.11.3 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
