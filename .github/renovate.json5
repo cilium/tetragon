@@ -69,9 +69,7 @@
       ]
     },
     {
-      // not grouping these together
-      // "groupName": "all go dependencies main",
-      // "groupSlug": "all-go-deps-main",
+      // not grouping major updates together
       "matchFiles": [
         "go.mod",
         "go.sum"
@@ -87,6 +85,28 @@
       },
       "matchUpdateTypes": [
         "major",
+      ],
+      matchBaseBranches: [
+        "main"
+      ],
+    },
+    {
+      "groupName": "all go dependencies main",
+      "groupSlug": "all-go-deps-main",
+      "matchFiles": [
+        "go.mod",
+        "go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
+      ],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+      "matchUpdateTypes": [
         "minor",
         "patch",
         "digest",
@@ -127,9 +147,7 @@
       ],
     },
     {
-      // not grouping these together
-      // "groupName": "all k8s pkg go dependencies main",
-      // "groupSlug": "all-k8s-pkg-go-deps-main",
+      // not grouping major updates together
       "matchFiles": [
         "pkg/k8s/go.mod",
         "pkg/k8s/go.sum"
@@ -145,6 +163,28 @@
       },
       "matchUpdateTypes": [
         "major",
+      ],
+      matchBaseBranches: [
+        "main"
+      ],
+    },
+    {
+      "groupName": "all k8s pkg go dependencies main",
+      "groupSlug": "all-k8s-pkg-go-deps-main",
+      "matchFiles": [
+        "pkg/k8s/go.mod",
+        "pkg/k8s/go.sum"
+      ],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
+      ],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+      "matchUpdateTypes": [
         "minor",
         "patch",
         "digest",
