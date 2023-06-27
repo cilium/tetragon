@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cilium/cilium v1.13.1
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/sync v0.1.0
+	golang.org/x/sync v0.3.0
 	k8s.io/apiextensions-apiserver v0.26.6
 	k8s.io/apimachinery v0.26.6
 	k8s.io/client-go v0.26.6
