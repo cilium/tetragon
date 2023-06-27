@@ -1372,7 +1372,7 @@ sigs.k8s.io/controller-tools/pkg/schemapatcher
 sigs.k8s.io/controller-tools/pkg/schemapatcher/internal/yaml
 sigs.k8s.io/controller-tools/pkg/version
 sigs.k8s.io/controller-tools/pkg/webhook
-# sigs.k8s.io/e2e-framework v0.0.8 => github.com/kubernetes-sigs/e2e-framework v0.0.8
+# sigs.k8s.io/e2e-framework v0.0.8
 ## explicit; go 1.18
 sigs.k8s.io/e2e-framework/klient
 sigs.k8s.io/e2e-framework/klient/conf
@@ -1410,4 +1410,3 @@ sigs.k8s.io/yaml
 # go.universe.tf/metallb => github.com/cilium/metallb v0.1.1-0.20210831235406-48667b93284d
 # gopkg.in/natefinch/lumberjack.v2 => github.com/chancez/lumberjack v0.0.0-20220314160755-2b78c6a5f7bc
 # sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
-# sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.0.8

@@ -190,6 +190,4 @@ replace (
 	// Using private fork of controller-tools. See commit msg for more context
 	// as to why we are using a private fork.
 	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
-	// Pull in support for helm uninstall. TODO: remove this when 0.0.8 comes out.
-	sigs.k8s.io/e2e-framework => github.com/kubernetes-sigs/e2e-framework v0.0.8
 )
