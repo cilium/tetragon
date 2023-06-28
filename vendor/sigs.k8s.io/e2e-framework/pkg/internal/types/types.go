@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/flags"
 )
 
 // EnvFunc represents a user-defined operation that
@@ -86,7 +87,7 @@ type Environment interface {
 	Run(*testing.M) int
 }
 
-type Labels map[string]string
+type Labels = flags.LabelsMap
 
 type Feature interface {
 	// Name is a descriptive text for the feature

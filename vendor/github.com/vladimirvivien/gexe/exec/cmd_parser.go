@@ -9,11 +9,11 @@ import (
 
 // parse parses space-separated string into words including quoted words:
 //
-//  aaa "bbb" "ccc ddd" '"eee ff"'
+//	aaa "bbb" "ccc ddd" '"eee ff"'
 //
-//  NB:
-//  - aaa"abcd": returns whole string.
-//  - "aaa"bbb:  returns two words "aaa" and "bbb"
+//	NB:
+//	- aaa"abcd": returns whole string.
+//	- "aaa"bbb:  returns two words "aaa" and "bbb"
 func parse(val string) ([]string, error) {
 	rdr := bufio.NewReader(strings.NewReader(val))
 	var startQuote rune
