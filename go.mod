@@ -36,7 +36,7 @@ require (
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20220608195807-1a118fe229fc
 	github.com/vladimirvivien/gexe v0.1.1
 	go.uber.org/atomic v1.11.0
-	go.uber.org/multierr v1.9.0
+	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.9.0
 	golang.org/x/time v0.3.0
