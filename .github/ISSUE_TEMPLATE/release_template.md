@@ -48,6 +48,9 @@ assignees: ''
       - Once the pull request is merged and the chart is published, go to [cilium/charts GKE workflow] and wait for the
         CI run to pass.
 
+- [ ] Bump the version number in our [Hugo documentation][hugo docs] in the `params.version` variable
+
+[hugo docs]: https://github.com/cilium/tetragon/blob/main/docs/hugo.toml
 [release blockers]: https://github.com/cilium/tetragon/issues?q=is%3Aissue+is%3Aopen+label%3Arelease-blocker
 [Image CI Releases workflow]: https://github.com/cilium/tetragon/actions/workflows/build-images-releases.yml
 [cilium/charts RELEASE.md]: https://github.com/cilium/charts/blob/master/RELEASE.md
