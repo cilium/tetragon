@@ -33,8 +33,6 @@ import (
 const (
 	maxMapRetries = 4
 	mapRetryDelay = 1
-
-	kernelPid = uint32(0)
 )
 
 func stringToUTF8(s []byte) []byte {
@@ -81,18 +79,18 @@ type procs struct {
 }
 
 func procKernel() procs {
-	kernelArgs := []byte("<kernel>\u0000")
+	kernelArgs := []byte(fmt.Sprintf("%s\u0000", processapi.KernelBinary))
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		ppid:        kernelPid,
+		ppid:        processapi.KernelPid,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
 		pargs:       kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		uid:         0,
-		pid:         kernelPid,
-		tid:         kernelPid,
+		pid:         processapi.KernelPid,
+		tid:         processapi.KernelPid,
 		nspid:       0,
 		auid:        0,
 		flags:       api.EventProcFS,
@@ -241,12 +239,12 @@ func writeExecveMap(procs []procs) {
 	// execve lookup to map to a valid entry. So to simplify the kernel side
 	// and avoid having to add another branch of logic there to handle pid==0
 	// case we simply add it here.
-	m.Update(&execvemap.ExecveKey{Pid: kernelPid}, &execvemap.ExecveValue{
+	m.Update(&execvemap.ExecveKey{Pid: processapi.KernelPid}, &execvemap.ExecveValue{
 		Parent: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			Pid:   processapi.KernelPid,
 			Ktime: 1},
 		Process: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			Pid:   processapi.KernelPid,
 			Ktime: 1,
 		},
 	})
