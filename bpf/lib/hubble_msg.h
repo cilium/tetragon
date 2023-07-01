@@ -4,15 +4,7 @@
 #ifndef __HUBBLE_MSG_
 #define __HUBBLE_MSG_
 
-#include "msg_types.h"
-#include "common.h"
-#include "process.h"
 #include "bpf_helpers.h"
-
-struct msg_calltrace {
-	__u64 stack[16];
-	int32_t ret;
-} __attribute__((packed));
 
 struct event {
 	int event;

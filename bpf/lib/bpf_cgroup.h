@@ -7,6 +7,7 @@
 #include "hubble_msg.h"
 #include "bpf_helpers.h"
 #include "environ_conf.h"
+#include "common.h"
 #include "process.h"
 
 #define NULL ((void *)0)
