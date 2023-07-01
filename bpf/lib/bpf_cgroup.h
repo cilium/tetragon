@@ -4,7 +4,7 @@
 #ifndef __BPF_CGROUP_
 #define __BPF_CGROUP_
 
-#include "hubble_msg.h"
+#include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "environ_conf.h"
 #include "common.h"

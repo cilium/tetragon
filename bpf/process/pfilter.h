@@ -173,7 +173,7 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 #ifdef __NS_CHANGES_FILTER
 /* If 'ty == op_filter_in' variable 'val' is the mask of the namespaces that we want to check.
  * If 'ty == op_filter_notin' variable 'val' is the mask of the namespaces that we do *NOT* want to check.
- * (namespace bits are defined in the ns_* enum in hubble_msg.h)
+ * (namespace bits are defined in the ns_* enum in process.h)
  */
 static inline __attribute__((always_inline)) int
 process_filter_namespace_change(__u64 ty, __u64 val,
