@@ -5,7 +5,7 @@
 #define _BPF_CGROUP_EVENTS__
 
 #include "bpf_helpers.h"
-#include "bpf_events.h"
+#include "bpf_task.h"
 #include "environ_conf.h"
 
 /* This function will send the cgroup events to the ring buffer */

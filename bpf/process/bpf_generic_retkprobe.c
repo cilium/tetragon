@@ -6,7 +6,7 @@
 #include "bpf_tracing.h"
 
 #include "hubble_msg.h"
-#include "bpf_events.h"
+#include "bpf_task.h"
 #include "retprobe_map.h"
 #include "types/basic.h"
 
