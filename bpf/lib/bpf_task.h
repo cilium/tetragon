@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
 
-#ifndef _BPF_EVENTS_H
-#define _BPF_EVENTS_H
+#ifndef _BPF_TASK_H
+#define _BPF_TASK_H
 
 #include "hubble_msg.h"
 #include "bpf_helpers.h"
@@ -173,4 +173,4 @@ event_find_curr(__u32 *ppid, bool *walked)
 	*ppid = pid;
 	return value;
 }
-#endif // _BPF_EVENTS_H
+#endif // _BPF_TASK_H
