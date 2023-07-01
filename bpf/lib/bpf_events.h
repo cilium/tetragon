@@ -18,25 +18,6 @@
 #define PROBE_CWD_READ_ITERATIONS 11
 #endif
 
-static inline __attribute__((always_inline)) int64_t
-validate_arg_size(int64_t size)
-{
-	compiler_barrier();
-	/* Kernels pre 4.15 do not track min values on '&' so we do
-	 * the more explicit greather than followed by less than
-	 * check to accumulate min/max bounds. Size can not be zero
-	 * else older kernels will throw an error on probe_read() we
-	 * require a msg_process header regardless so ensure size
-	 * accounts for this at minimum.
-	 */
-	if (size >= BUFFER + offsetof(struct msg_process, args))
-		size = BUFFER + offsetof(struct msg_process, args);
-	if (size < offsetof(struct msg_process, args))
-		size = offsetof(struct msg_process, args);
-	compiler_barrier();
-	return size;
-}
-
 static inline __attribute__((always_inline)) struct task_struct *
 get_parent(struct task_struct *t)
 {
@@ -111,22 +92,6 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	probe_read(&upid, upid_sz,
 		   (void *)_(&pid->numbers) + (level * upid_sz));
 	return upid.nr;
-}
-
-static inline __attribute__((always_inline)) int64_t
-event_copy_execve(struct msg_process *dst, struct msg_process *src)
-{
-	struct msg_process *esrc;
-	int64_t size;
-
-	size = validate_arg_size(src->size);
-	esrc = (void *)src + size;
-	compiler_barrier();
-	size = validate_arg_size(esrc->size);
-	compiler_barrier();
-	probe_read(dst, size, esrc);
-	// must be size (NOT dst->size) because size is sanitized and int64_t
-	return size;
 }
 
 static inline __attribute__((always_inline)) __u32
