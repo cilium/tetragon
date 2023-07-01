@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright Authors of Cilium */
 
-#ifndef __HUBBLE_MSG_
-#define __HUBBLE_MSG_
+#ifndef __BPF_EVENT_H
+#define __BPF_EVENT_H
 
 #include "bpf_helpers.h"
 
@@ -16,4 +16,4 @@ struct {
 	__type(value, struct event);
 } tcpmon_map SEC(".maps");
 
-#endif // __HUBBLE_MSG_
+#endif // __BPF_EVENT_H

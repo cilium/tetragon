@@ -4,7 +4,7 @@
 #ifndef _BPF_TASK_H
 #define _BPF_TASK_H
 
-#include "hubble_msg.h"
+#include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "generic.h"
 

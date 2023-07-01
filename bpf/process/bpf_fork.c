@@ -5,7 +5,7 @@
 #include "api.h"
 #include "bpf_tracing.h"
 
-#include "hubble_msg.h"
+#include "bpf_event.h"
 #include "bpf_cgroup.h"
 #include "bpf_task.h"
 #include "environ_conf.h"

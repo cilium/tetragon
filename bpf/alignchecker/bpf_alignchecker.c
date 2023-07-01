@@ -2,7 +2,7 @@
 
 #include "include/vmlinux.h"
 #include "include/api.h"
-#include "lib/hubble_msg.h"
+#include "lib/bpf_event.h"
 #include "process/retprobe_map.h"
 #include "process/types/basic.h"
 
