@@ -1969,7 +1969,7 @@ generic_output(void *ctx, struct bpf_map_def *heap)
 		     :
 		     : [total] "+r"(total)
 		     :);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
+	send_event(ctx, e, total, e->common.op);
 	return 1;
 }
 

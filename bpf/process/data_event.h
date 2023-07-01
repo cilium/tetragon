@@ -32,8 +32,7 @@ a:
 		return err;
 
 	msg->common.size = offsetof(struct msg_data, arg) + bytes;
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg,
-			  msg->common.size);
+	send_event(ctx, msg, msg->common.size, MSG_OP_DATA);
 	return bytes;
 b:
 	return -1;
@@ -106,7 +105,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 		     :
 		     : [size] "+r"(size)
 		     :);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
+	send_event(ctx, msg, size, MSG_OP_DATA);
 	return err;
 }
 

@@ -61,8 +61,7 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx, __u
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));
 
-		perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, exit,
-				  size);
+		send_event(ctx, exit, size, MSG_OP_EXIT);
 	}
 	execve_map_delete(tgid);
 }

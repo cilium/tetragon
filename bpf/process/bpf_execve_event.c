@@ -278,6 +278,6 @@ execve_send(struct sched_execve_args *ctx)
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
+	send_event(ctx, event, size, MSG_OP_EXECVE);
 	return 0;
 }
