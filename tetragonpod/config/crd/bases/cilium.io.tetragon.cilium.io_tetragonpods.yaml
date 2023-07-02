@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: podinfoes.cilium.io.tetragon.cilium.io
+  name: tetragonpods.cilium.io.tetragon.cilium.io
 spec:
   group: cilium.io.tetragon.cilium.io
   names:
-    kind: PodInfo
-    listKind: PodInfoList
-    plural: podinfoes
-    singular: podinfo
+    kind: TetragonPod
+    listKind: TetragonPodList
+    plural: tetragonpods
+    singular: tetragonpod
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PodInfo is the Schema for the podinfoes API
+        description: TetragonPod is the Schema for the TetragonPods API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

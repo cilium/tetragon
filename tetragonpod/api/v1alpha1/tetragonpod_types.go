@@ -23,7 +23,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type PodInfoSpec struct {
+type TetragonPodSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
@@ -32,7 +32,7 @@ type PodInfoSpec struct {
 	HostNetwork bool `json:"hostNetwork,omitempty"`
 }
 
-type PodInfoStatus struct {
+type TetragonPodStatus struct {
 	// IP address allocated to the pod. Routable at least within the cluster.
 	// Empty if not yet allocated.
 	PodIP string `json:"podIP,omitempty"`
@@ -48,25 +48,25 @@ type PodIP struct {
 
 //+kubebuilder:object:root=true
 
-// PodInfo is the Schema for the podinfoes API
-type PodInfo struct {
+// TetragonPod is the Schema for the TetragonPods API
+type TetragonPod struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PodInfoSpec   `json:"spec,omitempty"`
-	Status PodInfoStatus `json:"status,omitempty"`
+	Spec   TetragonPodSpec   `json:"spec,omitempty"`
+	Status TetragonPodStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// PodInfoList contains a list of PodInfo
-type PodInfoList struct {
+// TetragonPodList contains a list of TetragonPod
+type TetragonPodList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PodInfo `json:"items"`
+	Items           []TetragonPod `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PodInfo{}, &PodInfoList{})
+	SchemeBuilder.Register(&TetragonPod{}, &TetragonPodList{})
 }

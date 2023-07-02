@@ -24,29 +24,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
 )
 
-// PodInfoReconciler reconciles a PodInfo object
-type PodInfoReconciler struct {
+// TetragonPodReconciler reconciles a TetragonPod object
+type TetragonPodReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=podinfoes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=podinfoes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=podinfoes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=TetragonPods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=TetragonPods/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cilium.io.tetragon.cilium.io,resources=TetragonPods/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the PodInfo object against the actual cluster state, and then
+// the TetragonPod object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
-func (r *PodInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,8 +55,8 @@ func (r *PodInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PodInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *TetragonPodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ciliumiov1alpha1.PodInfo{}).
+		For(&ciliumiov1alpha1.TetragonPod{}).
 		Complete(r)
 }

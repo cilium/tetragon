@@ -8,7 +8,7 @@ rules:
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - podinfoes
+  - TetragonPods
   verbs:
   - create
   - delete
@@ -20,13 +20,13 @@ rules:
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - podinfoes/finalizers
+  - TetragonPods/finalizers
   verbs:
   - update
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - podinfoes/status
+  - TetragonPods/status
   verbs:
   - get
   - patch

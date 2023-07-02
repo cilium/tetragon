@@ -29,7 +29,7 @@ package controller
 // 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 // 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-// 	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
+// 	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
 // 	//+kubebuilder:scaffold:imports
 // )
 

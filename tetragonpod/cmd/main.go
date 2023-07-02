@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/podinfo/api/v1alpha1"
-	"github.com/cilium/tetragon/podinfo/internal/controller"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
+	"github.com/cilium/tetragon/tetragonpod/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,11 +89,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PodInfoReconciler{
+	if err = (&controller.TetragonPodReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PodInfo")
+		setupLog.Error(err, "unable to create controller", "controller", "TetragonPod")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

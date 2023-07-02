@@ -5,7 +5,7 @@
 domain: tetragon.cilium.io
 layout:
 - go.kubebuilder.io/v4
-projectName: podinfo
+projectName: tetragonpod
 repo: github.com/cilium/tetragon
 resources:
 - api:
