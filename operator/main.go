@@ -20,9 +20,10 @@ import (
 	"path/filepath"
 
 	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
+	ciliumClient "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/version"
+	tetragonClient "github.com/cilium/tetragon/tetragonpod/api/v1alpha1/client"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -94,8 +95,15 @@ func operatorExecute() {
 	// Register the CRDs after validating that we are running on a supported
 	// version of K8s.
 	if !operatorOption.Config.SkipCRDCreation {
-		if err := client.RegisterCRDs(k8sAPIExtClient); err != nil {
+
+		// Register Tracing Policy CRD
+		if err := ciliumClient.RegisterCRDs(k8sAPIExtClient); err != nil {
 			log.WithError(err).Fatal("Unable to register CRDs")
+		}
+
+		// Register TetragonPod CRD
+		if err := tetragonClient.RegisterCRD(k8sAPIExtClient); err != nil {
+			log.WithError(err).Fatal("Unable to register TetragonPod CRDs")
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")

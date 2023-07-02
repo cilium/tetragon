@@ -1,13 +1,27 @@
-package register
+package client
 
 import (
+	"context"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/tetragonpod"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 var scopedLogger = logger.GetLogger()
+
+func RegisterCRD(client *apiextclientset.Clientset) error {
+	crd := GetCRD()
+	_, err := client.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
+	if err != nil {
+		scopedLogger.Errorf("failed to register CRD: %v", err)
+		return err
+	}
+	return nil
+}
 
 // GetCRD returns the CRD object.
 func GetCRD() *apiextv1.CustomResourceDefinition {

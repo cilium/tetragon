@@ -1,4 +1,4 @@
-package register
+package client
 
 // This contains test for register crd file
 import (
