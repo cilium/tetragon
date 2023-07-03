@@ -186,11 +186,8 @@ spec:
                       - type
                       type: object
                     returnArgAction:
-                      description: An action to perform on the return argument.
-                      enum:
-                      - Post
-                      - TrackSock
-                      - UntrackSock
+                      description: 'An action to perform on the return argument. Available
+                        actions are: Post;TrackSock;UntrackSock'
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
@@ -523,7 +520,6 @@ spec:
                       type: boolean
                   required:
                   - call
-                  - returnArgAction
                   type: object
                 type: array
               loader:
