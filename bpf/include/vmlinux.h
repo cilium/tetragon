@@ -31867,8 +31867,8 @@ struct hist_var_data {
 };
 
 enum {
-	BPF_F_INDEX_MASK = -1,
-	BPF_F_CURRENT_CPU = -1,
+	BPF_F_INDEX_MASK = 0xffffffffULL,
+	BPF_F_CURRENT_CPU = BPF_F_INDEX_MASK,
 	BPF_F_CTXLEN_MASK = 0,
 };
 
