@@ -104,6 +104,7 @@ spec:
                             - capability
                             - kiocb
                             - iov_iter
+                            - cred
                             type: string
                         required:
                         - index
@@ -180,6 +181,7 @@ spec:
                           - capability
                           - kiocb
                           - iov_iter
+                          - cred
                           type: string
                       required:
                       - index
@@ -651,6 +653,7 @@ spec:
                             - capability
                             - kiocb
                             - iov_iter
+                            - cred
                             type: string
                         required:
                         - index
