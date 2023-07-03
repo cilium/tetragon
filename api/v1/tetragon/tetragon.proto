@@ -110,6 +110,28 @@ message Namespaces {
     Namespace user = 10;
 }
 
+message UserNamespace {
+    google.protobuf.Int32Value level = 1;
+    google.protobuf.UInt32Value owner = 2;
+    google.protobuf.UInt32Value group = 3;
+    Namespace ns = 4;
+}
+
+
+message ProcessCredentials {
+    google.protobuf.UInt32Value uid = 1;
+    google.protobuf.UInt32Value gid = 2;
+    google.protobuf.UInt32Value suid = 3;
+    google.protobuf.UInt32Value sgid = 4;
+    google.protobuf.UInt32Value euid = 5;
+    google.protobuf.UInt32Value egid = 6;
+    google.protobuf.UInt32Value fsuid = 7;
+    google.protobuf.UInt32Value fsgid = 8;
+    repeated string securebits = 9;
+    Capabilities capabilities = 10;
+    UserNamespace userns = 11;
+}
+
 message Process {
     // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
     string exec_id = 1;
@@ -330,6 +352,7 @@ message KprobeArgument {
 	uint32 uint_arg = 15;
 	KprobeUserNamespace user_namespace_arg = 16;
 	KprobeCapability capability_arg = 17;
+    ProcessCredentials credentials_arg = 19;
     }
     string label = 18;
 }

@@ -2318,6 +2318,457 @@ func (checker *NamespacesChecker) FromNamespaces(event *tetragon.Namespaces) *Na
 	return checker
 }
 
+// UserNamespaceChecker implements a checker struct to check a UserNamespace field
+type UserNamespaceChecker struct {
+	Level *int32            `json:"level,omitempty"`
+	Owner *uint32           `json:"owner,omitempty"`
+	Group *uint32           `json:"group,omitempty"`
+	Ns    *NamespaceChecker `json:"ns,omitempty"`
+}
+
+// NewUserNamespaceChecker creates a new UserNamespaceChecker
+func NewUserNamespaceChecker() *UserNamespaceChecker {
+	return &UserNamespaceChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *UserNamespaceChecker) GetCheckerType() string {
+	return "UserNamespaceChecker"
+}
+
+// Check checks a UserNamespace field
+func (checker *UserNamespaceChecker) Check(event *tetragon.UserNamespace) error {
+	if event == nil {
+		return fmt.Errorf("%s: UserNamespace field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Level != nil {
+			if event.Level == nil {
+				return fmt.Errorf("Level is nil and does not match expected value %v", *checker.Level)
+			}
+			if *checker.Level != event.Level.Value {
+				return fmt.Errorf("Level has value %v which does not match expected value %v", event.Level.Value, *checker.Level)
+			}
+		}
+		if checker.Owner != nil {
+			if event.Owner == nil {
+				return fmt.Errorf("Owner is nil and does not match expected value %v", *checker.Owner)
+			}
+			if *checker.Owner != event.Owner.Value {
+				return fmt.Errorf("Owner has value %v which does not match expected value %v", event.Owner.Value, *checker.Owner)
+			}
+		}
+		if checker.Group != nil {
+			if event.Group == nil {
+				return fmt.Errorf("Group is nil and does not match expected value %v", *checker.Group)
+			}
+			if *checker.Group != event.Group.Value {
+				return fmt.Errorf("Group has value %v which does not match expected value %v", event.Group.Value, *checker.Group)
+			}
+		}
+		if checker.Ns != nil {
+			if err := checker.Ns.Check(event.Ns); err != nil {
+				return fmt.Errorf("Ns check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithLevel adds a Level check to the UserNamespaceChecker
+func (checker *UserNamespaceChecker) WithLevel(check int32) *UserNamespaceChecker {
+	checker.Level = &check
+	return checker
+}
+
+// WithOwner adds a Owner check to the UserNamespaceChecker
+func (checker *UserNamespaceChecker) WithOwner(check uint32) *UserNamespaceChecker {
+	checker.Owner = &check
+	return checker
+}
+
+// WithGroup adds a Group check to the UserNamespaceChecker
+func (checker *UserNamespaceChecker) WithGroup(check uint32) *UserNamespaceChecker {
+	checker.Group = &check
+	return checker
+}
+
+// WithNs adds a Ns check to the UserNamespaceChecker
+func (checker *UserNamespaceChecker) WithNs(check *NamespaceChecker) *UserNamespaceChecker {
+	checker.Ns = check
+	return checker
+}
+
+//FromUserNamespace populates the UserNamespaceChecker using data from a UserNamespace field
+func (checker *UserNamespaceChecker) FromUserNamespace(event *tetragon.UserNamespace) *UserNamespaceChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Level != nil {
+		val := event.Level.Value
+		checker.Level = &val
+	}
+	if event.Owner != nil {
+		val := event.Owner.Value
+		checker.Owner = &val
+	}
+	if event.Group != nil {
+		val := event.Group.Value
+		checker.Group = &val
+	}
+	if event.Ns != nil {
+		checker.Ns = NewNamespaceChecker().FromNamespace(event.Ns)
+	}
+	return checker
+}
+
+// ProcessCredentialsChecker implements a checker struct to check a ProcessCredentials field
+type ProcessCredentialsChecker struct {
+	Uid          *uint32               `json:"uid,omitempty"`
+	Gid          *uint32               `json:"gid,omitempty"`
+	Suid         *uint32               `json:"suid,omitempty"`
+	Sgid         *uint32               `json:"sgid,omitempty"`
+	Euid         *uint32               `json:"euid,omitempty"`
+	Egid         *uint32               `json:"egid,omitempty"`
+	Fsuid        *uint32               `json:"fsuid,omitempty"`
+	Fsgid        *uint32               `json:"fsgid,omitempty"`
+	Securebits   *StringListMatcher    `json:"securebits,omitempty"`
+	Capabilities *CapabilitiesChecker  `json:"capabilities,omitempty"`
+	Userns       *UserNamespaceChecker `json:"userns,omitempty"`
+}
+
+// NewProcessCredentialsChecker creates a new ProcessCredentialsChecker
+func NewProcessCredentialsChecker() *ProcessCredentialsChecker {
+	return &ProcessCredentialsChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessCredentialsChecker) GetCheckerType() string {
+	return "ProcessCredentialsChecker"
+}
+
+// Check checks a ProcessCredentials field
+func (checker *ProcessCredentialsChecker) Check(event *tetragon.ProcessCredentials) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessCredentials field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Uid != nil {
+			if event.Uid == nil {
+				return fmt.Errorf("Uid is nil and does not match expected value %v", *checker.Uid)
+			}
+			if *checker.Uid != event.Uid.Value {
+				return fmt.Errorf("Uid has value %v which does not match expected value %v", event.Uid.Value, *checker.Uid)
+			}
+		}
+		if checker.Gid != nil {
+			if event.Gid == nil {
+				return fmt.Errorf("Gid is nil and does not match expected value %v", *checker.Gid)
+			}
+			if *checker.Gid != event.Gid.Value {
+				return fmt.Errorf("Gid has value %v which does not match expected value %v", event.Gid.Value, *checker.Gid)
+			}
+		}
+		if checker.Suid != nil {
+			if event.Suid == nil {
+				return fmt.Errorf("Suid is nil and does not match expected value %v", *checker.Suid)
+			}
+			if *checker.Suid != event.Suid.Value {
+				return fmt.Errorf("Suid has value %v which does not match expected value %v", event.Suid.Value, *checker.Suid)
+			}
+		}
+		if checker.Sgid != nil {
+			if event.Sgid == nil {
+				return fmt.Errorf("Sgid is nil and does not match expected value %v", *checker.Sgid)
+			}
+			if *checker.Sgid != event.Sgid.Value {
+				return fmt.Errorf("Sgid has value %v which does not match expected value %v", event.Sgid.Value, *checker.Sgid)
+			}
+		}
+		if checker.Euid != nil {
+			if event.Euid == nil {
+				return fmt.Errorf("Euid is nil and does not match expected value %v", *checker.Euid)
+			}
+			if *checker.Euid != event.Euid.Value {
+				return fmt.Errorf("Euid has value %v which does not match expected value %v", event.Euid.Value, *checker.Euid)
+			}
+		}
+		if checker.Egid != nil {
+			if event.Egid == nil {
+				return fmt.Errorf("Egid is nil and does not match expected value %v", *checker.Egid)
+			}
+			if *checker.Egid != event.Egid.Value {
+				return fmt.Errorf("Egid has value %v which does not match expected value %v", event.Egid.Value, *checker.Egid)
+			}
+		}
+		if checker.Fsuid != nil {
+			if event.Fsuid == nil {
+				return fmt.Errorf("Fsuid is nil and does not match expected value %v", *checker.Fsuid)
+			}
+			if *checker.Fsuid != event.Fsuid.Value {
+				return fmt.Errorf("Fsuid has value %v which does not match expected value %v", event.Fsuid.Value, *checker.Fsuid)
+			}
+		}
+		if checker.Fsgid != nil {
+			if event.Fsgid == nil {
+				return fmt.Errorf("Fsgid is nil and does not match expected value %v", *checker.Fsgid)
+			}
+			if *checker.Fsgid != event.Fsgid.Value {
+				return fmt.Errorf("Fsgid has value %v which does not match expected value %v", event.Fsgid.Value, *checker.Fsgid)
+			}
+		}
+		if checker.Securebits != nil {
+			if err := checker.Securebits.Check(event.Securebits); err != nil {
+				return fmt.Errorf("Securebits check failed: %w", err)
+			}
+		}
+		if checker.Capabilities != nil {
+			if err := checker.Capabilities.Check(event.Capabilities); err != nil {
+				return fmt.Errorf("Capabilities check failed: %w", err)
+			}
+		}
+		if checker.Userns != nil {
+			if err := checker.Userns.Check(event.Userns); err != nil {
+				return fmt.Errorf("Userns check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithUid adds a Uid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithUid(check uint32) *ProcessCredentialsChecker {
+	checker.Uid = &check
+	return checker
+}
+
+// WithGid adds a Gid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithGid(check uint32) *ProcessCredentialsChecker {
+	checker.Gid = &check
+	return checker
+}
+
+// WithSuid adds a Suid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithSuid(check uint32) *ProcessCredentialsChecker {
+	checker.Suid = &check
+	return checker
+}
+
+// WithSgid adds a Sgid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithSgid(check uint32) *ProcessCredentialsChecker {
+	checker.Sgid = &check
+	return checker
+}
+
+// WithEuid adds a Euid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithEuid(check uint32) *ProcessCredentialsChecker {
+	checker.Euid = &check
+	return checker
+}
+
+// WithEgid adds a Egid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithEgid(check uint32) *ProcessCredentialsChecker {
+	checker.Egid = &check
+	return checker
+}
+
+// WithFsuid adds a Fsuid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithFsuid(check uint32) *ProcessCredentialsChecker {
+	checker.Fsuid = &check
+	return checker
+}
+
+// WithFsgid adds a Fsgid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithFsgid(check uint32) *ProcessCredentialsChecker {
+	checker.Fsgid = &check
+	return checker
+}
+
+// WithSecurebits adds a Securebits check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithSecurebits(check *StringListMatcher) *ProcessCredentialsChecker {
+	checker.Securebits = check
+	return checker
+}
+
+// WithCapabilities adds a Capabilities check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithCapabilities(check *CapabilitiesChecker) *ProcessCredentialsChecker {
+	checker.Capabilities = check
+	return checker
+}
+
+// WithUserns adds a Userns check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithUserns(check *UserNamespaceChecker) *ProcessCredentialsChecker {
+	checker.Userns = check
+	return checker
+}
+
+//FromProcessCredentials populates the ProcessCredentialsChecker using data from a ProcessCredentials field
+func (checker *ProcessCredentialsChecker) FromProcessCredentials(event *tetragon.ProcessCredentials) *ProcessCredentialsChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Uid != nil {
+		val := event.Uid.Value
+		checker.Uid = &val
+	}
+	if event.Gid != nil {
+		val := event.Gid.Value
+		checker.Gid = &val
+	}
+	if event.Suid != nil {
+		val := event.Suid.Value
+		checker.Suid = &val
+	}
+	if event.Sgid != nil {
+		val := event.Sgid.Value
+		checker.Sgid = &val
+	}
+	if event.Euid != nil {
+		val := event.Euid.Value
+		checker.Euid = &val
+	}
+	if event.Egid != nil {
+		val := event.Egid.Value
+		checker.Egid = &val
+	}
+	if event.Fsuid != nil {
+		val := event.Fsuid.Value
+		checker.Fsuid = &val
+	}
+	if event.Fsgid != nil {
+		val := event.Fsgid.Value
+		checker.Fsgid = &val
+	}
+	{
+		var checks []*stringmatcher.StringMatcher
+		for _, check := range event.Securebits {
+			var convertedCheck *stringmatcher.StringMatcher
+			convertedCheck = stringmatcher.Full(check)
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewStringListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Securebits = lm
+	}
+	if event.Capabilities != nil {
+		checker.Capabilities = NewCapabilitiesChecker().FromCapabilities(event.Capabilities)
+	}
+	if event.Userns != nil {
+		checker.Userns = NewUserNamespaceChecker().FromUserNamespace(event.Userns)
+	}
+	return checker
+}
+
+// StringListMatcher checks a list of string fields
+type StringListMatcher struct {
+	Operator listmatcher.Operator           `json:"operator"`
+	Values   []*stringmatcher.StringMatcher `json:"values"`
+}
+
+// NewStringListMatcher creates a new StringListMatcher. The checker defaults to a subset checker unless otherwise specified using WithOperator()
+func NewStringListMatcher() *StringListMatcher {
+	return &StringListMatcher{
+		Operator: listmatcher.Subset,
+	}
+}
+
+// WithOperator sets the match kind for the StringListMatcher
+func (checker *StringListMatcher) WithOperator(operator listmatcher.Operator) *StringListMatcher {
+	checker.Operator = operator
+	return checker
+}
+
+// WithValues sets the checkers that the StringListMatcher should use
+func (checker *StringListMatcher) WithValues(values ...*stringmatcher.StringMatcher) *StringListMatcher {
+	checker.Values = values
+	return checker
+}
+
+// Check checks a list of string fields
+func (checker *StringListMatcher) Check(values []string) error {
+	switch checker.Operator {
+	case listmatcher.Ordered:
+		return checker.orderedCheck(values)
+	case listmatcher.Unordered:
+		return checker.unorderedCheck(values)
+	case listmatcher.Subset:
+		return checker.subsetCheck(values)
+	default:
+		return fmt.Errorf("Unhandled ListMatcher operator %s", checker.Operator)
+	}
+}
+
+// orderedCheck checks a list of ordered string fields
+func (checker *StringListMatcher) orderedCheck(values []string) error {
+	innerCheck := func(check *stringmatcher.StringMatcher, value string) error {
+		if err := check.Match(value); err != nil {
+			return fmt.Errorf("Securebits check failed: %w", err)
+		}
+		return nil
+	}
+
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("StringListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	for i, check := range checker.Values {
+		value := values[i]
+		if err := innerCheck(check, value); err != nil {
+			return fmt.Errorf("StringListMatcher: Check failed on element %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// unorderedCheck checks a list of unordered string fields
+func (checker *StringListMatcher) unorderedCheck(values []string) error {
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("StringListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	return checker.subsetCheck(values)
+}
+
+// subsetCheck checks a subset of string fields
+func (checker *StringListMatcher) subsetCheck(values []string) error {
+	innerCheck := func(check *stringmatcher.StringMatcher, value string) error {
+		if err := check.Match(value); err != nil {
+			return fmt.Errorf("Securebits check failed: %w", err)
+		}
+		return nil
+	}
+
+	numDesired := len(checker.Values)
+	numMatched := 0
+
+nextCheck:
+	for _, check := range checker.Values {
+		for _, value := range values {
+			if err := innerCheck(check, value); err == nil {
+				numMatched += 1
+				continue nextCheck
+			}
+		}
+	}
+
+	if numMatched < numDesired {
+		return fmt.Errorf("StringListMatcher: Check failed, only matched %d elements but wanted %d", numMatched, numDesired)
+	}
+
+	return nil
+}
+
 // ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
 	ExecId       *stringmatcher.StringMatcher       `json:"execId,omitempty"`
@@ -3805,6 +4256,7 @@ type KprobeArgumentChecker struct {
 	UintArg           *uint32                      `json:"uintArg,omitempty"`
 	UserNamespaceArg  *KprobeUserNamespaceChecker  `json:"userNamespaceArg,omitempty"`
 	CapabilityArg     *KprobeCapabilityChecker     `json:"capabilityArg,omitempty"`
+	CredentialsArg    *ProcessCredentialsChecker   `json:"credentialsArg,omitempty"`
 	Label             *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -3995,6 +4447,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: CapabilityArg check failed: %T is not a CapabilityArg", event)
 			}
 		}
+		if checker.CredentialsArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_CredentialsArg:
+				if err := checker.CredentialsArg.Check(event.CredentialsArg); err != nil {
+					return fmt.Errorf("CredentialsArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: CredentialsArg check failed: %T is not a CredentialsArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -4110,6 +4572,12 @@ func (checker *KprobeArgumentChecker) WithCapabilityArg(check *KprobeCapabilityC
 	return checker
 }
 
+// WithCredentialsArg adds a CredentialsArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithCredentialsArg(check *ProcessCredentialsChecker) *KprobeArgumentChecker {
+	checker.CredentialsArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -4221,6 +4689,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_CapabilityArg:
 		if event.CapabilityArg != nil {
 			checker.CapabilityArg = NewKprobeCapabilityChecker().FromKprobeCapability(event.CapabilityArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_CredentialsArg:
+		if event.CredentialsArg != nil {
+			checker.CredentialsArg = NewProcessCredentialsChecker().FromProcessCredentials(event.CredentialsArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)

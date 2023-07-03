@@ -32,6 +32,7 @@
     - [Pod](#tetragon-Pod)
     - [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry)
     - [Process](#tetragon-Process)
+    - [ProcessCredentials](#tetragon-ProcessCredentials)
     - [ProcessExec](#tetragon-ProcessExec)
     - [ProcessExit](#tetragon-ProcessExit)
     - [ProcessKprobe](#tetragon-ProcessKprobe)
@@ -41,6 +42,7 @@
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
     - [RuntimeHookResponse](#tetragon-RuntimeHookResponse)
     - [Test](#tetragon-Test)
+    - [UserNamespace](#tetragon-UserNamespace)
   
     - [HealthStatusResult](#tetragon-HealthStatusResult)
     - [HealthStatusType](#tetragon-HealthStatusType)
@@ -331,6 +333,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | uint_arg | [uint32](#uint32) |  |  |
 | user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
 | capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
+| credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -648,6 +651,31 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
+<a name="tetragon-ProcessCredentials"></a>
+
+### ProcessCredentials
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| euid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| egid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| fsuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| securebits | [string](#string) | repeated |  |
+| capabilities | [Capabilities](#tetragon-Capabilities) |  |  |
+| userns | [UserNamespace](#tetragon-UserNamespace) |  |  |
+
+
+
+
+
+
 <a name="tetragon-ProcessExec"></a>
 
 ### ProcessExec
@@ -795,6 +823,24 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | arg1 | [uint64](#uint64) |  |  |
 | arg2 | [uint64](#uint64) |  |  |
 | arg3 | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="tetragon-UserNamespace"></a>
+
+### UserNamespace
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [google.protobuf.Int32Value](#google-protobuf-Int32Value) |  |  |
+| owner | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| group | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| ns | [Namespace](#tetragon-Namespace) |  |  |
 
 
 
