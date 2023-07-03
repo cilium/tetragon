@@ -228,28 +228,6 @@ func (m MsgGenericKprobeArgSkb) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeCred struct {
-	Permitted   uint64
-	Effective   uint64
-	Inheritable uint64
-}
-
-type MsgGenericKprobeArgCred struct {
-	Index       uint64
-	Permitted   uint64
-	Effective   uint64
-	Inheritable uint64
-	Label       string
-}
-
-func (m MsgGenericKprobeArgCred) GetIndex() uint64 {
-	return m.Index
-}
-
-func (m MsgGenericKprobeArgCred) IsReturnArg() bool {
-	return m.Index == ReturnArgIndex
-}
-
 type MsgGenericKprobeCapability struct {
 	Value int32
 	Pad   int32
@@ -291,6 +269,50 @@ func (m MsgGenericKprobeArgUserNamespace) GetIndex() uint64 {
 }
 
 func (m MsgGenericKprobeArgUserNamespace) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericCred struct {
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	/*
+	   Capabilities  processapi.MsgCapabilities
+	   UserNamespace MsgGenericKprobeArgUserNamespace
+	*/
+}
+
+type MsgGenericKprobeArgCred struct {
+	Index      uint64
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	/*
+		Capabilities  processapi.MsgCapabilities
+		UserNamespace MsgGenericKprobeArgUserNamespace
+	*/
+	Label string
+}
+
+func (m MsgGenericKprobeArgCred) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgCred) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
