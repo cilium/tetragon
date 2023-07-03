@@ -68,6 +68,14 @@ func (tp *TracingPolicyNamespaced) TpName() string {
 	return tp.ObjectMeta.Name
 }
 
+func (tp *TracingPolicyNamespaced) TpHasAnnotation(ann string) bool {
+	return metav1.HasAnnotation(tp.ObjectMeta, ann)
+}
+
+func (tp *TracingPolicyNamespaced) TpAnnotations() map[string]string {
+	return tp.ObjectMeta.GetAnnotations()
+}
+
 func (tp *TracingPolicyNamespaced) TpNamespace() string {
 	return tp.ObjectMeta.Namespace
 }
@@ -101,6 +109,14 @@ func (tp *TracingPolicy) TpSpec() *TracingPolicySpec {
 
 func (tp *TracingPolicy) TpInfo() string {
 	return fmt.Sprintf("%s (object:%d/%s) (type:%s/%s)", tp.ObjectMeta.Name, tp.ObjectMeta.Generation, tp.ObjectMeta.UID, tp.TypeMeta.Kind, tp.TypeMeta.APIVersion)
+}
+
+func (tp *TracingPolicy) TpHasAnnotation(ann string) bool {
+	return metav1.HasAnnotation(tp.ObjectMeta, ann)
+}
+
+func (tp *TracingPolicy) TpAnnotations() map[string]string {
+	return tp.ObjectMeta.GetAnnotations()
 }
 
 type KProbeSpec struct {

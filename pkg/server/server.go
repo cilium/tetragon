@@ -234,15 +234,23 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 		namespace = tpNs.TpNamespace()
 	}
 
+	author := ""
+	if tp.TpHasAnnotation("author") == true {
+		annotations := tp.TpAnnotations()
+		author = annotations["author"]
+	}
+
 	logger.GetLogger().WithFields(logrus.Fields{
-		"metadata.namespace": namespace,
-		"metadata.name":      tp.TpName(),
+		"metadata.namespace":          namespace,
+		"metadata.name":               tp.TpName(),
+		"metadata.annotations.author": author,
 	}).Debug("Received an AddTracingPolicy request")
 
 	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
-			"metadata.namespace": namespace,
-			"metadata.name":      tp.TpName(),
+			"metadata.namespace":          namespace,
+			"metadata.name":               tp.TpName(),
+			"metadata.annotations.author": author,
 		}).WithError(err).Warn("Server AddTracingPolicy request failed")
 		return nil, err
 	}

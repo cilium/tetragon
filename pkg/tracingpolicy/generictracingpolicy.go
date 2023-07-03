@@ -15,7 +15,8 @@ import (
 )
 
 type Metadata struct {
-	Name string `yaml:"name"`
+	Name        string            `yaml:"name"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 type GenericTracingPolicy struct {
@@ -27,6 +28,16 @@ type GenericTracingPolicy struct {
 
 func (gtp *GenericTracingPolicy) TpName() string {
 	return gtp.Metadata.Name
+}
+
+func (gtp *GenericTracingPolicy) TpAnnotations() map[string]string {
+	return gtp.Metadata.Annotations
+}
+
+func (gtp *GenericTracingPolicy) TpHasAnnotation(ann string) bool {
+	annotations := gtp.TpAnnotations()
+	_, found := annotations[ann]
+	return found
 }
 
 func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
@@ -67,8 +78,9 @@ func PolicyFromYAMLFilename(fileName string) (TracingPolicy, error) {
 }
 
 type MetadataNamespaced struct {
-	Name      string `yaml:"name"`
-	Namespace string `yaml:"namespace"`
+	Name        string            `yaml:"name"`
+	Namespace   string            `yaml:"namespace"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 type GenericTracingPolicyNamespaced struct {
@@ -84,6 +96,16 @@ func (gtp *GenericTracingPolicyNamespaced) TpNamespace() string {
 
 func (gtp *GenericTracingPolicyNamespaced) TpName() string {
 	return gtp.Metadata.Name
+}
+
+func (gtp *GenericTracingPolicyNamespaced) TpAnnotations() map[string]string {
+	return gtp.Metadata.Annotations
+}
+
+func (gtp *GenericTracingPolicyNamespaced) TpHasAnnotation(ann string) bool {
+	annotations := gtp.TpAnnotations()
+	_, found := annotations[ann]
+	return found
 }
 
 func (gtp *GenericTracingPolicyNamespaced) TpSpec() *v1alpha1.TracingPolicySpec {

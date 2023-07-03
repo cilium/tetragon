@@ -18,6 +18,10 @@ type TracingPolicy interface {
 	TpSpec() *v1alpha1.TracingPolicySpec
 	// TpInfo returns a description of the policy
 	TpInfo() string
+
+	TpHasAnnotation(string) bool
+
+	TpAnnotations() map[string]string
 }
 
 // revive:disable:exported
