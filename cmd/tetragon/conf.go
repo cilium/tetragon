@@ -20,6 +20,8 @@ var (
 		"/usr/lib/tetragon/tetragon.conf.d/",
 		"/usr/local/lib/tetragon/tetragon.conf.d/",
 	}
+
+	admingTpConfDir = "/etc/tetragon/tetragon.tp.d/"
 )
 
 func readConfigFile(path string, file string) error {

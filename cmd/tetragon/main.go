@@ -372,6 +372,33 @@ func tetragonExecute() error {
 		if err != nil {
 			return err
 		}
+	} else {
+		entries, err := os.ReadDir(admingTpConfDir)
+		if err == nil {
+			for _, entry := range entries {
+				files := make([]string, 0)
+				if entry.IsDir() {
+					dir := filepath.Join(admingTpConfDir, entry.Name())
+					inner, err := os.ReadDir(dir)
+					if err == nil {
+						for _, inentry := range inner {
+							if !inentry.IsDir() {
+								files = append(files, filepath.Join(dir, inentry.Name()))
+							}
+						}
+					}
+				} else {
+					files = append(files, filepath.Join(admingTpConfDir, entry.Name()))
+				}
+
+				for _, file := range files {
+					err := addTracingPolicy(ctx, file)
+					if err != nil {
+						log.WithError(err).Warnf("Adding TracingPolicy '%s' failed", file)
+					}
+				}
+			}
+		}
 	}
 
 	// k8s should have metrics, so periodically log only in a non k8s
@@ -380,6 +407,38 @@ func tetragonExecute() error {
 	}
 
 	return obs.Start(ctx)
+}
+
+func addTracingPolicy(ctx context.Context, file string) error {
+	tp, err := tracingpolicy.PolicyFromYAMLFilename(file)
+	if err != nil {
+		return err
+	}
+
+	err = observer.SensorManager.AddTracingPolicy(ctx, tp)
+	if err != nil {
+		return err
+	}
+
+	namespace := ""
+	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpNs.TpNamespace()
+	}
+
+	author := ""
+	if tp.TpHasAnnotation("author") == true {
+		annotations := tp.TpAnnotations()
+		author = annotations["author"]
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"TracingPolicy":               file,
+		"metadata.namespace":          namespace,
+		"metadata.name":               tp.TpName(),
+		"metadata.annotations.author": author,
+	}).Info("Added TracingPolicy with success")
+
+	return nil
 }
 
 // Periodically log current status every 24 hours. For lost or error
