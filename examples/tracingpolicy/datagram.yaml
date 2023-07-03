@@ -13,16 +13,3 @@ spec:
         type: skb
       - index: 2
         type: int
-    selectors:
-      - matchArgs:
-        - index: 1
-          operator: "DAddr"
-          values:
-          - "127.0.0.1/8"
-        - index: 1
-          operator: "Protocol"
-          values:
-          - "IPPROTO_UDP"
-        matchActions:
-        - action: Post
-          rateLimit: 5
