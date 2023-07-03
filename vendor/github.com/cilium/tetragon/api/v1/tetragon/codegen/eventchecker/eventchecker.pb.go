@@ -2431,10 +2431,10 @@ func (checker *UserNamespaceChecker) FromUserNamespace(event *tetragon.UserNames
 type ProcessCredentialsChecker struct {
 	Uid          *uint32               `json:"uid,omitempty"`
 	Gid          *uint32               `json:"gid,omitempty"`
-	Suid         *uint32               `json:"suid,omitempty"`
-	Sgid         *uint32               `json:"sgid,omitempty"`
 	Euid         *uint32               `json:"euid,omitempty"`
 	Egid         *uint32               `json:"egid,omitempty"`
+	Suid         *uint32               `json:"suid,omitempty"`
+	Sgid         *uint32               `json:"sgid,omitempty"`
 	Fsuid        *uint32               `json:"fsuid,omitempty"`
 	Fsgid        *uint32               `json:"fsgid,omitempty"`
 	Securebits   *StringListMatcher    `json:"securebits,omitempty"`
@@ -2475,22 +2475,6 @@ func (checker *ProcessCredentialsChecker) Check(event *tetragon.ProcessCredentia
 				return fmt.Errorf("Gid has value %v which does not match expected value %v", event.Gid.Value, *checker.Gid)
 			}
 		}
-		if checker.Suid != nil {
-			if event.Suid == nil {
-				return fmt.Errorf("Suid is nil and does not match expected value %v", *checker.Suid)
-			}
-			if *checker.Suid != event.Suid.Value {
-				return fmt.Errorf("Suid has value %v which does not match expected value %v", event.Suid.Value, *checker.Suid)
-			}
-		}
-		if checker.Sgid != nil {
-			if event.Sgid == nil {
-				return fmt.Errorf("Sgid is nil and does not match expected value %v", *checker.Sgid)
-			}
-			if *checker.Sgid != event.Sgid.Value {
-				return fmt.Errorf("Sgid has value %v which does not match expected value %v", event.Sgid.Value, *checker.Sgid)
-			}
-		}
 		if checker.Euid != nil {
 			if event.Euid == nil {
 				return fmt.Errorf("Euid is nil and does not match expected value %v", *checker.Euid)
@@ -2505,6 +2489,22 @@ func (checker *ProcessCredentialsChecker) Check(event *tetragon.ProcessCredentia
 			}
 			if *checker.Egid != event.Egid.Value {
 				return fmt.Errorf("Egid has value %v which does not match expected value %v", event.Egid.Value, *checker.Egid)
+			}
+		}
+		if checker.Suid != nil {
+			if event.Suid == nil {
+				return fmt.Errorf("Suid is nil and does not match expected value %v", *checker.Suid)
+			}
+			if *checker.Suid != event.Suid.Value {
+				return fmt.Errorf("Suid has value %v which does not match expected value %v", event.Suid.Value, *checker.Suid)
+			}
+		}
+		if checker.Sgid != nil {
+			if event.Sgid == nil {
+				return fmt.Errorf("Sgid is nil and does not match expected value %v", *checker.Sgid)
+			}
+			if *checker.Sgid != event.Sgid.Value {
+				return fmt.Errorf("Sgid has value %v which does not match expected value %v", event.Sgid.Value, *checker.Sgid)
 			}
 		}
 		if checker.Fsuid != nil {
@@ -2558,18 +2558,6 @@ func (checker *ProcessCredentialsChecker) WithGid(check uint32) *ProcessCredenti
 	return checker
 }
 
-// WithSuid adds a Suid check to the ProcessCredentialsChecker
-func (checker *ProcessCredentialsChecker) WithSuid(check uint32) *ProcessCredentialsChecker {
-	checker.Suid = &check
-	return checker
-}
-
-// WithSgid adds a Sgid check to the ProcessCredentialsChecker
-func (checker *ProcessCredentialsChecker) WithSgid(check uint32) *ProcessCredentialsChecker {
-	checker.Sgid = &check
-	return checker
-}
-
 // WithEuid adds a Euid check to the ProcessCredentialsChecker
 func (checker *ProcessCredentialsChecker) WithEuid(check uint32) *ProcessCredentialsChecker {
 	checker.Euid = &check
@@ -2579,6 +2567,18 @@ func (checker *ProcessCredentialsChecker) WithEuid(check uint32) *ProcessCredent
 // WithEgid adds a Egid check to the ProcessCredentialsChecker
 func (checker *ProcessCredentialsChecker) WithEgid(check uint32) *ProcessCredentialsChecker {
 	checker.Egid = &check
+	return checker
+}
+
+// WithSuid adds a Suid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithSuid(check uint32) *ProcessCredentialsChecker {
+	checker.Suid = &check
+	return checker
+}
+
+// WithSgid adds a Sgid check to the ProcessCredentialsChecker
+func (checker *ProcessCredentialsChecker) WithSgid(check uint32) *ProcessCredentialsChecker {
+	checker.Sgid = &check
 	return checker
 }
 
@@ -2625,14 +2625,6 @@ func (checker *ProcessCredentialsChecker) FromProcessCredentials(event *tetragon
 		val := event.Gid.Value
 		checker.Gid = &val
 	}
-	if event.Suid != nil {
-		val := event.Suid.Value
-		checker.Suid = &val
-	}
-	if event.Sgid != nil {
-		val := event.Sgid.Value
-		checker.Sgid = &val
-	}
 	if event.Euid != nil {
 		val := event.Euid.Value
 		checker.Euid = &val
@@ -2640,6 +2632,14 @@ func (checker *ProcessCredentialsChecker) FromProcessCredentials(event *tetragon
 	if event.Egid != nil {
 		val := event.Egid.Value
 		checker.Egid = &val
+	}
+	if event.Suid != nil {
+		val := event.Suid.Value
+		checker.Suid = &val
+	}
+	if event.Sgid != nil {
+		val := event.Sgid.Value
+		checker.Sgid = &val
 	}
 	if event.Fsuid != nil {
 		val := event.Fsuid.Value

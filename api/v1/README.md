@@ -661,10 +661,10 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | ----- | ---- | ----- | ----------- |
 | uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | euid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | egid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | fsuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | securebits | [string](#string) | repeated |  |
