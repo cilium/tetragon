@@ -1,0 +1,29 @@
+name: Check images digest for multi-arch
+
+on:
+  pull_request:
+    paths:
+      - '**[dD]ockerfile**'
+      - '.github/workflow/digestcheck.yaml'
+      - 'contrib/digestcheck.sh'
+      - '!**vendor**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+    - name: Install crane
+      env:
+        VERSION: "v0.15.2"
+      run: |
+        curl -sL "https://github.com/google/go-containerregistry/releases/download/$VERSION/go-containerregistry_Linux_x86_64.tar.gz" > go-containerregistry.tar.gz
+        tar -zxvf go-containerregistry.tar.gz -C /usr/local/bin/ crane
+      
+    - name: Check digests
+      env:
+        TERM: xterm-color
+      run: ./contrib/digestcheck.sh ${{ github.workspace }}
