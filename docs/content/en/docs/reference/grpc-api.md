@@ -168,7 +168,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | uint_arg | [uint32](#uint32) |  |  |
 | user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
 | capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
-| credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
+| process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>

@@ -4239,25 +4239,25 @@ func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMa
 
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
-	StringArg         *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
-	IntArg            *int32                       `json:"intArg,omitempty"`
-	SkbArg            *KprobeSkbChecker            `json:"skbArg,omitempty"`
-	SizeArg           *uint64                      `json:"sizeArg,omitempty"`
-	BytesArg          *bytesmatcher.BytesMatcher   `json:"bytesArg,omitempty"`
-	PathArg           *KprobePathChecker           `json:"pathArg,omitempty"`
-	FileArg           *KprobeFileChecker           `json:"fileArg,omitempty"`
-	TruncatedBytesArg *KprobeTruncatedBytesChecker `json:"truncatedBytesArg,omitempty"`
-	SockArg           *KprobeSockChecker           `json:"sockArg,omitempty"`
-	CredArg           *KprobeCredChecker           `json:"credArg,omitempty"`
-	LongArg           *int64                       `json:"longArg,omitempty"`
-	BpfAttrArg        *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
-	PerfEventArg      *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
-	BpfMapArg         *KprobeBpfMapChecker         `json:"bpfMapArg,omitempty"`
-	UintArg           *uint32                      `json:"uintArg,omitempty"`
-	UserNamespaceArg  *KprobeUserNamespaceChecker  `json:"userNamespaceArg,omitempty"`
-	CapabilityArg     *KprobeCapabilityChecker     `json:"capabilityArg,omitempty"`
-	CredentialsArg    *ProcessCredentialsChecker   `json:"credentialsArg,omitempty"`
-	Label             *stringmatcher.StringMatcher `json:"label,omitempty"`
+	StringArg             *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
+	IntArg                *int32                       `json:"intArg,omitempty"`
+	SkbArg                *KprobeSkbChecker            `json:"skbArg,omitempty"`
+	SizeArg               *uint64                      `json:"sizeArg,omitempty"`
+	BytesArg              *bytesmatcher.BytesMatcher   `json:"bytesArg,omitempty"`
+	PathArg               *KprobePathChecker           `json:"pathArg,omitempty"`
+	FileArg               *KprobeFileChecker           `json:"fileArg,omitempty"`
+	TruncatedBytesArg     *KprobeTruncatedBytesChecker `json:"truncatedBytesArg,omitempty"`
+	SockArg               *KprobeSockChecker           `json:"sockArg,omitempty"`
+	CredArg               *KprobeCredChecker           `json:"credArg,omitempty"`
+	LongArg               *int64                       `json:"longArg,omitempty"`
+	BpfAttrArg            *KprobeBpfAttrChecker        `json:"bpfAttrArg,omitempty"`
+	PerfEventArg          *KprobePerfEventChecker      `json:"perfEventArg,omitempty"`
+	BpfMapArg             *KprobeBpfMapChecker         `json:"bpfMapArg,omitempty"`
+	UintArg               *uint32                      `json:"uintArg,omitempty"`
+	UserNamespaceArg      *KprobeUserNamespaceChecker  `json:"userNamespaceArg,omitempty"`
+	CapabilityArg         *KprobeCapabilityChecker     `json:"capabilityArg,omitempty"`
+	ProcessCredentialsArg *ProcessCredentialsChecker   `json:"processCredentialsArg,omitempty"`
+	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
 // NewKprobeArgumentChecker creates a new KprobeArgumentChecker
@@ -4447,14 +4447,14 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: CapabilityArg check failed: %T is not a CapabilityArg", event)
 			}
 		}
-		if checker.CredentialsArg != nil {
+		if checker.ProcessCredentialsArg != nil {
 			switch event := event.Arg.(type) {
-			case *tetragon.KprobeArgument_CredentialsArg:
-				if err := checker.CredentialsArg.Check(event.CredentialsArg); err != nil {
-					return fmt.Errorf("CredentialsArg check failed: %w", err)
+			case *tetragon.KprobeArgument_ProcessCredentialsArg:
+				if err := checker.ProcessCredentialsArg.Check(event.ProcessCredentialsArg); err != nil {
+					return fmt.Errorf("ProcessCredentialsArg check failed: %w", err)
 				}
 			default:
-				return fmt.Errorf("KprobeArgumentChecker: CredentialsArg check failed: %T is not a CredentialsArg", event)
+				return fmt.Errorf("KprobeArgumentChecker: ProcessCredentialsArg check failed: %T is not a ProcessCredentialsArg", event)
 			}
 		}
 		if checker.Label != nil {
@@ -4572,9 +4572,9 @@ func (checker *KprobeArgumentChecker) WithCapabilityArg(check *KprobeCapabilityC
 	return checker
 }
 
-// WithCredentialsArg adds a CredentialsArg check to the KprobeArgumentChecker
-func (checker *KprobeArgumentChecker) WithCredentialsArg(check *ProcessCredentialsChecker) *KprobeArgumentChecker {
-	checker.CredentialsArg = check
+// WithProcessCredentialsArg adds a ProcessCredentialsArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithProcessCredentialsArg(check *ProcessCredentialsChecker) *KprobeArgumentChecker {
+	checker.ProcessCredentialsArg = check
 	return checker
 }
 
@@ -4692,9 +4692,9 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 		}
 	}
 	switch event := event.Arg.(type) {
-	case *tetragon.KprobeArgument_CredentialsArg:
-		if event.CredentialsArg != nil {
-			checker.CredentialsArg = NewProcessCredentialsChecker().FromProcessCredentials(event.CredentialsArg)
+	case *tetragon.KprobeArgument_ProcessCredentialsArg:
+		if event.ProcessCredentialsArg != nil {
+			checker.ProcessCredentialsArg = NewProcessCredentialsChecker().FromProcessCredentials(event.ProcessCredentialsArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)

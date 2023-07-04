@@ -352,7 +352,7 @@ message KprobeArgument {
 	uint32 uint_arg = 15;
 	KprobeUserNamespace user_namespace_arg = 16;
 	KprobeCapability capability_arg = 17;
-    ProcessCredentials credentials_arg = 19;
+    ProcessCredentials process_credentials_arg = 19;
     }
     string label = 18;
 }

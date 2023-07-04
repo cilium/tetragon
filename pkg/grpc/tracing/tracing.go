@@ -153,7 +153,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				//	Capabilities: capsArg,
 				//	Userns:       nsArg,
 			}
-			a.Arg = &tetragon.KprobeArgument_CredentialsArg{CredentialsArg: credsArg}
+			a.Arg = &tetragon.KprobeArgument_ProcessCredentialsArg{ProcessCredentialsArg: credsArg}
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgBytes:
 			if e.OrigSize > uint64(len(e.Value)) {
