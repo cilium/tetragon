@@ -58,6 +58,7 @@ jobs:
         helm: v3.12.1
         kind: v0.14.0
         cilium: ${{ env.ciliumCliVersion }}
+        print-summary: false
 
     - name: Pull Tetragon Images
       uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
@@ -76,17 +77,10 @@ jobs:
 
         make e2e-test E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
 
-    - name: Copy out e2e test logs
-      if: ${{ failure() || cancelled() }}
-      run: |
-        rm -rf logs/e2e
-        mkdir -p logs/e2e
-        scp -r -P 2222 'root@localhost:/tmp/tetragon.e2e.*' logs/e2e/
-
     - name: Upload Tetragon Logs
-      if: failure()
+      if: failure() || cancelled()
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: tetragon-logs
-        path: logs/e2e
+        path: /tmp/tetragon.e2e.*
         retention-days: 5
