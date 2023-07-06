@@ -811,7 +811,7 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
 		char_iovec_done :
 
-		s = (int *)args_off(e, off_orig);
+	    s = (int *)args_off(e, off_orig);
 	s[0] = size;
 	s[1] = size;
 	return size + 8;

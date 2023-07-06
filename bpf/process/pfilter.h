@@ -252,8 +252,7 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 
 	if (op == op_filter_in)
 		return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
-	return (caps & val) ? PFILTER_REJECT :
-			      PFILTER_ACCEPT; /* op_filter_notin */
+	return (caps & val) ? PFILTER_REJECT : PFILTER_ACCEPT; /* op_filter_notin */
 }
 
 #ifdef __CAP_CHANGES_FILTER
