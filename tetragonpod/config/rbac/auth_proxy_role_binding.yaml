@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: clusterrolebinding
     app.kubernetes.io/instance: proxy-rolebinding
     app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/created-by: podinfo
-    app.kubernetes.io/part-of: podinfo
+    app.kubernetes.io/created-by: tetragonpod
+    app.kubernetes.io/part-of: tetragonpod
     app.kubernetes.io/managed-by: kustomize
   name: proxy-rolebinding
 roleRef:

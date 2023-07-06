@@ -1,4 +1,4 @@
 ## Append samples of your project ##
 resources:
-- cilium.io_v1alpha1_podinfo.yaml
+- cilium.io_v1alpha1_tetragonpod.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

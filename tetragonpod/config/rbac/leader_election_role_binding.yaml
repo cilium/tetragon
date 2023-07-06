@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: rolebinding
     app.kubernetes.io/instance: leader-election-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: podinfo
-    app.kubernetes.io/part-of: podinfo
+    app.kubernetes.io/created-by: tetragonpod
+    app.kubernetes.io/part-of: tetragonpod
     app.kubernetes.io/managed-by: kustomize
   name: leader-election-rolebinding
 roleRef:

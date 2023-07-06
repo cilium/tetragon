@@ -6,7 +6,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - cilium.io.tetragon.cilium.io
+  - cilium.io
   resources:
   - TetragonPods
   verbs:
@@ -18,13 +18,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cilium.io.tetragon.cilium.io
+  - cilium.io
   resources:
   - TetragonPods/finalizers
   verbs:
   - update
 - apiGroups:
-  - cilium.io.tetragon.cilium.io
+  - cilium.io
   resources:
   - TetragonPods/status
   verbs:

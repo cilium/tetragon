@@ -1,31 +1,27 @@
-# permissions for end users to edit podinfoes.
+# permissions for end users to view tetragonpods.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: podinfo-editor-role
+    app.kubernetes.io/instance: tetragonpod-viewer-role
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: podinfo
-    app.kubernetes.io/part-of: podinfo
+    app.kubernetes.io/created-by: tetragonpod
+    app.kubernetes.io/part-of: tetragonpod
     app.kubernetes.io/managed-by: kustomize
-  name: podinfo-editor-role
+  name: tetragonpod-viewer-role
 rules:
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - podinfoes
+  - tetragonpods
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - podinfoes/status
+  - tetragonpod/status
   verbs:
   - get

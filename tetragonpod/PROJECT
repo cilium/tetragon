@@ -14,7 +14,7 @@ resources:
   controller: true
   domain: tetragon.cilium.io
   group: cilium.io
-  kind: PodInfo
+  kind: TetragonPod
   path: github.com/cilium/tetragon/api/v1alpha1
   version: v1alpha1
 version: "3"
