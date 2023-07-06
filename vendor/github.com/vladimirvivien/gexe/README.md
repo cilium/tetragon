@@ -2,38 +2,38 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/vladimirvivien/echo)](https://goreportcard.com/report/github.com/vladimirvivien/echo)
 ![Build](https://github.com/vladimirvivien/gexe/actions/workflows/build.yml/badge.svg)
 # Project `gexe`
-Script-like OS interaction wrapped in the security and type safety of the Go programming language!
+Package with script-like API for system operation and automation!
 
-The goal of project `gexe` is to make it dead simple to write code that interacts with the OS (and/or other components) with the type safety of the Go programming language.
+The goal of project `gexe` is to make it simple to write code for system operation and task automation using a script-like API that offers the security and the type safety of the Go programming language (see [/examples](/examples/)).
 
 > NOTE: this project got renamed from Echo to Gexe (see Project Name Change)
 
 ## What can you do with `gexe`?
-* Parse and execute OS commands provided as plain and clear text as you would in a shell.
+* Parse and execute OS plain text commands, as you would in a shell.
 * Support for variable expansion in command string (i.e. `gexe.Run("echo $HOME")`)
+* Ability to pipe processes: `gexe.Pipe("cat /etc/hosts", "wc -l")`
+* Run processes concurrently: `gexe.RunConcur('wget https://example.com/files'; "date")`
 * Get process information (i.e. PID, status, exit code, etc)
-* Stream data from stdout while process is executing
 * Get program information (i.e. args, binary name, working dir, etc)
-* Easily read file content into different targets (string, bytes, io.Writer, etc)
-* Easily write file content from different sources (i.e. string, bytes, io.Reader, etc)
+* Easily read and write file content using different sources (string, bytes, io.Writer, etc)
 * Integrate with your shell script using `go run`
 
 ## Using `gexe`
 
 ### Get the package
-```bash=
+```bash
 go get github.com/vladimirvivien/gexe
 ```
 
 ### Run a process
 The following executes command `echo "Hello World!"` and prints the result:
-```go=
+```go
 fmt.Println(gexe.Run(`echo "Hello World!"`))
 ```
 
 Alternatively, you can create your own `gexe` session for more control and error hanlding:
 
-```go=
+```go
 g := gexe.New()
 proc := g.RunProc(`echo "Hello World"`)
 if proc.Err() != nil {

@@ -38,6 +38,7 @@ type (
 	Environment = types.Environment
 	Func        = types.EnvFunc
 	FeatureFunc = types.FeatureEnvFunc
+	TestFunc    = types.TestEnvFunc
 )
 
 type testEnv struct {
@@ -61,6 +62,15 @@ func NewWithConfig(cfg *envconf.Config) types.Environment {
 	env := newTestEnv()
 	env.cfg = cfg
 	return env
+}
+
+// NewFromFlags creates a test environment using configuration values from CLI flags
+func NewFromFlags() (types.Environment, error) {
+	cfg, err := envconf.NewFromFlags()
+	if err != nil {
+		return nil, err
+	}
+	return NewWithConfig(cfg), nil
 }
 
 // NewWithKubeConfig creates an environment using an Environment Configuration value
@@ -503,20 +513,24 @@ func (e *testEnv) requireProcessing(kind, testName string, requiredRegexp, skipR
 	}
 
 	if labels != nil {
-		for k, v := range e.cfg.Labels() {
-			if labels[k] != v {
-				skip = true
-				message = fmt.Sprintf(`Skipping feature "%s": unmatched label "%s=%s"`, testName, k, labels[k])
-				return skip, message
+		for key, vals := range e.cfg.Labels() {
+			for _, v := range vals {
+				if !labels.Contains(key, v) {
+					skip = true
+					message = fmt.Sprintf(`Skipping feature "%s": unmatched label "%s=%s"`, testName, key, v)
+					return skip, message
+				}
 			}
 		}
 
 		// skip running a feature if labels matches with --skip-labels
-		for k, v := range e.cfg.SkipLabels() {
-			if labels[k] == v {
-				skip = true
-				message = fmt.Sprintf(`Skipping feature "%s": matched label provided in --skip-lables "%s=%s"`, testName, k, labels[k])
-				return skip, message
+		for key, vals := range e.cfg.SkipLabels() {
+			for _, v := range vals {
+				if labels.Contains(key, v) {
+					skip = true
+					message = fmt.Sprintf(`Skipping feature "%s": matched label provided in --skip-lables "%s=%s"`, testName, key, labels[key])
+					return skip, message
+				}
 			}
 		}
 	}
@@ -527,8 +541,10 @@ func (e *testEnv) requireProcessing(kind, testName string, requiredRegexp, skipR
 // copy to avoid mutation when we just want an informational copy.
 func deepCopyFeature(f types.Feature) types.Feature {
 	fcopy := features.New(f.Name())
-	for k, v := range f.Labels() {
-		fcopy = fcopy.WithLabel(k, v)
+	for k, vals := range f.Labels() {
+		for _, v := range vals {
+			fcopy = fcopy.WithLabel(k, v)
+		}
 	}
 	f.Steps()
 	for _, step := range f.Steps() {

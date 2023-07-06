@@ -28,7 +28,7 @@ import (
 	"github.com/vladimirvivien/gexe"
 )
 
-var kindVersion = "v0.12.0"
+var kindVersion = "v0.17.0"
 
 type Cluster struct {
 	name        string
@@ -50,16 +50,14 @@ func (k *Cluster) WithVersion(ver string) *Cluster {
 func (k *Cluster) getKubeconfig() (string, error) {
 	kubecfg := fmt.Sprintf("%s-kubecfg", k.name)
 
-	p := k.e.StartProc(fmt.Sprintf(`kind get kubeconfig --name %s`, k.name))
+	p := k.e.RunProc(fmt.Sprintf(`kind get kubeconfig --name %s`, k.name))
 	if p.Err() != nil {
 		return "", fmt.Errorf("kind get kubeconfig: %w", p.Err())
 	}
+
 	var stdout bytes.Buffer
-	if _, err := stdout.ReadFrom(p.StdOut()); err != nil {
+	if _, err := stdout.ReadFrom(p.Out()); err != nil {
 		return "", fmt.Errorf("kind kubeconfig stdout bytes: %w", err)
-	}
-	if p.Wait().Err() != nil {
-		return "", fmt.Errorf("kind get kubeconfig: %s: %w", p.Result(), p.Err())
 	}
 
 	file, err := os.CreateTemp("", fmt.Sprintf("kind-cluser-%s", kubecfg))
@@ -130,6 +128,21 @@ func (k *Cluster) GetKubeconfig() string {
 
 func (k *Cluster) GetKubeCtlContext() string {
 	return fmt.Sprintf("kind-%s", k.name)
+}
+
+// ExportLogs export all cluster logs to the provided path.
+func (k *Cluster) ExportLogs(dest string) error {
+	log.V(4).Info("Exporting kind cluster logs to ", dest)
+	if err := k.findOrInstallKind(k.e); err != nil {
+		return err
+	}
+
+	p := k.e.RunProc(fmt.Sprintf(`kind export logs %s --name %s`, dest, k.name))
+	if p.Err() != nil {
+		return fmt.Errorf("kind: export cluster logs failed: %s: %s", p.Err(), p.Result())
+	}
+
+	return nil
 }
 
 func (k *Cluster) Destroy() error {
