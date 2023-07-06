@@ -8,22 +8,22 @@
 #include "bpf_task.h"
 
 /*
-* # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
-* name: sys_enter_lseek
-* ID: 682
-* format:
-*         field:unsigned short common_type;       offset:0;       size:2; signed:0;
-*         field:unsigned char common_flags;       offset:2;       size:1; signed:0;
-*         field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
-*         field:int common_pid;   offset:4;       size:4; signed:1;
-*
-*         field:int __syscall_nr; offset:8;       size:4; signed:1;
-*         field:unsigned int fd;  offset:16;      size:8; signed:0;
-*         field:off_t offset;     offset:24;      size:8; signed:0;
-*         field:unsigned int whence;      offset:32;      size:8; signed:0;
-*
-* print fmt: "fd: 0x%08lx, offset: 0x%08lx, whence: 0x%08lx", ((unsigned long)(REC->fd)), ((unsigned long)(REC->offset)), ((unsigned long)(REC->whence))
-*/
+ * # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
+ * name: sys_enter_lseek
+ * ID: 682
+ * format:
+ *         field:unsigned short common_type;       offset:0;       size:2; signed:0;
+ *         field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+ *         field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+ *         field:int common_pid;   offset:4;       size:4; signed:1;
+ *
+ *         field:int __syscall_nr; offset:8;       size:4; signed:1;
+ *         field:unsigned int fd;  offset:16;      size:8; signed:0;
+ *         field:off_t offset;     offset:24;      size:8; signed:0;
+ *         field:unsigned int whence;      offset:32;      size:8; signed:0;
+ *
+ * print fmt: "fd: 0x%08lx, offset: 0x%08lx, whence: 0x%08lx", ((unsigned long)(REC->fd)), ((unsigned long)(REC->offset)), ((unsigned long)(REC->whence))
+ */
 struct sys_enter_lseek_args {
 	__u16 common_type;
 	__u8 common_flags;
