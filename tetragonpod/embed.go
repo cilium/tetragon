@@ -4,7 +4,7 @@ package tetragonpod
 
 import "embed"
 
-//go:embed config/crd/bases/cilium.io.tetragon.cilium.io_tetragonpods.yaml
+//go:embed config/crd/bases/cilium.io_tetragonpods.yaml
 var TetragonPod embed.FS
 
 func GetFS() embed.FS {
