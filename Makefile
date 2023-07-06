@@ -4,6 +4,7 @@ BINDIR ?= /usr/local/bin
 CONTAINER_ENGINE ?= docker
 DOCKER_IMAGE_TAG ?= latest
 LOCAL_CLANG ?= 0
+LOCAL_CLANG_FORMAT ?= 0
 FORMAT_FIND_FLAGS ?= -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*'
 NOOPT ?= 0
 CLANG_IMAGE = quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f
@@ -87,8 +88,9 @@ help:
 	@echo '    generate          - generate kubebuilder files'
 	@echo 'Linting and chores:'
 	@echo '    vendor            - tidy and vendor Go modules'
+	@echo '    clang-format      - run code formatter on BPF code'
 	@echo '    go-format         - run code formatter on Go code'
-	@echo '    format            - convenience alias for go-format'
+	@echo '    format            - convenience alias for clang-format and go-format'
 	@echo 'Documentation:'
 	@echo '    docs              - preview documentation website'
 
@@ -325,12 +327,23 @@ copy-golangci-lint:
 	docker cp ${xid}:/usr/bin/golangci-lint bin/golangci-lint
 	docker rm ${xid}
 
+.PHONY: clang-format
+ifeq (1,$(LOCAL_CLANG_FORMAT))
+clang-format:
+	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 clang-format -i -style=file
+else
+clang-format:
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "cilium/clang-format:${DOCKER_IMAGE_TAG}" .
+	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 \
+		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "cilium/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
+endif
+
 .PHONY: go-format
 go-format:
 	find . -name '*.go' -not -path './vendor/*' -not -path './api/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/codegen/*' | xargs gofmt -w
 
 .PHONY: format
-format: go-format
+format: go-format clang-format
 
 # generate cscope for bpf files
 cscope:

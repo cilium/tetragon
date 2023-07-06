@@ -36,6 +36,19 @@ jobs:
           make vendor
           echo "git status --porcelain:" `git status --porcelain`
           test -z "$(git status --porcelain)" || (echo "Module vendoring checks failed. Please run 'make vendor', and submit your changes"; exit 1)
+      - name: Build clang-format Docker image
+        run: |
+          docker build -f Dockerfile.clang-format -t "isovalent/clang-format:latest" .
+      - name: Verify clang-format on BPF code
+        id: clang_format
+        run: |
+          set -o pipefail
+          find bpf -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' \
+            -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*' | xargs -n 1000 \
+            docker run -v $(realpath .):/tetragon "isovalent/clang-format:latest" --Werror -n -style=file
+          if [ $? != 0 ]; then
+            echo "clang-format checks failed. Please run 'make format' and submit your changes."; exit 1
+          fi
       - name: Build CLI release binaries
         run: |
           make cli-release
