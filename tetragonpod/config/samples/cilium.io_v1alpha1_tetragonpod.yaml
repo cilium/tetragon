@@ -1,4 +1,4 @@
-apiVersion: cilium.io.tetragon.cilium.io/v1alpha1
+apiVersion: cilium.io/v1alpha1
 kind: TetragonPod
 metadata:
   labels:

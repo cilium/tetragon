@@ -22,6 +22,6 @@ rules:
 - apiGroups:
   - cilium.io.tetragon.cilium.io
   resources:
-  - tetragonpod/status
+  - tetragonpods/status
   verbs:
   - get
