@@ -24,6 +24,9 @@ func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slim
 }
 
 func (s *disabled) DelPolicy(polID PolicyID) error {
+	if polID == NoFilterPolicyID {
+		return nil
+	}
 	return fmt.Errorf("policyfilter is disabled")
 }
 
