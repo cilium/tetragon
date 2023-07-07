@@ -8,24 +8,22 @@ body:
         Thanks for taking the time to fill out this bug report! If you have usage questions, please join the [Cilium Slack](https://slack.cilium.io/) and ask questions in the [Tetragon channel](https://cilium.slack.com/archives/C03EV7KJPJ9). Or you could see the [FAQ](https://github.com/cilium/tetragon#faq) first.
 
         **Important**: For security related issues: We strongly encourage you to report security vulnerabilities [here](https://github.com/cilium/tetragon/security/advisories/new) - first, before disclosing them in any public forums.
-  - type: checkboxes
+  - type: markdown
     attributes:
-      label: Is there an existing issue for this?
-      description: Please search to see if an issue already exists for the bug you encountered.
-      options:
-        - label: I have searched the existing issues
-          required: true
+      value: |
+        **Is there an existing issue for this?**
+
+        Please search to see if an issue already exists for the bug you encountered.
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: Also tell us, what did you expect to happen?
+      description: Please explain how we can reproduce this bug. Also tell us, what did you expect to happen?
       placeholder: |
         1. In this environment...
         2. With this config...
         3. Run '...'
         4. See error...
-      value: "A bug happened!"
     validations:
       required: true
   - type: textarea
@@ -73,11 +71,9 @@ body:
         Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
     validations:
       required: false
-  - type: checkboxes
-    id: terms
+  - type: markdown
     attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/cilium/tetragon/blob/main/CODE_OF_CONDUCT.md)
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
+      value: |
+        **Code of Conduct**
+
+        By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/cilium/tetragon/blob/main/CODE_OF_CONDUCT.md).
