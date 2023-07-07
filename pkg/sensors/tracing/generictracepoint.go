@@ -172,6 +172,11 @@ func (out *genericTracepointArg) setGenericTypeId() (int, error) {
 func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 
 	if out.userType != "" {
+		if out.userType == "const_buf" {
+			// const_buf type depends on the .format.field.Type to decode the result, so
+			// disallow it.
+			return gt.GenericInvalidType, errors.New("const_buf type cannot be user-defined")
+		}
 		return gt.GenericTypeFromString(out.userType), nil
 	}
 
@@ -681,6 +686,10 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 		case gt.GenericConstBuffer:
+			if out.format == nil {
+				logger.GetLogger().Warn("GenericConstBuffer lacks format. Cannot decode argument")
+				break
+			}
 			if arrTy, ok := out.format.Field.Type.(tracepoint.ArrayTy); ok {
 				intTy, ok := arrTy.Ty.(tracepoint.IntTy)
 				if !ok {
