@@ -35,11 +35,6 @@ func StartSensorManager(
 	bpfDir, mapDir, ciliumDir string,
 	waitChan chan struct{},
 ) (*Manager, error) {
-	c := make(chan sensorOp)
-	m := Manager{
-		sensorCtl: c,
-	}
-
 	pfState, err := policyfilter.GetState()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
@@ -48,6 +43,18 @@ func StartSensorManager(
 	handler, err := newHandler(pfState, bpfDir, mapDir, ciliumDir)
 	if err != nil {
 		return nil, err
+	}
+
+	return startSensorManager(handler, waitChan)
+}
+
+func startSensorManager(
+	handler *handler,
+	waitChan chan struct{},
+) (*Manager, error) {
+	c := make(chan sensorOp)
+	m := Manager{
+		sensorCtl: c,
 	}
 
 	go func() {
