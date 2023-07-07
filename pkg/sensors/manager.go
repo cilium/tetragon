@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -38,7 +39,13 @@ func StartSensorManager(
 	m := Manager{
 		sensorCtl: c,
 	}
-	handler, err := newHandler(bpfDir, mapDir, ciliumDir)
+
+	pfState, err := policyfilter.GetState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
+	}
+
+	handler, err := newHandler(pfState, bpfDir, mapDir, ciliumDir)
 	if err != nil {
 		return nil, err
 	}
