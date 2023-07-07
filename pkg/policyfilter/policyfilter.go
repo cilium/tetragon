@@ -25,7 +25,7 @@ func GetState() (State, error) {
 			logger.GetLogger().Info("Enabling policy filtering")
 			glblState, glblError = New()
 		} else {
-			glblState = &dummy{}
+			glblState = &disabled{}
 			glblError = nil
 		}
 	})
@@ -45,7 +45,7 @@ func ResetStateOnlyForTesting() {
 		logger.GetLogger().Info("Enabling policy filtering")
 		glblState, glblError = New()
 	} else {
-		glblState = &dummy{}
+		glblState = &disabled{}
 		glblError = nil
 	}
 }
