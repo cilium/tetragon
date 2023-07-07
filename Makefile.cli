@@ -30,6 +30,7 @@ cli-local-release: cli-clean
 				;; \
 			windows) \
 				ARCHS='arm64 amd64'; \
+				EXT='.exe'; \
 				;; \
 		esac; \
 		for ARCH in $$ARCHS; do \
