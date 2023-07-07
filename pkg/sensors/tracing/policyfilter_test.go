@@ -111,13 +111,7 @@ func TestNamespacedPolicies(t *testing.T) {
 	err := confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
 	require.NoError(t, err)
 
-	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter
-	option.Config.EnablePolicyFilter = true
-	policyfilter.ResetStateOnlyForTesting()
-	t.Cleanup(func() {
-		option.Config.EnablePolicyFilter = oldEnablePolicyFilterValue
-		policyfilter.ResetStateOnlyForTesting()
-	})
+	policyfilter.TestingEnableAndReset(t)
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
