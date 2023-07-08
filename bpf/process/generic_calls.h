@@ -57,7 +57,6 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 		tail_call(ctx, tailcals, index + 1);
 
 	/* Last argument, go send.. */
-	total += generic_kprobe_common_size();
 	tail_call(ctx, tailcals, 6);
 	return 0;
 }
