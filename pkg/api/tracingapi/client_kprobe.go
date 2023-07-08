@@ -394,6 +394,7 @@ const EventConfigMaxArgs = 5
 
 type EventConfig struct {
 	FuncId          uint32                     `align:"func_id"`
+	ArgIdx          [EventConfigMaxArgs]int32  `align:"arg0_idx"`
 	Arg             [EventConfigMaxArgs]int32  `align:"arg0"`
 	ArgM            [EventConfigMaxArgs]uint32 `align:"arg0m"`
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`

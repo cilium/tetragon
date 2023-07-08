@@ -464,6 +464,7 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
+		config.ArgIdx[i] = int32(i)
 
 		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
 	}
@@ -473,6 +474,7 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 		config.ArgTpCtxOff[i] = uint32(0)
 		config.Arg[i] = int32(gt.GenericNopType)
 		config.ArgM[i] = uint32(0)
+		config.ArgIdx[i] = int32(-1)
 	}
 
 	if selectors.HasEarlyBinaryFilter(tp.Spec.Selectors) {

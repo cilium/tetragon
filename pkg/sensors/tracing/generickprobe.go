@@ -424,6 +424,7 @@ func createGenericKprobeSensor(
 			}
 			config.Arg[a.Index] = int32(argType)
 			config.ArgM[a.Index] = uint32(argMValue)
+			config.ArgIdx[j] = int32(a.Index)
 
 			argsBTFSet[a.Index] = true
 			argP := argPrinters{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
@@ -477,6 +478,10 @@ func createGenericKprobeSensor(
 					config.ArgM[j] = 0
 				}
 			}
+		}
+
+		for i := len(f.Args); i < api.EventConfigMaxArgs; i++ {
+			config.ArgIdx[i] = int32(-1)
 		}
 
 		// Copy over userspace return filters
