@@ -16,6 +16,43 @@ syntax = "proto3";
 
 package tetragon;
 
+enum SecureBitsType {
+	/* The Secure bits management are not set. */
+	SecBitNotSet = 0;
+
+	/* When set UID 0 has no special privileges. When unset, we support
+	   inheritance of root-permissions and suid-root executable under
+	   compatibility mode. We raise the effective and inheritable bitmasks
+	   *of the executable file* if the effective uid of the new process is
+	   0. If the real uid is 0, we raise the effective (legacy) bit of the
+	   executable file. */
+	SecBitNoRoot = 1;
+	/* Make bit-0 SecBitNoRoot immutable */
+	SecBitNoRootLocked = 2;
+
+	/* When set, setuid to/from uid 0 does not trigger capability-"fixup".
+	   When unset, to provide compatiblility with old programs relying on
+	   set*uid to gain/lose privilege, transitions to/from uid 0 cause
+	   capabilities to be gained/lost. */
+	SecBitNoSetUidFixup = 4;
+	/* Make bit-2 SecBitNoSetUidFixup immutable */
+	SecBitNoSetUidFixupLocked = 8;
+
+	/* When set, a process can retain its capabilities even after
+	   transitioning to a non-root user (the set-uid fixup suppressed by
+	   bit 2). Bit-4 is cleared when a process calls exec(); setting both
+	   bit 4 and 5 will create a barrier through exec that no exec()'d
+	   child can use this feature again. */
+	SecBitKeepCaps	= 16;
+	/* Make bit-4 SecBitKeepCaps immutable */
+	SecBitKeepCapsLocked = 32;
+
+	/* When set, a process cannot add new capabilities to its ambient set. */
+	SecBitNoCapAmbientRaise = 64;
+	/* Make bit-6 SecBitNoCapAmbientRaise immutable */
+	SecBitNoCapAmbientRaiseLocked = 128;
+}
+
 enum CapabilitiesType {
 	/* In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
 	   overrides the restriction of changing file ownership and group
