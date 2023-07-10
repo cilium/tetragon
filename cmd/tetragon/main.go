@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	pprofhttp "net/http/pprof"
@@ -191,6 +192,8 @@ func tetragonExecute() error {
 		}
 		log.WithField("file", option.Config.CpuProfile).Info("Starting cpu profiling")
 	}
+
+	readProSelfAttrSecurity()
 
 	defer stopProfile()
 
@@ -380,6 +383,47 @@ func tetragonExecute() error {
 	}
 
 	return obs.Start(ctx)
+}
+
+func invalidArgError(path string) string {
+	return fmt.Sprintf("read %s: invalid argument", path)
+}
+
+func readProSelfAttrSecurity() {
+	unconfined := "unconfined\n"
+
+	selinuxPath := "/proc/self/attr/current"
+	apparmorPath := "/proc/self/attr/apparmor/current"
+
+	selinuxUnavailable := invalidArgError(selinuxPath)
+	apparmorUnavailable := invalidArgError(apparmorPath)
+
+	selinux, errSelinux := ioutil.ReadFile(selinuxPath)
+	apparmor, errApparmor := ioutil.ReadFile(apparmorPath)
+
+	if errSelinux.Error() == selinuxUnavailable &&
+		errApparmor.Error() == apparmorUnavailable {
+		log.Debug("no security context is running in the system")
+		return
+	}
+
+	if errSelinux != nil {
+		log.WithError(errApparmor).Warn("unable to read security context for selinux")
+		return
+	}
+	if errApparmor != nil {
+		log.WithError(errSelinux).Warn("unable to read security context for apparmor")
+		return
+	}
+
+	if string(selinux) == unconfined && string(apparmor) == unconfined {
+		log.Debug("no security context is running for tetragon")
+		return
+	}
+
+	if string(selinux) != unconfined || string(apparmor) != unconfined {
+		log.WithFields(logrus.Fields{"SELinux": selinux, "AppArmor": apparmor}).Info("running with security attributes")
+	}
 }
 
 // Periodically log current status every 24 hours. For lost or error
