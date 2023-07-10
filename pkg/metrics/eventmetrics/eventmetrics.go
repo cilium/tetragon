@@ -32,12 +32,12 @@ var (
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	NotifyOverflowedEvents = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	NotifyOverflowedEvents = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "notify_overflowed_events",
+		Name:        "notify_overflowed_events_total",
 		Help:        "The total number of events dropped because listener buffer was full",
 		ConstLabels: nil,
-	}, nil)
+	})
 
 	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,

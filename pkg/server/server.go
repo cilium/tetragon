@@ -92,7 +92,7 @@ func (l *getEventsListener) Notify(res *tetragon.GetEventsResponse) {
 	case l.events <- res:
 	default:
 		// events channel is full: drop the event so that we do not block everything
-		eventmetrics.NotifyOverflowedEvents.WithLabelValues().Inc()
+		eventmetrics.NotifyOverflowedEvents.Inc()
 	}
 }
 
