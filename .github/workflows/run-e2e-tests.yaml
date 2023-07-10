@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 40
     strategy:
       matrix:
-        os: [ ubuntu-22.04, buildjet-2vcpu-ubuntu-2204-arm ]
+        os: [ ubuntu-22.04, buildjet-4vcpu-ubuntu-2204-arm ]
     steps:
     - name: Checkout Code
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
