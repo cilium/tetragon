@@ -44,7 +44,7 @@ var (
 
 	HandlerErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "handler_errors",
+		Name:        "handler_errors_total",
 		Help:        "The total number of event handler errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"opcode", "error_type"})

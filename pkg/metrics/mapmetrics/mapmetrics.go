@@ -21,7 +21,7 @@ var (
 
 	MapDrops = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "map_drops",
+		Name:        "map_drops_total",
 		Help:        "The total number of entries dropped per LRU map.",
 		ConstLabels: nil,
 	}, []string{"map"})

@@ -12,7 +12,7 @@ import (
 var (
 	MergeErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "generic_kprobe_merge_errors",
+		Name:        "generic_kprobe_merge_errors_total",
 		Help:        "The total number of failed attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
 	}, []string{"curr_fn", "curr_type", "prev_fn", "prev_type"})
@@ -24,7 +24,7 @@ var (
 	})
 	MergePushed = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "generic_kprobe_merge_pushed",
+		Name:        "generic_kprobe_merge_pushed_total",
 		Help:        "The total number of pushed events for later merge.",
 		ConstLabels: nil,
 	})
