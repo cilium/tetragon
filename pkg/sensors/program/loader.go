@@ -276,7 +276,31 @@ func LSMAttach() AttachFunc {
 	}
 }
 
-func MultiKprobeAttach(load *Program) AttachFunc {
+func multiKprobeAttach(load *Program, prog *ebpf.Program,
+	spec *ebpf.ProgramSpec, opts link.KprobeMultiOptions) (unloader.Unloader, error) {
+
+	var lnk link.Link
+	var err error
+
+	if load.RetProbe {
+		lnk, err = link.KretprobeMulti(prog, opts)
+	} else {
+		lnk, err = link.KprobeMulti(prog, opts)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+	}
+	return unloader.ChainUnloader{
+		unloader.PinUnloader{
+			Prog: prog,
+		},
+		unloader.LinkUnloader{
+			Link: lnk,
+		},
+	}, nil
+}
+
+func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -284,30 +308,45 @@ func MultiKprobeAttach(load *Program) AttachFunc {
 		if !ok {
 			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
 		}
+
+		if load.Override {
+			progOverrideSpec, ok := collSpec.Programs["generic_kprobe_override"]
+			if ok {
+				progOverrideSpec.Type = ebpf.UnspecifiedProgram
+			}
+
+			progOverride, ok := coll.Programs["generic_kprobe_override"]
+			if !ok {
+				return nil, fmt.Errorf("program for section '%s' not found", load.Label)
+			}
+
+			progOverride, err := progOverride.Clone()
+			if err != nil {
+				return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
+			}
+
+			pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+
+			if err := progOverride.Pin(pinPath); err != nil {
+				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+			}
+
+			opts := link.KprobeMultiOptions{
+				Symbols: data.Overrides,
+			}
+
+			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts)
+			if err != nil {
+				logger.GetLogger().Warnf("Failed to attach override program: %w", err)
+			}
+		}
+
 		opts := link.KprobeMultiOptions{
 			Symbols: data.Symbols,
 			Cookies: data.Cookies,
 		}
 
-		var lnk link.Link
-		var err error
-
-		if load.RetProbe {
-			lnk, err = link.KretprobeMulti(prog, opts)
-		} else {
-			lnk, err = link.KprobeMulti(prog, opts)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
-		}
-		return unloader.ChainUnloader{
-			unloader.PinUnloader{
-				Prog: prog,
-			},
-			unloader.LinkUnloader{
-				Link: lnk,
-			},
-		}, nil
+		return multiKprobeAttach(load, prog, spec, opts)
 	}
 }
 
@@ -366,7 +405,7 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
-		attach: MultiKprobeAttach(load),
+		attach: MultiKprobeAttach(load, bpfDir),
 		open:   KprobeOpen(load),
 		ci:     &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"},
 	}
