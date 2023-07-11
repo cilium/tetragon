@@ -57,7 +57,7 @@ Let's break down the previous command:
 ## Observe Tetragon base events
 
 With this default configuration, Tetragon already loaded its base sensors to
-perform [process lifecycle observability]({{< ref "docs/concepts/process-lifecycle" >}}).
+perform [process lifecycle observability]({{< ref "docs/use-cases/process-lifecycle" >}}).
 
 To quickly see the events, you can use the `tetra` CLI already shipped in the
 Tetragon container that was just started, it will connect to the Tetragon gRPC
@@ -395,4 +395,4 @@ file using `cat ./tracing_policy.yaml` will bypass the policies presented here.
 
 - Try Tetragon in [Kubernetes environments]({{< ref "docs/getting-started/kubernetes-quickstart-guide" >}}).
 - Learn more about [TracingPolicy]({{< ref "docs/concepts/tracing-policy" >}}).
-- See more use cases for observability in the [Concepts section]({{< ref "docs/concepts" >}}).
+- See more use cases for observability in the [Use cases section]({{< ref "docs/use-cases" >}}).

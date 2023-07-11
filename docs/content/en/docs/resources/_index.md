@@ -1,6 +1,6 @@
 ---
 title: "Resources"
-weight: 8
+weight: 9
 icon: "resources"
 description: "Additional resources to learn about Tetragon"
 ---

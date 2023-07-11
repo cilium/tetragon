@@ -1,8 +1,8 @@
 ---
-title: "Linux Process Credentials"
-weight: 3
-icon: "reference"
-description: "Monitor Linux Process Credentials"
+title: "Linux process credentials"
+weight: 4
+icon: "overview"
+description: "Monitor Linux process credentials"
 ---
 
 On Linux each process has various associated user, group IDs, capabilities,

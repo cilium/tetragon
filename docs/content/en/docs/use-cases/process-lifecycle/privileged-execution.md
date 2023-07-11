@@ -1,7 +1,7 @@
 ---
-title: "Use case: privileged execution"
+title: "Privileged execution"
 weight: 2
-icon: "reference"
+icon: "overview"
 description: "Monitor process capabilities and kernel namespace access"
 ---
 
