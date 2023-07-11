@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
-        uses: actions/upload-pages-artifact@66b63f4a7de003f4f00cc8e9af4b83b8f2abdb96 # v1.0.9
+        uses: actions/upload-pages-artifact@84bb4cd4b733d5c320c9c9cfbc354937524f4d64 # v1.0.10
         with:
           path: docs/public
 
@@ -78,5 +78,5 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@ee48c7b82e077d7b8ef30b50a719e6a792a50c9a # v2.0.2
+        uses: actions/deploy-pages@12ab2b16cf43a7a061fe99da74b6f8f11fb77f5b # v2.0.3
 
