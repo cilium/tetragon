@@ -2,7 +2,7 @@
 title: "Process lifecycle"
 linkTitle: "Process lifecyle"
 weight: 1
-icon: "reference"
+icon: "overview"
 description: "Tetragon observes by default the process lifecycle via exec and exit"
 ---
 

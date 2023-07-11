@@ -1,6 +1,6 @@
 ---
-title: "Use case: file access"
-weight: 1
+title: "File access"
+weight: 2
 icon: "overview"
 description: "Monitor file access using kprobe hooks"
 ---

@@ -1,5 +1,5 @@
 ---
-title: "Use case: Monitor change Credentials system calls"
+title: "Credentials change system calls"
 weight: 2
 icon: "reference"
 description: "Monitor change Credentials System calls"
