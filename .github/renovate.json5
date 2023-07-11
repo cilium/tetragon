@@ -69,7 +69,13 @@
       ]
     },
     {
-      // not grouping major updates together
+      "matchPaths": [
+        ".github/workflows/**"
+      ],
+      "separateMinorPatch": false,
+    },
+    {
+      // not grouping Go minor and major updates together
       "matchFiles": [
         "go.mod",
         "go.sum"
@@ -85,6 +91,7 @@
       },
       "matchUpdateTypes": [
         "major",
+        "minor",
       ],
       matchBaseBranches: [
         "main"
@@ -107,7 +114,6 @@
         "executionMode": "branch"
       },
       "matchUpdateTypes": [
-        "minor",
         "patch",
         "digest",
         "pin",
