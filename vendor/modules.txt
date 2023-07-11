@@ -15,9 +15,10 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.13.1
+# github.com/cilium/cilium v1.13.4
 ## explicit; go 1.19
 github.com/cilium/cilium/api/v1/client
+github.com/cilium/cilium/api/v1/client/bgp
 github.com/cilium/cilium/api/v1/client/daemon
 github.com/cilium/cilium/api/v1/client/endpoint
 github.com/cilium/cilium/api/v1/client/ipam
@@ -52,6 +53,7 @@ github.com/cilium/cilium/pkg/comparator
 github.com/cilium/cilium/pkg/components
 github.com/cilium/cilium/pkg/contexthelpers
 github.com/cilium/cilium/pkg/controller
+github.com/cilium/cilium/pkg/counter
 github.com/cilium/cilium/pkg/debug
 github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/endpoint/id
