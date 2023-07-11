@@ -117,9 +117,11 @@ generic_kprobe_start_process_filter(void *ctx)
 }
 
 #ifdef __MULTI_KPROBE
-#define MAIN "kprobe.multi/generic_kprobe"
+#define MAIN	 "kprobe.multi/generic_kprobe"
+#define OVERRIDE "kprobe.multi/generic_kprobe_override"
 #else
-#define MAIN "kprobe/generic_kprobe"
+#define MAIN	 "kprobe/generic_kprobe"
+#define OVERRIDE "kprobe/generic_kprobe_override"
 #endif
 
 /* Generic kprobe pseudocode is the following
@@ -286,7 +288,7 @@ generic_kprobe_output(void *ctx)
 	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap);
 }
 
-__attribute__((section("kprobe/override"), used)) int
+__attribute__((section(OVERRIDE), used)) int
 generic_kprobe_override(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
