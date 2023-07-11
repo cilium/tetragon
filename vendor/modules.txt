@@ -122,14 +122,16 @@ github.com/cilium/cilium/pkg/types
 github.com/cilium/cilium/pkg/u8proto
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/ebpf v0.10.0
-## explicit; go 1.18
+# github.com/cilium/ebpf v0.11.0
+## explicit; go 1.19
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/btf
 github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/epoll
+github.com/cilium/ebpf/internal/kconfig
 github.com/cilium/ebpf/internal/sys
+github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
@@ -656,7 +658,7 @@ go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
-# golang.org/x/exp v0.0.0-20221106115401-f9659909a136
+# golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
