@@ -11,7 +11,7 @@
   // repository configuration
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
+    "config:recommended",
     ":gitSignOff",
     "helpers:pinGitHubActionDigests"
   ],
@@ -56,7 +56,7 @@
     {
       "groupName": "all github action dependencies",
       "groupSlug": "all-github-action",
-      "matchPaths": [
+      "matchFileNames": [
         ".github/workflows/**"
       ],
       "matchUpdateTypes": [
@@ -69,14 +69,14 @@
       ]
     },
     {
-      "matchPaths": [
+      "matchFileNames": [
         ".github/workflows/**"
       ],
       "separateMinorPatch": false,
     },
     {
       // not grouping Go minor and major updates together
-      "matchFiles": [
+      "matchFileNames": [
         "go.mod",
         "go.sum"
       ],
@@ -100,7 +100,7 @@
     {
       "groupName": "all go dependencies main",
       "groupSlug": "all-go-deps-main",
-      "matchFiles": [
+      "matchFileNames": [
         "go.mod",
         "go.sum"
       ],
@@ -127,7 +127,7 @@
       // grouping these together because the number of dependencies is limited
       "groupName": "all API go dependencies main",
       "groupSlug": "all-api-go-deps-main",
-      "matchFiles": [
+      "matchFileNames": [
         "api/go.mod",
         "api/go.sum"
       ],
@@ -154,7 +154,7 @@
     },
     {
       // not grouping major updates together
-      "matchFiles": [
+      "matchFileNames": [
         "pkg/k8s/go.mod",
         "pkg/k8s/go.sum"
       ],
@@ -177,7 +177,7 @@
     {
       "groupName": "all k8s pkg go dependencies main",
       "groupSlug": "all-k8s-pkg-go-deps-main",
-      "matchFiles": [
+      "matchFileNames": [
         "pkg/k8s/go.mod",
         "pkg/k8s/go.sum"
       ],
@@ -204,7 +204,7 @@
     {
       // Images that directly use docker.io/library/golang for building.
       "groupName": "golang-images",
-      "matchFiles": [
+      "matchFileNames": [
         "Dockerfile",
         "Makefile"
       ]
@@ -213,7 +213,7 @@
       "matchPackageNames": [
         "docker.io/library/busybox"
       ],
-      "matchPaths": [
+      "matchFileNames": [
         "Dockerfile"
       ],
     },
@@ -233,7 +233,7 @@
       ]
     },
     {
-      "matchFiles": [
+      "matchFileNames": [
         "install/kubernetes/values.yaml",
       ],
       // lint and generate files for helm chart
