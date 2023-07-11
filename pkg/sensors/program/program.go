@@ -43,8 +43,9 @@ type MapLoad struct {
 }
 
 type MultiKprobeAttachData struct {
-	Symbols []string
-	Cookies []uint64
+	Symbols   []string
+	Cookies   []uint64
+	Overrides []string
 }
 
 type UprobeAttachData struct {
