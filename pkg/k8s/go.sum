@@ -35,8 +35,8 @@ github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghf
 github.com/chancez/lumberjack v0.0.0-20220314160755-2b78c6a5f7bc/go.mod h1:MTkMtVFAjFChVkoycc9XjGGH6jiuI6qO71iEdcyNq7I=
 github.com/christarazi/controller-tools v0.3.1-0.20200911184030-7e668c1fb4c2 h1:e8rUgm4lkgItm5/qX43VmvtRkxaOhLIPP6gWjP9Eib4=
 github.com/christarazi/controller-tools v0.3.1-0.20200911184030-7e668c1fb4c2/go.mod h1:hJyC9ybFldjAq/sR0x8jwbV9g0uPxjl8fqBa+mVa3DE=
-github.com/cilium/cilium v1.13.1 h1:6JzlYiZw1HqToqZJd5Hb6Xk1QasptOEUS1UUO4LneBQ=
-github.com/cilium/cilium v1.13.1/go.mod h1:xHiUYiRvIsJTqkkTq7xNWXBDZZ5UqyrYJktYZJYuYjI=
+github.com/cilium/cilium v1.13.4 h1:rvbcA6q7YMWtDfEtx9y4olL46wBFoZfM2BazUoJlaRI=
+github.com/cilium/cilium v1.13.4/go.mod h1:bppTjxboubrsI835+yp3vZ2S79wRQbZCbUiHxrAIOQY=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
