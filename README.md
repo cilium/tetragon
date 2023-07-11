@@ -537,7 +537,7 @@ cases without Kubernetes, the same YAML configuration can be passed via a flag
 to the Tetragon binary or via the `tetra` CLI to load the policies via gRPC.
 
 For more information on `TracingPolicy` and how to write them, see the
-[`TracingPolicy` Guide](https://tetragon.cilium.io/docs/reference/tracing-policy/).
+[`TracingPolicy` Guide](https://tetragon.cilium.io/docs/concepts/tracing-policy/).
 
 #### Use case 1: File Access
 
