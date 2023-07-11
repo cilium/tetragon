@@ -181,6 +181,9 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define MAX_FILTER_TAILCALL 10
 #define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
 
+static inline __attribute__((always_inline)) long
+filter_32ty_map(struct selector_arg_filter *filter, char *args);
+
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
 	switch (ty) {
@@ -720,7 +723,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	__u32 *v = (__u32 *)&filter->value;
 	int i, j = 0;
 	__u32 addr = 0;
-	__u16 port = 0;
+	__u32 port = 0;
 	__u16 protocol = 0;
 	struct sk_type *sk = 0;
 	struct skb_type *skb = 0;
@@ -759,6 +762,12 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		return 0;
 	}
 
+	switch (filter->op) {
+	case op_filter_sport:
+	case op_filter_dport:
+		return filter_32ty_map(filter, (char *)&port);
+	}
+
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
 		switch (filter->op) {
@@ -775,15 +784,6 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 			if (j + 8 >= filter->vallen)
 				return 0;
 		} break;
-		case op_filter_sport:
-		case op_filter_dport:
-			if (v[i] == port)
-				return 1;
-			// placed here to allow llvm unroll this loop
-			j += 4;
-			if (j + 4 >= filter->vallen)
-				return 0;
-			break;
 		case op_filter_protocol:
 			if (v[i] == protocol)
 				return 1;
@@ -1089,6 +1089,8 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 
 	switch (filter->op) {
 	case op_filter_inmap:
+	case op_filter_sport:
+	case op_filter_dport:
 		return !!pass;
 	case op_filter_notinmap:
 		return !pass;

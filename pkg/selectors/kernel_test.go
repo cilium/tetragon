@@ -120,6 +120,12 @@ func TestSelectorOp(t *testing.T) {
 	if op, err := SelectorOp("NotIn"); op != SelectorOpNotIn || err != nil {
 		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotIn, op, err)
 	}
+	if op, err := SelectorOp("SPort"); op != SelectorOpSport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSport, op, err)
+	}
+	if op, err := SelectorOp("DPort"); op != SelectorOpDport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDport, op, err)
+	}
 	if op, err := SelectorOp("foo"); op != 0 || err == nil {
 		t.Errorf("selectorOp: expected error actual %d %v\n", op, err)
 	}
@@ -234,11 +240,9 @@ func TestParseMatchArg(t *testing.T) {
 	expected4 := []byte{
 		0x06, 0x00, 0x00, 0x00, // Index == 6
 		15, 0x00, 0x00, 0x00, // operator == sport
-		20, 0x00, 0x00, 0x00, // length == 20
+		12, 0x00, 0x00, 0x00, // length == 12
 		0x05, 0x00, 0x00, 0x00, // value type == skb
-		0x91, 0x1f, 0, 0, // port = 8081
-		25, 0, 0, 0, // port = 25
-		0x69, 0x7a, 0, 0, // port = 31337
+		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
 	}
 	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, k.e[nextArg:k.off], arg4)
@@ -248,7 +252,7 @@ func TestParseMatchArg(t *testing.T) {
 	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
 		0x07, 0x00, 0x00, 0x00, // Index == 6
-		17, 0x00, 0x00, 0x00, // operator == sport
+		17, 0x00, 0x00, 0x00, // operator == protocol
 		20, 0x00, 0x00, 0x00, // length == 20
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		3, 0x00, 0x00, 0x00, // protocol = 3
