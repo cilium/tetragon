@@ -58,8 +58,6 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
-
-	MaxKprobesMulti = 100 // MAX_ENTRIES_CONFIG in bpf code
 )
 
 func kprobeCharBufErrorToString(e int32) string {
