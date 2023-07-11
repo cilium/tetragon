@@ -22,10 +22,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"go.uber.org/multierr"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -224,8 +227,8 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addTcInfo(tarWriter)
 	si.addBpftoolInfo(tarWriter)
 	si.addGopsInfo(tarWriter)
-	si.execCmd(tarWriter, "tetra_tracincpolicy_list.json", "tetra", "tracingpolicy", "list", "-o", "json")
 	si.dumpPolicyFilterMap(tarWriter)
+	si.addGrpcInfo(tarWriter)
 	return nil
 }
 
@@ -492,4 +495,36 @@ func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
 		return err
 	}
 	return s.tarAddJson(tarWriter, policyfilter.MapName+".json", obj)
+}
+
+func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	conn, err := grpc.DialContext(
+		ctx,
+		s.info.ServerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		s.multiLog.Warnf("failed to connect to %s: %v", s.info.ServerAddr, err)
+		return
+	}
+	defer conn.Close()
+	client := tetragon.NewFineGuidanceSensorsClient(conn)
+
+	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
+	if err != nil || res == nil {
+		s.multiLog.Warnf("failed to list tracing policies: %v", err)
+		return
+	}
+
+	fname := "tracing-policies.json"
+	err = s.tarAddJson(tarWriter, fname, res)
+	if err != nil {
+		s.multiLog.Warnf("failed to dump tracing policies: %v", err)
+		return
+	}
+
+	s.multiLog.Infof("dumped tracing policies in %s", fname)
 }
