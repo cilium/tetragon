@@ -3,7 +3,7 @@ module github.com/cilium/tetragon
 go 1.18
 
 require (
-	github.com/cilium/cilium v1.13.1
+	github.com/cilium/cilium v1.13.4
 	github.com/cilium/ebpf v0.11.0
 	github.com/cilium/little-vm-helper v0.0.7
 	github.com/cilium/lumberjack/v2 v2.3.0
