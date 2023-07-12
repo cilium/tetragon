@@ -750,9 +750,11 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		addr = tuple->daddr;
 		break;
 	case op_filter_sport:
+	case op_filter_notsport:
 		port = tuple->sport;
 		break;
 	case op_filter_dport:
+	case op_filter_notdport:
 		port = tuple->dport;
 		break;
 	case op_filter_protocol:
@@ -765,6 +767,8 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	switch (filter->op) {
 	case op_filter_sport:
 	case op_filter_dport:
+	case op_filter_notsport:
+	case op_filter_notdport:
 		return filter_32ty_map(filter, (char *)&port);
 	}
 
@@ -1093,6 +1097,8 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	case op_filter_dport:
 		return !!pass;
 	case op_filter_notinmap:
+	case op_filter_notsport:
+	case op_filter_notdport:
 		return !pass;
 	}
 	return 0;
