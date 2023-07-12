@@ -129,7 +129,7 @@ func withNotestfail(notestfail bool) TestOption {
 func testDone(t *testing.T, obs *Observer) {
 	if t.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
-		if err := bugtool.Bugtool(bugtoolFname); err == nil {
+		if err := bugtool.Bugtool(bugtoolFname, ""); err == nil {
 			logger.GetLogger().WithField("test", t.Name()).
 				WithField("file", bugtoolFname).Info("Dumped bugtool info")
 		} else {
