@@ -51,14 +51,7 @@ func (s *Summary) Dump() {
 	}
 }
 
-func getGaugeValue(gauge prometheus.Gauge) int {
-	// Yep, this does seem to be the only way to read it.
-	var d dto.Metric
-	gauge.Write(&d)
-	return int(*d.Gauge.Value)
-}
-
-func getMetricValue(counter prometheus.Counter) int {
+func getCounterValue(counter prometheus.Counter) int {
 	var d dto.Metric
 	counter.Write(&d)
 	return int(*d.Counter.Value)
@@ -83,12 +76,12 @@ func (s *Summary) PrettyPrint() {
 
 	if !s.Args.Baseline {
 		fmt.Printf("Ring buffer:        received=%d, lost=%d, errors=%d\n",
-			getGaugeValue(ringbufmetrics.PerfEventReceived.WithLabelValues()),
-			getGaugeValue(ringbufmetrics.PerfEventLost.WithLabelValues()),
-			getGaugeValue(ringbufmetrics.PerfEventErrors.WithLabelValues()))
+			getCounterValue(ringbufmetrics.PerfEventReceived),
+			getCounterValue(ringbufmetrics.PerfEventLost),
+			getCounterValue(ringbufmetrics.PerfEventErrors))
 
-		mergePushed := getMetricValue(kprobemetrics.MergePushed)
-		mergeOkTotal := getMetricValue(kprobemetrics.MergeOkTotal)
+		mergePushed := getCounterValue(kprobemetrics.MergePushed)
+		mergeOkTotal := getCounterValue(kprobemetrics.MergeOkTotal)
 		fmt.Printf("Merged events:      pushed=%d, ok=%d, errors=%d\n",
 			mergePushed, mergeOkTotal, mergePushed-mergeOkTotal)
 	}
@@ -153,9 +146,9 @@ func (s *Summary) CSVPrint(path, name string) error {
 
 	if !s.Args.Baseline {
 		records = [][]string{
-			{"Received", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventReceived.WithLabelValues()))},
-			{"Lost", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventLost.WithLabelValues()))},
-			{"Errors", fmt.Sprintf("%d", getGaugeValue(ringbufmetrics.PerfEventErrors.WithLabelValues()))},
+			{"Received", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventReceived))},
+			{"Lost", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventLost))},
+			{"Errors", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventErrors))},
 		}
 		w.WriteAll(records)
 	}
