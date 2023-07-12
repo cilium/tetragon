@@ -29,6 +29,10 @@ enum {
 	op_filter_protocol = 17,
 	op_filter_notsport = 18,
 	op_filter_notdport = 19,
+	op_filter_sportpriv = 20,
+	op_filter_notsportpriv = 21,
+	op_filter_dportpriv = 22,
+	op_filter_notdportpriv = 23,
 };
 
 #endif // __OPERATIONS_H__
