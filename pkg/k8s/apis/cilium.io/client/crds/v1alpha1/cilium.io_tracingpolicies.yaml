@@ -280,7 +280,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -495,7 +497,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -747,7 +751,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -962,7 +968,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -1087,7 +1095,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -1302,7 +1312,9 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
                                   - DPort
+                                  - NotDPort
                                   - SAddr
                                   - DAddr
                                   - Protocol

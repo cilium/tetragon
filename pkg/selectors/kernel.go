@@ -220,6 +220,8 @@ const (
 	SelectorOpSport    = 15
 	SelectorOpDport    = 16
 	SelectorOpProtocol = 17
+	SelectorOpNotSport = 18
+	SelectorOpNotDport = 19
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -256,6 +258,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpDport, nil
 	case "protocol", "Protocol":
 		return SelectorOpProtocol, nil
+	case "notsport", "NotSport", "NotSPort":
+		return SelectorOpNotSport, nil
+	case "notdport", "NotDport", "NotDPort":
+		return SelectorOpNotDport, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -521,7 +527,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
-	case SelectorOpSport, SelectorOpDport:
+	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport:
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
