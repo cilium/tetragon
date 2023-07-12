@@ -751,10 +751,14 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		break;
 	case op_filter_sport:
 	case op_filter_notsport:
+	case op_filter_sportpriv:
+	case op_filter_notsportpriv:
 		port = tuple->sport;
 		break;
 	case op_filter_dport:
 	case op_filter_notdport:
+	case op_filter_dportpriv:
+	case op_filter_notdportpriv:
 		port = tuple->dport;
 		break;
 	case op_filter_protocol:
@@ -770,6 +774,12 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case op_filter_notsport:
 	case op_filter_notdport:
 		return filter_32ty_map(filter, (char *)&port);
+	case op_filter_sportpriv:
+	case op_filter_dportpriv:
+		return port < 1024;
+	case op_filter_notsportpriv:
+	case op_filter_notdportpriv:
+		return port >= 1024;
 	}
 
 #pragma unroll

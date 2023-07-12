@@ -132,6 +132,18 @@ func TestSelectorOp(t *testing.T) {
 	if op, err := SelectorOp("NotDPort"); op != SelectorOpNotDport || err != nil {
 		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDport, op, err)
 	}
+	if op, err := SelectorOp("SPortPriv"); op != SelectorOpSportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSportPriv, op, err)
+	}
+	if op, err := SelectorOp("DPortPriv"); op != SelectorOpDportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDportPriv, op, err)
+	}
+	if op, err := SelectorOp("NotSPortPriv"); op != SelectorOpNotSportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotSportPriv, op, err)
+	}
+	if op, err := SelectorOp("NotDPortPriv"); op != SelectorOpNotDportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDportPriv, op, err)
+	}
 	if op, err := SelectorOp("foo"); op != 0 || err == nil {
 		t.Errorf("selectorOp: expected error actual %d %v\n", op, err)
 	}

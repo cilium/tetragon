@@ -281,8 +281,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -498,8 +502,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -752,8 +760,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -969,8 +981,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -1096,8 +1112,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol
@@ -1313,8 +1333,12 @@ spec:
                                   - LT
                                   - SPort
                                   - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
                                   - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
                                   - DAddr
                                   - Protocol

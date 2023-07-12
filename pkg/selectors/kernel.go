@@ -215,13 +215,17 @@ const (
 	SelectorOpMASK = 12
 
 	// socket ops
-	SelectorOpSaddr    = 13
-	SelectorOpDaddr    = 14
-	SelectorOpSport    = 15
-	SelectorOpDport    = 16
-	SelectorOpProtocol = 17
-	SelectorOpNotSport = 18
-	SelectorOpNotDport = 19
+	SelectorOpSaddr        = 13
+	SelectorOpDaddr        = 14
+	SelectorOpSport        = 15
+	SelectorOpDport        = 16
+	SelectorOpProtocol     = 17
+	SelectorOpNotSport     = 18
+	SelectorOpNotDport     = 19
+	SelectorOpSportPriv    = 20
+	SelectorOpNotSportPriv = 21
+	SelectorOpDportPriv    = 22
+	SelectorOpNotDportPriv = 23
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -262,6 +266,14 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpNotSport, nil
 	case "notdport", "NotDport", "NotDPort":
 		return SelectorOpNotDport, nil
+	case "sportpriv", "SportPriv", "SPortPriv":
+		return SelectorOpSportPriv, nil
+	case "dportpriv", "DportPriv", "DPortPriv":
+		return SelectorOpDportPriv, nil
+	case "notsportpriv", "NotSportPriv", "NotSPortPriv":
+		return SelectorOpNotSportPriv, nil
+	case "notdportpriv", "NotDportPriv", "NotDPortPriv":
+		return SelectorOpNotDportPriv, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -534,6 +546,11 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		err := writeMatchRangesInMap(k, arg.Values, argTypeU64) // force type for ports as ty is sock/skb
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
+		// These selectors do not take any values, but we do check that they are only used for sock/skb.
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
