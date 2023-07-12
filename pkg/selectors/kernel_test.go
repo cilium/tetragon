@@ -240,14 +240,9 @@ func TestParseMatchArg(t *testing.T) {
 	expected3 := []byte{
 		0x05, 0x00, 0x00, 0x00, // Index == 5
 		13, 0x00, 0x00, 0x00, // operator == saddr
-		32, 0x00, 0x00, 0x00, // length == 32
+		12, 0x00, 0x00, 0x00, // length == 32
 		0x07, 0x00, 0x00, 0x00, // value type == sock
-		127, 0, 0, 1, // IP address = 127.0.0.1
-		0xff, 0xff, 0xff, 0xff, // mask len = 32
-		10, 1, 2, 0, // IP address = 10.1.2.0 masked from 10.1.2.3
-		0xff, 0xff, 0xff, 0x00, // mask len = 24
-		192, 168, 240, 0, // IP address = 192.168.240.0 masked from 192.168.254.254
-		0xff, 0xff, 0xf0, 0x00, // mask len = 20
+		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
 	}
 	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, k.e[nextArg:k.off], arg3)

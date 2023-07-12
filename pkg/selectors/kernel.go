@@ -426,6 +426,21 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32) e
 	return nil
 }
 
+func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
+	mid, m := k.newAddr4Map()
+	for _, v := range values {
+		addr, maskLen, err := parseAddr(v)
+		if err != nil {
+			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+		}
+		val := KernelLpmTrie4{prefix: maskLen, addr: addr}
+		m[val] = struct{}{}
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
+	return nil
+}
+
 func getBase(v string) int {
 	if strings.HasPrefix(v, "0x") {
 		return 16
@@ -443,17 +458,25 @@ func parseAddr(v string) (uint32, uint32, error) {
 		if ipaddr == nil {
 			return 0, 0, fmt.Errorf("IP address is not IPv4")
 		}
-		return binary.LittleEndian.Uint32(ipaddr), 0xffffffff, nil
+		return binary.LittleEndian.Uint32(ipaddr), 32, nil
 	}
-	_, ipnet, err := net.ParseCIDR(v)
-	if err != nil {
-		return 0, 0, err
+	vParts := strings.Split(v, "/")
+	if len(vParts) != 2 {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
 	}
-	ipaddr = ipnet.IP.To4()
+	ipaddr = net.ParseIP(vParts[0])
 	if ipaddr == nil {
 		return 0, 0, fmt.Errorf("IP address is not IPv4")
 	}
-	return binary.LittleEndian.Uint32(ipaddr), binary.LittleEndian.Uint32(ipnet.Mask), nil
+	ipaddr = ipaddr.To4()
+	if ipaddr == nil {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	}
+	maskLen, err := strconv.ParseUint(vParts[1], 10, 32)
+	if err != nil || maskLen > 32 {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	}
+	return binary.LittleEndian.Uint32(ipaddr), uint32(maskLen), nil
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
@@ -494,13 +517,6 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			WriteSelectorUint64(k, uint64(i))
 		case argTypeSock, argTypeSkb:
 			switch op {
-			case SelectorOpSaddr, SelectorOpDaddr:
-				addr, mask, err := parseAddr(v)
-				if err != nil {
-					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-				}
-				WriteSelectorUint32(k, addr)
-				WriteSelectorUint32(k, mask)
 			case SelectorOpProtocol:
 				protocol, err := network.InetProtocolNumber(v)
 				if err != nil {
@@ -547,10 +563,27 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
+	case SelectorOpSaddr, SelectorOpDaddr:
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+		err := writeMatchAddrsInMap(k, arg.Values)
+		if err != nil {
+			return fmt.Errorf("writeMatchAddrsInMap error: %w", err)
+		}
 	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+	case SelectorOpProtocol:
+		// Check protocol is only specified for sock/skb.
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+		err = writeMatchValues(k, arg.Values, ty, op)
+		if err != nil {
+			return fmt.Errorf("writeMatchValues error: %w", err)
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
