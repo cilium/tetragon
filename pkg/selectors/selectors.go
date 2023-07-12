@@ -26,12 +26,20 @@ func (k *MatchBinariesMappings) GetBinSelNamesMap() map[uint32]uint32 {
 	return k.selNamesMap
 }
 
+type KernelLpmTrie4 struct {
+	prefix uint32
+	addr   uint32
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
 	valueMaps []map[[8]byte]struct{}
+
+	// addr4Maps are used to populate IPv4 address LpmTrie maps for sock and skb operators
+	addr4Maps []map[KernelLpmTrie4]struct{}
 
 	matchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
 	newBinVals    map[uint32]string              // these should be added in the names_map
@@ -90,10 +98,25 @@ func (k *KernelSelectorState) ValueMaps() []map[[8]byte]struct{} {
 	return k.valueMaps
 }
 
+func (k *KernelSelectorState) Addr4Maps() []map[KernelLpmTrie4]struct{} {
+	return k.addr4Maps
+}
+
 // ValueMapsMaxEntries returns the maximum entries over all maps
 func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.valueMaps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+// Addr4MapsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) Addr4MapsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.addr4Maps {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}
@@ -156,4 +179,10 @@ func (k *KernelSelectorState) newValueMap() (uint32, map[[8]byte]struct{}) {
 	mapid := len(k.valueMaps)
 	k.valueMaps = append(k.valueMaps, map[[8]byte]struct{}{})
 	return uint32(mapid), k.valueMaps[mapid]
+}
+
+func (k *KernelSelectorState) newAddr4Map() (uint32, map[KernelLpmTrie4]struct{}) {
+	mapid := len(k.addr4Maps)
+	k.addr4Maps = append(k.addr4Maps, map[KernelLpmTrie4]struct{}{})
+	return uint32(mapid), k.addr4Maps[mapid]
 }

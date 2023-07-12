@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -27,6 +28,12 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			Name:  "argfilter_maps",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
+			Name:  "addr4lpm_maps",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateAddr4FilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
@@ -85,6 +92,66 @@ func populateArgFilterMap(
 	one := uint8(1)
 	for val := range innerData {
 		err := innerMap.Update(val[:], one, 0)
+		if err != nil {
+			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+		}
+	}
+
+	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
+		return fmt.Errorf("failed to insert %s: %w", innerName, err)
+	}
+
+	return nil
+}
+
+func populateAddr4FilterMaps(
+	k *selectors.KernelSelectorState,
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+) error {
+	maxEntries := k.Addr4MapsMaxEntries()
+	for i, am := range k.Addr4Maps() {
+		nrEntries := uint32(len(am))
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			nrEntries = uint32(maxEntries)
+		}
+		err := populateAddr4FilterMap(pinPathPrefix, outerMap, uint32(i), am, nrEntries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func populateAddr4FilterMap(
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+	innerID uint32,
+	innerData map[selectors.KernelLpmTrie4]struct{},
+	maxEntries uint32,
+) error {
+	innerName := fmt.Sprintf("addr4filter_map_%d", innerID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       innerName,
+		Type:       ebpf.LPMTrie,
+		KeySize:    8, // NB: KernelLpmTrie4 consists of 32bit prefix and 32bit address
+		ValueSize:  uint32(1),
+		MaxEntries: maxEntries,
+		Flags:      bpf.BPF_F_NO_PREALLOC,
+	}
+	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+		PinPath: sensors.PathJoin(pinPathPrefix, innerName),
+	})
+	if err != nil {
+		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+	}
+	defer innerMap.Close()
+
+	one := uint8(1)
+	for val := range innerData {
+		err := innerMap.Update(val, one, 0)
 		if err != nil {
 			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
 		}

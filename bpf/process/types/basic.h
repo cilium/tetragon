@@ -15,6 +15,7 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "../argfilter_maps.h"
+#include "../addr_lpm_maps.h"
 #include "common.h"
 #include "process/data_event.h"
 
@@ -714,6 +715,32 @@ struct ip_ver {
 	u8 version : 4;
 };
 
+// use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
+// is in the defined set.
+static inline __attribute__((always_inline)) long
+filter_addr4_map(struct selector_arg_filter *filter, __u32 addr)
+{
+	void *addrmap;
+	__u32 map_idx = filter->value;
+	struct addr4_lpm_trie arg;
+
+	addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	arg.prefix = 32;
+	arg.addr = addr;
+
+	__u8 *pass = map_lookup_elem(addrmap, &arg);
+
+	switch (filter->op) {
+	case op_filter_saddr:
+	case op_filter_daddr:
+		return !!pass;
+	}
+	return 0;
+}
+
 /* filter_inet: runs a comparison between the IPv4 addresses and ports in
  * the sock or skb in the args aginst the filter parameters.
  */
@@ -780,24 +807,14 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case op_filter_notsportpriv:
 	case op_filter_notdportpriv:
 		return port >= 1024;
+	case op_filter_saddr:
+	case op_filter_daddr:
+		return filter_addr4_map(filter, addr);
 	}
 
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
 		switch (filter->op) {
-		case op_filter_saddr:
-		case op_filter_daddr: {
-			__u32 cidraddr = v[i * 2];
-			__u32 cidrmask = v[i * 2 + 1];
-			__u32 maskedaddr = addr & cidrmask;
-
-			if (cidraddr == maskedaddr)
-				return 1;
-			// placed here to allow llvm unroll this loop
-			j += 8;
-			if (j + 8 >= filter->vallen)
-				return 0;
-		} break;
 		case op_filter_protocol:
 			if (v[i] == protocol)
 				return 1;
