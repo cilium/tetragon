@@ -10,52 +10,22 @@ import (
 )
 
 var (
-	PerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	PerfEventReceived = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "ringbuf_perf_event_received",
+		Name:        "ringbuf_perf_event_received_total",
 		Help:        "The total number of Tetragon ringbuf perf events received.",
 		ConstLabels: nil,
-	}, nil)
-	PerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	})
+	PerfEventLost = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "ringbuf_perf_event_lost",
+		Name:        "ringbuf_perf_event_lost_total",
 		Help:        "The total number of Tetragon ringbuf perf events lost.",
 		ConstLabels: nil,
-	}, nil)
-	PerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	})
+	PerfEventErrors = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "ringbuf_perf_event_errors",
-		Help:        "The total number of Tetragon ringbuf perf event error count.",
+		Name:        "ringbuf_perf_event_errors_total",
+		Help:        "The total number of errors when reading the Tetragon ringbuf.",
 		ConstLabels: nil,
-	}, nil)
+	})
 )
-
-// Get a new handle on the metric for received events
-func GetReceived() prometheus.Gauge {
-	return PerfEventReceived.WithLabelValues()
-}
-
-// Get a new handle on the metric for received events
-func ReceivedSet(val float64) {
-	GetReceived().Set(val)
-}
-
-// Get a new handle on the metric for lost events
-func GetLost() prometheus.Gauge {
-	return PerfEventLost.WithLabelValues()
-}
-
-// Get a new handle on the metric for lost events
-func LostSet(val float64) {
-	GetLost().Set(val)
-}
-
-// Get a new handle on the metric for ringbuf errors
-func GetErrors() prometheus.Gauge {
-	return PerfEventErrors.WithLabelValues()
-}
-
-// Get a new handle on the metric for ringbuf errors
-func ErrorsSet(val float64) {
-	GetErrors().Set(val)
-}

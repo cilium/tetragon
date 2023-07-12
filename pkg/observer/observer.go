@@ -127,6 +127,7 @@ func (k *Observer) receiveEvent(data []byte) {
 		timer = time.Now()
 	}
 	atomic.AddUint64(&k.recvCntr, 1)
+
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(int(op))
 	if err != nil {
@@ -220,18 +221,18 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
 					errorCnt := atomic.AddUint64(&k.errorCntr, 1)
-					ringbufmetrics.ErrorsSet(float64(errorCnt))
+					ringbufmetrics.PerfEventErrors.Inc()
 					k.log.WithField("errors", errorCnt).WithError(err).Warn("Reading bpf events failed")
 				}
 			} else {
 				if len(record.RawSample) > 0 {
 					k.receiveEvent(record.RawSample)
-					ringbufmetrics.ReceivedSet(float64(k.ReadReceivedEvents()))
+					ringbufmetrics.PerfEventReceived.Inc()
 				}
 
 				if record.LostSamples > 0 {
-					lostCnt := atomic.AddUint64(&k.lostCntr, uint64(record.LostSamples))
-					ringbufmetrics.LostSet(float64(lostCnt))
+					atomic.AddUint64(&k.lostCntr, uint64(record.LostSamples))
+					ringbufmetrics.PerfEventLost.Add(float64(record.LostSamples))
 				}
 			}
 		}
