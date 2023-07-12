@@ -22,6 +22,7 @@ import (
 
 var (
 	outFile string
+	bpfTool string
 )
 
 func New() *cobra.Command {
@@ -29,11 +30,12 @@ func New() *cobra.Command {
 		Use:   "bugtool",
 		Short: "Produce a tar archive with debug information",
 		Run: func(cmd *cobra.Command, args []string) {
-			bugtool.Bugtool(outFile)
+			bugtool.Bugtool(outFile, bpfTool)
 		},
 	}
 
 	flags := bugtoolCmd.Flags()
 	flags.StringVarP(&outFile, "out", "o", "tetragon-bugtool.tar.gz", "Output filename")
+	flags.StringVar(&bpfTool, "bpftool", "", "Path to bpftool binary")
 	return bugtoolCmd
 }

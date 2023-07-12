@@ -182,10 +182,14 @@ func (s *bugtoolInfo) tarAddFile(tarWriter *tar.Writer, fnameSrc string, fnameDs
 }
 
 // Bugtool gathers information and writes it as a tar archive in the given filename
-func Bugtool(outFname string) error {
+func Bugtool(outFname string, bpftool string) error {
 	info, err := LoadInitInfo()
 	if err != nil {
 		return err
+	}
+
+	if bpftool != "" {
+		info.BpfToolPath = bpftool
 	}
 
 	return doBugtool(info, outFname)
