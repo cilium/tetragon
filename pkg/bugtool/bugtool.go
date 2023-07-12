@@ -43,6 +43,7 @@ type InitInfo struct {
 	MetricsAddr string `json:"metrics_address"`
 	GopsAddr    string `json:"gops_address"`
 	MapDir      string `json:"map_dir"`
+	BpfToolPath string `json:"bpftool_path"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -73,6 +74,15 @@ func doLoadInitInfo(fname string) (*InitInfo, error) {
 }
 
 func doSaveInitInfo(fname string, info *InitInfo) error {
+	// Complete InitInfo here
+	bpftool, err := exec.LookPath("bpftool")
+	if err != nil {
+		logger.GetLogger().Warn("failed to locate bpftool binary, on bugtool debugging ensure you have bpftool installed")
+	} else {
+		info.BpfToolPath = bpftool
+		logger.GetLogger().WithField("bpftool", info.BpfToolPath).Info("Successfully detected bpftool path")
+	}
+
 	// Create DefaultRunDir if it does not already exist
 	if err := os.MkdirAll(defaults.DefaultRunDir, 0755); err != nil {
 		logger.GetLogger().WithField("infoFile", fname).Warn("failed to directory exists")
@@ -198,7 +208,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 
 	outFile, err := os.Create(outFname)
 	if err != nil {
-		multiLog.WithField("tarFile", outFname).Warn("failed to create bugtool tarfile")
+		multiLog.WithError(err).WithField("tarFile", outFname).Warn("failed to create bugtool tarfile")
 		return err
 	}
 	defer outFile.Close()
@@ -467,9 +477,19 @@ func (s *bugtoolInfo) addTcInfo(tarWriter *tar.Writer) error {
 
 // addBpftoolInfo adds information about loaded eBPF maps and programs
 func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
-	s.execCmd(tarWriter, "bpftool-maps.json", "bpftool", "map", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-progs.json", "bpftool", "prog", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-cgroups.json", "bpftool", "cgroup", "tree", "-j")
+	if s.info.BpfToolPath == "" {
+		s.multiLog.Warn("Failed to locate bpftool, please install it and specify its path")
+		return
+	}
+
+	_, err := os.Stat(s.info.BpfToolPath)
+	if err != nil {
+		s.multiLog.WithError(err).Warn("Failed to locate bpftool, please install it.")
+		return
+	}
+	s.execCmd(tarWriter, "bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-progs.json", s.info.BpfToolPath, "prog", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
 }
 
 func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
