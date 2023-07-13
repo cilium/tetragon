@@ -1408,6 +1408,21 @@ There are different types supported for each operator. In case of `matchArgs`:
 * Prefix
 * Postfix
 * Mask
+* GreaterThan (aka GT)
+* LessThan (aka LT)
+* SPort - Source Port
+* NotSPort - Not Source Port
+* SPortPriv - Source Port is Privileged (0-1023)
+* NotSPortPriv - Source Port is Not Privileged (Not 0-1023)
+* DPort - Destination Port
+* NotDPort - Not Destination Port
+* DPortPriv - Destination Port is Privileged (0-1023)
+* NotDPortPriv - Destination Port is Not Privileged (Not 0-1023)
+* SAddr - Source Address, can be IPv4 address or IPv4 CIDR (for ex 1.2.3.4/24)
+* NotSAddr - Not Source Address
+* DAddr - Destination Address
+* NotDAddr - Not Destination Address
+* Protocol
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
@@ -1481,9 +1496,14 @@ arg & 1 OR arg & 0x200
 The value can be specified as hexadecimal (with 0x prefix) octal (with 0 prefix)
 or decimal value (no prefix).
 
-The type `Prefix` checks if the certain argument starts with the defined value,
-while the type `Postfix` compares if the argument matches to the defined value
+The operator `Prefix` checks if the certain argument starts with the defined value,
+while the operator `Postfix` compares if the argument matches to the defined value
 as trailing.
+
+The operators relating to ports, addresses and protocol are used with sock or skb
+types. Port operators can accept a range of ports specified as `min:max` as well
+as lists of individual ports. Address operators can accept IPv4 CIDR ranges as well
+as lists of individual addresses.
 
 In case of `matchPIDs`:
 
