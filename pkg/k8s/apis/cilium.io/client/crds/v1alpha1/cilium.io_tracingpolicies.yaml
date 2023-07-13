@@ -288,7 +288,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string
@@ -509,7 +511,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string
@@ -767,7 +771,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string
@@ -988,7 +994,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string
@@ -1119,7 +1127,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string
@@ -1340,7 +1350,9 @@ spec:
                                   - DPortPriv
                                   - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
                                   - Mask
                                   type: string

@@ -737,6 +737,9 @@ filter_addr4_map(struct selector_arg_filter *filter, __u32 addr)
 	case op_filter_saddr:
 	case op_filter_daddr:
 		return !!pass;
+	case op_filter_notsaddr:
+	case op_filter_notdaddr:
+		return !pass;
 	}
 	return 0;
 }
@@ -771,9 +774,11 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 
 	switch (filter->op) {
 	case op_filter_saddr:
+	case op_filter_notsaddr:
 		addr = tuple->saddr;
 		break;
 	case op_filter_daddr:
+	case op_filter_notdaddr:
 		addr = tuple->daddr;
 		break;
 	case op_filter_sport:
@@ -809,6 +814,8 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		return port >= 1024;
 	case op_filter_saddr:
 	case op_filter_daddr:
+	case op_filter_notsaddr:
+	case op_filter_notdaddr:
 		return filter_addr4_map(filter, addr);
 	}
 

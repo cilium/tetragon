@@ -147,6 +147,18 @@ func TestSelectorOp(t *testing.T) {
 	if op, err := SelectorOp("foo"); op != 0 || err == nil {
 		t.Errorf("selectorOp: expected error actual %d %v\n", op, err)
 	}
+	if op, err := SelectorOp("SAddr"); op != SelectorOpSaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSaddr, op, err)
+	}
+	if op, err := SelectorOp("DAddr"); op != SelectorOpDaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDaddr, op, err)
+	}
+	if op, err := SelectorOp("NotSAddr"); op != SelectorOpNotSaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotSaddr, op, err)
+	}
+	if op, err := SelectorOp("NotDAddr"); op != SelectorOpNotDaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDaddr, op, err)
+	}
 }
 
 func TestPidSelectorFlags(t *testing.T) {
