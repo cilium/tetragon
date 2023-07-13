@@ -54,14 +54,20 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	return DataAdd(m.Id, msgData)
 }
 
-func DataGet(id dataapi.DataEventId) ([]byte, error) {
-	data, ok := dataMap.Get(id)
+func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
+	data, ok := dataMap.Get(desc.Id)
 	if !ok {
-		return nil, fmt.Errorf("failed to find data for id: %v", id)
+		return nil, fmt.Errorf("failed to find data for id: %v", desc.Id)
 	}
 
-	dataMap.Remove(id)
-	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", id, len(data))
+	dataMap.Remove(desc.Id)
+
+	// make sure we did not loose anything on the way through ring buffer
+	if len(data) != int(desc.Size-desc.Leftover) {
+		return nil, fmt.Errorf("failed to get correct data for id: %v", desc.Id)
+	}
+
+	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", desc.Id, len(data))
 	return data, nil
 }
 

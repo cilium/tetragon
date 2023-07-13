@@ -132,7 +132,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 			proc.Filename = "enomem"
 			return proc, false, err
 		}
-		data, err := observer.DataGet(desc.Id)
+		data, err := observer.DataGet(desc)
 		if err != nil {
 			return proc, false, err
 		}
@@ -159,7 +159,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 			proc.Filename = "enomem"
 			return proc, false, err
 		}
-		data, err := observer.DataGet(desc.Id)
+		data, err := observer.DataGet(desc)
 		if err != nil {
 			return proc, false, err
 		}

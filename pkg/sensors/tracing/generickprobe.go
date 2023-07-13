@@ -810,7 +810,7 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 			if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
 				return nil, err
 			}
-			data, err := observer.DataGet(desc.Id)
+			data, err := observer.DataGet(desc)
 			if err != nil {
 				return nil, err
 			}
