@@ -1,8 +1,5 @@
 name: Build Clang Image
 
-# we want this action to dry run in case it's triggered from a PR
-# - docker/login-action only logs in to quay on GA 'push' event
-# - docker/build-push-action only pushes to quay on GA 'push' event
 on:
   push:
     branches:
@@ -10,14 +7,54 @@ on:
       - v*
     paths:
       - 'Dockerfile.clang'
-      - '.github/workflows/build-clang-image.yaml'
-  pull_request_target:
+  pull_request:
     paths:
       - 'Dockerfile.clang'
       - '.github/workflows/build-clang-image.yaml'
 
 jobs:
+  build-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-20.04
+    steps:
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        with:
+          platforms: amd64,arm64
+
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@ecf95283f03858871ff00b787d79c419715afc34 # v2.7.0
+
+      - name: Getting image tag
+        id: tag
+        run: |
+          if [ ${{ github.event.pull_request.head.sha }} != "" ]; then
+            echo "tag=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout source code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Preview build Clang image
+        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
+        with:
+          provenance: false
+          context: .
+          file: ./Dockerfile.clang
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: |
+            quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
+
   build-and-push:
+    if: github.event_name == 'push'
     runs-on: ubuntu-20.04
     environment: release-clang
     permissions:
@@ -37,7 +74,6 @@ jobs:
         uses: docker/setup-buildx-action@ecf95283f03858871ff00b787d79c419715afc34 # v2.7.0
 
       - name: Login to quay.io
-        if: github.event_name == 'push'
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           registry: quay.io
@@ -67,23 +103,21 @@ jobs:
           context: .
           file: ./Dockerfile.clang
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'push' }}
+          push: true
           tags: |
             quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
 
       - name: Install Cosign
-        if: github.event_name == 'push'
         uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v3.0.5
 
       - name: Sign Container Image
-        if: github.event_name == 'push' && steps.tag-in-repositories.outputs.exists == 'false'
+        if: steps.tag-in-repositories.outputs.exists == 'false'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Install Bom
-        if: github.event_name == 'push'
         shell: bash
         run: |
           curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
@@ -91,7 +125,6 @@ jobs:
           sudo chmod +x /usr/local/bin/bom
 
       - name: Generate SBOM
-        if: github.event_name == 'push'
         shell: bash
         # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
         run: |
@@ -100,12 +133,11 @@ jobs:
           --image=quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
 
       - name: Attach SBOM to container image
-        if: github.event_name == 'push'
         run: |
           cosign attach sbom --sbom sbom_clang_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Sign SBOM Image
-        if: github.event_name == 'push' && steps.tag-in-repositories.outputs.exists == 'false'
+        if: steps.tag-in-repositories.outputs.exists == 'false'
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
@@ -115,7 +147,6 @@ jobs:
           cosign sign "quay.io/${{ github.repository_owner }}/clang@${docker_build_release_sbom_digest}"
 
       - name: Image Release Digest
-        if: github.event_name == 'push'
         shell: bash
         run: |
           mkdir -p image-digest/
@@ -130,7 +161,6 @@ jobs:
 
       # Upload artifact digests
       - name: Upload artifact digests
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: image-digest clang
@@ -139,9 +169,9 @@ jobs:
 
   image-digests:
     if: github.event_name == 'push' && github.repository == 'cilium/tetragon'
+    needs: build-and-push
     name: Display Digests
     runs-on: ubuntu-20.04
-    needs: build-and-push
     steps:
       - name: Downloading Image Digests
         shell: bash
