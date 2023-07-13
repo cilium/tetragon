@@ -290,7 +290,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 //
 // Pre validate the kprobe semantics and BTF information in order to separate
 // the kprobe errors from BPF related ones.
-func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
+func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) error {
 	btfobj, err := btf.NewBTF()
 	if err != nil {
 		return err
@@ -300,6 +300,16 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 		btfobj, err = cachedbtf.AddModulesToSpec(btfobj, option.Config.KMods)
 		if err != nil {
 			return fmt.Errorf("adding modules to spec failed: %w", err)
+		}
+	}
+
+	// validate lists first
+	for i := range lists {
+		list := &lists[i]
+
+		err := preValidateList(list)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -313,6 +323,17 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 			if !f.Syscall && strings.HasPrefix(f.Call, "security_") == false {
 				return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
 			}
+		}
+
+		if strings.HasPrefix(f.Call, "list:") {
+			listName := f.Call[len("list:"):]
+
+			if !hasList(listName, lists) {
+				return fmt.Errorf("Error list '%s' not found", listName)
+			}
+
+			// all lists are already validated, we're done
+			continue
 		}
 
 		// modifying f.Call directly since BTF validation
