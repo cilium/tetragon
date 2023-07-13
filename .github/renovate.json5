@@ -27,12 +27,11 @@
     "Dockerfile*",
     "install/kubernetes/values.yaml",
   ],
-  postUpdateOptions: [
+  "postUpdateOptions": [
     "gomodTidy"
   ],
   "rebaseWhen": "conflicted",
   "pinDigests": true,
-  "ignorePresets": [":prHourlyLimit2"],
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
   "separateMinorPatch": true,
@@ -47,8 +46,8 @@
     "kind/enhancement",
     "release-blocker"
   ],
-  schedule: [
-    "on monday and friday"
+  "schedule": [
+    "on monday"
   ],
   // about packageRules: To enable grouping, you configure the groupName field
   // to something non-null.
@@ -66,6 +65,9 @@
         "digest",
         "pin",
         "pinDigest"
+      ],
+      "schedule": [
+        "every month"
       ]
     },
     {
@@ -93,7 +95,7 @@
         "major",
         "minor",
       ],
-      matchBaseBranches: [
+      "matchBaseBranches": [
         "main"
       ],
     },
@@ -108,7 +110,7 @@
         // update source import paths on major updates
         "gomodUpdateImportPaths",
       ],
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
@@ -119,7 +121,7 @@
         "pin",
         "pinDigest"
       ],
-      matchBaseBranches: [
+      "matchBaseBranches": [
         "main"
       ],
     },
@@ -135,7 +137,7 @@
         // update source import paths on major updates
         "gomodUpdateImportPaths",
       ],
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
@@ -148,7 +150,7 @@
         "pin",
         "pinDigest"
       ],
-      matchBaseBranches: [
+      "matchBaseBranches": [
         "main"
       ],
     },
@@ -162,7 +164,7 @@
         // update source import paths on major updates
         "gomodUpdateImportPaths",
       ],
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
@@ -170,7 +172,7 @@
       "matchUpdateTypes": [
         "major",
       ],
-      matchBaseBranches: [
+      "matchBaseBranches": [
         "main"
       ],
     },
@@ -185,7 +187,7 @@
         // update source import paths on major updates
         "gomodUpdateImportPaths",
       ],
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
@@ -197,7 +199,7 @@
         "pin",
         "pinDigest"
       ],
-      matchBaseBranches: [
+      "matchBaseBranches": [
         "main"
       ],
     },
@@ -237,7 +239,7 @@
         "install/kubernetes/values.yaml",
       ],
       // lint and generate files for helm chart
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["install/kubernetes/test.sh"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
