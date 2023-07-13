@@ -1360,7 +1360,7 @@ sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
 sigs.k8s.io/controller-runtime/pkg/internal/objectutil
 sigs.k8s.io/controller-runtime/pkg/log
-# sigs.k8s.io/controller-tools v0.12.0 => github.com/cilium/controller-tools v0.6.2
+# sigs.k8s.io/controller-tools v0.12.1 => github.com/cilium/controller-tools v0.6.2
 ## explicit; go 1.16
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd
