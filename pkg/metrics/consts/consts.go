@@ -3,4 +3,4 @@
 
 package consts
 
-var MetricNamePrefix = "tetragon_"
+var MetricsNamespace = "tetragon"

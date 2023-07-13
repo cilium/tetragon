@@ -11,12 +11,14 @@ import (
 
 var (
 	processInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache_process_info_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_process_info_errors",
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	podInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache_pod_info_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_pod_info_errors",
 		Help:        "The total of times we failed to fetch cached pod info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})

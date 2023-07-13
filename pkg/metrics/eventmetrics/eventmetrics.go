@@ -21,23 +21,27 @@ import (
 
 var (
 	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "events_total",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
 	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "flags_total",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	NotifyOverflowedEvents = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "notify_overflowed_events",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "notify_overflowed_events",
 		Help:        "The total number of events dropped because listener buffer was full",
 		ConstLabels: nil,
 	}, nil)
 
 	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "policy_stats",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "policy_stats",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
 	}, []string{"policy", "hook", "namespace", "pod", "binary"})

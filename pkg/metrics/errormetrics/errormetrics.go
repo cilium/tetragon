@@ -44,13 +44,15 @@ var (
 
 var (
 	ErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "errors_total",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "errors_total",
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 
 	HandlerErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "handler_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "handler_errors",
 		Help:        "The total number of event handler errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"opcode", "error_type"})
