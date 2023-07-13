@@ -251,8 +251,19 @@
       "enabled": false
     },
     {
+      // do not update sigstore/cosign-installer as it breaks CI
       "matchPackageNames": ["sigstore/cosign-installer"],
       "matchManagers": ["github-actions"],
+      "enabled": false
+    },
+    {
+      // do not update docker.io/library/ubuntu container image in utility images
+      "matchPackageNames": ["docker.io/library/ubuntu"],
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": [
+        "Dockerfile.clang",
+        "Dockerfile.clang-format"
+      ],
       "enabled": false
     }
   ]
