@@ -33,6 +33,8 @@ enum {
 	op_filter_notsportpriv = 21,
 	op_filter_dportpriv = 22,
 	op_filter_notdportpriv = 23,
+	op_filter_notsaddr = 24,
+	op_filter_notdaddr = 25,
 };
 
 #endif // __OPERATIONS_H__
