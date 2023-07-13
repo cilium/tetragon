@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/mennanov/fmutils"
@@ -18,6 +19,12 @@ func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
 	if filters == "" {
 		return nil, nil
 	}
+	// protobuf does not support paths with _ in them to be defined in JSON representation
+	// of FieldMasks. This is a problem for us because our canonical representation of
+	// fields is in snake_case and we don't want to create confusion. So we can use a JSON
+	// marshalling hack to convert the field names to their camelCase representation
+	// before unmarshalling here.
+	filters = fixupFieldFilterString(filters)
 	dec := json.NewDecoder(strings.NewReader(filters))
 	var results []*tetragon.FieldFilter
 	for {
@@ -31,6 +38,41 @@ func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
 		results = append(results, &result)
 	}
 	return results, nil
+}
+
+// Converts a string to snake case.
+func fixupSnakeCaseString(s string) string {
+	var builder strings.Builder
+
+	for i, r := range s {
+		if s[i] == '_' {
+			continue
+		}
+		if i != 0 && s[i-1] == '_' {
+			r = unicode.ToUpper(r)
+		}
+		builder.WriteRune(r)
+	}
+
+	return builder.String()
+}
+
+// Fixes up a field filter's string representation so that protobuf can unmarshal it from
+// JSON.
+func fixupFieldFilterString(s string) string {
+	var dat map[string]interface{}
+	json.Unmarshal([]byte(s), &dat)
+
+	var fields string
+	var ok bool
+	fields, ok = dat["fields"].(string)
+	if !ok {
+		return s
+	}
+	dat["fields"] = fixupSnakeCaseString(fields)
+
+	b, _ := json.Marshal(&dat)
+	return string(b)
 }
 
 // FieldFilter is a helper for filtering fields in events

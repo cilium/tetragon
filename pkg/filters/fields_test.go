@@ -610,3 +610,9 @@ func TestSlimExecEventsFieldFilterExample(t *testing.T) {
 		}
 	}
 }
+
+func TestParseFieldFilterList(t *testing.T) {
+	filters, err := ParseFieldFilterList(`{"event_set": ["PROCESS_EXEC"], "fields": "process.start_time", "action": "INCLUDE"}`)
+	assert.NoError(t, err, "must parse")
+	assert.Equal(t, filters[0].Fields.Paths[0], "process.start_time")
+}
