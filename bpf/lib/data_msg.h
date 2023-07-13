@@ -13,7 +13,9 @@ struct data_event_id {
 
 struct data_event_desc {
 	__s32 error;
+	__u32 pad;
 	__u32 leftover;
+	__u32 size;
 	struct data_event_id id;
 } __attribute__((packed));
 

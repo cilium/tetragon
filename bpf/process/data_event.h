@@ -52,7 +52,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 			return err;
 		rd_bytes += err;
 		if (rd_bytes == bytes)
-			return 0;
+			return rd_bytes;
 	}
 #else
 #define BYTES_COPY                                                    \
@@ -61,7 +61,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 		return err;                                           \
 	rd_bytes += err;                                              \
 	if (rd_bytes == bytes)                                        \
-		return 0;
+		return rd_bytes;
 
 #define BYTES_COPY_5 BYTES_COPY BYTES_COPY BYTES_COPY BYTES_COPY BYTES_COPY
 
@@ -72,12 +72,11 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 #endif /* __LARGE_BPF_PROG */
 
 	/* leftover */
-	return bytes - rd_bytes;
+	return rd_bytes;
 }
 
 static inline __attribute__((always_inline)) long
-__do_str(void *ctx, struct msg_data *msg, unsigned long arg,
-	 size_t bytes __maybe_unused)
+__do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 {
 	size_t size, max = sizeof(msg->arg) - 1;
 	int err;
@@ -94,6 +93,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 	if (err < 0)
 		return err;
 
+	*done = err != max;
 	/* cut out the zero byte */
 	err -= 1;
 
@@ -107,7 +107,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 		     : [size] "+r"(size)
 		     :);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
-	return err == max ? 0 : 1;
+	return err;
 }
 
 static inline __attribute__((always_inline)) long
@@ -115,25 +115,23 @@ do_str(void *ctx, struct msg_data *msg, unsigned long arg,
        size_t bytes __maybe_unused)
 {
 	size_t rd_bytes = 0;
+	bool done = false;
 	int err, i;
 
-#ifdef __LARGE_BPF_PROG
-#define __CNT 10
-#else
 #define __CNT 2
 #pragma unroll
-#endif
 	for (i = 0; i < __CNT; i++) {
-		err = __do_str(ctx, msg, arg + rd_bytes, bytes - rd_bytes);
+		err = __do_str(ctx, msg, arg + rd_bytes, &done);
 		if (err < 0)
 			return err;
-		if (err == 1)
-			return 0;
+		rd_bytes += err;
+		if (done)
+			break;
 	}
 #undef __CNT
 
 	/* we have no idea what's string leftover */
-	return -1;
+	return rd_bytes;
 }
 
 static inline __attribute__((always_inline)) size_t data_event(
@@ -160,13 +158,25 @@ static inline __attribute__((always_inline)) size_t data_event(
 	msg->id.time = ktime_get_ns();
 	desc->id = msg->id;
 
+	/*
+	 * Notes:
+	 * The @size argument is valid only for do_bytes, it's -1 * for do_str.
+	 * The do_data_event callback returns size of posted data.
+	 * Leftover for data_event_str is always 0, because we don't know
+	 * how much more was there to copy.
+	 */
 	err = do_data_event(ctx, msg, uptr, size);
+
 	if (err < 0) {
 		desc->error = err;
+		desc->pad = 0;
 		desc->leftover = 0;
+		desc->size = 0;
 	} else {
 		desc->error = 0;
-		desc->leftover = err;
+		desc->pad = 0;
+		desc->leftover = size == -1 ? 0 : size - err;
+		desc->size = err;
 	}
 	return sizeof(*desc);
 }
