@@ -408,11 +408,26 @@ type addKprobeOut struct {
 	maps        []*program.Map
 }
 
+func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
+	if strings.HasPrefix(symbol, "list:") {
+		name := symbol[len("list:"):]
+		for idx := range lists {
+			list := lists[idx]
+			if list.Name == name {
+				return list.Values, isSyscallListType(list.Type), nil
+			}
+		}
+		return []string{""}, false, fmt.Errorf("list '%s' not found", name)
+	}
+	return []string{symbol}, syscall, nil
+}
+
 func createGenericKprobeSensor(
 	name string,
 	kprobes []v1alpha1.KProbeSpec,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	lists []v1alpha1.ListSpec,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -433,17 +448,27 @@ func createGenericKprobeSensor(
 	}
 
 	for i := range kprobes {
-		out, err := addKprobe(&kprobes[i], &in)
+		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
 		if err != nil {
 			return nil, err
 		}
 
-		if useMulti {
-			multiRetIDs = append(multiRetIDs, out.multiRetIDs...)
-			multiIDs = append(multiIDs, out.multiIDs...)
-		} else {
-			progs = append(progs, out.progs...)
-			maps = append(maps, out.maps...)
+		// Syscall flag might be changed in list definition
+		kprobes[i].Syscall = syscall
+
+		for idx := range syms {
+			out, err := addKprobe(syms[idx], &kprobes[i], &in)
+			if err != nil {
+				return nil, err
+			}
+
+			if useMulti {
+				multiRetIDs = append(multiRetIDs, out.multiRetIDs...)
+				multiIDs = append(multiIDs, out.multiIDs...)
+			} else {
+				progs = append(progs, out.progs...)
+				maps = append(maps, out.maps...)
+			}
 		}
 	}
 
@@ -458,7 +483,7 @@ func createGenericKprobeSensor(
 	}, nil
 }
 
-func addKprobe(f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *addKprobeOut, err error) {
+func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *addKprobeOut, err error) {
 	var argSigPrinters []argPrinters
 	var argReturnPrinters []argPrinters
 	var setRetprobe bool
@@ -482,7 +507,6 @@ func addKprobe(f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *addKprobeOut, err 
 	}
 
 	argRetprobe = nil // holds pointer to arg for return handler
-	funcName := f.Call
 
 	// Parse Arguments
 	for j, a := range f.Args {

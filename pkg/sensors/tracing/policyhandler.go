@@ -32,7 +32,7 @@ func (h policyHandler) PolicyHandler(
 		if err != nil {
 			return nil, err
 		}
-		return createGenericKprobeSensor(name, spec.KProbes, policyID, policyName)
+		return createGenericKprobeSensor(name, spec.KProbes, policyID, policyName, spec.Lists)
 	}
 	if len(spec.Tracepoints) > 0 {
 		name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))

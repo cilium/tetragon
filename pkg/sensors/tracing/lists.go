@@ -46,6 +46,11 @@ func listTypeFromString(s string) int32 {
 	return int32(typ)
 }
 
+func isSyscallListType(typ string) bool {
+	return listTypeFromString(typ) == ListTypeSyscalls ||
+		listTypeFromString(typ) == ListTypeGeneratedSyscalls
+}
+
 func preValidateList(list *v1alpha1.ListSpec) (err error) {
 	if listTypeFromString(list.Type) == ListTypeInvalid {
 		return fmt.Errorf("Invalid list type: %s", list.Type)
