@@ -11,17 +11,20 @@ import (
 
 var (
 	PerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_received",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "ringbuf_perf_event_received",
 		Help:        "The total number of Tetragon ringbuf perf events received.",
 		ConstLabels: nil,
 	}, nil)
 	PerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_lost",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "ringbuf_perf_event_lost",
 		Help:        "The total number of Tetragon ringbuf perf events lost.",
 		ConstLabels: nil,
 	}, nil)
 	PerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "ringbuf_perf_event_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "ringbuf_perf_event_errors",
 		Help:        "The total number of Tetragon ringbuf perf event error count.",
 		ConstLabels: nil,
 	}, nil)

@@ -11,17 +11,20 @@ import (
 
 var (
 	MergeErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "generic_kprobe_merge_errors",
 		Help:        "The total number of failed attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
 	}, []string{"curr_fn", "curr_type", "prev_fn", "prev_type"})
 	MergeOkTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_ok_total",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "generic_kprobe_merge_ok_total",
 		Help:        "The total number of successful attempts to merge a kprobe and kretprobe event.",
 		ConstLabels: nil,
 	})
 	MergePushed = promauto.NewCounter(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "generic_kprobe_merge_pushed",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "generic_kprobe_merge_pushed",
 		Help:        "The total number of pushed events for later merge.",
 		ConstLabels: nil,
 	})
