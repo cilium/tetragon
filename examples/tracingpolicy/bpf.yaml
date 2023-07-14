@@ -1,7 +1,9 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
- name: "bpf"
+  name: "bpf"
+  annotations:
+    author: "Sarah Fujimori"
 spec:
  kprobes:
  # Bpf verifier check during program loads
