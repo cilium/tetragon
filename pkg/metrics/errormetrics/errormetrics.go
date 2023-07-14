@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -44,14 +44,14 @@ var (
 
 var (
 	ErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "errors_total",
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 
 	HandlerErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "handler_errors",
 		Help:        "The total number of event handler errors. For internal use only.",
 		ConstLabels: nil,

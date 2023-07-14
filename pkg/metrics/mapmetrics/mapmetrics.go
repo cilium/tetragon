@@ -6,21 +6,21 @@ package mapmetrics
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
 	MapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "map_in_use_gauge",
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
 
 	MapDrops = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "map_drops",
 		Help:        "The total number of entries dropped per LRU map.",
 		ConstLabels: nil,

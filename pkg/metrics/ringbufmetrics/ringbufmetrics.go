@@ -4,26 +4,26 @@
 package ringbufmetrics
 
 import (
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
 	PerfEventReceived = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "ringbuf_perf_event_received",
 		Help:        "The total number of Tetragon ringbuf perf events received.",
 		ConstLabels: nil,
 	}, nil)
 	PerfEventLost = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "ringbuf_perf_event_lost",
 		Help:        "The total number of Tetragon ringbuf perf events lost.",
 		ConstLabels: nil,
 	}, nil)
 	PerfEventErrors = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "ringbuf_perf_event_errors",
 		Help:        "The total number of Tetragon ringbuf perf event error count.",
 		ConstLabels: nil,

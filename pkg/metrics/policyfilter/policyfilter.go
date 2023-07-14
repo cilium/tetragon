@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -15,7 +15,7 @@ import (
 
 var (
 	PolicyFilterOpMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "policyflter_metrics_total",
 		Help:        "Policy filter metrics. For internal use only.",
 		ConstLabels: nil,

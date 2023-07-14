@@ -10,6 +10,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+const MetricsNamespace = "tetragon"
+
 func EnableMetrics(address string) {
 	logger.GetLogger().WithField("addr", address).Info("Starting metrics server")
 	http.Handle("/metrics", promhttp.Handler())

@@ -9,7 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
@@ -21,26 +21,26 @@ import (
 
 var (
 	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
 	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 	NotifyOverflowedEvents = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "notify_overflowed_events",
 		Help:        "The total number of events dropped because listener buffer was full",
 		ConstLabels: nil,
 	}, nil)
 
 	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "policy_stats",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,

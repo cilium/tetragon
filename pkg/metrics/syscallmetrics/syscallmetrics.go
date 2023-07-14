@@ -5,7 +5,7 @@ package syscallmetrics
 
 import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -13,7 +13,7 @@ import (
 
 var (
 	syscallStats = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "syscall_stats",
 		Help:        "System calls observed.",
 		ConstLabels: nil,

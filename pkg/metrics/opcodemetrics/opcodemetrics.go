@@ -6,21 +6,21 @@ package opcodemetrics
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
 	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "msg_op_total",
 		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"msg_op"})
 
 	LatencyStats = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   consts.MetricsNamespace,
+		Namespace:   metrics.MetricsNamespace,
 		Name:        "handling_latency",
 		Help:        "The latency of handling messages in us.",
 		Buckets:     []float64{50, 100, 500, 1000, 10000, 100000}, // 50us, 100us, 500us, 1ms, 10ms, 100ms
