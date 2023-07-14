@@ -41,7 +41,7 @@ var (
 
 	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "policy_stats",
+		Name:        "policy_events_total",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
 	}, []string{"policy", "hook", "namespace", "pod", "binary"})
