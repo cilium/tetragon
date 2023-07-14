@@ -382,7 +382,7 @@ github.com/hashicorp/packer-plugin-sdk/multistep
 # github.com/hashicorp/serf v0.10.1
 ## explicit; go 1.12
 github.com/hashicorp/serf/coordinate
-# github.com/iancoleman/strcase v0.2.0
+# github.com/iancoleman/strcase v0.3.0
 ## explicit; go 1.16
 github.com/iancoleman/strcase
 # github.com/imdario/mergo v0.3.15
