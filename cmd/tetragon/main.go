@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	pprofhttp "net/http/pprof"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -132,6 +134,13 @@ func tetragonExecute() error {
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
 		log.Fatal(err)
 	}
+
+	option.Config.TracingPolicyDir = filepath.Join("/", option.Config.TracingPolicyDir)
+	tracingPolicyDir, err := filepath.Abs(option.Config.TracingPolicyDir)
+	if err != nil {
+		log.Fatalf("Failed to parse path specified by --tracing-policy-dir '%q'", option.Config.TracingPolicyDir)
+	}
+	option.Config.TracingPolicyDir = tracingPolicyDir
 
 	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
 		log.Fatalf("Can't specify --rb-size and --rb-size-total together")
@@ -278,8 +287,7 @@ func tetragonExecute() error {
 	obs.RemovePrograms()
 	os.Mkdir(defaults.DefaultRunDir, os.ModeDir)
 
-	err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF)
-	if err != nil {
+	if err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF); err != nil {
 		return err
 	}
 
@@ -361,14 +369,14 @@ func tetragonExecute() error {
 	sensorMgWait = nil
 	observer.SensorManager.LogSensorsAndProbes(ctx)
 
+	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
+	if err != nil {
+		return err
+	}
+
 	// load sensor from tracing policy file
 	if len(option.Config.TracingPolicy) > 0 {
-		tp, err := tracingpolicy.PolicyFromYAMLFilename(option.Config.TracingPolicy)
-		if err != nil {
-			return err
-		}
-
-		err = observer.SensorManager.AddTracingPolicy(ctx, tp)
+		err = addTracingPolicy(ctx, option.Config.TracingPolicy)
 		if err != nil {
 			return err
 		}
@@ -380,6 +388,77 @@ func tetragonExecute() error {
 	}
 
 	return obs.Start(ctx)
+}
+
+func loadTpFromDir(ctx context.Context, dir string) error {
+	tpMaxDepth := 1
+	tpFS := os.DirFS(dir)
+
+	if dir == defaults.DefaultTpDir {
+		// If the default directory does not exist then do not fail
+		// Probably tetragon not fully installed, developers testing, etc
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
+			return nil
+		}
+	}
+
+	err := fs.WalkDir(tpFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			if strings.Count(path, string(os.PathSeparator)) >= tpMaxDepth {
+				return fs.SkipDir
+			}
+			return nil
+		}
+
+		file := filepath.Join(dir, path)
+		st, err := os.Stat(file)
+		if err != nil {
+			return err
+		}
+
+		if st.Mode().IsRegular() == false {
+			return nil
+		}
+
+		return addTracingPolicy(ctx, file)
+	})
+
+	return err
+}
+
+func addTracingPolicy(ctx context.Context, file string) error {
+	f, err := filepath.Abs(filepath.Join("/", file))
+	if err != nil {
+		return err
+	}
+
+	tp, err := tracingpolicy.PolicyFromYAMLFilename(f)
+	if err != nil {
+		return err
+	}
+
+	err = observer.SensorManager.AddTracingPolicy(ctx, tp)
+	if err != nil {
+		return err
+	}
+
+	namespace := ""
+	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpNs.TpNamespace()
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"TracingPolicy":      file,
+		"metadata.namespace": namespace,
+		"metadata.name":      tp.TpName(),
+	}).Info("Added TracingPolicy with success")
+
+	return nil
 }
 
 // Periodically log current status every 24 hours. For lost or error
@@ -635,6 +714,8 @@ func execute() error {
 	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
 	flags.String(keyConfigFile, "", "Configuration file to load from")
 	flags.MarkHidden(keyConfigFile)
+
+	flags.String(keyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
 
 	// Options for debugging/development, not visible to users
 	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")
