@@ -47,6 +47,9 @@ const (
 	// After initialization, InitInfoFile will contain a json representation of InitInfo
 	// Used by both client cli to guess unix socket address and by bugtool
 	InitInfoFile = DefaultRunDir + "tetragon-info.json"
+
+	// Default directory from where to load tracing policies.
+	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
 )
 
 var (
