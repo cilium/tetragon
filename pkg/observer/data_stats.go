@@ -17,6 +17,14 @@ var (
 		Help:        "The number of data events by type. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"event"})
+
+	DataEventSizeHist = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "data_event_size",
+		Help:        "The size of received data events.",
+		Buckets:     prometheus.LinearBuckets(1000, 2000, 20),
+		ConstLabels: nil,
+	}, []string{"op"})
 )
 
 type DataEventType int
@@ -42,4 +50,12 @@ var DataEventTypeStrings = map[DataEventType]string{
 // Increment a data event metric for an event type and location
 func DataEventMetricInc(event DataEventType) {
 	DataEventStats.WithLabelValues(DataEventTypeStrings[event]).Inc()
+}
+
+func DataEventMetricSizeOk(size uint32) {
+	DataEventSizeHist.WithLabelValues("ok").Observe(float64(size))
+}
+
+func DataEventMetricSizeBad(size uint32) {
+	DataEventSizeHist.WithLabelValues("bad").Observe(float64(size))
 }

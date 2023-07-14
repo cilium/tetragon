@@ -68,8 +68,11 @@ func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
 	// make sure we did not loose anything on the way through ring buffer
 	if len(data) != int(desc.Size-desc.Leftover) {
 		DataEventMetricInc(DataEventBad)
+		DataEventMetricSizeBad(desc.Size)
 		return nil, fmt.Errorf("failed to get correct data for id: %v", desc.Id)
 	}
+
+	DataEventMetricSizeOk(desc.Size)
 
 	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", desc.Id, len(data))
 	DataEventMetricInc(DataEventMatched)
