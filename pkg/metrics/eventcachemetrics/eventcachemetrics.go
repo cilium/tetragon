@@ -23,7 +23,8 @@ var (
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	EventCacheCount = promauto.NewCounter(prometheus.CounterOpts{
-		Name:        "event_cache_count",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_accesses_total",
 		Help:        "The total number of Tetragon event cache accesses. For internal use only.",
 		ConstLabels: nil,
 	})
