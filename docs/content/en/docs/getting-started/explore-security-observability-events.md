@@ -1,6 +1,6 @@
 ---
 title: "Explore security observability events"
-weight: 3
+weight: 5
 icon: "reference"
 description: "Learn how to start exploring the Tetragon events"
 ---
