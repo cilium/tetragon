@@ -17,7 +17,9 @@ version which is `{{< latest-version >}}` currently.
 ```shell
 docker run --name tetragon --rm -d                   \
     --pid=host --cgroupns=host --privileged          \
-    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
+    -v /sys/kernel/:/sys/kernel \
+    -v /etc/tetragon/:/etc/tetragon/ \
+    -v /var/log/tetragon/:/var/log/tetragon/ \
     quay.io/cilium/tetragon:{{< latest-version >}}
 ```
 
@@ -30,9 +32,11 @@ Tetragon main branch.
 
 ```shell
 docker run --name tetragon --rm -d                  \
-   --pid=host --cgroupns=host --privileged          \
-   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
-   quay.io/cilium/tetragon-ci:latest
+    --pid=host --cgroupns=host --privileged          \
+    -v /sys/kernel/:/sys/kernel \
+    -v /etc/tetragon/:/etc/tetragon/ \
+    -v /var/log/tetragon/:/var/log/tetragon/ \
+    quay.io/cilium/tetragon-ci:latest
 ```
 
 {{< note >}}
@@ -52,6 +56,8 @@ There are multiple ways to change the default configuration options:
     docker run --name tetragon --rm -d \
         --pid=host --cgroupns=host --privileged \
         -v /sys/kernel:/sys/kernel \
+        -v /etc/tetragon/:/etc/tetragon/ \
+        -v /var/log/tetragon/:/var/log/tetragon/ \
         quay.io/cilium/tetragon:{{< latest-version >}} \
         /usr/bin/tetragon --export-filename /var/log/tetragon/tetragon.log
     ```
@@ -66,6 +72,8 @@ There are multiple ways to change the default configuration options:
         --pid=host --cgroupns=host --privileged \
         --env "TETRAGON_EXPORT_FILENAME=/var/log/tetragon/tetragon.log" \
         -v /sys/kernel:/sys/kernel \
+        -v /etc/tetragon/:/etc/tetragon/ \
+        -v /var/log/tetragon/:/var/log/tetragon/ \
         quay.io/cilium/tetragon:{{< latest-version >}}
     ```
 
@@ -81,15 +89,16 @@ There are multiple ways to change the default configuration options:
     docker run --name tetragon --rm -d \
         --pid=host --cgroupns=host --privileged \
         -v /sys/kernel:/sys/kernel \
-        -v /etc/tetragon/tetragon.conf.d/:/etc/tetragon/tetragon.conf.d/ \
+        -v /etc/tetragon/:/etc/tetragon/ \
+        -v /var/log/tetragon/:/var/log/tetragon/ \
         quay.io/cilium/tetragon:{{< latest-version >}}
     ```
 
-    This will map the `/etc/tetragon/tetragon.conf.d/` drop-in directory from the host into the container.
+    This will map the `/etc/tetragon/` directory and all its content from the host into the container.
 
 See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) reference for further details.
 
 ## What's next
 
-- See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+- See [Explore security observability events](/docs/getting-started/explore-security-observability-events/#container-deployment)
 to learn how to see the Tetragon events.

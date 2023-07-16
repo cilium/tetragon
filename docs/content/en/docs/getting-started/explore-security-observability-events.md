@@ -44,7 +44,7 @@ kubectl exec -it xwing -- /bin/bash
 whoami
 ```
 
-### Raw JSON events
+### Raw JSON logs
 
 The first way is to observe the raw json output from the stdout container log:
 
@@ -210,7 +210,6 @@ These will produce the following events:
 Here you can see the binary names along with its arguments, the pod info, and
 return codes in a compact one-line view of the events.
 
-
 It is also possible to explore events without entering the `tetragon` container, by [installing `tetra` CLI](/docs/getting-started/install-tetra-cli).
 
 1. Pretty print `tetragon` JSON raw output:
@@ -224,3 +223,157 @@ It is also possible to explore events without entering the `tetragon` container,
    ```bash
    kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --namespace default --pod xwing
    ```
+
+## Container deployment
+
+If Tetragon was deployed as a [Container](/docs/getting-started/deployment/container) without a Kubernetes cluster, then
+to see the events, you can use the `tetra` CLI already shipped in the
+Tetragon container. It will connect to the Tetragon gRPC server and displays the
+events.
+
+### Raw JSON logs
+
+To export the raw json events to log files, you have to start Tetragon with the `--export-filename`
+controlling setting. For container deployments you can set this setting using one
+of the following methodes:
+
+* As an environment variable, add the `--env "TETRAGON_EXPORT_FILENAME=/var/log/tetragon/tetragon.log"`:
+
+    ```bash
+    docker run --name tetragon --rm -d                   \
+    --pid=host --cgroupns=host --privileged          \
+    --env "TETRAGON_EXPORT_FILENAME=/var/log/tetragon/tetragon.log" \
+    -v /sys/kernel:/sys/kernel \
+    -v /etc/tetragon/:/etc/tetragon/ \
+    -v /var/log/tetragon/:/var/log/tetragon/ \
+    quay.io/cilium/tetragon:{{< latest-version >}}
+    ```
+
+* As a drop-in configuration file in the host `/etc/tetragon/tetragon.conf.d/export-filename` with a content that points to the log file:
+
+    ```bash
+    /var/log/tetragon/tetragon.log
+    ```
+
+    When `tetragon` container starts, it will auto read the mounted volume from the host
+    `/etc/tetragon/` find the configuration directory [`/etc/tetragon/tetragon.conf.d/`](/docs/reference/tetragon-configuration/#configuration-precedence)
+    and reads the [`/etc/tetragon/tetragon.conf.d/export-filename`](/docs/reference/tetragon-configuration/#configuration-examples)
+    content and use it as a target path for the exported JSON logs.
+
+    See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) reference for further details.
+
+{{< note >}}
+The `-v /var/log/tetragon/:/var/log/tetragon/` exports the volume used to store logs from the
+container into the host. Remove it if you want the logs to stay withing the container.
+
+Logs are always rotated in the same directory where the exported logs are. In this example they will
+be rotated inside: `/var/log/tetragon/`.
+{{< /note >}}
+
+
+Finally to read real-time JSON events, tailing the `/var/log/tetragon/tetragon.logs` file on the host is enough.
+
+```bash
+sudo tail -f /var/log/tetragon/tetragon.log
+```
+
+Which will inlude the following events:
+```json
+{
+  "process_exec": {
+    "process": {
+      "exec_id": "OjExOTc4NjUwNjYxNTk2OjM0OTI0",
+      "pid": 34924,
+      "uid": 1000,
+      "cwd": "/home/tetragon",
+      "binary": "/usr/bin/uname",
+      "arguments": "-a",
+      "flags": "execve clone",
+      "start_time": "2023-07-16T11:50:23.945692962Z",
+      "auid": 1000,
+      "parent_exec_id": "OjExOTcwMjY4NTU0MDc2OjM0OTE3",
+      "tid": 34924
+    },
+    "parent": {
+      "exec_id": "OjExOTcwMjY4NTU0MDc2OjM0OTE3",
+      "pid": 34917,
+      "uid": 1000,
+      "cwd": "/home/tetragon",
+      "binary": "/usr/bin/sh",
+      "flags": "execve clone",
+      "start_time": "2023-07-16T11:50:15.563585160Z",
+      "auid": 1000,
+      "parent_exec_id": "OjIzODg3NDAwMDAwMDA6MTIzNDU=",
+      "refcnt": 3,
+      "tid": 34917
+    }
+  },
+  "time": "2023-07-16T11:50:23.945692004Z"
+}
+```
+
+```json
+{
+  "process_exit": {
+    "process": {
+      "exec_id": "OjExOTc4NjUwNjYxNTk2OjM0OTI0",
+      "pid": 34924,
+      "uid": 1000,
+      "cwd": "/home/tetragon",
+      "binary": "/usr/bin/uname",
+      "arguments": "-a",
+      "flags": "execve clone",
+      "start_time": "2023-07-16T11:50:23.945692962Z",
+      "auid": 1000,
+      "parent_exec_id": "OjExOTcwMjY4NTU0MDc2OjM0OTE3",
+      "tid": 34924
+    },
+    "parent": {
+      "exec_id": "OjExOTcwMjY4NTU0MDc2OjM0OTE3",
+      "pid": 34917,
+      "uid": 1000,
+      "cwd": "/home/tetragon",
+      "binary": "/usr/bin/sh",
+      "flags": "execve clone",
+      "start_time": "2023-07-16T11:50:15.563585160Z",
+      "auid": 1000,
+      "parent_exec_id": "OjIzODg3NDAwMDAwMDA6MTIzNDU=",
+      "refcnt": 1,
+      "tid": 34917
+    },
+    "time": "2023-07-16T11:50:23.947280103Z"
+  },
+  "time": "2023-07-16T11:50:23.947278623Z"
+}
+```
+
+### `tetra` CLI
+
+After starting the `tetragon` container, type the following command to observe events:
+```bash
+docker exec tetragon tetra getevents -o compact
+```
+
+Then in a different terminal, you can start a shell like `sh` and start executing
+programs. Here, the commands executed in the shell where `ls`, `uname -a`,
+`whoami`, and `exit`, the output of `tetra` CLI should be similar to this:
+
+```bash
+🚀 process  /usr/bin/sh
+🚀 process  /usr/bin/ls
+💥 exit     /usr/bin/ls  0
+🚀 process  /usr/bin/uname -a
+💥 exit     /usr/bin/uname -a 0
+🚀 process  /usr/bin/whoami
+💥 exit     /usr/bin/whoami  0
+💥 exit     /usr/bin/sh  0
+```
+
+You can see the start of `sh` first, then the execution of the multiple
+programs, `ls`, `uname` and `whoami`, and finally the exit of `sh`.
+
+{{< note >}}
+Since Tetragon monitors all processes on the host, you may observe events
+unrelated to what was typed in the shell session. Indeed, Tetragon is
+monitoring every process start and exit in your environment.
+{{< /note >}}

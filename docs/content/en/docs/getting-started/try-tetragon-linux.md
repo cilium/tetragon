@@ -35,6 +35,8 @@ build the binaries.
 docker run --name tetragon-container --rm --pull always \
     --pid=host --cgroupns=host --privileged             \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \
+    -v /etc/tetragon/:/etc/tetragon/ \
+    -v /var/log/tetragon/:/var/log/tetragon/ \
     quay.io/cilium/tetragon-ci:latest
 ```
 
