@@ -39,7 +39,7 @@ jobs:
         echo `clang --version`
 
     - name: Install bpftool
-      uses: mtardy/setup-bpftool@0ddbda441f5986a9ad1886a922fcb789625cde52 # v1.0.0
+      uses: mtardy/setup-bpftool@d21fc59a00cfc7e7de8b83a6f8f2060f0e54e2b8 # v1.0.2
 
     - name: Ensure BPF programs pass verifier
       run: |
