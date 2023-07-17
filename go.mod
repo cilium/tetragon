@@ -34,7 +34,7 @@ require (
 	github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20220608195807-1a118fe229fc
-	github.com/vladimirvivien/gexe v0.1.1
+	github.com/vladimirvivien/gexe v0.2.0
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.9.0
 	golang.org/x/sync v0.3.0
