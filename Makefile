@@ -48,7 +48,7 @@ GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
-GOLANGCILINT_WANT_VERSION = 1.52.2
+GOLANGCILINT_WANT_VERSION = 1.53.3
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 # Do a parallel build with multiple jobs, based on the number of CPUs online
