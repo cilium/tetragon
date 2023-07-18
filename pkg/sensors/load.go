@@ -206,6 +206,12 @@ func (s *Sensor) loadMaps(mapDir string) error {
 			mapSpec.MaxEntries = max
 		}
 
+		if innerMax, ok := m.Prog.MaxEntriesInnerMap[mapSpec.Name]; ok {
+			if innerMs := mapSpec.InnerMap; innerMs != nil {
+				mapSpec.InnerMap.MaxEntries = innerMax
+			}
+		}
+
 		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 		}

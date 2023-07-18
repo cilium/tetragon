@@ -14,20 +14,21 @@ func Builder(
 	ty string,
 ) *Program {
 	return &Program{
-		Name:          objFile,
-		Attach:        attach,
-		Label:         label,
-		PinPath:       pinFile,
-		RetProbe:      false,
-		ErrorFatal:    true,
-		Override:      false,
-		Type:          ty,
-		LoadState:     Idle(),
-		LoaderData:    struct{}{},
-		MapLoad:       nil,
-		unloader:      nil,
-		PinMap:        make(map[string]string),
-		MaxEntriesMap: make(map[string]uint32),
+		Name:               objFile,
+		Attach:             attach,
+		Label:              label,
+		PinPath:            pinFile,
+		RetProbe:           false,
+		ErrorFatal:         true,
+		Override:           false,
+		Type:               ty,
+		LoadState:          Idle(),
+		LoaderData:         struct{}{},
+		MapLoad:            nil,
+		unloader:           nil,
+		PinMap:             make(map[string]string),
+		MaxEntriesMap:      make(map[string]uint32),
+		MaxEntriesInnerMap: make(map[string]uint32),
 	}
 }
 
@@ -96,7 +97,8 @@ type Program struct {
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
 
-	MaxEntriesMap map[string]uint32
+	MaxEntriesMap      map[string]uint32
+	MaxEntriesInnerMap map[string]uint32
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {

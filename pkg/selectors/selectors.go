@@ -90,6 +90,17 @@ func (k *KernelSelectorState) ValueMaps() []map[[8]byte]struct{} {
 	return k.valueMaps
 }
 
+// ValueMapsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) ValueMapsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.valueMaps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
 func WriteSelectorInt32(k *KernelSelectorState, v int32) {
 	binary.LittleEndian.PutUint32(k.e[k.off:], uint32(v))
 	k.off += 4

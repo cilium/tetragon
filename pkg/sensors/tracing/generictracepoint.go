@@ -401,6 +401,12 @@ func createGenericTracepointSensor(
 		maps = append(maps, filterMap)
 
 		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), prog0)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := tp.selectors.ValueMapsMaxEntries()
+			argFilterMaps.SetInnerMaxEntries(maxEntries)
+		}
 		maps = append(maps, argFilterMaps)
 
 		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), prog0)

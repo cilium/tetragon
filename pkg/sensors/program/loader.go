@@ -405,6 +405,13 @@ func doLoadProgram(
 		if max, ok := load.MaxEntriesMap[ms.Name]; ok {
 			ms.MaxEntries = max
 		}
+
+		if innerMax, ok := load.MaxEntriesInnerMap[ms.Name]; ok {
+			if ms.InnerMap == nil {
+				return nil, fmt.Errorf("no inner map for %s", ms.Name)
+			}
+			ms.InnerMap.MaxEntries = innerMax
+		}
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only

@@ -222,6 +222,8 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	maps = append(maps, filterMap)
 
 	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
+	// that we do not need to SetInnerMaxEntries() here.
 	maps = append(maps, argFilterMaps)
 
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
@@ -580,6 +582,12 @@ func createGenericKprobeSensor(
 		maps = append(maps, filterMap)
 
 		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
+			argFilterMaps.SetInnerMaxEntries(maxEntries)
+		}
 		maps = append(maps, argFilterMaps)
 
 		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
