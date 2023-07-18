@@ -12,7 +12,7 @@ DEST_DIR="tests/vmtests/test-data"
 
 if [ -z "$KERNEL_VERS" ]; then
 	echo "Usage: $0 <kver1> <kver2>"
-	echo "Example: $0 bpf-next 5.10"
+	echo "Example: $0 bpf-next 5.10-main"
 	exit 1
 fi
 
@@ -30,6 +30,6 @@ for ver in $KERNEL_VERS; do
 	img="$KERNIMG:$ver"
 	$CONTAINER_ENGINE pull $img
 	x=$($CONTAINER_ENGINE create $img)
-	$CONTAINER_ENGINE cp $x:/data/kernels/$ver  $DEST_DIR/kernels
+	$CONTAINER_ENGINE cp $x:/data/kernels  $DEST_DIR/
 	$CONTAINER_ENGINE rm $x
 done
