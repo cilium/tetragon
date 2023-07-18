@@ -74,6 +74,9 @@
       "matchFileNames": [
         ".github/workflows/**"
       ],
+      "matchManagers": [
+        "github-actions"
+      ],
       "separateMinorPatch": false,
     },
     {
@@ -204,14 +207,6 @@
       ],
     },
     {
-      // Images that directly use docker.io/library/golang for building.
-      "groupName": "golang-images",
-      "matchFileNames": [
-        "Dockerfile",
-        "Makefile"
-      ]
-    },
-    {
       "matchPackageNames": [
         "docker.io/library/busybox"
       ],
@@ -245,6 +240,7 @@
         "executionMode": "branch"
       }
     },
+    // ignore deps section
     {
       // do not update those packages as they are replaced by the local copy
       // see https://github.com/cilium/tetragon/blob/7623babdf54e9a38326420c1b188308f6cf96fff/go.mod#L178-L179
@@ -267,6 +263,19 @@
         "Dockerfile.clang-format"
       ],
       "enabled": false
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": [
+        "^\\.github/workflows/[^/]+\\.ya?ml$"
+      ],
+      // This regex manages version strings in GitHub actions workflow files,
+      // similar to the examples shown here:
+      // https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+version: *['\"]?(?<currentValue>[^'\"\\s]*)"
+      ]
     }
   ]
 }
