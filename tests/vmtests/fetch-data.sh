@@ -27,7 +27,7 @@ $CONTAINER_ENGINE rm $x
 
 mkdir -p $DEST_DIR/kernels
 for ver in $KERNEL_VERS; do
-	img="$KERNIMG:$ver"
+	img="$KERNIMG:$ver-main"
 	$CONTAINER_ENGINE pull $img
 	x=$($CONTAINER_ENGINE create $img)
 	$CONTAINER_ENGINE cp $x:/data/kernels/$ver  $DEST_DIR/kernels
