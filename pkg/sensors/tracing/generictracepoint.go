@@ -81,6 +81,9 @@ type genericTracepoint struct {
 
 	// policyName is the name of the policy that this tracepoint belongs to
 	policyName string
+
+	// parsed kernel selector state
+	selectors *selectors.KernelSelectorState
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -380,6 +383,11 @@ func createGenericTracepointSensor(
 			"generic_tracepoint",
 		)
 
+		err := tp.InitKernelSelectors()
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
+		}
+
 		prog0.LoaderData = tp.tableIdx
 		progs = append(progs, prog0)
 
@@ -406,7 +414,11 @@ func createGenericTracepointSensor(
 	}, nil
 }
 
-func (tp *genericTracepoint) KernelSelectors() (*selectors.KernelSelectorState, error) {
+func (tp *genericTracepoint) InitKernelSelectors() error {
+	if tp.selectors != nil {
+		return fmt.Errorf("InitKernelSelectors: selectors already initialized")
+	}
+
 	// rewrite arg index
 	selArgs := make([]v1alpha1.KProbeArg, 0, len(tp.args))
 	selSelectors := make([]v1alpha1.KProbeSelector, 0, len(tp.Spec.Selectors))
@@ -419,7 +431,7 @@ func (tp *genericTracepoint) KernelSelectors() (*selectors.KernelSelectorState, 
 		tpArg := &tp.args[i]
 		ty, err := tpArg.setGenericTypeId()
 		if err != nil {
-			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 		selType := selectors.ArgTypeToString(uint32(ty))
 
@@ -441,7 +453,12 @@ func (tp *genericTracepoint) KernelSelectors() (*selectors.KernelSelectorState, 
 		}
 	}
 
-	return selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs)
+	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs)
+	if err != nil {
+		return err
+	}
+	tp.selectors = selectors
+	return nil
 }
 
 func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
@@ -496,11 +513,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
-	kernelSelectors, err := tp.KernelSelectors()
-	if err != nil {
-		return err
-	}
-	load.MapLoad = append(load.MapLoad, selectorsMaploads(kernelSelectors, tp.pinPathPrefix, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, tp.pinPathPrefix, 0)...)
 
 	config, err := tp.EventConfig()
 	if err != nil {
@@ -530,7 +543,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	}
 	defer m.Close()
 
-	for i, path := range kernelSelectors.GetNewBinaryMappings() {
+	for i, path := range tp.selectors.GetNewBinaryMappings() {
 		writeBinaryMap(m, i, path)
 	}
 
