@@ -275,7 +275,7 @@ func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Progra
 	} else {
 		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
-			return fmt.Errorf("failed prog %s kern_version %d LoadKprobeProgram: %w",
+			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
 		}
 	}
