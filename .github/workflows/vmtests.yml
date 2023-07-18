@@ -64,10 +64,10 @@ jobs:
         fail-fast: false
         matrix:
            kernel:
-              - '5.15'
-              - '5.10'
-              - '5.4'
-              - '4.19'
+              - '5.15-main'
+              - '5.10-main'
+              - '5.4-main'
+              - '4.19-main'
            group:
               - 0
     concurrency:
@@ -100,23 +100,28 @@ jobs:
         tar xf tetragon.tar -C go/src/github.com/cilium
 
     - name: test kernel ${{ matrix.kernel }}
-      if: ${{ matrix.kernel  != '4.19' }}
+      if: ${{ !startsWith(matrix.kernel, '4.19') }}
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
+        echo "Using: kernel:$kimage"
         sudo ./tests/vmtests/tetragon-vmtests-run \
-                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
+                --kernel ${kimage} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
     - name: test kernel ${{ matrix.kernel }} with btf file
-      if: ${{ matrix.kernel  == '4.19' }}
+      if: ${{ startsWith(matrix.kernel, '4.19') }}
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
+        btf=$(find tests/vmtests/test-data/kernels -path "*btf*" -type f)
+        echo "Using: kernel:$kimage bptf:$btf"
         sudo ./tests/vmtests/tetragon-vmtests-run \
-                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
-                --btf-file tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/btf-* \
+                --kernel ${kimage} \
+                --btf-file ${btf} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
