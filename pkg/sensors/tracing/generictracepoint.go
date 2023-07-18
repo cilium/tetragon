@@ -482,55 +482,6 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 	return config, nil
 }
 
-// ReloadGenericTracepointSelectors will reload a tracepoint by unlinking it, generating new
-// selector data and updating filter_map, and then relinking the tracepoint.
-//
-// This is intended for speeding up testing, so DO NOT USE elsewhere without checking its
-// implementation first because limitations may exist (e.g., the config map is not updated).
-// TODO: pass the sensor here
-func ReloadGenericTracepointSelectors(p *program.Program, conf *v1alpha1.TracepointSpec) error {
-	tpIdx, ok := p.LoaderData.(int)
-	if !ok {
-		return fmt.Errorf("loaderData for genericTracepoint %s is %T (%v) (not an int)", p.Name, p.LoaderData, p.LoaderData)
-	}
-
-	tp, err := genericTracepointTable.getTracepoint(tpIdx)
-	if err != nil {
-		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", p.Attach, err)
-	}
-
-	if err := p.Unlink(); err != nil {
-		return fmt.Errorf("unlinking %v failed: %s", p, err)
-	}
-
-	tp.Info.Subsys = conf.Subsystem
-	tp.Info.Event = conf.Event
-	if err := tp.Info.LoadFormat(); err != nil {
-		return fmt.Errorf("tracepoint %s/%s not supported: %w", conf.Subsystem, conf.Event, err)
-	}
-
-	tp.Spec = conf
-	tp.args, err = buildGenericTracepointArgs(tp.Info, conf.Args)
-	if err != nil {
-		return err
-	}
-
-	kernelSelectors, err := tp.KernelSelectors()
-	if err != nil {
-		return err
-	}
-
-	if err := updateSelectors(kernelSelectors, p.PinMap, tp.pinPathPrefix); err != nil {
-		return err
-	}
-
-	if err := p.Relink(); err != nil {
-		return fmt.Errorf("failed relinking %v: %w", p, err)
-	}
-
-	return nil
-}
-
 func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, verbose int) error {
 
 	tracepointLog = logger.GetLogger()

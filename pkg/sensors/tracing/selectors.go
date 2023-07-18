@@ -5,71 +5,12 @@ package tracing
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
-
-// internal functions for dealing with selectors that are common for kprobes/tracepoints
-
-// updateSelectors will update filter_map and argfilter_maps based on the provided kernel selectors
-func updateSelectors(
-	ks *selectors.KernelSelectorState,
-	pinMap map[string]string,
-	pinPathPrefix string,
-) error {
-
-	filterName, ok := pinMap["filter_map"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned filter_map")
-	}
-	filterMapPath := filepath.Join(bpf.MapPrefixPath(), filterName)
-	filterMap, err := ebpf.LoadPinnedMap(filterMapPath, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open filter map: %w", err)
-	}
-	defer filterMap.Close()
-
-	selBuff := ks.Buffer()
-	if err := filterMap.Update(uint32(0), selBuff[:], ebpf.UpdateAny); err != nil {
-		return fmt.Errorf("failed to update filter data: %w", err)
-	}
-
-	argfilterMapsName, ok := pinMap["argfilter_maps"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned argfilter_maps")
-	}
-	argfilterMapsName = filepath.Join(bpf.MapPrefixPath(), argfilterMapsName)
-	argfilterMaps, err := ebpf.LoadPinnedMap(argfilterMapsName, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open argfilter_map map %s: %w", argfilterMapsName, err)
-	}
-	defer argfilterMaps.Close()
-	if err := populateArgFilterMaps(ks, pinPathPrefix, argfilterMaps); err != nil {
-		return fmt.Errorf("failed to populate argfilter_maps: %w", err)
-	}
-
-	selNamesMapName, ok := pinMap["sel_names_map"]
-	if !ok {
-		return fmt.Errorf("cannot find pinned sel_names_map")
-	}
-	selNamesMapName = filepath.Join(bpf.MapPrefixPath(), selNamesMapName)
-	selNamesMap, err := ebpf.LoadPinnedMap(selNamesMapName, nil)
-	if err != nil {
-		return fmt.Errorf("failed to open sel_names_map map %s: %w", selNamesMapName, err)
-	}
-	defer selNamesMap.Close()
-
-	if err := populateBinariesMaps(ks, pinPathPrefix, selNamesMap); err != nil {
-		return fmt.Errorf("failed to populate sel_names_map: %w", err)
-	}
-
-	return nil
-}
 
 func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, index uint32) []*program.MapLoad {
 	selBuff := ks.Buffer()

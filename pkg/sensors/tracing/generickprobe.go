@@ -150,14 +150,6 @@ func genericKprobeTableGet(id idtable.EntryID) (*genericKprobe, error) {
 	}
 }
 
-func genericKprobeFromBpfLoad(l *program.Program) (*genericKprobe, error) {
-	id, ok := l.LoaderData.(idtable.EntryID)
-	if !ok {
-		return nil, fmt.Errorf("invalid loadData type: expecting idtable.EntryID and got: %T (%v)", l.LoaderData, l.LoaderData)
-	}
-	return genericKprobeTableGet(id)
-}
-
 var (
 	MaxFilterIntArgs = 8
 )
@@ -643,47 +635,6 @@ func createGenericKprobeSensor(
 		Progs: progs,
 		Maps:  maps,
 	}, nil
-}
-
-// ReloadGenericKprobeSelectors will reload a kprobe by unlinking it, generating new
-// selector data and updating filter_map, and then relinking the kprobe (entry).
-//
-// This is intended for speeding up testing, so DO NOT USE elsewhere without
-// checking its implementation first because limitations may exist (e.g,. the
-// config map is not updated, the retprobe is not reloaded, userspace return filters are not updated, etc.).
-func ReloadGenericKprobeSelectors(kpSensor *sensors.Sensor, conf *v1alpha1.KProbeSpec, actionArgTable *idtable.Table) error {
-	// The first program should be the (entry) kprobe, and that's the only
-	// one we will reload. We could reload the retprobe, but the assumption
-	// is that we don't need to, because it will never be executed if the
-	// entry probe is not loaded.
-	kprobeProg := kpSensor.Progs[0]
-	if kprobeProg.Label != "kprobe/generic_kprobe" {
-		return fmt.Errorf("first program %+v does not seem to be the entry kprobe", kprobeProg)
-	}
-
-	gk, err := genericKprobeFromBpfLoad(kprobeProg)
-	if err != nil {
-		return err
-	}
-
-	if err := kprobeProg.Unlink(); err != nil {
-		return fmt.Errorf("unlinking %v failed: %s", kprobeProg, err)
-	}
-
-	kState, err := selectors.InitKernelSelectorState(conf.Selectors, conf.Args, actionArgTable)
-	if err != nil {
-		return err
-	}
-
-	if err := updateSelectors(kState, kprobeProg.PinMap, gk.pinPathPrefix); err != nil {
-		return err
-	}
-
-	if err := kprobeProg.Relink(); err != nil {
-		return fmt.Errorf("failed relinking %v: %w", kprobeProg, err)
-	}
-
-	return nil
 }
 
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, verbose int) error {
