@@ -108,6 +108,15 @@ var testCases = []struct {
 		},
 	},
 	{
+		// NB: this needs to be first
+		specOperator:   "InMap",
+		specFilterVals: [][]int{{8888, 8889}, {4442, 4443, 4444}},
+		tests: []testCase{
+			{lseekOpsVals: []int{4444, 4445}, expectedArgs: map[uint64]int{4444: 1}},
+			{lseekOpsVals: []int{4443, 8889}, expectedArgs: map[uint64]int{4443: 1, 8889: 1}},
+		},
+	},
+	{
 		specOperator:   "InMap",
 		specFilterVals: [][]int{{4443}, {9999}},
 		tests: []testCase{

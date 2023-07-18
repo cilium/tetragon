@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -42,8 +43,15 @@ func populateArgFilterMaps(
 	pinPathPrefix string,
 	outerMap *ebpf.Map,
 ) error {
+	maxEntries := k.ValueMapsMaxEntries()
 	for i, vm := range k.ValueMaps() {
-		err := populateArgFilterMap(pinPathPrefix, outerMap, uint32(i), vm)
+		nrEntries := uint32(len(vm))
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			nrEntries = uint32(maxEntries)
+		}
+		err := populateArgFilterMap(pinPathPrefix, outerMap, uint32(i), vm, nrEntries)
 		if err != nil {
 			return err
 		}
@@ -56,6 +64,7 @@ func populateArgFilterMap(
 	outerMap *ebpf.Map,
 	innerID uint32,
 	innerData map[[8]byte]struct{},
+	maxEntries uint32,
 ) error {
 	innerName := fmt.Sprintf("argfilter_map_%d", innerID)
 	innerSpec := &ebpf.MapSpec{
@@ -63,7 +72,7 @@ func populateArgFilterMap(
 		Type:       ebpf.Hash,
 		KeySize:    8, // NB: hardcoded to 64 bits for now
 		ValueSize:  uint32(1),
-		MaxEntries: uint32(len(innerData)),
+		MaxEntries: maxEntries,
 	}
 	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
 		PinPath: sensors.PathJoin(pinPathPrefix, innerName),
