@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {{- include "tetragonPod-controller.labels" . | nindent 4 }}
+  {{ -end }}
+  name: {{ .Chart.Name }}Pod-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "tetragonPod-controller.labels" . | nindent 4 }}
+  replicas: 1
+  template:
+    metadata:
+      labels: {{- include "tetragonPod-controller.labels" . | nindent 4 }}
+      {{ -end }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.tetragonPod.enabled }}
+      containers:
+      - name: {{ .Chart.Name }}Pod
+        image: "{{ if .Values.tetragonPod.image.override }}{{ .Values.tetragonPod.image.override }}{{ else }}{{ .Values.tetragonPod.image.repository }}:{{ .Values.tetragonPod.image.tag | default .Chart.AppVersion }}{{ end }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - "ALL"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: {{ .Chart.Name }}Pod-controller-service-account
+      terminationGracePeriodSeconds: 10
+    
