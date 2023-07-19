@@ -647,6 +647,29 @@ func doLoadProgram(
 	return nil, nil
 }
 
+// The loadProgram loads and attach bpf object @load. It is expected that user
+// provides @loadOpts with mandatory attach function and optional open function.
+//
+// The load process is roughly as follows:
+//
+//   - load object              | ebpf.LoadCollectionSpec
+//   - open callback            | loadOpts.open(spec)
+//   - open refferenced maps    |
+//   - creates collection       | ebpf.NewCollectionWithOptions(spec, opts)
+//   - install tail calls       | loadOpts.ci
+//   - load maps with values    |
+//   - pin main program         |
+//   - attach callback          | loadOpts.attach(coll, spec, prog, progSpec)
+//   - print loaded progs/maps  | if KeepCollection == true
+//
+// The  @loadOpts.open callback can be used to customize ebpf.CollectionSpec
+// before it's loaded into kernel (like disable/enable programs).
+//
+// The @loadOpts.attach callback is used to actually attach main object program
+// to desired function/symbol/whatever..
+//
+// The @loadOpts.ci defines specific installation of tailcalls in object.
+
 func loadProgram(
 	bpfDir string,
 	mapDirs []string,
@@ -654,6 +677,12 @@ func loadProgram(
 	opts *loadOpts,
 	verbose int,
 ) error {
+
+	// Attach function is mandatory
+	if opts.attach == nil {
+		return fmt.Errorf("attach function is not provided")
+	}
+
 	lc, err := doLoadProgram(bpfDir, mapDirs, load, opts, verbose)
 	if err != nil {
 		return err
