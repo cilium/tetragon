@@ -86,7 +86,7 @@ func parseBuildId(filename string) ([]byte, error) {
 
 func TestLoader(t *testing.T) {
 	if !hasLoaderEvents() {
-		t.Skip("no support for lader events")
+		t.Skip("no support for loader events")
 	}
 
 	var doneWG, readyWG sync.WaitGroup

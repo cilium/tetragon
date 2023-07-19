@@ -37,11 +37,13 @@ type Conf struct {
 	BTFFile     string `json:"btf-file"`     // btf file to use
 	FailFast    bool   `json:"fail-fast"`
 	KeepAllLogs bool   `json:"keep-all-logs"`
+	KernelVer   string `json:"kernel-ver"` // kernel version
 }
 
 // Result is the result of a single test
 type Result struct {
 	Name       string        `json:"name"`
+	Skip       bool          `json:"skip"`
 	Error      bool          `json:"error"`
 	Outfile    string        `json:"outfile,omitempty"`
 	Duration   time.Duration `json:"duration"`
@@ -210,11 +212,19 @@ func gatherExportFiles(cnf *Conf) error {
 }
 
 func runTest(cnf *Conf, testName string, cmd string, args ...string) (*Result, error) {
-	fmt.Printf("Running test %s ", testName)
 
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
+	if shouldSkip(cnf, testName) {
+		fmt.Printf("Skipping test %s ", testName)
+		return &Result{
+			Name: testName,
+			Skip: true,
+		}, nil
+	}
+
+	fmt.Printf("Running test %s ", testName)
 	testCmd := exec.CommandContext(ctx, cmd, args...)
 
 	// create file for output
