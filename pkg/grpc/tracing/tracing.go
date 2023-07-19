@@ -237,7 +237,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
 	if parent != nil {
-		tetragonEvent.Parent = parent.GetProcessCopy()
+		tetragonEvent.Parent = tetragonParent
 	}
 
 	return tetragonEvent
@@ -334,10 +334,9 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	if proc != nil {
 		tetragonEvent.Process = proc.GetProcessCopy()
 		// Use the bpf recorded TID to update the event
+		// The cost to get this is relatively high because it requires a
+		// deep copyo of the process in order to safely modify it.
 		process.UpdateEventProcessTid(tetragonEvent.Process, &msg.Tid)
-	}
-	if parent != nil {
-		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
 
 	return &tetragon.GetEventsResponse{
@@ -557,10 +556,6 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		// Use the bpf recorded TID to update the event
 		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
-	if parent != nil {
-		tetragonEvent.Parent = parent.GetProcessCopy()
-	}
-
 	return tetragonEvent
 }
 

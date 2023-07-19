@@ -77,7 +77,6 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	if parent != nil {
 		parent.RefInc()
-		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
 
 	// do we need to cleanup anything?
@@ -186,7 +185,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	// want to panic anyway to help us catch the bug faster. So no need to do a nil check
 	// here.
 	internal.AddPodInfo(podInfo)
-	ev.SetProcess(internal.GetProcessCopy())
+	ev.SetProcess(internal.UnsafeGetProcess())
 
 	// Check we have a parent with exception for pid 1, note we do this last because we want
 	// to ensure the podInfo and process are set before returning any errors.
@@ -197,7 +196,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 			return err
 		}
 		parent.RefInc()
-		ev.SetParent(parent.GetProcessCopy())
+		ev.SetParent(parent.UnsafeGetProcess())
 	}
 
 	// do we need to cleanup anything?
@@ -305,11 +304,10 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 	if parent != nil {
 		parent.RefDec()
-		tetragonEvent.Parent = parent.GetProcessCopy()
 	}
 	if proc != nil {
-		proc.RefDec()
 		tetragonEvent.Process = proc.GetProcessCopy()
+		proc.RefDec()
 		// Use the bpf recorded TID to update the event
 		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Info.Tid)
 	}
@@ -330,11 +328,11 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	var err error
 
 	if parent != nil {
+		ev.SetParent(parent.UnsafeGetProcess())
 		if !msg.RefCntDone[ParentRefCnt] {
 			parent.RefDec()
 			msg.RefCntDone[ParentRefCnt] = true
 		}
-		ev.SetParent(parent.GetProcessCopy())
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
 		err = eventcache.ErrFailedToGetParentInfo

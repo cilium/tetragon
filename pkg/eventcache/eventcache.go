@@ -62,7 +62,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	var err error
 
 	if parent != nil {
-		ev.SetParent(parent.GetProcessCopy())
+		ev.SetParent(parent.UnsafeGetProcess())
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
 		err = ErrFailedToGetParentInfo
