@@ -172,21 +172,16 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-// has to be in sync with both cilium and hubble overrides (mostly cilium).
 replace (
 	// Use local version of API
 	github.com/cilium/tetragon/api => ./api
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
+)
 
-	github.com/miekg/dns => github.com/cilium/dns v1.1.50
+// has to be in sync with both cilium and hubble overrides (mostly cilium).
+replace (
+	github.com/miekg/dns => github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
-
-	//	github.com/vishvananda/netlink => github.com/jrfastab/netlink v1.1.1
-
-	// Use a fork of lumberjack with patches to ensure compressed logs are created atomically
-	gopkg.in/natefinch/lumberjack.v2 => github.com/chancez/lumberjack v0.0.0-20220314160755-2b78c6a5f7bc
-
-	// Using private fork of controller-tools. See commit msg for more context
-	// as to why we are using a private fork.
+	go.universe.tf/metallb => github.com/cilium/metallb v0.1.1-0.20220829170633-5d7dfb1129f7
 	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
 )
