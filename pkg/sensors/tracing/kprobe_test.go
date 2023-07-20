@@ -4143,7 +4143,7 @@ metadata:
   name: "datagram"
 spec:
   kprobes:
-  - call: "__cgroup_bpf_run_filter_skb"
+  - call: "ip_send_skb"
     syscall: false
     args:
     - index: 1
@@ -4170,7 +4170,7 @@ metadata:
   name: "datagram"
 spec:
   kprobes:
-  - call: "__cgroup_bpf_run_filter_skb"
+  - call: "ip_send_skb"
     syscall: false
     args:
     - index: 1
@@ -4207,7 +4207,7 @@ spec:
 	res.LookupIP(context.Background(), "ip4", "ebpf.io")
 
 	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
-		WithFunctionName(sm.Full("__cgroup_bpf_run_filter_skb")).
+		WithFunctionName(sm.Full("ip_send_skb")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
