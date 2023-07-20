@@ -12,7 +12,8 @@
     "^/tmp/install-buildx$", 
     "^make codegen$", 
     "^make generate$", 
-    "^install/kubernetes/test.sh$"
+    "^install/kubernetes/test.sh$",
+    "^go mod vendor$"
   ],
   // repository configuration
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
@@ -221,12 +222,25 @@
         "Dockerfile"
       ],
     },
+    // Upgrade the Go module directive, see:
+    // https://docs.renovatebot.com/modules/versioning/#go-modules-directive-versioning
+    // depName is 'go' so it will be group with the 'Go' groupName
+    {
+      "matchDatasources": ["golang-version"],
+      "rangeStrategy": "bump",
+    },
     {
       "groupName": "Go",
       "matchDepNames": [
         "go",
         "docker.io/library/golang"
       ],
+      // postUpgradeTasks is only for when the Go module directives are bumped
+      "postUpgradeTasks": {
+        "commands": ["go mod vendor"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
     },
     {
       // Group golangci-lint updates to overrule grouping of version updates in the GHA files.
