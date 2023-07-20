@@ -91,7 +91,7 @@ func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 			"name": tp.TpName(),
 			"info": tp.TpInfo(),
 		}).Info("deleting tracing policy")
-		err = s.DelTracingPolicy(ctx, tp.TpName())
+		err = s.DeleteTracingPolicy(ctx, tp.TpName())
 
 	case *v1alpha1.TracingPolicyNamespaced:
 		log.WithFields(logrus.Fields{
@@ -99,7 +99,7 @@ func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 			"info":      tp.TpInfo(),
 			"namespace": tp.TpNamespace(),
 		}).Info("deleting namespaced tracing policy")
-		err = s.DelTracingPolicy(ctx, tp.TpName())
+		err = s.DeleteTracingPolicy(ctx, tp.TpName())
 	}
 
 	if err != nil {
@@ -111,7 +111,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	oldObj interface{}, newObj interface{}) {
 
 	update := func(oldTp, newTp tracingpolicy.TracingPolicy) {
-		if err := s.DelTracingPolicy(ctx, oldTp.TpName()); err != nil {
+		if err := s.DeleteTracingPolicy(ctx, oldTp.TpName()); err != nil {
 			log.WithError(err).WithField(
 				"old-name", oldTp.TpName(),
 			).Warnf("updateTracingPolicy: failed to remove old policy")
