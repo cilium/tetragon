@@ -42,7 +42,7 @@ func (f *FakeObserver) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tr
 	return nil
 }
 
-func (f *FakeObserver) DelTracingPolicy(ctx context.Context, sensorName string) error {
+func (f *FakeObserver) DeleteTracingPolicy(ctx context.Context, sensorName string) error {
 	return nil
 }
 

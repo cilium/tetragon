@@ -164,11 +164,11 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	policy.ObjectMeta.Name = policyName
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err, fmt.Sprintf("Add tracing policy failed with error: %v", err))
-	err = mgr.DelTracingPolicy(ctx, policyName)
+	err = mgr.DeleteTracingPolicy(ctx, policyName)
 	require.NoError(t, err)
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err)
-	err = mgr.DelTracingPolicy(ctx, policyName)
+	err = mgr.DeleteTracingPolicy(ctx, policyName)
 	require.NoError(t, err)
 
 	// namespaced policy with disabled state should fail

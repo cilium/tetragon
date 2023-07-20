@@ -130,7 +130,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	return nil
 }
 
-func (h *handler) delTracingPolicy(op *tracingPolicyDel) error {
+func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	col, exists := h.collections[op.name]
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)

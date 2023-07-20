@@ -64,7 +64,7 @@ message AddTracingPolicyRequest {
 message AddTracingPolicyResponse {}
 
 message DeleteTracingPolicyRequest {
-	string yaml = 1;
+	string name = 1;
 }
 message DeleteTracingPolicyResponse {}
 
@@ -121,6 +121,7 @@ service FineGuidanceSensors {
     rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
 
     rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
+    rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
     rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
     rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
 

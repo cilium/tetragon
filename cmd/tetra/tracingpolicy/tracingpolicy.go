@@ -36,11 +36,22 @@ func New() *cobra.Command {
 
 	tpAddCmd := &cobra.Command{
 		Use:   "add <yaml_file>",
-		Short: "Add a new sensor based on a tracing policy",
+		Short: "add a new sensor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				addTracingPolicy(ctx, cli, args[0])
+			})
+		},
+	}
+
+	tpDelCmd := &cobra.Command{
+		Use:   "delete <sensor_name>",
+		Short: "delete a sensor",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				deleteTracingPolicy(ctx, cli, args[0])
 			})
 		},
 	}
@@ -78,7 +89,7 @@ func New() *cobra.Command {
 	flags.String("match-binary", "", "Add binary to matchBinaries selector")
 	viper.BindPFlags(flags)
 
-	tpCmd.AddCommand(tpAddCmd, tpListCmd, tpGenerateCmd)
+	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpListCmd, tpGenerateCmd)
 	return tpCmd
 }
 
@@ -94,6 +105,15 @@ func addTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsCl
 	})
 	if err != nil {
 		fmt.Printf("failed to add tracing policy: %s\n", err)
+	}
+}
+
+func deleteTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
+	_, err := client.DeleteTracingPolicy(ctx, &tetragon.DeleteTracingPolicyRequest{
+		Name: name,
+	})
+	if err != nil {
+		fmt.Printf("failed to delete tracing policy: %s\n", err)
 	}
 }
 
