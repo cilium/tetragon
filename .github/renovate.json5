@@ -32,6 +32,7 @@
     "pkg/k8s/go.sum",
     "Dockerfile*",
     "install/kubernetes/values.yaml",
+    "Makefile.cli"
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -271,16 +272,23 @@
       "enabled": false
     }
   ],
+  // Those regexes manage version strings in variousfiles, similar to the
+  // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
   "regexManagers": [
     {
       "fileMatch": [
         "^\\.github/workflows/[^/]+\\.ya?ml$"
       ],
-      // This regex manages version strings in GitHub actions workflow files,
-      // similar to the examples shown here:
-      // https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+version: *['\"]?(?<currentValue>[^'\"\\s]*)"
+      ]
+    },
+    {
+      "fileMatch": [
+        "Makefile.cli"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s]*)"
       ]
     }
   ]

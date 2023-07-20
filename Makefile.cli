@@ -2,6 +2,8 @@
 # Copyright Authors of Tetragon
 
 GO_BUILD = CGO_ENABLED=0 $(GO) build -tags standalone
+# renovate: datasource=docker
+GO_IMAGE = docker.io/library/golang:1.19.6-alpine
 TARGET=tetra
 
 RELEASE_UID ?= $(shell id -u)
@@ -11,7 +13,7 @@ cli-release:
 	docker run \
 		--rm \
 		--workdir /tetragon \
-		--volume `pwd`:/tetragon docker.io/library/golang:1.19.0-alpine3.16 \
+		--volume `pwd`:/tetragon $(GO_IMAGE) \
 		sh -c "apk add --no-cache make git setpriv && \
 		        /usr/bin/setpriv --reuid=$(RELEASE_UID) --regid=$(RELEASE_GID) --clear-groups \
 			make GOCACHE=/tmp/cache cli-local-release VERSION=${VERSION}"
