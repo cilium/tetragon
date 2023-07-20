@@ -1,6 +1,6 @@
 module github.com/cilium/tetragon/pkg/k8s
 
-go 1.19
+go 1.20
 
 require (
 	github.com/blang/semver/v4 v4.0.0
