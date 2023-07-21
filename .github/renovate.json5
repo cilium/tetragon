@@ -35,7 +35,8 @@
     "pkg/k8s/go.sum",
     "Dockerfile*",
     "install/kubernetes/values.yaml",
-    "Makefile.cli"
+    "Makefile.cli",
+    "Makefile",
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -67,6 +68,9 @@
       "groupSlug": "all-github-action",
       "matchFileNames": [
         ".github/workflows/**"
+      ],
+      "matchManagers": [
+        "github-actions"
       ],
       "matchUpdateTypes": [
         "major",
@@ -249,8 +253,9 @@
       },
     },
     {
-      // Group golangci-lint updates to overrule grouping of version updates in the GHA files.
-      // Without this, golangci-lint updates are not in sync for GHA files and other usages.
+      // Group golangci-lint updates to overrule grouping of version updates in
+      // the GHA files. Without this, golangci-lint updates are not in sync for
+      // GHA files and other usages. This needs to be after the GHA grouping.
       "groupName": "golangci-lint",
       "matchDepNames": [
         "golangci/golangci-lint"
@@ -317,6 +322,14 @@
       ],
       "matchStrings": [
         "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+install-tool golang (?<currentValue>[^'\"]*)"
+      ]
+    },
+    {
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+GOLANGCILINT_WANT_VERSION[[:blank:]]*=[[:blank:]]*(?<currentValue>[^\\s]*)"
       ]
     }
   ]
