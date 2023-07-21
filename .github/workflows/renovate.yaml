@@ -9,6 +9,11 @@ on:
       renovate_log_level_debug:
         type: boolean
         default: false
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/renovate.json5'
 
 jobs:
   renovate:
