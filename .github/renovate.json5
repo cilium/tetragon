@@ -13,7 +13,8 @@
     "^make codegen$", 
     "^make generate$", 
     "^install/kubernetes/test.sh$",
-    "^go mod vendor$"
+    "^go mod vendor$",
+    "^install-tool golang [0-9]\\.[0-9]+\\.[0-9]+$"
   ],
   // repository configuration
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
@@ -24,6 +25,7 @@
   ],
   "gitAuthor": "cilium-renovate[bot] <134692979+cilium-renovate[bot]@users.noreply.github.com>",
   "includePaths": [
+    ".github/renovate.json5",
     ".github/workflows/**",
     "go.mod",
     "go.sum",
@@ -237,7 +239,11 @@
       ],
       // postUpgradeTasks is only for when the Go module directives are bumped
       "postUpgradeTasks": {
-        "commands": ["go mod vendor"],
+        // We need to trigger a golang install manually here because in some
+        // cases it might not be preinstalled, see:
+        // https://github.com/renovatebot/renovate/discussions/23485
+        // renovate: datasource=golang-version depName=go
+        "commands": ["install-tool golang 1.20.6", "go mod vendor"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       },
@@ -299,10 +305,18 @@
     },
     {
       "fileMatch": [
-        "Makefile.cli"
+        "^Makefile\\.cli$"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s]*)"
+      ]
+    },
+    {
+      "fileMatch": [
+        "^\\.github/renovate\\.json5$"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+install-tool golang (?<currentValue>[^'\"]*)"
       ]
     }
   ]
