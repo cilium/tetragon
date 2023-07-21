@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/cilium/cilium v1.13.4
 	github.com/cilium/ebpf v0.11.0
-	github.com/cilium/little-vm-helper v0.0.9
+	github.com/cilium/little-vm-helper v0.0.12
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000

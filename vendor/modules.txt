@@ -138,7 +138,7 @@ github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.9
+# github.com/cilium/little-vm-helper v0.0.12
 ## explicit; go 1.18
 github.com/cilium/little-vm-helper/pkg/images
 github.com/cilium/little-vm-helper/pkg/kernels
