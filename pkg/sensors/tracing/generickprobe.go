@@ -118,6 +118,9 @@ type genericKprobe struct {
 
 	// policyName is the name of the policy that this tracepoint belongs to
 	policyName string
+
+	// is there override defined for the kprobe
+	hasOverride bool
 }
 
 // pendingEvent is an event waiting to be merged with another event.
@@ -497,8 +500,6 @@ func createGenericKprobeSensor(
 			}
 		}
 
-		hasOverride := selectors.HasOverride(f)
-
 		// Write attributes into BTF ptr for use with load
 		if !setRetprobe {
 			setRetprobe = f.Return
@@ -529,6 +530,7 @@ func createGenericKprobeSensor(
 			pendingEvents:     nil,
 			tableId:           idtable.UninitializedEntryID,
 			policyName:        policyName,
+			hasOverride:       selectors.HasOverride(f),
 		}
 
 		// Parse Filters into kernel filter logic
@@ -569,7 +571,7 @@ func createGenericKprobeSensor(
 			pinProg,
 			"generic_kprobe").
 			SetLoaderData(kprobeEntry.tableId)
-		load.Override = hasOverride
+		load.Override = kprobeEntry.hasOverride
 		progs = append(progs, load)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
@@ -728,8 +730,13 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 
 		data.Symbols = append(data.Symbols, gk.funcName)
 		data.Cookies = append(data.Cookies, uint64(index))
+
+		if gk.hasOverride && !load.RetProbe {
+			data.Overrides = append(data.Overrides, gk.funcName)
+		}
 	}
 
+	load.Override = len(data.Overrides) > 0
 	load.SetAttachData(data)
 
 	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
