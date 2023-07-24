@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Authors of Tetragon
 
-GO_BUILD = CGO_ENABLED=0 $(GO) build -tags standalone
+CLI_GO_BUILD = CGO_ENABLED=0 $(GO) build
 # renovate: datasource=docker
 GO_IMAGE = docker.io/library/golang:1.20.6-alpine
 TARGET=tetra
@@ -38,7 +38,7 @@ cli-local-release: cli-clean
 		for ARCH in $$ARCHS; do \
 			echo Building release binary for $$OS/$$ARCH...; \
 			test -d release/$$OS/$$ARCH|| mkdir -p release/$$OS/$$ARCH; \
-			env GOOS=$$OS GOARCH=$$ARCH $(GO_BUILD) -ldflags=$(GO_LDFLAGS) -o release/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
+			env GOOS=$$OS GOARCH=$$ARCH $(CLI_GO_BUILD) -ldflags=$(GO_LDFLAGS) -o release/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
 			tar -czf release/$(TARGET)-$$OS-$$ARCH.tar.gz -C release/$$OS/$$ARCH $(TARGET)$$EXT; \
 			(cd release && sha256sum $(TARGET)-$$OS-$$ARCH.tar.gz > $(TARGET)-$$OS-$$ARCH.tar.gz.sha256sum); \
 		done; \
