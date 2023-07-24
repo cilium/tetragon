@@ -23,7 +23,7 @@ require (
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mennanov/fmutils v0.2.0
-	github.com/opencontainers/runtime-spec v1.1.0-rc.3
+	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
