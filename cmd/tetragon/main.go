@@ -654,7 +654,7 @@ func startGopsServer() error {
 func execute() error {
 	rootCmd := &cobra.Command{
 		Use:   "tetragon",
-		Short: "Run the tetragon agent",
+		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
 		Run: func(cmd *cobra.Command, args []string) {
 			readAndSetFlags()
 
