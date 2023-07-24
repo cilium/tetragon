@@ -155,3 +155,35 @@ Changing configuration example:
 Defaults controlling settings can be restored by simply deleting `/etc/tetragon/tetragon.yaml`
 and all drop-ins under `/etc/tetragon/tetragon.conf.d/`
 {{< /note >}}
+
+## Restrict gRPC API access
+
+The gRPC API supports unix sockets, it can be set using one of the following methods:
+
+- Use the `--server-address` flag:
+
+   ```
+   --server-address unix:///var/run/tetragon/tetragon.sock
+   ```
+
+- Or use the drop-in configuration file `/etc/tetragon/tetragon.conf.d/server-address` containing:
+
+   ```
+   unix:///var/run/tetragon/tetragon.sock
+   ```
+
+Then to access the gRPC API with `tetra` client, set `--server-address` to point to the corresponding address:
+
+   ```
+   sudo tetra --server-address unix:///var/run/tetragon/tetragon.sock getevents
+   ```
+
+{{< note >}}
+When reading events with the `tetra` client, if `--server-address` is not specified,
+it will try to detect if Tetragon daemon is running on the same host and use its
+`server-address` configuration.
+{{< /note >}}
+
+{{< caution >}}
+Ensure that you have enough privileges to open the gRPC unix socket since it is restricted to privileged users only.
+{{< /caution >}}
