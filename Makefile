@@ -14,8 +14,20 @@ EXTRA_TESTFLAGS ?=
 SUDO ?= sudo
 GO_TEST_TIMEOUT ?= 20m
 E2E_TEST_TIMEOUT ?= 20m
+BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
+VERSION ?= $(shell git describe --tags --always)
 
-# Architecture, use TARGET_ARCH=amd64 or TARGET_ARCH=arm64
+# renovate: datasource=docker depName=docker.io/golangci/golangci-lint
+GOLANGCILINT_WANT_VERSION = 1.53.3
+GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
+
+# Do a parallel build with multiple jobs, based on the number of CPUs online
+# in this system: 'make -j8' on a 8-CPU system, etc.
+#
+# (To override it, run 'make JOBS=1' and similar.)
+JOBS ?= $(shell nproc)
+
+# Detect architecture, use TARGET_ARCH=amd64 or TARGET_ARCH=arm64
 # or let uname detect the appropriate arch for native build
 UNAME_M := $(shell uname -m)
 ifeq ($(UNAME_M),x86_64)
@@ -30,6 +42,7 @@ TARGET_ARCH ?= amd64
 # GOARCH and TARGET_ARCH (make sense for pure Go program like tetragon-operator)
 GOARCH ?= $(TARGET_ARCH)
 
+# Set BPF_TARGET_ARCH using TARGET_ARCH
 ifeq ($(TARGET_ARCH),amd64)
 	BPF_TARGET_ARCH ?= x86
 endif
@@ -38,25 +51,11 @@ ifeq ($(TARGET_ARCH),arm64)
 endif
 BPF_TARGET_ARCH ?= x86
 
-BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
-
-VERSION ?= $(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
 GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
 GO_LDFLAGS_STATIC="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode=external -extldflags=-static"
 GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
-
-# renovate: datasource=docker depName=docker.io/golangci/golangci-lint
-GOLANGCILINT_WANT_VERSION = 1.53.3
-GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
-
-# Do a parallel build with multiple jobs, based on the number of CPUs online
-# in this system: 'make -j8' on a 8-CPU system, etc.
-#
-# (To override it, run 'make JOBS=1' and similar.)
-#
-JOBS ?= $(shell nproc)
 
 .PHONY: all
 all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
@@ -66,33 +65,46 @@ all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs
 
 .PHONY: help
 help:
-	@echo 'Installation:'
-	@echo '    install           - install tetragon agent and tetra as standalone binaries'
-	@echo 'Compilation:'
-	@echo '    tetragon          - compile the Tetragon agent'
-	@echo '    tetragon-operator - compile the Tetragon operator'
-	@echo '    tetra             - compile the Tetragon gRPC client'
-	@echo '    tetragon-bpf      - compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env)'
-	@echo '    test-compile      - compile unit tests'
-	@echo '    tester-progs      - compile helper programs for unit testing'
-	@echo '    compile-commands  - generate a compile_commands.json with bear for bpf programs'
-	@echo '    cli-release       - compile tetra CLI release binaries'
-	@echo 'Container images:'
-	@echo '    image             - build the Tetragon agent container image'
-	@echo '    image-operator    - build the Tetragon operator container image'
-	@echo 'Packages:'
-	@echo '    tarball           - build Tetragon compressed tarball'
-	@echo '    tarball-release   - build Tetragon release tarball'
-	@echo 'Generated files:'
-	@echo '    codegen           - generate code based on .proto files'
-	@echo '    generate          - generate kubebuilder files'
-	@echo 'Linting and chores:'
-	@echo '    vendor            - tidy and vendor Go modules'
-	@echo '    clang-format      - run code formatter on BPF code'
-	@echo '    go-format         - run code formatter on Go code'
-	@echo '    format            - convenience alias for clang-format and go-format'
-	@echo 'Documentation:'
-	@echo '    docs              - preview documentation website'
+	@echo 'Targets:'
+	@echo '    Installation:'
+	@echo '        install           - install tetragon agent and tetra as standalone binaries'
+	@echo '    Compilation:'
+	@echo '        tetragon          - compile the Tetragon agent'
+	@echo '        tetragon-operator - compile the Tetragon operator'
+	@echo '        tetra             - compile the Tetragon gRPC client'
+	@echo '        tetragon-bpf      - compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env)'
+	@echo '        test-compile      - compile unit tests'
+	@echo '        tester-progs      - compile helper programs for unit testing'
+	@echo '        compile-commands  - generate a compile_commands.json with bear for bpf programs'
+	@echo '        cli-release       - compile tetra CLI release binaries'
+	@echo '    Container images:'
+	@echo '        image             - build the Tetragon agent container image'
+	@echo '        image-operator    - build the Tetragon operator container image'
+	@echo '    Packages:'
+	@echo '        tarball           - build Tetragon compressed tarball'
+	@echo '        tarball-release   - build Tetragon release tarball'
+	@echo '    Generated files:'
+	@echo '        codegen           - generate code based on .proto files'
+	@echo '        generate          - generate kubebuilder files'
+	@echo '    Linting and chores:'
+	@echo '        vendor            - tidy and vendor Go modules'
+	@echo '        clang-format      - run code formatter on BPF code'
+	@echo '        go-format         - run code formatter on Go code'
+	@echo '        format            - convenience alias for clang-format and go-format'
+	@echo '    Documentation:'
+	@echo '        docs              - preview documentation website'
+	@echo 'Options:'
+	@echo '    TARGET_ARCH            - target architecture to build for (e.g. amd64 or arm64)'
+	@echo '    BPF_TARGET_ARCH        - target architecture for BPF progs, set by TARGET_ARCH'
+	@echo '    GO_ARCH                - target architecture for Go progs, set by TARGET_ARCH'
+	@echo '    DEBUG                  - enable NOOPT and NOSTRIP'
+	@echo '    NOOPT                  - disable optimization in Go build, set by DEBUG'
+	@echo '    NOSTRIP                - disable binary stripping in Go build, set by DEBUG'
+	@echo '    LOCAL_CLANG            - use the local clang install for BPF compilation'
+	@echo '    JOBS                   - number of jobs to run for BPF compilation (default to nproc)'
+	@echo '    EXTRA_GO_BUILD_LDFLAGS - extra flags to pass to the Go linker'
+	@echo '    EXTRA_GO_BUILD_FLAGS   - extra flags to pass to the Go builder'
+	@echo '    EXTRA_GO_BUILD_FLAGS   - extra flags to pass to the Go builder'
 
 # Generate compile-commands.json using bear
 .PHONY: compile-commands
@@ -116,7 +128,7 @@ GO_LDFLAGS = $(GO_LDFLAGS_STATIC)
 endif
 
 tetragon-bpf-local:
-	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH)
+	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) -j$(JOBS)
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
@@ -261,10 +273,6 @@ image-clang:
 	$(QUIET)echo "Push like this when ready:"
 	$(QUIET)echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
-image-clang-arm:
-	# to compile bpf programs for arm, put 'docker.io/cilium/clang.arm:latest' to CLANG_IMAGE
-	$(CONTAINER_ENGINE) build -f Dockerfile.clang.arm -t "cilium/clang.arm:${DOCKER_IMAGE_TAG}" .
-
 .PHONY: tarball tarball-release tarball-clean
 # Share same build environment as docker image
 tarball: tarball-clean image
@@ -359,8 +367,6 @@ tester-progs:
 version:
 	@echo $(VERSION)
 
-.PHONY: doc docs documentation
-doc: documentation
-docs: documentation
-documentation:
+.PHONY: docs
+docs:
 	$(MAKE) -C docs
