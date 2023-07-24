@@ -135,41 +135,19 @@ sudo rm -fr /etc/tetragon/
 
 ## Operating
 
-### Restrict gRPC API access
-
-The gRPC API supports unix sockets, it can be set using one of the following methods:
-
-- Use the `--server-address` flag:
-
-   ```
-   --server-address unix:///var/run/tetragon/tetragon.sock
-   ```
-
-- Or use the drop-in configuration file `/etc/tetragon/tetragon.conf.d/server-address` containing:
-
-   ```
-   unix:///var/run/tetragon/tetragon.sock
-   ```
+### gRPC API access
 
 {{< note >}}
-Tetragon tarball by default listens to  `unix:///var/run/tetragon/tetragon.sock`
+Tetragon tarball by default listens on `unix:///var/run/tetragon/tetragon.sock`
 {{< /note >}}
 
-Then to access the gRPC API with `tetra` client, set `--server-address` to point to the corresponding address:
+To access the gRPC API with `tetra` client, set `--server-address` to point to the corresponding address:
 
    ```
    sudo tetra --server-address unix:///var/run/tetragon/tetragon.sock getevents
    ```
 
-{{< note >}}
-When reading events with the `tetra` client, if `--server-address` is not specified,
-it will try to detect if Tetragon daemon is running on the same host and use its
-`server-address` configuration.
-{{< /note >}}
-
-{{< caution >}}
-Ensure that you have enough privileges to open the gRPC unix socket since it is restricted to privileged users only.
-{{< /caution >}}
+See [restrict gRPC API access](/docs/reference/tetragon-configuration/#restrict-grpc-api-access) for further details.
 
 ### Tetragon Events
 
