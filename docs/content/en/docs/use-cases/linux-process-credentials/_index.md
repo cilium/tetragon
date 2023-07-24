@@ -17,16 +17,6 @@ actions or to execute commands as another user. The obvious example is
 as root or another user. An other example is services or containers that can
 gain high privileges during execution to perform restricted operations.
 
-Process credentials monitoring is a good practice to identify programs
-running with high privileges. Tetragon is able to observe process credentials at
-different layers of the operating system. Each layer will generate a number of events,
-where the upper layer that is the user space layer may generate a low number
-of events, where the lower kernel layers could generate a high number of events.
-
-Depending on the use case, users should chose the right layer at which they want to
-monitor process credentials and apply the corresponding
-[Tracing Policies]({{< ref "/docs/concepts/tracing-policy" >}}).
-
 ## Composition of Linux process credentials
 
 ### Traditional UNIX credentials
@@ -61,5 +51,25 @@ provides a mechanism for various security checks to be hooked by new kernel
 extensions. Tasks can have extra controls part of LSM on what operations they
 are allowed to perform.
 
+## Tetragon Process Credentials monitoring
 
+Monitoring Linux process credentials is a good practice to idenfity programs
+running with high privileges. Tetragon allows to observer and export such credentials
+as a [`process_credentials`]({{< ref "/docs/reference/grpc-api/#processcredentials" >}}) object.
 
+{{< note >}}
+Depending on the use case, it is possible to monitor [`process_credentials`]({{< ref "/docs/reference/grpc-api/#processcredentials" >}}) object
+at different layers of the operating system, from the upper layer where user space
+runs to low kernel layers. Each layer may generate a number of events where the
+lower kernel layers are known to emit a high number of events compared to the
+upper layers.
+
+Users should chose the right layer at which they want to
+monitor process credentials and apply the corresponding [Tracing Policies]({{< ref "/docs/concepts/tracing-policy" >}}).
+{{< /note >}}
+
+### Monitor Process Credentials changes
+
+#### Monitor Process Credentials changes at the System Call layer
+
+Tetragon is able to monitor the system calls that directly manipulate the credentials. For further details, read the [Monitor Process Credentials changes at the System Call layer](/docs/use-cases/linux-process-credentials/syscalls-monitoring).

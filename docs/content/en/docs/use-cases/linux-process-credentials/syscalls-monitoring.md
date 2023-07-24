@@ -1,8 +1,8 @@
 ---
-title: "Credentials change system calls"
+title: "Monitor Process Credentials changes at the System Call layer"
 weight: 1
 icon: "overview"
-description: "Monitor credentials change system calls"
+description: "Monitor system calls that change Process Credentials"
 ---
 
 Tetragon can hook at the system calls that directly manipulate the credentials.
