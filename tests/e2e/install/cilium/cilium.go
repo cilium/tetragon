@@ -8,9 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"strings"
 
-	"github.com/vladimirvivien/gexe"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
@@ -60,14 +58,12 @@ func processOpts(opts ...Option) *Opts {
 type ciliumCLI struct {
 	cmd  string
 	opts *Opts
-	e    *gexe.Echo
 }
 
 func newCiliumCLI(opts *Opts) *ciliumCLI {
 	return &ciliumCLI{
 		cmd:  "cilium",
 		opts: opts,
-		e:    gexe.New(),
 	}
 }
 
@@ -77,8 +73,11 @@ func (c *ciliumCLI) findOrInstall() error {
 		return fmt.Errorf("cilium: cilium-cli not installed or could not be found: %w", err)
 	}
 
-	ver := c.e.Run(c.cmd + " version")
-	v := strings.Split(ver, "\n")
+	ver, err := exec.Command(c.cmd, "version").Output()
+	if err != nil {
+		return fmt.Errorf("cilium: could not execute cilium version: %w", err)
+	}
+	v := bytes.Split(ver, []byte("\n"))
 	if len(v) > 0 {
 		klog.Infof("Found cilium-cli version %s", v[0])
 	}
@@ -99,28 +98,31 @@ func (c *ciliumCLI) install() error {
 	// Uninstall pre-existing Cilium installation.
 	_ = c.uninstall()
 
-	var opts strings.Builder
+	args := []string{"install"}
 	if c.opts.Wait {
-		opts.WriteString(" --wait")
+		args = append(args, "--wait")
 	}
 	if c.opts.Namespace != "" {
-		opts.WriteString(fmt.Sprintf(" --namespace=%s", c.opts.Namespace))
+		args = append(args, fmt.Sprintf("--namespace=%s", c.opts.Namespace))
 	}
 	if c.opts.ChartDirectory != "" {
-		opts.WriteString(fmt.Sprintf(" --chart-directory=%s", c.opts.ChartDirectory))
+		args = append(args, fmt.Sprintf("--chart-directory=%s", c.opts.ChartDirectory))
 	}
 	if c.opts.Version != "" {
-		opts.WriteString(fmt.Sprintf(" --version=%s", c.opts.Version))
+		args = append(args, fmt.Sprintf("--version=%s", c.opts.Version))
 	}
 	for k, v := range c.opts.HelmOptions {
-		opts.WriteString(fmt.Sprintf(" --helm-set=%s=%s", k, v))
+		args = append(args, fmt.Sprintf("--helm-set=%s=%s", k, v))
 	}
 
-	cmd := fmt.Sprintf("%s install%s", c.cmd, opts.String())
-	klog.Infof("Running cilium install command %q", cmd)
-	p := c.e.RunProc(cmd)
-	if p.Err() != nil || p.ExitCode() != 0 {
-		return fmt.Errorf("cilium install command failed: %s: %s", p.Err(), p.Result())
+	installCmd := exec.Command(c.cmd, args...)
+	klog.Infof("Running cilium install command %s", installCmd)
+	_, err := installCmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("cilium install command failed: %s: %s", exitError.String(), exitError.Stderr)
+		}
+		return fmt.Errorf("cilium install command failed: %w", err)
 	}
 
 	c.status(true)
@@ -133,16 +135,19 @@ func (c *ciliumCLI) uninstall() error {
 		return err
 	}
 
-	var opts strings.Builder
+	args := []string{"uninstall"}
 	if c.opts.ChartDirectory != "" {
-		opts.WriteString(fmt.Sprintf("--chart-directory=%s", c.opts.ChartDirectory))
+		args = append(args, fmt.Sprintf("--chart-directory=%s", c.opts.ChartDirectory))
 	}
 
-	cmd := fmt.Sprintf("%s uninstall %s", c.cmd, opts.String())
-	klog.Infof("Running cilium uninstall command %q", cmd)
-	p := c.e.RunProc(cmd)
-	if p.Err() != nil || p.ExitCode() != 0 {
-		return fmt.Errorf("cilium uninstall command failed: %s: %s", p.Err(), p.Result())
+	uninstallCmd := exec.Command(c.cmd, args...)
+	klog.Infof("Running cilium uninstall command %s", uninstallCmd)
+	_, err := uninstallCmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("cilium uninstall command failed: %s: %s", exitError.String(), exitError.Stderr)
+		}
+		return fmt.Errorf("cilium uninstall command failed: %w", err)
 	}
 
 	return nil
@@ -153,25 +158,21 @@ func (c *ciliumCLI) status(wait bool) error {
 		return err
 	}
 
-	var flags string
+	args := []string{"status"}
 	if wait {
-		flags = "--wait"
+		args = append(args, "--wait")
 	}
-	cmd := fmt.Sprintf("%s status %s", c.cmd, flags)
-	klog.Infof("Running cilium status command %q", cmd)
-	p := c.e.StartProc(cmd)
-	if p.Err() != nil {
-		return fmt.Errorf("cilium status command failed: %s: %s", p.Err(), p.Result())
-	}
-	var stdout bytes.Buffer
-	if _, err := stdout.ReadFrom(p.StdOut()); err != nil {
-		return fmt.Errorf("failed to read from cilium status stdout: %w", err)
-	}
-	if p.Wait().Err() != nil {
-		return fmt.Errorf("cilium status command failed: %s: %w", p.Result(), p.Err())
+	statusCmd := exec.Command(c.cmd, args...)
+	klog.Infof("Running cilium status command %s", statusCmd)
+	stdout, err := statusCmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("cilium status command failed: %s: %s", exitError.String(), exitError.Stderr)
+		}
+		return fmt.Errorf("cilium status command failed: %w", err)
 	}
 
-	klog.Infof("Cilium status\n%s", stdout.String())
+	klog.Infof("Cilium status\n%s", stdout)
 
 	return nil
 }
