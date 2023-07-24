@@ -237,6 +237,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "int":
 			return true
 		}
+	case "cred":
+		switch kernelTy {
+		case "struct cred *":
+			return true
+		}
 	}
 
 	return false

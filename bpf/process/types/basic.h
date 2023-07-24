@@ -14,6 +14,7 @@
 #include "bpfmap.h"
 #include "user_namespace.h"
 #include "capabilities.h"
+#include "cred.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
 #include "common.h"
@@ -482,18 +483,49 @@ static inline __attribute__((always_inline)) long copy_sock(char *args,
 	return sizeof(struct sk_type);
 }
 
+static inline __attribute__((always_inline)) long
+copy_user_namespace(char *args, unsigned long arg)
+{
+	struct user_namespace *ns = (struct user_namespace *)arg;
+	struct user_namespace_info_type *u_ns_info =
+		(struct user_namespace_info_type *)args;
+
+	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
+	probe_read(&u_ns_info->owner, sizeof(__u32), _(&ns->owner));
+	probe_read(&u_ns_info->group, sizeof(__u32), _(&ns->group));
+	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
+
+	return sizeof(struct user_namespace_info_type);
+}
+
 static inline __attribute__((always_inline)) long copy_cred(char *args,
 							    unsigned long arg)
 {
+	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
-	struct msg_capabilities *caps = (struct msg_capabilities *)args;
+	struct cred_info_type *info = (struct cred_info_type *)args;
+	struct msg_capabilities *cap = &info->cap;
+	struct user_namespace_info_type *user_ns_info = &info->user_ns;
 
-	probe_read(&caps->effective, sizeof(__u64), _(&cred->cap_effective));
-	probe_read(&caps->inheritable, sizeof(__u64),
-		   _(&cred->cap_inheritable));
-	probe_read(&caps->permitted, sizeof(__u64), _(&cred->cap_permitted));
+	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
+	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
+	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
+	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
+	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
+	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
+	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
+	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
+	info->pad = 0;
+	info->securebits = 0;
 
-	return sizeof(struct msg_capabilities);
+	probe_read(&cap->effective, sizeof(__u64), _(&cred->cap_effective));
+	probe_read(&cap->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
+	probe_read(&cap->permitted, sizeof(__u64), _(&cred->cap_permitted));
+
+	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
+	copy_user_namespace((char *)user_ns_info, (unsigned long)ns);
+
+	return sizeof(struct cred_info_type);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1045,21 +1077,6 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
-copy_user_namespace(char *args, unsigned long arg)
-{
-	struct user_namespace *ns = (struct user_namespace *)arg;
-	struct user_namespace_info_type *u_ns_info =
-		(struct user_namespace_info_type *)args;
-
-	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
-	probe_read(&u_ns_info->owner, sizeof(__u32), _(&ns->owner));
-	probe_read(&u_ns_info->group, sizeof(__u32), _(&ns->group));
-	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
-
-	return sizeof(struct user_namespace_info_type);
-}
-
-static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
@@ -1172,7 +1189,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case sock_type:
 		return sizeof(struct sk_type);
 	case cred_type:
-		return sizeof(struct msg_capabilities);
+		return sizeof(struct cred_info_type);
 	case size_type:
 	case s64_ty:
 	case u64_ty:
