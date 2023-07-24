@@ -51,11 +51,38 @@ ifeq ($(TARGET_ARCH),arm64)
 endif
 BPF_TARGET_ARCH ?= x86
 
-GO_GCFLAGS ?= ""
-GO_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'"
-GO_LDFLAGS_STATIC="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -linkmode=external -extldflags=-static"
-GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
-GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
+ifeq ($(DEBUG),1)
+	NOOPT=1
+	NOSTRIP=1
+endif
+
+# GO_BUILD_LDFLAGS is initialized to empty use EXTRA_GO_BUILD_LDFLAGS to add link flags
+GO_BUILD_LDFLAGS =
+GO_BUILD_LDFLAGS += -X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'
+ifeq ($(NOSTRIP),)
+    # Note: these options will not remove annotations needed for stack
+    # traces, so panic backtraces will still be readable.
+    # -w: Omit the DWARF symbol table.
+    # -s: Omit the symbol table and debug information.
+    GO_BUILD_LDFLAGS += -s -w
+endif
+ifdef EXTRA_GO_BUILD_LDFLAGS
+	GO_BUILD_LDFLAGS += $(EXTRA_GO_BUILD_LDFLAGS)
+endif
+
+# GO_BUILD_FLAGS is initialized to empty use EXTRA_GO_BUILD_FLAGS to add build flags
+GO_BUILD_FLAGS =
+GO_BUILD_FLAGS += -ldflags "$(GO_BUILD_LDFLAGS)"
+ifeq ($(NOOPT),1)
+	GO_BUILD_GCFLAGS = "all=-N -l"
+    GO_BUILD_FLAGS += -gcflags=$(GO_BUILD_GCFLAGS)
+endif
+GO_BUILD_FLAGS += -mod=vendor
+ifdef EXTRA_GO_BUILD_FLAGS
+	GO_BUILD_FLAGS += $(EXTRA_GO_BUILD_FLAGS)
+endif
+
+GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 
 .PHONY: all
 all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
@@ -119,14 +146,6 @@ else
 tetragon-bpf: tetragon-bpf-container
 endif
 
-ifeq (1,$(NOOPT))
-GO_GCFLAGS = "all=-N -l"
-endif
-
-ifeq (1,$(STATIC))
-GO_LDFLAGS = $(GO_LDFLAGS_STATIC)
-endif
-
 tetragon-bpf-local:
 	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) -j$(JOBS)
 
@@ -141,32 +160,31 @@ verify: tetragon-bpf
 
 .PHONY: tetragon tetra tetragon-operator tetragon-alignchecker tetragon-bench
 tetragon:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon/
+	$(GO_BUILD) ./cmd/tetragon/
 
 tetra:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetra/
+	$(GO_BUILD) ./cmd/tetra/
 
 tetragon-bench:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor ./cmd/tetragon-bench/
+	$(GO_BUILD) ./cmd/tetragon-bench/
 
 tetragon-operator:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o $@ ./operator
+	$(GO_BUILD) -o $@ ./operator
 
 tetragon-alignchecker:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o $@ ./tools/alignchecker/
+	$(GO_BUILD) -o $@ ./tools/alignchecker/
 
 .PHONY: ksyms
 ksyms:
 	$(GO) build ./cmd/ksyms/
 
-# GOARCH=$(GOARCH) is for logging purposes
 .PHONY: tetragon-image tetragon-operator-image
 tetragon-image:
-	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetragon/
-	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) $(GO) build -tags netgo -mod=vendor -ldflags=$(GO_IMAGE_LDFLAGS) ./cmd/tetra/
+	$(GO_BUILD) ./cmd/tetragon/
+	$(GO_BUILD) ./cmd/tetra/
 
 tetragon-operator-image:
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) $(GO) build -ldflags=$(GO_OPERATOR_IMAGE_LDFLAGS) -mod=vendor -o tetragon-operator ./operator
+	$(GO_BUILD) -o tetragon-operator ./operator
 
 .PHONY: install
 install:
@@ -191,7 +209,7 @@ clean: cli-clean tarball-clean
 
 .PHONY: test
 test: tester-progs tetragon-bpf
-	$(SUDO) $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ${EXTRA_TESTFLAGS}
+	$(SUDO) $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ${EXTRA_TESTFLAGS}
 
 # Agent image to use for end-to-end tests
 E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
@@ -215,7 +233,7 @@ e2e-test: image image-operator
 else
 e2e-test:
 endif
-	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes)" $(E2E_BTF_FLAGS)
+	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes)" $(E2E_BTF_FLAGS)
 
 TEST_COMPILE ?= ./...
 .PHONY: test-compile
@@ -229,7 +247,7 @@ test-compile:
 			continue; \
 		fi; \
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
-	done | xargs -P $$(nproc) -L 1 $(GO) test -gcflags=$(GO_GCFLAGS)
+	done | xargs -P $$(nproc) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
 
 .PHONY: check-copyright update-copyright
 check-copyright:
@@ -314,7 +332,7 @@ codegen: image-codegen
 	$(MAKE) vendor
 
 protoc-gen-go-tetragon:
-	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o bin/$@ ./cmd/protoc-gen-go-tetragon/
+	$(GO_BUILD) -o bin/$@ ./cmd/protoc-gen-go-tetragon/
 
 .PHONY: check
 ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
