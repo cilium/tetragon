@@ -187,3 +187,11 @@ it will try to detect if Tetragon daemon is running on the same host and use its
 {{< caution >}}
 Ensure that you have enough privileges to open the gRPC unix socket since it is restricted to privileged users only.
 {{< /caution >}}
+
+## Configure Tracing Policies location
+
+Tetragon daemon automatically loads [Tracing policies](/docs/concepts/tracing-policy) from the default `/etc/tetragon/tetragon.tp.d/` directory. Tracing policies can be organized in directories such: `/etc/tetragon/tetragon.tp.d/file-access`, `/etc/tetragon/tetragon.tp.d/network-access`, etc.
+
+The `--tracing-policy-dir` controlling setting can be used to change the default directory from where [Tracing policies](/docs/concepts/tracing-policy) are loaded.
+
+The `--tracing-policy` controlling setting can be used to specify the path of one tracing policy to load.
