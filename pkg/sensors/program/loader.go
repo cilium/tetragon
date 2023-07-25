@@ -367,6 +367,7 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: MultiKprobeAttach(load),
+		open:   KprobeOpen(load),
 		ci:     &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"},
 	}
 	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
