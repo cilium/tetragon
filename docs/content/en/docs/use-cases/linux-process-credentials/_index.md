@@ -72,4 +72,10 @@ monitor process credentials and apply the corresponding [Tracing Policies]({{< r
 
 #### Monitor Process Credentials changes at the System Call layer
 
-Tetragon is able to monitor the system calls that directly manipulate the credentials. For further details, read the [Monitor Process Credentials changes at the System Call layer](./syscalls-monitoring).
+Tetragon is able to monitor the system calls that directly manipulate the credentials. For further details, read the [Monitor Process Credentials changes at the System Call layer](/docs/use-cases/linux-process-credentials/syscalls-monitoring).
+
+#### Monitor Process Credentials changes at the kernel layer
+
+Monitoring process credentials manipulation at kernel layer is easy with Tetragon, read the [Monitor Process Credentials changes at the kernel layer](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel) guide.
+
+Generally it is better to monitor at the kernel layer, however this may generate lot of events, for further details please read on [Advantages of Kernel layer monitoring](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel#advantages-of-kernel-layer-monitoring) section.
