@@ -2312,6 +2312,258 @@ spec:
 	runKprobeOverrideSignal(t, openAtHook, checker, file.Name(), syscall.ENOENT, true, syscall.SIGUSR1)
 }
 
+func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChecker,
+	testFile, testLink string, errOpen, errHardlink, errSymlink error) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	configHook := []byte(hook)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd, err := syscall.Open(testFile, syscall.O_RDWR, 0x777)
+	if fd >= 0 {
+		t.Logf("syscall.Open succeeded\n")
+		syscall.Close(fd)
+		t.Fatal()
+	}
+
+	if !errors.Is(err, errOpen) {
+		t.Fatalf("syscall.Open wrong error %v\n", err)
+	}
+
+	err = syscall.Link(testFile, testLink)
+	if err == nil {
+		t.Fatalf("syscall.Link succeeded\n")
+	}
+
+	if !errors.Is(err, errHardlink) {
+		t.Fatalf("syscall.Link wrong error %v\n", err)
+	}
+
+	err = syscall.Symlink(testFile, testLink)
+	if err == nil {
+		t.Fatalf("syscall.Symlink succeeded\n")
+	}
+
+	if !errors.Is(err, errSymlink) {
+		t.Fatalf("syscall.Symlink wrong error %v\n", err)
+	}
+
+	err = syscall.Rename(testFile, testLink)
+	if err != nil {
+		t.Fatalf("syscall.Rename failed\n")
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeOverrideMulti(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+
+	if !bpf.HasOverrideHelper() {
+		t.Skip("skipping override test, bpf_override_return helper not available")
+	}
+
+	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("CreateTemp failed: %s", err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	link, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("CreateTemp failed: %s", err)
+	}
+	defer assert.NoError(t, link.Close())
+
+	// The test hooks on 4 syscalls and override 3 of them.
+	//
+	//   sys_openat        override with -1
+	//   sys_linkat        override with -2
+	//   sys_symlinkat     override with -3
+	//   sys_renameat      no override
+
+	multiHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-openat-signal-override"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Override
+        argError: -1
+  - call: "sys_linkat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    - index: 3
+      type: "string"
+    - index: 4
+      type: "int"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Override
+        argError: -2
+  - call: "sys_symlinkat"
+    syscall: true
+    args:
+    - index: 0
+      type: "string"
+    - index: 1
+      type: "int"
+    - index: 2
+      type: "string"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+      matchActions:
+      - action: Override
+        argError: -3
+  - call: "sys_renameat"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    - index: 3
+      type: "string"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `\0"
+`
+
+	openChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-1)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+
+	symlinkChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_linkat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(link.Name())),
+				ec.NewKprobeArgumentChecker(),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+
+	hardlinkChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_symlinkat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(link.Name())),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+
+	renameChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_renameat"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
+				ec.NewKprobeArgumentChecker(),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(link.Name())),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	checker := ec.NewUnorderedEventChecker(openChecker, symlinkChecker, hardlinkChecker, renameChecker)
+
+	runKprobeOverrideMulti(t, multiHook, checker, file.Name(), link.Name(), syscall.EPERM, syscall.ENOENT, syscall.ESRCH)
+}
+
 func runKprobe_char_iovec(t *testing.T, configHook string,
 	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
 	var doneWG, readyWG sync.WaitGroup
