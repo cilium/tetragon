@@ -241,7 +241,9 @@ execve_send(struct sched_execve_args *ctx)
 
 	curr = execve_map_get_noinit(pid);
 	if (curr) {
-		event->cleanup_key = curr->key;
+		if (!(curr->flags & EVENT_COMMON_FLAG_CLONE)) {
+			event->cleanup_key = curr->key;
+		}
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
 		/* if this exec event preceds a clone, initialize  capabilities
 		 * and namespaces as well.
