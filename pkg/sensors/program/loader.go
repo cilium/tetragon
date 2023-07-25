@@ -276,6 +276,19 @@ func LSMAttach() AttachFunc {
 	}
 }
 
+func MultiKprobeOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		// Disable loading of override program if it's not needed
+		if !load.Override {
+			progOverrideSpec, ok := coll.Programs["generic_kprobe_override"]
+			if ok {
+				progOverrideSpec.Type = ebpf.UnspecifiedProgram
+			}
+		}
+		return nil
+	}
+}
+
 func MultiKprobeAttach(load *Program) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
@@ -367,6 +380,7 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: MultiKprobeAttach(load),
+		open:   MultiKprobeOpen(load),
 		ci:     &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"},
 	}
 	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
