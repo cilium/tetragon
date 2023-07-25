@@ -555,6 +555,7 @@ func createGenericKprobeSensor(
 			logger.GetLogger().
 				WithField("return", setRetprobe).
 				WithField("function", kprobeEntry.funcName).
+				WithField("override", kprobeEntry.hasOverride).
 				Infof("Added multi kprobe")
 			continue
 		}
@@ -643,6 +644,7 @@ func createGenericKprobeSensor(
 		}
 
 		logger.GetLogger().WithField("flags", flagsString(config.Flags)).
+			WithField("override", kprobeEntry.hasOverride).
 			Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	}
 
