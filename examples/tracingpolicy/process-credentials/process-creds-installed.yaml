@@ -1,0 +1,43 @@
+# This 'process-creds-installed' Tracing Policy monitors calls to
+# commit_creds() when installing new credentials on the current task.
+#
+# The commit_creds() is a catch all:
+#  * It is triggered on every execve even if semantically creds did not change
+#  * When gaining new privileges or capabilities through suid exec or
+#    system calls.
+#  * During fork/clone and when changing the user namespace
+#  * When changing other namespaces and the file system
+#  * When controlling current process through prctl() system call
+#  * When installing new process keyring
+#  * When the kernel executes programs (umh)
+#  * ...
+#
+# It works inside a pid namespace. If you want to monitor all
+# processes including host ones, remove the matchNamespaces selector.
+#
+# Note: it can generate lot of events.
+#
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+  annotations:
+    author: "Djalal Harouni"
+spec:
+  kprobes:
+  - call: "commit_creds"
+    syscall: false
+    args:
+    - index: 0  # The new credentials to apply
+      type: "cred"
+    selectors:
+      - matchNamespaces:
+        - namespace: Pid
+          operator: NotIn
+          values:
+          - "host_ns"
+        matchActions:
+        - action: Post
+          rateLimit: "1m"
+
