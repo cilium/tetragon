@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -135,12 +136,12 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		if err != nil {
 			return proc, false, err
 		}
-		proc.Filename = string(data[:])
+		proc.Filename = strutils.UTF8FromBPFBytes(data[:])
 		args = args[unsafe.Sizeof(desc):]
 	} else if exec.Flags&api.EventErrorFilename == 0 {
 		n := bytes.Index(args, []byte{0x00})
 		if n != -1 {
-			proc.Filename = string(args[:n])
+			proc.Filename = strutils.UTF8FromBPFBytes(args[:n])
 			args = args[n+1:]
 		}
 	}
@@ -176,7 +177,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		cmdArgs = bytes.Split(args, []byte{0x00})
 	}
 
-	proc.Args = string(bytes.Join(cmdArgs[0:], []byte{0x00}))
+	proc.Args = strutils.UTF8FromBPFBytes(bytes.Join(cmdArgs[0:], []byte{0x00}))
 	return proc, false, nil
 }
 
