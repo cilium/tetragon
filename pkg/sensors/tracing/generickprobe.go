@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"path"
@@ -786,35 +788,43 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, verbo
 		load.LoaderData, load.LoaderData)
 }
 
-// handleGenericKprobeString: reads a string argument. Strings are encoded with their size first.
-// def is return in case of an error.
-func handleGenericKprobeString(r *bytes.Reader, def string) string {
-	var b int32
+var errParseStringSize = errors.New("error parsing string size from binary")
 
-	err := binary.Read(r, binary.LittleEndian, &b)
+// this is from bpf/process/types/basic.h 'MAX_STRING'
+const maxStringSize = 1024
+
+// parseString parses strings encoded from BPF copy_strings in the form:
+// *---------*---------*
+// | 4 bytes | N bytes |
+// |  size   | string  |
+// *---------*---------*
+func parseString(r io.Reader) (string, error) {
+	var size int32
+	err := binary.Read(r, binary.LittleEndian, &size)
 	if err != nil {
-		/* If no size then path walk was not possible and file was either
-		 * a mount point or not a "file" at all which can happen if running
-		 * without any filters and kernel opens an anonymous inode. For this
-		 * lets just report its on "/" all though pid filtering will mostly
-		 * catch this.
-		 */
-		logger.GetLogger().WithError(err).Warnf("handleGenericKprobeString: read string size failed")
-		return def
-	}
-	outputStr := make([]byte, b)
-	err = binary.Read(r, binary.LittleEndian, &outputStr)
-	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("handleGenericKprobeString: read string with size %d", b)
-		return def
+		return "", fmt.Errorf("%w: %s", errParseStringSize, err)
 	}
 
-	strVal := strutils.UTF8FromBPFBytes(outputStr[:])
-	lenStrVal := len(strVal)
-	if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
-		strVal = strVal[0 : lenStrVal-1]
+	if size < 0 {
+		return "", errors.New("string size is negative")
 	}
-	return strVal
+
+	// limit the size of the string to avoid huge memory allocation and OOM kill in case of issue
+	if size > maxStringSize {
+		return "", fmt.Errorf("string size too large: %d, max size is %d", size, maxStringSize)
+	}
+	stringBuffer := make([]byte, size)
+	err = binary.Read(r, binary.LittleEndian, &stringBuffer)
+	if err != nil {
+		return "", fmt.Errorf("error parsing string from binary with size %d: %s", size, err)
+	}
+
+	// remove the trailing '\0' from the C string
+	if len(stringBuffer) > 0 && stringBuffer[len(stringBuffer)-1] == '\x00' {
+		stringBuffer = stringBuffer[:len(stringBuffer)-1]
+	}
+
+	return strutils.UTF8FromBPFBytes(stringBuffer), nil
 }
 
 func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
@@ -978,7 +988,19 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r, "/")
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					// If no size then path walk was not possible and file was
+					// either a mount point or not a "file" at all which can
+					// happen if running without any filters and kernel opens an
+					// anonymous inode. For this lets just report its on "/" all
+					// though pid filtering will mostly catch this.
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type file")
+				}
+			}
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)
@@ -994,7 +1016,14 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			var flags uint32
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r, "/")
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type path")
+				}
+			}
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)
@@ -1009,7 +1038,10 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			var arg api.MsgGenericKprobeArgString
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r, "")
+			arg.Value, err = parseString(r)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warn("error parsing arg type string")
+			}
 
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
