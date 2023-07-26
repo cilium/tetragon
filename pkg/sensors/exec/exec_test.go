@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -728,5 +729,45 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, string(cwd), decCwd)
 	}
 
+	{
+		// - filename (non-utf8)
+		// - args (data event, non-utf8)
+		// - cwd (string)
+
+		var args []byte
+		args = append(args, '\xc3', '\x28', 0, 'a', 'r', 'g', '2', 0)
+		filename := []byte{'p', 'i', 'z', 'z', 'a', '-', '\xc3', '\x28'}
+		cwd := []byte{'/', 'h', 'o', 'm', 'e', '/', '\xc3', '\x28'}
+
+		id := dataapi.DataEventId{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id}
+		err = observer.DataAdd(id, args)
+		assert.NoError(t, err)
+
+		exec.Flags = api.EventDataArgs
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, []byte{0})
+		binary.Write(&buf, binary.LittleEndian, desc)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, empty, err := execParse(reader)
+		assert.NoError(t, err)
+
+		// execParse check
+		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
+		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
+		assert.Equal(t, empty, false)
+
+		// ArgsDecoder check
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "�( arg2", decArgs)
+		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
+	}
 	observer.DataPurge()
 }
