@@ -42,6 +42,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"golang.org/x/sys/unix"
 )
@@ -168,7 +169,7 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	msg := &tracing.MsgProcessLoaderUnix{
 		ProcessKey: m.ProcessKey,
 		Ktime:      m.Common.Ktime,
-		Path:       string(path),
+		Path:       strutils.UTF8FromBPFBytes(path),
 		Buildid:    m.BuildId[:m.BuildIdSize],
 	}
 	return []observer.Event{msg}, nil
