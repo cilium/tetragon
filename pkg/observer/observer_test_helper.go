@@ -10,7 +10,6 @@ package observer
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/encoder"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -55,7 +55,6 @@ var (
 )
 
 type testObserverOptions struct {
-	pretty     bool
 	crd        bool
 	config     string
 	lib        string
@@ -97,12 +96,6 @@ func WithDenyList(denyList *tetragon.Filter) TestOption {
 	}
 }
 
-func withPretty() TestOption {
-	return func(o *TestOptions) {
-		o.observer.pretty = true
-	}
-}
-
 func WithConfig(config string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.config = config
@@ -136,7 +129,7 @@ func withNotestfail(notestfail bool) TestOption {
 func testDone(t *testing.T, obs *Observer) {
 	if t.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
-		if err := bugtool.Bugtool(bugtoolFname); err == nil {
+		if err := bugtool.Bugtool(bugtoolFname, ""); err == nil {
 			logger.GetLogger().WithField("test", t.Name()).
 				WithField("file", bugtoolFname).Info("Dumped bugtool info")
 		} else {
@@ -198,7 +191,6 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
-			pretty: false,
 			crd:    false,
 			config: "",
 			lib:    "",
@@ -323,7 +315,6 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 
 func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
@@ -331,7 +322,6 @@ func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Se
 
 func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	b := base.GetInitialSensor()
@@ -340,7 +330,6 @@ func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib str
 
 func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	b := base.GetInitialSensor()
@@ -350,7 +339,6 @@ func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib stri
 
 func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*Observer, error) {
 	opts = append(opts, WithConfig(file))
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 	opts = append(opts, withNotestfail(fail))
 
@@ -416,7 +404,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 	if err != nil {
 		return err
 	}
-	encoder := json.NewEncoder(outF)
+	encoder := encoder.NewProtojsonEncoder(outF)
 
 	req := tetragon.GetEventsRequest{AllowList: opts.allowList, DenyList: opts.denyList}
 	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
@@ -589,7 +577,6 @@ func WriteConfigFile(fileName, config string) error {
 func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
 
-	opts = append(opts, withPretty())
 	opts = append(opts, WithLib(lib))
 
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
@@ -598,7 +585,6 @@ func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...T
 func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*Observer, error) {
 	b := base.GetInitialSensor()
 
-	opts = append(opts, withPretty())
 	opts = append(opts, WithConfig(config))
 	opts = append(opts, WithLib(lib))
 

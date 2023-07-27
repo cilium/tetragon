@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -63,7 +62,7 @@ func (k *Cluster) getKubeconfig() (string, error) {
 		return "", fmt.Errorf("kind get kubeconfig: %s: %w", p.Result(), p.Err())
 	}
 
-	file, err := ioutil.TempFile("", fmt.Sprintf("kind-cluser-%s", kubecfg))
+	file, err := os.CreateTemp("", fmt.Sprintf("kind-cluser-%s", kubecfg))
 	if err != nil {
 		return "", fmt.Errorf("kind kubeconfig file: %w", err)
 	}

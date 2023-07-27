@@ -5,13 +5,15 @@ package ratelimit
 
 import (
 	"context"
-	"encoding/json"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type RateLimiter struct {
@@ -30,7 +32,7 @@ func getLimit(numEvents int, interval time.Duration) rate.Limit {
 	return rate.Every(interval / time.Duration(numEvents))
 }
 
-func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, encoder *json.Encoder) *RateLimiter {
+func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, encoder encoder.EventEncoder) *RateLimiter {
 	if numEvents < 0 {
 		return nil
 	}
@@ -44,27 +46,21 @@ func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, 
 	return r
 }
 
-type Info struct {
-	NumberOfDroppedProcessEvents uint64 `json:"number_of_dropped_process_events"`
-}
-
-type InfoEvent struct {
-	RateLimitInfo *Info     `json:"rate_limit_info"`
-	NodeName      string    `json:"node_name"`
-	Time          time.Time `json:"time"`
-}
-
-func (r *RateLimiter) reportRateLimitInfo(encoder *json.Encoder) {
+func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 	ticker := time.NewTicker(r.reportInterval)
 	for {
 		select {
 		case <-ticker.C:
 			dropped := atomic.SwapUint64(&r.dropped, 0)
 			if dropped > 0 {
-				err := encoder.Encode(&InfoEvent{
-					RateLimitInfo: &Info{NumberOfDroppedProcessEvents: dropped},
-					NodeName:      node.GetNodeNameForExport(),
-					Time:          time.Now(),
+				err := encoder.Encode(&tetragon.GetEventsResponse{
+					Event: &tetragon.GetEventsResponse_RateLimitInfo{
+						RateLimitInfo: &tetragon.RateLimitInfo{
+							NumberOfDroppedProcessEvents: dropped,
+						},
+					},
+					NodeName: node.GetNodeNameForExport(),
+					Time:     timestamppb.New(time.Now()),
 				})
 				if err != nil {
 					logger.GetLogger().

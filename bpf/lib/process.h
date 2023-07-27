@@ -4,7 +4,7 @@
 #ifndef _PROCESS__
 #define _PROCESS__
 
-#include "hubble_msg.h"
+#include "bpf_event.h"
 #include "bpf_helpers.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the

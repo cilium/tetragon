@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
@@ -36,6 +38,48 @@ const (
 	Never  ColorMode = "never"  // disable colored output.
 	Auto   ColorMode = "auto"   // automatically enable / disable colored output based on terminal settings.
 )
+
+type TtyEncoder struct {
+	Writer io.Writer
+	Tty    string
+}
+
+func NewTtyEncoder(w io.Writer, tty string) *TtyEncoder {
+	return &TtyEncoder{
+		Writer: w,
+		Tty:    tty,
+	}
+}
+
+// Encode implements EventEncoder.Encode.
+func (p *TtyEncoder) Encode(v interface{}) error {
+	event, ok := v.(*tetragon.GetEventsResponse)
+	if !ok {
+		return ErrInvalidEvent
+	}
+
+	switch event.Event.(type) {
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		kprobe := event.GetProcessKprobe()
+
+		file := ""
+		if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[0].GetFileArg() != nil {
+			file = kprobe.Args[0].GetFileArg().Path
+		}
+
+		if file != p.Tty {
+			return nil
+		}
+
+		bytes := []byte{}
+		if len(kprobe.Args) > 1 && kprobe.Args[1] != nil && kprobe.Args[1].GetBytesArg() != nil {
+			bytes = kprobe.Args[1].GetBytesArg()
+		}
+
+		os.Stdout.Write(bytes)
+	}
+	return nil
+}
 
 // CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {
@@ -69,6 +113,36 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 		str = fmt.Sprintf("%s %s", ts, str)
 	}
 	fmt.Fprintln(p.Writer, str)
+	return nil
+}
+
+type ProtojsonEncoder struct {
+	w io.Writer
+}
+
+func NewProtojsonEncoder(w io.Writer) *ProtojsonEncoder {
+	return &ProtojsonEncoder{
+		w,
+	}
+}
+
+func (p *ProtojsonEncoder) Encode(v interface{}) error {
+	// TODO(WF): We may want to implement a streaming API here, similar to what they do in
+	// encoding/json. For now, I think this is probably fine though.
+	event, ok := v.(*tetragon.GetEventsResponse)
+	if !ok {
+		return ErrInvalidEvent
+	}
+	out, err := protojson.MarshalOptions{
+		// Our old exporter's behaviour was to use the snake_case names rather than
+		// camelCase. We want to maintain backward compatibility here so let's do the
+		// same thing in the protojson encoder.
+		UseProtoNames: true,
+	}.Marshal(event)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(p.w, string(out))
 	return nil
 }
 
@@ -305,6 +379,49 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				bpfmap := kprobe.Args[0].GetBpfMapArg()
 				attr = p.Colorer.Cyan.Sprintf("%s %s key size %d value size %d max entries %d", bpfmap.MapType,
 					bpfmap.MapName, bpfmap.KeySize, bpfmap.ValueSize, bpfmap.MaxEntries)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_file_permission":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_file_permission")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+				file := kprobe.Args[0].GetFileArg()
+				action := kprobe.Args[1].GetIntArg()
+				if action == 0x02 {
+					event = p.Colorer.Blue.Sprintf("📝 %-7s", "write")
+				} else if action == 0x04 {
+					event = p.Colorer.Blue.Sprintf("📚 %-7s", "read")
+				}
+				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_mmap_file":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_mmap_file")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+				file := kprobe.Args[0].GetFileArg()
+				action := kprobe.Args[1].GetUintArg()
+				eventTag := "mmap-"
+				if action&0x01 != 0 { // PROT_READ
+					eventTag += "r"
+				}
+				if action&0x02 != 0 { // PROT_WRITE
+					eventTag += "w"
+				}
+				if action&0x04 != 0 { // PROT_EXEC
+					eventTag += "x"
+				}
+				event = p.Colorer.Blue.Sprintf("📝 %-7s", eventTag)
+				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_path_truncate":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_path_truncate")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				path := kprobe.Args[0].GetPathArg()
+				attr = p.Colorer.Cyan.Sprintf("%s", path.Path)
+				event = p.Colorer.Blue.Sprintf("📝 %-7s", "truncate")
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:

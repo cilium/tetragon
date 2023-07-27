@@ -8,7 +8,8 @@ import (
 
 var (
 	LoaderStats = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "process_loader_stats",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "process_loader_stats",
 		Help:        "Process Loader event statistics. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"count"})

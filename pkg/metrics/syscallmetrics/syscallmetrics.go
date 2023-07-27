@@ -13,7 +13,8 @@ import (
 
 var (
 	syscallStats = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "syscall_stats",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "syscalls_total",
 		Help:        "System calls observed.",
 		ConstLabels: nil,
 	}, []string{"syscall", "namespace", "pod", "binary"})

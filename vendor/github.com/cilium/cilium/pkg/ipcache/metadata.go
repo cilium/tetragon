@@ -176,6 +176,9 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 		entriesToReplace   = make(map[netip.Prefix]Identity)
 		entriesToDelete    = make(map[netip.Prefix]Identity)
 		forceIPCacheUpdate = make(map[netip.Prefix]bool) // prefix => force
+
+		// Just used to silence a warning where it is safe
+		oldIDs = make(map[netip.Prefix]Identity)
 	)
 
 	ipc.metadata.RLock()
@@ -189,12 +192,11 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				continue
 			} // else continue below to remove the old entry
 		} else {
+			oldIDs[prefix] = id
 			var newID *identity.Identity
 
-			lbls := prefixInfo.ToLabels()
-
 			// Insert to propagate the updated set of labels after removal.
-			newID, _, err = ipc.injectLabels(ctx, prefix, lbls)
+			newID, _, err = ipc.injectLabels(ctx, prefix, prefixInfo.ToLabels())
 			if err != nil {
 				// NOTE: This may fail during a 2nd or later
 				// iteration of the loop. To handle this, break
@@ -209,7 +211,7 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				log.WithError(err).WithFields(logrus.Fields{
 					logfields.IPAddr:   prefix,
 					logfields.Identity: id,
-					logfields.Labels:   lbls, // new labels
+					logfields.Labels:   newID.Labels, // new labels
 				}).Warning(
 					"Failed to allocate new identity while handling change in labels associated with a prefix.",
 				)
@@ -218,17 +220,14 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				break
 			}
 
-			// It's plausible to pull the same information twice
-			// from different sources, for instance in etcd mode
-			// where node information is propagated both via the
-			// kvstore and via the k8s control plane. If the new
-			// security identity is the same as the one currently
-			// being used, then no need to update it.
-			if id.ID == newID.ID {
+			// We can safely skip the ipcache upsert if the ID and source
+			// in the metadata cache match the ipcache exactly.
+			// Note that checking ID alone is insufficient, see GH-24502
+			if id.ID == newID.ID && prefixInfo.Source() == id.Source {
 				goto releaseIdentity
 			}
 
-			idsToAdd[newID.ID] = lbls.LabelArray()
+			idsToAdd[newID.ID] = newID.Labels.LabelArray()
 			entriesToReplace[prefix] = Identity{
 				ID:     newID.ID,
 				Source: prefixInfo.Source(),
@@ -239,7 +238,7 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 			// have now been removed, then we need to explicitly
 			// work around that to remove the old higher-priority
 			// identity and replace it with this new identity.
-			if entryExists && prefixInfo.Source() != id.Source {
+			if entryExists && prefixInfo.Source() != id.Source && id.ID != newID.ID {
 				forceIPCacheUpdate[prefix] = true
 			}
 		}
@@ -279,10 +278,23 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 			id,
 			forceIPCacheUpdate[p],
 		); err2 != nil {
-			log.WithError(err2).WithFields(logrus.Fields{
-				logfields.IPAddr:   prefix,
-				logfields.Identity: id,
-			}).Error("Failed to replace ipcache entry with new identity after label removal. Traffic may be disrupted.")
+			// It's plausible to pull the same information twice
+			// from different sources, for instance in etcd mode
+			// where node information is propagated both via the
+			// kvstore and via the k8s control plane. If the
+			// upsert was rejected due to source precedence, but the
+			// identity is unchanged, then we can safely ignore the
+			// error message.
+			oldID, ok := oldIDs[p]
+			if !(ok && oldID.ID == id.ID && errors.Is(err2, &ErrOverwrite{
+				ExistingSrc: oldID.Source,
+				NewSrc:      id.Source,
+			})) {
+				log.WithError(err2).WithFields(logrus.Fields{
+					logfields.IPAddr:   prefix,
+					logfields.Identity: id,
+				}).Error("Failed to replace ipcache entry with new identity after label removal. Traffic may be disrupted.")
+			}
 		}
 	}
 
@@ -360,6 +372,17 @@ func (ipc *IPCache) UpdatePolicyMaps(ctx context.Context, addedIdentities, delet
 // account for the new kube-apiserver label that will be attached to them. This
 // is a known issue, see GH-17962 below.
 func (ipc *IPCache) injectLabels(ctx context.Context, prefix netip.Prefix, lbls labels.Labels) (*identity.Identity, bool, error) {
+	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) &&
+		(lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) ||
+			lbls.Has(labels.LabelHost[labels.IDNameHost])) {
+		// If the prefix is associated with both world and (remote-node or
+		// host), then the latter (remote-node or host) take precedence to
+		// avoid allocating a CIDR identity for an entity within the cluster.
+		n := lbls.Remove(labels.LabelWorld)
+		n = n.Remove(cidrlabels.GetCIDRLabels(prefix))
+		lbls = n
+	}
+
 	if lbls.Has(labels.LabelHost[labels.IDNameHost]) {
 		// Associate any new labels with the host identity.
 		//
@@ -459,7 +482,7 @@ func (m *metadata) filterByLabels(filter labels.Labels) []netip.Prefix {
 // This function assumes that the ipcache metadata lock is held for writing.
 func (m *metadata) remove(prefix netip.Prefix, resource types.ResourceID, aux ...IPMetadata) {
 	info, ok := m.m[prefix]
-	if !ok {
+	if !ok || info[resource] == nil {
 		return
 	}
 	for _, a := range aux {

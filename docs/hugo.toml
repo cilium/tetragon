@@ -90,7 +90,7 @@ archived_version = false
 # The version number for the version of the docs represented in this doc set.
 # Used in the "version-banner" partial to display a version number for the
 # current doc set.
-version = "v0.9.0"
+version = "v0.10.0"
 
 # A link to latest version of the docs. Used in the "version-banner" partial to
 # point people to the main doc site.
@@ -166,7 +166,9 @@ navbar_logo = true
 # Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
 navbar_translucent_over_cover_disable = false
 # Enable to show the side bar menu in its compact state.
-sidebar_menu_compact = false
+sidebar_menu_compact = true
+# Set a desired menu depth always visible
+ul_show = 2
 # Set to true to hide the sidebar search box (the top nav search box will still be displayed if search is enabled)
 sidebar_search_disable = false
 

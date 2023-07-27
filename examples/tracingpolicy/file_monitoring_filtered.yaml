@@ -1,0 +1,68 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring-filtered"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "int" # 0x04 is MAY_READ, 0x02 is MAY_WRITE
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:      
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd" # the files that we care
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2" # MAY_WRITE
+  - call: "security_mmap_file"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "uint32" # the prot flags PROT_READ(0x01), PROT_WRITE(0x02), PROT_EXEC(0x04)
+    - index: 2
+      type: "nop" # the mmap flags (i.e. MAP_SHARED, ...)
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd" # the files that we care
+      - index: 1
+        operator: "Mask"
+        values:
+        - "2" # PROT_WRITE
+  - call: "security_path_truncate"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "path" # (struct path *) used for getting the path
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd" # the files that we care

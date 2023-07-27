@@ -57,8 +57,8 @@ func TestGenericTracepointSimple(t *testing.T) {
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
-			{Index: 7}, /* whence */
-			{Index: 5}, /* fd */
+			{Index: 7},                 /* whence */
+			{Index: 5, Type: "sint32"}, /* fd */
 		},
 	}
 
@@ -83,7 +83,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(fdBogusValue), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
 			))
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -202,7 +202,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 }
 
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
-	fd_u := uint64(100)
+	fd_u := int32(100)
 	fd := 100
 	whence_u := uint64(whenceBogusValue)
 	whenceStr := fmt.Sprintf("%d", whenceBogusValue)
@@ -216,7 +216,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 				Index: 7, /* whence */
 			},
 			{
-				Index: 5, /* fd */
+				Index: 5, Type: "sint32", /* fd */
 			},
 		},
 		Selectors: []v1alpha1.KProbeSelector{
@@ -250,11 +250,11 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		if xwhence != whence_u {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
 		}
-		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_SizeArg)
+		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_IntArg)
 		if !ok {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[1])
 		}
-		xfd := arg1.SizeArg
+		xfd := arg1.IntArg
 		if xfd != fd_u {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xfd, fd)
 		}
@@ -447,7 +447,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11, 13}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13}})
 	} else {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5, 11}})
@@ -497,8 +497,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
-			{Index: 7}, /* whence */
-			{Index: 5}, /* fd */
+			{Index: 7},                 /* whence */
+			{Index: 5, Type: "sint32"}, /* fd */
 		},
 	}
 
@@ -564,7 +564,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
 			)).WithProcess(child1Checker).WithParent(parentCheck)
 
 	thread1Checker := ec.NewProcessChecker().
@@ -579,7 +579,113 @@ func TestTracepointCloneThreads(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(whenceBogusValue)),
-				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(uint32(fdBogusValue))), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
+			)).WithProcess(thread1Checker).WithParent(parentCheck)
+
+	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestTracepointForceType(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	lseekConfigHook_ := `
+kind: TracingPolicy
+metadata:
+  name: "raw-syscalls"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    # args: add both the syscall id, and the array with the arguments
+    args:
+    # fd argument
+    - index: 5
+      type: "sint32"
+    # whence argument
+    - index: 7
+      type: "sint32"
+`
+
+	lseekConfigHook := []byte(lseekConfigHook_)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testBinPath := "contrib/tester-progs/threads-tester"
+	testBin := testutils.RepoRootPath(testBinPath)
+	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "tracepoint")
+	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testPipes.Close()
+
+	cti := &testutils.ThreadTesterInfo{}
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	logWG := testPipes.ParseAndLogCmdOutput(t, cti.ParseLine, nil)
+	logWG.Wait()
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	cti.AssertPidsTids(t)
+
+	parentCheck := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.ParentPid).
+		WithTid(cti.ParentTid)
+
+	execCheck := ec.NewProcessExecChecker("").
+		WithProcess(parentCheck)
+
+	exitCheck := ec.NewProcessExitChecker("").
+		WithProcess(parentCheck)
+
+	child1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Child1Pid).
+		WithTid(cti.Child1Tid)
+
+	child1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(whenceBogusValue)),
+			)).WithProcess(child1Checker).WithParent(parentCheck)
+
+	thread1Checker := ec.NewProcessChecker().
+		WithBinary(smatcher.Suffix("threads-tester")).
+		WithPid(cti.Thread1Pid).
+		WithTid(cti.Thread1Tid)
+
+	thread1TpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fdBogusValue)), // -1
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(whenceBogusValue)),
 			)).WithProcess(thread1Checker).WithParent(parentCheck)
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)

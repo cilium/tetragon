@@ -163,6 +163,7 @@ type MsgGenericKprobeTuple struct {
 
 type MsgGenericKprobeSock struct {
 	Tuple    MsgGenericKprobeTuple
+	Sockaddr uint64
 	Mark     uint32
 	Priority uint32
 	Family   uint16
@@ -181,6 +182,7 @@ type MsgGenericKprobeArgSock struct {
 	Daddr    string
 	Sport    uint32
 	Dport    uint32
+	Sockaddr uint64
 	Label    string
 }
 
@@ -391,13 +393,14 @@ type KprobeArgs struct {
 const EventConfigMaxArgs = 5
 
 type EventConfig struct {
-	FuncId        uint32                     `align:"func_id"`
-	Arg           [EventConfigMaxArgs]int32  `align:"arg0"`
-	ArgM          [EventConfigMaxArgs]uint32 `align:"arg0m"`
-	ArgTpCtxOff   [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`
-	Syscall       uint32                     `align:"syscall"`
-	ArgReturnCopy int32                      `align:"argreturncopy"`
-	ArgReturn     int32                      `align:"argreturn"`
-	PolicyID      uint32                     `align:"policy_id"`
-	Flags         uint32                     `align:"flags"`
+	FuncId          uint32                     `align:"func_id"`
+	Arg             [EventConfigMaxArgs]int32  `align:"arg0"`
+	ArgM            [EventConfigMaxArgs]uint32 `align:"arg0m"`
+	ArgTpCtxOff     [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`
+	Syscall         uint32                     `align:"syscall"`
+	ArgReturnCopy   int32                      `align:"argreturncopy"`
+	ArgReturn       int32                      `align:"argreturn"`
+	ArgReturnAction int32                      `align:"argreturnaction"`
+	PolicyID        uint32                     `align:"policy_id"`
+	Flags           uint32                     `align:"flags"`
 }

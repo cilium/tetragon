@@ -10,7 +10,7 @@
 # https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 # First builder (cross-)compile the BPF programs
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpf-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update && apt-get install -y linux-libc-dev
 COPY . ./
@@ -20,7 +20,7 @@ RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
 # Second builder (cross-)compile:
 # - tetragon (pkg/bpf uses CGO, so a gcc cross compiler is needed)
 # - tetra
-FROM --platform=$BUILDPLATFORM quay.io/cilium/cilium-builder:988a34b268fab8f4083d2432317f083e42b18c59@sha256:1d2d07c603d3f01ddb02fcf81cd82f977262e10eeb21b9798a84158c59275149 as tetragon-builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.20.6@sha256:cfc9d1b07b1ef4f7a4571f0b60a99646a92ef76adb7d9943f4cb7b606c6554e2 as tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH BUILDARCH
 RUN apt-get update
@@ -33,7 +33,7 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
     else make tetragon-image LOCAL_CLANG=1 VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH; fi
 
 # Third builder (cross-)compile a stripped gops
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.19.2-alpine3.15@sha256:af65c2761458722a028131c06edbdff97d6efcd2d66630fbfe0572b18185c7a4 as gops
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.20.6-alpine@sha256:7839c9f01b5502d7cb5198b2c032857023424470b3e31ae46a8261ffca72912a as gops
 ARG TARGETARCH
 RUN apk add --no-cache binutils git \
  && git clone https://github.com/google/gops /go/src/github.com/google/gops \
@@ -44,7 +44,7 @@ RUN apk add --no-cache binutils git \
 # This builder (cross-)compile a stripped static version of bpftool.
 # This step was kept because the downloaded version includes LLVM libs with the
 # disassembler that makes the static binary grow from ~2Mo to ~30Mo.
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpftool-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpftool-builder
 WORKDIR /bpftool
 ARG TARGETARCH BUILDARCH
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
@@ -76,7 +76,7 @@ RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/b
 
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
-FROM docker.io/library/alpine:3.18.0@sha256:02bb6f428431fbc2809c5d1b41eab5a68350194fb508869a33cb1af4444c9b11 as base-build
+FROM docker.io/library/alpine:3.18.2@sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1 as base-build
 RUN apk add iproute2
 RUN mkdir /var/lib/tetragon/ && \
     apk add --no-cache --update bash

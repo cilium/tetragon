@@ -37,9 +37,9 @@ type notifier interface {
 type observer interface {
 	// AddTracingPolicy will add a new tracing policy
 	AddTracingPolicy(ctx context.Context, policy tracingpolicy.TracingPolicy) error
-	// DelTracingPolicy deletes a tracing policy that was added with
-	// AddTracingPolicy as defined by  its name (policy.TpName()).
-	DelTracingPolicy(ctx context.Context, name string) error
+	// DeleteTracingPolicy deletes a tracing policy that was added with
+	// AddTracingPolicy as defined by its name (policy.TpName()).
+	DeleteTracingPolicy(ctx context.Context, name string) error
 	// ListTracingPolicies lists active traing policies
 	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
 
@@ -92,7 +92,7 @@ func (l *getEventsListener) Notify(res *tetragon.GetEventsResponse) {
 	case l.events <- res:
 	default:
 		// events channel is full: drop the event so that we do not block everything
-		eventmetrics.NotifyOverflowedEvents.WithLabelValues().Inc()
+		eventmetrics.NotifyOverflowedEvents.Inc()
 	}
 }
 
@@ -249,26 +249,14 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 	return &tetragon.AddTracingPolicyResponse{}, nil
 }
 
-func (s *Server) DelTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
-	tp, err := tracingpolicy.PolicyFromYAML(req.GetYaml())
-	if err != nil {
-		logger.GetLogger().WithError(err).Warn("Server DeleteTracingPolicy request failed")
-		return nil, err
-	}
-	namespace := ""
-	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpNs.TpNamespace()
-	}
-
+func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
 	logger.GetLogger().WithFields(logrus.Fields{
-		"metadata.namespace": namespace,
-		"metadata.name":      tp.TpName(),
+		"name": req.GetName(),
 	}).Debug("Received a DeleteTracingPolicy request")
 
-	if err := s.observer.DelTracingPolicy(ctx, tp.TpName()); err != nil {
+	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName()); err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
-			"metadata.namespace": namespace,
-			"metadata.name":      tp.TpName(),
+			"name": req.GetName(),
 		}).WithError(err).Warn("Server DeleteTracingPolicy request failed")
 		return nil, err
 	}

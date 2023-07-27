@@ -28,11 +28,11 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
 	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o \
 	  bpf_generic_uprobe.o bpf_generic_uprobe_v53.o \
-	  bpf_execve_event_v60.o \
-	  bpf_generic_kprobe_v60.o bpf_generic_retkprobe_v60.o \
-	  bpf_generic_tracepoint_v60.o \
-	  bpf_multi_kprobe_v60.o bpf_multi_retkprobe_v60.o \
-	  bpf_generic_uprobe_v60.o \
+	  bpf_execve_event_v61.o \
+	  bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
+	  bpf_generic_tracepoint_v61.o \
+	  bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
+	  bpf_generic_uprobe_v61.o \
 	  bpf_loader.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
@@ -92,7 +92,7 @@ endef
 # Generic build targets for each sub-dir
 
 $(eval $(call DEFINE_VARIANT,v53))
-$(eval $(call DEFINE_VARIANT,v60))
+$(eval $(call DEFINE_VARIANT,v61))
 
 # ALIGNCHECKER
 objs/%.ll: $(ALIGNCHECKERDIR)%.c
@@ -117,14 +117,14 @@ $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 $(DEPSDIR)%_v53.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
-objs/bpf_multi_kprobe_v60.ll objs/bpf_multi_retkprobe_v60.ll:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
+objs/bpf_multi_kprobe_v61.ll objs/bpf_multi_retkprobe_v61.ll:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
-objs/%_v60.ll:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -c $< -o $@
+objs/%_v61.ll:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -c $< -o $@
 
-$(DEPSDIR)%_v60.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG  -D__V60_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
+$(DEPSDIR)%_v61.d:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG  -D__V61_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
 # BPFTESTDIR
 objs/%.ll: $(BPFTESTDIR)%.c

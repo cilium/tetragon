@@ -5,7 +5,7 @@
 #define __BASIC_H__
 
 #include "operations.h"
-#include "bpf_events.h"
+#include "bpf_task.h"
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
@@ -15,6 +15,7 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "../argfilter_maps.h"
+#include "../addr_lpm_maps.h"
 #include "common.h"
 #include "process/data_event.h"
 
@@ -51,6 +52,9 @@ enum {
 	user_namespace_type = 22,
 	capability_type = 23,
 
+	kiocb_type = 24,
+	iov_iter_type = 25,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -76,6 +80,8 @@ enum {
 	ACTION_DNSLOOKUP = 7,
 	ACTION_NOPOST = 8,
 	ACTION_SIGNAL = 9,
+	ACTION_TRACKSOCK = 10,
+	ACTION_UNTRACKSOCK = 11,
 };
 
 enum {
@@ -122,6 +128,10 @@ struct event_config {
 	__u32 syscall;
 	__s32 argreturncopy;
 	__s32 argreturn;
+	/* arg return action specifies to act on the return value; currently
+	 * supported actions include: TrackSock and UntrackSock.
+	 */
+	__u32 argreturnaction;
 	/* policy id identifies the policy of this generic hook and is used to
 	 * apply policies only on certain processes. A value of 0 indicates
 	 * that the hook always applies and no check will be performed.
@@ -171,6 +181,9 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define MIN_FILTER_TAILCALL 6
 #define MAX_FILTER_TAILCALL 10
 #define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
+
+static inline __attribute__((always_inline)) long
+filter_32ty_map(struct selector_arg_filter *filter, char *args);
 
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
@@ -702,6 +715,35 @@ struct ip_ver {
 	u8 version : 4;
 };
 
+// use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
+// is in the defined set.
+static inline __attribute__((always_inline)) long
+filter_addr4_map(struct selector_arg_filter *filter, __u32 addr)
+{
+	void *addrmap;
+	__u32 map_idx = filter->value;
+	struct addr4_lpm_trie arg;
+
+	addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	arg.prefix = 32;
+	arg.addr = addr;
+
+	__u8 *pass = map_lookup_elem(addrmap, &arg);
+
+	switch (filter->op) {
+	case op_filter_saddr:
+	case op_filter_daddr:
+		return !!pass;
+	case op_filter_notsaddr:
+	case op_filter_notdaddr:
+		return !pass;
+	}
+	return 0;
+}
+
 /* filter_inet: runs a comparison between the IPv4 addresses and ports in
  * the sock or skb in the args aginst the filter parameters.
  */
@@ -711,7 +753,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	__u32 *v = (__u32 *)&filter->value;
 	int i, j = 0;
 	__u32 addr = 0;
-	__u16 port = 0;
+	__u32 port = 0;
 	__u16 protocol = 0;
 	struct sk_type *sk = 0;
 	struct skb_type *skb = 0;
@@ -732,15 +774,23 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 
 	switch (filter->op) {
 	case op_filter_saddr:
+	case op_filter_notsaddr:
 		addr = tuple->saddr;
 		break;
 	case op_filter_daddr:
+	case op_filter_notdaddr:
 		addr = tuple->daddr;
 		break;
 	case op_filter_sport:
+	case op_filter_notsport:
+	case op_filter_sportpriv:
+	case op_filter_notsportpriv:
 		port = tuple->sport;
 		break;
 	case op_filter_dport:
+	case op_filter_notdport:
+	case op_filter_dportpriv:
+	case op_filter_notdportpriv:
 		port = tuple->dport;
 		break;
 	case op_filter_protocol:
@@ -750,31 +800,28 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		return 0;
 	}
 
+	switch (filter->op) {
+	case op_filter_sport:
+	case op_filter_dport:
+	case op_filter_notsport:
+	case op_filter_notdport:
+		return filter_32ty_map(filter, (char *)&port);
+	case op_filter_sportpriv:
+	case op_filter_dportpriv:
+		return port < 1024;
+	case op_filter_notsportpriv:
+	case op_filter_notdportpriv:
+		return port >= 1024;
+	case op_filter_saddr:
+	case op_filter_daddr:
+	case op_filter_notsaddr:
+	case op_filter_notdaddr:
+		return filter_addr4_map(filter, addr);
+	}
+
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
 		switch (filter->op) {
-		case op_filter_saddr:
-		case op_filter_daddr: {
-			__u32 cidraddr = v[i * 2];
-			__u32 cidrmask = v[i * 2 + 1];
-			__u32 maskedaddr = addr & cidrmask;
-
-			if (cidraddr == maskedaddr)
-				return 1;
-			// placed here to allow llvm unroll this loop
-			j += 8;
-			if (j + 8 >= filter->vallen)
-				return 0;
-		} break;
-		case op_filter_sport:
-		case op_filter_dport:
-			if (v[i] == port)
-				return 1;
-			// placed here to allow llvm unroll this loop
-			j += 4;
-			if (j + 4 >= filter->vallen)
-				return 0;
-			break;
 		case op_filter_protocol:
 			if (v[i] == protocol)
 				return 1;
@@ -802,7 +849,7 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		/* PARSE_IOVEC_ENTRIES will jump here when done or return error */
 		char_iovec_done :
 
-		s = (int *)args_off(e, off_orig);
+	    s = (int *)args_off(e, off_orig);
 	s[0] = size;
 	s[1] = size;
 	return size + 8;
@@ -880,6 +927,62 @@ copy_bpf_map(char *args, unsigned long arg)
 	probe_read(&map_info->map_name, BPF_OBJ_NAME_LEN, _(&bpfmap->name));
 
 	return sizeof(struct bpf_map_info_type);
+}
+
+static inline __attribute__((always_inline)) long
+copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
+	      struct bpf_map_def *data_heap)
+{
+	struct iov_iter *iov_iter = (struct iov_iter *)arg;
+	struct kvec *kvec;
+	unsigned int val;
+	const char *buf;
+	size_t count;
+	u8 iter_type;
+	long size;
+	void *tmp;
+	int *s;
+
+	if (bpf_core_field_exists(iov_iter->iter_type)) {
+		tmp = _(&iov_iter->iter_type);
+		probe_read(&iter_type, sizeof(iter_type), tmp);
+	} else {
+		probe_read(&val, sizeof(val), (const void *)arg);
+		val &= ~1;
+		iter_type = val == 4 ? ITER_IOVEC : ITER_UBUF + 1;
+	}
+
+	switch (iter_type) {
+	case ITER_IOVEC:
+		tmp = _(&iov_iter->kvec);
+		probe_read(&kvec, sizeof(kvec), tmp);
+
+		tmp = _(&kvec->iov_base);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&kvec->iov_len);
+		probe_read(&count, sizeof(count), tmp);
+
+		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
+		break;
+#ifdef __V61_BPF_PROG
+	case ITER_UBUF:
+		tmp = _(&iov_iter->ubuf);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&iov_iter->count);
+		probe_read(&count, sizeof(count), tmp);
+
+		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
+		break;
+#endif // __V61_BPF_PROG
+	default:
+		s = (int *)args_off(e, off);
+		s[0] = s[1] = 0;
+		size = 8;
+		break;
+	}
+	return size;
 }
 
 // filter on values provided in the selector itself
@@ -1024,8 +1127,12 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 
 	switch (filter->op) {
 	case op_filter_inmap:
+	case op_filter_sport:
+	case op_filter_dport:
 		return !!pass;
 	case op_filter_notinmap:
+	case op_filter_notsport:
+	case op_filter_notdport:
 		return !pass;
 	}
 	return 0;
@@ -1534,6 +1641,86 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 }
 #endif
 
+#ifdef __LARGE_BPF_PROG
+// socktrack_map maintains a mapping of sock to pid_tgid
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 32000);
+	__type(key, __u64);
+	__type(value, __u64);
+} socktrack_map SEC(".maps");
+
+static inline __attribute__((always_inline)) int
+tracksock(struct msg_generic_kprobe *e, int socki, bool track)
+{
+	long sockoff;
+	int err = 0;
+	__u64 sockaddr;
+	__u64 pid_tgid;
+	struct sk_type *skt;
+
+	/* Satisfies verifier but is a bit ugly, ideally we
+	 * can just '&' and drop the '>' case.
+	 */
+	asm volatile("%[socki] &= 0xf;\n"
+		     : [socki] "+r"(socki)
+		     :);
+	if (socki > 5)
+		return 0;
+
+	sockoff = e->argsoff[socki];
+	asm volatile("%[sockoff] &= 0x7ff;\n"
+		     : [sockoff] "+r"(sockoff)
+		     :);
+	skt = (struct sk_type *)&e->args[sockoff];
+	sockaddr = skt->sockaddr;
+	pid_tgid = get_current_pid_tgid();
+
+	if (track)
+		map_update_elem(&socktrack_map, &sockaddr, &pid_tgid, BPF_ANY);
+	else
+		err = map_delete_elem(&socktrack_map, &sockaddr);
+
+	return err;
+}
+
+/* update_pid_tid_from_sock(e, sock)
+ *
+ * Look up the socket in the map and populate the pid and tid.
+ */
+static inline __attribute__((always_inline)) void
+update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
+{
+	__u64 *pid_tgid;
+	__u32 pid;
+	struct execve_map_value *value;
+
+	pid_tgid = map_lookup_elem(&socktrack_map, &sockaddr);
+	if (!pid_tgid)
+		return;
+
+	pid = (*pid_tgid) >> 32;
+	value = execve_map_get_noinit(pid);
+	if (!value)
+		return;
+
+	e->current.pid = value->key.pid;
+	e->current.ktime = value->key.ktime;
+	e->tid = (__u32)(*pid_tgid);
+}
+#else
+static inline __attribute__((always_inline)) int
+tracksock(struct msg_generic_kprobe *e, int socki, bool track)
+{
+	return 0;
+}
+
+static inline __attribute__((always_inline)) void
+update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
+{
+}
+#endif
+
 static inline __attribute__((always_inline)) __u32
 do_action(__u32 i, struct msg_generic_kprobe *e,
 	  struct selector_action *actions, struct bpf_map_def *override_tasks)
@@ -1544,6 +1731,7 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
+	int socki;
 	int err = 0;
 	__u64 id;
 
@@ -1593,6 +1781,11 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 	case ACTION_DNSLOOKUP:
 		/* Set the URL or DNS action */
 		e->action_arg_id = actions->act[++i];
+		break;
+	case ACTION_TRACKSOCK:
+	case ACTION_UNTRACKSOCK:
+		socki = actions->act[++i];
+		err = tracksock(e, socki, action == ACTION_TRACKSOCK);
 		break;
 	default:
 		break;
@@ -1794,6 +1987,18 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	e->argsoff[index] = orig_off;
 
 	switch (type) {
+	case iov_iter_type:
+		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
+		break;
+	case kiocb_type: {
+		struct kiocb *kiocb = (struct kiocb *)arg;
+		struct file *file;
+
+		arg = (unsigned long)_(&kiocb->ki_filp);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		arg = (unsigned long)file;
+	}
+		// fallthrough to file_ty
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);
@@ -1865,6 +2070,8 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		break;
 	case sock_type:
 		size = copy_sock(args, arg);
+		// Look up socket in our sock->pid_tgid map
+		update_pid_tid_from_sock(e, arg);
 		break;
 	case cred_type:
 		size = copy_cred(args, arg);

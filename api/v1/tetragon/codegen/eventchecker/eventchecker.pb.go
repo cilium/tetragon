@@ -278,6 +278,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewTestChecker("").FromTest(ev), nil
 	case *tetragon.ProcessLoader:
 		return NewProcessLoaderChecker("").FromProcessLoader(ev), nil
+	case *tetragon.RateLimitInfo:
+		return NewRateLimitInfoChecker("").FromRateLimitInfo(ev), nil
 
 	default:
 		return nil, fmt.Errorf("Unhandled event type %T", event)
@@ -336,6 +338,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.Test, nil
 	case *tetragon.GetEventsResponse_ProcessLoader:
 		return ev.ProcessLoader, nil
+	case *tetragon.GetEventsResponse_RateLimitInfo:
+		return ev.RateLimitInfo, nil
 
 	default:
 		return nil, fmt.Errorf("Unknown event type %T", response.Event)
@@ -1426,6 +1430,82 @@ func (checker *ProcessLoaderChecker) FromProcessLoader(event *tetragon.ProcessLo
 	}
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Buildid = bytesmatcher.Full(event.Buildid)
+	return checker
+}
+
+// RateLimitInfoChecker implements a checker struct to check a RateLimitInfo event
+type RateLimitInfoChecker struct {
+	CheckerName                  string  `json:"checkerName"`
+	NumberOfDroppedProcessEvents *uint64 `json:"numberOfDroppedProcessEvents,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *RateLimitInfoChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.RateLimitInfo); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a RateLimitInfo event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *RateLimitInfoChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewRateLimitInfoChecker creates a new RateLimitInfoChecker
+func NewRateLimitInfoChecker(name string) *RateLimitInfoChecker {
+	return &RateLimitInfoChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *RateLimitInfoChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *RateLimitInfoChecker) GetCheckerType() string {
+	return "RateLimitInfoChecker"
+}
+
+// Check checks a RateLimitInfo event
+func (checker *RateLimitInfoChecker) Check(event *tetragon.RateLimitInfo) error {
+	if event == nil {
+		return fmt.Errorf("%s: RateLimitInfo event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.NumberOfDroppedProcessEvents != nil {
+			if *checker.NumberOfDroppedProcessEvents != event.NumberOfDroppedProcessEvents {
+				return fmt.Errorf("NumberOfDroppedProcessEvents has value %d which does not match expected value %d", event.NumberOfDroppedProcessEvents, *checker.NumberOfDroppedProcessEvents)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithNumberOfDroppedProcessEvents adds a NumberOfDroppedProcessEvents check to the RateLimitInfoChecker
+func (checker *RateLimitInfoChecker) WithNumberOfDroppedProcessEvents(check uint64) *RateLimitInfoChecker {
+	checker.NumberOfDroppedProcessEvents = &check
+	return checker
+}
+
+//FromRateLimitInfo populates the RateLimitInfoChecker using data from a RateLimitInfo event
+func (checker *RateLimitInfoChecker) FromRateLimitInfo(event *tetragon.RateLimitInfo) *RateLimitInfoChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		val := event.NumberOfDroppedProcessEvents
+		checker.NumberOfDroppedProcessEvents = &val
+	}
 	return checker
 }
 
@@ -2528,6 +2608,7 @@ type KprobeSockChecker struct {
 	Daddr    *stringmatcher.StringMatcher `json:"daddr,omitempty"`
 	Sport    *uint32                      `json:"sport,omitempty"`
 	Dport    *uint32                      `json:"dport,omitempty"`
+	Cookie   *uint64                      `json:"cookie,omitempty"`
 }
 
 // NewKprobeSockChecker creates a new KprobeSockChecker
@@ -2592,6 +2673,11 @@ func (checker *KprobeSockChecker) Check(event *tetragon.KprobeSock) error {
 				return fmt.Errorf("Dport has value %d which does not match expected value %d", event.Dport, *checker.Dport)
 			}
 		}
+		if checker.Cookie != nil {
+			if *checker.Cookie != event.Cookie {
+				return fmt.Errorf("Cookie has value %d which does not match expected value %d", event.Cookie, *checker.Cookie)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2654,6 +2740,12 @@ func (checker *KprobeSockChecker) WithDport(check uint32) *KprobeSockChecker {
 	return checker
 }
 
+// WithCookie adds a Cookie check to the KprobeSockChecker
+func (checker *KprobeSockChecker) WithCookie(check uint64) *KprobeSockChecker {
+	checker.Cookie = &check
+	return checker
+}
+
 //FromKprobeSock populates the KprobeSockChecker using data from a KprobeSock field
 func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *KprobeSockChecker {
 	if event == nil {
@@ -2679,6 +2771,10 @@ func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *Kp
 	{
 		val := event.Dport
 		checker.Dport = &val
+	}
+	{
+		val := event.Cookie
+		checker.Cookie = &val
 	}
 	return checker
 }

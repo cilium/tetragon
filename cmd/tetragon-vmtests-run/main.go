@@ -113,7 +113,7 @@ func main() {
 
 			dur := time.Since(t0).Round(time.Millisecond)
 			if results.nrFailedTests > 0 {
-				fmt.Printf("%d/%d tests failed 😞 (took: %s)\n", results.nrFailedTests, results.nrTests, dur)
+				fmt.Printf("%d/%d tests failed 😞 (took: %s, skipped:%d)\n", results.nrFailedTests, results.nrTests, dur, results.nrSkipedTests)
 				return errors.New("failed")
 			}
 
@@ -122,7 +122,7 @@ func main() {
 				return errors.New("failed")
 			}
 
-			fmt.Printf("All %d tests succeeded! 🎉🚢🍕 (took: %s)\n", results.nrTests, dur)
+			fmt.Printf("All %d tests succeeded! 🎉🚢🍕 (took: %s, skipped:%d)\n", results.nrTests, dur, results.nrSkipedTests)
 			return nil
 		},
 	}
@@ -145,6 +145,7 @@ func main() {
 	cmd.Flags().BoolVar(&rcnf.testerConf.KeepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
 	cmd.Flags().BoolVar(&rcnf.disableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierarchy=0.")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
+	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

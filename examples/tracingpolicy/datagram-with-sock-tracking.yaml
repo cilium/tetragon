@@ -1,0 +1,54 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+      - index: 1
+        type: int
+        label: "family"
+    returnArg:
+      type: sock
+    returnArgAction: TrackSock
+    selectors:
+      - matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - 2
+  - call: "__sk_free"
+    syscall: false
+    args:
+      - index: 0
+        type: sock
+    selectors:
+      - matchActions:
+        - action: UntrackSock
+          argSock: 0
+  - call: "__cgroup_bpf_run_filter_skb"
+    syscall: false
+    args:
+      - index: 0
+        type: sock
+      - index: 1
+        type: skb
+      - index: 2
+        type: int
+        label: "send"
+    selectors:
+      - matchArgs:
+        - index: 1
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/32"
+        - index: 1
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        matchActions:
+        - action: Post
+          rateLimit: 5

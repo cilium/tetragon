@@ -31,18 +31,19 @@ import (
 
 // Config represents and environment configuration
 type Config struct {
-	client              klient.Client
-	kubeconfig          string
-	namespace           string
-	assessmentRegex     *regexp.Regexp
-	featureRegex        *regexp.Regexp
-	labels              map[string]string
-	skipFeatureRegex    *regexp.Regexp
-	skipLabels          map[string]string
-	skipAssessmentRegex *regexp.Regexp
-	parallelTests       bool
-	dryRun              bool
-	failFast            bool
+	client                  klient.Client
+	kubeconfig              string
+	namespace               string
+	assessmentRegex         *regexp.Regexp
+	featureRegex            *regexp.Regexp
+	labels                  map[string]string
+	skipFeatureRegex        *regexp.Regexp
+	skipLabels              map[string]string
+	skipAssessmentRegex     *regexp.Regexp
+	parallelTests           bool
+	dryRun                  bool
+	failFast                bool
+	disableGracefulTeardown bool
 }
 
 // New creates and initializes an empty environment configuration
@@ -83,6 +84,7 @@ func NewFromFlags() (*Config, error) {
 	e.parallelTests = envFlags.Parallel()
 	e.dryRun = envFlags.DryRun()
 	e.failFast = envFlags.FailFast()
+	e.disableGracefulTeardown = envFlags.DisableGracefulTeardown()
 
 	return e, nil
 }
@@ -257,6 +259,19 @@ func (c *Config) WithFailFast() *Config {
 // if a test encounters a failure result
 func (c *Config) FailFast() bool {
 	return c.failFast
+}
+
+// WithDisableGracefulTeardown can be used to programmatically disabled the panic
+// recovery enablement on test startup. This will prevent test Finish steps
+// from being executed on panic
+func (c *Config) WithDisableGracefulTeardown() *Config {
+	c.disableGracefulTeardown = true
+	return c
+}
+
+// DisableGracefulTeardown is used to check the panic recovery handler should be enabled
+func (c *Config) DisableGracefulTeardown() bool {
+	return c.disableGracefulTeardown
 }
 
 func randNS() string {

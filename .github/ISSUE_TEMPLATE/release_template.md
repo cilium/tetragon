@@ -14,7 +14,7 @@ assignees: ''
 
       export RELEASE=v0.8.1
 
-- [ ] Open a pull request to update the Helm chart version:
+- [ ] Open a pull request to update the Helm chart and docs version:
 
       git checkout -b pr/prepare-$RELEASE
       ./contrib/update-helm-chart.sh $RELEASE
@@ -22,6 +22,9 @@ assignees: ''
       ./test.sh
       popd
       git add install/kubernetes/
+      # update hugo version
+      sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/hugo.toml
+
       git commit -s -m "Prepare for $RELEASE release"
       git push origin HEAD
 
@@ -48,6 +51,7 @@ assignees: ''
       - Once the pull request is merged and the chart is published, go to [cilium/charts GKE workflow] and wait for the
         CI run to pass.
 
+[hugo docs]: https://github.com/cilium/tetragon/blob/main/docs/hugo.toml
 [release blockers]: https://github.com/cilium/tetragon/issues?q=is%3Aissue+is%3Aopen+label%3Arelease-blocker
 [Image CI Releases workflow]: https://github.com/cilium/tetragon/actions/workflows/build-images-releases.yml
 [cilium/charts RELEASE.md]: https://github.com/cilium/charts/blob/master/RELEASE.md

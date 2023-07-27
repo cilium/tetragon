@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   creationTimestamp: null
   name: tracingpolicies.cilium.io
 spec:
@@ -102,6 +102,8 @@ spec:
                             - bpf_map
                             - user_namespace
                             - capability
+                            - kiocb
+                            - iov_iter
                             type: string
                         required:
                         - index
@@ -176,11 +178,17 @@ spec:
                           - bpf_map
                           - user_namespace
                           - capability
+                          - kiocb
+                          - iov_iter
                           type: string
                       required:
                       - index
                       - type
                       type: object
+                    returnArgAction:
+                      description: 'An action to perform on the return argument. Available
+                        actions are: Post;TrackSock;UntrackSock'
+                      type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
                         Selectors are ORed.
@@ -206,6 +214,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -227,6 +237,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
@@ -265,10 +280,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -479,10 +503,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -628,6 +661,8 @@ spec:
                             - bpf_map
                             - user_namespace
                             - capability
+                            - kiocb
+                            - iov_iter
                             type: string
                         required:
                         - index
@@ -662,6 +697,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -683,6 +720,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
@@ -721,10 +763,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -935,10 +986,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -993,6 +1053,8 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - TrackSock
+                                  - UntrackSock
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1014,6 +1076,11 @@ spec:
                                   type: integer
                                 argSig:
                                   description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
                                   format: int32
                                   type: integer
                                 argUrl:
@@ -1052,10 +1119,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1266,10 +1342,19 @@ spec:
                                   - GT
                                   - LT
                                   - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
                                   - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
                                   - SAddr
+                                  - NotSAddr
                                   - DAddr
+                                  - NotDAddr
                                   - Protocol
+                                  - Mask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

@@ -120,8 +120,44 @@ func TestSelectorOp(t *testing.T) {
 	if op, err := SelectorOp("NotIn"); op != SelectorOpNotIn || err != nil {
 		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotIn, op, err)
 	}
+	if op, err := SelectorOp("SPort"); op != SelectorOpSport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSport, op, err)
+	}
+	if op, err := SelectorOp("DPort"); op != SelectorOpDport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDport, op, err)
+	}
+	if op, err := SelectorOp("NotSPort"); op != SelectorOpNotSport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotSport, op, err)
+	}
+	if op, err := SelectorOp("NotDPort"); op != SelectorOpNotDport || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDport, op, err)
+	}
+	if op, err := SelectorOp("SPortPriv"); op != SelectorOpSportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSportPriv, op, err)
+	}
+	if op, err := SelectorOp("DPortPriv"); op != SelectorOpDportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDportPriv, op, err)
+	}
+	if op, err := SelectorOp("NotSPortPriv"); op != SelectorOpNotSportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotSportPriv, op, err)
+	}
+	if op, err := SelectorOp("NotDPortPriv"); op != SelectorOpNotDportPriv || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDportPriv, op, err)
+	}
 	if op, err := SelectorOp("foo"); op != 0 || err == nil {
 		t.Errorf("selectorOp: expected error actual %d %v\n", op, err)
+	}
+	if op, err := SelectorOp("SAddr"); op != SelectorOpSaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpSaddr, op, err)
+	}
+	if op, err := SelectorOp("DAddr"); op != SelectorOpDaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpDaddr, op, err)
+	}
+	if op, err := SelectorOp("NotSAddr"); op != SelectorOpNotSaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotSaddr, op, err)
+	}
+	if op, err := SelectorOp("NotDAddr"); op != SelectorOpNotDaddr || err != nil {
+		t.Errorf("selectorOp: expected %d actual %d %v\n", SelectorOpNotDaddr, op, err)
 	}
 }
 
@@ -216,14 +252,9 @@ func TestParseMatchArg(t *testing.T) {
 	expected3 := []byte{
 		0x05, 0x00, 0x00, 0x00, // Index == 5
 		13, 0x00, 0x00, 0x00, // operator == saddr
-		32, 0x00, 0x00, 0x00, // length == 32
+		12, 0x00, 0x00, 0x00, // length == 32
 		0x07, 0x00, 0x00, 0x00, // value type == sock
-		127, 0, 0, 1, // IP address = 127.0.0.1
-		0xff, 0xff, 0xff, 0xff, // mask len = 32
-		10, 1, 2, 0, // IP address = 10.1.2.0 masked from 10.1.2.3
-		0xff, 0xff, 0xff, 0x00, // mask len = 24
-		192, 168, 240, 0, // IP address = 192.168.240.0 masked from 192.168.254.254
-		0xff, 0xff, 0xf0, 0x00, // mask len = 20
+		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
 	}
 	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, k.e[nextArg:k.off], arg3)
@@ -234,11 +265,9 @@ func TestParseMatchArg(t *testing.T) {
 	expected4 := []byte{
 		0x06, 0x00, 0x00, 0x00, // Index == 6
 		15, 0x00, 0x00, 0x00, // operator == sport
-		20, 0x00, 0x00, 0x00, // length == 20
+		12, 0x00, 0x00, 0x00, // length == 12
 		0x05, 0x00, 0x00, 0x00, // value type == skb
-		0x91, 0x1f, 0, 0, // port = 8081
-		25, 0, 0, 0, // port = 25
-		0x69, 0x7a, 0, 0, // port = 31337
+		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
 	}
 	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, k.e[nextArg:k.off], arg4)
@@ -248,7 +277,7 @@ func TestParseMatchArg(t *testing.T) {
 	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
 		0x07, 0x00, 0x00, 0x00, // Index == 6
-		17, 0x00, 0x00, 0x00, // operator == sport
+		17, 0x00, 0x00, 0x00, // operator == protocol
 		20, 0x00, 0x00, 0x00, // length == 20
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		3, 0x00, 0x00, 0x00, // protocol = 3

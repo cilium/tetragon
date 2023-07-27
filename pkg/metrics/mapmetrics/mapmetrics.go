@@ -13,13 +13,15 @@ import (
 
 var (
 	MapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name:        consts.MetricNamePrefix + "map_in_use_gauge",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "map_in_use_gauge",
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
 
 	MapDrops = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "map_drops",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "map_drops_total",
 		Help:        "The total number of entries dropped per LRU map.",
 		ConstLabels: nil,
 	}, []string{"map"})

@@ -9,7 +9,9 @@ type DataEventId struct {
 
 type DataEventDesc struct {
 	Error    int32
+	Pad      uint32
 	Leftover uint32
+	Size     uint32
 	Id       DataEventId
 }
 

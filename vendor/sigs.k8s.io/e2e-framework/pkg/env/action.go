@@ -26,14 +26,35 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/internal/types"
 )
 
+type actionRole uint8
+
 const (
-	roleSetup = iota
+	roleSetup actionRole = iota
 	roleBeforeTest
 	roleBeforeFeature
 	roleAfterFeature
 	roleAfterTest
 	roleFinish
 )
+
+func (r actionRole) String() string {
+	switch r {
+	case roleSetup:
+		return "Setup"
+	case roleBeforeTest:
+		return "BeforeEachTest"
+	case roleBeforeFeature:
+		return "BeforeEachFeature"
+	case roleAfterFeature:
+		return "AfterEachFeature"
+	case roleAfterTest:
+		return "AfterEachTest"
+	case roleFinish:
+		return "Finish"
+	default:
+		panic("unknown role") // this should never happen
+	}
+}
 
 // action a group env functions
 type action struct {

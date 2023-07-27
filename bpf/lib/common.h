@@ -20,9 +20,6 @@ struct msg_test {
 	unsigned long arg3;
 } __attribute__((packed));
 
-#define BPF_F_INDEX_MASK  0xffffffffULL
-#define BPF_F_CURRENT_CPU BPF_F_INDEX_MASK
-
 #ifndef bpf_ntohs
 #define bpf_ntohs(x) __builtin_bswap16(x)
 #endif

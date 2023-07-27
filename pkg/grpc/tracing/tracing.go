@@ -93,6 +93,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgSock:
 			sockArg := &tetragon.KprobeSock{
+				Cookie:   e.Sockaddr,
 				Family:   network.InetFamily(e.Family),
 				Type:     network.InetType(e.Type),
 				Protocol: network.InetProtocol(e.Protocol),
@@ -291,6 +292,14 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		case int64:
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LongArg{
 				LongArg: v,
+			}})
+		case uint32:
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
+				UintArg: v,
+			}})
+		case int32:
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
+				IntArg: v,
 			}})
 		case string:
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_StringArg{

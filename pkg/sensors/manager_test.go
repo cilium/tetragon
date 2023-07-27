@@ -6,6 +6,7 @@ package sensors
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type dummyHandler struct {
@@ -142,4 +145,47 @@ func TestAddPolicyLoadError(t *testing.T) {
 	l, err := mgr.ListSensors(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, []SensorStatus{}, *l)
+}
+
+func TestPolicyFilterDisabled(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	handler, err := newHandler(policyfilter.DisabledState(), "", "", "")
+	assert.NoError(t, err)
+	mgr, err := startSensorManager(handler, nil)
+	assert.NoError(t, err)
+	defer mgr.StopSensorManager(ctx)
+
+	policy := v1alpha1.TracingPolicy{}
+
+	// normal policy should succeed
+	policyName := "test-policy"
+	policy.ObjectMeta.Name = policyName
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.NoError(t, err, fmt.Sprintf("Add tracing policy failed with error: %v", err))
+	err = mgr.DeleteTracingPolicy(ctx, policyName)
+	require.NoError(t, err)
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+	err = mgr.DeleteTracingPolicy(ctx, policyName)
+	require.NoError(t, err)
+
+	// namespaced policy with disabled state should fail
+	namespacedPolicy := v1alpha1.TracingPolicyNamespaced{}
+	policy.ObjectMeta.Name = policyName
+	namespacedPolicy.ObjectMeta.Name = policyName
+	namespacedPolicy.ObjectMeta.Namespace = "namespace"
+	err = mgr.AddTracingPolicy(ctx, &namespacedPolicy)
+	require.Error(t, err)
+
+	// policy with pod selector should fail
+	policy.Spec.PodSelector = &slimv1.LabelSelector{
+		MatchExpressions: []slimv1.LabelSelectorRequirement{{
+			Key:      "app",
+			Operator: slimv1.LabelSelectorOpExists,
+		}},
+	}
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.Error(t, err)
 }

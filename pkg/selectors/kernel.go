@@ -19,42 +19,49 @@ import (
 )
 
 const (
-	ActionTypePost       = 0
-	ActionTypeFollowFd   = 1
-	ActionTypeSigKill    = 2
-	ActionTypeUnfollowFd = 3
-	ActionTypeOverride   = 4
-	ActionTypeCopyFd     = 5
-	ActionTypeGetUrl     = 6
-	ActionTypeDnsLookup  = 7
-	ActionTypeNoPost     = 8
-	ActionTypeSignal     = 9
+	ActionTypeInvalid     = -1
+	ActionTypePost        = 0
+	ActionTypeFollowFd    = 1
+	ActionTypeSigKill     = 2
+	ActionTypeUnfollowFd  = 3
+	ActionTypeOverride    = 4
+	ActionTypeCopyFd      = 5
+	ActionTypeGetUrl      = 6
+	ActionTypeDnsLookup   = 7
+	ActionTypeNoPost      = 8
+	ActionTypeSignal      = 9
+	ActionTypeTrackSock   = 10
+	ActionTypeUntrackSock = 11
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":       ActionTypePost,
-	"followfd":   ActionTypeFollowFd,
-	"unfollowfd": ActionTypeUnfollowFd,
-	"sigkill":    ActionTypeSigKill,
-	"override":   ActionTypeOverride,
-	"copyfd":     ActionTypeCopyFd,
-	"geturl":     ActionTypeGetUrl,
-	"dnslookup":  ActionTypeDnsLookup,
-	"nopost":     ActionTypeNoPost,
-	"signal":     ActionTypeSignal,
+	"post":        ActionTypePost,
+	"followfd":    ActionTypeFollowFd,
+	"unfollowfd":  ActionTypeUnfollowFd,
+	"sigkill":     ActionTypeSigKill,
+	"override":    ActionTypeOverride,
+	"copyfd":      ActionTypeCopyFd,
+	"geturl":      ActionTypeGetUrl,
+	"dnslookup":   ActionTypeDnsLookup,
+	"nopost":      ActionTypeNoPost,
+	"signal":      ActionTypeSignal,
+	"tracksock":   ActionTypeTrackSock,
+	"untracksock": ActionTypeUntrackSock,
 }
 
 var actionTypeStringTable = map[uint32]string{
-	ActionTypePost:       "post",
-	ActionTypeFollowFd:   "followfd",
-	ActionTypeUnfollowFd: "unfollowfd",
-	ActionTypeSigKill:    "sigkill",
-	ActionTypeOverride:   "override",
-	ActionTypeCopyFd:     "copyfd",
-	ActionTypeGetUrl:     "geturl",
-	ActionTypeDnsLookup:  "dnslookup",
-	ActionTypeNoPost:     "nopost",
-	ActionTypeSignal:     "signal",
+	ActionTypePost:        "post",
+	ActionTypeFollowFd:    "followfd",
+	ActionTypeUnfollowFd:  "unfollowfd",
+	ActionTypeSigKill:     "sigkill",
+	ActionTypeOverride:    "override",
+	ActionTypeCopyFd:      "copyfd",
+	ActionTypeGetUrl:      "geturl",
+	ActionTypeDnsLookup:   "dnslookup",
+	ActionTypeNoPost:      "nopost",
+	ActionTypeSignal:      "signal",
+	ActionTypeTrackSock:   "tracksock",
+	ActionTypeUntrackSock: "untracksock",
 }
 
 // Action argument table entry (for URL and FQDN arguments)
@@ -208,11 +215,19 @@ const (
 	SelectorOpMASK = 12
 
 	// socket ops
-	SelectorOpSaddr    = 13
-	SelectorOpDaddr    = 14
-	SelectorOpSport    = 15
-	SelectorOpDport    = 16
-	SelectorOpProtocol = 17
+	SelectorOpSaddr        = 13
+	SelectorOpDaddr        = 14
+	SelectorOpSport        = 15
+	SelectorOpDport        = 16
+	SelectorOpProtocol     = 17
+	SelectorOpNotSport     = 18
+	SelectorOpNotDport     = 19
+	SelectorOpSportPriv    = 20
+	SelectorOpNotSportPriv = 21
+	SelectorOpDportPriv    = 22
+	SelectorOpNotDportPriv = 23
+	SelectorOpNotSaddr     = 24
+	SelectorOpNotDaddr     = 25
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -243,12 +258,28 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpSaddr, nil
 	case "daddr", "Daddr", "DAddr":
 		return SelectorOpDaddr, nil
+	case "notsaddr", "NotSaddr", "NotSAddr":
+		return SelectorOpNotSaddr, nil
+	case "notdaddr", "NotDaddr", "NotDAddr":
+		return SelectorOpNotDaddr, nil
 	case "sport", "Sport", "SPort":
 		return SelectorOpSport, nil
 	case "dport", "Dport", "DPort":
 		return SelectorOpDport, nil
 	case "protocol", "Protocol":
 		return SelectorOpProtocol, nil
+	case "notsport", "NotSport", "NotSPort":
+		return SelectorOpNotSport, nil
+	case "notdport", "NotDport", "NotDPort":
+		return SelectorOpNotDport, nil
+	case "sportpriv", "SportPriv", "SPortPriv":
+		return SelectorOpSportPriv, nil
+	case "dportpriv", "DportPriv", "DPortPriv":
+		return SelectorOpDportPriv, nil
+	case "notsportpriv", "NotSportPriv", "NotSPortPriv":
+		return SelectorOpNotSportPriv, nil
+	case "notdportpriv", "NotDportPriv", "NotDPortPriv":
+		return SelectorOpNotDportPriv, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -316,6 +347,14 @@ func ArgTypeToString(t uint32) string {
 	return argTypeStringTable[t]
 }
 
+func ActionTypeFromString(action string) int32 {
+	act, ok := actionTypeTable[strings.ToLower(action)]
+	if !ok {
+		return ActionTypeInvalid
+	}
+	return int32(act)
+}
+
 func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, error) {
 	for _, s := range sig {
 		if arg.Index == s.Index {
@@ -327,28 +366,81 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 	return 0, fmt.Errorf("argFilter for unknown index")
 }
 
-func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32) error {
+func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
-		var val [8]byte
+		// We store the start and end of the range as uint64s for unsigned values, and as int64s
+		// for signed values. This is to allow both a signed range from -5 to 5, and also an
+		// unsigned range where at least limit exceeds max(int64). If we only stored the range
+		// limits as uint64s, then the range from -5 to 5 would be interpretted as being from
+		// 5 to uint64(-5), which is the literal opposite of what was intended. If we only stored
+		// the range as int64s, then we couldn't correctly accommodate values that exceed max(int64),
+		// for similar reasons.
+		var uRangeVal [2]uint64
+		var sRangeVal [2]int64
+		rangeStr := strings.Split(v, ":")
+		if len(rangeStr) > 2 {
+			return fmt.Errorf("MatchArgs value %s invalid: range should be 'min:max'", v)
+		} else if len(rangeStr) == 1 {
+			// If only one value in the string, e.g. "5", then add it a second time to simulate
+			// a range that starts and ends with itself, e.g. as if "5:5" had been specified.
+			rangeStr = append(rangeStr, rangeStr[0])
+		}
+		for idx := 0; idx < 2; idx++ {
+			switch ty {
+			case argTypeS64, argTypeInt:
+				i, err := strconv.ParseInt(rangeStr[idx], 10, 64)
+				if err != nil {
+					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+				}
+				sRangeVal[idx] = i
+
+			case argTypeU64:
+				i, err := strconv.ParseUint(rangeStr[idx], 10, 64)
+				if err != nil {
+					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+				}
+				uRangeVal[idx] = i
+			default:
+				return fmt.Errorf("Unknown type: %d", ty)
+			}
+		}
 		switch ty {
 		case argTypeS64, argTypeInt:
-			i, err := strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			if sRangeVal[0] > sRangeVal[1] {
+				sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
 			}
-			binary.LittleEndian.PutUint64(val[:], uint64(i))
-		case argTypeU64:
-			i, err := strconv.ParseUint(v, 10, 64)
-			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
+				var valByte [8]byte
+				binary.LittleEndian.PutUint64(valByte[:], uint64(val))
+				m[valByte] = struct{}{}
 			}
-			binary.LittleEndian.PutUint64(val[:], uint64(i))
-		default:
-			return fmt.Errorf("Unknown type: %d", ty)
-		}
-		m[val] = struct{}{}
 
+		case argTypeU64:
+			if uRangeVal[0] > uRangeVal[1] {
+				uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
+			}
+			for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
+				var valByte [8]byte
+				binary.LittleEndian.PutUint64(valByte[:], val)
+				m[valByte] = struct{}{}
+			}
+		}
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
+	return nil
+}
+
+func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
+	mid, m := k.newAddr4Map()
+	for _, v := range values {
+		addr, maskLen, err := parseAddr(v)
+		if err != nil {
+			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+		}
+		val := KernelLpmTrie4{prefix: maskLen, addr: addr}
+		m[val] = struct{}{}
 	}
 	// write the map id into the selector
 	WriteSelectorUint32(k, mid)
@@ -372,17 +464,25 @@ func parseAddr(v string) (uint32, uint32, error) {
 		if ipaddr == nil {
 			return 0, 0, fmt.Errorf("IP address is not IPv4")
 		}
-		return binary.LittleEndian.Uint32(ipaddr), 0xffffffff, nil
+		return binary.LittleEndian.Uint32(ipaddr), 32, nil
 	}
-	_, ipnet, err := net.ParseCIDR(v)
-	if err != nil {
-		return 0, 0, err
+	vParts := strings.Split(v, "/")
+	if len(vParts) != 2 {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
 	}
-	ipaddr = ipnet.IP.To4()
+	ipaddr = net.ParseIP(vParts[0])
 	if ipaddr == nil {
 		return 0, 0, fmt.Errorf("IP address is not IPv4")
 	}
-	return binary.LittleEndian.Uint32(ipaddr), binary.LittleEndian.Uint32(ipnet.Mask), nil
+	ipaddr = ipaddr.To4()
+	if ipaddr == nil {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	}
+	maskLen, err := strconv.ParseUint(vParts[1], 10, 32)
+	if err != nil || maskLen > 32 {
+		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	}
+	return binary.LittleEndian.Uint32(ipaddr), uint32(maskLen), nil
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
@@ -423,19 +523,6 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			WriteSelectorUint64(k, uint64(i))
 		case argTypeSock, argTypeSkb:
 			switch op {
-			case SelectorOpSport, SelectorOpDport:
-				i, err := strconv.ParseUint(v, base, 32)
-				if err != nil {
-					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-				}
-				WriteSelectorUint32(k, uint32(i))
-			case SelectorOpSaddr, SelectorOpDaddr:
-				addr, mask, err := parseAddr(v)
-				if err != nil {
-					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-				}
-				WriteSelectorUint32(k, addr)
-				WriteSelectorUint32(k, mask)
 			case SelectorOpProtocol:
 				protocol, err := network.InetProtocolNumber(v)
 				if err != nil {
@@ -470,9 +557,39 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(k, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
-		err := writeMatchValuesInMap(k, arg.Values, ty)
+		err := writeMatchRangesInMap(k, arg.Values, ty)
 		if err != nil {
-			return fmt.Errorf("writeMatchValuesInMap error: %w", err)
+			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport:
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+		err := writeMatchRangesInMap(k, arg.Values, argTypeU64) // force type for ports as ty is sock/skb
+		if err != nil {
+			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpSaddr, SelectorOpDaddr, SelectorOpNotSaddr, SelectorOpNotDaddr:
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+		err := writeMatchAddrsInMap(k, arg.Values)
+		if err != nil {
+			return fmt.Errorf("writeMatchAddrsInMap error: %w", err)
+		}
+	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
+		// These selectors do not take any values, but we do check that they are only used for sock/skb.
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+	case SelectorOpProtocol:
+		// Check protocol is only specified for sock/skb.
+		if ty != argTypeSock && ty != argTypeSkb {
+			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+		err = writeMatchValues(k, arg.Values, ty, op)
+		if err != nil {
+			return fmt.Errorf("writeMatchValues error: %w", err)
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
@@ -574,6 +691,8 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(k, uint32(actionArg.tableId.ID))
 	case ActionTypeSignal:
 		WriteSelectorUint32(k, action.ArgSig)
+	case ActionTypeTrackSock, ActionTypeUntrackSock:
+		WriteSelectorUint32(k, action.ArgSock)
 	}
 	return nil
 }

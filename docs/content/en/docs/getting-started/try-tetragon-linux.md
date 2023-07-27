@@ -57,7 +57,7 @@ Let's break down the previous command:
 ## Observe Tetragon base events
 
 With this default configuration, Tetragon already loaded its base sensors to
-perform [process lifecycle observability](/docs/tetragon-events/process-lifecycle/).
+perform [process lifecycle observability]({{< ref "docs/use-cases/process-lifecycle" >}}).
 
 To quickly see the events, you can use the `tetra` CLI already shipped in the
 Tetragon container that was just started, it will connect to the Tetragon gRPC
@@ -103,7 +103,7 @@ example, used to implement enforcement.
 
 {{< note >}}
 For more details about TracingPolicies and how to write them, refer to the
-[TracingPolicy reference](/docs/reference/tracing-policy).
+[TracingPolicy documentation]({{< ref "docs/concepts/tracing-policy" >}}).
 {{< /note >}}
 
 ### Observability with TracingPolicy
@@ -393,6 +393,6 @@ file using `cat ./tracing_policy.yaml` will bypass the policies presented here.
 
 ## What's next
 
-- Try Tetragon in [Kubernetes environments](/docs/getting-started/kubernetes-quickstart-guide).
-- Learn more about [TracingPolicy in the reference documentation](/docs/reference/tracing-policy).
-- See more [use cases for observability with Tetragon](/docs/tetragon-events).
+- Try Tetragon in [Kubernetes environments]({{< ref "docs/getting-started/kubernetes-quickstart-guide" >}}).
+- Learn more about [TracingPolicy]({{< ref "docs/concepts/tracing-policy" >}}).
+- See more use cases for observability in the [Use cases section]({{< ref "docs/use-cases" >}}).

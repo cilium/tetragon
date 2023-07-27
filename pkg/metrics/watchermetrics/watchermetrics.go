@@ -17,12 +17,14 @@ const (
 
 var (
 	WatcherErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "watcher_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "watcher_errors_total",
 		Help:        "The total number of errors for a given watcher type.",
 		ConstLabels: nil,
 	}, []string{"watcher", "error"})
 	WatcherEvents = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "watcher_events",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "watcher_events_total",
 		Help:        "The total number of events for a given watcher type.",
 		ConstLabels: nil,
 	}, []string{"watcher"})

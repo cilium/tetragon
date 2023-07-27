@@ -33,6 +33,20 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+type bpfAttrObjOp struct {
+	pathname uint64
+	fd       uint32
+	pad0     [4]byte
+}
+
+type bpfAttrMapOpElem struct {
+	mapFd uint32
+	pad0  [4]byte
+	key   uint64
+	value uint64 // union: value or next_key
+	flags uint64
+}
+
 type MapKey interface {
 	fmt.Stringer
 
@@ -144,14 +158,17 @@ func OpenMap(name string) (*Map, error) {
 
 	info, err := GetMapInfo(os.Getpid(), fd)
 	if err != nil {
+		unix.Close(fd)
 		return nil, err
 	}
 
 	if info.MapType == 0 {
+		unix.Close(fd)
 		return nil, fmt.Errorf("Unable to determine map type")
 	}
 
 	if info.KeySize == 0 {
+		unix.Close(fd)
 		return nil, fmt.Errorf("Unable to determine map key size")
 	}
 

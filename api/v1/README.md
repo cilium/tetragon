@@ -53,6 +53,7 @@
     - [Filter](#tetragon-Filter)
     - [GetEventsRequest](#tetragon-GetEventsRequest)
     - [GetEventsResponse](#tetragon-GetEventsResponse)
+    - [RateLimitInfo](#tetragon-RateLimitInfo)
   
     - [EventType](#tetragon-EventType)
     - [FieldFilterAction](#tetragon-FieldFilterAction)
@@ -501,6 +502,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | daddr | [string](#string) |  |  |
 | sport | [uint32](#uint32) |  |  |
 | dport | [uint32](#uint32) |  |  |
+| cookie | [uint64](#uint64) |  |  |
 
 
 
@@ -967,9 +969,25 @@ AggregationOptions defines configuration options for aggregating events.
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
+| rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
 | aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+
+
+
+
+
+
+<a name="tetragon-RateLimitInfo"></a>
+
+### RateLimitInfo
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| number_of_dropped_process_events | [uint64](#uint64) |  |  |
 
 
 
@@ -996,6 +1014,7 @@ GetEventsResponse event oneof.
 | PROCESS_LOADER | 11 |  |
 | PROCESS_UPROBE | 12 |  |
 | TEST | 40000 |  |
+| RATE_LIMIT_INFO | 40001 |  |
 
 
 
@@ -1139,7 +1158,7 @@ Determins the behaviour of a field filter
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| yaml | [string](#string) |  |  |
+| name | [string](#string) |  |  |
 
 
 
@@ -1446,6 +1465,7 @@ Determins the behaviour of a field filter
 | GetEvents | [GetEventsRequest](#tetragon-GetEventsRequest) | [GetEventsResponse](#tetragon-GetEventsResponse) stream |  |
 | GetHealth | [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest) | [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse) |  |
 | AddTracingPolicy | [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest) | [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse) |  |
+| DeleteTracingPolicy | [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest) | [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
 | ListTracingPolicies | [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest) | [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse) |  |
 | ListSensors | [ListSensorsRequest](#tetragon-ListSensorsRequest) | [ListSensorsResponse](#tetragon-ListSensorsResponse) |  |

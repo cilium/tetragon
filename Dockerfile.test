@@ -1,4 +1,4 @@
-FROM quay.io/cilium/clang:7ea8dd5b610a8864ce7b56e10ffeb61030a0c50e@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpf-builder
+FROM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev
@@ -11,7 +11,7 @@ RUN apt-get install -y linux-libc-dev
 COPY . ./
 RUN make tetragon-bpf && pwd
 
-FROM docker.io/library/golang:1.18.3@sha256:af65c2761458722a028131c06edbdff97d6efcd2d66630fbfe0572b18185c7a4
+FROM docker.io/library/golang:1.20.6@sha256:cfc9d1b07b1ef4f7a4571f0b60a99646a92ef76adb7d9943f4cb7b606c6554e2
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev rpm2cpio cpio git flex bison autoconf libelf-dev bc netcat-traditional
 WORKDIR /go/src/github.com/cilium/tetragon

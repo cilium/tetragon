@@ -4,6 +4,7 @@ package policyfilter
 
 import (
 	"sync"
+	"testing"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
@@ -25,7 +26,7 @@ func GetState() (State, error) {
 			logger.GetLogger().Info("Enabling policy filtering")
 			glblState, glblError = New()
 		} else {
-			glblState = &dummy{}
+			glblState = &disabled{}
 			glblError = nil
 		}
 	})
@@ -37,7 +38,7 @@ func GetState() (State, error) {
 // We need this because GetState() depends on the
 // option.Config.EnablePolicyFilter global and this is only initialized once.
 // Callers for this should ensure that no race happens.
-func ResetStateOnlyForTesting() {
+func resetStateOnlyForTesting() {
 	if glblState != nil {
 		glblState.Close()
 	}
@@ -45,9 +46,33 @@ func ResetStateOnlyForTesting() {
 		logger.GetLogger().Info("Enabling policy filtering")
 		glblState, glblError = New()
 	} else {
-		glblState = &dummy{}
+		glblState = &disabled{}
 		glblError = nil
 	}
+}
+
+// TestingEnableAndReset enables policy filter for tests (see ResetStateOnlyForTesting)
+func TestingEnableAndReset(t *testing.T) {
+	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter
+	option.Config.EnablePolicyFilter = true
+	resetStateOnlyForTesting()
+	t.Cleanup(func() {
+		option.Config.EnablePolicyFilter = oldEnablePolicyFilterValue
+		resetStateOnlyForTesting()
+	})
+
+}
+
+// TestingDisableAndReset disable policy filter for tests (see ResetStateOnlyForTesting)
+func TestingDisableAndReset(t *testing.T) {
+	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter
+	option.Config.EnablePolicyFilter = true
+	resetStateOnlyForTesting()
+	t.Cleanup(func() {
+		option.Config.EnablePolicyFilter = oldEnablePolicyFilterValue
+		resetStateOnlyForTesting()
+	})
+
 }
 
 // State is the policyfilter state interface

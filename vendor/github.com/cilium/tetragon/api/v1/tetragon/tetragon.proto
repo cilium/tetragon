@@ -237,6 +237,7 @@ message KprobeSock {
     string daddr = 7;
     uint32 sport = 8;
     uint32 dport = 9;
+    uint64 cookie = 10;
 }
 
 message KprobeSkb {

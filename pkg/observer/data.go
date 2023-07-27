@@ -32,9 +32,11 @@ func DataAdd(id dataapi.DataEventId, msgData []byte) error {
 	data, ok := dataMap.Get(id)
 	if !ok {
 		dataMap.Add(id, msgData)
+		DataEventMetricInc(DataEventAdded)
 	} else {
 		data = append(data, msgData...)
 		dataMap.Add(id, data)
+		DataEventMetricInc(DataEventAppended)
 	}
 
 	logger.GetLogger().WithFields(nil).Tracef("Data message received id %v, size %v, total %v", id, size, len(data))
@@ -54,18 +56,32 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	return DataAdd(m.Id, msgData)
 }
 
-func DataGet(id dataapi.DataEventId) ([]byte, error) {
-	data, ok := dataMap.Get(id)
+func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
+	data, ok := dataMap.Get(desc.Id)
 	if !ok {
-		return nil, fmt.Errorf("failed to find data for id: %v", id)
+		DataEventMetricInc(DataEventNotMatched)
+		return nil, fmt.Errorf("failed to find data for id: %v", desc.Id)
 	}
 
-	dataMap.Remove(id)
-	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", id, len(data))
+	dataMap.Remove(desc.Id)
+
+	// make sure we did not loose anything on the way through ring buffer
+	if len(data) != int(desc.Size-desc.Leftover) {
+		DataEventMetricInc(DataEventBad)
+		DataEventMetricSizeBad(desc.Size)
+		return nil, fmt.Errorf("failed to get correct data for id: %v", desc.Id)
+	}
+
+	DataEventMetricSizeOk(desc.Size)
+
+	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", desc.Id, len(data))
+	DataEventMetricInc(DataEventMatched)
 	return data, nil
 }
 
 func HandleData(r *bytes.Reader) ([]Event, error) {
+	DataEventMetricInc(DataEventReceived)
+
 	m := dataapi.MsgData{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {

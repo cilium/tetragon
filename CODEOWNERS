@@ -9,3 +9,7 @@ cmd/protoc-gen-go-tetragon/ @willfindlay
 
 # Request a review from kkourt when core sensor files are modified
 pkg/src/sensors/ @kkourt
+
+# Request a review from mtardy when anything from docs is modified but do not
+# block on approval from anyone in the tetragon team
+/docs/ @mtardy @cilium/tetragon

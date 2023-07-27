@@ -63,7 +63,7 @@ for obj in "$TETRAGONDIR"/*.o; do
 	fi
 
     # skip v6.0 objects check, because it is still not widely around
-	if [[ "$B" == *60.o ]]; then
+	if [[ "$B" == *61.o ]]; then
 		continue
 	fi
 

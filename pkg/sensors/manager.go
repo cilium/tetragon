@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -34,13 +35,26 @@ func StartSensorManager(
 	bpfDir, mapDir, ciliumDir string,
 	waitChan chan struct{},
 ) (*Manager, error) {
+	pfState, err := policyfilter.GetState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
+	}
+
+	handler, err := newHandler(pfState, bpfDir, mapDir, ciliumDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return startSensorManager(handler, waitChan)
+}
+
+func startSensorManager(
+	handler *handler,
+	waitChan chan struct{},
+) (*Manager, error) {
 	c := make(chan sensorOp)
 	m := Manager{
 		sensorCtl: c,
-	}
-	handler, err := newHandler(bpfDir, mapDir, ciliumDir)
-	if err != nil {
-		return nil, err
 	}
 
 	go func() {
@@ -59,8 +73,8 @@ func StartSensorManager(
 			switch op := op_.(type) {
 			case *tracingPolicyAdd:
 				err = handler.addTracingPolicy(op)
-			case *tracingPolicyDel:
-				err = handler.delTracingPolicy(op)
+			case *tracingPolicyDelete:
+				err = handler.deleteTracingPolicy(op)
 			case *tracingPolicyList:
 				err = handler.listTracingPolicies(op)
 			case *sensorAdd:
@@ -215,10 +229,10 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 	return err
 }
 
-// DelTracingPolicy deletes a new sensor based on a tracing policy
-func (h *Manager) DelTracingPolicy(ctx context.Context, name string) error {
+// DeleteTracingPolicy deletes a new sensor based on a tracing policy
+func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string) error {
 	retc := make(chan error)
-	op := &tracingPolicyDel{
+	op := &tracingPolicyDelete{
 		ctx:     ctx,
 		name:    name,
 		retChan: retc,
@@ -317,7 +331,7 @@ type tracingPolicyAdd struct {
 	retChan chan error
 }
 
-type tracingPolicyDel struct {
+type tracingPolicyDelete struct {
 	ctx     context.Context
 	name    string
 	retChan chan error
@@ -399,16 +413,16 @@ type LoadArg struct{}
 type UnloadArg = LoadArg
 
 // trivial sensorOpDone implementations for commands
-func (s *tracingPolicyAdd) sensorOpDone(e error)  { s.retChan <- e }
-func (s *tracingPolicyDel) sensorOpDone(e error)  { s.retChan <- e }
-func (s *tracingPolicyList) sensorOpDone(e error) { s.retChan <- e }
-func (s *sensorAdd) sensorOpDone(e error)         { s.retChan <- e }
-func (s *sensorRemove) sensorOpDone(e error)      { s.retChan <- e }
-func (s *sensorEnable) sensorOpDone(e error)      { s.retChan <- e }
-func (s *sensorDisable) sensorOpDone(e error)     { s.retChan <- e }
-func (s *sensorList) sensorOpDone(e error)        { s.retChan <- e }
-func (s *sensorConfigSet) sensorOpDone(e error)   { s.retChan <- e }
-func (s *sensorConfigGet) sensorOpDone(e error)   { s.retChan <- e }
-func (s *sensorCtlStop) sensorOpDone(e error)     { s.retChan <- e }
+func (s *tracingPolicyAdd) sensorOpDone(e error)    { s.retChan <- e }
+func (s *tracingPolicyDelete) sensorOpDone(e error) { s.retChan <- e }
+func (s *tracingPolicyList) sensorOpDone(e error)   { s.retChan <- e }
+func (s *sensorAdd) sensorOpDone(e error)           { s.retChan <- e }
+func (s *sensorRemove) sensorOpDone(e error)        { s.retChan <- e }
+func (s *sensorEnable) sensorOpDone(e error)        { s.retChan <- e }
+func (s *sensorDisable) sensorOpDone(e error)       { s.retChan <- e }
+func (s *sensorList) sensorOpDone(e error)          { s.retChan <- e }
+func (s *sensorConfigSet) sensorOpDone(e error)     { s.retChan <- e }
+func (s *sensorConfigGet) sensorOpDone(e error)     { s.retChan <- e }
+func (s *sensorCtlStop) sensorOpDone(e error)       { s.retChan <- e }
 
 type sensorCtlHandle = chan<- sensorOp

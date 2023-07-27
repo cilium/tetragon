@@ -13,18 +13,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-20.04, buildjet-2vcpu-ubuntu-2204-arm ]
     steps:
-    - name: Install Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
-      with:
-        go-version: '1.18.3'
-
     - name: Checkout code
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.20.6'
 
     - name: Install dependencies
       run: |
@@ -37,6 +39,8 @@ jobs:
         echo `which llc`
         echo `clang --version`
 
+    - name: Install bpftool
+      uses: mtardy/setup-bpftool@d21fc59a00cfc7e7de8b83a6f8f2060f0e54e2b8 # v1.0.2
 
     - name: Ensure BPF programs pass verifier
       run: |
@@ -45,20 +49,21 @@ jobs:
 
     - name: Run go tests
       env:
-        GOPATH: /home/runner/work/tetragon/tetragon/go
+        GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
         SUDO: sudo -E
       run: |
+        go clean -cache -modcache -testcache -fuzzcache
         cd go/src/github.com/cilium/tetragon/
         make check-copyright
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
         export TETRAGON_LIB=$(realpath "bpf/objs/")
-        make test
+        make test GO_TEST_TIMEOUT=40m
 
     - name: Upload Tetragon logs
       if: failure()
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: tetragon-json
         path: /tmp/tetragon.gotest*
@@ -66,7 +71,7 @@ jobs:
 
     - name: Upload bugtool dumps
       if: failure()
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: tetragon-bugtool
         path: /tmp/tetragon-bugtool*

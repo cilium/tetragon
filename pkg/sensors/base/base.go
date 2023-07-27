@@ -97,8 +97,8 @@ func GetInitialSensor() *sensors.Sensor {
 
 // ExecObj returns the exec object based on the kernel version
 func ExecObj() string {
-	if kernels.EnableV60Progs() {
-		return "bpf_execve_event_v60.o"
+	if kernels.EnableV61Progs() {
+		return "bpf_execve_event_v61.o"
 	} else if kernels.EnableLargeProgs() {
 		return "bpf_execve_event_v53.o"
 	} else {

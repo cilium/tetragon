@@ -6,8 +6,8 @@
 
 #define GENERIC_KPROBE
 
-#include "hubble_msg.h"
-#include "bpf_events.h"
+#include "bpf_event.h"
+#include "bpf_task.h"
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"

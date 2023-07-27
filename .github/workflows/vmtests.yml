@@ -19,12 +19,13 @@ jobs:
       cancel-in-progress: true
     steps:
     - name: Install Go
-      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version: '1.18.3'
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.20.6'
 
     - name: Checkout code
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -54,7 +55,7 @@ jobs:
         tar cz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
 
     - name: upload build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar
@@ -64,10 +65,11 @@ jobs:
         fail-fast: false
         matrix:
            kernel:
-              - '5.15'
-              - '5.10'
-              - '5.4'
-              - '4.19'
+              - 'bpf-next-main'
+              - '5.15-main'
+              - '5.10-main'
+              - '5.4-main'
+              - '4.19-main'
            group:
               - 0
     concurrency:
@@ -89,7 +91,7 @@ jobs:
         sudo chmod go+rX -R /boot/
 
     - name: download build data
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
       with:
          name: tetragon-build
 
@@ -100,23 +102,30 @@ jobs:
         tar xf tetragon.tar -C go/src/github.com/cilium
 
     - name: test kernel ${{ matrix.kernel }}
-      if: ${{ matrix.kernel  != '4.19' }}
+      if: ${{ !startsWith(matrix.kernel, '4.19') }}
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
+        echo "Using: kernel:$kimage"
         sudo ./tests/vmtests/tetragon-vmtests-run \
-                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
+                --kernel ${kimage} \
+                --kernel-ver  ${{ matrix.kernel }} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
     - name: test kernel ${{ matrix.kernel }} with btf file
-      if: ${{ matrix.kernel  == '4.19' }}
+      if: ${{ startsWith(matrix.kernel, '4.19') }}
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
+        btf=$(find tests/vmtests/test-data/kernels -path "*btf*" -type f)
+        echo "Using: kernel:$kimage bptf:$btf"
         sudo ./tests/vmtests/tetragon-vmtests-run \
-                --kernel tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/vmlinuz* \
-                --btf-file tests/vmtests/test-data/kernels/${{ matrix.kernel }}/boot/btf-* \
+                --kernel ${kimage} \
+                --kernel-ver  ${{ matrix.kernel }} \
+                --btf-file ${btf} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
@@ -127,7 +136,7 @@ jobs:
 
     - name: Upload test results on failure or cancelation
       if: failure() || cancelled()
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
@@ -141,7 +150,7 @@ jobs:
       run: |
         touch /tmp/tetragon.tar
     - name: Upload truncated file
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar

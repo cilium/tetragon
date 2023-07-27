@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "__cgroup_bpf_run_filter_skb"
+    syscall: false
+    args:
+      - index: 0
+        type: sock
+      - index: 1
+        type: skb
+      - index: 2
+        type: int
+    selectors:
+      - matchArgs:
+        - index: 1
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/8"
+        - index: 1
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        matchActions:
+        - action: Post
+          rateLimit: 5

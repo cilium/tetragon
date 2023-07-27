@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
-	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -34,20 +33,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
-
-func tpSpecReload(t *testing.T, tpSensor *sensors.Sensor, tpSpec *v1alpha1.TracepointSpec) {
-	if len(tpSensor.Progs) != 1 {
-		t.Fatalf("unexpected progs size: %d", len(tpSensor.Progs))
-	}
-
-	tpProg := tpSensor.Progs[0]
-	if err := ReloadGenericTracepointSelectors(tpProg, tpSpec); err != nil {
-		t.Fatalf("failed to reload tracepoint prog: %s", err)
-	}
-	if len(tpSensor.Progs) != 1 {
-		t.Fatalf("unexpected progs size: %d", len(tpSensor.Progs))
-	}
-}
 
 // loadGenericSensorTest loads a tracing sensor for testing
 func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
@@ -120,6 +105,15 @@ var testCases = []struct {
 			{lseekOpsVals: []int{4443, 4444, 4443}, expectedArgs: map[uint64]int{4444: 1}},
 			{lseekOpsVals: []int{9999, 4443}, expectedArgs: map[uint64]int{9999: 1}},
 			{lseekOpsVals: []int{9999, 4444}, expectedArgs: map[uint64]int{9999: 1, 4444: 1}},
+		},
+	},
+	{
+		// NB: this needs to be first
+		specOperator:   "InMap",
+		specFilterVals: [][]int{{8888, 8889}, {4442, 4443, 4444}},
+		tests: []testCase{
+			{lseekOpsVals: []int{4444, 4445}, expectedArgs: map[uint64]int{4444: 1}},
+			{lseekOpsVals: []int{4443, 8889}, expectedArgs: map[uint64]int{4443: 1, 8889: 1}},
 		},
 	},
 	{
@@ -232,26 +226,21 @@ func TestTracepointSelectors(t *testing.T) {
 		}
 	}
 
-	tpSensor := loadGenericSensorTest(t, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
-	t0 := time.Now()
-	loadElapsed := time.Since(t0)
-	t.Logf("loading sensors took: %s\n", loadElapsed)
-	for i, tcs := range testCases {
+	for _, tcs := range testCases {
 		tName := fmt.Sprintf("spec:%s%v", tcs.specOperator, tcs.specFilterVals)
 		t.Run(tName, func(t *testing.T) {
-			t.Logf("%d", i)
 			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+			t.Logf("Running %s", tName)
+			t0 := time.Now()
 			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
-			if i != 0 {
-				tpSpecReload(t, tpSensor, &spec.Tracepoints[0])
-			}
-
+			tpSensor := loadGenericSensorTest(t, spec)
+			loadElapsed := time.Since(t0)
+			t.Logf("loading sensors (tpSensor: %p)  took: %s\n", tpSensor, loadElapsed)
 			for _, tc := range tcs.tests {
 				runAndCheck(t, ctx, fmt.Sprintf("lseekValls:%v", tc.lseekOpsVals), lseekTestOps(tc.lseekOpsVals), tc.expectedArgs)
 			}
 		})
 	}
-
 }
 
 func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx uint32, filterOperator string) []v1alpha1.KProbeSelector {
@@ -360,28 +349,22 @@ func TestKprobeSelectors(t *testing.T) {
 		}
 	}
 
-	t0 := time.Now()
-	kpSensor := loadGenericSensorTest(t, makeSpec(t, testCases[0].specFilterVals, testCases[0].specOperator))
-	loadElapsed := time.Since(t0)
-	t.Logf("loading sensors (kpSensor: %p)  took: %s\n", kpSensor, loadElapsed)
-	for i, tcs := range testCases {
+	for _, tcs := range testCases {
 		tName := fmt.Sprintf("spec:%s%v", tcs.specOperator, tcs.specFilterVals)
 		t.Run(tName, func(t *testing.T) {
-			t.Logf("%d", i)
 			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
-			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
-			if i != 0 {
-				// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
-				var argActionTable idtable.Table
+			t.Logf("Running %s", tName)
 
-				if err := ReloadGenericKprobeSelectors(kpSensor, &spec.KProbes[0], &argActionTable); err != nil {
-					t.Fatalf("failed to reload kprobe prog: %s", err)
-				}
-			}
+			t0 := time.Now()
+			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
+			kpSensor := loadGenericSensorTest(t, spec)
+			loadElapsed := time.Since(t0)
+			t.Logf("loading sensors (kpSensor: %p)  took: %s\n", kpSensor, loadElapsed)
 
 			for _, tc := range tcs.tests {
 				runAndCheck(t, ctx, fmt.Sprintf("lseekValls:%v", tc.lseekOpsVals), lseekTestOps(tc.lseekOpsVals), tc.expectedArgs)
 			}
 		})
 	}
+
 }

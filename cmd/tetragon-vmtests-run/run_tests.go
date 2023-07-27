@@ -18,7 +18,7 @@ import (
 )
 
 type runTestsResults struct {
-	nrTests, nrFailedTests int
+	nrTests, nrFailedTests, nrSkipedTests int
 }
 
 func runTests(
@@ -65,6 +65,7 @@ func runTests(
 
 	var totalDuration time.Duration
 	errCnt := 0
+	skipCnt := 0
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	for _, r := range results {
@@ -73,6 +74,9 @@ func runTests(
 		if r.Error {
 			ok = "❌"
 			errCnt++
+		} else if r.Skip {
+			ok = "⏭️"
+			skipCnt++
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t(%s)\n", ok, r.Name, r.Duration.Round(time.Millisecond), totalDuration.Round(time.Millisecond))
 	}
@@ -81,5 +85,6 @@ func runTests(
 	return &runTestsResults{
 		nrTests:       len(results),
 		nrFailedTests: errCnt,
+		nrSkipedTests: skipCnt,
 	}, nil
 }

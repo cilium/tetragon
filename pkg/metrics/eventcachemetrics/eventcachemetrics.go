@@ -11,17 +11,20 @@ import (
 
 var (
 	processInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache_process_info_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_process_info_errors_total",
 		Help:        "The total of times we failed to fetch cached process info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	podInfoErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name:        consts.MetricNamePrefix + "event_cache_pod_info_errors",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_pod_info_errors_total",
 		Help:        "The total of times we failed to fetch cached pod info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
 	EventCacheCount = promauto.NewCounter(prometheus.CounterOpts{
-		Name:        "event_cache_count",
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_accesses_total",
 		Help:        "The total number of Tetragon event cache accesses. For internal use only.",
 		ConstLabels: nil,
 	})

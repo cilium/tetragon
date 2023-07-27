@@ -206,6 +206,12 @@ func (s *Sensor) loadMaps(mapDir string) error {
 			mapSpec.MaxEntries = max
 		}
 
+		if innerMax, ok := m.Prog.MaxEntriesInnerMap[mapSpec.Name]; ok {
+			if innerMs := mapSpec.InnerMap; innerMs != nil {
+				mapSpec.InnerMap.MaxEntries = innerMax
+			}
+		}
+
 		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 		}
@@ -275,7 +281,7 @@ func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Progra
 	} else {
 		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
-			return fmt.Errorf("failed prog %s kern_version %d LoadKprobeProgram: %w",
+			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
 		}
 	}

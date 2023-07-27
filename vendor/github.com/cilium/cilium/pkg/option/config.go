@@ -729,6 +729,10 @@ const (
 	// EnableIPSecName is the name of the option to enable IPSec
 	EnableIPSecName = "enable-ipsec"
 
+	// Enable watcher for IPsec key. If disabled, a restart of the agent will
+	// be necessary on key rotations.
+	EnableIPsecKeyWatcher = "enable-ipsec-key-watcher"
+
 	// IPSecKeyFileName is the name of the option for ipsec key file
 	IPSecKeyFileName = "ipsec-key-file"
 
@@ -1069,6 +1073,9 @@ const (
 
 	// EnableICMPRules enables ICMP-based rule support for Cilium Network Policies.
 	EnableICMPRules = "enable-icmp-rules"
+
+	// Use the CiliumInternalIPs (vs. NodeInternalIPs) for IPsec encapsulation.
+	UseCiliumInternalIPForIPsec = "use-cilium-internal-ip-for-ipsec"
 
 	// BypassIPAvailabilityUponRestore bypasses the IP availability error
 	// within IPAM upon endpoint restore and allows the use of the restored IP
@@ -1600,6 +1607,10 @@ type DaemonConfig struct {
 
 	// IPSec key file for stored keys
 	IPSecKeyFile string
+
+	// Enable watcher for IPsec key. If disabled, a restart of the agent will
+	// be necessary on key rotations.
+	EnableIPsecKeyWatcher bool
 
 	// EnableWireguard enables Wireguard encryption
 	EnableWireguard bool
@@ -2255,6 +2266,9 @@ type DaemonConfig struct {
 	// EnableICMPRules enables ICMP-based rule support for Cilium Network Policies.
 	EnableICMPRules bool
 
+	// Use the CiliumInternalIPs (vs. NodeInternalIPs) for IPsec encapsulation.
+	UseCiliumInternalIPForIPsec bool
+
 	// BypassIPAvailabilityUponRestore bypasses the IP availability error
 	// within IPAM upon endpoint restore and allows the use of the restored IP
 	// regardless of whether it's available in the pool.
@@ -2341,6 +2355,7 @@ var (
 		K8sEnableK8sEndpointSlice:    defaults.K8sEnableEndpointSlice,
 		AllocatorListTimeout:         defaults.AllocatorListTimeout,
 		EnableICMPRules:              defaults.EnableICMPRules,
+		UseCiliumInternalIPForIPsec:  defaults.UseCiliumInternalIPForIPsec,
 
 		K8sEnableLeasesFallbackDiscovery: defaults.K8sEnableLeasesFallbackDiscovery,
 		APIRateLimit:                     make(map[string]string),
@@ -2962,6 +2977,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.IPTablesLockTimeout = vp.GetDuration(IPTablesLockTimeout)
 	c.IPTablesRandomFully = vp.GetBool(IPTablesRandomFully)
 	c.IPSecKeyFile = vp.GetString(IPSecKeyFileName)
+	c.EnableIPsecKeyWatcher = vp.GetBool(EnableIPsecKeyWatcher)
 	c.EnableMonitor = vp.GetBool(EnableMonitorName)
 	c.MonitorAggregation = vp.GetString(MonitorAggregationName)
 	c.MonitorAggregationInterval = vp.GetDuration(MonitorAggregationInterval)
@@ -3329,6 +3345,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.EndpointGCInterval = vp.GetDuration(EndpointGCInterval)
 	c.DisableCNPStatusUpdates = vp.GetBool(DisableCNPStatusUpdates)
 	c.EnableICMPRules = vp.GetBool(EnableICMPRules)
+	c.UseCiliumInternalIPForIPsec = vp.GetBool(UseCiliumInternalIPForIPsec)
 	c.BypassIPAvailabilityUponRestore = vp.GetBool(BypassIPAvailabilityUponRestore)
 	c.EnableK8sTerminatingEndpoint = vp.GetBool(EnableK8sTerminatingEndpoint)
 	c.EnableStaleCiliumEndpointCleanup = vp.GetBool(EnableStaleCiliumEndpointCleanup)

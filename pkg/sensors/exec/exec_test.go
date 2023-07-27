@@ -610,7 +610,7 @@ func TestExecParse(t *testing.T) {
 		// - cwd (string)
 
 		id := dataapi.DataEventId{Pid: 1, Time: 1}
-		desc := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id}
 		err = observer.DataAdd(id, filename)
 		assert.NoError(t, err)
 
@@ -649,7 +649,7 @@ func TestExecParse(t *testing.T) {
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
 		id := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
 		err = observer.DataAdd(id, args)
 		assert.NoError(t, err)
 
@@ -687,7 +687,7 @@ func TestExecParse(t *testing.T) {
 		// - cwd (string)
 
 		id1 := dataapi.DataEventId{Pid: 1, Time: 1}
-		desc1 := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id1}
+		desc1 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id1}
 		err = observer.DataAdd(id1, filename)
 		assert.NoError(t, err)
 
@@ -695,7 +695,7 @@ func TestExecParse(t *testing.T) {
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
 		id2 := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc2 := dataapi.DataEventDesc{Error: 0, Leftover: 0, Id: id2}
+		desc2 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id2}
 		err = observer.DataAdd(id2, args)
 		assert.NoError(t, err)
 

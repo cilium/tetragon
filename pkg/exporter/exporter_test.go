@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
@@ -87,7 +88,7 @@ func TestExporter_Send(t *testing.T) {
 	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
 	numRecords := 2
 	results := newArrayWriter(numRecords)
-	encoder := json.NewEncoder(results)
+	encoder := encoder.NewProtojsonEncoder(results)
 	request := tetragon.GetEventsRequest{DenyList: []*tetragon.Filter{{BinaryRegex: []string{"b"}}}}
 	exporter := NewExporter(ctx, &request, grpcServer, encoder, results, nil)
 	exporter.Start()
@@ -136,15 +137,15 @@ func checkEvents(t *testing.T, eventsJSON []string, wantEvents, wantRateLimitInf
 			decoded++
 		}
 		if len(ev.RateLimitInfo) > 0 {
-			var r ratelimit.InfoEvent
-			if err := json.Unmarshal([]byte(event), &r); err != nil {
+			var res tetragon.GetEventsResponse
+			if err := json.Unmarshal([]byte(event), &res); err != nil {
 				t.Fatalf("failed to unmarshal JSON event %q: %v", event, err)
 			}
 			gotRateLimitInfo++
-			gotDropped += r.RateLimitInfo.NumberOfDroppedProcessEvents
+			gotDropped += res.GetRateLimitInfo().GetNumberOfDroppedProcessEvents()
 			decoded++
 
-			if nn := r.NodeName; nn != nodeName {
+			if nn := res.NodeName; nn != nodeName {
 				t.Errorf("unexpected node name for rate-limit-info event: got %q, want %q", nn, nodeName)
 			}
 		}
@@ -191,7 +192,7 @@ func Test_rateLimitExport(t *testing.T) {
 			dr := rthooks.DummyHookRunner{}
 			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
 			results := newArrayWriter(tt.totalEvents)
-			encoder := json.NewEncoder(results)
+			encoder := encoder.NewProtojsonEncoder(results)
 			request := &tetragon.GetEventsRequest{}
 			exporter := NewExporter(
 				ctx,
