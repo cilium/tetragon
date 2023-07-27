@@ -142,7 +142,7 @@ jobs:
       - name: Check if building tetragonpod controller image
         id: suffix
         run: |
-          if [ "${{ matrix.name }}" == "tetragonpod" ]; then
+          if [ "${{ matrix.name }}" == "tetragonPod" ]; then
             echo "value=-podinfo" >> $GITHUB_OUTPUT
           else
             echo "value=" >> $GITHUB_OUTPUT

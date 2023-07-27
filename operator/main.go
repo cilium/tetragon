@@ -54,6 +54,7 @@ var (
 	}
 )
 
+// getConfig is used to get the Kubernetes Config file
 func getConfig() (*rest.Config, error) {
 	if operatorOption.Config.KubeCfgPath != "" {
 		return clientcmd.BuildConfigFromFlags("", operatorOption.Config.KubeCfgPath)
@@ -96,14 +97,18 @@ func operatorExecute() {
 	// version of K8s.
 	if !operatorOption.Config.SkipCRDCreation {
 
+		log.Info("Registering the CRDs")
 		// Register Tracing Policy CRD
 		if err := ciliumClient.RegisterCRDs(k8sAPIExtClient); err != nil {
 			log.WithError(err).Fatal("Unable to register CRDs")
 		}
 
-		// Register TetragonPod CRD
-		if err := tetragonClient.RegisterCRD(k8sAPIExtClient); err != nil {
-			log.WithError(err).Fatal("Unable to register TetragonPod CRDs")
+		if !operatorOption.Config.SkipTetragonPodCRD {
+			log.Info("Registering the TetragonPod CRD")
+			// Register TetragonPod CRD
+			if err := tetragonClient.RegisterCRD(k8sAPIExtClient); err != nil {
+				log.WithError(err).Fatal("Unable to register TetragonPod CRDs")
+			}
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")
