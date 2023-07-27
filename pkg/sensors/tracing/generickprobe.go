@@ -909,26 +909,9 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Flags = flags
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericFilenameType, gt.GenericStringType:
-			var b int32
 			var arg api.MsgGenericKprobeArgString
-
-			err := binary.Read(r, binary.LittleEndian, &b)
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("StringSz type err")
-			}
-			outputStr := make([]byte, b)
-			err = binary.Read(r, binary.LittleEndian, &outputStr)
-			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("String with size %d type err", b)
-			}
-
 			arg.Index = uint64(a.index)
-			strVal := string(outputStr[:])
-			lenStrVal := len(strVal)
-			if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
-				strVal = strVal[0 : lenStrVal-1]
-			}
-			arg.Value = strVal
+			arg.Value = handleGenericKprobeString(r, "")
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericCredType:
 			var cred api.MsgGenericKprobeCred
