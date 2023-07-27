@@ -1,13 +1,13 @@
 #! /bin/bash
 
 error() {
-    echo $@ 1>&2
+    echo "$@" 1>&2
     exit 1
 }
 
 set -eu
 
-PROJECT_ROOT="$(realpath $(dirname "${BASH_SOURCE[0]}")/../..)"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$PROJECT_ROOT"
 source contrib/localdev/conf
 
@@ -72,26 +72,26 @@ if [ "$FORCE" == 1 ]; then
 fi
 
 # Set helm options
-declare -a helm_opts=("install" "--namespace" "kube-system")
-if [ ! -z "$IMAGE" ]; then
+declare -a helm_opts=("--namespace" "kube-system")
+if [ -n "$IMAGE" ]; then
     helm_opts+=("--set" "tetragon.image.override=$IMAGE")
     if [ "$IS_KIND" == 1 ]; then
         kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
     fi
 fi
-if [ ! -z "$OPERATOR" ]; then
+if [ -n "$OPERATOR" ]; then
     helm_opts+=("--set" "tetragonOperator.image.override=$OPERATOR")
     if [ "$IS_KIND" == 1 ]; then
         kind load docker-image "$OPERATOR" --name "$CLUSTER_NAME"
     fi
 fi
-if [ ! -z "$VALUES" ]; then
+if [ -n "$VALUES" ]; then
     helm_opts+=("--values" "$VALUES")
 fi
 helm_opts+=("tetragon" "./install/kubernetes")
 
 echo "Installing Tetragon in cluster..." 1>&2
-helm "${helm_opts[@]}"
+helm upgrade --install "${helm_opts[@]}"
 
 echo "Waiting for Tetragon deployment..." 1>&2
-kubectl rollout status -n kube-system ds/tetragon -w
+kubectl rollout status -n kube-system ds/tetragon -w --timeout 5m

@@ -1,13 +1,13 @@
 #! /bin/bash
 
 error() {
-    echo $@ 1>&2
+    echo "$@" 1>&2
     exit 1
 }
 
 set -eu
 
-PROJECT_ROOT="$(realpath $(dirname "${BASH_SOURCE[0]}")/../..)"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$PROJECT_ROOT"
 source contrib/localdev/conf
 
