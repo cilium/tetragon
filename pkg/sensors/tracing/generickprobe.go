@@ -773,7 +773,9 @@ func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, verbo
 		load.LoaderData, load.LoaderData)
 }
 
-func handleGenericKprobeString(r *bytes.Reader) string {
+// handleGenericKprobeString: reads a string argument. Strings are encoded with their size first.
+// def is return in case of an error.
+func handleGenericKprobeString(r *bytes.Reader, def string) string {
 	var b int32
 
 	err := binary.Read(r, binary.LittleEndian, &b)
@@ -784,12 +786,14 @@ func handleGenericKprobeString(r *bytes.Reader) string {
 		 * lets just report its on "/" all though pid filtering will mostly
 		 * catch this.
 		 */
-		return "/"
+		logger.GetLogger().WithError(err).Warnf("handleGenericKprobeString: read string size failed")
+		return def
 	}
 	outputStr := make([]byte, b)
 	err = binary.Read(r, binary.LittleEndian, &outputStr)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("String with size %d type err", b)
+		logger.GetLogger().WithError(err).Warnf("handleGenericKprobeString: read string with size %d", b)
+		return def
 	}
 
 	strVal := string(outputStr[:])
@@ -961,7 +965,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r)
+			arg.Value = handleGenericKprobeString(r, "/")
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)
@@ -977,7 +981,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			var flags uint32
 
 			arg.Index = uint64(a.index)
-			arg.Value = handleGenericKprobeString(r)
+			arg.Value = handleGenericKprobeString(r, "/")
 
 			// read the first byte that keeps the flags
 			err := binary.Read(r, binary.LittleEndian, &flags)
