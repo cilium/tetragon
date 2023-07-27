@@ -34,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
 
@@ -739,7 +740,7 @@ func handleGenericKprobeString(r *bytes.Reader, def string) string {
 		return def
 	}
 
-	strVal := string(outputStr[:])
+	strVal := strutils.UTF8FromBPFBytes(outputStr[:])
 	lenStrVal := len(strVal)
 	if lenStrVal > 0 && strVal[lenStrVal-1] == '\x00' {
 		strVal = strVal[0 : lenStrVal-1]
