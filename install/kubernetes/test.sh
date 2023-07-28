@@ -15,4 +15,5 @@ helm lint . --with-subcharts
 helm template tetragon . | kubeval --strict --additional-schema-locations https://raw.githubusercontent.com/joshuaspence/kubernetes-json-schema/master
 
 # Update README.md.
-docker run --rm -v "$(pwd):/helm-docs" -u "$(id -u)" jnorwood/helm-docs:v1.2.1
+docker run --rm -v "$(pwd):/helm-docs" -u "$(id -u)" jnorwood/helm-docs:v1.11.0@sha256:66c8f4164dec860fa5c1528239c4aa826a12485305b7b224594b1a73f7e6879a
+./export-doc.sh ../../docs/content/en/docs/reference/helm-chart.md
