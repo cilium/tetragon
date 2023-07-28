@@ -174,3 +174,13 @@ func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
 		Offset:  addr - sym.addr,
 	}, nil
 }
+
+func (k Ksyms) FunctionNames() []string {
+	names := make([]string, 0, len(k.table))
+	for _, sym := range k.table {
+		if sym.isFunction() {
+			names = append(names, sym.name)
+		}
+	}
+	return names
+}

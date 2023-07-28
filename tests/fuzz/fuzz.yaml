@@ -1,0 +1,40 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  Name: fuzz
+spec:
+  kprobes:
+  - args:
+    - index: 3872838764
+      label: Ŕ覯亇Ě乱輁<Kƚ%
+      maxData: true
+      returnCopy: false
+      sizeArgIndex: 2853555366
+      type: int
+    - index: 609272953
+      label: 毬~鎗"鮼"x稫U1ƆǩÐ1ǲÔ殹ƿs
+      maxData: true
+      returnCopy: false
+      sizeArgIndex: 1763785371
+      type: char_buf
+    - index: 748599961
+      label: 凚痍ưS冭r谻>
+      maxData: true
+      returnCopy: false
+      sizeArgIndex: 1166472827
+      type: bpf_map
+    call: cpuidle_add_state_sysfs
+    return: true
+    returnArg:
+      index: 0
+      label: ""
+      maxData: false
+      returnCopy: false
+      sizeArgIndex: 0
+      type: ""
+    returnArgAction: ""
+    selectors: null
+    syscall: false
+  loader: false
+  tracepoints: null
+  uprobes: null
