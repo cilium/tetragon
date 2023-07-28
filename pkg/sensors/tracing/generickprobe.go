@@ -288,6 +288,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 // Pre validate the kprobe semantics and BTF information in order to separate
 // the kprobe errors from BPF related ones.
 func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
+	btfobj, err := btf.NewBTF()
+	if err != nil {
+		return err
+	}
+
 	for i := range kprobes {
 		f := &kprobes[i]
 
@@ -314,11 +319,6 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 		}
 
 		// Now go over BTF validation
-		btfobj, err := btf.NewBTF()
-		if err != nil {
-			return err
-		}
-
 		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
 			if warn, ok := err.(*btf.ValidationWarn); ok {
 				logger.GetLogger().WithFields(logrus.Fields{
