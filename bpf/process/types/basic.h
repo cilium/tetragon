@@ -942,13 +942,13 @@ static inline __attribute__((always_inline)) long
 copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
 	      struct bpf_map_def *data_heap)
 {
+	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
 	struct kvec *kvec;
 	unsigned int val;
 	const char *buf;
 	size_t count;
 	u8 iter_type;
-	long size;
 	void *tmp;
 	int *s;
 
@@ -961,8 +961,15 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		iter_type = val == 4 ? ITER_IOVEC : ITER_UBUF + 1;
 	}
 
-	switch (iter_type) {
-	case ITER_IOVEC:
+	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
+		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
+
+#ifdef __V61_BPF_PROG
+	if (bpf_core_enum_value_exists(enum iter_type, ITER_UBUF))
+		iter_ubuf = bpf_core_enum_value(enum iter_type, ITER_UBUF);
+#endif
+
+	if (iter_type == iter_iovec) {
 		tmp = _(&iov_iter->kvec);
 		probe_read(&kvec, sizeof(kvec), tmp);
 
@@ -972,26 +979,27 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		tmp = _(&kvec->iov_len);
 		probe_read(&count, sizeof(count), tmp);
 
-		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
-		break;
+		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
+				       has_max_data(argm), e, data_heap);
+	}
+
 #ifdef __V61_BPF_PROG
-	case ITER_UBUF:
+	if (iter_type == iter_ubuf) {
 		tmp = _(&iov_iter->ubuf);
 		probe_read(&buf, sizeof(buf), tmp);
 
 		tmp = _(&iov_iter->count);
 		probe_read(&count, sizeof(count), tmp);
 
-		size = __copy_char_buf(ctx, off, (unsigned long)buf, count, has_max_data(argm), e, data_heap);
-		break;
-#endif // __V61_BPF_PROG
-	default:
-		s = (int *)args_off(e, off);
-		s[0] = s[1] = 0;
-		size = 8;
-		break;
+		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
+				       has_max_data(argm), e, data_heap);
 	}
-	return size;
+#endif
+
+	s = (int *)args_off(e, off);
+	s[0] = 0;
+	s[1] = 0;
+	return 8;
 }
 
 // filter on values provided in the selector itself
