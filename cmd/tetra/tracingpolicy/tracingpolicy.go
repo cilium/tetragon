@@ -25,7 +25,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func New() *cobra.Command {
@@ -76,18 +75,18 @@ func New() *cobra.Command {
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
+	var tpGenerateMatchBinary string
 	tpGenerateCmd := &cobra.Command{
 		Use:   "generate <all-syscalls|empty>",
 		Short: "generate tracing policies",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			generateTracingPolicy(args[0])
+			generateTracingPolicy(args[0], tpGenerateMatchBinary)
 		},
 	}
 
-	flags := tpGenerateCmd.Flags()
-	flags.String("match-binary", "", "Add binary to matchBinaries selector")
-	viper.BindPFlags(flags)
+	tpGenerateFlags := tpGenerateCmd.Flags()
+	tpGenerateFlags.StringVarP(&tpGenerateMatchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
 
 	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpListCmd, tpGenerateCmd)
 	return tpCmd
@@ -150,8 +149,7 @@ func listTracingPolicies(
 	}
 }
 
-func generateAllSyscalls() {
-	binary := viper.GetString("match-binary")
+func generateAllSyscalls(binary string) {
 	crd, err := btf.GetSyscallsYaml(binary)
 	if err != nil {
 		fmt.Print(err)
@@ -169,10 +167,10 @@ metadata:
 	fmt.Printf("%s\n", crd)
 }
 
-func generateTracingPolicy(cmd string) {
+func generateTracingPolicy(cmd, binary string) {
 	switch cmd {
 	case "all-syscalls":
-		generateAllSyscalls()
+		generateAllSyscalls(binary)
 	case "empty":
 		generateEmpty()
 	}
