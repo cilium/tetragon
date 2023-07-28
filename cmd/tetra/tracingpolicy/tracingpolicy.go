@@ -77,7 +77,7 @@ func New() *cobra.Command {
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
 	tpGenerateCmd := &cobra.Command{
-		Use:   "generate",
+		Use:   "generate <all-syscalls|empty>",
 		Short: "generate tracing policies",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
