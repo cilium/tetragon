@@ -84,18 +84,6 @@ enum bpf_enum_value_kind {
 static long (*bpf_probe_read)(void *dst, __u32 size,
 			      const void *unsafe_ptr) = (void *)4;
 
-/*
- * Convenience macro to get the integer value of an enumerator value in
- * a target kernel.
- * Returns:
- *    64-bit value, if specified enum type and its enumerator value are
- *    present in target kernel's BTF;
- *    0, if no matching enum and/or enum value within that enum is found.
- */
-#define bpf_core_enum_value(enum_type, enum_value)                      \
-	__builtin_preserve_enum_value(*(typeof(enum_type) *)enum_value, \
-				      BPF_ENUMVAL_VALUE)
-
 #include "bpf_core_read.h"
 
 /* relax_verifier is a dummy helper call to introduce a pruning checkpoint
