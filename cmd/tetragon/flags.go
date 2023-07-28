@@ -39,6 +39,7 @@ const (
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
 	keyTracingPolicy     = "tracing-policy"
+	keyTracingPolicyDir  = "tracing-policy-dir"
 
 	keyCpuProfile = "cpuprofile"
 	keyMemProfile = "memprofile"
@@ -136,6 +137,8 @@ func readAndSetFlags() {
 	option.Config.EnableMsgHandlingLatency = viper.GetBool(keyEnableMsgHandlingLatency)
 
 	option.Config.EnablePidSetFilter = viper.GetBool(keyEnablePidSetFilter)
+
+	option.Config.TracingPolicyDir = viper.GetString(keyTracingPolicyDir)
 
 	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
 	// manually handle the deprecation of --config-file

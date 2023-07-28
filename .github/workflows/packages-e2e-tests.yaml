@@ -1,0 +1,68 @@
+name: Packages e2e Tests
+
+on:
+  pull_request:
+    paths-ignore:
+    - "**.md"
+
+jobs:
+  standalone-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: amd64
+
+    steps:
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.8.0
+
+      - name: Checkout Source Code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: true
+
+      - name: Getting version tag
+        id: tag
+        run: echo "tag=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+
+      - name: Generate Tetragon Tarball
+        id: tetragon-tarball
+        run: make tarball
+
+      - name: Copy bpf.yaml tracing policy to /etc/tetragon/tetragon.tp.d/
+        run: |
+          sudo mkdir -p /etc/tetragon/tetragon.tp.d/
+          sudo cp examples/tracingpolicy/bpf.yaml /etc/tetragon/tetragon.tp.d/bpf.yaml
+
+      - name: Install Tetragon Tarball
+        run: |
+          tar zxvf tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
+          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/install.sh
+        working-directory: ./build/${{ matrix.arch }}/linux-tarball/
+
+      - name: Wait for Tetragon service
+        run: sleep 5s
+        shell: bash
+
+      - name: Check Tetragon
+        run: sudo systemctl is-active tetragon
+
+      - name: Check Tetragon startup logs
+        run: sudo journalctl -b -u tetragon --no-pager
+
+      - name: Test Tetragon
+        run: |
+          sudo tetra status
+          sudo grep "tetra" /var/log/tetragon/tetragon.log
+          sudo tetra tracingpolicy list | grep bpf -
+          sudo tetra bugtool
+
+      - name: Uninstall Tetragon Tarball
+        run: |
+          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/uninstall.sh
+        working-directory: ./build/${{ matrix.arch }}/linux-tarball/

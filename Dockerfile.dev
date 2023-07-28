@@ -29,6 +29,8 @@ RUN apt-get update -y &&    \
 	strace              \
 	jq                  \
 	less
+RUN mkdir -p /etc/tetragon/tetragon.conf.d/ && \
+    mkdir -p /etc/tetragon/tetragon.tp.d/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
 COPY --from=bpftool  /bin/bpftool /usr/bin/
 WORKDIR /go/src/github.com/cilium/tetragon

@@ -79,6 +79,8 @@ RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/b
 FROM docker.io/library/alpine:3.18.2@sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1 as base-build
 RUN apk add iproute2
 RUN mkdir /var/lib/tetragon/ && \
+    mkdir -p /etc/tetragon/tetragon.conf.d/ && \
+    mkdir -p /etc/tetragon/tetragon.tp.d/ && \
     apk add --no-cache --update bash
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/

@@ -9,6 +9,7 @@ cp -vRf ${SRC_DIR}/usr/local/* /usr/local/
 cp -vf /usr/local/lib/tetragon/systemd/tetragon.service /usr/lib/systemd/system/tetragon.service
 
 install -d /etc/tetragon/tetragon.conf.d/
+install -d /etc/tetragon/tetragon.tp.d/
 
 systemctl daemon-reload
 systemctl enable tetragon

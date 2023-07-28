@@ -15,7 +15,8 @@ import (
 )
 
 type Metadata struct {
-	Name string `yaml:"name"`
+	Name        string            `yaml:"name"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 type GenericTracingPolicy struct {
@@ -67,8 +68,9 @@ func PolicyFromYAMLFilename(fileName string) (TracingPolicy, error) {
 }
 
 type MetadataNamespaced struct {
-	Name      string `yaml:"name"`
-	Namespace string `yaml:"namespace"`
+	Name        string            `yaml:"name"`
+	Namespace   string            `yaml:"namespace"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 type GenericTracingPolicyNamespaced struct {

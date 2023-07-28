@@ -2,6 +2,8 @@ apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "url"
+  annotations:
+    author: "Kevin Sheldrake"
 spec:
   kprobes:
   - call: "fd_install"

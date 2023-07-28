@@ -1,8 +1,3 @@
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "kill-unprivileged-user-namespace-in-pid-namespace"
-
 #
 # Adds ability to sandbox access to unprivileged user namespaces.
 #
@@ -32,6 +27,12 @@ metadata:
 #   Parent: (pid:306627) clone(CLONE_NEWUSER) TEST SUCCEEDED
 #
 
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill-unprivileged-user-namespace-in-pid-namespace"
+  annotations:
+    author: "Djalal Harouni"
 spec:
   kprobes:
   - call: "create_user_ns"

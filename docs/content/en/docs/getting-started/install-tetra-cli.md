@@ -1,10 +1,18 @@
 ---
 title: "Install tetra CLI"
-weight: 5
+weight: 4
 description: "To interact with Tetragon, install the Tetragon client CLI tetra"
 ---
 
-This guide presents various methods to install `tetra` in your environment.
+If you want to interact with Tetragon from a remote host, a macOS or a Windows system,
+this guide presents various methods to install `tetra` Tetragon client.
+
+{{< note >}}
+For local node interactions, all deployment methods already ship `tetra` CLI inside
+the container image or on the host if Tetragon was deployed as a package.
+
+For such case, you can skip this guide and follow with the [Explore Security Observability events](/docs/getting-started/explore-security-observability-events).
+{{< /note >}}
 
 ## Install the latest release
 
