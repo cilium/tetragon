@@ -69,21 +69,6 @@ enum bpf_enum_value_kind {
 	BPF_ENUMVAL_VALUE = 1, /* enum value value relocation */
 };
 
-/*
- * bpf_probe_read
- *
- * For tracing programs, safely attempt to read *size* bytes from
- * kernel space address *unsafe_ptr* and store the data in *dst*.
- *
- * Generally, use **bpf_probe_read_user**\ () or
- * **bpf_probe_read_kernel**\ () instead.
- *
- * Returns
- * 0 on success, or a negative error in case of failure.
- */
-static long (*bpf_probe_read)(void *dst, __u32 size,
-			      const void *unsafe_ptr) = (void *)4;
-
 #include "bpf_core_read.h"
 
 /* relax_verifier is a dummy helper call to introduce a pruning checkpoint

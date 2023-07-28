@@ -154,8 +154,8 @@ enum bpf_type_info_kind {
  * (local) BTF, used to record relocation.
  */
 #define bpf_core_read(dst, sz, src)					    \
-	bpf_probe_read(dst, sz,						    \
-		       (const void *)__builtin_preserve_access_index(src))
+	probe_read(dst, sz,						    \
+		   (const void *)__builtin_preserve_access_index(src))
 
 /*
  * bpf_core_read_str() is a thin wrapper around bpf_probe_read_str()
