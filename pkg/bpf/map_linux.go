@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"syscall"
@@ -379,6 +380,107 @@ func (m *Map) DumpWithCallbackIfExists(cb DumpCallback) error {
 	}
 
 	return nil
+}
+
+// DumpReliablyWithCallback is similar to DumpWithCallback, but performs
+// additional tracking of the current and recently seen keys, so that if an
+// element is removed from the underlying kernel map during the dump, the dump
+// can continue from a recently seen key rather than restarting from scratch.
+// In addition, it caps the maximum number of map entry iterations at 4 times
+// the maximum map size. If this limit is reached, ErrMaxLookup is returned.
+func (m *Map) DumpReliablyWithCallback(cb DumpCallback, maxLookup int) error {
+	var (
+		prevKey    = make([]byte, m.KeySize)
+		currentKey = make([]byte, m.KeySize)
+		nextKey    = make([]byte, m.KeySize)
+		value      = make([]byte, m.ReadValueSize)
+
+		prevKeyValid = false
+	)
+
+	if err := m.Open(); err != nil {
+		return err
+	}
+
+	if err := GetFirstKey(m.fd, unsafe.Pointer(&currentKey[0])); err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}
+
+	mk := m.MapKey.DeepCopyMapKey()
+	mv := m.MapValue.DeepCopyMapValue()
+
+	bpfCurrentKey := bpfAttrMapOpElem{
+		mapFd: uint32(m.fd),
+		key:   uint64(uintptr(unsafe.Pointer(&currentKey[0]))),
+		value: uint64(uintptr(unsafe.Pointer(&value[0]))),
+	}
+
+	bpfCurrentKeyPtr := uintptr(unsafe.Pointer(&bpfCurrentKey))
+	bpfCurrentKeySize := unsafe.Sizeof(bpfCurrentKey)
+
+	bpfNextKey := bpfAttrMapOpElem{
+		mapFd: uint32(m.fd),
+		key:   uint64(uintptr(unsafe.Pointer(&currentKey[0]))),
+		value: uint64(uintptr(unsafe.Pointer(&nextKey[0]))),
+	}
+
+	bpfNextKeyPtr := uintptr(unsafe.Pointer(&bpfNextKey))
+	bpfNextKeySize := unsafe.Sizeof(bpfNextKey)
+
+	// this loop stops when all elements have been iterated
+	// (GetNextKeyFromPointers returns io.EOF) OR, in order to avoid hanging if
+	// the map is continuously updated, when maxLookup has been reached
+	for lookup := 1; lookup <= maxLookup; lookup++ {
+		// currentKey was returned by GetFirstKey()/GetNextKeyFromPointers()
+		// so we know it existed in the map, but it may have been deleted by a
+		// concurrent map operation. If currentKey is no longer in the map,
+		// nextKey will be the first key in the map again. Use the nextKey only
+		// if we still find currentKey in the Lookup() after the
+		// GetNextKeyFromPointers() call, this way we know nextKey is NOT the
+		// first key in the map.
+		nextKeyErr := GetNextKeyFromPointers(m.fd, bpfNextKeyPtr, bpfNextKeySize)
+		err := LookupElementFromPointers(m.fd, bpfCurrentKeyPtr, bpfCurrentKeySize)
+		if err != nil {
+			// Restarting from a invalid key starts the iteration again from the beginning.
+			// If we have a previously found key, try to restart from there instead
+			if prevKeyValid {
+				copy(currentKey, prevKey)
+				// Restart from a given previous key only once, otherwise if the prevKey is
+				// concurrently deleted we might loop forever trying to look it up.
+				prevKeyValid = false
+			} else {
+				// Depending on exactly when currentKey was deleted from the
+				// map, nextKey may be the actual key element after the deleted
+				// one, or the first element in the map.
+				copy(currentKey, nextKey)
+			}
+			continue
+		}
+
+		mk, mv, err = ConvertKeyValue(currentKey, value, mk, mv)
+		if err != nil {
+			return err
+		}
+		cb(m, mk, mv)
+
+		if nextKeyErr != nil {
+			if nextKeyErr == io.EOF {
+				return nil // end of map, we're done iterating
+			}
+			return nextKeyErr
+		}
+
+		// remember the last found key
+		copy(prevKey, currentKey)
+		prevKeyValid = true
+		// continue from the next key
+		copy(currentKey, nextKey)
+	}
+
+	return fmt.Errorf("Maximum number of lookups reached")
 }
 
 // Dump returns the map (type map[string][]string) which contains all
