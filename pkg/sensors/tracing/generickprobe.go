@@ -373,6 +373,20 @@ func isLTOperator(op string) bool {
 	return op == "LT" || op == "LessThan"
 }
 
+type addKprobeIn struct {
+	useMulti   bool
+	sensorPath string
+	policyName string
+	policyID   policyfilter.PolicyID
+}
+
+type addKprobeOut struct {
+	multiIDs    []idtable.EntryID
+	multiRetIDs []idtable.EntryID
+	progs       []*program.Program
+	maps        []*program.Map
+}
+
 func createGenericKprobeSensor(
 	name string,
 	kprobes []v1alpha1.KProbeSpec,
@@ -384,295 +398,36 @@ func createGenericKprobeSensor(
 	var multiIDs, multiRetIDs []idtable.EntryID
 	var useMulti bool
 
-	sensorPath := name
-	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
-
 	// use multi kprobe only if:
 	// - it's not disabled by user
 	// - there's support detected
 	useMulti = !option.Config.DisableKprobeMulti &&
 		bpf.HasKprobeMulti()
 
-	for i := range kprobes {
-		f := &kprobes[i]
-		var err error
-		var argSigPrinters []argPrinters
-		var argReturnPrinters []argPrinters
-		var setRetprobe bool
-		var argRetprobe *v1alpha1.KProbeArg
-		var argsBTFSet [api.MaxArgsSupported]bool
-
-		config := &api.EventConfig{}
-		config.PolicyID = uint32(policyID)
-		if len(f.ReturnArgAction) > 0 {
-			if !kernels.EnableLargeProgs() {
-				return nil, fmt.Errorf("ReturnArgAction requires kernel >=5.3")
-			}
-			config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
-			if config.ArgReturnAction == selectors.ActionTypeInvalid {
-				return nil, fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction)
-			}
-		}
-
-		argRetprobe = nil // holds pointer to arg for return handler
-		funcName := f.Call
-
-		// Parse Arguments
-		for j, a := range f.Args {
-			argType := gt.GenericTypeFromString(a.Type)
-			if argType == gt.GenericInvalidType {
-				return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
-			}
-			if a.MaxData {
-				if argType != gt.GenericCharBuffer {
-					logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
-				}
-				if !kernels.EnableLargeProgs() {
-					logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
-				}
-			}
-			argMValue, err := getMetaValue(&a)
-			if err != nil {
-				return nil, err
-			}
-			if argReturnCopy(argMValue) {
-				argRetprobe = &f.Args[j]
-			}
-			if a.Index > 4 {
-				return nil,
-					fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
-						a.Type, int(a.Index))
-			}
-			config.Arg[a.Index] = int32(argType)
-			config.ArgM[a.Index] = uint32(argMValue)
-
-			argsBTFSet[a.Index] = true
-			argP := argPrinters{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
-			argSigPrinters = append(argSigPrinters, argP)
-		}
-
-		// Parse ReturnArg, we have two types of return arg parsing. We
-		// support populating a kprobe buffer from kretprobe hooks. This
-		// is used to capture data that is populated by the function hoooked.
-		// For example Read calls supply a buffer to the syscall, but we
-		// wont have its contents until kretprobe is run. The other type is
-		// the f.Return case. These capture the return value of the function
-		// without context from the kprobe hook. The BTF argument 'argreturn'
-		// instructs the BPF kretprobe program which type of copy to use. And
-		// argReturnPrinters tell golang printer piece how to print the event.
-		if f.Return {
-			argType := gt.GenericTypeFromString(f.ReturnArg.Type)
-			if argType == gt.GenericInvalidType {
-				if f.ReturnArg.Type == "" {
-					return nil, fmt.Errorf("ReturnArg not specified with Return=true")
-				}
-				return nil, fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type)
-			}
-			config.ArgReturn = int32(argType)
-			argsBTFSet[api.ReturnArgIndex] = true
-			argP := argPrinters{index: api.ReturnArgIndex, ty: argType}
-			argReturnPrinters = append(argReturnPrinters, argP)
-		} else {
-			config.ArgReturn = int32(0)
-		}
-
-		if argRetprobe != nil {
-			argsBTFSet[api.ReturnArgIndex] = true
-			setRetprobe = true
-
-			argType := gt.GenericTypeFromString(argRetprobe.Type)
-			config.ArgReturnCopy = int32(argType)
-
-			argP := argPrinters{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
-			argReturnPrinters = append(argReturnPrinters, argP)
-		} else {
-			config.ArgReturnCopy = int32(0)
-		}
-
-		// Mark remaining arguments as 'nops' the kernel side will skip
-		// copying 'nop' args.
-		for j, a := range argsBTFSet {
-			if a == false {
-				if j != api.ReturnArgIndex {
-					config.Arg[j] = gt.GenericNopType
-					config.ArgM[j] = 0
-				}
-			}
-		}
-
-		// Copy over userspace return filters
-		var userReturnFilters []v1alpha1.ArgSelector
-		for _, s := range f.Selectors {
-			for _, returnArg := range s.MatchReturnArgs {
-				// we allow integer values so far
-				for _, v := range returnArg.Values {
-					if _, err := strconv.Atoi(v); err != nil {
-						return nil, fmt.Errorf("ReturnArg value supports only integer values, got %s", v)
-					}
-				}
-				// only single value for GT,LT operators
-				if isGTOperator(returnArg.Operator) || isLTOperator(returnArg.Operator) {
-					if len(returnArg.Values) > 1 {
-						return nil, fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
-							returnArg.Operator, len(returnArg.Values))
-					}
-				}
-				userReturnFilters = append(userReturnFilters, returnArg)
-			}
-		}
-
-		// Write attributes into BTF ptr for use with load
-		if !setRetprobe {
-			setRetprobe = f.Return
-		}
-
-		if f.Syscall {
-			config.Syscall = 1
-		} else {
-			config.Syscall = 0
-		}
-
-		if selectors.HasEarlyBinaryFilter(f.Selectors) {
-			config.Flags |= flagsEarlyFilter
-		}
-
-		// create a new entry on the table, and pass its id to BPF-side
-		// so that we can do the matching at event-generation time
-		kprobeEntry := genericKprobe{
-			loadArgs: kprobeLoadArgs{
-				retprobe: setRetprobe,
-				syscall:  f.Syscall,
-				config:   config,
-			},
-			argSigPrinters:    argSigPrinters,
-			argReturnPrinters: argReturnPrinters,
-			userReturnFilters: userReturnFilters,
-			funcName:          funcName,
-			pendingEvents:     nil,
-			tableId:           idtable.UninitializedEntryID,
-			policyName:        policyName,
-			hasOverride:       selectors.HasOverride(f),
-		}
-
-		// Parse Filters into kernel filter logic
-		kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs)
-		if err != nil {
-			return nil, err
-		}
-
-		kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
-		if err != nil {
-			return nil, err
-		}
-
-		genericKprobeTable.AddEntry(&kprobeEntry)
-		tidx := kprobeEntry.tableId.ID
-		kprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("gkp-%d", tidx))
-		config.FuncId = uint32(tidx)
-
-		if useMulti {
-			if setRetprobe {
-				multiRetIDs = append(multiRetIDs, kprobeEntry.tableId)
-			}
-			multiIDs = append(multiIDs, kprobeEntry.tableId)
-			logger.GetLogger().
-				WithField("return", setRetprobe).
-				WithField("function", kprobeEntry.funcName).
-				WithField("override", kprobeEntry.hasOverride).
-				Infof("Added multi kprobe")
-			continue
-		}
-
-		pinPath := kprobeEntry.pinPathPrefix
-		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
-
-		load := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgName),
-			funcName,
-			"kprobe/generic_kprobe",
-			pinProg,
-			"generic_kprobe").
-			SetLoaderData(kprobeEntry.tableId)
-		load.Override = kprobeEntry.hasOverride
-		progs = append(progs, load)
-
-		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
-		maps = append(maps, fdinstall)
-
-		configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-		maps = append(maps, configMap)
-
-		tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
-		maps = append(maps, tailCalls)
-
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-		maps = append(maps, filterMap)
-
-		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
-			argFilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, argFilterMaps)
-
-		addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := kprobeEntry.loadArgs.selectors.Addr4MapsMaxEntries()
-			addr4FilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, addr4FilterMaps)
-
-		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
-		maps = append(maps, retProbe)
-
-		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
-		maps = append(maps, callHeap)
-
-		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-		maps = append(maps, selNamesMap)
-
-		if kernels.EnableLargeProgs() {
-			socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
-			maps = append(maps, socktrack)
-		}
-
-		if setRetprobe {
-			pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
-			loadret := program.Builder(
-				path.Join(option.Config.HubbleLib, loadProgRetName),
-				funcName,
-				"kprobe/generic_retkprobe",
-				pinRetProg,
-				"generic_kprobe").
-				SetRetProbe(true).
-				SetLoaderData(kprobeEntry.tableId)
-			progs = append(progs, loadret)
-
-			retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
-			maps = append(maps, retProbe)
-
-			retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
-			maps = append(maps, retConfigMap)
-
-			// add maps with non-default paths (pins) to the retprobe
-			program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
-			program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
-			if kernels.EnableLargeProgs() {
-				program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
-			}
-		}
-
-		logger.GetLogger().WithField("flags", flagsString(config.Flags)).
-			WithField("override", kprobeEntry.hasOverride).
-			Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	in := addKprobeIn{
+		useMulti:   useMulti,
+		sensorPath: name,
+		policyID:   policyID,
+		policyName: policyName,
 	}
 
-	if len(multiIDs) != 0 {
-		progs, maps = createMultiKprobeSensor(sensorPath, multiIDs, multiRetIDs)
+	for i := range kprobes {
+		out, err := addKprobe(&kprobes[i], &in)
+		if err != nil {
+			return nil, err
+		}
+
+		if useMulti {
+			multiRetIDs = append(multiRetIDs, out.multiRetIDs...)
+			multiIDs = append(multiIDs, out.multiIDs...)
+		} else {
+			progs = append(progs, out.progs...)
+			maps = append(maps, out.maps...)
+		}
+	}
+
+	if useMulti {
+		progs, maps = createMultiKprobeSensor(in.sensorPath, multiIDs, multiRetIDs)
 	}
 
 	return &sensors.Sensor{
@@ -680,6 +435,287 @@ func createGenericKprobeSensor(
 		Progs: progs,
 		Maps:  maps,
 	}, nil
+}
+
+func addKprobe(f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *addKprobeOut, err error) {
+	var argSigPrinters []argPrinters
+	var argReturnPrinters []argPrinters
+	var setRetprobe bool
+	var argRetprobe *v1alpha1.KProbeArg
+	var argsBTFSet [api.MaxArgsSupported]bool
+
+	out = &addKprobeOut{}
+
+	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
+
+	config := &api.EventConfig{}
+	config.PolicyID = uint32(in.policyID)
+	if len(f.ReturnArgAction) > 0 {
+		if !kernels.EnableLargeProgs() {
+			return nil, fmt.Errorf("ReturnArgAction requires kernel >=5.3")
+		}
+		config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
+		if config.ArgReturnAction == selectors.ActionTypeInvalid {
+			return nil, fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction)
+		}
+	}
+
+	argRetprobe = nil // holds pointer to arg for return handler
+	funcName := f.Call
+
+	// Parse Arguments
+	for j, a := range f.Args {
+		argType := gt.GenericTypeFromString(a.Type)
+		if argType == gt.GenericInvalidType {
+			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
+		}
+		if a.MaxData {
+			if argType != gt.GenericCharBuffer {
+				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
+			}
+			if !kernels.EnableLargeProgs() {
+				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
+			}
+		}
+		argMValue, err := getMetaValue(&a)
+		if err != nil {
+			return nil, err
+		}
+		if argReturnCopy(argMValue) {
+			argRetprobe = &f.Args[j]
+		}
+		if a.Index > 4 {
+			return nil,
+				fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+					a.Type, int(a.Index))
+		}
+		config.Arg[a.Index] = int32(argType)
+		config.ArgM[a.Index] = uint32(argMValue)
+
+		argsBTFSet[a.Index] = true
+		argP := argPrinters{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
+		argSigPrinters = append(argSigPrinters, argP)
+	}
+
+	// Parse ReturnArg, we have two types of return arg parsing. We
+	// support populating a kprobe buffer from kretprobe hooks. This
+	// is used to capture data that is populated by the function hoooked.
+	// For example Read calls supply a buffer to the syscall, but we
+	// wont have its contents until kretprobe is run. The other type is
+	// the f.Return case. These capture the return value of the function
+	// without context from the kprobe hook. The BTF argument 'argreturn'
+	// instructs the BPF kretprobe program which type of copy to use. And
+	// argReturnPrinters tell golang printer piece how to print the event.
+	if f.Return {
+		argType := gt.GenericTypeFromString(f.ReturnArg.Type)
+		if argType == gt.GenericInvalidType {
+			if f.ReturnArg.Type == "" {
+				return nil, fmt.Errorf("ReturnArg not specified with Return=true")
+			}
+			return nil, fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type)
+		}
+		config.ArgReturn = int32(argType)
+		argsBTFSet[api.ReturnArgIndex] = true
+		argP := argPrinters{index: api.ReturnArgIndex, ty: argType}
+		argReturnPrinters = append(argReturnPrinters, argP)
+	} else {
+		config.ArgReturn = int32(0)
+	}
+
+	if argRetprobe != nil {
+		argsBTFSet[api.ReturnArgIndex] = true
+		setRetprobe = true
+
+		argType := gt.GenericTypeFromString(argRetprobe.Type)
+		config.ArgReturnCopy = int32(argType)
+
+		argP := argPrinters{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
+		argReturnPrinters = append(argReturnPrinters, argP)
+	} else {
+		config.ArgReturnCopy = int32(0)
+	}
+
+	// Mark remaining arguments as 'nops' the kernel side will skip
+	// copying 'nop' args.
+	for j, a := range argsBTFSet {
+		if a == false {
+			if j != api.ReturnArgIndex {
+				config.Arg[j] = gt.GenericNopType
+				config.ArgM[j] = 0
+			}
+		}
+	}
+
+	// Copy over userspace return filters
+	var userReturnFilters []v1alpha1.ArgSelector
+	for _, s := range f.Selectors {
+		for _, returnArg := range s.MatchReturnArgs {
+			// we allow integer values so far
+			for _, v := range returnArg.Values {
+				if _, err := strconv.Atoi(v); err != nil {
+					return nil, fmt.Errorf("ReturnArg value supports only integer values, got %s", v)
+				}
+			}
+			// only single value for GT,LT operators
+			if isGTOperator(returnArg.Operator) || isLTOperator(returnArg.Operator) {
+				if len(returnArg.Values) > 1 {
+					return nil, fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
+						returnArg.Operator, len(returnArg.Values))
+				}
+			}
+			userReturnFilters = append(userReturnFilters, returnArg)
+		}
+	}
+
+	// Write attributes into BTF ptr for use with load
+	if !setRetprobe {
+		setRetprobe = f.Return
+	}
+
+	if f.Syscall {
+		config.Syscall = 1
+	} else {
+		config.Syscall = 0
+	}
+
+	if selectors.HasEarlyBinaryFilter(f.Selectors) {
+		config.Flags |= flagsEarlyFilter
+	}
+
+	// create a new entry on the table, and pass its id to BPF-side
+	// so that we can do the matching at event-generation time
+	kprobeEntry := genericKprobe{
+		loadArgs: kprobeLoadArgs{
+			retprobe: setRetprobe,
+			syscall:  f.Syscall,
+			config:   config,
+		},
+		argSigPrinters:    argSigPrinters,
+		argReturnPrinters: argReturnPrinters,
+		userReturnFilters: userReturnFilters,
+		funcName:          funcName,
+		pendingEvents:     nil,
+		tableId:           idtable.UninitializedEntryID,
+		policyName:        in.policyName,
+		hasOverride:       selectors.HasOverride(f),
+	}
+
+	// Parse Filters into kernel filter logic
+	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
+	if err != nil {
+		return nil, err
+	}
+
+	genericKprobeTable.AddEntry(&kprobeEntry)
+	tidx := kprobeEntry.tableId.ID
+	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", tidx))
+	config.FuncId = uint32(tidx)
+
+	if in.useMulti {
+		if setRetprobe {
+			out.multiRetIDs = append(out.multiRetIDs, kprobeEntry.tableId)
+		}
+		out.multiIDs = append(out.multiIDs, kprobeEntry.tableId)
+		logger.GetLogger().
+			WithField("return", setRetprobe).
+			WithField("function", kprobeEntry.funcName).
+			WithField("override", kprobeEntry.hasOverride).
+			Infof("Added multi kprobe")
+		return out, nil
+	}
+
+	pinPath := kprobeEntry.pinPathPrefix
+	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		funcName,
+		"kprobe/generic_kprobe",
+		pinProg,
+		"generic_kprobe").
+		SetLoaderData(kprobeEntry.tableId)
+	load.Override = kprobeEntry.hasOverride
+	out.progs = append(out.progs, load)
+
+	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(in.sensorPath, "fdinstall_map"), load)
+	out.maps = append(out.maps, fdinstall)
+
+	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	out.maps = append(out.maps, configMap)
+
+	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
+	out.maps = append(out.maps, tailCalls)
+
+	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	out.maps = append(out.maps, filterMap)
+
+	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
+		argFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	out.maps = append(out.maps, argFilterMaps)
+
+	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.Addr4MapsMaxEntries()
+		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	out.maps = append(out.maps, addr4FilterMaps)
+
+	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	out.maps = append(out.maps, retProbe)
+
+	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	out.maps = append(out.maps, callHeap)
+
+	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
+	out.maps = append(out.maps, selNamesMap)
+
+	if kernels.EnableLargeProgs() {
+		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(in.sensorPath, "socktrack_map"), load)
+		out.maps = append(out.maps, socktrack)
+	}
+
+	if setRetprobe {
+		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
+		loadret := program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgRetName),
+			funcName,
+			"kprobe/generic_retkprobe",
+			pinRetProg,
+			"generic_kprobe").
+			SetRetProbe(true).
+			SetLoaderData(kprobeEntry.tableId)
+		out.progs = append(out.progs, loadret)
+
+		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
+		out.maps = append(out.maps, retProbe)
+
+		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
+		out.maps = append(out.maps, retConfigMap)
+
+		// add maps with non-default paths (pins) to the retprobe
+		program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
+		program.MapBuilderPin("fdinstall_map", sensors.PathJoin(in.sensorPath, "fdinstall_map"), loadret)
+		if kernels.EnableLargeProgs() {
+			program.MapBuilderPin("socktrack_map", sensors.PathJoin(in.sensorPath, "socktrack_map"), loadret)
+		}
+	}
+
+	logger.GetLogger().WithField("flags", flagsString(config.Flags)).
+		WithField("override", kprobeEntry.hasOverride).
+		Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
+	return out, nil
 }
 
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, verbose int) error {
