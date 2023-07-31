@@ -4,7 +4,7 @@
 #ifndef __USER_NAMESPACE_H__
 #define __USER_NAMESPACE_H__
 
-struct user_namespace_info_type {
+struct tg_userns {
 	__s32 level;
 	__u32 owner;
 	__u32 group;

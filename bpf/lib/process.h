@@ -6,6 +6,8 @@
 
 #include "bpf_event.h"
 #include "bpf_helpers.h"
+#include "user_namespace.h"
+#include "cred.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -184,25 +186,6 @@ struct msg_clone_event {
 	__u32 flags;
 	__u64 ktime;
 } __attribute__((packed));
-
-// NB: in some cases we want to access the capabilities via an array to simplify the BPF code, which is why we define it as a union.
-struct msg_capabilities {
-	union {
-		struct {
-			__u64 permitted;
-			__u64 effective;
-			__u64 inheritable;
-		};
-		__u64 c[3];
-	};
-}; // All fields aligned so no 'packed' attribute.
-
-// indexes to access msg_capabilities's array (->c) -- should have the same order as the fields above.
-enum {
-	caps_permitted = 0,
-	caps_effective = 1,
-	caps_inheritable = 2,
-};
 
 struct exit_info {
 	__u32 code;

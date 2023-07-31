@@ -487,15 +487,15 @@ static inline __attribute__((always_inline)) long
 copy_user_namespace(char *args, unsigned long arg)
 {
 	struct user_namespace *ns = (struct user_namespace *)arg;
-	struct user_namespace_info_type *u_ns_info =
-		(struct user_namespace_info_type *)args;
+	struct tg_userns *u_ns_info =
+		(struct tg_userns *)args;
 
 	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
 	probe_read(&u_ns_info->owner, sizeof(__u32), _(&ns->owner));
 	probe_read(&u_ns_info->group, sizeof(__u32), _(&ns->group));
 	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
 
-	return sizeof(struct user_namespace_info_type);
+	return sizeof(struct tg_userns);
 }
 
 static inline __attribute__((always_inline)) long copy_cred(char *args,
@@ -503,9 +503,9 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 {
 	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
-	struct cred_info_type *info = (struct cred_info_type *)args;
+	struct tg_cred *info = (struct tg_cred *)args;
 	struct msg_capabilities *cap = &info->cap;
-	struct user_namespace_info_type *user_ns_info = &info->user_ns;
+	struct tg_userns *user_ns_info = &info->user_ns;
 
 	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
 	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
@@ -525,7 +525,7 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
 	copy_user_namespace((char *)user_ns_info, (unsigned long)ns);
 
-	return sizeof(struct cred_info_type);
+	return sizeof(struct tg_cred);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1189,7 +1189,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case sock_type:
 		return sizeof(struct sk_type);
 	case cred_type:
-		return sizeof(struct cred_info_type);
+		return sizeof(struct tg_cred);
 	case size_type:
 	case s64_ty:
 	case u64_ty:
@@ -1206,7 +1206,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case bpf_map_type:
 		return sizeof(struct bpf_map_info_type);
 	case user_namespace_type:
-		return sizeof(struct user_namespace_info_type);
+		return sizeof(struct tg_userns);
 	case capability_type:
 		return sizeof(struct capability_info_type);
 	// nop or something else we do not process here
