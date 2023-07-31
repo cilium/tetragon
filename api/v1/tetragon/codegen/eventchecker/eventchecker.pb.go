@@ -2771,22 +2771,23 @@ nextCheck:
 
 // ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
-	ExecId       *stringmatcher.StringMatcher       `json:"execId,omitempty"`
-	Pid          *uint32                            `json:"pid,omitempty"`
-	Uid          *uint32                            `json:"uid,omitempty"`
-	Cwd          *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
-	Binary       *stringmatcher.StringMatcher       `json:"binary,omitempty"`
-	Arguments    *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
-	Flags        *stringmatcher.StringMatcher       `json:"flags,omitempty"`
-	StartTime    *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
-	Auid         *uint32                            `json:"auid,omitempty"`
-	Pod          *PodChecker                        `json:"pod,omitempty"`
-	Docker       *stringmatcher.StringMatcher       `json:"docker,omitempty"`
-	ParentExecId *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
-	Refcnt       *uint32                            `json:"refcnt,omitempty"`
-	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
-	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
-	Tid          *uint32                            `json:"tid,omitempty"`
+	ExecId             *stringmatcher.StringMatcher       `json:"execId,omitempty"`
+	Pid                *uint32                            `json:"pid,omitempty"`
+	Uid                *uint32                            `json:"uid,omitempty"`
+	Cwd                *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
+	Binary             *stringmatcher.StringMatcher       `json:"binary,omitempty"`
+	Arguments          *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
+	Flags              *stringmatcher.StringMatcher       `json:"flags,omitempty"`
+	StartTime          *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
+	Auid               *uint32                            `json:"auid,omitempty"`
+	Pod                *PodChecker                        `json:"pod,omitempty"`
+	Docker             *stringmatcher.StringMatcher       `json:"docker,omitempty"`
+	ParentExecId       *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
+	Refcnt             *uint32                            `json:"refcnt,omitempty"`
+	Cap                *CapabilitiesChecker               `json:"cap,omitempty"`
+	Ns                 *NamespacesChecker                 `json:"ns,omitempty"`
+	Tid                *uint32                            `json:"tid,omitempty"`
+	ProcessCredentials *ProcessCredentialsChecker         `json:"processCredentials,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -2898,6 +2899,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 				return fmt.Errorf("Tid has value %v which does not match expected value %v", event.Tid.Value, *checker.Tid)
 			}
 		}
+		if checker.ProcessCredentials != nil {
+			if err := checker.ProcessCredentials.Check(event.ProcessCredentials); err != nil {
+				return fmt.Errorf("ProcessCredentials check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3002,6 +3008,12 @@ func (checker *ProcessChecker) WithTid(check uint32) *ProcessChecker {
 	return checker
 }
 
+// WithProcessCredentials adds a ProcessCredentials check to the ProcessChecker
+func (checker *ProcessChecker) WithProcessCredentials(check *ProcessCredentialsChecker) *ProcessChecker {
+	checker.ProcessCredentials = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -3044,6 +3056,9 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	if event.Tid != nil {
 		val := event.Tid.Value
 		checker.Tid = &val
+	}
+	if event.ProcessCredentials != nil {
+		checker.ProcessCredentials = NewProcessCredentialsChecker().FromProcessCredentials(event.ProcessCredentials)
 	}
 	return checker
 }
