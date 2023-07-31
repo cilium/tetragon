@@ -8,17 +8,20 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	syscallStats = promauto.NewCounterVec(prometheus.CounterOpts{
+	syscallStats = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "syscalls_total",
 		Help:        "System calls observed.",
 		ConstLabels: nil,
 	}, []string{"syscall", "namespace", "pod", "binary"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(syscallStats)
+}
 
 func Handle(event interface{}) {
 	ev, ok := event.(*tetragon.GetEventsResponse)

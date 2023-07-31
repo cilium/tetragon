@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,9 +21,23 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/encoder"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
+	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
+	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
+	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -33,7 +48,6 @@ import (
 	"github.com/cilium/tetragon/pkg/exporter"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -210,6 +224,26 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	return options
 }
 
+func enableAllMetrics() {
+	reg := prometheus.NewRegistry()
+	errormetrics.InitMetrics(reg)
+	eventcachemetrics.InitMetrics(reg)
+	eventmetrics.InitMetrics(reg)
+	kprobemetrics.InitMetrics(reg)
+	mapmetrics.InitMetrics(reg)
+	opcodemetrics.InitMetrics(reg)
+	pfmetrics.InitMetrics(reg)
+	processexecmetrics.InitMetrics(reg)
+	ringbufmetrics.InitMetrics(reg)
+	syscallmetrics.InitMetrics(reg)
+	watchermetrics.InitMetrics(reg)
+	InitMetrics(reg)
+	tracing.InitMetrics(reg)
+
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	http.ListenAndServe(metricsAddr, nil)
+}
+
 func newDefaultObserver(oo *testObserverOptions) *Observer {
 	option.Config.BpfDir = bpf.MapPrefixPath()
 	option.Config.MapDir = bpf.MapPrefixPath()
@@ -279,7 +313,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	// at some point in the future. I just don't see a better way that doesn't involve
 	// a lot of code changes in a lot of a files.
 	if !metricsEnabled {
-		go metrics.EnableMetrics(metricsAddr)
+		go enableAllMetrics()
 		metricsEnabled = true
 	}
 

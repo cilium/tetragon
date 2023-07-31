@@ -10,7 +10,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type ErrorType string
@@ -35,20 +34,25 @@ var (
 )
 
 var (
-	ErrorTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	ErrorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "errors_total",
 		Help:        "The total number of Tetragon errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
 
-	HandlerErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+	HandlerErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "handler_errors_total",
 		Help:        "The total number of event handler errors. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"opcode", "error_type"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(ErrorTotal)
+	registry.MustRegister(HandlerErrors)
+}
 
 // Get a new handle on an ErrorTotal metric for an ErrorType
 func GetErrorTotal(t ErrorType) prometheus.Counter {
