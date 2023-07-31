@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -1002,7 +1003,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericCredType:
-			var cred api.MsgGenericCred
+			var cred processapi.MsgGenericCred
 			var arg api.MsgGenericKprobeArgCred
 
 			err := binary.Read(r, binary.LittleEndian, &cred)
@@ -1019,9 +1020,9 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Egid = cred.Egid
 			arg.FSuid = cred.FSuid
 			arg.FSgid = cred.FSgid
-			arg.Cap.Permitted = cred.Cap.Permitted
-			arg.Cap.Effective = cred.Cap.Effective
-			arg.Cap.Inheritable = cred.Cap.Inheritable
+			arg.Caps.Permitted = cred.Caps.Permitted
+			arg.Caps.Effective = cred.Caps.Effective
+			arg.Caps.Inheritable = cred.Caps.Inheritable
 			arg.UserNs.Level = cred.UserNs.Level
 			arg.UserNs.Uid = cred.UserNs.Uid
 			arg.UserNs.Gid = cred.UserNs.Gid

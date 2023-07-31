@@ -36,7 +36,7 @@ struct tg_cred {
 	__u32 fsgid;
 	__u32 securebits;
 	__u32 pad;
-	struct msg_capabilities cap;
+	struct msg_capabilities caps;
 	struct tg_userns user_ns;
 };
 

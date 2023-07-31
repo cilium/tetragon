@@ -79,7 +79,7 @@ type MsgExecveEvent struct {
 	Kube           MsgK8s
 	Parent         MsgExecveKey
 	ParentFlags    uint64
-	Capabilities   MsgCapabilities
+	Creds          MsgGenericCred
 	Namespaces     MsgNamespaces
 	CleanupProcess MsgExecveKey
 }
@@ -89,7 +89,7 @@ type MsgExecveEventUnix struct {
 	Kube           MsgK8sUnix
 	Parent         MsgExecveKey
 	ParentFlags    uint64
-	Capabilities   MsgCapabilities
+	Creds          MsgGenericCred
 	Namespaces     MsgNamespaces
 	CleanupProcess MsgExecveKey
 	Process        MsgProcess
@@ -129,6 +129,21 @@ type MsgUserNamespace struct {
 	Uid    uint32
 	Gid    uint32
 	NsInum uint32
+}
+
+type MsgGenericCred struct {
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	Caps       MsgCapabilities
+	UserNs     MsgUserNamespace
 }
 
 // API between Userspace tetragon Golang agent and Unix domain socket listener

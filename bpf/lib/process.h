@@ -246,7 +246,7 @@ struct msg_execve_event {
 	struct msg_k8s kube;
 	struct msg_execve_key parent;
 	__u64 parent_flags;
-	struct msg_capabilities caps;
+	struct tg_cred creds;
 	struct msg_ns ns;
 	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of

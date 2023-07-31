@@ -164,15 +164,19 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		nil,
 		&rthooks.Runner{})
 	assert.NoError(t, err)
+	caps := processapi.MsgCapabilities{
+			Permitted:   1,
+			Effective:   1,
+			Inheritable: 1,
+		}
+	creds := processapi.MsgGenericCred{
+		Caps: caps,
+	}
 	pi := &exec.MsgExecveEventUnix{MsgExecveEventUnix: processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{
 			Ktime: 1234,
 		},
-		Capabilities: processapi.MsgCapabilities{
-			Permitted:   1,
-			Effective:   1,
-			Inheritable: 1,
-		},
+		Creds: creds,
 		Process: processapi.MsgProcess{
 			PID: 5678,
 		},

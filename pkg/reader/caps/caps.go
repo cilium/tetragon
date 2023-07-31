@@ -419,6 +419,23 @@ func GetCapabilitiesTypes(capInt uint64) []tetragon.CapabilitiesType {
 	return caps
 }
 
+func GetSecureBitTypes(secBit uint32) []tetragon.SecureBitsType {
+	if secBit == 0 {
+		return nil
+	}
+
+	var secbits []tetragon.SecureBitsType
+	if (secBit & uint32(tetragon.SecureBitsType_SecBitNoRoot)) != 0 {
+		secbits = append(secbits, tetragon.SecureBitsType_SecBitNoRoot)
+	}
+
+	if (secBit & uint32(tetragon.SecureBitsType_SecBitNoRootLocked)) != 0 {
+		secbits = append(secbits, tetragon.SecureBitsType_SecBitNoRootLocked)
+	}
+
+	return secbits
+}
+
 func GetMsgCapabilities(caps processapi.MsgCapabilities) *tetragon.Capabilities {
 	return &tetragon.Capabilities{
 		Permitted:   GetCapabilitiesTypes(caps.Permitted),

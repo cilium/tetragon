@@ -203,7 +203,8 @@ event_execve(struct sched_execve_args *ctx)
 
 	BPF_CORE_READ_INTO(&event->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
-	get_current_subj_caps(&event->caps, task);
+	// At this time objective and subjective creds are same
+	get_current_subj_creds(&event->creds, task);
 	get_namespaces(&event->ns, task);
 	__event_get_cgroup_info(task, event);
 
@@ -265,9 +266,9 @@ execve_send(struct sched_execve_args *ctx)
 #endif
 #ifdef __CAP_CHANGES_FILTER
 		if (init_curr) {
-			curr->caps.permitted = event->caps.permitted;
-			curr->caps.effective = event->caps.effective;
-			curr->caps.inheritable = event->caps.inheritable;
+			curr->caps.permitted = event->creds.caps.permitted;
+			curr->caps.effective = event->creds.caps.effective;
+			curr->caps.inheritable = event->creds.caps.inheritable;
 		}
 #endif
 	}
@@ -276,7 +277,7 @@ execve_send(struct sched_execve_args *ctx)
 	size = validate_msg_execve_size(
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
-		sizeof(struct msg_capabilities) + sizeof(struct msg_ns) +
+		sizeof(struct tg_cred) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;

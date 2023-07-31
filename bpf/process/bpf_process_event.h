@@ -448,6 +448,53 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 }
 
 static inline __attribute__((always_inline)) void
+get_current_subj_creds_uids(struct tg_cred *info, const struct cred *cred)
+{
+	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
+	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
+	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
+	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
+	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
+	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
+	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
+	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
+	info->pad = 0;
+	info->securebits = 0;
+}
+
+static inline __attribute__((always_inline)) long
+copy_user_namespace(char *args, unsigned long arg)
+{
+	struct user_namespace *ns = (struct user_namespace *)arg;
+	struct tg_userns *u_ns_info =
+		(struct tg_userns *)args;
+
+	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
+	probe_read(&u_ns_info->owner, sizeof(__u32), _(&ns->owner));
+	probe_read(&u_ns_info->group, sizeof(__u32), _(&ns->group));
+	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
+
+	return sizeof(struct tg_userns);
+}
+
+static inline __attribute__((always_inline)) void
+get_current_subj_creds(struct tg_cred *info, struct task_struct *task)
+{
+	struct cred *cred;
+	struct user_namespace *ns;
+	struct tg_userns *user_ns_info = &info->user_ns;
+
+	/* Get the task's subjective creds */
+	probe_read(&cred, sizeof(cred), _(&task->cred));
+
+	get_current_subj_creds_uids(info, cred);
+	get_current_subj_caps(&info->caps, task);
+
+	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
+	copy_user_namespace((char *)user_ns_info, (unsigned long)ns);
+}
+
+static inline __attribute__((always_inline)) void
 get_namespaces(struct msg_ns *msg, struct task_struct *task)
 {
 	struct nsproxy *nsproxy;

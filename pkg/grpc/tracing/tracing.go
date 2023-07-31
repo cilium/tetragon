@@ -135,9 +135,9 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 				Fsgid: &wrapperspb.UInt32Value{Value: e.FSgid},
 			}
 			credArg.Caps = &tetragon.Capabilities{
-				Permitted:   caps.GetCapabilitiesTypes(e.Cap.Permitted),
-				Effective:   caps.GetCapabilitiesTypes(e.Cap.Effective),
-				Inheritable: caps.GetCapabilitiesTypes(e.Cap.Inheritable),
+				Permitted:   caps.GetCapabilitiesTypes(e.Caps.Permitted),
+				Effective:   caps.GetCapabilitiesTypes(e.Caps.Effective),
+				Inheritable: caps.GetCapabilitiesTypes(e.Caps.Inheritable),
 			}
 			credArg.UserNs = &tetragon.UserNamespace{
 				Level: &wrapperspb.Int32Value{Value: e.UserNs.Level},

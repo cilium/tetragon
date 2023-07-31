@@ -29,7 +29,7 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 
 	unix.Common = m.Common
 	unix.Parent = m.Parent
-	unix.Capabilities = m.Capabilities
+	unix.Creds = m.Creds
 
 	unix.Namespaces.UtsInum = m.Namespaces.UtsInum
 	unix.Namespaces.IpcInum = m.Namespaces.IpcInum

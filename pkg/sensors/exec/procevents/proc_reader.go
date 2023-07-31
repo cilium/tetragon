@@ -149,9 +149,13 @@ func pushExecveEvents(p procs) {
 	m.Parent.Pid = p.ppid
 	m.Parent.Ktime = p.pktime
 
-	m.Capabilities.Permitted = p.permitted
-	m.Capabilities.Effective = p.effective
-	m.Capabilities.Inheritable = p.inheritable
+	m.Creds.Uid = p.uid
+	m.Creds.Gid = p.uid
+	m.Creds.Euid = p.uid
+	m.Creds.Egid = p.uid
+	m.Creds.Caps.Permitted = p.permitted
+	m.Creds.Caps.Effective = p.effective
+	m.Creds.Caps.Inheritable = p.inheritable
 
 	m.Namespaces.UtsInum = p.uts_ns
 	m.Namespaces.IpcInum = p.ipc_ns
