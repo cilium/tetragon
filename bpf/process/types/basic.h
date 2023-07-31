@@ -929,6 +929,7 @@ copy_bpf_map(char *args, unsigned long arg)
 	return sizeof(struct bpf_map_info_type);
 }
 
+#ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) long
 copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
 	      struct bpf_map_def *data_heap)
@@ -989,6 +990,9 @@ nodata:
 	s[1] = 0;
 	return 8;
 }
+#else
+#define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap) 0
+#endif /* __LARGE_BPF_PROG */
 
 // filter on values provided in the selector itself
 static inline __attribute__((always_inline)) long
