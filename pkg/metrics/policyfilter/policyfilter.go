@@ -10,17 +10,20 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	PolicyFilterOpMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
+	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policyflter_metrics_total",
 		Help:        "Policy filter metrics. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"subsys", "op", "error_type"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(PolicyFilterOpMetrics)
+}
 
 func OpInc(subsys, op string, err error) {
 	PolicyFilterOpMetrics.WithLabelValues(

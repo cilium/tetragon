@@ -8,18 +8,17 @@ import (
 
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	MsgOpsCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	MsgOpsCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "msg_op_total",
 		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"msg_op"})
 
-	LatencyStats = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	LatencyStats = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "handling_latency",
 		Help:        "The latency of handling messages in us.",
@@ -27,6 +26,11 @@ var (
 		ConstLabels: nil,
 	}, []string{"op"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(MsgOpsCount)
+	registry.MustRegister(LatencyStats)
+}
 
 // Get a new handle on a msgOpsCount metric for an OpCode
 func GetOpTotal(op int) prometheus.Counter {

@@ -16,36 +16,42 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	EventsProcessed = promauto.NewCounterVec(prometheus.CounterOpts{
+	EventsProcessed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type", "namespace", "pod", "binary"})
-	FlagCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "flags_total",
 		Help:        "The total number of Tetragon flags. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"type"})
-	NotifyOverflowedEvents = promauto.NewCounter(prometheus.CounterOpts{
+	NotifyOverflowedEvents = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "notify_overflowed_events_total",
 		Help:        "The total number of events dropped because listener buffer was full",
 		ConstLabels: nil,
 	})
 
-	policyStats = promauto.NewCounterVec(prometheus.CounterOpts{
+	policyStats = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policy_events_total",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
 	}, []string{"policy", "hook", "namespace", "pod", "binary"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(EventsProcessed)
+	registry.MustRegister(FlagCount)
+	registry.MustRegister(NotifyOverflowedEvents)
+	registry.MustRegister(policyStats)
+}
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
 	if process != nil {

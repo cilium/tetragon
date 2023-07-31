@@ -6,7 +6,6 @@ package watchermetrics
 import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type ErrorType string
@@ -16,19 +15,24 @@ const (
 )
 
 var (
-	WatcherErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+	WatcherErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "watcher_errors_total",
 		Help:        "The total number of errors for a given watcher type.",
 		ConstLabels: nil,
 	}, []string{"watcher", "error"})
-	WatcherEvents = promauto.NewCounterVec(prometheus.CounterOpts{
+	WatcherEvents = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "watcher_events_total",
 		Help:        "The total number of events for a given watcher type.",
 		ConstLabels: nil,
 	}, []string{"watcher"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(WatcherErrors)
+	registry.MustRegister(WatcherEvents)
+}
 
 // Get a new handle on an WatcherEvents metric for a watcher type
 func GetWatcherEvents(watcherType string) prometheus.Counter {

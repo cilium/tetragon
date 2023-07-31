@@ -3,17 +3,20 @@ package tracing
 import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	LoaderStats = promauto.NewCounterVec(prometheus.CounterOpts{
+	LoaderStats = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "process_loader_stats",
 		Help:        "Process Loader event statistics. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"count"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(LoaderStats)
+}
 
 type LoaderType int
 

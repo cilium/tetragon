@@ -8,24 +8,28 @@ import (
 
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	MapSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	MapSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "map_in_use_gauge",
 		Help:        "The total number of in-use entries per map.",
 		ConstLabels: nil,
 	}, []string{"map", "total"})
 
-	MapDrops = promauto.NewCounterVec(prometheus.CounterOpts{
+	MapDrops = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "map_drops_total",
 		Help:        "The total number of entries dropped per LRU map.",
 		ConstLabels: nil,
 	}, []string{"map"})
 )
+
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(MapSize)
+	registry.MustRegister(MapDrops)
+}
 
 // Get a new handle on a mapSize metric for a mapName and totalCapacity
 func GetMapSize(mapName string, totalCapacity int) prometheus.Gauge {
