@@ -665,7 +665,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 | ns | [Namespaces](#tetragon-Namespaces) |  | Linux namespaces of the process, disabled by default, can be enabled by the `--enable-process-ns` flag. |
 | tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
-| processCredentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials |
+| process_credentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials |
 
 
 

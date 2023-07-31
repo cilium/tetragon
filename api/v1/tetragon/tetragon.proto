@@ -237,7 +237,7 @@ message Process {
     // Thread ID, note that for the thread group leader, tid is equal to pid.
     google.protobuf.UInt32Value tid = 16;
     // Process credentials
-    ProcessCredentials processCredentials = 17;
+    ProcessCredentials process_credentials = 17;
 }
 
 message ProcessExec {
