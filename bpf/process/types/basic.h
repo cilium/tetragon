@@ -936,21 +936,17 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
 	struct kvec *kvec;
-	unsigned int val;
 	const char *buf;
 	size_t count;
 	u8 iter_type;
 	void *tmp;
 	int *s;
 
-	if (bpf_core_field_exists(iov_iter->iter_type)) {
-		tmp = _(&iov_iter->iter_type);
-		probe_read(&iter_type, sizeof(iter_type), tmp);
-	} else {
-		probe_read(&val, sizeof(val), (const void *)arg);
-		val &= ~1;
-		iter_type = val == 4 ? ITER_IOVEC : ITER_UBUF + 1;
-	}
+	if (!bpf_core_field_exists(iov_iter->iter_type))
+		goto nodata;
+
+	tmp = _(&iov_iter->iter_type);
+	probe_read(&iter_type, sizeof(iter_type), tmp);
 
 	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
 		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
@@ -987,6 +983,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 	}
 #endif
 
+nodata:
 	s = (int *)args_off(e, off);
 	s[0] = 0;
 	s[1] = 0;
