@@ -309,10 +309,15 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, 2);
 	__type(key, __s32);
 	__type(value, __s64);
 } execve_map_stats SEC(".maps");
+
+enum {
+	MAP_STATS_COUNT = 0,
+	MAP_STATS_ERROR = 1,
+};
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -357,6 +362,17 @@ validate_msg_execve_size(int64_t size)
 	return size;
 }
 
+// execve_map_error() will increment the map error counter
+static inline __attribute__((always_inline)) void execve_map_error(void)
+{
+	int one = MAP_STATS_ERROR;
+	__s64 *cntr;
+
+	cntr = map_lookup_elem(&execve_map_stats, &one);
+	if (cntr)
+		*cntr = *cntr + 1;
+}
+
 // execve_map_get will look up if pid exists and return it if it does. If it
 // does not, it will create a new one and return it.
 static inline __attribute__((always_inline)) struct execve_map_value *
@@ -367,7 +383,7 @@ execve_map_get(__u32 pid)
 	event = map_lookup_elem(&execve_map, &pid);
 	if (!event) {
 		struct execve_map_value *value;
-		int err, zero = 0;
+		int err, zero = MAP_STATS_COUNT;
 		__s64 *cntr;
 
 		value = map_lookup_elem(&execve_val, &zero);
@@ -376,8 +392,13 @@ execve_map_get(__u32 pid)
 
 		memset(value, 0, sizeof(struct execve_map_value));
 		err = map_update_elem(&execve_map, &pid, value, 0);
-		if (!err && (cntr = map_lookup_elem(&execve_map_stats, &zero)))
-			*cntr = *cntr + 1;
+		if (!err) {
+			cntr = map_lookup_elem(&execve_map_stats, &zero);
+			if (cntr)
+				*cntr = *cntr + 1;
+		} else {
+			execve_map_error();
+		}
 		event = map_lookup_elem(&execve_map, &pid);
 	}
 	return event;
@@ -392,10 +413,16 @@ execve_map_get_noinit(__u32 pid)
 static inline __attribute__((always_inline)) void execve_map_delete(__u32 pid)
 {
 	int err = map_delete_elem(&execve_map, &pid);
-	int zero = 0;
+	int zero = MAP_STATS_COUNT;
 	__s64 *cntr;
-	if (!err && (cntr = map_lookup_elem(&execve_map_stats, &zero)))
-		*cntr = *cntr - 1;
+
+	if (!err) {
+		cntr = map_lookup_elem(&execve_map_stats, &zero);
+		if (cntr)
+			*cntr = *cntr - 1;
+	} else {
+		execve_map_error();
+	}
 }
 
 _Static_assert(sizeof(struct execve_map_value) % 8 == 0,

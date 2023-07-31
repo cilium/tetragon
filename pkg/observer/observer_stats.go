@@ -47,21 +47,7 @@ func (s *statValue) DeepCopyMapValue() bpf.MapValue {
 	return v
 }
 
-func updateMapMetric(name string) {
-	pin := filepath.Join(option.Config.MapDir, name)
-	pinStats := pin + "_stats"
-
-	mapLinkStats, err := bpf.OpenMap(pinStats)
-	if err != nil {
-		return
-	}
-	defer mapLinkStats.Close()
-	mapLink, err := bpf.OpenMap(pin)
-	if err != nil {
-		return
-	}
-	defer mapLink.Close()
-
+func updateMapSize(mapLinkStats *bpf.Map, maxEntries int, name string) {
 	zeroKey := &statKey{}
 	value, err := mapLinkStats.Lookup(zeroKey)
 	if err != nil {
@@ -77,7 +63,47 @@ func updateMapMetric(name string) {
 	for cpu := int(0); cpu < runtime.NumCPU(); cpu++ {
 		sum += v.Value[cpu]
 	}
-	mapmetrics.MapSizeSet(name, int(mapLink.MapInfo.MaxEntries), float64(sum))
+	mapmetrics.MapSizeSet(name, maxEntries, float64(sum))
+}
+
+func updateMapErrors(mapLinkStats *bpf.Map, name string) {
+	oneKey := &statKey{
+		Key: 1,
+	}
+	value, err := mapLinkStats.Lookup(oneKey)
+	if err != nil {
+		return
+	}
+
+	v, ok := value.DeepCopyMapValue().(*statValue)
+	if !ok {
+		return
+	}
+
+	sum := int64(0)
+	for cpu := int(0); cpu < runtime.NumCPU(); cpu++ {
+		sum += v.Value[cpu]
+	}
+	mapmetrics.MapErrorSet(name, float64(sum))
+}
+
+func updateMapMetric(name string) {
+	pin := filepath.Join(option.Config.MapDir, name)
+	pinStats := pin + "_stats"
+
+	mapLinkStats, err := bpf.OpenMap(pinStats)
+	if err != nil {
+		return
+	}
+	defer mapLinkStats.Close()
+	mapLink, err := bpf.OpenMap(pin)
+	if err != nil {
+		return
+	}
+	defer mapLink.Close()
+
+	updateMapSize(mapLinkStats, int(mapLink.MapInfo.MaxEntries), name)
+	updateMapErrors(mapLinkStats, name)
 }
 
 func (k *Observer) startUpdateMapMetrics() {
