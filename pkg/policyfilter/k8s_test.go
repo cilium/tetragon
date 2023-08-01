@@ -112,7 +112,7 @@ func (ts *testState) eventHandler(m *state) cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			ts.cbAdds.Add(1)
-			h.OnAdd(obj)
+			h.OnAdd(obj, false)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			ts.cbUpds.Add(1)
