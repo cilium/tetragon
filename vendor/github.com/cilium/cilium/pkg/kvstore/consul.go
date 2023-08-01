@@ -14,7 +14,7 @@ import (
 
 	consulAPI "github.com/hashicorp/consul/api"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/cilium/cilium/pkg/backoff"
 	"github.com/cilium/cilium/pkg/controller"
@@ -43,12 +43,15 @@ type consulModule struct {
 }
 
 var (
-	//consulDummyAddress can be overwritten from test invokers using ldflags
+	// consulDummyAddress can be overwritten from test invokers using ldflags
 	consulDummyAddress = "https://127.0.0.1:8501"
-	//consulDummyConfigFile can be overwritten from test invokers using ldflags
+	// consulDummyConfigFile can be overwritten from test invokers using ldflags
 	consulDummyConfigFile = "/tmp/cilium-consul-certs/cilium-consul.yaml"
 
 	module = newConsulModule()
+
+	// ErrNotImplemented is the error which is returned when a functionality is not implemented.
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 func init() {
@@ -546,7 +549,7 @@ func (c *consulClient) getPrefix(ctx context.Context, prefix string) (k string, 
 	return pairs[0].Key, pairs[0].Value, nil
 }
 
-// UpdateIfLocked atomically creates a key or fails if it already exists if the client is still holding the given lock.
+// UpdateIfLocked updates a key if the client is still holding the given lock.
 func (c *consulClient) UpdateIfLocked(ctx context.Context, key string, value []byte, lease bool, lock KVLocker) error {
 	return c.Update(ctx, key, value, lease)
 }
@@ -767,4 +770,17 @@ func (c *consulClient) ListAndWatch(ctx context.Context, name, prefix string, ch
 // StatusCheckErrors returns a channel which receives status check errors
 func (c *consulClient) StatusCheckErrors() <-chan error {
 	return c.statusCheckErrors
+}
+
+// RegisterLeaseExpiredObserver is not implemented for the consul backend
+func (c *consulClient) RegisterLeaseExpiredObserver(prefix string, fn func(key string)) {}
+
+// UserEnforcePresence is not implemented for the consul backend
+func (c *consulClient) UserEnforcePresence(ctx context.Context, name string, roles []string) error {
+	return ErrNotImplemented
+}
+
+// UserEnforceAbsence is not implemented for the consul backend
+func (c *consulClient) UserEnforceAbsence(ctx context.Context, name string) error {
+	return ErrNotImplemented
 }

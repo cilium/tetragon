@@ -15,12 +15,36 @@ const (
 	ClusterIDMax = 255
 )
 
-type CiliumClusterConfig struct {
-	ID uint32 `json:"id,omitempty"`
+func ValidateClusterID(clusterID uint32) error {
+	if clusterID == ClusterIDMin {
+		return fmt.Errorf("ClusterID %d is reserved", ClusterIDMin)
+	}
+
+	if clusterID > ClusterIDMax {
+		return fmt.Errorf("ClusterID > %d is not supported", ClusterIDMax)
+	}
+
+	return nil
 }
 
-func (c0 *CiliumClusterConfig) IsCompatible(c1 *CiliumClusterConfig) error {
-	if c1 == nil {
+type CiliumClusterConfig struct {
+	ID uint32 `json:"id,omitempty"`
+
+	Capabilities CiliumClusterConfigCapabilities `json:"capabilities,omitempty"`
+}
+
+type CiliumClusterConfigCapabilities struct {
+	// Supports per-prefix "synced" canaries
+	SyncedCanaries bool `json:"syncedCanaries,omitempty"`
+
+	// The information concerning the given cluster is cached from an external
+	// kvstore (for instance, by kvstoremesh). This implies that keys are stored
+	// under the dedicated "cilium/cache" prefix, and all are cluster-scoped.
+	Cached bool `json:"cached,omitempty"`
+}
+
+func (c *CiliumClusterConfig) Validate() error {
+	if c == nil || c.ID == 0 {
 		// When remote cluster doesn't have cluster config, we
 		// currently just bypass the validation for compatibility.
 		// Otherwise, we cannot connect with older cluster which
@@ -30,13 +54,17 @@ func (c0 *CiliumClusterConfig) IsCompatible(c1 *CiliumClusterConfig) error {
 		// we should properly check it here and return error. Now
 		// we only have ClusterID which used to be ignored.
 		return nil
-	} else {
-		// Remote cluster has cluster config. Do validations.
-
-		// ID shouldn't be duplicated
-		if c0.ID == c1.ID {
-			return fmt.Errorf("duplicated cluster id")
-		}
 	}
+
+	if err := ValidateClusterID(c.ID); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// ClusterIDName groups together the ClusterID and the ClusterName
+type ClusterIDName struct {
+	ClusterID   uint32
+	ClusterName string
 }

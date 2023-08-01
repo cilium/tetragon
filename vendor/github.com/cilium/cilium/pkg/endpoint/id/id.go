@@ -6,13 +6,13 @@ package id
 import (
 	"fmt"
 	"math"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 )
 
-// MaxEndpointId is the maximum endpoint identifier.
-const MaxEndpointId = math.MaxUint16
+// MaxEndpointID is the maximum endpoint identifier.
+const MaxEndpointID = math.MaxUint16
 
 // PrefixType describes the type of endpoint identifier
 type PrefixType string
@@ -70,13 +70,16 @@ func NewID(prefix PrefixType, id string) string {
 	return string(prefix) + ":" + id
 }
 
-// NewIPPrefixID returns an identifier based on the IP address specified
-func NewIPPrefixID(ip net.IP) string {
-	if ip.To4() != nil {
-		return NewID(IPv4Prefix, ip.String())
+// NewIPPrefixID returns an identifier based on the IP address specified. If ip
+// is invalid, an empty string is returned.
+func NewIPPrefixID(ip netip.Addr) string {
+	if ip.IsValid() {
+		if ip.Is4() {
+			return NewID(IPv4Prefix, ip.String())
+		}
+		return NewID(IPv6Prefix, ip.String())
 	}
-
-	return NewID(IPv6Prefix, ip.String())
+	return ""
 }
 
 // splitID splits ID into prefix and id. No validation is performed on prefix.
@@ -99,7 +102,7 @@ func ParseCiliumID(id string) (int64, error) {
 	if err != nil || n < 0 {
 		return 0, fmt.Errorf("invalid numeric cilium id: %s", err)
 	}
-	if n > MaxEndpointId {
+	if n > MaxEndpointID {
 		return 0, fmt.Errorf("endpoint id too large: %d", n)
 	}
 	return n, nil

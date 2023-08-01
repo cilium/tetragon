@@ -17,21 +17,6 @@ const (
 	// ClusterMeshHealthPort is the default value for option.ClusterMeshHealthPort
 	ClusterMeshHealthPort = 80
 
-	// PprofAddressAgent is the default value for pprof in the agent
-	PprofAddressAgent = "localhost"
-
-	// PprofAddressAPIServer is the default value for pprof in the clustermesh-apiserver
-	PprofAddressAPIServer = "localhost"
-
-	// PprofPortAgent is the default value for pprof in the agent
-	PprofPortAgent = 6060
-
-	// PprofPortAgent is the default value for pprof in the operator
-	PprofPortOperator = 6061
-
-	// PprofPortAPIServer is the default value for pprof in the clustermesh-apiserver
-	PprofPortAPIServer = 6063
-
 	// GopsPortAgent is the default value for option.GopsPort in the agent
 	GopsPortAgent = 9890
 
@@ -40,6 +25,9 @@ const (
 
 	// GopsPortApiserver is the default value for option.GopsPort in the apiserver
 	GopsPortApiserver = 9892
+
+	// GopsPortKVStoreMesh is the default value for option.GopsPort in kvstoremesh
+	GopsPortKVStoreMesh = 9894
 
 	// IPv6ClusterAllocCIDR is the default value for option.IPv6ClusterAllocCIDR
 	IPv6ClusterAllocCIDR = IPv6ClusterAllocCIDRBase + "/64"
@@ -106,25 +94,30 @@ const (
 	// PidFilePath is the path to the pid file for the agent.
 	PidFilePath = RuntimePath + "/cilium.pid"
 
+	// DeletionQueueDir is the directory used for the CNI plugin to queue deletion requests
+	// if the agent is down
+	DeleteQueueDir = RuntimePath + "/deleteQueue"
+
+	// DeleteQueueLockfile is the file used to synchronize access of the queue directory between
+	// the agent and the CNI plugin processes
+	DeleteQueueLockfile = DeleteQueueDir + "/lockfile"
+
 	// EnableHostIPRestore controls whether the host IP should be restored
 	// from previous state automatically
 	EnableHostIPRestore = true
 
-	// DefaultMapRoot is the default path where BPFFS should be mounted
-	DefaultMapRoot = "/sys/fs/bpf"
+	// BPFFSRoot is the default path where BPFFS should be mounted
+	BPFFSRoot = "/sys/fs/bpf"
+
+	// BPFFSRootFallback is the path which is used when /sys/fs/bpf has
+	// a mount, but with the other filesystem than BPFFS.
+	BPFFSRootFallback = "/run/cilium/bpffs"
+
+	// TCGlobalsPath is the default prefix for all BPF maps.
+	TCGlobalsPath = "tc/globals"
 
 	// DefaultCgroupRoot is the default path where cilium cgroup2 should be mounted
 	DefaultCgroupRoot = "/run/cilium/cgroupv2"
-
-	// SockopsEnable controsl whether sockmap should be used
-	SockopsEnable = false
-
-	// DefaultMapRootFallback is the path which is used when /sys/fs/bpf has
-	// a mount, but with the other filesystem than BPFFS.
-	DefaultMapRootFallback = "/run/cilium/bpffs"
-
-	// DefaultMapPrefix is the default prefix for all BPF maps.
-	DefaultMapPrefix = "tc/globals"
 
 	// DNSMaxIPsPerRestoredRule defines the maximum number of IPs to maintain
 	// for each FQDN selector in endpoint's restored DNS rules.
@@ -136,7 +129,7 @@ const (
 
 	// ToFQDNsMinTTL is the default lower bound for TTLs used with ToFQDNs rules.
 	// This is used in DaemonConfig.Populate
-	ToFQDNsMinTTL = 3600 // 1 hour in seconds
+	ToFQDNsMinTTL = 0
 
 	// ToFQDNsMaxIPsPerHost defines the maximum number of IPs to maintain
 	// for each FQDN name in an endpoint's FQDN cache
@@ -214,9 +207,6 @@ const (
 	// EnableHostLegacyRouting is the default value for using the old routing path via stack.
 	EnableHostLegacyRouting = false
 
-	// EnableExternalIPs is the default value for k8s service with externalIPs feature.
-	EnableExternalIPs = true
-
 	// K8sEnableEndpointSlice is the default value for k8s EndpointSlice feature.
 	K8sEnableEndpointSlice = true
 
@@ -226,6 +216,10 @@ const (
 	// EnableIPSec is the default value for IPSec enablement
 	EnableIPSec = false
 
+	// IPsecKeyRotationDuration is the time to wait before removing old keys when
+	// the IPsec key is changing.
+	IPsecKeyRotationDuration = 5 * time.Minute
+
 	// Enable watcher for IPsec key. If disabled, a restart of the agent will
 	// be necessary on key rotations.
 	EnableIPsecKeyWatcher = true
@@ -233,6 +227,10 @@ const (
 	// EncryptNode enables encrypting traffic from host networking applications
 	// which are not part of Cilium manged pods.
 	EncryptNode = false
+
+	// NodeEncryptionOptOutLabels contains the label selectors for nodes opting out of
+	// node-to-node encryption
+	NodeEncryptionOptOutLabels = "node-role.kubernetes.io/control-plane"
 
 	// MonitorQueueSizePerCPU is the default value for the monitor queue
 	// size per CPU
@@ -316,9 +314,6 @@ const (
 	// ConntrackGCMaxLRUInterval is the maximum conntrack GC interval when using LRU maps
 	ConntrackGCMaxLRUInterval = 12 * time.Hour
 
-	// ConntrackGCMaxInterval is the maximum conntrack GC interval for non-LRU maps
-	ConntrackGCMaxInterval = 30 * time.Minute
-
 	// ConntrackGCMinInterval is the minimum conntrack GC interval
 	ConntrackGCMinInterval = 10 * time.Second
 
@@ -335,17 +330,12 @@ const (
 	// LoopbackIPv4 is the default address for service loopback
 	LoopbackIPv4 = "169.254.42.1"
 
-	// ForceLocalPolicyEvalAtSource is the default value for
-	// option.ForceLocalPolicyEvalAtSource. It can be enabled to provide
-	// backwards compatibility.
-	ForceLocalPolicyEvalAtSource = false
-
 	// EnableEndpointRoutes is the value for option.EnableEndpointRoutes.
 	// It is disabled by default for backwards compatibility.
 	EnableEndpointRoutes = false
 
 	// AnnotateK8sNode is the default value for option.AnnotateK8sNode. It is
-	// enabled by default to annotate kubernetes node and can be disabled using
+	// disabled by default to annotate kubernetes node and can be enabled using
 	// the provided option.
 	AnnotateK8sNode = false
 
@@ -379,6 +369,10 @@ const (
 	// IPAMPreAllocation is the default value for
 	// CiliumNode.Spec.IPAM.PreAllocate if no value is set
 	IPAMPreAllocation = 8
+
+	// IPAMMultiPoolPreAllocation is the default value for multi-pool IPAM
+	// pre-allocations
+	IPAMMultiPoolPreAllocation = "default=8"
 
 	// ENIFirstInterfaceIndex is the default value for
 	// CiliumNode.Spec.ENI.FirstInterfaceIndex if no value is set.
@@ -492,6 +486,11 @@ const (
 	// for local traffic
 	EnableIdentityMark = true
 
+	// EnableHighScaleIPcache enables the special ipcache mode for high scale
+	// clusters. The ipcache content will be reduced to the strict minimum and
+	// traffic will be encapsulated to carry security identities.
+	EnableHighScaleIPcache = false
+
 	// K8sEnableLeasesFallbackDiscovery enables k8s to fallback to API probing to check
 	// for the support of Leases in Kubernetes when there is an error in discovering
 	// API groups using Discovery API.
@@ -516,6 +515,12 @@ const (
 	// EnableICMPRules enables ICMP-based rule support for Cilium Network Policies.
 	EnableICMPRules = true
 
+	// RoutingMode enables choosing between native routing mode or tunneling mode.
+	RoutingMode = "tunnel"
+
+	// TunnelProtocol is the default tunneling protocol
+	TunnelProtocol = "vxlan"
+
 	// Use the CiliumInternalIPs (vs. NodeInternalIPs) for IPsec encapsulation.
 	UseCiliumInternalIPForIPsec = false
 
@@ -533,6 +538,9 @@ const (
 
 	// Enable BGP control plane features.
 	EnableBGPControlPlane = false
+
+	// EnableK8sNetworkPolicy enables support for K8s NetworkPolicy.
+	EnableK8sNetworkPolicy = true
 )
 
 var (

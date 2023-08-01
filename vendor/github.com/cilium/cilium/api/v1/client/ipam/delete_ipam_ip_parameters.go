@@ -66,9 +66,12 @@ type DeleteIpamIPParams struct {
 
 	/* IP.
 
-	   IP address or owner name
+	   IP address
 	*/
 	IP string
+
+	// Pool.
+	Pool *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -134,6 +137,17 @@ func (o *DeleteIpamIPParams) SetIP(ip string) {
 	o.IP = ip
 }
 
+// WithPool adds the pool to the delete ipam IP params
+func (o *DeleteIpamIPParams) WithPool(pool *string) *DeleteIpamIPParams {
+	o.SetPool(pool)
+	return o
+}
+
+// SetPool adds the pool to the delete ipam IP params
+func (o *DeleteIpamIPParams) SetPool(pool *string) {
+	o.Pool = pool
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DeleteIpamIPParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -145,6 +159,23 @@ func (o *DeleteIpamIPParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	// path param ip
 	if err := r.SetPathParam("ip", o.IP); err != nil {
 		return err
+	}
+
+	if o.Pool != nil {
+
+		// query param pool
+		var qrPool string
+
+		if o.Pool != nil {
+			qrPool = *o.Pool
+		}
+		qPool := qrPool
+		if qPool != "" {
+
+			if err := r.SetQueryParam("pool", qPool); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(res) > 0 {
