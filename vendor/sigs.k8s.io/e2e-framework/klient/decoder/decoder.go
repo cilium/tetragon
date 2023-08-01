@@ -332,7 +332,7 @@ func IgnoreErrorHandler(handler HandlerFunc, errorMatcher func(err error) bool) 
 }
 
 // NoopHandler returns a Handler func that only returns nil
-func NoopHandler(r *resources.Resources, opts ...resources.DeleteOption) HandlerFunc {
+func NoopHandler(_ *resources.Resources, _ ...resources.DeleteOption) HandlerFunc {
 	return func(ctx context.Context, obj k8s.Object) error {
 		return nil
 	}
@@ -344,6 +344,6 @@ func CreateIgnoreAlreadyExists(r *resources.Resources, opts ...resources.CreateO
 }
 
 // DeleteIgnoreNotFound returns a HandlerFunc that will delete objects if they do not already exist
-func DeleteIgnoreNotFound(r *resources.Resources, opts ...resources.CreateOption) HandlerFunc {
-	return IgnoreErrorHandler(CreateHandler(r, opts...), apierrors.IsNotFound)
+func DeleteIgnoreNotFound(r *resources.Resources, opts ...resources.DeleteOption) HandlerFunc {
+	return IgnoreErrorHandler(DeleteHandler(r, opts...), apierrors.IsNotFound)
 }

@@ -167,6 +167,7 @@ func (c *Condition) ResourcesDeleted(list k8s.ObjectList) apimachinerywait.Condi
 	return func() (done bool, err error) {
 		for obj, created := range objects {
 			if created {
+				log.V(4).InfoS("Checking for resource to be garbage collected", "resource", c.namespacedName(obj))
 				if err := c.resources.Get(context.TODO(), obj.GetName(), obj.GetNamespace(), obj); errors.IsNotFound(err) {
 					delete(objects, obj)
 				} else if err != nil {

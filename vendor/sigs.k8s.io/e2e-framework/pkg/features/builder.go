@@ -34,7 +34,7 @@ func New(name string) *FeatureBuilder {
 
 // WithLabel adds a test label key/value pair
 func (b *FeatureBuilder) WithLabel(key, value string) *FeatureBuilder {
-	b.feat.labels[key] = value
+	b.feat.labels[key] = append(b.feat.labels[key], value)
 	return b
 }
 
