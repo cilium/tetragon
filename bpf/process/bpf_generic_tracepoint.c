@@ -99,7 +99,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	}
 
 	default:
-	case nop:
+	case nop_ty:
 		return 0;
 	}
 }
