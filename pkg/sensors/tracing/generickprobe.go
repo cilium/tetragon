@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
@@ -297,8 +298,8 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 			} else {
 				f.Call = prefixedName
 			}
-		} else if hasOverride {
-			return fmt.Errorf("Error override action can be used only with syscalls")
+		} else if hasOverride && strings.HasPrefix(f.Call, "security_") == false {
+			return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
 		}
 
 		// Now go over BTF validation
