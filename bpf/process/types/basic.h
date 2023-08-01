@@ -21,8 +21,8 @@
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
-	filter = -2,
-	nop = 0,
+	invalid_ty = -2,
+	nop_ty = -1,
 	int_type = 1,
 	char_buf = 2,
 	char_iovec = 3,
@@ -188,7 +188,7 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args);
 static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
 {
 	switch (ty) {
-	case nop:
+	case nop_ty:
 	case nop_s64_ty:
 	case nop_u64_ty:
 	case nop_s32_ty:
@@ -446,7 +446,7 @@ copy_strings(char *args, unsigned long arg)
 
 	size = probe_read_str(&args[4], MAX_STRING, (char *)arg);
 	if (size < 0) {
-		return filter;
+		return invalid_ty;
 	}
 	*s = size;
 	// Initial 4 bytes hold string length
