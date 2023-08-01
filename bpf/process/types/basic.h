@@ -645,17 +645,17 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
-__filter_file_buf(char *value, char *args, __u32 op)
-{
-	int err;
-	__u64 v, a;
+struct string_buf {
+	__u32 len;
+	char buf[];
+};
 
-	/* filter->vallen is pulled from user input so we also need to
-	 * ensure its bounded.
-	 */
-	v = (unsigned int)value[0];
-	a = (unsigned int)args[0];
+static inline __attribute__((always_inline)) long
+__filter_file_buf(struct string_buf *value, struct string_buf *args, __u32 op)
+{
+	__u32 v = value->len, a = args->len;
+	int err;
+
 	/* There are cases where file pointer may not contain a path.
 	 * An example is using an unnamed pipe. This is not a match.
 	 */
@@ -668,17 +668,24 @@ __filter_file_buf(char *value, char *args, __u32 op)
 		if (a < v)
 			goto skip_string;
 	} else if (op == op_filter_str_postfix) {
-		err = rcmpbytes(&value[4], &args[4], v - 1, a - 1);
+		err = rcmpbytes(value->buf, args->buf, v - 1, a - 1);
 		if (!err)
 			return 0;
 		goto skip_string;
 	}
-	err = cmpbytes(&value[4], &args[4], v);
+	err = cmpbytes(value->buf, args->buf, v);
 	if (!err)
 		return 0;
 skip_string:
-	return v + 4;
+	return v + sizeof(struct string_buf);
 }
+
+struct file_buf {
+	__u32 index; // index of filter
+	__u32 op; // op_filter_eq, op_filter_str_prefix, or op_filter_str_postfix
+	__u32 total_sz; // size of all values (len + bytes) + sizeof(total_sz) + sizeof(type)
+	__u32 type; // path_ty, file_ty, or fd_ty
+};
 
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
@@ -686,21 +693,23 @@ skip_string:
  * a reverse search.
  */
 static inline __attribute__((always_inline)) long
-filter_file_buf(struct selector_arg_filter *filter, char *args)
+filter_file_buf(struct file_buf *filter, char *args)
 {
-	char *value = (char *)&filter->value;
+	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
+	__u32 remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
 	int i, next;
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
 #endif
 	for (i = 0; i < MAX_MATCH_FILE_VALUES; ++i) {
-		next = __filter_file_buf(value, args, filter->op);
+		next = __filter_file_buf((struct string_buf *)values, (struct string_buf *)args, filter->op);
 		if (!next)
 			return 1;
-		else if (next + 8 > filter->vallen)
+		remain -= next;
+		if (remain == 0)
 			return 0;
-		value += (next & 0x7f);
+		values += (next & 0x7f);
 	}
 
 	return 0;
@@ -1308,7 +1317,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf(filter, args);
+			pass &= filter_file_buf((struct file_buf *)filter, args);
 			break;
 		case string_type:
 			/* for strings, we just encode the length */
