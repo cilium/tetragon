@@ -3,8 +3,6 @@
 package alignchecker
 
 import (
-	"reflect"
-
 	"github.com/cilium/tetragon/pkg/api/confapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
@@ -28,24 +26,24 @@ import (
 // `align:"$union1"`, etc.
 func CheckStructAlignments(path string) error {
 	// Validate alignments of C and Go equivalent structs
-	toCheck := map[string][]reflect.Type{
+	toCheck := map[string][]any{
 		// from perf_event_output
-		"msg_exit":              {reflect.TypeOf(processapi.MsgExitEvent{})},
-		"msg_test":              {reflect.TypeOf(testapi.MsgTestEvent{})},
-		"msg_execve_key":        {reflect.TypeOf(processapi.MsgExecveKey{})},
-		"execve_map_value":      {reflect.TypeOf(execvemap.ExecveValue{})},
-		"event_config":          {reflect.TypeOf(tracingapi.EventConfig{})},
-		"tetragon_conf":         {reflect.TypeOf(confapi.TetragonConf{})},
-		"cgroup_tracking_value": {reflect.TypeOf(processapi.MsgCgroupData{})},
-		"msg_cgroup_event":      {reflect.TypeOf(processapi.MsgCgroupEvent{})},
+		"msg_exit":              {processapi.MsgExitEvent{}},
+		"msg_test":              {testapi.MsgTestEvent{}},
+		"msg_execve_key":        {processapi.MsgExecveKey{}},
+		"execve_map_value":      {execvemap.ExecveValue{}},
+		"event_config":          {tracingapi.EventConfig{}},
+		"tetragon_conf":         {confapi.TetragonConf{}},
+		"cgroup_tracking_value": {processapi.MsgCgroupData{}},
+		"msg_cgroup_event":      {processapi.MsgCgroupEvent{}},
 	}
 
-	confMap := map[string][]reflect.Type{
-		"tetragon_conf": {reflect.TypeOf(confmap.TetragonConfValue{})},
+	confMap := map[string][]any{
+		"tetragon_conf": {confmap.TetragonConfValue{}},
 	}
 
-	cgrpmap := map[string][]reflect.Type{
-		"cgroup_tracking_value": {reflect.TypeOf(cgrouptrackmap.CgrpTrackingValue{})},
+	cgrpmap := map[string][]any{
+		"cgroup_tracking_value": {cgrouptrackmap.CgrpTrackingValue{}},
 	}
 
 	err := check.CheckStructAlignments(path, toCheck, true)
