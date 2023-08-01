@@ -4,8 +4,9 @@
 package identity
 
 import (
-	"fmt"
+	"encoding/json"
 	"net"
+	"strconv"
 
 	"github.com/cilium/cilium/pkg/labels"
 )
@@ -64,6 +65,23 @@ type IPIdentityPair struct {
 	NamedPorts   []NamedPort     `json:"NamedPorts,omitempty"`
 }
 
+// GetKeyName returns the kvstore key to be used for the IPIdentityPair
+func (pair *IPIdentityPair) GetKeyName() string { return pair.PrefixString() }
+
+// Marshal returns the IPIdentityPair object as JSON byte slice
+func (pair *IPIdentityPair) Marshal() ([]byte, error) { return json.Marshal(pair) }
+
+// Unmarshal parses the JSON byte slice and updates the IPIdentityPair receiver
+func (pair *IPIdentityPair) Unmarshal(_ string, data []byte) error {
+	newPair := IPIdentityPair{}
+	if err := json.Unmarshal(data, &newPair); err != nil {
+		return err
+	}
+
+	*pair = newPair
+	return nil
+}
+
 // NamedPort is a mapping from a port name to a port number and protocol.
 //
 // WARNING - STABLE API
@@ -113,6 +131,12 @@ func (id *Identity) IsWellKnown() bool {
 	return WellKnown.lookupByNumericIdentity(id.ID) != nil
 }
 
+// IsWellKnownIdentity returns true if the identity represents a well-known
+// identity, false otherwise.
+func IsWellKnownIdentity(id NumericIdentity) bool {
+	return WellKnown.lookupByNumericIdentity(id) != nil
+}
+
 // NewIdentityFromLabelArray creates a new identity
 func NewIdentityFromLabelArray(id NumericIdentity, lblArray labels.LabelArray) *Identity {
 	var lbls labels.Labels
@@ -143,21 +167,14 @@ func (pair *IPIdentityPair) IsHost() bool {
 // format w.x.y.z if 'host' is true, or as a prefix in the format the w.x.y.z/N
 // if 'host' is false.
 func (pair *IPIdentityPair) PrefixString() string {
-	var suffix string
-	if !pair.IsHost() {
-		var ones int
-		if pair.Mask == nil {
-			if pair.IP.To4() != nil {
-				ones = net.IPv4len
-			} else {
-				ones = net.IPv6len
-			}
-		} else {
-			ones, _ = pair.Mask.Size()
-		}
-		suffix = fmt.Sprintf("/%d", ones)
+	ipstr := pair.IP.String()
+
+	if pair.IsHost() {
+		return ipstr
 	}
-	return fmt.Sprintf("%s%s", pair.IP.String(), suffix)
+
+	ones, _ := pair.Mask.Size()
+	return ipstr + "/" + strconv.Itoa(ones)
 }
 
 // RequiresGlobalIdentity returns true if the label combination requires a

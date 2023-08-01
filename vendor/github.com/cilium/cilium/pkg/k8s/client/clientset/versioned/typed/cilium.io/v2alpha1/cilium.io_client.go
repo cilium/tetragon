@@ -16,9 +16,12 @@ import (
 type CiliumV2alpha1Interface interface {
 	RESTClient() rest.Interface
 	CiliumBGPPeeringPoliciesGetter
+	CiliumCIDRGroupsGetter
 	CiliumEndpointSlicesGetter
+	CiliumL2AnnouncementPoliciesGetter
 	CiliumLoadBalancerIPPoolsGetter
 	CiliumNodeConfigsGetter
+	CiliumPodIPPoolsGetter
 }
 
 // CiliumV2alpha1Client is used to interact with features provided by the cilium.io group.
@@ -30,8 +33,16 @@ func (c *CiliumV2alpha1Client) CiliumBGPPeeringPolicies() CiliumBGPPeeringPolicy
 	return newCiliumBGPPeeringPolicies(c)
 }
 
+func (c *CiliumV2alpha1Client) CiliumCIDRGroups() CiliumCIDRGroupInterface {
+	return newCiliumCIDRGroups(c)
+}
+
 func (c *CiliumV2alpha1Client) CiliumEndpointSlices() CiliumEndpointSliceInterface {
 	return newCiliumEndpointSlices(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumL2AnnouncementPolicies() CiliumL2AnnouncementPolicyInterface {
+	return newCiliumL2AnnouncementPolicies(c)
 }
 
 func (c *CiliumV2alpha1Client) CiliumLoadBalancerIPPools() CiliumLoadBalancerIPPoolInterface {
@@ -40,6 +51,10 @@ func (c *CiliumV2alpha1Client) CiliumLoadBalancerIPPools() CiliumLoadBalancerIPP
 
 func (c *CiliumV2alpha1Client) CiliumNodeConfigs(namespace string) CiliumNodeConfigInterface {
 	return newCiliumNodeConfigs(c, namespace)
+}
+
+func (c *CiliumV2alpha1Client) CiliumPodIPPools() CiliumPodIPPoolInterface {
+	return newCiliumPodIPPools(c)
 }
 
 // NewForConfig creates a new CiliumV2alpha1Client for the given config.

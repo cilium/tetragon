@@ -8,9 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/cilium/cilium/pkg/idpool"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/lock"
+	"github.com/cilium/cilium/pkg/stream"
 )
 
 // backendOpTimeout is the time allowed for operations sent to backends in
@@ -56,15 +59,21 @@ type cache struct {
 	// watcher is started with the conditions marked as done when the
 	// watcher has exited
 	stopWatchWg sync.WaitGroup
+
+	changeSrc         stream.Observable[AllocatorChange]
+	emitChange        func(AllocatorChange)
+	completeChangeSrc func(error)
 }
 
-func newCache(a *Allocator) cache {
-	return cache{
+func newCache(a *Allocator) (c cache) {
+	c = cache{
 		allocator: a,
 		cache:     idMap{},
 		keyCache:  keyMap{},
 		stopChan:  make(chan struct{}),
 	}
+	c.changeSrc, c.emitChange, c.completeChangeSrc = stream.Multicast[AllocatorChange]()
+	return
 }
 
 type waitChan chan struct{}
@@ -120,6 +129,8 @@ func (c *cache) OnAdd(id idpool.ID, key AllocatorKey) {
 	}
 	c.allocator.idPool.Remove(id)
 
+	c.emitChange(AllocatorChange{Kind: AllocatorChangeUpsert, ID: id, Key: key})
+
 	c.sendEvent(kvstore.EventTypeCreate, id, key)
 }
 
@@ -136,6 +147,8 @@ func (c *cache) OnModify(id idpool.ID, key AllocatorKey) {
 		c.nextKeyCache[c.allocator.encodeKey(key)] = id
 	}
 
+	c.emitChange(AllocatorChange{Kind: AllocatorChangeUpsert, ID: id, Key: key})
+
 	c.sendEvent(kvstore.EventTypeModify, id, key)
 }
 
@@ -143,6 +156,11 @@ func (c *cache) OnDelete(id idpool.ID, key AllocatorKey) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	c.onDeleteLocked(id, key)
+}
+
+// onDeleteLocked must be called while holding c.Mutex for writing
+func (c *cache) onDeleteLocked(id idpool.ID, key AllocatorKey) {
 	a := c.allocator
 	if a.enableMasterKeyProtection {
 		if value := a.localKeys.lookupID(id); value != nil {
@@ -162,6 +180,8 @@ func (c *cache) OnDelete(id idpool.ID, key AllocatorKey) {
 
 	delete(c.nextCache, id)
 	a.idPool.Insert(id)
+
+	c.emitChange(AllocatorChange{Kind: AllocatorChangeDelete, ID: id, Key: key})
 
 	c.sendEvent(kvstore.EventTypeDelete, id, key)
 }
@@ -191,6 +211,39 @@ func (c *cache) start() waitChan {
 func (c *cache) stop() {
 	close(c.stopChan)
 	c.stopWatchWg.Wait()
+	c.completeChangeSrc(nil)
+}
+
+// drain emits a deletion event for all known IDs. It must be called after the
+// cache has been stopped, to ensure that no new events can be received afterwards.
+func (c *cache) drain() {
+	// Make sure we wait until the watch loop has been properly stopped.
+	c.stopWatchWg.Wait()
+
+	c.mutex.Lock()
+	for id, key := range c.nextCache {
+		c.onDeleteLocked(id, key)
+	}
+	c.mutex.Unlock()
+}
+
+// drainIf emits a deletion event for all known IDs that are stale according to
+// the isStale function. It must be called after the cache has been stopped, to
+// ensure that no new events can be received afterwards.
+func (c *cache) drainIf(isStale func(id idpool.ID) bool) {
+	// Make sure we wait until the watch loop has been properly stopped, otherwise
+	// new IDs might be added afterwards we complete the draining process.
+	c.stopWatchWg.Wait()
+
+	c.mutex.Lock()
+	for id, key := range c.nextCache {
+		if isStale(id) {
+			c.onDeleteLocked(id, key)
+			log.WithFields(logrus.Fields{fieldID: id, fieldKey: key}).
+				Debug("Stale identity deleted")
+		}
+	}
+	c.mutex.Unlock()
 }
 
 func (c *cache) get(key string) idpool.ID {
@@ -234,4 +287,52 @@ func (c *cache) numEntries() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return len(c.nextCache)
+}
+
+type AllocatorChangeKind string
+
+const (
+	AllocatorChangeSync   AllocatorChangeKind = "sync"
+	AllocatorChangeUpsert AllocatorChangeKind = "upsert"
+	AllocatorChangeDelete AllocatorChangeKind = "delete"
+)
+
+type AllocatorChange struct {
+	Kind AllocatorChangeKind
+	ID   idpool.ID
+	Key  AllocatorKey
+}
+
+// Observe the allocator changes. Conforms to stream.Observable.
+// Replays the current state of the cache when subscribing.
+func (c *cache) Observe(ctx context.Context, next func(AllocatorChange), complete func(error)) {
+	// This short-lived go routine serves the purpose of replaying the current state of the cache before starting
+	// to observe the actual source changeSrc. ChangeSrc is backed by a stream.FuncObservable, that will start its own
+	// go routine. Therefore, the current go routine will stop and free the lock on the mutex after the registration.
+	go func() {
+		// Wait until initial listing has completed before
+		// replaying the state.
+		select {
+		case <-c.listDone:
+		case <-ctx.Done():
+			complete(ctx.Err())
+			return
+		}
+
+		c.mutex.RLock()
+		defer c.mutex.RUnlock()
+
+		for id, key := range c.cache {
+			next(AllocatorChange{Kind: AllocatorChangeUpsert, ID: id, Key: key})
+		}
+
+		// Emit a sync event to inform the subscriber that it has received a consistent
+		// initial state.
+		next(AllocatorChange{Kind: AllocatorChangeSync})
+
+		// And subscribe to new events. Since we held the read-lock there won't be any
+		// missed or duplicate events.
+		c.changeSrc.Observe(ctx, next, complete)
+	}()
+
 }

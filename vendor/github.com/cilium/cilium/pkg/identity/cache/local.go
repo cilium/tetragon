@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/cilium/pkg/allocator"
 	"github.com/cilium/cilium/pkg/identity"
+	"github.com/cilium/cilium/pkg/identity/key"
 	"github.com/cilium/cilium/pkg/idpool"
 	"github.com/cilium/cilium/pkg/kvstore"
 	"github.com/cilium/cilium/pkg/labels"
@@ -21,10 +22,10 @@ type localIdentityCache struct {
 	nextNumericIdentity identity.NumericIdentity
 	minID               identity.NumericIdentity
 	maxID               identity.NumericIdentity
-	events              allocator.AllocatorEventChan
+	events              allocator.AllocatorEventSendChan
 }
 
-func newLocalIdentityCache(minID, maxID identity.NumericIdentity, events allocator.AllocatorEventChan) *localIdentityCache {
+func newLocalIdentityCache(minID, maxID identity.NumericIdentity, events allocator.AllocatorEventSendChan) *localIdentityCache {
 	return &localIdentityCache{
 		identitiesByID:      map[identity.NumericIdentity]*identity.Identity{},
 		identitiesByLabels:  map[string]*identity.Identity{},
@@ -108,7 +109,7 @@ func (l *localIdentityCache) lookupOrCreate(lbls labels.Labels, oldNID identity.
 		l.events <- allocator.AllocatorEvent{
 			Typ: kvstore.EventTypeCreate,
 			ID:  idpool.ID(id.ID),
-			Key: GlobalIdentity{id.LabelArray},
+			Key: &key.GlobalIdentity{LabelArray: id.LabelArray},
 		}
 	}
 
@@ -189,4 +190,16 @@ func (l *localIdentityCache) GetIdentities() map[identity.NumericIdentity]*ident
 	}
 
 	return cache
+}
+
+// close closes the events channel. The local identity cache is the writing
+// party, hence also needs to close the channel.
+func (l *localIdentityCache) close() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	if l.events != nil {
+		close(l.events)
+		l.events = nil
+	}
 }

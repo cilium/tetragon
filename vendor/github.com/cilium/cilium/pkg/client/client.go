@@ -387,19 +387,52 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 
 		for _, cluster := range sr.ClusterMesh.Clusters {
 			if sd.AllClusters || !cluster.Ready {
-				fmt.Fprintf(w, "   %s: %s, %d nodes, %d identities, %d services, %d failures (last: %s)\n",
+				fmt.Fprintf(w, "   %s: %s, %d nodes, %d endpoints, %d identities, %d services, %d failures (last: %s)\n",
 					cluster.Name, clusterReadiness(cluster), cluster.NumNodes,
-					cluster.NumIdentities, cluster.NumSharedServices,
+					cluster.NumEndpoints, cluster.NumIdentities, cluster.NumSharedServices,
 					cluster.NumFailures, timeSince(time.Time(cluster.LastFailure)))
 				fmt.Fprintf(w, "   └  %s\n", cluster.Status)
+
+				fmt.Fprint(w, "   └  remote configuration: ")
+				if cluster.Config != nil {
+					fmt.Fprintf(w, "expected=%t, retrieved=%t", cluster.Config.Required, cluster.Config.Retrieved)
+					if cluster.Config.Retrieved {
+						fmt.Fprintf(w, ", cluster-id=%d, kvstoremesh=%t, sync-canaries=%t",
+							cluster.Config.ClusterID, cluster.Config.Kvstoremesh, cluster.Config.SyncCanaries)
+					}
+				} else {
+					fmt.Fprint(w, "expected=unknown, retrieved=unknown")
+				}
+				fmt.Fprint(w, "\n")
+
+				if cluster.Synced != nil {
+					fmt.Fprintf(w, "   └  synchronization status: nodes=%v, endpoints=%v, identities=%v, services=%v\n",
+						cluster.Synced.Nodes, cluster.Synced.Endpoints, cluster.Synced.Identities, cluster.Synced.Services)
+				}
 			}
 		}
 	}
 
+	if sr.IPV4BigTCP != nil {
+		status := "Disabled"
+		if sr.IPV4BigTCP.Enabled {
+			max := fmt.Sprintf("[%d]", sr.IPV4BigTCP.MaxGSO)
+			if sr.IPV4BigTCP.MaxGRO != sr.IPV4BigTCP.MaxGSO {
+				max = fmt.Sprintf("[%d, %d]", sr.IPV4BigTCP.MaxGRO, sr.IPV4BigTCP.MaxGSO)
+			}
+			status = fmt.Sprintf("Enabled\t%s", max)
+		}
+		fmt.Fprintf(w, "IPv4 BIG TCP:\t%s\n", status)
+	}
+
 	if sr.IPV6BigTCP != nil {
-		status := "Enabled"
-		if !sr.IPV6BigTCP.Enabled {
-			status = "Disabled"
+		status := "Disabled"
+		if sr.IPV6BigTCP.Enabled {
+			max := fmt.Sprintf("[%d]", sr.IPV6BigTCP.MaxGSO)
+			if sr.IPV6BigTCP.MaxGRO != sr.IPV6BigTCP.MaxGSO {
+				max = fmt.Sprintf("[%d, %d]", sr.IPV6BigTCP.MaxGRO, sr.IPV6BigTCP.MaxGSO)
+			}
+			status = fmt.Sprintf("Enabled\t%s", max)
 		}
 		fmt.Fprintf(w, "IPv6 BIG TCP:\t%s\n", status)
 	}
@@ -515,8 +548,8 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 	}
 
 	if sr.Proxy != nil {
-		fmt.Fprintf(w, "Proxy Status:\tOK, ip %s, %d redirects active on ports %s\n",
-			sr.Proxy.IP, sr.Proxy.TotalRedirects, sr.Proxy.PortRange)
+		fmt.Fprintf(w, "Proxy Status:\tOK, ip %s, %d redirects active on ports %s, Envoy: %s\n",
+			sr.Proxy.IP, sr.Proxy.TotalRedirects, sr.Proxy.PortRange, sr.Proxy.EnvoyDeploymentMode)
 		if sd.AllRedirects && sr.Proxy.TotalRedirects > 0 {
 			out := make([]string, 0, len(sr.Proxy.Redirects)+1)
 			for _, r := range sr.Proxy.Redirects {
@@ -694,20 +727,21 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 	}
 
 	if sr.Encryption != nil {
-		fields := []string{sr.Encryption.Mode}
+		var fields []string
 
 		if sr.Encryption.Msg != "" {
 			fields = append(fields, sr.Encryption.Msg)
 		} else if wg := sr.Encryption.Wireguard; wg != nil {
+			fields = append(fields, fmt.Sprintf("[NodeEncryption: %s", wg.NodeEncryption))
 			ifaces := make([]string, 0, len(wg.Interfaces))
 			for _, i := range wg.Interfaces {
 				iface := fmt.Sprintf("%s (Pubkey: %s, Port: %d, Peers: %d)",
 					i.Name, i.PublicKey, i.ListenPort, i.PeerCount)
 				ifaces = append(ifaces, iface)
 			}
-			fields = append(fields, fmt.Sprintf("[%s]", strings.Join(ifaces, ", ")))
+			fields = append(fields, fmt.Sprintf("%s]", strings.Join(ifaces, ", ")))
 		}
 
-		fmt.Fprintf(w, "Encryption:\t%s\n", strings.Join(fields, "\t"))
+		fmt.Fprintf(w, "Encryption:\t%s\t%s\n", sr.Encryption.Mode, strings.Join(fields, ", "))
 	}
 }

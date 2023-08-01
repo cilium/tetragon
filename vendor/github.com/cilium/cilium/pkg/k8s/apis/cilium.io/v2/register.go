@@ -18,20 +18,7 @@ const (
 	// CustomResourceDefinitionVersion is the current version of the resource
 	CustomResourceDefinitionVersion = "v2"
 
-	// CustomResourceDefinitionSchemaVersion is semver-conformant version of CRD schema
-	// Used to determine if CRD needs to be updated in cluster
-	//
-	// Maintainers: Run ./Documentation/check-crd-compat-table.sh for each release
-	// Developers: Bump patch for each change in the CRD schema.
-	CustomResourceDefinitionSchemaVersion = "1.26.7"
-
-	// CustomResourceDefinitionSchemaVersionKey is key to label which holds the CRD schema version
-	CustomResourceDefinitionSchemaVersionKey = "io.cilium.k8s.crd.schema.version"
-
 	// Cilium Network Policy (CNP)
-
-	// CNPSingularName is the singular name of Cilium Network Policy
-	CNPSingularName = "ciliumnetworkpolicy"
 
 	// CNPPluralName is the plural name of Cilium Network Policy
 	CNPPluralName = "ciliumnetworkpolicies"
@@ -44,9 +31,6 @@ const (
 
 	// Cilium Cluster wide Network Policy (CCNP)
 
-	// CCNPSingularName is the singular name of Cilium Cluster wide Network Policy
-	CCNPSingularName = "ciliumclusterwidenetworkpolicy"
-
 	// CCNPPluralName is the plural name of Cilium Cluster wide Network Policy
 	CCNPPluralName = "ciliumclusterwidenetworkpolicies"
 
@@ -57,9 +41,6 @@ const (
 	CCNPName = CCNPPluralName + "." + CustomResourceDefinitionGroup
 
 	// Cilium Egress Gateway Policy (CEGP)
-
-	// CEGPSingularName is the singular name of Cilium Egress Gateway Policy
-	CEGPSingularName = "ciliumegressgatewaypolicy"
 
 	// CEGPPluralName is the plural name of Cilium Egress Gateway Policy
 	CEGPPluralName = "ciliumegressgatewaypolicies"
@@ -72,9 +53,6 @@ const (
 
 	// Cilium Endpoint (CEP)
 
-	// CESingularName is the singular name of Cilium Endpoint
-	CEPSingularName = "ciliumendpoint"
-
 	// CEPluralName is the plural name of Cilium Endpoint
 	CEPPluralName = "ciliumendpoints"
 
@@ -85,9 +63,6 @@ const (
 	CEPName = CEPPluralName + "." + CustomResourceDefinitionGroup
 
 	// Cilium Node (CN)
-
-	// CNSingularName is the singular name of Cilium Node
-	CNSingularName = "ciliumnode"
 
 	// CNPluralName is the plural name of Cilium Node
 	CNPluralName = "ciliumnodes"
@@ -100,9 +75,6 @@ const (
 
 	// Cilium Identity
 
-	// CIDSingularName is the singular name of Cilium Identity
-	CIDSingularName = "ciliumidentity"
-
 	// CIDPluralName is the plural name of Cilium Identity
 	CIDPluralName = "ciliumidentities"
 
@@ -113,9 +85,6 @@ const (
 	CIDName = CIDPluralName + "." + CustomResourceDefinitionGroup
 
 	// Cilium Local Redirect Policy (CLRP)
-
-	// CLRPSingularName is the singular name of Local Redirect Policy
-	CLRPSingularName = "ciliumlocalredirectpolicy"
 
 	// CLRPPluralName is the plural name of Local Redirect Policy
 	CLRPPluralName = "ciliumlocalredirectpolicies"
@@ -128,9 +97,6 @@ const (
 
 	// Cilium External Workload (CEW)
 
-	// CEWSingularName is the singular name of Cilium External Workload
-	CEWSingularName = "ciliumexternalworkload"
-
 	// CEWPluralName is the plural name of Cilium External Workload
 	CEWPluralName = "ciliumexternalworkloads"
 
@@ -142,9 +108,6 @@ const (
 
 	// Cilium Cluster Envoy Config (CCEC)
 
-	// CCECSingularName is the singular name of Cilium Clusterwide Envoy Config
-	CCECSingularName = "ciliumclusterwideenvoyconfig"
-
 	// CCECPluralName is the plural name of Cilium Clusterwide Envoy Config
 	CCECPluralName = "ciliumclusterwideenvoyconfigs"
 
@@ -155,9 +118,6 @@ const (
 	CCECName = CCECPluralName + "." + CustomResourceDefinitionGroup
 
 	// Cilium Envoy Config (CEC)
-
-	// CECSingularName is the singular name of Cilium Envoy Config
-	CECSingularName = "ciliumenvoyconfig"
 
 	// CECPluralName is the plural name of Cilium Envoy Config
 	CECPluralName = "ciliumenvoyconfigs"

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/netip"
 	"sync"
 	"time"
@@ -33,7 +34,7 @@ var (
 )
 
 // metadata contains the ipcache metadata. Mainily it holds a map which maps IP
-// prefixes (x.x.x.x/32) to a set of information (prefixInfo).
+// prefixes (x.x.x.x/32) to a set of information (PrefixInfo).
 //
 // When allocating an identity to associate with each prefix, the
 // identity allocation routines will merge this set of labels into the
@@ -49,13 +50,13 @@ var (
 //	labels.Labels
 //	source.Source
 //	end
-//	subgraph prefixInfo
+//	subgraph PrefixInfo
 //	UA[ResourceID]-->LA[resourceInfo]
 //	UB[ResourceID]-->LB[resourceInfo]
 //	...
 //	end
 //	subgraph identityMetadata
-//	IP_Prefix-->prefixInfo
+//	IP_Prefix-->PrefixInfo
 //	end
 //
 // ```
@@ -68,7 +69,7 @@ type metadata struct {
 	lock.RWMutex
 
 	// m is the actual map containing the mappings.
-	m map[netip.Prefix]prefixInfo
+	m map[netip.Prefix]PrefixInfo
 
 	// queued* handle updates into the IPCache. Whenever a label is added
 	// or removed from a specific IP prefix, that prefix is added into
@@ -81,7 +82,7 @@ type metadata struct {
 
 func newMetadata() *metadata {
 	return &metadata{
-		m:              make(map[netip.Prefix]prefixInfo),
+		m:              make(map[netip.Prefix]PrefixInfo),
 		queuedPrefixes: make(map[netip.Prefix]struct{}),
 	}
 }
@@ -109,7 +110,7 @@ func (m *metadata) enqueuePrefixUpdates(prefixes ...netip.Prefix) {
 
 func (m *metadata) upsertLocked(prefix netip.Prefix, src source.Source, resource types.ResourceID, info ...IPMetadata) {
 	if _, ok := m.m[prefix]; !ok {
-		m.m[prefix] = make(prefixInfo)
+		m.m[prefix] = make(PrefixInfo)
 	}
 	if _, ok := m.m[prefix][resource]; !ok {
 		m.m[prefix][resource] = &resourceInfo{
@@ -120,22 +121,32 @@ func (m *metadata) upsertLocked(prefix netip.Prefix, src source.Source, resource
 	for _, i := range info {
 		m.m[prefix][resource].merge(i, src)
 	}
+
+	m.m[prefix].logConflicts(log.WithField(logfields.CIDR, prefix))
 }
 
-// GetIDMetadataByIP returns the associated labels with an IP. The caller must
-// not modifying the returned object as it's a live reference to the underlying
-// map.
-func (ipc *IPCache) GetIDMetadataByIP(addr netip.Addr) labels.Labels {
+// GetMetadataLabelsByIP returns the associated labels with an IP.
+func (ipc *IPCache) GetMetadataLabelsByIP(addr netip.Addr) labels.Labels {
 	prefix := netip.PrefixFrom(addr, addr.BitLen())
-	ipc.metadata.RLock()
-	defer ipc.metadata.RUnlock()
-	if info := ipc.metadata.getLocked(prefix); info != nil {
+	if info := ipc.GetMetadataByPrefix(prefix); info != nil {
 		return info.ToLabels()
 	}
 	return nil
 }
 
-func (m *metadata) getLocked(prefix netip.Prefix) prefixInfo {
+// GetMetadataByPrefix returns full metadata for a given IP as a copy.
+func (ipc *IPCache) GetMetadataByPrefix(prefix netip.Prefix) PrefixInfo {
+	ipc.metadata.RLock()
+	defer ipc.metadata.RUnlock()
+	m := ipc.metadata.getLocked(prefix)
+	n := make(PrefixInfo, len(m))
+	for k, v := range m {
+		n[k] = v.DeepCopy()
+	}
+	return n
+}
+
+func (m *metadata) getLocked(prefix netip.Prefix) PrefixInfo {
 	return m.m[prefix]
 }
 
@@ -160,8 +171,16 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 		return modifiedPrefixes, ErrLocalIdentityAllocatorUninitialized
 	}
 
-	if ipc.k8sSyncedChecker == nil || !ipc.k8sSyncedChecker.K8sCacheIsSynced() {
+	if !ipc.Configuration.CacheStatus.Synchronized() {
 		return modifiedPrefixes, errors.New("k8s cache not fully synced")
+	}
+
+	type ipcacheEntry struct {
+		identity   Identity
+		tunnelPeer net.IP
+		encryptKey uint8
+
+		force bool
 	}
 
 	var (
@@ -173,18 +192,16 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 		idsToAdd    = make(map[identity.NumericIdentity]labels.LabelArray)
 		idsToDelete = make(map[identity.NumericIdentity]labels.LabelArray)
 		// entriesToReplace stores the identity to replace in the ipcache.
-		entriesToReplace   = make(map[netip.Prefix]Identity)
-		entriesToDelete    = make(map[netip.Prefix]Identity)
-		forceIPCacheUpdate = make(map[netip.Prefix]bool) // prefix => force
-
-		// Just used to silence a warning where it is safe
-		oldIDs = make(map[netip.Prefix]Identity)
+		entriesToReplace = make(map[netip.Prefix]ipcacheEntry)
+		entriesToDelete  = make(map[netip.Prefix]Identity)
 	)
 
 	ipc.metadata.RLock()
 
 	for i, prefix := range modifiedPrefixes {
-		id, entryExists := ipc.LookupByIP(prefix.String())
+		pstr := prefix.String()
+		oldID, entryExists := ipc.LookupByIP(pstr)
+		oldTunnelIP, oldEncryptionKey := ipc.GetHostIPCache(pstr)
 		prefixInfo := ipc.metadata.getLocked(prefix)
 		if prefixInfo == nil {
 			if !entryExists {
@@ -192,11 +209,10 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				continue
 			} // else continue below to remove the old entry
 		} else {
-			oldIDs[prefix] = id
 			var newID *identity.Identity
 
 			// Insert to propagate the updated set of labels after removal.
-			newID, _, err = ipc.injectLabels(ctx, prefix, prefixInfo.ToLabels())
+			newID, _, err = ipc.resolveIdentity(ctx, prefix, prefixInfo, identity.InvalidIdentity)
 			if err != nil {
 				// NOTE: This may fail during a 2nd or later
 				// iteration of the loop. To handle this, break
@@ -210,8 +226,8 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				// unblock subsequent calls into this function.
 				log.WithError(err).WithFields(logrus.Fields{
 					logfields.IPAddr:   prefix,
-					logfields.Identity: id,
-					logfields.Labels:   newID.Labels, // new labels
+					logfields.Identity: oldID,
+					logfields.Labels:   newID.Labels,
 				}).Warning(
 					"Failed to allocate new identity while handling change in labels associated with a prefix.",
 				)
@@ -220,26 +236,31 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 				break
 			}
 
-			// We can safely skip the ipcache upsert if the ID and source
-			// in the metadata cache match the ipcache exactly.
-			// Note that checking ID alone is insufficient, see GH-24502
-			if id.ID == newID.ID && prefixInfo.Source() == id.Source {
+			// We can safely skip the ipcache upsert if the entry matches with
+			// the entry in the metadata cache exactly.
+			// Note that checking ID alone is insufficient, see GH-24502.
+			if oldID.ID == newID.ID && prefixInfo.Source() == oldID.Source &&
+				oldTunnelIP.Equal(prefixInfo.TunnelPeer().IP()) &&
+				oldEncryptionKey == prefixInfo.EncryptKey().Uint8() {
 				goto releaseIdentity
 			}
 
 			idsToAdd[newID.ID] = newID.Labels.LabelArray()
-			entriesToReplace[prefix] = Identity{
-				ID:     newID.ID,
-				Source: prefixInfo.Source(),
-			}
-			// IPCache.Upsert() and friends currently require a
-			// Source to be provided during upsert. If the old
-			// Source was higher precedence due to labels that
-			// have now been removed, then we need to explicitly
-			// work around that to remove the old higher-priority
-			// identity and replace it with this new identity.
-			if entryExists && prefixInfo.Source() != id.Source && id.ID != newID.ID {
-				forceIPCacheUpdate[prefix] = true
+			entriesToReplace[prefix] = ipcacheEntry{
+				identity: Identity{
+					ID:                  newID.ID,
+					Source:              prefixInfo.Source(),
+					createdFromMetadata: true,
+				},
+				tunnelPeer: prefixInfo.TunnelPeer().IP(),
+				encryptKey: prefixInfo.EncryptKey().Uint8(),
+				// IPCache.Upsert() and friends currently require a
+				// Source to be provided during upsert. If the old
+				// Source was higher precedence due to labels that
+				// have now been removed, then we need to explicitly
+				// work around that to remove the old higher-priority
+				// identity and replace it with this new identity.
+				force: entryExists && prefixInfo.Source() != oldID.Source && oldID.ID != newID.ID,
 			}
 		}
 	releaseIdentity:
@@ -251,8 +272,14 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 			// iteration of the loop, then we must balance the
 			// allocation from the prior InjectLabels() call by
 			// releasing the previous reference.
-			if _, ok := idsToAdd[id.ID]; !ok {
-				previouslyAllocatedIdentities[prefix] = id
+			previouslyAllocatedIdentities[prefix] = oldID
+
+			// If all associated metadata for this prefix has been removed,
+			// and the existing IPCache entry was never touched by any other
+			// subsystem using the old Upsert API, then we can safely remove
+			// the IPCache entry associated with this prefix.
+			if prefixInfo == nil && oldID.createdFromMetadata {
+				entriesToDelete[prefix] = oldID
 			}
 		}
 	}
@@ -266,17 +293,16 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 
 	ipc.mutex.Lock()
 	defer ipc.mutex.Unlock()
-	for p, id := range entriesToReplace {
+	for p, entry := range entriesToReplace {
 		prefix := p.String()
-		hIP, key := ipc.getHostIPCache(prefix)
 		meta := ipc.getK8sMetadata(prefix)
 		if _, err2 := ipc.upsertLocked(
 			prefix,
-			hIP,
-			key,
+			entry.tunnelPeer,
+			entry.encryptKey,
 			meta,
-			id,
-			forceIPCacheUpdate[p],
+			entry.identity,
+			entry.force,
 		); err2 != nil {
 			// It's plausible to pull the same information twice
 			// from different sources, for instance in etcd mode
@@ -285,20 +311,20 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 			// upsert was rejected due to source precedence, but the
 			// identity is unchanged, then we can safely ignore the
 			// error message.
-			oldID, ok := oldIDs[p]
-			if !(ok && oldID.ID == id.ID && errors.Is(err2, &ErrOverwrite{
+			oldID, ok := previouslyAllocatedIdentities[p]
+			if !(ok && oldID.ID == entry.identity.ID && errors.Is(err2, &ErrOverwrite{
 				ExistingSrc: oldID.Source,
-				NewSrc:      id.Source,
+				NewSrc:      entry.identity.Source,
 			})) {
 				log.WithError(err2).WithFields(logrus.Fields{
 					logfields.IPAddr:   prefix,
-					logfields.Identity: id,
+					logfields.Identity: entry.identity.ID,
 				}).Error("Failed to replace ipcache entry with new identity after label removal. Traffic may be disrupted.")
 			}
 		}
 	}
 
-	for prefix, id := range previouslyAllocatedIdentities {
+	for _, id := range previouslyAllocatedIdentities {
 		realID := ipc.IdentityAllocator.LookupIdentityByID(ctx, id.ID)
 		if realID == nil {
 			continue
@@ -322,9 +348,6 @@ func (ipc *IPCache) InjectLabels(ctx context.Context, modifiedPrefixes []netip.P
 		// logic for handling the removal of these identities.
 		if released {
 			idsToDelete[id.ID] = nil // SelectorCache removal
-			if _, ok := entriesToReplace[prefix]; !ok {
-				entriesToDelete[prefix] = id // IPCache removal
-			}
 		}
 	}
 	if len(idsToDelete) > 0 {
@@ -360,18 +383,27 @@ func (ipc *IPCache) UpdatePolicyMaps(ctx context.Context, addedIdentities, delet
 	policyImplementedWG.Wait()
 }
 
-// injectLabels will allocate an identity for the given prefix and the given
-// labels. The caller of this function can expect that an identity is newly
-// allocated with reference count of 1 or an identity is looked up and its
-// reference count is incremented.
+// resolveIdentity will either return a previously-allocated identity for the
+// given prefix or allocate a new one corresponding to the labels associated
+// with the specified PrefixInfo.
 //
-// The release of the identity must be managed by the caller, except for the
-// case where a CIDR policy exists first and then the kube-apiserver policy is
-// applied. This is because the CIDR identities before the kube-apiserver
-// policy is applied will need to be converted (released and re-allocated) to
-// account for the new kube-apiserver label that will be attached to them. This
-// is a known issue, see GH-17962 below.
-func (ipc *IPCache) injectLabels(ctx context.Context, prefix netip.Prefix, lbls labels.Labels) (*identity.Identity, bool, error) {
+// This function will take an additional reference on the returned identity.
+// The caller *must* ensure that this reference is eventually released via
+// a call to ipc.IdentityAllocator.Release(). Typically this is tied to whether
+// the caller subsequently injects an entry into the BPF IPCache map:
+//   - If the entry is inserted, we assume that the entry will eventually be
+//     removed, and when it is removed, we will remove that reference from the
+//     identity & release the identity.
+//   - If the entry is not inserted (for instance, because the bpf IPCache map
+//     already has the same IP -> identity entry in the map), immediately release
+//     the reference.
+func (ipc *IPCache) resolveIdentity(ctx context.Context, prefix netip.Prefix, info PrefixInfo, restoredIdentity identity.NumericIdentity) (*identity.Identity, bool, error) {
+	// Override identities always take precedence
+	if identityOverrideLabels, ok := info.identityOverride(); ok {
+		return ipc.IdentityAllocator.AllocateIdentity(ctx, identityOverrideLabels, false, identity.InvalidIdentity)
+	}
+
+	lbls := info.ToLabels()
 	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) &&
 		(lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) ||
 			lbls.Has(labels.LabelHost[labels.IDNameHost])) {
@@ -405,38 +437,29 @@ func (ipc *IPCache) injectLabels(ctx context.Context, prefix netip.Prefix, lbls 
 
 	// If no other labels are associated with this IP, we assume that it's
 	// outside of the cluster and hence needs a CIDR identity.
-	if !(lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode])) {
-		// GH-17962: Handle the following case:
-		//   1) Apply ToCIDR policy (matching IPs of kube-apiserver)
-		//   2) Apply kube-apiserver policy
-		//
-		// Possible implementation:
-		//   Lookup CIDR ID => get all CIDR labels minus kube-apiserver label.
-		//   If found, means that ToCIDR policy already applied. Convert CIDR
-		//   IDs to include a new identity with kube-apiserver label. We don't
-		//   need to remove old entries from ipcache because the caller will
-		//   overwrite the ipcache entry anyway.
-
-		return ipc.injectLabelsForCIDR(ctx, prefix, lbls)
+	//
+	// This is trying to ensure that remote nodes are assigned the reserved
+	// identity "remote-node" (6) or "kube-apiserver" (7). The datapath
+	// later makes assumptions about remote cluster nodes in the function
+	// identity_is_remote_node(). For now, there is no way to associate any
+	// other labels with such IPs, but this assumption will break if/when
+	// we allow more arbitrary labels to be associated with these IPs that
+	// correspond to remote nodes.
+	if !lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) &&
+		!lbls.Has(labels.LabelHealth[labels.IDNameHealth]) &&
+		!lbls.Has(labels.LabelIngress[labels.IDNameIngress]) {
+		cidrLabels := cidrlabels.GetCIDRLabels(prefix)
+		lbls.MergeLabels(cidrLabels)
 	}
 
-	return ipc.IdentityAllocator.AllocateIdentity(ctx, lbls, false, identity.InvalidIdentity)
-}
-
-// injectLabelsForCIDR will allocate a CIDR identity for the given prefix. The
-// release of the identity must be managed by the caller.
-func (ipc *IPCache) injectLabelsForCIDR(ctx context.Context, prefix netip.Prefix, lbls labels.Labels) (*identity.Identity, bool, error) {
-	allLbls := cidrlabels.GetCIDRLabels(prefix)
-	allLbls.MergeLabels(lbls)
-
-	log.WithFields(logrus.Fields{
-		logfields.CIDR:   prefix,
-		logfields.Labels: lbls, // omitting allLbls as CIDR labels would make this massive
-	}).Debug(
-		"Injecting CIDR labels for prefix",
-	)
-
-	return ipc.allocate(ctx, prefix, allLbls, identity.InvalidIdentity)
+	// This should only ever allocate an identity locally on the node,
+	// which could theoretically fail if we ever allocate a very large
+	// number of identities.
+	id, isNew, err := ipc.IdentityAllocator.AllocateIdentity(ctx, lbls, false, restoredIdentity)
+	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) {
+		id.CIDRLabel = labels.NewLabelsFromModel([]string{labels.LabelSourceCIDR + ":" + prefix.String()})
+	}
+	return id, isNew, err
 }
 
 // RemoveLabelsExcluded removes the given labels from all IPs inside the IDMD
