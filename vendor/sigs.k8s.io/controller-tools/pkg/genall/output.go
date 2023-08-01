@@ -103,7 +103,7 @@ type OutputToDirectory string
 
 func (o OutputToDirectory) Open(_ *loader.Package, itemPath string) (io.WriteCloser, error) {
 	// ensure the directory exists
-	if err := os.MkdirAll(string(o), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(string(o), itemPath)), os.ModePerm); err != nil {
 		return nil, err
 	}
 	path := filepath.Join(string(o), itemPath)
@@ -122,7 +122,7 @@ var OutputToStdout = outputToStdout{}
 // Generally useful for single-artifact outputs.
 type outputToStdout struct{}
 
-func (o outputToStdout) Open(_ *loader.Package, itemPath string) (io.WriteCloser, error) {
+func (o outputToStdout) Open(_ *loader.Package, _ string) (io.WriteCloser, error) {
 	return nopCloser{os.Stdout}, nil
 }
 

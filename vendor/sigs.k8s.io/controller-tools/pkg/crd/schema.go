@@ -17,8 +17,10 @@ limitations under the License.
 package crd
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"strings"
 
@@ -37,12 +39,10 @@ const (
 	defPrefix = "#/definitions/"
 )
 
-var (
-	// byteType is the types.Type for byte (see the types documention
-	// for why we need to look this up in the Universe), saved
-	// for quick comparison.
-	byteType = types.Universe.Lookup("byte").Type()
-)
+// byteType is the types.Type for byte (see the types documention
+// for why we need to look this up in the Universe), saved
+// for quick comparison.
+var byteType = types.Universe.Lookup("byte").Type()
 
 // SchemaMarker is any marker that needs to modify the schema of the underlying type or field.
 type SchemaMarker interface {
@@ -69,17 +69,19 @@ type schemaContext struct {
 	schemaRequester schemaRequester
 	PackageMarkers  markers.MarkerValues
 
-	allowDangerousTypes bool
+	allowDangerousTypes    bool
+	ignoreUnexportedFields bool
 }
 
 // newSchemaContext constructs a new schemaContext for the given package and schema requester.
 // It must have type info added before use via ForInfo.
-func newSchemaContext(pkg *loader.Package, req schemaRequester, allowDangerousTypes bool) *schemaContext {
+func newSchemaContext(pkg *loader.Package, req schemaRequester, allowDangerousTypes, ignoreUnexportedFields bool) *schemaContext {
 	pkg.NeedTypesInfo()
 	return &schemaContext{
-		pkg:                 pkg,
-		schemaRequester:     req,
-		allowDangerousTypes: allowDangerousTypes,
+		pkg:                    pkg,
+		schemaRequester:        req,
+		allowDangerousTypes:    allowDangerousTypes,
+		ignoreUnexportedFields: ignoreUnexportedFields,
 	}
 }
 
@@ -87,10 +89,11 @@ func newSchemaContext(pkg *loader.Package, req schemaRequester, allowDangerousTy
 // as this one, except with the given type information.
 func (c *schemaContext) ForInfo(info *markers.TypeInfo) *schemaContext {
 	return &schemaContext{
-		pkg:                 c.pkg,
-		info:                info,
-		schemaRequester:     c.schemaRequester,
-		allowDangerousTypes: c.allowDangerousTypes,
+		pkg:                    c.pkg,
+		info:                   info,
+		schemaRequester:        c.schemaRequester,
+		allowDangerousTypes:    c.allowDangerousTypes,
+		ignoreUnexportedFields: c.ignoreUnexportedFields,
 	}
 }
 
@@ -109,6 +112,15 @@ func (c *schemaContext) requestSchema(pkgPath, typeName string) {
 
 // infoToSchema creates a schema for the type in the given set of type information.
 func infoToSchema(ctx *schemaContext) *apiext.JSONSchemaProps {
+	// If the obj implements a JSON marshaler and has a marker, use the markers value and do not traverse as
+	// the marshaler could be doing anything. If there is no marker, fall back to traversing.
+	if obj := ctx.pkg.Types.Scope().Lookup(ctx.info.Name); obj != nil && implementsJSONMarshaler(obj.Type()) {
+		schema := &apiext.JSONSchemaProps{}
+		applyMarkers(ctx, ctx.info.Markers, schema, ctx.info.RawSpec.Type)
+		if schema.Type != "" {
+			return schema
+		}
+	}
 	return typeToSchema(ctx, ctx.info.RawSpec.Type)
 }
 
@@ -209,21 +221,9 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiext.JSONSchema
 		if err != nil {
 			ctx.pkg.AddError(loader.ErrFromNode(err, ident))
 		}
-
-		// Check for type aliasing. If the type is not an alias, then handle it
-		// as a basic type.
-		if basicInfo.Name() == ident.Name {
-			return &apiext.JSONSchemaProps{
-				Type:   typ,
-				Format: fmt,
-			}
-		}
-
-		// Type alias to a basic type.
-		ctx.requestSchema("", ident.Name)
-		link := TypeRefLink("", ident.Name)
 		return &apiext.JSONSchemaProps{
-			Ref: &link,
+			Type:   typ,
+			Format: fmt,
 		}
 	}
 	// NB(directxman12): if there are dot imports, this might be an external reference,
@@ -310,14 +310,12 @@ func mapToSchema(ctx *schemaContext, mapType *ast.MapType) *apiext.JSONSchemaPro
 		valSchema = namedToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
 	case *ast.ArrayType:
 		valSchema = arrayToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
-		if valSchema.Type == "array" && valSchema.Items.Schema.Type != "string" {
-			ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map values must be a named type, not %T", mapType.Value), mapType.Value))
-			return &apiext.JSONSchemaProps{}
-		}
 	case *ast.StarExpr:
 		valSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
+	case *ast.MapType:
+		valSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
 	default:
-		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map values must be a named type, not %T", mapType.Value), mapType.Value))
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("not a supported map value type: %T", mapType.Value), mapType.Value))
 		return &apiext.JSONSchemaProps{}
 	}
 
@@ -344,6 +342,11 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 	}
 
 	for _, field := range ctx.info.Fields {
+		// Skip if the field is not an inline field, ignoreUnexportedFields is true, and the field is not exported
+		if field.Name != "" && ctx.ignoreUnexportedFields && !ast.IsExported(field.Name) {
+			continue
+		}
+
 		jsonTag, hasTag := field.Tag.Lookup("json")
 		if !hasTag {
 			// if the field doesn't have a JSON tag, it doesn't belong in output (and shouldn't exist in a serialized type)
@@ -369,11 +372,6 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 		fieldName := jsonOpts[0]
 		inline = inline || fieldName == "" // anonymous fields are inline fields in YAML/JSON
 
-		fieldMarkedOptional := (field.Markers.Get("kubebuilder:validation:Optional") != nil || field.Markers.Get("optional") != nil)
-		fieldMarkedRequired := (field.Markers.Get("kubebuilder:validation:Required") != nil)
-		fieldMarkedOneOf := (field.Markers.Get("kubebuilder:validation:OneOf") != nil)
-		fieldMarkedAnyOf := (field.Markers.Get("kubebuilder:validation:AnyOf") != nil)
-
 		// if no default required mode is set, default to required
 		defaultMode := "required"
 		if ctx.PackageMarkers.Get("kubebuilder:validation:Optional") != nil {
@@ -383,15 +381,15 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 		switch defaultMode {
 		// if this package isn't set to optional default...
 		case "required":
-			// ...everything that's not inline, not omitempty, not part of a oneOf/anyOf group, and not explicitly optional is required
-			if !inline && !omitEmpty && !fieldMarkedOneOf && !fieldMarkedAnyOf && !fieldMarkedOptional {
+			// ...everything that's not inline, omitempty, or explicitly optional is required
+			if !inline && !omitEmpty && field.Markers.Get("kubebuilder:validation:Optional") == nil && field.Markers.Get("optional") == nil {
 				props.Required = append(props.Required, fieldName)
 			}
 
 		// if this package isn't set to required default...
 		case "optional":
-			// ...everything that's part of a oneOf/anyOf group, or not explicitly required is optional
-			if !fieldMarkedOneOf && !fieldMarkedAnyOf && fieldMarkedRequired {
+			// ...everything that isn't explicitly required is optional
+			if field.Markers.Get("kubebuilder:validation:Required") != nil {
 				props.Required = append(props.Required, fieldName)
 			}
 		}
@@ -401,20 +399,6 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 			propSchema = &apiext.JSONSchemaProps{}
 		} else {
 			propSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), field.RawField.Type)
-		}
-		// process oneOf groups
-		if fieldMarkedOneOf {
-			props.OneOf = append(props.OneOf, apiext.JSONSchemaProps{
-				Properties: map[string]apiext.JSONSchemaProps{fieldName: {}},
-				Required:   []string{fieldName},
-			})
-		}
-		// process anyOf groups
-		if fieldMarkedAnyOf {
-			props.AnyOf = append(props.AnyOf, apiext.JSONSchemaProps{
-				Properties: map[string]apiext.JSONSchemaProps{fieldName: {}},
-				Required:   []string{fieldName},
-			})
 		}
 		propSchema.Description = field.Doc
 
@@ -446,10 +430,13 @@ func builtinToType(basic *types.Basic, allowDangerousTypes bool) (typ string, fo
 		typ = "string"
 	case basicInfo&types.IsInteger != 0:
 		typ = "integer"
-	case basicInfo&types.IsFloat != 0 && allowDangerousTypes:
-		typ = "number"
+	case basicInfo&types.IsFloat != 0:
+		if allowDangerousTypes {
+			typ = "number"
+		} else {
+			return "", "", errors.New("found float, the usage of which is highly discouraged, as support for them varies across languages. Please consider serializing your float as string instead. If you are really sure you want to use them, re-run with crd:allowDangerousTypes=true")
+		}
 	default:
-		// NB(directxman12): floats are *NOT* allowed in kubernetes APIs
 		return "", "", fmt.Errorf("unsupported type %q", basic.String())
 	}
 
@@ -461,4 +448,17 @@ func builtinToType(basic *types.Basic, allowDangerousTypes bool) (typ string, fo
 	}
 
 	return typ, format, nil
+}
+
+// Open coded go/types representation of encoding/json.Marshaller
+var jsonMarshaler = types.NewInterfaceType([]*types.Func{
+	types.NewFunc(token.NoPos, nil, "MarshalJSON",
+		types.NewSignature(nil, nil,
+			types.NewTuple(
+				types.NewVar(token.NoPos, nil, "", types.NewSlice(types.Universe.Lookup("byte").Type())),
+				types.NewVar(token.NoPos, nil, "", types.Universe.Lookup("error").Type())), false)),
+}, nil).Complete()
+
+func implementsJSONMarshaler(typ types.Type) bool {
+	return types.Implements(typ, jsonMarshaler) || types.Implements(types.NewPointer(typ), jsonMarshaler)
 }
