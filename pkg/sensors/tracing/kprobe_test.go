@@ -3150,6 +3150,66 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func getMatchArgsFileFIMCrd(vals []string) string {
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values: `
+	for _, f := range vals {
+		configHook += fmt.Sprintf("\n        - \"%s\"", f)
+	}
+	return configHook
+}
+
+func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchArgsFileFIMCrd([]string{"/etc/"}))
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers := make([]ec.EventChecker, len(allFiles))
+	for i, f := range allFiles {
+		readFile(t, f)
+		kpCheckers[i] = ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_file_permission")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(f))),
+					ec.NewKprobeArgumentChecker().WithIntArg(4), // MAY_READ
+				))
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 func getMatchBinariesCrd(opStr string, vals []string) string {
 	configHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
