@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -361,6 +362,184 @@ spec:
 		WithProcess(thread1Checker).WithParent(parentCheck)
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1UpChecker, thread1UpChecker, exitCheck)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestUprobeArgs(t *testing.T) {
+	execBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg1"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + execBinary + `"
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg2"
+    args:
+    - index: 0
+      type: "int8"
+    - index: 1
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + execBinary + `"
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg3"
+    args:
+    - index: 0
+      type: "uint64"
+    - index: 1
+      type: "uint32"
+    - index: 2
+      type: "uint64"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + execBinary + `"
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg4"
+    args:
+    - index: 0
+      type: "int64"
+    - index: 1
+      type: "int"
+    - index: 2
+      type: "int8"
+    - index: 3
+      type: "uint64"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + execBinary + `"
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg5"
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "int8"
+    - index: 2
+      type: "uint64"
+    - index: 3
+      type: "int16"
+    - index: 4
+      type: "uint64"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + execBinary + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	check1 := ec.NewProcessUprobeChecker("UPROBE_ARG1").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(execBinary))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg1")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(123),
+			))
+
+	check2 := ec.NewProcessUprobeChecker("UPROBE_ARG2").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(execBinary))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg2")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32('a')),
+				ec.NewKprobeArgumentChecker().WithIntArg(4321),
+			))
+
+	check3 := ec.NewProcessUprobeChecker("UPROBE_ARG3").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(execBinary))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg3")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(1),
+				ec.NewKprobeArgumentChecker().WithUintArg(0xdeadbeef),
+				ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			))
+
+	check4 := ec.NewProcessUprobeChecker("UPROBE_ARG4").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(execBinary))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg4")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLongArg(-321),
+				ec.NewKprobeArgumentChecker().WithIntArg(-2),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32('b')),
+				ec.NewKprobeArgumentChecker().WithSizeArg(1),
+			))
+
+	check5 := ec.NewProcessUprobeChecker("UPROBE_ARG5").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(execBinary))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg5")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(1),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32('c')),
+				ec.NewKprobeArgumentChecker().WithSizeArg(0xcafe),
+				ec.NewKprobeArgumentChecker().WithIntArg(1234),
+				ec.NewKprobeArgumentChecker().WithSizeArg(2),
+			))
+
+	checker := ec.NewUnorderedEventChecker(check1, check2, check3, check4, check5)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile,
+		tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(execBinary).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
