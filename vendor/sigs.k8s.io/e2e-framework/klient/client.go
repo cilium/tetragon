@@ -17,7 +17,9 @@ limitations under the License.
 package klient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	cr "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/conf"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 )
@@ -36,6 +38,12 @@ type Client interface {
 type client struct {
 	cfg       *rest.Config
 	resources *resources.Resources
+}
+
+// NewControllerRuntimeClient provides an instance of the Controller runtime client with
+// the provided rest config and custom runtime scheme.
+func NewControllerRuntimeClient(cfg *rest.Config, scheme *runtime.Scheme) (cr.Client, error) {
+	return cr.New(cfg, cr.Options{Scheme: scheme})
 }
 
 // New returns a new Client value

@@ -49,7 +49,7 @@ require (
 	k8s.io/code-generator v0.27.4
 	k8s.io/klog/v2 v2.100.1
 	sigs.k8s.io/controller-tools v0.12.1
-	sigs.k8s.io/e2e-framework v0.0.8
+	sigs.k8s.io/e2e-framework v0.2.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -146,7 +146,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
-	github.com/vladimirvivien/gexe v0.1.1 // indirect
+	github.com/vladimirvivien/gexe v0.2.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
