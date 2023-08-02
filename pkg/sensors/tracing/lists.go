@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -27,12 +28,14 @@ const (
 	ListTypeNone              = 0
 	ListTypeSyscalls          = 1
 	ListTypeGeneratedSyscalls = 2
+	ListTypeGeneratedFtrace   = 3
 )
 
 var listTypeTable = map[string]uint32{
 	"":                   ListTypeNone,
 	"syscalls":           ListTypeSyscalls,
 	"generated_syscalls": ListTypeGeneratedSyscalls,
+	"generated_ftrace":   ListTypeGeneratedFtrace,
 }
 
 func listTypeFromString(s string) int32 {
@@ -71,6 +74,15 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 		}
 		list.Values = append(list.Values, tmp...)
 		return nil
+	}
+
+	// Generate ftrace list
+	if listTypeFromString(list.Type) == ListTypeGeneratedFtrace {
+		if list.Pattern == "" {
+			return fmt.Errorf("Error generated ftrace list '%s' must specify pattern", list.Name)
+		}
+		list.Values, err = ftrace.ReadAvailFuncs(list.Pattern)
+		return err
 	}
 
 	return nil
