@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -22,14 +23,16 @@ func hasList(name string, lists []v1alpha1.ListSpec) bool {
 }
 
 const (
-	ListTypeInvalid  = -1
-	ListTypeNone     = 0
-	ListTypeSyscalls = 1
+	ListTypeInvalid           = -1
+	ListTypeNone              = 0
+	ListTypeSyscalls          = 1
+	ListTypeGeneratedSyscalls = 2
 )
 
 var listTypeTable = map[string]uint32{
-	"":         ListTypeNone,
-	"syscalls": ListTypeSyscalls,
+	"":                   ListTypeNone,
+	"syscalls":           ListTypeSyscalls,
+	"generated_syscalls": ListTypeGeneratedSyscalls,
 }
 
 func listTypeFromString(s string) int32 {
@@ -54,6 +57,19 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 			}
 			list.Values[idx] = symbol
 		}
+		return nil
+	}
+
+	// Generate syscalls list
+	if listTypeFromString(list.Type) == ListTypeGeneratedSyscalls {
+		if len(list.Values) != 0 {
+			return fmt.Errorf("Error generated list '%s' has generate and values", list.Name)
+		}
+		tmp, err := btf.GetSyscallsList()
+		if err != nil {
+			return err
+		}
+		list.Values = append(list.Values, tmp...)
 		return nil
 	}
 

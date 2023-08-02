@@ -331,3 +331,44 @@ spec:
 
 	return crd, nil
 }
+
+func GetSyscallsList() ([]string, error) {
+	btfFile := "/sys/kernel/btf/vmlinux"
+
+	tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
+	if tetragonBtfEnv != "" {
+		if _, err := os.Stat(tetragonBtfEnv); err != nil {
+			return []string{}, fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
+		}
+		btfFile = tetragonBtfEnv
+	}
+
+	bspec, err := btf.LoadSpec(btfFile)
+	if err != nil {
+		return []string{}, fmt.Errorf("BTF load failed: %v", err)
+	}
+
+	var list []string
+
+	for _, key := range syscallinfo.SyscallsNames() {
+		var fn *btf.Func
+
+		if key == "" {
+			continue
+		}
+
+		sym, err := arch.AddSyscallPrefix(key)
+		if err != nil {
+			return []string{}, err
+		}
+
+		err = bspec.TypeByName(sym, &fn)
+		if err != nil {
+			continue
+		}
+
+		list = append(list, sym)
+	}
+
+	return list, nil
+}
