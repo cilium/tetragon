@@ -640,7 +640,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 			}
 			unix.Args = append(unix.Args, val)
 
-		case gt.GenericS32Type:
+		case gt.GenericIntType, gt.GenericS32Type:
 			var val int32
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
@@ -690,6 +690,12 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 				default:
 					logger.GetLogger().Warnf("failed to read array argument: unexpected base type: %w", intTy.Base)
 				}
+			}
+		case gt.GenericStringType:
+			if arg, err := parseString(r); err != nil {
+				logger.GetLogger().WithError(err).Warn("error parsing arg type string")
+			} else {
+				unix.Args = append(unix.Args, arg)
 			}
 
 		default:
