@@ -1,0 +1,52 @@
+# This tracing policy 'dns-only-specified-servers' will report attempts
+# to make outbound TCP and UDP connections on port 53 to any IP address
+# other than those within the specified list (127.0.0.53), and will kill
+# the offending process.
+#
+# Description:
+#  Report and block outbound TCP and UDP connections to any DNS servers
+#  not in the approved list.
+#
+# In production, this could be used to force processes to only connect
+# to approved DNS servers and to treat transgressions as evidence of
+# malicious activity, resulting in the process being killed.
+#
+# The removal of the matchActions section would cause the policy to only
+# report transgressions and not kill the offending processes, which
+# might be useful in tracking poorly configured services without killing
+# processes.
+#
+# Note: This policy uses the ip_output hook (which is hit for every
+# outbound datagram) as this is required to identify matching UDP
+# datagrams. This hook handles both TCP and UDP protocols so no TCP-
+# specific (eg tcp_connect) hook is required in addition.
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "dns-only-specified-servers"
+spec:
+  kprobes:
+  - call: "ip_output"
+    syscall: false
+    args:
+    - index: 2
+      type: "skb"
+    selectors:
+    - matchArgs:
+      - index: 2
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+        - "IPPROTO_UDP"
+      - index: 2
+        operator: "DPort"
+        values:
+        - 53
+      - index: 2
+        operator: "NotDAddr"
+        values:
+        - "127.0.0.53"
+      matchActions:
+      - action: "Sigkill"
+
