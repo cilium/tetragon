@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -24,12 +26,15 @@ import (
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -692,4 +697,63 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestStringTracepoint(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	mypid := int(observer.GetMyPid())
+	t.Logf("filtering for my pid (%d)", mypid)
+
+	spec := &v1alpha1.TracingPolicySpec{
+		Tracepoints: []v1alpha1.TracepointSpec{{
+			Subsystem: "syscalls",
+			Event:     "sys_enter_mkdirat",
+			Args: []v1alpha1.KProbeArg{{
+				Index: 4,
+			}, {
+				Index: 6,
+				Type:  "string",
+			}},
+			/*
+				Selectors: []v1alpha1.KProbeSelector{{
+					MatchPIDs: []v1alpha1.PIDSelector{{
+						Operator:    "In",
+						FollowForks: true,
+						Values:      []uint32{uint32(mypid)},
+					}},
+				}},
+			*/
+		}},
+	}
+
+	loadGenericSensorTest(t, spec)
+	t0 := time.Now()
+	loadElapsed := time.Since(t0)
+	t.Logf("loading sensors took: %s\n", loadElapsed)
+
+	countPizza := 0
+	eventFn := func(ev notify.Message) error {
+		if tpEvent, ok := ev.(*tracing.MsgGenericTracepointUnix); ok {
+			if tpEvent.Event != "sys_enter_mkdirat" {
+				return fmt.Errorf("unexpected tracepoint event, %s:%s", tpEvent.Subsys, tpEvent.Event)
+			}
+			arg := tpEvent.Args[1].(string)
+			if strings.Contains(arg, "pizzaisthebest") {
+				countPizza++
+			}
+		}
+		return nil
+	}
+
+	ops := func() {
+		// NB: unix.Mkdir uses unix.Mkdirat, so make things explicit
+		unix.Mkdirat(unix.AT_FDCWD, "/tmp/pizzaisthebest", 0777)
+		os.Remove("/tmp/pizzaisthebest")
+	}
+
+	perfring.RunTest(t, ctx, ops, eventFn)
+	require.Equal(t, 1, countPizza, "expected events with 'pizzaisthebest'")
 }
