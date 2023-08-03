@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "all-syscalls-for-kill"
+spec:
+  lists:
+  - name: "all-syscalls"
+    type: "generated_syscalls"
+  kprobes:
+  - call: "list:all-syscalls"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/kill"
