@@ -77,7 +77,7 @@ func New() *cobra.Command {
 
 	var tpGenerateMatchBinary string
 	tpGenerateCmd := &cobra.Command{
-		Use:   "generate <all-syscalls|empty>",
+		Use:   "generate <all-syscalls|all-syscalls-list|empty>",
 		Short: "generate tracing policies",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -158,6 +158,15 @@ func generateAllSyscalls(binary string) {
 	fmt.Printf("%s\n", crd)
 }
 
+func generateAllSyscallsList(binary string) {
+	crd, err := btf.GetSyscallsYamlList(binary)
+	if err != nil {
+		fmt.Print(err)
+		return
+	}
+	fmt.Printf("%s\n", crd)
+}
+
 func generateEmpty() {
 	crd := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -171,6 +180,8 @@ func generateTracingPolicy(cmd, binary string) {
 	switch cmd {
 	case "all-syscalls":
 		generateAllSyscalls(binary)
+	case "all-syscalls-list":
+		generateAllSyscallsList(binary)
 	case "empty":
 		generateEmpty()
 	}
