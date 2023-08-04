@@ -201,9 +201,9 @@ func writeExecveMap(procs []procs) {
 
 	execveMap := base.GetExecveMap()
 
-	m, err := bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))
+	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, execveMap.Name), nil)
 	for i := 0; err != nil; i++ {
-		m, err = bpf.OpenMap(filepath.Join(mapDir, execveMap.Name))
+		m, err = ebpf.LoadPinnedMap(filepath.Join(mapDir, execveMap.Name), nil)
 		if err != nil {
 			time.Sleep(mapRetryDelay * time.Second)
 		}
@@ -235,13 +235,13 @@ func writeExecveMap(procs []procs) {
 		v.Namespaces.CgroupInum = p.cgroup_ns
 		v.Namespaces.UserInum = p.user_ns
 
-		m.Update(k, v)
+		m.Put(k, v)
 	}
 	// In order for kprobe events from kernel ctx to not abort we need the
 	// execve lookup to map to a valid entry. So to simplify the kernel side
 	// and avoid having to add another branch of logic there to handle pid==0
 	// case we simply add it here.
-	m.Update(&execvemap.ExecveKey{Pid: kernelPid}, &execvemap.ExecveValue{
+	m.Put(&execvemap.ExecveKey{Pid: kernelPid}, &execvemap.ExecveValue{
 		Parent: processapi.MsgExecveKey{
 			Pid:   kernelPid,
 			Ktime: 1},
