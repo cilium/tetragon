@@ -78,6 +78,8 @@ const (
 	keyEnablePidSetFilter = "enable-pid-set-filter"
 
 	keyEnableMsgHandlingLatency = "enable-msg-handling-latency"
+
+	keyKmods = "kmods"
 )
 
 func readAndSetFlags() {
@@ -139,6 +141,8 @@ func readAndSetFlags() {
 	option.Config.EnablePidSetFilter = viper.GetBool(keyEnablePidSetFilter)
 
 	option.Config.TracingPolicyDir = viper.GetString(keyTracingPolicyDir)
+
+	option.Config.KMods = viper.GetStringSlice(keyKmods)
 
 	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
 	// manually handle the deprecation of --config-file

@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/unix"
 )
@@ -516,12 +517,18 @@ func doLoadProgram(
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
-	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
+	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" || len(option.Config.KMods) > 0 {
 		// Non-standard path to BTF, open it and provide it as 'KernelTypes'.
 		var err error
 		btfSpec, err = btf.LoadSpec(btfFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("opening BTF file '%s' failed: %w", btfFilePath, err)
+		}
+		if len(option.Config.KMods) > 0 {
+			btfSpec, err = cachedbtf.AddModulesToSpec(btfSpec, option.Config.KMods)
+			if err != nil {
+				return nil, fmt.Errorf("adding modules to spec failed: %w", err)
+			}
 		}
 	}
 

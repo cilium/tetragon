@@ -76,6 +76,8 @@ type config struct {
 	EnablePidSetFilter bool
 
 	EnableMsgHandlingLatency bool
+
+	KMods []string
 }
 
 var (
