@@ -15,5 +15,4 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(bugtool.New())
 	rootCmd.AddCommand(tracingpolicy.New())
 	rootCmd.AddCommand(dump.New())
-	rootCmd.AddCommand(tracingpolicy.New())
 }
