@@ -32,6 +32,7 @@ var (
 	logFname     = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
 	agentAddress = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
 	grpcTimeout  = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
+	disableGrpc  = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
 )
 
 func readJsonSpec(fname string) (*specs.Spec, error) {
@@ -162,6 +163,16 @@ func createContainerHook(log_ *logrus.Logger) {
 				Annotations: spec.Annotations,
 			},
 		},
+	}
+
+	if *disableGrpc {
+		log.WithFields(logrus.Fields{
+			"req-cgroups":     cgroupPath,
+			"req-rootdir":     rootDir,
+			"req-annotations": spec.Annotations,
+			// NB: omit annotations since they are too noisy
+		}).Warn("hook request (gRPC disabled)")
+		return
 	}
 
 	err = hookRequest(req)
