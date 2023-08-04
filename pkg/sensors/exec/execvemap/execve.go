@@ -4,11 +4,7 @@
 package execvemap
 
 import (
-	"fmt"
-	"unsafe"
-
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/bpf"
 )
 
 type ExecveKey struct {
@@ -25,18 +21,4 @@ type ExecveValue struct {
 	CgrpIdTracker uint64                     `align:"cgrpid_tracker"`
 	Namespaces    processapi.MsgNamespaces   `align:"ns"`
 	Capabilities  processapi.MsgCapabilities `align:"caps"`
-}
-
-func (k *ExecveKey) String() string             { return fmt.Sprintf("key=%d", k.Pid) }
-func (k *ExecveKey) GetKeyPtr() unsafe.Pointer  { return unsafe.Pointer(k) }
-func (k *ExecveKey) DeepCopyMapKey() bpf.MapKey { return &ExecveKey{k.Pid} }
-
-func (k *ExecveKey) NewValue() bpf.MapValue { return &ExecveValue{} }
-
-func (v *ExecveValue) String() string {
-	return fmt.Sprintf("value=%d %s", 0, "")
-}
-func (v *ExecveValue) GetValuePtr() unsafe.Pointer { return unsafe.Pointer(v) }
-func (v *ExecveValue) DeepCopyMapValue() bpf.MapValue {
-	return &ExecveValue{}
 }
