@@ -762,6 +762,8 @@ func execute() error {
 
 	flags.Bool(keyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 
+	flags.StringSlice(keyKmods, []string{}, "List of kernel modules to load symbols from")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }

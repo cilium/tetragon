@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
+	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -293,6 +294,13 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec) error {
 	btfobj, err := btf.NewBTF()
 	if err != nil {
 		return err
+	}
+
+	if len(option.Config.KMods) > 0 {
+		btfobj, err = cachedbtf.AddModulesToSpec(btfobj, option.Config.KMods)
+		if err != nil {
+			return fmt.Errorf("adding modules to spec failed: %w", err)
+		}
 	}
 
 	for i := range kprobes {
