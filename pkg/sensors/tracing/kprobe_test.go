@@ -3210,6 +3210,93 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestKprobeMatchArgsNonPrefix(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	configHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values: 
+        - "/etc/"
+      - index: 0
+        operator: "NotPrefix"
+        values: 
+        - "/etc/passwd"
+        - "/etc/group"`
+
+	createCrdFile(t, configHook)
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// read 4 files
+	testFiles := [4]string{"/etc/passwd", "/etc/group", "/etc/hostname", "/etc/shadow"}
+	for _, f := range testFiles {
+		readFile(t, f)
+	}
+
+	// check that we get a read for  "/etc/hostname", and "/etc/shadow"
+	kpCheckers := make([]ec.EventChecker, 2)
+	for i := 2; i < len(testFiles); i++ {
+		kpCheckers[i-2] = ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_file_permission")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(testFiles[i]))),
+					ec.NewKprobeArgumentChecker().WithIntArg(4), // MAY_READ
+				))
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+
+	// now check that there is no read event for "/etc/passwd" and "/etc/group"
+	kpErrCheckers := make([]ec.EventChecker, 2)
+	for i := 0; i < len(testFiles)-2; i++ {
+		kpErrCheckers[i] = ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_file_permission")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(testFiles[0]))),
+					ec.NewKprobeArgumentChecker().WithIntArg(4), // MAY_READ
+				))
+	}
+
+	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
+	err = jsonchecker.JsonTestCheck(t, errChecker)
+	assert.Error(t, err)
+}
+
 func getMatchBinariesCrd(opStr string, vals []string) string {
 	configHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
