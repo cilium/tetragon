@@ -274,7 +274,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
@@ -497,7 +499,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
@@ -757,7 +761,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
@@ -980,7 +986,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
@@ -1113,7 +1121,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
@@ -1336,7 +1346,9 @@ spec:
                                   - Equal
                                   - NotEqual
                                   - Prefix
+                                  - NotPrefix
                                   - Postfix
+                                  - NotPostfix
                                   - GreaterThan
                                   - LessThan
                                   - GT
