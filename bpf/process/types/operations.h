@@ -35,6 +35,9 @@ enum {
 	op_filter_notdportpriv = 23,
 	op_filter_notsaddr = 24,
 	op_filter_notdaddr = 25,
+	// file ops
+	op_filter_str_notprefix = 26,
+	op_filter_str_notpostfix = 27,
 };
 
 #endif // __OPERATIONS_H__

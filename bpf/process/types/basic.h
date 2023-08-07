@@ -654,34 +654,32 @@ struct string_buf {
 	char buf[];
 };
 
+#define FILTER_FILE_MATCH   0
+#define FILTER_FILE_NOMATCH 1
+
 static inline __attribute__((always_inline)) long
 __filter_file_buf(struct string_buf *value, struct string_buf *args, __u32 op)
 {
 	__u32 v = value->len, a = args->len;
 	int err;
 
-	/* There are cases where file pointer may not contain a path.
-	 * An example is using an unnamed pipe. This is not a match.
-	 */
-	if (a == 0)
-		goto skip_string;
-	if (op == op_filter_eq) {
+	if (op == op_filter_eq || op == op_filter_neq) {
 		if (v != a)
 			goto skip_string;
-	} else if (op == op_filter_str_prefix) {
+	} else if (op == op_filter_str_prefix || op == op_filter_str_notprefix) {
 		if (a < v)
 			goto skip_string;
-	} else if (op == op_filter_str_postfix) {
+	} else if (op == op_filter_str_postfix || op == op_filter_str_notpostfix) {
 		err = rcmpbytes(value->buf, args->buf, v - 1, a - 1);
 		if (!err)
-			return 0;
+			return FILTER_FILE_MATCH;
 		goto skip_string;
 	}
 	err = cmpbytes(value->buf, args->buf, v);
 	if (!err)
-		return 0;
+		return FILTER_FILE_MATCH;
 skip_string:
-	return v + sizeof(struct string_buf);
+	return FILTER_FILE_NOMATCH;
 }
 
 struct file_buf {
@@ -691,32 +689,48 @@ struct file_buf {
 	__u32 type; // path_ty, file_ty, or fd_ty
 };
 
+static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
+{
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
+}
+
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
  * and the filter file path in the normal order. For the 'postfix' operator we do
  * a reverse search.
  */
 static inline __attribute__((always_inline)) long
-filter_file_buf(struct file_buf *filter, char *args)
+filter_file_buf(struct file_buf *filter, struct string_buf *args)
 {
 	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
-	__u32 remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
-	int i, next;
+	__u32 next, remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
+	long i, match;
+
+	/* There are cases where file pointer may not contain a path.
+	 * An example is using an unnamed pipe. This is not a match.
+	 */
+	if (args->len == 0)
+		return 0;
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
 #endif
 	for (i = 0; i < MAX_MATCH_FILE_VALUES; ++i) {
-		next = __filter_file_buf((struct string_buf *)values, (struct string_buf *)args, filter->op);
-		if (!next)
-			return 1;
+		struct string_buf *value = (struct string_buf *)values;
+
+		match = __filter_file_buf(value, args, filter->op);
+		if (match == FILTER_FILE_MATCH)
+			return is_not_operator(filter->op) ? 0 : 1;
+
+		next = value->len + sizeof(struct string_buf);
 		remain -= next;
 		if (remain == 0)
-			return 0;
+			goto done_filter_file;
 		values += (next & 0x7f);
 	}
 
-	return 0;
+done_filter_file:
+	return is_not_operator(filter->op);
 }
 
 struct ip_ver {
@@ -1368,7 +1382,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf((struct file_buf *)filter, args);
+			pass &= filter_file_buf((struct file_buf *)filter, (struct string_buf *)args);
 			break;
 		case string_type:
 			/* for strings, we just encode the length */
