@@ -228,6 +228,9 @@ const (
 	SelectorOpNotDportPriv = 23
 	SelectorOpNotSaddr     = 24
 	SelectorOpNotDaddr     = 25
+	// file ops
+	SelectorOpNotPrefix  = 26
+	SelectorOpNotPostfix = 27
 )
 
 func SelectorOp(op string) (uint32, error) {
@@ -238,7 +241,7 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpLT, nil
 	case "eq", "Equal":
 		return SelectorOpEQ, nil
-	case "neq":
+	case "neq", "NotEqual":
 		return SelectorOpNEQ, nil
 	case "In":
 		return SelectorOpIn, nil
@@ -246,8 +249,12 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpNotIn, nil
 	case "prefix", "Prefix":
 		return SelectorOpPrefix, nil
+	case "notprefix", "NotPrefix":
+		return SelectorOpNotPrefix, nil
 	case "postfix", "Postfix":
 		return SelectorOpPostfix, nil
+	case "notpostfix", "NotPostfix":
+		return SelectorOpNotPostfix, nil
 	case "InMap":
 		return SelectorInMap, nil
 	case "NotInMap":
@@ -494,6 +501,9 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
 		case argTypeString, argTypeCharBuf:
+			if op == SelectorOpNEQ || op == SelectorOpNotPrefix || op == SelectorOpNotPostfix {
+				return fmt.Errorf("MatchArgs types char_buf and string do not support operators NotEqual, NotPrefix, and NotPostfix")
+			}
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
