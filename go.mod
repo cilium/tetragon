@@ -187,7 +187,7 @@ replace (
 
 // has to be in sync with both cilium and hubble overrides (mostly cilium).
 replace (
-	github.com/miekg/dns => github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc
+	github.com/miekg/dns => github.com/cilium/dns d3bcb3008ed2
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.12.1
 )
