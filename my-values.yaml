@@ -1,16 +1,8 @@
 tetragonPod:
   enabled: true
   image:
-    override: quay.io/cilium/tetragon-operator-ci:812a91f2f8d8f0b71ea81ba5a55890046cc9cd77-podinfo
-<<<<<<< Updated upstream
+    override: quay.io/cilium/tetragon-operator-ci:1a1bd44bb1d0c99ec1b07098950e1c9b8e6d706e-podinfo
 tetragonOperator:
   image:
-    override: quay.io/cilium/tetragon-operator-ci:812a91f2f8d8f0b71ea81ba5a55890046cc9cd77
-=======
-
-tetragonOperator:
-  enabled: true
-  image:
-    override: quay.io/cilium/tetragon-operator-ci:812a91f2f8d8f0b71ea81ba5a55890046cc9cd77
+    override: quay.io/cilium/tetragon-operator-ci:1a1bd44bb1d0c99ec1b07098950e1c9b8e6d706e
   skipTetragonPodCRD: false
->>>>>>> Stashed changes
