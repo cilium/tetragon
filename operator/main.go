@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cilium/tetragon/operator/cmd/serve"
 	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 
@@ -50,6 +51,7 @@ var (
 )
 
 func main() {
+	rootCmd.AddCommand(serve.New())
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
