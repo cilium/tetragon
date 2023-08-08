@@ -15,6 +15,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.3
+	github.com/google/cel-go v0.12.6
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gops v0.3.27
 	github.com/google/uuid v1.3.0
@@ -31,6 +32,7 @@ require (
 	github.com/prometheus/client_model v0.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
+	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.16.0
 	github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc
 	github.com/stretchr/testify v1.8.4
@@ -56,6 +58,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
+	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -144,7 +147,7 @@ require (
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect

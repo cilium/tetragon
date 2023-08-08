@@ -10,7 +10,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -24,15 +23,29 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
-	logFname     = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
-	agentAddress = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
-	grpcTimeout  = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
-	disableGrpc  = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
+	logFname                       = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
+	agentAddress                   = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
+	grpcTimeout                    = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
+	disableGrpc                    = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
+	annotationsNamespaceDefaultKey = "io.kubernetes.pod.namespace"
+	annotationsNamespaceKey        = flag.String(
+		"annotations-namespace-key",
+		annotationsNamespaceDefaultKey,
+		"Runtime annotations  key for kubernetes namespace")
+	failCelUser = flag.String(
+		"fail-cel-expr",
+		"",
+		"CEL expression to decide whether to fail (and stop container from starting) or not.")
+	failAllowNamespaces = flag.StringSlice(
+		"fail-allow-namespaces",
+		[]string{"kube-system"},
+		"Command will not fail for specified namespaces. The namespace is determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set.")
 )
 
 func readJsonSpec(fname string) (*specs.Spec, error) {
@@ -109,8 +122,9 @@ func getCgroupPath(spec *specs.Spec) (string, error) {
 	return "", fmt.Errorf("Unknown cgroup path: %s", cgroupPath)
 }
 
-func createContainerHook(log_ *logrus.Logger) {
-	log := log_.WithField("hook", "create-container").WithField("start-time", getTime())
+// NB: the second argument is only used in case of an error, so disable revive's complains
+// revive:disable:error-return
+func createContainerHook(log *logrus.Entry) (error, map[string]string) {
 
 	// rootDir is the current directory
 	rootDir, err := os.Getwd()
@@ -135,8 +149,7 @@ func createContainerHook(log_ *logrus.Logger) {
 	}
 
 	if configName == "" {
-		log.Warnf("failed to find spec file. Tried the following dirs: %v", configPaths)
-		return
+		return fmt.Errorf("failed to find spec file. Tried the following dirs: %v", configPaths), nil
 	}
 
 	// We use the config.json file to get the cgroup path. An alternative option is to use
@@ -151,8 +164,7 @@ func createContainerHook(log_ *logrus.Logger) {
 
 	// if have no information whatsover, do not contact the agent
 	if cgroupPath == "" && rootDir == "" {
-		log.Warn("unable to determine either RootDir or cgroupPath, bailing out")
-		return
+		return fmt.Errorf("unable to determine either RootDir or cgroupPath, bailing out"), nil
 	}
 
 	req := &tetragon.RuntimeHookRequest{
@@ -172,7 +184,7 @@ func createContainerHook(log_ *logrus.Logger) {
 			"req-annotations": spec.Annotations,
 			// NB: omit annotations since they are too noisy
 		}).Warn("hook request (gRPC disabled)")
-		return
+		return nil, nil
 	}
 
 	err = hookRequest(req)
@@ -181,10 +193,38 @@ func createContainerHook(log_ *logrus.Logger) {
 			"req-cgroups": cgroupPath,
 			"req-rootdir": rootDir,
 			// NB: omit annotations since they are too noisy
-		}).Warn("hook request to agent succeeded")
-	} else {
-		log.WithField("req", req).Info("hook request to agent succeeded")
+		}).Warn("hook request to agent failed")
+		return err, spec.Annotations
 	}
+
+	log.WithField("req", req).Info("hook request to agent succeeded")
+	return nil, nil
+}
+
+func checkFail(log *logrus.Entry, annotations map[string]string) {
+	var prog *celProg
+	var err error
+
+	if expr := *failCelUser; expr != "" {
+		prog, err = celUserExpr(expr)
+	} else {
+		prog, err = celAllowNamespaces(*failAllowNamespaces)
+	}
+
+	if err != nil {
+		log.WithError(err).Fatal("failCheck failed")
+	}
+
+	fail, err := prog.RunFailCheck(annotations)
+	if err != nil {
+		log.WithError(err).Fatal("failCheck failed")
+	}
+
+	if fail {
+		log.Fatal("failCheck determined failure. Failing")
+	}
+
+	log.Info("failCheck determined that we should not fail this container, even if there was an error")
 }
 
 func main() {
@@ -207,7 +247,11 @@ func main() {
 	hookName := args[0]
 	switch hookName {
 	case "createContainer":
-		createContainerHook(log)
+		log := log.WithField("hook", "create-container").WithField("start-time", getTime())
+		err, annotations := createContainerHook(log)
+		if err != nil {
+			checkFail(log, annotations)
+		}
 	case "createRuntime":
 		// do nothing
 	case "poststop":
