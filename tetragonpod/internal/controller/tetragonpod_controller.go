@@ -19,14 +19,12 @@ package controller
 import (
 	"context"
 
+	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
 )
 
 // TetragonPodReconciler reconciles a TetragonPod object
@@ -56,7 +54,7 @@ func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	l.Info("Pod", "Name", pod.Name, "Namespace", pod.Namespace)
+	l.Info("Reconcile this pod", "Name", pod.Name, "Namespace", pod.Namespace)
 
 	// TODO(user): your logic here
 
@@ -66,6 +64,7 @@ func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 func (r *TetragonPodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ciliumiov1alpha1.TetragonPod{}).
+		For(&corev1.Pod{}).
+		Owns(&ciliumiov1alpha1.TetragonPod{}).
 		Complete(r)
 }
