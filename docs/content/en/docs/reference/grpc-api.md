@@ -65,6 +65,22 @@ version 1 of this API is defined in
 | CAP_BPF | 39 | CAP_BPF allows the following BPF operations: - Creating all types of BPF maps - Advanced verifier features - Indirect variable access - Bounded loops - BPF to BPF function calls - Scalar precision tracking - Larger complexity limits - Dead code elimination - And potentially other features - Loading BPF Type Format (BTF) data - Retrieve xlated and JITed code of BPF programs - Use bpf_spin_lock() helper CAP_PERFMON relaxes the verifier checks further: - BPF progs can use of pointer-to-integer conversions - speculation attack hardening measures are bypassed - bpf_probe_read to read arbitrary kernel memory is allowed - bpf_trace_printk to print kernel memory is allowed CAP_SYS_ADMIN is required to use bpf_probe_write_user. CAP_SYS_ADMIN is required to iterate system wide loaded programs, maps, links, BTFs and convert their IDs to file descriptors. CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and CAP_BPF are required to load networking programs. |
 | CAP_CHECKPOINT_RESTORE | 40 | Allow writing to ns_last_pid |
 
+<a name="tetragon-SecureBitsType"></a>
+
+### SecureBitsType
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| SecBitNotSet | 0 |  |
+| SecBitNoRoot | 1 | When set UID 0 has no special privileges. When unset, inheritance of root-permissions and suid-root executable under compatibility mode is supported. If the effective uid of the new process is 0 then the effective and inheritable bitmasks of the executable file is raised. If the real uid is 0, the effective (legacy) bit of the executable file is raised. |
+| SecBitNoRootLocked | 2 | Make bit-0 SecBitNoRoot immutable |
+| SecBitNoSetUidFixup | 4 | When set, setuid to/from uid 0 does not trigger capability-&#34;fixup&#34;. When unset, to provide compatiblility with old programs relying on set*uid to gain/lose privilege, transitions to/from uid 0 cause capabilities to be gained/lost. |
+| SecBitNoSetUidFixupLocked | 8 | Make bit-2 SecBitNoSetUidFixup immutable |
+| SecBitKeepCaps | 16 | When set, a process can retain its capabilities even after transitioning to a non-root user (the set-uid fixup suppressed by bit 2). Bit-4 is cleared when a process calls exec(); setting both bit 4 and 5 will create a barrier through exec that no exec()&#39;d child can use this feature again. |
+| SecBitKeepCapsLocked | 32 | Make bit-4 SecBitKeepCaps immutable |
+| SecBitNoCapAmbientRaise | 64 | When set, a process cannot add new capabilities to its ambient set. |
+| SecBitNoCapAmbientRaiseLocked | 128 | Make bit-6 SecBitNoCapAmbientRaise immutable |
+
 <a name="tetragon_tetragon-proto"></a>
 
 ## tetragon/tetragon.proto
@@ -173,6 +189,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | uint_arg | [uint32](#uint32) |  |  |
 | user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
 | capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
+| process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -372,6 +389,23 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 | ns | [Namespaces](#tetragon-Namespaces) |  | Linux namespaces of the process, disabled by default, can be enabled by the `--enable-process-ns` flag. |
 | tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
+
+<a name="tetragon-ProcessCredentials"></a>
+
+### ProcessCredentials
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real user ID |
+| gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real group ID |
+| euid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective user ID |
+| egid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective group ID |
+| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved user ID |
+| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved group ID |
+| fsuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | the filesystem user ID |
+| fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The filesystem group ID |
+| securebits | [SecureBitsType](#tetragon-SecureBitsType) | repeated | Secure management flags |
+| caps | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 
 <a name="tetragon-ProcessExec"></a>
 
