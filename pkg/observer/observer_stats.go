@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func updateMapSize(mapLinkStats *ebpf.Map, maxEntries int, name string) {
@@ -60,11 +63,45 @@ func updateMapMetric(name string) {
 	updateMapErrors(mapLinkStats, name)
 }
 
+var (
+	LostEventStats = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "lost_events_gauge",
+		Help:        "The total number of lost events per type. For internal use only.",
+		ConstLabels: nil,
+	}, []string{"event"})
+)
+
+func updateLostMetric() {
+	lostEvent := filepath.Join(option.Config.MapDir, "lost_event")
+
+	stats, err := ebpf.LoadPinnedMap(lostEvent, nil)
+	if err != nil {
+		return
+	}
+	defer stats.Close()
+
+	var (
+		key uint32
+		val []uint64
+	)
+
+	iter := stats.Iterate()
+	for iter.Next(&key, &val) {
+		var sum uint64
+		for _, n := range val {
+			sum += n
+		}
+		LostEventStats.WithLabelValues(ops.OpCode(int(key)).String()).Set(float64(sum))
+	}
+}
+
 func (k *Observer) startUpdateMapMetrics() {
 	update := func() {
 		for _, m := range sensors.AllMaps {
 			updateMapMetric(m.Name)
 		}
+		updateLostMetric()
 	}
 
 	ticker := time.NewTicker(30 * time.Second)

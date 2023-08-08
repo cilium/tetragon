@@ -29,6 +29,7 @@ var (
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(DataEventStats)
 	registry.MustRegister(DataEventSizeHist)
+	registry.MustRegister(LostEventStats)
 }
 
 type DataEventType int
