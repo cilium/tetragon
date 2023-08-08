@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/spf13/viper"
 )
 
 type config struct {
@@ -136,4 +137,43 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 		m[f.Name()] = string(bytes.TrimSpace(b))
 	}
 	return m, nil
+}
+
+func ReadConfigFile(path string, file string) error {
+	filePath := filepath.Join(path, file)
+	st, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+	if st.Mode().IsRegular() == false {
+		return fmt.Errorf("failed to read config file '%s' not a regular file", file)
+	}
+
+	viper.AddConfigPath(path)
+	err = viper.MergeInConfig()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReadConfigDir(path string) error {
+	st, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if st.IsDir() == false {
+		return fmt.Errorf("'%s' is not a directory", path)
+	}
+
+	cm, err := ReadDirConfig(path)
+	if err != nil {
+		return err
+	}
+	if err := viper.MergeConfigMap(cm); err != nil {
+		return fmt.Errorf("merge config failed %v", err)
+	}
+
+	return nil
 }
