@@ -404,6 +404,14 @@ event_set_clone(struct msg_process *pid)
 	pid->flags |= EVENT_CLONE;
 }
 
+static inline __attribute__((always_inline)) void
+__get_caps(struct msg_capabilities *msg, const struct cred *cred)
+{
+	probe_read(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
+	probe_read(&msg->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
+	probe_read(&msg->permitted, sizeof(__u64), _(&cred->cap_permitted));
+}
+
 /* @get_current_subj_caps:
  * Retrieve current task capabilities from the subjective credentials and
  * return it into @msg.
@@ -442,9 +450,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 
 	/* Get the task's subjective creds */
 	probe_read(&cred, sizeof(cred), _(&task->cred));
-	probe_read(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
-	probe_read(&msg->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
-	probe_read(&msg->permitted, sizeof(__u64), _(&cred->cap_permitted));
+	__get_caps(msg, cred);
 }
 
 static inline __attribute__((always_inline)) void
