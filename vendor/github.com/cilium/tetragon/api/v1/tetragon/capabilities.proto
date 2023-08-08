@@ -277,3 +277,43 @@ enum CapabilitiesType {
 	/* Allow writing to ns_last_pid */
  CAP_CHECKPOINT_RESTORE = 40;
 }
+
+enum SecureBitsType {
+	SecBitNotSet = 0;
+
+	/* When set UID 0 has no special privileges. When unset, inheritance
+	 of root-permissions and suid-root executable under compatibility mode
+	 is supported. If the effective uid of the new process is 0 then
+	 the effective and inheritable bitmasks of the executable file is raised.
+	 If the real uid is 0, the effective (legacy) bit of the executable file
+	 is raised. */
+	SecBitNoRoot = 1;
+
+	/* Make bit-0 SecBitNoRoot immutable */
+	SecBitNoRootLocked = 2;
+
+	/* When set, setuid to/from uid 0 does not trigger capability-"fixup".
+	 When unset, to provide compatiblility with old programs relying on
+	 set*uid to gain/lose privilege, transitions to/from uid 0 cause
+	 capabilities to be gained/lost. */
+	SecBitNoSetUidFixup = 4;
+
+	/* Make bit-2 SecBitNoSetUidFixup immutable */
+	SecBitNoSetUidFixupLocked = 8;
+
+	/* When set, a process can retain its capabilities even after
+	 transitioning to a non-root user (the set-uid fixup suppressed by
+	 bit 2). Bit-4 is cleared when a process calls exec(); setting both
+	 bit 4 and 5 will create a barrier through exec that no exec()'d
+	 child can use this feature again. */
+	SecBitKeepCaps = 16;
+
+	/* Make bit-4 SecBitKeepCaps immutable */
+	SecBitKeepCapsLocked = 32;
+
+	/* When set, a process cannot add new capabilities to its ambient set. */
+	SecBitNoCapAmbientRaise = 64;
+
+	/* Make bit-6 SecBitNoCapAmbientRaise immutable */
+	SecBitNoCapAmbientRaiseLocked = 128;
+}
