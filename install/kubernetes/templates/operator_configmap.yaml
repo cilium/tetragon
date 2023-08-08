@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-operator-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "tetragon-operator.labels" . | nindent 4 }}
+data:
+  skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}

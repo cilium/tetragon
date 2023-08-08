@@ -96,6 +96,11 @@ spec:
         name: metadata-files
 {{- end }}
 {{- end }}
+{{- if .Values.tetragonOperator.enabled }}
+      - name: tetragon-operator-config
+        configMap:
+          name: {{ .Chart.Name }}-operator-config
+{{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
       {{- end }}

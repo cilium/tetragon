@@ -26,6 +26,9 @@ const (
 
 	// KubeCfgPath is the path to a kubeconfig file
 	KubeCfgPath = "kube-config"
+
+	// ConfigDir specifies the directory in which tetragon-operator-config configmap is mounted.
+	ConfigDir = "config-dir"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -36,6 +39,9 @@ type OperatorConfig struct {
 
 	// KubeCfgPath allows users to specify a kubeconfig file to be used by the operator
 	KubeCfgPath string
+
+	// ConfigDir specifies the directory in which tetragon-operator-config configmap is mounted.
+	ConfigDir string
 }
 
 // Config represents the operator configuration.
