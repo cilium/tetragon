@@ -17,7 +17,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
@@ -34,7 +34,7 @@ func TestKprobeTraceCapabilityChecks(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	capabilityhook_ := `
@@ -64,11 +64,11 @@ spec:
 
 	createCrdFile(t, capabilityhook_)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	capName, err := caps.GetCapability(unix.CAP_SYS_RAWIO)

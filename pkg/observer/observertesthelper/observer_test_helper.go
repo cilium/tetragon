@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package observer
+package observertesthelper
 
 // NB(kkourt): Function(t *testing.T, ctx context.Context) is the reasonable
 // thing to do here even if revive complains.
@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
+	"github.com/cilium/tetragon/pkg/observer"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -140,7 +141,7 @@ func withNotestfail(notestfail bool) TestOption {
 	}
 }
 
-func testDone(t *testing.T, obs *Observer) {
+func testDone(t *testing.T, obs *observer.Observer) {
 	if t.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
 		if err := bugtool.Bugtool(bugtoolFname, ""); err == nil {
@@ -237,21 +238,21 @@ func enableAllMetrics() {
 	ringbufmetrics.InitMetrics(reg)
 	syscallmetrics.InitMetrics(reg)
 	watchermetrics.InitMetrics(reg)
-	InitMetrics(reg)
+	observer.InitMetrics(reg)
 	tracing.InitMetrics(reg)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	http.ListenAndServe(metricsAddr, nil)
 }
 
-func newDefaultObserver(oo *testObserverOptions) *Observer {
+func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
 	option.Config.BpfDir = bpf.MapPrefixPath()
 	option.Config.MapDir = bpf.MapPrefixPath()
 	option.Config.CiliumDir = ""
-	return NewObserver(oo.config)
+	return observer.NewObserver(oo.config)
 }
 
-func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, []*sensors.Sensor, error) {
+func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, []*sensors.Sensor, error) {
 	var cnfSensor *sensors.Sensor
 	var ret []*sensors.Sensor
 
@@ -328,12 +329,12 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	return obs, ret, nil
 }
 
-func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
 	obs, _, err := getDefaultObserverSensors(t, ctx, base, opts...)
 	return obs, err
 }
 
-func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
 	const (
 		testPod       = "pod-1"
 		testNamespace = "ns-1"
@@ -347,14 +348,14 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 	return getDefaultObserver(t, ctx, base, opts...)
 }
 
-func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
@@ -371,7 +372,7 @@ func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib stri
 	return sens, err
 }
 
-func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 	opts = append(opts, withNotestfail(fail))
@@ -380,7 +381,7 @@ func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, l
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testExporterOptions, oo *testObserverOptions) error {
+func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
 	watcher := opts.watcher
 	ciliumState := opts.ciliumState
 	processCacheSize := 32768
@@ -392,7 +393,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 
 	// NB(kkourt): we use the global that was set up by InitSensorManager(). We should clean
 	// this up and remove/hide the global variable.
-	sensorManager := SensorManager
+	sensorManager := observer.SensorManager
 	t.Cleanup(func() {
 		sensorManager.StopSensorManager(context.TODO())
 	})
@@ -409,7 +410,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *Observer, opts *testEx
 		return err
 	}
 
-	if err := InitDataCache(dataCacheSize); err != nil {
+	if err := observer.InitDataCache(dataCacheSize); err != nil {
 		return err
 	}
 
@@ -465,7 +466,7 @@ func loadObserver(t *testing.T, base *sensors.Sensor, sens *sensors.Sensor, note
 	return nil
 }
 
-func LoopEvents(ctx context.Context, t *testing.T, doneWG, readyWG *sync.WaitGroup, obs *Observer) {
+func LoopEvents(ctx context.Context, t *testing.T, doneWG, readyWG *sync.WaitGroup, obs *observer.Observer) {
 	doneWG.Add(1)
 	readyWG.Add(1)
 	go func() {
@@ -608,7 +609,7 @@ func WriteConfigFile(fileName, config string) error {
 	return out.Sync()
 }
 
-func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*observer.Observer, error) {
 	b := base.GetInitialSensor()
 
 	opts = append(opts, WithLib(lib))
@@ -616,7 +617,7 @@ func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...T
 	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*Observer, error) {
+func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*observer.Observer, error) {
 	b := base.GetInitialSensor()
 
 	opts = append(opts, WithConfig(config))

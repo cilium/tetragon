@@ -12,7 +12,7 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
@@ -41,14 +41,14 @@ func TestTestChecker(t *testing.T) {
 	}
 	errorChecker := NewTestChecker(&dummyChecker)
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
 	tus.LoadSensor(t, sensor)
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	TestCheckerMarkEnd(t)

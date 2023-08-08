@@ -24,7 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -68,7 +68,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	}
 
 	// initialize observer
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -92,7 +92,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 			))
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
@@ -114,7 +114,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pid := int(observer.GetMyPid())
+	pid := int(observertesthelper.GetMyPid())
 	t.Logf("filtering for my pid (%d)", pid)
 	pidSelector := v1alpha1.PIDSelector{
 		Operator:       "In",
@@ -127,7 +127,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		conf.Selectors = make([]v1alpha1.KProbeSelector, 1)
 	}
 	conf.Selectors[0].MatchPIDs = append(conf.Selectors[0].MatchPIDs, pidSelector)
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -142,7 +142,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 	testSensor := testsensor.GetTestSensor()
 	sm.AddAndEnableSensor(ctx, t, testSensor, "testSensor")
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	selfOp()
 	testsensor.TestCheckerMarkEnd(t)
@@ -480,7 +480,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err = observer.GetDefaultSensorsWithFile(t, context.TODO(), testConfigFile, tus.Conf().TetragonLib)
+	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, context.TODO(), testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -518,7 +518,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	// initialize observer
 	t.Logf("starting observer")
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -531,7 +531,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	}
 	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	cti := &testutils.ThreadTesterInfo{}
@@ -624,11 +624,11 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	testBinPath := "contrib/tester-progs/threads-tester"
@@ -704,7 +704,7 @@ func TestStringTracepoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observer.GetMyPid())
+	mypid := int(observertesthelper.GetMyPid())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	spec := &v1alpha1.TracingPolicySpec{

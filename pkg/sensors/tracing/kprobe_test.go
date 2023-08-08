@@ -29,7 +29,7 @@ import (
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -93,7 +93,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	_, err = observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -110,7 +110,7 @@ func TestKprobeLseek(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
@@ -142,11 +142,11 @@ spec:
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(-1, 0, 4444)
@@ -189,11 +189,11 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker(t)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	_, err = syscall.Write(1, []byte("hello world"))
 	assert.NoError(t, err)
@@ -208,7 +208,7 @@ func TestKprobeObjectWriteReadHostNs(t *testing.T) {
 	if _, err := os.Stat("/.dockerenv"); errors.Is(err, os.ErrNotExist) {
 		nsOp = "In"
 	}
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -253,7 +253,7 @@ spec:
 }
 
 func TestKprobeObjectWriteRead(t *testing.T) {
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
@@ -334,7 +334,7 @@ spec:
 }
 
 func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -375,7 +375,7 @@ spec:
 }
 
 func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -440,11 +440,11 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	hello := []byte("hello world")
 	n, errno := syscall.Write(fd, hello)
@@ -466,7 +466,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 
 func TestKprobeObjectRead(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -511,7 +511,7 @@ spec:
 
 func TestKprobeObjectReadReturn(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 metadata:
@@ -621,11 +621,11 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	fd2, errno := syscall.Open(filePath, mode, perm)
 	if fd2 < 0 {
@@ -673,14 +673,14 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
 }
 
 func TestKprobeObjectOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -719,21 +719,21 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 }
 
 func TestKprobeObjectMultiValueOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -767,7 +767,7 @@ spec:
 }
 
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -833,14 +833,14 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 }
 
 func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -878,14 +878,14 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 }
 
 func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -923,21 +923,21 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -971,7 +971,7 @@ spec:
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1038,7 +1038,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
 }
 
 func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	checker := func(dir string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
@@ -1072,7 +1072,7 @@ func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
 }
 
 func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, syscall.O_TRUNC, "%d")
 	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
@@ -1172,11 +1172,11 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	fd2, _ := syscall.Open(path, syscall.O_RDWR, 0x770)
 	t.Cleanup(func() { syscall.Close(fd2) })
@@ -1185,7 +1185,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 }
 
 func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
@@ -1218,7 +1218,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
@@ -1229,7 +1229,7 @@ func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
@@ -1253,7 +1253,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
@@ -1292,7 +1292,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1339,11 +1339,11 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	err = helloIovecWorldWritev()
 	assert.NoError(t, err)
@@ -1366,7 +1366,7 @@ func getFilpOpenChecker(dir string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFilenameOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1393,7 +1393,7 @@ spec:
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1537,28 +1537,28 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFileWrite(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
@@ -1585,11 +1585,11 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fd2, errno := syscall.Open(filePath, syscall.O_RDWR, 0x770)
@@ -1747,31 +1747,31 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 }
 
 func TestMultipleMountsFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
 	testMultipleMountsFiltered(t, readHook)
 }
 
 func TestMultiplePathComponents(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultiplePathComponentsFiltered(t, readHook)
 }
 
 func TestMultipleMountPath(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultipleMountPathFiltered(t, readHook)
 }
 
 func TestMultipleMountPathFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
 	testMultipleMountPathFiltered(t, readHook)
 }
 
 func TestKprobeArgValues(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -1831,11 +1831,11 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	// linkat syscall is not exported for some reason
@@ -1884,11 +1884,11 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fd, err := syscall.Open(testFile, syscall.O_RDWR, 0x777)
@@ -1914,7 +1914,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 }
 
 func TestKprobeOverride(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -1973,7 +1973,7 @@ spec:
 }
 
 func TestKprobeOverrideNopostAction(t *testing.T) {
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2056,7 +2056,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	_, err = observer.GetDefaultObserverWithFileNoTest(t, context.Background(), testConfigFile, tus.Conf().TetragonLib, true, observer.WithMyPid())
+	_, err = observertesthelper.GetDefaultObserverWithFileNoTest(t, context.Background(), testConfigFile, tus.Conf().TetragonLib, true, observertesthelper.WithMyPid())
 	if err == nil {
 		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
 	}
@@ -2081,11 +2081,11 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	sigs := make(chan os.Signal, 1)
@@ -2123,7 +2123,7 @@ func TestKprobeOverrideSignal(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2187,7 +2187,7 @@ func TestKprobeSignalOverride(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2251,7 +2251,7 @@ func TestKprobeSignalOverrideNopost(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2326,11 +2326,11 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fd, err := syscall.Open(testFile, syscall.O_RDWR, 0x777)
@@ -2380,7 +2380,7 @@ func TestKprobeOverrideMulti(t *testing.T) {
 		t.Skip("skipping override test, bpf_override_return helper not available")
 	}
 
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2579,11 +2579,11 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	}
 
 	b := base.GetInitialSensor()
-	obs, err := observer.GetDefaultObserverWithWatchers(t, ctx, b, observer.WithConfig(testConfigFile), observer.WithLib(tus.Conf().TetragonLib), observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	// use writev file with single buffer
@@ -2616,7 +2616,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 
 func TestKprobe_char_iovec(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2669,7 +2669,7 @@ spec:
 
 func TestKprobe_char_iovec_overflow(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2722,7 +2722,7 @@ spec:
 
 func TestKprobe_char_iovec_returnCopy(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observer.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2940,11 +2940,11 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
@@ -2980,11 +2980,11 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
@@ -3020,11 +3020,11 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
@@ -3060,11 +3060,11 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
@@ -3096,11 +3096,11 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
@@ -3132,11 +3132,11 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
@@ -3185,11 +3185,11 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileFIMCrd([]string{"/etc/"}))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, len(allFiles))
@@ -3256,11 +3256,11 @@ func TestKprobeMatchBinariesIn(t *testing.T) {
 
 	createCrdFile(t, getMatchBinariesCrd("In", []string{"/usr/bin/cat"}))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	if err := exec.Command("/usr/bin/cat", "/etc/passwd").Run(); err != nil {
@@ -3286,11 +3286,11 @@ func TestKprobeMatchBinariesNotIn(t *testing.T) {
 
 	createCrdFile(t, getMatchBinariesCrd("NotIn", []string{"/usr/bin/tail"}))
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	if err := exec.Command("/usr/bin/tail", "/etc/passwd").Run(); err != nil {
@@ -3355,11 +3355,11 @@ spec:
 `
 	createCrdFile(t, hook)
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	err = loadTestCrd()
@@ -3470,7 +3470,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err = observer.GetDefaultSensorsWithFile(t, context.TODO(), testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, context.TODO(), testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3494,7 +3494,7 @@ spec:
    syscall: true
 `
 
-	_, err := observer.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observer.WithMyPid())
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	assert.NoError(t, err)
 
 	tp, err := tracingpolicy.PolicyFromYAML(testHook)
@@ -3523,11 +3523,11 @@ func testMaxData(t *testing.T, data []byte, checker *eventchecker.UnorderedEvent
 
 	option.Config.RBSize = 1024 * 1024
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	_, err = syscall.Write(fd, data)
 	assert.NoError(t, err)
@@ -3541,7 +3541,7 @@ func TestKprobeWriteMaxDataTrunc(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3603,7 +3603,7 @@ func TestKprobeWriteMaxData(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3661,7 +3661,7 @@ func TestKprobeWriteMaxDataFull(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observer.GetMyPid()
+	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3788,11 +3788,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -3877,11 +3877,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -3970,11 +3970,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4059,11 +4059,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4144,11 +4144,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4229,11 +4229,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4318,11 +4318,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4411,11 +4411,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
@@ -4502,11 +4502,11 @@ spec:
 		createCrdFile(t, hookPart)
 	}
 
-	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	res := &net.Resolver{
