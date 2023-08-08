@@ -186,11 +186,11 @@ func (k *Observer) getRBSize(cpus int) int {
 	return size
 }
 
-func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
+func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}
-	perfMap, err := ebpf.LoadPinnedMap(k.perfConfig.MapName, &pinOpts)
+	perfMap, err := ebpf.LoadPinnedMap(k.PerfConfig.MapName, &pinOpts)
 	if err != nil {
-		return fmt.Errorf("opening pinned map '%s' failed: %w", k.perfConfig.MapName, err)
+		return fmt.Errorf("opening pinned map '%s' failed: %w", k.PerfConfig.MapName, err)
 	}
 	defer perfMap.Close()
 
@@ -257,7 +257,7 @@ func (k *Observer) runEvents(stopCtx context.Context, ready func()) error {
 type Observer struct {
 	/* Configuration */
 	listeners  map[Listener]struct{}
-	perfConfig *bpf.PerfEventConfig
+	PerfConfig *bpf.PerfEventConfig
 	/* Statistics */
 	lostCntr   uint64 // atomic
 	errorCntr  uint64 // atomic
@@ -298,10 +298,10 @@ func (k *Observer) UpdateRuntimeConf(mapDir string) error {
 func (k *Observer) Start(ctx context.Context) error {
 	k.startUpdateMapMetrics()
 
-	k.perfConfig = bpf.DefaultPerfEventConfig()
+	k.PerfConfig = bpf.DefaultPerfEventConfig()
 
 	var err error
-	if err = k.runEvents(ctx, func() {}); err != nil {
+	if err = k.RunEvents(ctx, func() {}); err != nil {
 		return fmt.Errorf("tetragon, aborting runtime error: %w", err)
 	}
 	return nil
