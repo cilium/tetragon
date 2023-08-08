@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	proc "github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -142,12 +143,12 @@ func TestNamespaces(t *testing.T) {
 			WithParent(ec.NewProcessChecker()),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
@@ -160,11 +161,11 @@ func TestEventExecve(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
@@ -249,11 +250,11 @@ func TestEventExecveLongPath(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fmt.Printf("Exec: '%s arg1 arg2 arg3'\n", testBin)
@@ -273,11 +274,11 @@ func TestEventExecveLongArgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
@@ -394,11 +395,11 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	fmt.Printf("Exec: '%s %s %s %s'\n", testBin, testArg1, testArg2, testArg3)
@@ -441,15 +442,15 @@ func TestDocker(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 
 	readyWG.Wait()
-	serverDockerID := observer.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:v1.6.0", "-nvlp", "8081", "-s", "0.0.0.0")
+	serverDockerID := observertesthelper.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:v1.6.0", "-nvlp", "8081", "-s", "0.0.0.0")
 	time.Sleep(1 * time.Second)
 
 	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
@@ -527,7 +528,7 @@ func TestExecPerfring(t *testing.T) {
 	defer cancel()
 
 	if err := observer.InitDataCache(1024); err != nil {
-		t.Fatalf("observer.InitDataCache: %s", err)
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib

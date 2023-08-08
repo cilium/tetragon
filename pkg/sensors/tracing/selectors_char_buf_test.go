@@ -14,7 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
@@ -29,7 +29,7 @@ func TestCharBufKprobe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observer.GetMyPid())
+	mypid := int(observertesthelper.GetMyPid())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	writeBufArgIdx := uint32(1)
@@ -101,7 +101,7 @@ func TestCharBufTracepoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observer.GetMyPid())
+	mypid := int(observertesthelper.GetMyPid())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	writeBufArgIdx := uint32(6)

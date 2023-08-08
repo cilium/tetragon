@@ -12,6 +12,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
@@ -40,13 +41,13 @@ func TestSensorLseekLoad(t *testing.T) {
 		ec.NewTestChecker(""),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 	sensor := GetTestSensor()
 	tus.LoadSensor(t, sensor)
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
@@ -69,7 +70,7 @@ func TestSensorLseekEnable(t *testing.T) {
 		ec.NewTestChecker(""),
 	)
 
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -80,7 +81,7 @@ func TestSensorLseekEnable(t *testing.T) {
 	observer.SensorManager = smanager.Manager
 	smanager.AddAndEnableSensor(ctx, t, sensor, sensor.Name)
 
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 

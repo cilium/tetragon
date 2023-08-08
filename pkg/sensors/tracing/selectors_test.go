@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -37,7 +38,7 @@ import (
 // loadGenericSensorTest loads a tracing sensor for testing
 func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
 	if err := observer.InitDataCache(1024); err != nil {
-		t.Fatalf("observer.InitDataCache: %s", err)
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
 	}
 
 	tp := &tracingpolicy.GenericTracingPolicy{
@@ -245,7 +246,7 @@ func TestTracepointSelectors(t *testing.T) {
 
 func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx uint32, filterOperator string) []v1alpha1.KProbeSelector {
 	sels := []v1alpha1.KProbeSelector{}
-	mypid := int(observer.GetMyPid())
+	mypid := int(observertesthelper.GetMyPid())
 	t.Logf("filtering for my pid (%d)", mypid)
 	myPidMatchPIDs := []v1alpha1.PIDSelector{{
 		Operator:       "In",

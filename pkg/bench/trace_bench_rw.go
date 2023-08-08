@@ -14,7 +14,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 )
 
 // Command-line flags
@@ -119,7 +119,7 @@ func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error
 }
 
 func (src traceBenchRw) ConfigFilename(_ *Arguments) string {
-	matchPid := strconv.Itoa(int(observer.GetMyPid()))
+	matchPid := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	tmpl := `
 apiVersion: cilium.io/v1alpha1

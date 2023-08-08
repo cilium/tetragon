@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
@@ -64,11 +65,11 @@ func TestCloneThreadsTester(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	tti := &testutils.ThreadTesterInfo{}
@@ -90,7 +91,7 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	defer cancel()
 
 	if err := observer.InitDataCache(1024); err != nil {
-		t.Fatalf("observer.InitDataCache: %s", err)
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
@@ -175,11 +176,11 @@ func TestExecThreads(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
 	cti := &testutils.ThreadTesterInfo{}
