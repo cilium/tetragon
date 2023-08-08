@@ -28,6 +28,7 @@ import (
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -84,7 +85,10 @@ func operatorExecute() {
 		log.WithError(err).Fatal("Unable to check k8s version")
 	}
 
-	log.Infof("Tetragon Operator: %s", version.Version)
+	log.WithFields(logrus.Fields{
+		"config":  fmt.Sprintf("%+v", operatorOption.Config),
+		"version": version.Version,
+	}).Info("Starting Tetragon Operator")
 	capabilities := k8sversion.Capabilities()
 	if !capabilities.MinimalVersionMet {
 		log.Fatalf("Minimal kubernetes version not met: %s < %s",

@@ -158,6 +158,8 @@ tetragonOperator:
     tag: v0.10.0
     # tetragon-operator image-digest
     suffix: ""
+  # Skip CRD creation.
+  skipCRDCreation: false
 export:
   # "stdout". "" to disable.
   mode: "stdout"
