@@ -54,22 +54,9 @@ are allowed to perform.
 ## Tetragon Process Credentials monitoring
 
 Monitoring Linux process credentials is a good practice to idenfity programs
-running with high privileges. Tetragon allows to observer and export such credentials
-as a [`process_credentials`]({{< ref "/docs/reference/grpc-api/#processcredentials" >}}) object.
+running with high privileges. Tetragon allows retrieving Linux process credentials
+as a [`process_credentials`]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) object.
 
-{{< note >}}
-Depending on the use case, it is possible to monitor [`process_credentials`]({{< ref "/docs/reference/grpc-api/#processcredentials" >}}) object
-at different layers of the operating system, from the upper layer where user space
-runs to low kernel layers. Each layer may generate a number of events where the
-lower kernel layers are known to emit a high number of events compared to the
-upper layers.
+Changes to credentials can be monitored either in [system calls](/docs/use-cases/linux-process-credentials/syscalls-monitoring) or in [internal kernel functions](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel).
 
-Users should chose the right layer at which they want to
-monitor process credentials and apply the corresponding [Tracing Policies]({{< ref "/docs/concepts/tracing-policy" >}}).
-{{< /note >}}
-
-### Monitor Process Credentials changes
-
-#### Monitor Process Credentials changes at the System Call layer
-
-Tetragon is able to monitor the system calls that directly manipulate the credentials. For further details, read the [Monitor Process Credentials changes at the System Call layer](/docs/use-cases/linux-process-credentials/syscalls-monitoring).
+Generally it is better to monitor in internal kernel functions. For further details please read [Advantages and disadvantages of kernel layer monitoring compared to the system call layer](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel#advantages-and-disadvantages-of-kernel-layer-monitoring-compared-to-the-system-call-layer) section.
