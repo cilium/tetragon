@@ -43,6 +43,7 @@
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
     - [RuntimeHookResponse](#tetragon-RuntimeHookResponse)
     - [Test](#tetragon-Test)
+    - [UserNamespace](#tetragon-UserNamespace)
   
     - [HealthStatusResult](#tetragon-HealthStatusResult)
     - [HealthStatusType](#tetragon-HealthStatusType)
@@ -350,9 +351,10 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | perf_event_arg | [KprobePerfEvent](#tetragon-KprobePerfEvent) |  |  |
 | bpf_map_arg | [KprobeBpfMap](#tetragon-KprobeBpfMap) |  |  |
 | uint_arg | [uint32](#uint32) |  |  |
-| user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  |  |
+| user_namespace_arg | [KprobeUserNamespace](#tetragon-KprobeUserNamespace) |  | **Deprecated.**  |
 | capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
+| user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -688,6 +690,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The filesystem group ID |
 | securebits | [SecureBitsType](#tetragon-SecureBitsType) | repeated | Secure management flags |
 | caps | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
+| user_ns | [UserNamespace](#tetragon-UserNamespace) |  | User namespace where the UIDs, GIDs and capabilities are relative to. |
 
 
 
@@ -841,6 +844,24 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | arg1 | [uint64](#uint64) |  |  |
 | arg2 | [uint64](#uint64) |  |  |
 | arg3 | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="tetragon-UserNamespace"></a>
+
+### UserNamespace
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [google.protobuf.Int32Value](#google-protobuf-Int32Value) |  | Nested level of the user namespace. Init or host user namespace is at level 0. |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The owner user ID of the namespace |
+| gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The owner group ID of the namepace. |
+| ns | [Namespace](#tetragon-Namespace) |  | The user namespace details that include the inode number of the namespace. |
 
 
 
