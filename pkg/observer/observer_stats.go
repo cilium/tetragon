@@ -4,86 +4,40 @@
 package observer
 
 import (
-	"fmt"
 	"path/filepath"
-	"runtime"
 	"time"
-	"unsafe"
 
-	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
-type statKey struct {
-	Key int32
-}
-
-type statValue struct {
-	Value []int64 // kernel rounds up to 64bits so pretend its a 64bit here
-}
-
-func (k *statKey) String() string            { return fmt.Sprintf("key=%d", k.Key) }
-func (k *statKey) GetKeyPtr() unsafe.Pointer { return unsafe.Pointer(k) }
-func (k *statKey) NewValue() bpf.MapValue {
-	return &statValue{
-		Value: make([]int64, bpf.GetNumPossibleCPUs()),
-	}
-}
-func (k *statKey) DeepCopyMapKey() bpf.MapKey { return &statKey{k.Key} }
-
-func (s *statValue) String() string {
-	return fmt.Sprintf("%v", s.Value)
-}
-func (s *statValue) GetValuePtr() unsafe.Pointer {
-	return unsafe.Pointer(&s.Value[0])
-}
-func (s *statValue) DeepCopyMapValue() bpf.MapValue {
-	v := &statValue{
-		Value: make([]int64, len(s.Value)),
-	}
-	copy(v.Value, s.Value)
-	return v
-}
-
-func updateMapSize(mapLinkStats *bpf.Map, maxEntries int, name string) {
-	zeroKey := &statKey{}
-	value, err := mapLinkStats.Lookup(zeroKey)
-	if err != nil {
-		return
-	}
-
-	v, ok := value.DeepCopyMapValue().(*statValue)
-	if !ok {
+func updateMapSize(mapLinkStats *ebpf.Map, maxEntries int, name string) {
+	var values []int64
+	if err := mapLinkStats.Lookup(int32(0), &values); err != nil {
 		return
 	}
 
 	sum := int64(0)
-	for cpu := int(0); cpu < runtime.NumCPU(); cpu++ {
-		sum += v.Value[cpu]
+	for _, n := range values {
+		sum += n
 	}
+
 	mapmetrics.MapSizeSet(name, maxEntries, float64(sum))
 }
 
-func updateMapErrors(mapLinkStats *bpf.Map, name string) {
-	oneKey := &statKey{
-		Key: 1,
-	}
-	value, err := mapLinkStats.Lookup(oneKey)
-	if err != nil {
-		return
-	}
-
-	v, ok := value.DeepCopyMapValue().(*statValue)
-	if !ok {
+func updateMapErrors(mapLinkStats *ebpf.Map, name string) {
+	var values []int64
+	if err := mapLinkStats.Lookup(int32(1), &values); err != nil {
 		return
 	}
 
 	sum := int64(0)
-	for cpu := int(0); cpu < runtime.NumCPU(); cpu++ {
-		sum += v.Value[cpu]
+	for _, n := range values {
+		sum += n
 	}
+
 	mapmetrics.MapErrorSet(name, float64(sum))
 }
 
@@ -91,18 +45,18 @@ func updateMapMetric(name string) {
 	pin := filepath.Join(option.Config.MapDir, name)
 	pinStats := pin + "_stats"
 
-	mapLinkStats, err := bpf.OpenMap(pinStats)
+	mapLinkStats, err := ebpf.LoadPinnedMap(pinStats, nil)
 	if err != nil {
 		return
 	}
 	defer mapLinkStats.Close()
-	mapLink, err := bpf.OpenMap(pin)
+	mapLink, err := ebpf.LoadPinnedMap(pin, nil)
 	if err != nil {
 		return
 	}
 	defer mapLink.Close()
 
-	updateMapSize(mapLinkStats, int(mapLink.MapInfo.MaxEntries), name)
+	updateMapSize(mapLinkStats, int(mapLink.MaxEntries()), name)
 	updateMapErrors(mapLinkStats, name)
 }
 
