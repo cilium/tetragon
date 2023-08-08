@@ -1054,7 +1054,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericCredType:
-			var cred api.MsgGenericKprobeCred
+			var cred api.MsgGenericCred
 			var arg api.MsgGenericKprobeArgCred
 
 			err := binary.Read(r, binary.LittleEndian, &cred)
@@ -1063,9 +1063,21 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			arg.Permitted = cred.Permitted
-			arg.Effective = cred.Effective
-			arg.Inheritable = cred.Inheritable
+			arg.Uid = cred.Uid
+			arg.Gid = cred.Gid
+			arg.Suid = cred.Suid
+			arg.Sgid = cred.Sgid
+			arg.Euid = cred.Euid
+			arg.Egid = cred.Egid
+			arg.FSuid = cred.FSuid
+			arg.FSgid = cred.FSgid
+			arg.Cap.Permitted = cred.Cap.Permitted
+			arg.Cap.Effective = cred.Cap.Effective
+			arg.Cap.Inheritable = cred.Cap.Inheritable
+			arg.UserNs.Level = cred.UserNs.Level
+			arg.UserNs.Uid = cred.UserNs.Uid
+			arg.UserNs.Gid = cred.UserNs.Gid
+			arg.UserNs.NsInum = cred.UserNs.NsInum
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericCharBuffer, gt.GenericCharIovec, gt.GenericIovIter:
