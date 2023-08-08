@@ -3,6 +3,7 @@ module github.com/cilium/tetragon
 go 1.20
 
 require (
+	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/cilium/cilium v1.14.0
 	github.com/cilium/ebpf v0.11.0
 	github.com/cilium/little-vm-helper v0.0.12
@@ -78,7 +79,6 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-logr/zapr v1.2.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.4 // indirect

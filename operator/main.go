@@ -19,20 +19,20 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cilium/cilium/pkg/logging"
+	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/tetragon/operator/cmd/serve"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	ciliumClient "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/version"
 	tetragonClient "github.com/cilium/tetragon/tetragonpod/api/v1alpha1/client"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -118,6 +118,7 @@ func operatorExecute() {
 }
 
 func main() {
+	rootCmd.AddCommand(serve.New())
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

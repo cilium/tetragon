@@ -84,7 +84,6 @@ Helm chart for Tetragon
 | tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.10.0"}` | tetragon-operator image. |
 | tetragonOperator.skipTetragonPodCRD | bool | `false` |  |
 | tetragonPod.enabled | bool | `false` |  |
-| tetragonPod.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","tag":"v0.8.3"}` | tetragon-operator image. |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
 

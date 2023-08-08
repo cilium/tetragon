@@ -150,11 +150,6 @@ tetragon:
   enableMsgHandlingLatency: false
 tetragonPod:
   enabled: false
-  # -- tetragon-operator image.
-  image:
-    override: ~
-    repository: quay.io/cilium/tetragon-operator
-    tag: v0.8.3
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true

@@ -16,11 +16,13 @@ spec:
       labels: 
         {{- include "tetragonPod-controller.labels" . | nindent 8 }}
     spec:
-      securityContext:
-        runAsNonRoot: true
       containers:
       - name: {{ .Chart.Name }}-pod
-        image: "{{ if .Values.tetragonPod.image.override }}{{ .Values.tetragonPod.image.override }}{{ else }}{{ .Values.tetragonPod.image.repository }}:{{ .Values.tetragonPod.image.tag | default .Chart.AppVersion }}{{ end }}"
+        command:
+          - /usr/bin/tetragon-operator
+        args:
+          - serve
+        image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
