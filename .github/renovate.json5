@@ -172,7 +172,7 @@
       ],
     },
     {
-      // not grouping major updates together
+      // not grouping major and minor updates together
       "matchFileNames": [
         "pkg/k8s/go.mod",
         "pkg/k8s/go.sum"
@@ -188,6 +188,7 @@
       },
       "matchUpdateTypes": [
         "major",
+        "minor",
       ],
       "matchBaseBranches": [
         "main"
@@ -210,7 +211,6 @@
         "executionMode": "branch"
       },
       "matchUpdateTypes": [
-        "minor",
         "patch",
         "digest",
         "pin",
@@ -295,6 +295,51 @@
         "Dockerfile.clang-format"
       ],
       "enabled": false
+    },
+    {
+      // do not update dependencies from the replace directive from cilium/cilium
+      // see go.mod second replace directive comments for more info
+      "enabled": false,
+      "matchPackageNames": [
+        // All of these packages are maintained on a Cilium fork. Thus, we don't
+        // want to update them automatically.
+        "go.universe.tf/metallb",
+        "github.com/cilium/metallb",
+        // metallb is still using an old version of "github.com/mdlayher/arp"
+        "github.com/mdlayher/arp",
+        "github.com/miekg/dns",
+        "github.com/cilium/dns",
+        "sigs.k8s.io/controller-tools",
+        "github.com/cilium/controller-tools",
+        "github.com/cilium/client-go",
+      ]
+    },
+    {
+      // not an ignore but almost, please automate this if you have the energy
+      // require manual steps for minor and major cilium/cilium updates
+      "matchPackageNames": [
+        "github.com/cilium/cilium",
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+      ],
+      "draftPR": true,
+      "prBodyNotes": [
+        ":warning: Manual steps need to be performed (explaining why this PR is only a draft). First replace directives must be synchronized with cilium/cilium, see the `go.mod` and `pkg/k8s/go.mod` for more info. Then dependencies ignore in `.github/renovate.json5` for the replace directive must be updated accordingly. Finally, make sure that k8s dependencies were also bumped along Cilium."
+      ]
+    },
+    {
+      "enabled": false,
+      "matchPackagePatterns": [
+        // k8s dependencies will be updated manually along cilium updates
+        "k8s\\.io/*",
+        "sigs\\.k8s\\.io/*"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+      ],
     }
   ],
   // Those regexes manage version strings in variousfiles, similar to the
