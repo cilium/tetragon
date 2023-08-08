@@ -228,18 +228,36 @@ func (m MsgGenericKprobeArgSkb) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeCred struct {
-	Permitted   uint64
-	Effective   uint64
-	Inheritable uint64
+type MsgGenericCred struct {
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	Cap        processapi.MsgCapabilities
+	UserNs     processapi.MsgUserNamespace
 }
 
 type MsgGenericKprobeArgCred struct {
-	Index       uint64
-	Permitted   uint64
-	Effective   uint64
-	Inheritable uint64
-	Label       string
+	Index      uint64
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	Cap        processapi.MsgCapabilities
+	UserNs     processapi.MsgUserNamespace
+	Label      string
 }
 
 func (m MsgGenericKprobeArgCred) GetIndex() uint64 {

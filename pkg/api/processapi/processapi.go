@@ -124,6 +124,13 @@ type MsgNamespaces struct {
 	UserInum      uint32
 }
 
+type MsgUserNamespace struct {
+	Level  int32
+	Uid    uint32
+	Gid    uint32
+	NsInum uint32
+}
+
 // API between Userspace tetragon Golang agent and Unix domain socket listener
 type MsgProcess struct {
 	Size     uint32
