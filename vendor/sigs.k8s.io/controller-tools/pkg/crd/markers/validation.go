@@ -17,9 +17,9 @@ limitations under the License.
 package markers
 
 import (
-	"encoding/json"
 	"fmt"
-	"math"
+
+	"encoding/json"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -37,7 +37,7 @@ const (
 // reusable and writing complex validations on slice items.
 var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.DescribesField,
 
-	// numeric markers
+	// integer markers
 
 	Maximum(0),
 	Minimum(0),
@@ -66,8 +66,6 @@ var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.
 	Type(""),
 	XPreserveUnknownFields{},
 	XEmbeddedResource{},
-	XIntOrString{},
-	XValidation{},
 )
 
 // FieldOnlyMarkers list field-specific validation markers (i.e. those markers that don't make
@@ -80,14 +78,16 @@ var FieldOnlyMarkers = []*definitionWithHelp{
 	must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})).
 		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional, if fields are required by default.")),
 
+	must(markers.MakeDefinition("kubebuilder:validation:OneOf", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is part of a oneOf group")),
+	must(markers.MakeDefinition("kubebuilder:validation:AnyOf", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is part of a anyOf group")),
+
 	must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})).
 		WithHelp(Nullable{}.Help()),
 
 	must(markers.MakeAnyTypeDefinition("kubebuilder:default", markers.DescribesField, Default{})).
 		WithHelp(Default{}.Help()),
-
-	must(markers.MakeAnyTypeDefinition("kubebuilder:example", markers.DescribesField, Example{})).
-		WithHelp(Example{}.Help()),
 
 	must(markers.MakeDefinition("kubebuilder:validation:EmbeddedResource", markers.DescribesField, XEmbeddedResource{})).
 		WithHelp(XEmbeddedResource{}.Help()),
@@ -126,19 +126,11 @@ func init() {
 
 // +controllertools:marker:generateHelp:category="CRD validation"
 // Maximum specifies the maximum numeric value that this field can have.
-type Maximum float64
-
-func (m Maximum) Value() float64 {
-	return float64(m)
-}
+type Maximum int
 
 // +controllertools:marker:generateHelp:category="CRD validation"
-// Minimum specifies the minimum numeric value that this field can have. Negative numbers are supported.
-type Minimum float64
-
-func (m Minimum) Value() float64 {
-	return float64(m)
-}
+// Minimum specifies the minimum numeric value that this field can have. Negative integers are supported.
+type Minimum int
 
 // +controllertools:marker:generateHelp:category="CRD validation"
 // ExclusiveMinimum indicates that the minimum is "up to" but not including that value.
@@ -150,11 +142,7 @@ type ExclusiveMaximum bool
 
 // +controllertools:marker:generateHelp:category="CRD validation"
 // MultipleOf specifies that this field must have a numeric value that's a multiple of this one.
-type MultipleOf float64
-
-func (m MultipleOf) Value() float64 {
-	return float64(m)
-}
+type MultipleOf int
 
 // +controllertools:marker:generateHelp:category="CRD validation"
 // MaxLength specifies the maximum length for this string.
@@ -173,7 +161,7 @@ type Pattern string
 type MaxItems int
 
 // +controllertools:marker:generateHelp:category="CRD validation"
-// MinItems specifies the minimum length for this list.
+// MinItems specifies the minimun length for this list.
 type MinItems int
 
 // +controllertools:marker:generateHelp:category="CRD validation"
@@ -225,19 +213,6 @@ type Default struct {
 	Value interface{}
 }
 
-// +controllertools:marker:generateHelp:category="CRD validation"
-// Example sets the example value for this field.
-//
-// An example value will be accepted as any value valid for the
-// field. Formatting for common types include: boolean: `true`, string:
-// `Cluster`, numerical: `1.24`, array: `{1,2}`, object: `{policy:
-// "delete"}`). Examples should be defined in pruned form, and only best-effort
-// validation will be performed. Full validation of an example requires
-// submission of the containing CRD to an apiserver.
-type Example struct {
-	Value interface{}
-}
-
 // +controllertools:marker:generateHelp:category="CRD processing"
 // PreserveUnknownFields stops the apiserver from pruning fields which are not specified.
 //
@@ -263,14 +238,6 @@ type XPreserveUnknownFields struct{}
 type XEmbeddedResource struct{}
 
 // +controllertools:marker:generateHelp:category="CRD validation"
-// IntOrString marks a fields as an IntOrString.
-//
-// This is required when applying patterns or other validations to an IntOrString
-// field. Knwon information about the type is applied during the collapse phase
-// and as such is not normally available during marker application.
-type XIntOrString struct{}
-
-// +controllertools:marker:generateHelp:category="CRD validation"
 // Schemaless marks a field as being a schemaless object.
 //
 // Schemaless objects are not introspected, so you must provide
@@ -280,80 +247,41 @@ type XIntOrString struct{}
 // to be used only as a last resort.
 type Schemaless struct{}
 
-func hasNumericType(schema *apiext.JSONSchemaProps) bool {
-	return schema.Type == "integer" || schema.Type == "number"
-}
-
-func isIntegral(value float64) bool {
-	return value == math.Trunc(value) && !math.IsNaN(value) && !math.IsInf(value, 0)
-}
-
-// +controllertools:marker:generateHelp:category="CRD validation"
-// XValidation marks a field as requiring a value for which a given
-// expression evaluates to true.
-//
-// This marker may be repeated to specify multiple expressions, all of
-// which must evaluate to true.
-type XValidation struct {
-	Rule    string
-	Message string `marker:",optional"`
-}
-
 func (m Maximum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	if !hasNumericType(schema) {
-		return fmt.Errorf("must apply maximum to a numeric value, found %s", schema.Type)
+	if schema.Type != "integer" {
+		return fmt.Errorf("must apply maximum to an integer")
 	}
-
-	if schema.Type == "integer" && !isIntegral(m.Value()) {
-		return fmt.Errorf("cannot apply non-integral maximum validation (%v) to integer value", m.Value())
-	}
-
-	val := m.Value()
+	val := float64(m)
 	schema.Maximum = &val
 	return nil
 }
-
 func (m Minimum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	if !hasNumericType(schema) {
-		return fmt.Errorf("must apply minimum to a numeric value, found %s", schema.Type)
+	if schema.Type != "integer" {
+		return fmt.Errorf("must apply minimum to an integer")
 	}
-
-	if schema.Type == "integer" && !isIntegral(m.Value()) {
-		return fmt.Errorf("cannot apply non-integral minimum validation (%v) to integer value", m.Value())
-	}
-
-	val := m.Value()
+	val := float64(m)
 	schema.Minimum = &val
 	return nil
 }
-
 func (m ExclusiveMaximum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	if !hasNumericType(schema) {
-		return fmt.Errorf("must apply exclusivemaximum to a numeric value, found %s", schema.Type)
+	if schema.Type != "integer" {
+		return fmt.Errorf("must apply exclusivemaximum to an integer")
 	}
 	schema.ExclusiveMaximum = bool(m)
 	return nil
 }
-
 func (m ExclusiveMinimum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	if !hasNumericType(schema) {
-		return fmt.Errorf("must apply exclusiveminimum to a numeric value, found %s", schema.Type)
+	if schema.Type != "integer" {
+		return fmt.Errorf("must apply exclusiveminimum to an integer")
 	}
-
 	schema.ExclusiveMinimum = bool(m)
 	return nil
 }
-
 func (m MultipleOf) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	if !hasNumericType(schema) {
-		return fmt.Errorf("must apply multipleof to a numeric value, found %s", schema.Type)
+	if schema.Type != "integer" {
+		return fmt.Errorf("must apply multipleof to an integer")
 	}
-
-	if schema.Type == "integer" && !isIntegral(m.Value()) {
-		return fmt.Errorf("cannot apply non-integral multipleof validation (%v) to integer value", m.Value())
-	}
-
-	val := m.Value()
+	val := float64(m)
 	schema.MultipleOf = &val
 	return nil
 }
@@ -366,7 +294,6 @@ func (m MaxLength) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.MaxLength = &val
 	return nil
 }
-
 func (m MinLength) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	if schema.Type != "string" {
 		return fmt.Errorf("must apply minlength to a string")
@@ -375,13 +302,9 @@ func (m MinLength) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.MinLength = &val
 	return nil
 }
-
 func (m Pattern) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	// Allow string types or IntOrStrings. An IntOrString will still
-	// apply the pattern validation when a string is detected, the pattern
-	// will not apply to ints though.
-	if schema.Type != "string" && !schema.XIntOrString {
-		return fmt.Errorf("must apply pattern to a `string` or `IntOrString`")
+	if schema.Type != "string" {
+		return fmt.Errorf("must apply pattern to a string")
 	}
 	schema.Pattern = string(m)
 	return nil
@@ -395,7 +318,6 @@ func (m MaxItems) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.MaxItems = &val
 	return nil
 }
-
 func (m MinItems) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	if schema.Type != "array" {
 		return fmt.Errorf("must apply minitems to an array")
@@ -404,7 +326,6 @@ func (m MinItems) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.MinItems = &val
 	return nil
 }
-
 func (m UniqueItems) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	if schema.Type != "array" {
 		return fmt.Errorf("must apply uniqueitems to an array")
@@ -448,7 +369,6 @@ func (m Enum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.Enum = vals
 	return nil
 }
-
 func (m Format) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.Format = string(m)
 	return nil
@@ -481,15 +401,6 @@ func (m Default) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	return nil
 }
 
-func (m Example) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	marshalledExample, err := json.Marshal(m.Value)
-	if err != nil {
-		return err
-	}
-	schema.Example = &apiext.JSON{Raw: marshalledExample}
-	return nil
-}
-
 func (m XPreserveUnknownFields) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	defTrue := true
 	schema.XPreserveUnknownFields = &defTrue
@@ -498,23 +409,5 @@ func (m XPreserveUnknownFields) ApplyToSchema(schema *apiext.JSONSchemaProps) er
 
 func (m XEmbeddedResource) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.XEmbeddedResource = true
-	return nil
-}
-
-// NB(JoelSpeed): we use this property in other markers here,
-// which means the "XIntOrString" marker *must* be applied first.
-
-func (m XIntOrString) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	schema.XIntOrString = true
-	return nil
-}
-
-func (m XIntOrString) ApplyFirst() {}
-
-func (m XValidation) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
-	schema.XValidations = append(schema.XValidations, apiext.ValidationRule{
-		Rule:    m.Rule,
-		Message: m.Message,
-	})
 	return nil
 }

@@ -185,9 +185,20 @@ replace (
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
 )
 
-// has to be in sync with both cilium and hubble overrides (mostly cilium).
+// This replace directive has to be in sync with with github.com/cilium/cilium.
+// If the github.com/cilium/cilium version is bumped, the sync must be
+// refreshed. As of now we use tag v1.14.0, see the replace directive:
+// https://github.com/cilium/cilium/blob/v1.14/go.mod#L259-L271
 replace (
 	github.com/miekg/dns => github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc
-	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
-	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.12.1
+
+	go.universe.tf/metallb => github.com/cilium/metallb v0.1.1-0.20220829170633-5d7dfb1129f7
+
+	// Using fork of client-go.
+	// Contains fix for exponential backoff for informers.
+	k8s.io/client-go => github.com/cilium/client-go v0.27.2-fix
+
+	// Using private fork of controller-tools. See commit msg for more context
+	// as to why we are using a private fork.
+	sigs.k8s.io/controller-tools => github.com/cilium/controller-tools v0.6.2
 )
