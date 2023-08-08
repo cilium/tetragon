@@ -6,6 +6,7 @@ package metrics
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -26,11 +27,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 )
 
 var (
-	metricsWithPod []*prometheus.MetricVec
-	once           sync.Once
+	metricsWithPod     []*prometheus.MetricVec
+	metricsWithPodOnce sync.Once
+	podQueue           workqueue.DelayingInterface
+	podQueueOnce       sync.Once
+	deleteDelay        = 1 * time.Minute
 )
 
 // RegisterPodDeleteHandler registers handler for deleting metrics associated
@@ -59,7 +64,8 @@ func RegisterPodDeleteHandler() {
 						default:
 							return
 						}
-						DeleteMetricsForPod(pod)
+						queue := GetPodQueue()
+						queue.AddAfter(pod, deleteDelay)
 					},
 				},
 			)
@@ -67,10 +73,17 @@ func RegisterPodDeleteHandler() {
 	})
 }
 
+func GetPodQueue() workqueue.DelayingInterface {
+	podQueueOnce.Do(func() {
+		podQueue = workqueue.NewDelayingQueue()
+	})
+	return podQueue
+}
+
 // ListMetricsWithPod returns the global list of all metrics that have "pod"
 // and "namespace" labels, initializing it if needed.
 func ListMetricsWithPod() []*prometheus.MetricVec {
-	once.Do(func() {
+	metricsWithPodOnce.Do(func() {
 		metricsWithPod = append(metricsWithPod, eventmetrics.ListMetricsWithPod()...)
 		metricsWithPod = append(metricsWithPod, syscallmetrics.ListMetricsWithPod()...)
 	})
@@ -100,6 +113,17 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	watchermetrics.InitMetrics(registry)
 	observer.InitMetrics(registry)
 	tracing.InitMetrics(registry)
+}
+
+func StartPodDeleteHandler() {
+	queue := GetPodQueue()
+	for {
+		pod, quit := queue.Get()
+		if quit {
+			return
+		}
+		DeleteMetricsForPod(pod.(*corev1.Pod))
+	}
 }
 
 func EnableMetrics(address string) {

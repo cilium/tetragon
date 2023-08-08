@@ -295,6 +295,7 @@ func tetragonExecute() error {
 
 	if option.Config.MetricsServer != "" {
 		go metrics.EnableMetrics(option.Config.MetricsServer)
+		go metrics.StartPodDeleteHandler()
 		// Handler must be registered before the watcher is started
 		metrics.RegisterPodDeleteHandler()
 	}
