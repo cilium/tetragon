@@ -185,10 +185,10 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgUserNamespace:
-			nsArg := &tetragon.KprobeUserNamespace{
+			nsArg := &tetragon.UserNamespace{
 				Level: &wrapperspb.Int32Value{Value: e.Level},
-				Owner: &wrapperspb.UInt32Value{Value: e.Owner},
-				Group: &wrapperspb.UInt32Value{Value: e.Group},
+				Uid:   &wrapperspb.UInt32Value{Value: e.Uid},
+				Gid:   &wrapperspb.UInt32Value{Value: e.Gid},
 				Ns: &tetragon.Namespace{
 					Inum: e.NsInum,
 				},
@@ -196,7 +196,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			if e.Level == 0 {
 				nsArg.Ns.IsHost = true
 			}
-			a.Arg = &tetragon.KprobeArgument_UserNamespaceArg{UserNamespaceArg: nsArg}
+			a.Arg = &tetragon.KprobeArgument_UserNsArg{UserNsArg: nsArg}
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgCapability:
 			cArg := &tetragon.KprobeCapability{

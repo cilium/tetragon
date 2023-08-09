@@ -270,18 +270,18 @@ func (m MsgGenericKprobeArgCapability) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeUserNamespace struct {
+type MsgGenericUserNamespace struct {
 	Level  int32
-	Owner  uint32
-	Group  uint32
+	Uid    uint32
+	Gid    uint32
 	NsInum uint32
 }
 
 type MsgGenericKprobeArgUserNamespace struct {
 	Index  uint64
 	Level  int32
-	Owner  uint32
-	Group  uint32
+	Uid    uint32
+	Gid    uint32
 	NsInum uint32
 	Label  string
 }
