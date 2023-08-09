@@ -516,7 +516,7 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
 	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
 	info->pad = 0;
-	info->securebits = 0;
+	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
 
 	__get_caps(caps, cred);
 
