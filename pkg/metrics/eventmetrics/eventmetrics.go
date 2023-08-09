@@ -53,6 +53,14 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(policyStats)
 }
 
+// ListMetricsWithPod returns a list of metrics with "pod" and "namespace" labels.
+func ListMetricsWithPod() []*prometheus.MetricVec {
+	return []*prometheus.MetricVec{
+		EventsProcessed.MetricVec,
+		policyStats.MetricVec,
+	}
+}
+
 func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
 	if process != nil {
 		binary = process.Binary
