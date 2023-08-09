@@ -703,8 +703,6 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 	}
 	load.MapLoad = append(load.MapLoad, config)
 
-	sensors.AllPrograms = append(sensors.AllPrograms, load)
-
 	if err := program.LoadKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach)
 	} else {
@@ -725,8 +723,6 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 }
 
 func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *program.Program, verbose int) error {
-	sensors.AllPrograms = append(sensors.AllPrograms, load)
-
 	bin_buf := make([]bytes.Buffer, len(ids))
 
 	data := &program.MultiKprobeAttachData{}
