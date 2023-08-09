@@ -10,15 +10,13 @@ import (
 )
 
 var (
-	Execve = func() *program.Program {
-		return program.Builder(
-			ExecObj(),
-			"sched/sched_process_exec",
-			"tracepoint/sys_execve",
-			"event_execve",
-			"execve",
-		)
-	}()
+	Execve = program.Builder(
+		ExecObj(),
+		"sched/sched_process_exec",
+		"tracepoint/sys_execve",
+		"event_execve",
+		"execve",
+	)
 
 	Exit = program.Builder(
 		"bpf_exit.o",
