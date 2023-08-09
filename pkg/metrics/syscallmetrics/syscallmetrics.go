@@ -23,6 +23,13 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(syscallStats)
 }
 
+// ListMetricsWithPod returns a list of metrics with "pod" and "namespace" labels.
+func ListMetricsWithPod() []*prometheus.MetricVec {
+	return []*prometheus.MetricVec{
+		syscallStats.MetricVec,
+	}
+}
+
 func Handle(event interface{}) {
 	ev, ok := event.(*tetragon.GetEventsResponse)
 	if !ok {
