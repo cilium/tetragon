@@ -110,6 +110,17 @@ message Namespaces {
     Namespace user = 10;
 }
 
+message UserNamespace {
+	// Nested level of the user namespace. Init or host user namespace is at level 0.
+	google.protobuf.Int32Value level = 1;
+	// The owner user ID of the namespace
+	google.protobuf.UInt32Value uid = 2;
+	// The owner group ID of the namepace.
+	google.protobuf.UInt32Value gid = 3;
+	// The user namespace details that include the inode number of the namespace.
+	Namespace ns = 4;
+}
+
 message ProcessCredentials {
 	// The real user ID
 	google.protobuf.UInt32Value uid = 1;
@@ -131,6 +142,8 @@ message ProcessCredentials {
 	repeated SecureBitsType securebits = 9;
 	// Set of capabilities that define the permissions the process can execute with.
 	Capabilities caps = 10;
+	// User namespace where the UIDs, GIDs and capabilities are relative to.
+	UserNamespace user_ns = 11;
 }
 
 message Process {
@@ -351,9 +364,10 @@ message KprobeArgument {
 	KprobePerfEvent perf_event_arg = 13;
 	KprobeBpfMap bpf_map_arg = 14;
 	uint32 uint_arg = 15;
-	KprobeUserNamespace user_namespace_arg = 16;
+	KprobeUserNamespace user_namespace_arg = 16 [deprecated = true];
 	KprobeCapability capability_arg = 17;
 	ProcessCredentials process_credentials_arg = 19;
+	UserNamespace user_ns_arg = 20;
     }
     string label = 18;
 }

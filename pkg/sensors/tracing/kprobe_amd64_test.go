@@ -82,9 +82,9 @@ spec:
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithUserNamespaceArg(ec.NewKprobeUserNamespaceChecker().
-					WithOwner(0).
-					WithGroup(0),
+				ec.NewKprobeArgumentChecker().WithUserNsArg(ec.NewUserNamespaceChecker().
+					WithUid(0).
+					WithGid(0),
 				),
 				ec.NewKprobeArgumentChecker().WithCapabilityArg(ec.NewKprobeCapabilityChecker().
 					WithValue(unix.CAP_SYS_RAWIO).
