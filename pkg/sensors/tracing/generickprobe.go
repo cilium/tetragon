@@ -1071,6 +1071,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Egid = cred.Egid
 			arg.FSuid = cred.FSuid
 			arg.FSgid = cred.FSgid
+			arg.SecureBits = cred.SecureBits
 			arg.Cap.Permitted = cred.Cap.Permitted
 			arg.Cap.Effective = cred.Cap.Effective
 			arg.Cap.Inheritable = cred.Cap.Inheritable

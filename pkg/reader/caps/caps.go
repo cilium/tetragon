@@ -438,3 +438,45 @@ func GetCurrentCapabilities() *tetragon.Capabilities {
 		Inheritable: GetCapabilitiesTypes(inheritable),
 	}
 }
+
+func GetSecureBitsTypes(secBit uint32) []tetragon.SecureBitsType {
+	if secBit == 0 {
+		return nil
+	}
+
+	var bits []tetragon.SecureBitsType
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoRoot) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoRoot)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoRootLocked) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoRootLocked)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoSetUidFixup) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoSetUidFixup)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoSetUidFixupLocked) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoSetUidFixupLocked)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitKeepCaps) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitKeepCaps)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitKeepCapsLocked) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitKeepCapsLocked)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoCapAmbientRaise) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoCapAmbientRaise)
+	}
+
+	if secBit&uint32(tetragon.SecureBitsType_SecBitNoCapAmbientRaiseLocked) != 0 {
+		bits = append(bits, tetragon.SecureBitsType_SecBitNoCapAmbientRaiseLocked)
+	}
+
+	return bits
+}
