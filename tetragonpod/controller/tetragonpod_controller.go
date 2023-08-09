@@ -20,7 +20,9 @@ import (
 	"context"
 
 	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,26 +41,148 @@ type TetragonPodReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the TetragonPod object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
+
+// Reconcile is the main loop of the controller that something changes with the pod resources in the cluster.
 func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
+	// Get the Pod.
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, req.NamespacedName, pod); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+
+		// CASE 1: Pod is deleted, therefore delete the corresponding tetragonPod resource.
+		if client.IgnoreNotFound(err) == nil {
+			l.Info("Pod Deleted: ", "Name", req.Name, " Namespace", req.Namespace)
+			deleteTetragonPod(ctx, r, req, l)
+			return ctrl.Result{}, nil
+		}
 	}
 
-	l.Info("Reconcile this pod", "Name", pod.Name, "Namespace", pod.Namespace)
+	// CASE 2: Pod is created or updated.
+	// wait until the pod is running for cleaner logs.
+	if pod.Status.Phase != corev1.PodRunning {
+		return ctrl.Result{}, nil
+	}
 
-	// TODO(user): your logic here
+	// Check if corresponsind tetragonPod already exists.
+	tetragonPod, exists := checkIfAlreadyExists(ctx, req, r, l)
+	if exists {
+		// CASE 2.1: TetragonPod already exists, update it.
+		l.Info("Pod Updated: ", "Name", req.Name, "Namespace", req.Namespace)
+		updateTetragonPod(ctx, r, l, pod, tetragonPod)
+		return ctrl.Result{}, nil
+	}
 
+	// CASE 2.2: TetragonPod does not exist, create new.
+	l.Info("Pod Created: ", "Name", req.Name, "Namespace", req.Namespace)
+	createTetragonPod(ctx, pod, r, l)
 	return ctrl.Result{}, nil
+}
+
+// deleteTetragonPod deletes the corresponding tetragonPod resource.
+func deleteTetragonPod(ctx context.Context, r *TetragonPodReconciler, req ctrl.Request, l logr.Logger) (ctrl.Result, error) {
+	l.Info("Deleting the corresponding tetragonPod resource")
+
+	// create the pod to be deleted
+	tetragonPodToDelete := &ciliumiov1alpha1.TetragonPod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      req.Name,
+			Namespace: req.Namespace,
+		},
+	}
+
+	// Check if corresponding tetragonPod resource exists
+	if err := r.Get(ctx, req.NamespacedName, tetragonPodToDelete); err != nil {
+		l.Error(err, "Corresponding tetragonPod Resource does not exist")
+		return ctrl.Result{}, err
+	}
+
+	// Delete the Pod
+	if err := r.Delete(ctx, tetragonPodToDelete); err != nil {
+		l.Error(err, "Failed to delete the tetragonPod resource")
+		return ctrl.Result{}, err
+	}
+
+	// Pod deleted successfully.
+	l.Info("TetragonPod deleted successfully")
+	return ctrl.Result{}, nil
+}
+
+// updateTetragonPod updates the corresponding tetragonPod resource.
+func updateTetragonPod(ctx context.Context, r *TetragonPodReconciler, l logr.Logger, pod *corev1.Pod, tetragonPod *ciliumiov1alpha1.TetragonPod) (ctrl.Result, error) {
+	l.Info("Updating the corresponding tetragonPod resource")
+
+	// get the new IP address of the Pod.
+	newIP := ciliumiov1alpha1.PodIP{IP: pod.Status.PodIP}
+	tetragonPod.Status.PodIP = newIP.IP
+	// add the new IP to the beginning of the array.
+	tetragonPod.Status.PodIPs = append([]ciliumiov1alpha1.PodIP{newIP}, tetragonPod.Status.PodIPs...)
+
+	// Update the tetragonPod resource.
+	if err := r.Update(ctx, tetragonPod); err != nil {
+		l.Error(err, "Failed to update the tetragonPod resource")
+		return ctrl.Result{}, err
+	}
+	l.Info("TetragonPod updated successfully")
+	return ctrl.Result{}, nil
+}
+
+// checkIfAlreadyExists checks if the corresponding tetragonPod resource already exists.
+func checkIfAlreadyExists(ctx context.Context, req ctrl.Request, r *TetragonPodReconciler, l logr.Logger) (*ciliumiov1alpha1.TetragonPod, bool) {
+
+	// check if the tetragonPod already exists for that pod.
+	tetragonPod, err := getTetragonPod(ctx, req, r, l)
+	if err != nil {
+		return nil, false
+	}
+	return tetragonPod, true
+}
+
+// createTetragonPod creates a tetragonPod resource.
+func createTetragonPod(ctx context.Context, pod *corev1.Pod, r *TetragonPodReconciler, l logr.Logger) (ctrl.Result, error) {
+	// create the tetragon pod since the pod exists
+	if pod.Status.Phase == corev1.PodRunning {
+		l.Info("Creating the corresponding tetragonPod resource")
+		// get the new IP address of the Pod.
+		newIP := ciliumiov1alpha1.PodIP{IP: pod.Status.PodIP}
+		tetragonPod := &ciliumiov1alpha1.TetragonPod{
+
+			// create the tetragonPod with the same name and namespace as the pod.
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pod.Name,
+				Namespace: pod.Namespace,
+			},
+			Status: ciliumiov1alpha1.TetragonPodStatus{
+				PodIP:  newIP.IP,
+				PodIPs: make([]ciliumiov1alpha1.PodIP, 0),
+			},
+		}
+
+		if err := r.Create(ctx, tetragonPod); err != nil {
+			l.Error(err, "Failed to create TetragonPod")
+			return ctrl.Result{}, err
+		}
+		l.Info("New TetragonPod creation Successful")
+		return ctrl.Result{}, nil
+	}
+
+	// There are too many logs for pending pods, so commenting it out for now.
+	// if pod.Status.Phase == corev1.PodPending {
+	// 	l.Info("Pod is in pending state, waiting for it to be running")
+	// }
+	return ctrl.Result{}, nil
+}
+
+// getTetragonPod gets the tetragonPod resource
+func getTetragonPod(ctx context.Context, req ctrl.Request, r *TetragonPodReconciler, l logr.Logger) (*ciliumiov1alpha1.TetragonPod, error) {
+	tetragonPod := &ciliumiov1alpha1.TetragonPod{}
+	if err := r.Get(ctx, req.NamespacedName, tetragonPod); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			l.Info("Unable to fetch the tetragonPod: Name=", req.Name, " Namespace=", req.Namespace)
+			return nil, err
+		}
+	}
+	return tetragonPod, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
