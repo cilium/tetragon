@@ -125,14 +125,15 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgCred:
 			credArg := &tetragon.ProcessCredentials{
-				Uid:   &wrapperspb.UInt32Value{Value: e.Uid},
-				Gid:   &wrapperspb.UInt32Value{Value: e.Gid},
-				Euid:  &wrapperspb.UInt32Value{Value: e.Euid},
-				Egid:  &wrapperspb.UInt32Value{Value: e.Egid},
-				Suid:  &wrapperspb.UInt32Value{Value: e.Suid},
-				Sgid:  &wrapperspb.UInt32Value{Value: e.Sgid},
-				Fsuid: &wrapperspb.UInt32Value{Value: e.FSuid},
-				Fsgid: &wrapperspb.UInt32Value{Value: e.FSgid},
+				Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
+				Gid:        &wrapperspb.UInt32Value{Value: e.Gid},
+				Euid:       &wrapperspb.UInt32Value{Value: e.Euid},
+				Egid:       &wrapperspb.UInt32Value{Value: e.Egid},
+				Suid:       &wrapperspb.UInt32Value{Value: e.Suid},
+				Sgid:       &wrapperspb.UInt32Value{Value: e.Sgid},
+				Fsuid:      &wrapperspb.UInt32Value{Value: e.FSuid},
+				Fsgid:      &wrapperspb.UInt32Value{Value: e.FSgid},
+				Securebits: caps.GetSecureBitsTypes(e.SecureBits),
 			}
 			credArg.Caps = &tetragon.Capabilities{
 				Permitted:   caps.GetCapabilitiesTypes(e.Cap.Permitted),
