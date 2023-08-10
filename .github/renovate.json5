@@ -262,6 +262,7 @@
       ]
     },
     {
+      "groupName": "Helm chart",
       "matchFileNames": [
         "install/kubernetes/values.yaml",
       ],
