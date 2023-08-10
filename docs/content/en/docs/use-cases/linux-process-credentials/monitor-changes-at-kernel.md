@@ -1,7 +1,7 @@
 ---
 title: "Monitor Process Credentials changes at the Kernel layer"
 weight: 2
-icon: "reference"
+icon: "overview"
 description: "Monitor Process Credentials changes at the kernel layer"
 ---
 
