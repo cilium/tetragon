@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
+	"github.com/cilium/ebpf/link"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -29,6 +30,7 @@ func Builder(
 		MapLoad:    nil,
 		unloader:   nil,
 		PinMap:     make(map[string]*Map),
+		Link:       nil,
 	}
 }
 
@@ -120,6 +122,8 @@ type Program struct {
 	// Tail call prefix/map
 	TcPrefix string
 	TcMap    *Map
+
+	Link link.Link
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
