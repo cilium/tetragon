@@ -38,7 +38,7 @@ cli-local-release: cli-clean
 		for ARCH in $$ARCHS; do \
 			echo Building release binary for $$OS/$$ARCH...; \
 			test -d release/$$OS/$$ARCH|| mkdir -p release/$$OS/$$ARCH; \
-			env GOOS=$$OS GOARCH=$$ARCH $(CLI_GO_BUILD) -ldflags=$(GO_LDFLAGS) -o release/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
+			env GOOS=$$OS GOARCH=$$ARCH $(CLI_GO_BUILD) -ldflags="$(GO_BUILD_LDFLAGS)" -o release/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
 			tar -czf release/$(TARGET)-$$OS-$$ARCH.tar.gz -C release/$$OS/$$ARCH $(TARGET)$$EXT; \
 			(cd release && sha256sum $(TARGET)-$$OS-$$ARCH.tar.gz > $(TARGET)-$$OS-$$ARCH.tar.gz.sha256sum); \
 		done; \
