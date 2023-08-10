@@ -202,6 +202,7 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 		lnk.Close()
 		return nil, err
 	}
+	load.Link = lnk
 	return &unloader.RelinkUnloader{
 		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
 		IsLinked:   true,
@@ -474,6 +475,7 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 		lnk.Close()
 		return nil, err
 	}
+	load.Link = lnk
 	return unloader.ChainUnloader{
 		unloader.PinUnloader{
 			Prog: prog,
