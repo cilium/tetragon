@@ -170,6 +170,7 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec, sym
 	if err != nil {
 		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 	}
+	load.Link = lnk
 	return &unloader.RelinkUnloader{
 		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
 		IsLinked:   true,
@@ -417,6 +418,7 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 	if err != nil {
 		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 	}
+	load.Link = lnk
 	return unloader.ChainUnloader{
 		unloader.PinUnloader{
 			Prog: prog,
