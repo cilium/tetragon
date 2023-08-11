@@ -723,7 +723,7 @@ This should be sufficient to create a Kind cluster and run Tetragon. For more in
 
 ### Prerequisites
 
-You will need to [install cosign](https://docs.sigstore.dev/cosign/installation/).
+You will need to [install cosign](https://docs.sigstore.dev/system_config/installation/).
 
 ### Verify Signed Container Images
 
