@@ -1,0 +1,29 @@
+{{- if and .Values.serviceAccount.create .Values.podWatcher.enabled }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{.Chart.Name}}-operator
+  labels:
+  {{- include "tetragon-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - cilium.io
+    resources:
+      - tetragonpods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+{{- end }}

@@ -148,6 +148,8 @@ tetragon:
   enablePolicyFilterDebug: false
   # Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
+podWatcher:
+  enabled: false
 tetragonOperator:
   # -- Enable the tetragon-operator component (required).
   enabled: true
