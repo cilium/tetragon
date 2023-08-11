@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -21,12 +22,14 @@ func hasList(name string, lists []v1alpha1.ListSpec) bool {
 }
 
 const (
-	ListTypeInvalid = -1
-	ListTypeNone    = 0
+	ListTypeInvalid  = -1
+	ListTypeNone     = 0
+	ListTypeSyscalls = 1
 )
 
 var listTypeTable = map[string]uint32{
-	"": ListTypeNone,
+	"":         ListTypeNone,
+	"syscalls": ListTypeSyscalls,
 }
 
 func listTypeFromString(s string) int32 {
@@ -40,6 +43,18 @@ func listTypeFromString(s string) int32 {
 func preValidateList(list *v1alpha1.ListSpec) (err error) {
 	if listTypeFromString(list.Type) == ListTypeInvalid {
 		return fmt.Errorf("Invalid list type: %s", list.Type)
+	}
+
+	// Add prefix to syscalls list
+	if listTypeFromString(list.Type) == ListTypeSyscalls {
+		for idx := range list.Values {
+			symbol, err := arch.AddSyscallPrefix(list.Values[idx])
+			if err != nil {
+				return err
+			}
+			list.Values[idx] = symbol
+		}
+		return nil
 	}
 
 	return nil
