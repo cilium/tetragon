@@ -7,7 +7,7 @@ description: "Learn how to verify Tetragon container images signatures."
 
 ### Prerequisites
 
-You will need to [install cosign](https://docs.sigstore.dev/cosign/installation/).
+You will need to [install cosign](https://docs.sigstore.dev/system_config/installation/).
 
 ### Verify Signed Container Images
 
