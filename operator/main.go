@@ -19,20 +19,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
-	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
-	"github.com/cilium/tetragon/pkg/version"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	apiextclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/rest"
 )
 
 var (
@@ -44,69 +37,17 @@ var (
 		Use:   binaryName,
 		Short: "Run " + binaryName,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Populate option.Config with options from CLI.
+			configPopulate()
 			cmdRefDir := viper.GetString(operatorOption.CMDRef)
 			if cmdRefDir != "" {
 				genMarkdown(cmd, cmdRefDir)
 				os.Exit(0)
 			}
-			operatorExecute()
+			crd.RegisterCRDs()
 		},
 	}
 )
-
-func getConfig() (*rest.Config, error) {
-	if operatorOption.Config.KubeCfgPath != "" {
-		return clientcmd.BuildConfigFromFlags("", operatorOption.Config.KubeCfgPath)
-	}
-	return rest.InClusterConfig()
-}
-
-func operatorExecute() {
-	// Prepopulate option.Config with options from CLI.
-	configPopulate()
-
-	restConfig, err := getConfig()
-	if err != nil {
-		log.WithError(err).Fatal("Unable to check k8s configuration")
-	}
-
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		log.WithError(err).Fatal("Unable to create k8s client")
-	}
-
-	k8sAPIExtClient, err := apiextclientset.NewForConfig(restConfig)
-	if err != nil {
-		log.WithError(err).Fatal("Unable to create k8s API ext. client")
-	}
-
-	err = k8sversion.UpdateK8sServerVersion(k8sClient)
-	if err != nil {
-		log.WithError(err).Fatal("Unable to check k8s version")
-	}
-
-	log.WithFields(logrus.Fields{
-		"config":  fmt.Sprintf("%+v", operatorOption.Config),
-		"version": version.Version,
-	}).Info("Starting Tetragon Operator")
-	capabilities := k8sversion.Capabilities()
-	if !capabilities.MinimalVersionMet {
-		log.Fatalf("Minimal kubernetes version not met: %s < %s",
-			k8sversion.Version(), k8sversion.MinimalVersionConstraint)
-	}
-
-	// Register the CRDs after validating that we are running on a supported
-	// version of K8s.
-	if !operatorOption.Config.SkipCRDCreation {
-		if err := client.RegisterCRDs(k8sAPIExtClient); err != nil {
-			log.WithError(err).Fatal("Unable to register CRDs")
-		}
-	} else {
-		log.Info("Skipping creation of CRDs")
-	}
-
-	log.Info("Initialization complete")
-}
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
