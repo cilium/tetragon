@@ -1,0 +1,52 @@
+{{- if .Values.podWatcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: 
+    {{- include "tetragon-operator.labels" . | nindent 4 }}
+  name: {{ .Chart.Name }}-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "tetragon-operator.labels" . | nindent 6 }}
+  replicas: 1
+  template:
+    metadata:
+      labels: 
+        {{- include "tetragon-operator.labels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}-operator
+        command:
+          - /usr/bin/tetragon-operator
+        args:
+          - serve
+        image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - "ALL"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: {{ .Chart.Name }}-operator-service-account
+      terminationGracePeriodSeconds: 10
+{{- end }}

@@ -7,3 +7,4 @@ metadata:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
 data:
   skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}
+  skip-tetragon-pod-crd: {{ not .Values.podWatcher.enabled | quote }}
