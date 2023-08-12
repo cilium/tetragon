@@ -20,7 +20,6 @@ import (
 	"context"
 
 	ciliumiov1alpha1 "github.com/cilium/tetragon/tetragonpod/api/v1alpha1"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,7 +52,7 @@ func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// CASE 1: Pod is deleted, therefore delete the corresponding tetragonPod resource.
 		if client.IgnoreNotFound(err) == nil {
 			l.Info("Pod Deleted: ", "Name", req.Name, " Namespace", req.Namespace)
-			deleteTetragonPod(ctx, r, req, l)
+			r.deleteTetragonPod(ctx, req)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -65,23 +64,24 @@ func (r *TetragonPodReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Check if corresponsind tetragonPod already exists.
-	tetragonPod, exists := checkIfAlreadyExists(ctx, req, r, l)
+	tetragonPod, exists := r.checkIfAlreadyExists(ctx, req)
 	if exists {
 		// CASE 2.1: TetragonPod already exists, update it.
 		l.Info("Pod Updated: ", "Name", req.Name, "Namespace", req.Namespace)
-		updateTetragonPod(ctx, r, l, pod, tetragonPod)
+		r.updateTetragonPod(ctx, pod, tetragonPod)
 		return ctrl.Result{}, nil
 	}
 
 	// CASE 2.2: TetragonPod does not exist, create new.
 	l.Info("Pod Created: ", "Name", req.Name, "Namespace", req.Namespace)
-	createTetragonPod(ctx, pod, r, l)
+	r.createTetragonPod(ctx, pod)
 	return ctrl.Result{}, nil
 }
 
 // deleteTetragonPod deletes the corresponding tetragonPod resource.
-func deleteTetragonPod(ctx context.Context, r *TetragonPodReconciler, req ctrl.Request, l logr.Logger) (ctrl.Result, error) {
-	l.Info("Deleting the corresponding tetragonPod resource")
+func (r *TetragonPodReconciler) deleteTetragonPod(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// get the logger from pre-defined context
+	l := log.FromContext(ctx)
 
 	// create the pod to be deleted
 	tetragonPodToDelete := &ciliumiov1alpha1.TetragonPod{
@@ -109,7 +109,8 @@ func deleteTetragonPod(ctx context.Context, r *TetragonPodReconciler, req ctrl.R
 }
 
 // updateTetragonPod updates the corresponding tetragonPod resource.
-func updateTetragonPod(ctx context.Context, r *TetragonPodReconciler, l logr.Logger, pod *corev1.Pod, tetragonPod *ciliumiov1alpha1.TetragonPod) (ctrl.Result, error) {
+func (r *TetragonPodReconciler) updateTetragonPod(ctx context.Context, pod *corev1.Pod, tetragonPod *ciliumiov1alpha1.TetragonPod) (ctrl.Result, error) {
+	l := log.FromContext(ctx)
 	l.Info("Updating the corresponding tetragonPod resource")
 
 	// get the new IP address of the Pod.
@@ -128,10 +129,10 @@ func updateTetragonPod(ctx context.Context, r *TetragonPodReconciler, l logr.Log
 }
 
 // checkIfAlreadyExists checks if the corresponding tetragonPod resource already exists.
-func checkIfAlreadyExists(ctx context.Context, req ctrl.Request, r *TetragonPodReconciler, l logr.Logger) (*ciliumiov1alpha1.TetragonPod, bool) {
+func (r *TetragonPodReconciler) checkIfAlreadyExists(ctx context.Context, req ctrl.Request) (*ciliumiov1alpha1.TetragonPod, bool) {
 
 	// check if the tetragonPod already exists for that pod.
-	tetragonPod, err := getTetragonPod(ctx, req, r, l)
+	tetragonPod, err := r.getTetragonPod(ctx, req)
 	if err != nil {
 		return nil, false
 	}
@@ -139,7 +140,8 @@ func checkIfAlreadyExists(ctx context.Context, req ctrl.Request, r *TetragonPodR
 }
 
 // createTetragonPod creates a tetragonPod resource.
-func createTetragonPod(ctx context.Context, pod *corev1.Pod, r *TetragonPodReconciler, l logr.Logger) (ctrl.Result, error) {
+func (r *TetragonPodReconciler) createTetragonPod(ctx context.Context, pod *corev1.Pod) (ctrl.Result, error) {
+	l := log.FromContext(ctx)
 	// create the tetragon pod since the pod exists
 	if pod.Status.Phase == corev1.PodRunning {
 		l.Info("Creating the corresponding tetragonPod resource")
@@ -192,7 +194,8 @@ func generatePod(pod *corev1.Pod) *ciliumiov1alpha1.TetragonPod {
 }
 
 // getTetragonPod gets the tetragonPod resource
-func getTetragonPod(ctx context.Context, req ctrl.Request, r *TetragonPodReconciler, l logr.Logger) (*ciliumiov1alpha1.TetragonPod, error) {
+func (r *TetragonPodReconciler) getTetragonPod(ctx context.Context, req ctrl.Request) (*ciliumiov1alpha1.TetragonPod, error) {
+	l := log.FromContext(ctx)
 	tetragonPod := &ciliumiov1alpha1.TetragonPod{}
 	if err := r.Get(ctx, req.NamespacedName, tetragonPod); err != nil {
 		if client.IgnoreNotFound(err) == nil {
