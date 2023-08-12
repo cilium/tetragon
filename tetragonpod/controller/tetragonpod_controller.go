@@ -143,20 +143,7 @@ func createTetragonPod(ctx context.Context, pod *corev1.Pod, r *TetragonPodRecon
 	// create the tetragon pod since the pod exists
 	if pod.Status.Phase == corev1.PodRunning {
 		l.Info("Creating the corresponding tetragonPod resource")
-		// get the new IP address of the Pod.
-		newIP := ciliumiov1alpha1.PodIP{IP: pod.Status.PodIP}
-		tetragonPod := &ciliumiov1alpha1.TetragonPod{
-
-			// create the tetragonPod with the same name and namespace as the pod.
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-			},
-			Status: ciliumiov1alpha1.TetragonPodStatus{
-				PodIP:  newIP.IP,
-				PodIPs: make([]ciliumiov1alpha1.PodIP, 0),
-			},
-		}
+		tetragonPod := generatePod(pod)
 
 		if err := r.Create(ctx, tetragonPod); err != nil {
 			l.Error(err, "Failed to create TetragonPod")
@@ -165,12 +152,43 @@ func createTetragonPod(ctx context.Context, pod *corev1.Pod, r *TetragonPodRecon
 		l.Info("New TetragonPod creation Successful")
 		return ctrl.Result{}, nil
 	}
-
-	// There are too many logs for pending pods, so commenting it out for now.
-	// if pod.Status.Phase == corev1.PodPending {
-	// 	l.Info("Pod is in pending state, waiting for it to be running")
-	// }
 	return ctrl.Result{}, nil
+}
+
+// generatePod takes a pod as an input and generates a tetragonPod resource, using the following fields:
+// - Name
+// - Namespace
+// - Labels
+// - Annotations
+// - OwnerReferences
+// - PodIPs
+func generatePod(pod *corev1.Pod) *ciliumiov1alpha1.TetragonPod {
+	podIPs := []ciliumiov1alpha1.PodIP{}
+	// Copy the Pod IPs into the TetragonPod IPs.
+	for _, podIP := range pod.Status.PodIPs {
+		podIPs = append(podIPs, ciliumiov1alpha1.PodIP{IP: podIP.IP})
+	}
+	return &ciliumiov1alpha1.TetragonPod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        pod.Name,
+			Namespace:   pod.Namespace,
+			Labels:      pod.Labels,
+			Annotations: pod.Annotations,
+			// setting up ownder reference to the pod will ensure that the tetragonPod resource is deleted when the pod is deleted.
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: pod.APIVersion,
+					Kind:       pod.Kind,
+					Name:       pod.Name,
+					UID:        pod.UID,
+				},
+			},
+		},
+		Status: ciliumiov1alpha1.TetragonPodStatus{
+			PodIP:  pod.Status.PodIP,
+			PodIPs: podIPs,
+		},
+	}
 }
 
 // getTetragonPod gets the tetragonPod resource
