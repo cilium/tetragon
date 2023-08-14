@@ -276,13 +276,11 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = k.off
 	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
-		0x07, 0x00, 0x00, 0x00, // Index == 6
+		0x07, 0x00, 0x00, 0x00, // Index == 7
 		17, 0x00, 0x00, 0x00, // operator == protocol
-		20, 0x00, 0x00, 0x00, // length == 20
+		12, 0x00, 0x00, 0x00, // length == 12
 		0x05, 0x00, 0x00, 0x00, // value type == skb
-		3, 0x00, 0x00, 0x00, // protocol = 3
-		17, 0x00, 0x00, 0x00, // protocol = 17 (UDP)
-		6, 0x00, 0x00, 0x00, // protocol = 6 (TCP)
+		1, 0x00, 0x00, 0x00, // argfilter mapid = 1
 	}
 	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, k.e[nextArg:k.off], arg5)
