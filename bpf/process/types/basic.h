@@ -1689,12 +1689,18 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 #endif
 
 #ifdef __LARGE_BPF_PROG
+struct socket_owner {
+	__u32 pid;
+	__u32 tid;
+	__u64 ktime;
+};
+
 // socktrack_map maintains a mapping of sock to pid_tgid
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__uint(max_entries, 32000);
 	__type(key, __u64);
-	__type(value, __u64);
+	__type(value, struct socket_owner);
 } socktrack_map SEC(".maps");
 
 static inline __attribute__((always_inline)) int
@@ -1705,6 +1711,9 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	__u64 sockaddr;
 	__u64 pid_tgid;
 	struct sk_type *skt;
+	struct socket_owner owner;
+	__u32 pid;
+	struct execve_map_value *value;
 
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
@@ -1721,10 +1730,19 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 		     :);
 	skt = (struct sk_type *)&e->args[sockoff];
 	sockaddr = skt->sockaddr;
+	if (!sockaddr)
+		return 0;
 	pid_tgid = get_current_pid_tgid();
+	pid = pid_tgid >> 32;
+	value = execve_map_get_noinit(pid);
+	if (!value)
+		return 0;
+	owner.pid = value->key.pid;
+	owner.tid = (__u32)pid_tgid;
+	owner.ktime = value->key.ktime;
 
 	if (track)
-		map_update_elem(&socktrack_map, &sockaddr, &pid_tgid, BPF_ANY);
+		map_update_elem(&socktrack_map, &sockaddr, &owner, BPF_ANY);
 	else
 		err = map_delete_elem(&socktrack_map, &sockaddr);
 
@@ -1738,22 +1756,15 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 static inline __attribute__((always_inline)) void
 update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
-	__u64 *pid_tgid;
-	__u32 pid;
-	struct execve_map_value *value;
+	struct socket_owner *owner;
 
-	pid_tgid = map_lookup_elem(&socktrack_map, &sockaddr);
-	if (!pid_tgid)
+	owner = map_lookup_elem(&socktrack_map, &sockaddr);
+	if (!owner)
 		return;
 
-	pid = (*pid_tgid) >> 32;
-	value = execve_map_get_noinit(pid);
-	if (!value)
-		return;
-
-	e->current.pid = value->key.pid;
-	e->current.ktime = value->key.ktime;
-	e->tid = (__u32)(*pid_tgid);
+	e->current.pid = owner->pid;
+	e->current.ktime = owner->ktime;
+	e->tid = owner->tid;
 }
 #else
 static inline __attribute__((always_inline)) int

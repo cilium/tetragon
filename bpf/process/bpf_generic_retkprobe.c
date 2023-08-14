@@ -87,9 +87,13 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	if (ty_arg) {
 		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap_ptr);
 #ifdef __LARGE_BPF_PROG
+		struct socket_owner owner;
 		switch (config->argreturnaction) {
 		case ACTION_TRACKSOCK:
-			map_update_elem(&socktrack_map, &ret, &pid_tgid, BPF_ANY);
+			owner.pid = e->current.pid;
+			owner.tid = e->tid;
+			owner.ktime = e->current.ktime;
+			map_update_elem(&socktrack_map, &ret, &owner, BPF_ANY);
 			break;
 		case ACTION_UNTRACKSOCK:
 			map_delete_elem(&socktrack_map, &ret);
