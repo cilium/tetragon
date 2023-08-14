@@ -9,8 +9,51 @@ import (
 )
 
 var inetFamily = map[uint16]string{
-	unix.AF_INET:  "AF_INET",
-	unix.AF_INET6: "AF_INET6",
+	unix.AF_UNSPEC:     "AF_UNSPEC",
+	unix.AF_UNIX:       "AF_UNIX",
+	unix.AF_INET:       "AF_INET",
+	unix.AF_AX25:       "AF_AX25",
+	unix.AF_IPX:        "AF_IPX",
+	unix.AF_APPLETALK:  "AF_APPLETALK",
+	unix.AF_NETROM:     "AF_NETROM",
+	unix.AF_BRIDGE:     "AF_BRIDGE",
+	unix.AF_ATMPVC:     "AF_ATMPVC",
+	unix.AF_X25:        "AF_X25",
+	unix.AF_INET6:      "AF_INET6",
+	unix.AF_ROSE:       "AF_ROSE",
+	unix.AF_DECnet:     "AF_DECnet",
+	unix.AF_NETBEUI:    "AF_NETBEUI",
+	unix.AF_SECURITY:   "AF_SECURITY",
+	unix.AF_KEY:        "AF_KEY",
+	unix.AF_NETLINK:    "AF_NETLINK",
+	unix.AF_PACKET:     "AF_PACKET",
+	unix.AF_ASH:        "AF_ASH",
+	unix.AF_ECONET:     "AF_ECONET",
+	unix.AF_ATMSVC:     "AF_ATMSVC",
+	unix.AF_RDS:        "AF_RDS",
+	unix.AF_IRDA:       "AF_IRDA",
+	unix.AF_PPPOX:      "AF_PPPOX",
+	unix.AF_WANPIPE:    "AF_WANPIPE",
+	unix.AF_LLC:        "AF_LLC",
+	unix.AF_IB:         "AF_IB",
+	unix.AF_MPLS:       "AF_MPLS",
+	unix.AF_CAN:        "AF_CAN",
+	unix.AF_TIPC:       "AF_TIPC",
+	unix.AF_BLUETOOTH:  "AF_BLUETOOTH",
+	unix.AF_IUCV:       "AF_IUCV",
+	unix.AF_RXRPC:      "AF_RXRPC",
+	unix.AF_ISDN:       "AF_ISDN",
+	unix.AF_PHONET:     "AF_PHONET",
+	unix.AF_IEEE802154: "AF_IEEE802154",
+	unix.AF_CAIF:       "AF_CAIF",
+	unix.AF_ALG:        "AF_ALG",
+	unix.AF_NFC:        "AF_NFC",
+	unix.AF_VSOCK:      "AF_VSOCK",
+	unix.AF_KCM:        "AF_KCM",
+	unix.AF_QIPCRTR:    "AF_QIPCRTR",
+	unix.AF_SMC:        "AF_SMC",
+	unix.AF_XDP:        "AF_XDP",
+	unix.AF_MCTP:       "AF_MCTP",
 }
 
 func InetFamily(family uint16) string {
@@ -19,6 +62,15 @@ func InetFamily(family uint16) string {
 		return f
 	}
 	return fmt.Sprintf("%d", family)
+}
+
+func InetFamilyNumber(family string) (uint16, error) {
+	for familynum, familystr := range inetFamily {
+		if family == familystr {
+			return familynum, nil
+		}
+	}
+	return 0, fmt.Errorf("address family string not known")
 }
 
 var inetType = map[uint16]string{
@@ -82,4 +134,35 @@ func InetProtocolNumber(proto string) (uint16, error) {
 		}
 	}
 	return 0, fmt.Errorf("protocol string not known")
+}
+
+var tcpState = map[uint8]string{
+	1:  "TCP_ESTABLISHED",
+	2:  "TCP_SYN_SENT",
+	3:  "TCP_SYN_RECV",
+	4:  "TCP_FIN_WAIT1",
+	5:  "TCP_FIN_WAIT2",
+	6:  "TCP_TIME_WAIT",
+	7:  "TCP_CLOSE",
+	8:  "TCP_CLOSE_WAIT",
+	9:  "TCP_LAST_ACK",
+	10: "TCP_LISTEN",
+	11: "TCP_CLOSING",
+	12: "TCP_NEW_SYN_RECV",
+}
+
+func TcpState(state uint8) string {
+	if p, ok := tcpState[state]; ok {
+		return p
+	}
+	return fmt.Sprintf("%d", state)
+}
+
+func TcpStateNumber(state string) (uint8, error) {
+	for statenum, statestr := range tcpState {
+		if state == statestr {
+			return statenum, nil
+		}
+	}
+	return 0, fmt.Errorf("state string not known")
 }

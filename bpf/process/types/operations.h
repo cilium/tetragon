@@ -38,6 +38,9 @@ enum {
 	// file ops
 	op_filter_str_notprefix = 26,
 	op_filter_str_notpostfix = 27,
+	// more socket ops
+	op_filter_family = 28,
+	op_filter_state = 29,
 };
 
 #endif // __OPERATIONS_H__

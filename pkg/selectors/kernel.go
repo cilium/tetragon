@@ -231,6 +231,9 @@ const (
 	// file ops
 	SelectorOpNotPrefix  = 26
 	SelectorOpNotPostfix = 27
+	// more socket ops
+	SelectorOpFamily = 28
+	SelectorOpState  = 29
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -260,6 +263,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpNotDaddr:     "NotDAddr",
 	SelectorOpNotPrefix:    "NotPrefix",
 	SelectorOpNotPostfix:   "NotPostfix",
+	SelectorOpFamily:       "Family",
+	SelectorOpState:        "State",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -316,6 +321,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpNotSportPriv, nil
 	case "notdportpriv", "NotDportPriv", "NotDPortPriv":
 		return SelectorOpNotDportPriv, nil
+	case "family", "Family":
+		return SelectorOpFamily, nil
+	case "state", "State":
+		return SelectorOpState, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -429,6 +438,18 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 				if err == nil {
 					protocolStr := fmt.Sprintf("%d", protocol)
 					rangeStr = []string{protocolStr, protocolStr}
+				}
+			case SelectorOpFamily:
+				family, err := network.InetFamilyNumber(v)
+				if err == nil {
+					familyStr := fmt.Sprintf("%d", family)
+					rangeStr = []string{familyStr, familyStr}
+				}
+			case SelectorOpState:
+				state, err := network.TcpStateNumber(v)
+				if err == nil {
+					stateStr := fmt.Sprintf("%d", state)
+					rangeStr = []string{stateStr, stateStr}
 				}
 			}
 		}
@@ -599,7 +620,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
-	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol:
+	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}

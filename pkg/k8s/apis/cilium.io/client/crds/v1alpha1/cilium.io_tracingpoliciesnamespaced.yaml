@@ -283,6 +283,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -296,7 +297,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -508,6 +510,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -521,7 +524,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -771,6 +775,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -784,7 +789,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -996,6 +1002,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -1009,7 +1016,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1131,6 +1139,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -1144,7 +1153,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1356,6 +1366,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - Mask
                                   - SPort
                                   - NotSPort
                                   - SPortPriv
@@ -1369,7 +1380,8 @@ spec:
                                   - DAddr
                                   - NotDAddr
                                   - Protocol
-                                  - Mask
+                                  - Family
+                                  - State
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

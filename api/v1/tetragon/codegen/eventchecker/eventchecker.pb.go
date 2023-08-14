@@ -3060,6 +3060,7 @@ type KprobeSockChecker struct {
 	Sport    *uint32                      `json:"sport,omitempty"`
 	Dport    *uint32                      `json:"dport,omitempty"`
 	Cookie   *uint64                      `json:"cookie,omitempty"`
+	State    *stringmatcher.StringMatcher `json:"state,omitempty"`
 }
 
 // NewKprobeSockChecker creates a new KprobeSockChecker
@@ -3127,6 +3128,11 @@ func (checker *KprobeSockChecker) Check(event *tetragon.KprobeSock) error {
 		if checker.Cookie != nil {
 			if *checker.Cookie != event.Cookie {
 				return fmt.Errorf("Cookie has value %d which does not match expected value %d", event.Cookie, *checker.Cookie)
+			}
+		}
+		if checker.State != nil {
+			if err := checker.State.Match(event.State); err != nil {
+				return fmt.Errorf("State check failed: %w", err)
 			}
 		}
 		return nil
@@ -3197,6 +3203,12 @@ func (checker *KprobeSockChecker) WithCookie(check uint64) *KprobeSockChecker {
 	return checker
 }
 
+// WithState adds a State check to the KprobeSockChecker
+func (checker *KprobeSockChecker) WithState(check *stringmatcher.StringMatcher) *KprobeSockChecker {
+	checker.State = check
+	return checker
+}
+
 //FromKprobeSock populates the KprobeSockChecker using data from a KprobeSock field
 func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *KprobeSockChecker {
 	if event == nil {
@@ -3227,6 +3239,7 @@ func (checker *KprobeSockChecker) FromKprobeSock(event *tetragon.KprobeSock) *Kp
 		val := event.Cookie
 		checker.Cookie = &val
 	}
+	checker.State = stringmatcher.Full(event.State)
 	return checker
 }
 
@@ -3244,6 +3257,7 @@ type KprobeSkbChecker struct {
 	SecPathLen  *uint32                      `json:"secPathLen,omitempty"`
 	SecPathOlen *uint32                      `json:"secPathOlen,omitempty"`
 	Protocol    *stringmatcher.StringMatcher `json:"protocol,omitempty"`
+	Family      *stringmatcher.StringMatcher `json:"family,omitempty"`
 }
 
 // NewKprobeSkbChecker creates a new KprobeSkbChecker
@@ -3321,6 +3335,11 @@ func (checker *KprobeSkbChecker) Check(event *tetragon.KprobeSkb) error {
 		if checker.Protocol != nil {
 			if err := checker.Protocol.Match(event.Protocol); err != nil {
 				return fmt.Errorf("Protocol check failed: %w", err)
+			}
+		}
+		if checker.Family != nil {
+			if err := checker.Family.Match(event.Family); err != nil {
+				return fmt.Errorf("Family check failed: %w", err)
 			}
 		}
 		return nil
@@ -3403,6 +3422,12 @@ func (checker *KprobeSkbChecker) WithProtocol(check *stringmatcher.StringMatcher
 	return checker
 }
 
+// WithFamily adds a Family check to the KprobeSkbChecker
+func (checker *KprobeSkbChecker) WithFamily(check *stringmatcher.StringMatcher) *KprobeSkbChecker {
+	checker.Family = check
+	return checker
+}
+
 //FromKprobeSkb populates the KprobeSkbChecker using data from a KprobeSkb field
 func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *KprobeSkbChecker {
 	if event == nil {
@@ -3447,6 +3472,7 @@ func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *Kprob
 		checker.SecPathOlen = &val
 	}
 	checker.Protocol = stringmatcher.Full(event.Protocol)
+	checker.Family = stringmatcher.Full(event.Family)
 	return checker
 }
 

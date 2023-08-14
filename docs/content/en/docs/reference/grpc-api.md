@@ -283,6 +283,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | sec_path_len | [uint32](#uint32) |  |  |
 | sec_path_olen | [uint32](#uint32) |  |  |
 | protocol | [string](#string) |  |  |
+| family | [string](#string) |  |  |
 
 <a name="tetragon-KprobeSock"></a>
 
@@ -300,6 +301,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | sport | [uint32](#uint32) |  |  |
 | dport | [uint32](#uint32) |  |  |
 | cookie | [uint64](#uint64) |  |  |
+| state | [string](#string) |  |  |
 
 <a name="tetragon-KprobeTruncatedBytes"></a>
 
