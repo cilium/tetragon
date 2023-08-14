@@ -233,6 +233,35 @@ const (
 	SelectorOpNotPostfix = 27
 )
 
+var selectorOpStringTable = map[uint32]string{
+	SelectorOpGT:           "gt",
+	SelectorOpLT:           "lt",
+	SelectorOpEQ:           "Equal",
+	SelectorOpNEQ:          "NotEqual",
+	SelectorOpIn:           "In",
+	SelectorOpNotIn:        "NotIn",
+	SelectorOpPrefix:       "Prefix",
+	SelectorOpPostfix:      "Postfix",
+	SelectorInMap:          "InMap",
+	SelectorNotInMap:       "NotInMap",
+	SelectorOpMASK:         "Mask",
+	SelectorOpSaddr:        "SAddr",
+	SelectorOpDaddr:        "DAddr",
+	SelectorOpSport:        "SPort",
+	SelectorOpDport:        "DPort",
+	SelectorOpProtocol:     "Protocol",
+	SelectorOpNotSport:     "NotSPort",
+	SelectorOpNotDport:     "NotDPort",
+	SelectorOpSportPriv:    "SPortPriv",
+	SelectorOpNotSportPriv: "NotSPortPriv",
+	SelectorOpDportPriv:    "DPortPriv",
+	SelectorOpNotDportPriv: "NotDPortPriv",
+	SelectorOpNotSaddr:     "NotSAddr",
+	SelectorOpNotDaddr:     "NotDAddr",
+	SelectorOpNotPrefix:    "NotPrefix",
+	SelectorOpNotPostfix:   "NotPostfix",
+}
+
 func SelectorOp(op string) (uint32, error) {
 	switch op {
 	case "gt":
@@ -373,7 +402,7 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 	return 0, fmt.Errorf("argFilter for unknown index")
 }
 
-func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32) error {
+func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
 		// We store the start and end of the range as uint64s for unsigned values, and as int64s
@@ -392,6 +421,16 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32) e
 			// If only one value in the string, e.g. "5", then add it a second time to simulate
 			// a range that starts and ends with itself, e.g. as if "5:5" had been specified.
 			rangeStr = append(rangeStr, rangeStr[0])
+
+			// Special actions for particular network ops
+			switch op {
+			case SelectorOpProtocol:
+				protocol, err := network.InetProtocolNumber(v)
+				if err == nil {
+					protocolStr := fmt.Sprintf("%d", protocol)
+					rangeStr = []string{protocolStr, protocolStr}
+				}
+			}
 		}
 		for idx := 0; idx < 2; idx++ {
 			switch ty {
@@ -532,18 +571,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			}
 			WriteSelectorUint64(k, uint64(i))
 		case argTypeSock, argTypeSkb:
-			switch op {
-			case SelectorOpProtocol:
-				protocol, err := network.InetProtocolNumber(v)
-				if err != nil {
-					protocol32, err := strconv.ParseUint(v, base, 16)
-					if err != nil {
-						return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-					}
-					protocol = uint16(protocol32)
-				}
-				WriteSelectorUint32(k, uint32(protocol))
-			}
+			return fmt.Errorf("MatchArgs type sock and skb do not support operator %s", selectorOpStringTable[op])
 		case argTypeCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
@@ -567,15 +595,15 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(k, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
-		err := writeMatchRangesInMap(k, arg.Values, ty)
+		err := writeMatchRangesInMap(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
-	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport:
+	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol:
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
-		err := writeMatchRangesInMap(k, arg.Values, argTypeU64) // force type for ports as ty is sock/skb
+		err := writeMatchRangesInMap(k, arg.Values, argTypeU64, op) // force type for ports and protocols as ty is sock/skb
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
@@ -591,15 +619,6 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
-		}
-	case SelectorOpProtocol:
-		// Check protocol is only specified for sock/skb.
-		if ty != argTypeSock && ty != argTypeSkb {
-			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
-		}
-		err = writeMatchValues(k, arg.Values, ty, op)
-		if err != nil {
-			return fmt.Errorf("writeMatchValues error: %w", err)
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
