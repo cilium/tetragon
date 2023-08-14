@@ -1,0 +1,75 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "accept"
+spec:
+  kprobes:
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+    - index: 1
+      type: int
+      label: "family"
+    returnArg:
+      type: sock
+    returnArgAction: TrackSock
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - 2
+  - call: "__sk_free"
+    syscall: false
+    args:
+    - index: 0
+      type: sock
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "family"
+        values:
+        - "AF_INET"
+    - matchActions:
+      - action: UntrackSock
+        argSock: 0
+  - call: "tcp_set_state"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 1
+      type: "int"
+      label: "state"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "state"
+        values:
+        - "TCP_SYN_RECV"
+      - index: 1
+        operator: "Equal"
+        values:
+        - 1
+  - call: "tcp_close"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "127.0.0.1/32"
+  - call: "tcp_create_openreq_child"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "sock"
+    returnArg:
+      type: sock
+    returnArgAction: TrackSock
+
