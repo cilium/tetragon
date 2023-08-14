@@ -158,7 +158,7 @@ type MsgGenericKprobeTuple struct {
 	Sport    uint16
 	Dport    uint16
 	Protocol uint16
-	Pad      uint16
+	Family   uint16
 }
 
 type MsgGenericKprobeSock struct {
@@ -166,9 +166,9 @@ type MsgGenericKprobeSock struct {
 	Sockaddr uint64
 	Mark     uint32
 	Priority uint32
-	Family   uint16
 	Type     uint16
-	Pad      uint32
+	State    uint8
+	Pad      [5]uint8
 }
 
 type MsgGenericKprobeArgSock struct {
@@ -184,6 +184,7 @@ type MsgGenericKprobeArgSock struct {
 	Dport    uint32
 	Sockaddr uint64
 	Label    string
+	State    uint8
 }
 
 func (m MsgGenericKprobeArgSock) GetIndex() uint64 {
@@ -206,6 +207,7 @@ type MsgGenericKprobeSkb struct {
 
 type MsgGenericKprobeArgSkb struct {
 	Index       uint64
+	Family      uint16
 	Hash        uint32
 	Len         uint32
 	Priority    uint32

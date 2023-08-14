@@ -41,6 +41,8 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 
 		event->tuple.protocol = v4_prot;
 
+		event->tuple.family = AF_INET;
+
 		probe_read(&event->tuple.saddr, sizeof(event->tuple.saddr), _(&ip->saddr));
 		probe_read(&event->tuple.daddr, sizeof(event->tuple.daddr), _(&ip->daddr));
 		typeof(skb->transport_header) l4_off;

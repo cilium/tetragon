@@ -1098,6 +1098,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Len = skb.Len
 			arg.Priority = skb.Priority
 			arg.Mark = skb.Mark
+			arg.Family = skb.Tuple.Family
 			arg.Saddr = network.GetIP(skb.Tuple.Saddr).String()
 			arg.Daddr = network.GetIP(skb.Tuple.Daddr).String()
 			arg.Sport = uint32(skb.Tuple.Sport)
@@ -1117,7 +1118,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			}
 
 			arg.Index = uint64(a.index)
-			arg.Family = sock.Family
+			arg.Family = sock.Tuple.Family
+			arg.State = sock.State
 			arg.Type = sock.Type
 			arg.Protocol = sock.Tuple.Protocol
 			arg.Mark = sock.Mark

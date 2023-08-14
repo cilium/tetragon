@@ -14,9 +14,9 @@ struct sk_type {
 	__u64 sockaddr;
 	__u32 mark;
 	__u32 priority;
-	__u16 family;
 	__u16 type;
-	__u32 pad;
+	__u8 state;
+	__u8 pad[5];
 };
 
 /* set_event_from_sock(sock)
@@ -30,10 +30,12 @@ set_event_from_sock(struct sk_type *event, struct sock *sk)
 
 	event->sockaddr = (__u64)sk;
 
-	event->family = 0;
+	event->tuple.family = 0;
 
-	probe_read(&event->family, sizeof(event->family),
+	probe_read(&event->tuple.family, sizeof(event->tuple.family),
 		   _(&common->skc_family));
+	probe_read(&event->state, sizeof(event->state),
+		   _((const void *)&common->skc_state));
 	probe_read(&event->type, sizeof(event->type), _(&sk->sk_type));
 	probe_read(&event->tuple.protocol, sizeof(event->tuple.protocol),
 		   _(&sk->sk_protocol));

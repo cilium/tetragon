@@ -805,7 +805,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 {
 	__u32 addr = 0;
 	__u32 port = 0;
-	__u32 protocol = 0;
+	__u32 value = 0;
 	struct sk_type *sk = 0;
 	struct skb_type *skb = 0;
 	struct tuple_type *tuple = 0;
@@ -845,7 +845,14 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		port = tuple->dport;
 		break;
 	case op_filter_protocol:
-		protocol = tuple->protocol;
+		value = tuple->protocol;
+		break;
+	case op_filter_family:
+		value = tuple->family;
+		break;
+	case op_filter_state:
+		if (filter->type == sock_type)
+			value = sk->state;
 		break;
 	default:
 		return 0;
@@ -869,7 +876,11 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case op_filter_notdaddr:
 		return filter_addr4_map(filter, addr);
 	case op_filter_protocol:
-		return filter_32ty_map(filter, (char *)&protocol);
+	case op_filter_family:
+		return filter_32ty_map(filter, (char *)&value);
+	case op_filter_state:
+		if (filter->type == sock_type)
+			return filter_32ty_map(filter, (char *)&value);
 	}
 	return 0;
 }
@@ -1163,6 +1174,8 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	case op_filter_sport:
 	case op_filter_dport:
 	case op_filter_protocol:
+	case op_filter_family:
+	case op_filter_state:
 		return !!pass;
 	case op_filter_notinmap:
 	case op_filter_notsport:
