@@ -11,10 +11,9 @@ import (
 	"time"
 
 	k8sversion "github.com/cilium/tetragon/pkg/k8s/version"
+	"github.com/cilium/tetragon/pkg/logger"
 
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
-	"github.com/cilium/cilium/pkg/versioncheck"
+	"github.com/blang/semver/v4"
 	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/sirupsen/logrus"
@@ -38,9 +37,9 @@ const (
 
 var (
 	// log is the k8s package logger object.
-	log = logging.DefaultLogger.WithField(logfields.LogSubsys, subsysK8s)
+	log = logger.GetLogger().WithField("subsystem", subsysK8s)
 
-	comparableCRDSchemaVersion = versioncheck.MustVersion(v1alpha1.CustomResourceDefinitionSchemaVersion)
+	comparableCRDSchemaVersion = semver.MustParse(v1alpha1.CustomResourceDefinitionSchemaVersion)
 )
 
 // CreateCustomResourceDefinitions creates our CRD objects in the Kubernetes
@@ -214,7 +213,7 @@ func needsUpdateV1(clusterCRD *apiextensionsv1.CustomResourceDefinition) bool {
 		return true
 	}
 
-	clusterVersion, err := versioncheck.Version(v)
+	clusterVersion, err := semver.ParseTolerant(v)
 	if err != nil || clusterVersion.LT(comparableCRDSchemaVersion) {
 		// version in cluster is either unparsable or smaller than current version
 		return true

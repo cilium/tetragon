@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cilium/cilium/pkg/versioncheck"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -75,7 +75,7 @@ func needsUpdateV1beta1(clusterCRD *apiextensionsv1beta1.CustomResourceDefinitio
 		return true
 	}
 
-	clusterVersion, err := versioncheck.Version(v)
+	clusterVersion, err := semver.ParseTolerant(v)
 	if err != nil || clusterVersion.LT(comparableCRDSchemaVersion) {
 		// version in cluster is either unparsable or smaller than current version
 		return true

@@ -6,7 +6,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -88,7 +87,7 @@ type TracingPolicySpec struct {
 
 	// +kubebuilder:validation:Optional
 	// PodSelector selects pods that this policy applies to
-	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
+	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
 }
 
 func (tp *TracingPolicy) TpName() string {

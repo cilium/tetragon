@@ -19,10 +19,8 @@ package version
 import (
 	"fmt"
 
-	"github.com/cilium/cilium/pkg/lock"
-	"github.com/cilium/cilium/pkg/versioncheck"
-
 	semver "github.com/blang/semver/v4"
+	"github.com/cilium/tetragon/pkg/lock"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -59,11 +57,11 @@ var (
 
 	// Constraint to check support for apiextensions/v1 CRD types. Support for
 	// v1 CRDs was introduced in K8s version 1.16.
-	isGEThanAPIExtensionsV1CRD = versioncheck.MustCompile(">=1.16.0")
+	isGEThanAPIExtensionsV1CRD = semver.MustParseRange(">=1.16.0")
 
 	// isGEThanMinimalVersionConstraint is the minimal version required to run
 	// Cilium
-	isGEThanMinimalVersionConstraint = versioncheck.MustCompile(">=" + MinimalVersionConstraint)
+	isGEThanMinimalVersionConstraint = semver.MustParseRange(">=" + MinimalVersionConstraint)
 )
 
 // Version returns the version of the Kubernetes apiserver
@@ -94,7 +92,7 @@ func updateVersion(version semver.Version) {
 
 // Force forces the use of a specific version
 func Force(version string) error {
-	ver, err := versioncheck.Version(version)
+	ver, err := semver.ParseTolerant(version)
 	if err != nil {
 		return err
 	}
@@ -113,7 +111,7 @@ func UpdateK8sServerVersion(client kubernetes.Interface) error {
 	// Try GitVersion first. In case of error fallback to MajorMinor
 	if sv.GitVersion != "" {
 		// This is a string like "v1.9.0"
-		ver, err = versioncheck.Version(sv.GitVersion)
+		ver, err = semver.ParseTolerant(sv.GitVersion)
 		if err == nil {
 			updateVersion(ver)
 			return nil
@@ -121,7 +119,7 @@ func UpdateK8sServerVersion(client kubernetes.Interface) error {
 	}
 
 	if sv.Major != "" && sv.Minor != "" {
-		ver, err = versioncheck.Version(fmt.Sprintf("%s.%s", sv.Major, sv.Minor))
+		ver, err = semver.ParseTolerant(fmt.Sprintf("%s.%s", sv.Major, sv.Minor))
 		if err == nil {
 			updateVersion(ver)
 			return nil
