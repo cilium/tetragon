@@ -111,6 +111,11 @@ struct selector_arg_filters {
 
 struct event_config {
 	__u32 func_id;
+	__s32 arg0_idx;
+	__s32 arg1_idx;
+	__s32 arg2_idx;
+	__s32 arg3_idx;
+	__s32 arg4_idx;
 	__s32 arg0;
 	__s32 arg1;
 	__s32 arg2;

@@ -9,14 +9,26 @@
 #define MAX_TOTAL 9000
 
 static inline __attribute__((always_inline)) int
+get_arg_idx_or_skip(void *ctx, struct event_config *config,
+		    struct bpf_map_def *tailcals, int index)
+{
+	int arg_idx;
+
+	arg_idx = (&config->arg0_idx)[index];
+	if (arg_idx == -1)
+		tail_call(ctx, tailcals, 6);
+	return arg_idx;
+}
+
+static inline __attribute__((always_inline)) int
 generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
 		      struct bpf_map_def *data_heap)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	int zero = 0, arg_idx;
 	unsigned long a;
-	int zero = 0;
 	long ty, total;
 
 	e = map_lookup_elem(heap_map, &zero);
@@ -27,20 +39,25 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 	if (!config)
 		return 0;
 
-	a = (&e->a0)[index];
+	arg_idx = get_arg_idx_or_skip(ctx, config, tailcals, index);
+
+	asm volatile("%[arg_idx] &= 0x7;\n" ::[arg_idx] "+r"(arg_idx)
+		     :);
+
+	a = (&e->a0)[arg_idx];
 	total = e->common.size;
 
 	/* Read out args1-5 */
-	ty = (&config->arg0)[index];
+	ty = (&config->arg0)[arg_idx];
 	if (total < MAX_TOTAL) {
 		long errv;
 		int am;
 
-		am = (&config->arg0m)[index];
+		am = (&config->arg0m)[arg_idx];
 		asm volatile("%[am] &= 0xffff;\n" ::[am] "+r"(am)
 			     :);
 
-		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap);
+		errv = read_call_arg(ctx, e, arg_idx, ty, total, a, am, data_heap);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -53,11 +70,13 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4)
+	if (index < 4) {
+		/* Try to skip next argument retrieval early. */
+		(void)get_arg_idx_or_skip(ctx, config, tailcals, index + 1);
 		tail_call(ctx, tailcals, index + 1);
+	}
 
 	/* Last argument, go send.. */
-	total += generic_kprobe_common_size();
 	tail_call(ctx, tailcals, 6);
 	return 0;
 }
