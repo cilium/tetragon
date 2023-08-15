@@ -1423,6 +1423,8 @@ There are different types supported for each operator. In case of `matchArgs`:
 * DAddr - Destination Address
 * NotDAddr - Not Destination Address
 * Protocol
+* Family
+* State
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
@@ -1504,6 +1506,19 @@ The operators relating to ports, addresses and protocol are used with sock or sk
 types. Port operators can accept a range of ports specified as `min:max` as well
 as lists of individual ports. Address operators can accept IPv4 CIDR ranges as well
 as lists of individual addresses.
+
+The `Protocol` operator can accept integer values to match against, or the equivalent
+IPPROTO_ enumeration. For example, UDP can be specified as either `IPPROTO_UDP` or 17;
+TCP can be specified as either `IPPROTO_TCP` or 6.
+
+The `Family` operator can accept integer values to match against or the equivalent
+AF_ enumeration. For example, IPv4 can be specified as either `AF_INET` or 2; IPv6
+can be specified as either `AF_INET6` or 10. (Please note that IPv6 support is
+currently very limited, but will be improved in the future.)
+
+The `State` operator can accept integer values to match against or the equivalent
+TCP_ enumeration. For example, an established socket can be matched with
+`TCP_ESTABLISHED` or 1; a closed socket with `TCP_CLOSE` or 7.
 
 In case of `matchPIDs`:
 
