@@ -3,7 +3,7 @@ module github.com/cilium/tetragon
 go 1.20
 
 require (
-	github.com/cilium/cilium v1.14.0
+	github.com/cilium/cilium v1.14.1
 	github.com/cilium/ebpf v0.11.0
 	github.com/cilium/little-vm-helper v0.0.12
 	github.com/cilium/lumberjack/v2 v2.3.0
@@ -15,16 +15,16 @@ require (
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.3
-	github.com/google/cel-go v0.12.6
+	github.com/google/cel-go v0.12.7
 	github.com/google/go-cmp v0.5.9
-	github.com/google/gops v0.3.27
+	github.com/google/gops v0.3.28
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru/v2 v2.0.5
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mennanov/fmutils v0.2.0
-	github.com/opencontainers/runc v1.1.5
+	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
@@ -144,7 +144,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/shirou/gopsutil/v3 v3.23.5 // indirect
+	github.com/shirou/gopsutil/v3 v3.23.7 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
