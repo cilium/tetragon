@@ -63,6 +63,8 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	}
 
 	nodeName = node.GetNodeNameForExport()
+
+	// Cilium state created but not used
 	ciliumState = cilium.GetCiliumState()
 	if ciliumState == nil {
 		return fmt.Errorf("ciliumState must be initialized before process cache")
@@ -355,6 +357,8 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
+
+// Function not used
 
 func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
 	if p == nil {
