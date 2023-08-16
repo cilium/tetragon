@@ -237,6 +237,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	// that we do not need to SetInnerMaxEntries() here.
 	maps = append(maps, addr4FilterMaps)
 
+	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
+	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
+	// that we do not need to SetInnerMaxEntries() here.
+	maps = append(maps, addr6FilterMaps)
+
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	maps = append(maps, retProbe)
 
@@ -717,6 +722,15 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 	}
 	out.maps = append(out.maps, addr4FilterMaps)
 
+	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.Addr6MapsMaxEntries()
+		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	out.maps = append(out.maps, addr6FilterMaps)
+
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	out.maps = append(out.maps, retProbe)
 
@@ -1180,8 +1194,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Priority = skb.Priority
 			arg.Mark = skb.Mark
 			arg.Family = skb.Tuple.Family
-			arg.Saddr = network.GetIP(skb.Tuple.Saddr).String()
-			arg.Daddr = network.GetIP(skb.Tuple.Daddr).String()
+			arg.Saddr = network.GetIP(skb.Tuple.Saddr, skb.Tuple.Family).String()
+			arg.Daddr = network.GetIP(skb.Tuple.Daddr, skb.Tuple.Family).String()
 			arg.Sport = uint32(skb.Tuple.Sport)
 			arg.Dport = uint32(skb.Tuple.Dport)
 			arg.Proto = uint32(skb.Tuple.Protocol)
@@ -1205,8 +1219,8 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Protocol = sock.Tuple.Protocol
 			arg.Mark = sock.Mark
 			arg.Priority = sock.Priority
-			arg.Saddr = network.GetIP(sock.Tuple.Saddr).String()
-			arg.Daddr = network.GetIP(sock.Tuple.Daddr).String()
+			arg.Saddr = network.GetIP(sock.Tuple.Saddr, sock.Tuple.Family).String()
+			arg.Daddr = network.GetIP(sock.Tuple.Daddr, sock.Tuple.Family).String()
 			arg.Sport = uint32(sock.Tuple.Sport)
 			arg.Dport = uint32(sock.Tuple.Dport)
 			arg.Sockaddr = sock.Sockaddr

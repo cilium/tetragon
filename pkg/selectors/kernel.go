@@ -500,17 +500,37 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 }
 
 func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
-	mid, m := k.newAddr4Map()
+	m4 := k.createAddr4Map()
+	m6 := k.createAddr6Map()
 	for _, v := range values {
 		addr, maskLen, err := parseAddr(v)
 		if err != nil {
 			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 		}
-		val := KernelLpmTrie4{prefix: maskLen, addr: addr}
-		m[val] = struct{}{}
+		if len(addr) == 4 {
+			val := KernelLpmTrie4{prefix: maskLen, addr: binary.LittleEndian.Uint32(addr)}
+			m4[val] = struct{}{}
+		} else if len(addr) == 16 {
+			val := KernelLpmTrie6{prefix: maskLen}
+			copy(val.addr[:], addr)
+			m6[val] = struct{}{}
+		} else {
+			return fmt.Errorf("MatchArgs value %s invalid: should be either 4 or 16 bytes long", v)
+		}
 	}
-	// write the map id into the selector
-	WriteSelectorUint32(k, mid)
+	// write the map ids into the selector
+	if len(m4) != 0 {
+		m4id := k.insertAddr4Map(m4)
+		WriteSelectorUint32(k, m4id)
+	} else {
+		WriteSelectorUint32(k, 0xffffffff)
+	}
+	if len(m6) != 0 {
+		m6id := k.insertAddr6Map(m6)
+		WriteSelectorUint32(k, m6id)
+	} else {
+		WriteSelectorUint32(k, 0xffffffff)
+	}
 	return nil
 }
 
@@ -524,32 +544,46 @@ func getBase(v string) int {
 	return 10
 }
 
-func parseAddr(v string) (uint32, uint32, error) {
+func parseAddr(v string) ([]byte, uint32, error) {
 	ipaddr := net.ParseIP(v)
 	if ipaddr != nil {
-		ipaddr = ipaddr.To4()
-		if ipaddr == nil {
-			return 0, 0, fmt.Errorf("IP address is not IPv4")
+		ipaddr4 := ipaddr.To4()
+		if ipaddr4 != nil {
+			return ipaddr4, 32, nil
 		}
-		return binary.LittleEndian.Uint32(ipaddr), 32, nil
+		ipaddr6 := ipaddr.To16()
+		if ipaddr6 != nil {
+			return ipaddr6, 128, nil
+		}
+		return nil, 0, fmt.Errorf("IP address is not valid: does not parse as IPv4 or IPv6")
 	}
 	vParts := strings.Split(v, "/")
 	if len(vParts) != 2 {
-		return 0, 0, fmt.Errorf("IP address is not IPv4")
+		return nil, 0, fmt.Errorf("IP address is not valid: should be in format ADDR or ADDR/MASKLEN")
 	}
 	ipaddr = net.ParseIP(vParts[0])
 	if ipaddr == nil {
-		return 0, 0, fmt.Errorf("IP address is not IPv4")
-	}
-	ipaddr = ipaddr.To4()
-	if ipaddr == nil {
-		return 0, 0, fmt.Errorf("IP address is not IPv4")
+		return nil, 0, fmt.Errorf("IP CIDR is not valid: address part does not parse as IPv4 or IPv6")
 	}
 	maskLen, err := strconv.ParseUint(vParts[1], 10, 32)
-	if err != nil || maskLen > 32 {
-		return 0, 0, fmt.Errorf("IP address is not IPv4")
+	if err != nil {
+		return nil, 0, fmt.Errorf("IP CIDR is not valid: mask part does not parse")
 	}
-	return binary.LittleEndian.Uint32(ipaddr), uint32(maskLen), nil
+	ipaddr4 := ipaddr.To4()
+	if ipaddr4 != nil {
+		if maskLen <= 32 {
+			return ipaddr4, uint32(maskLen), nil
+		}
+		return nil, 0, fmt.Errorf("IP CIDR is not valid: IPv4 mask len must be <= 32")
+	}
+	ipaddr6 := ipaddr.To16()
+	if ipaddr6 != nil {
+		if maskLen <= 128 {
+			return ipaddr6, uint32(maskLen), nil
+		}
+		return nil, 0, fmt.Errorf("IP CIDR is not valid: IPv6 mask len must be <= 128")
+	}
+	return nil, 0, fmt.Errorf("IP CIDR is not valid: address part does not parse")
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
