@@ -61,6 +61,9 @@ var (
 
 	//go:embed crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
 	crdsv1Alpha1TracingPoliciesNamespaced []byte
+
+	//go:embed crds/v1alpha1/cilium.io_podinfo.yaml
+	crdsv1Alpha1PodInfo []byte
 )
 
 // GetPregeneratedCRD returns the pregenerated CRD based on the requested CRD
