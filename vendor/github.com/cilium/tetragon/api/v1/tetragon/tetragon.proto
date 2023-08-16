@@ -55,7 +55,8 @@ message Pod {
     // Name of the Pod.
     string name = 2;
     // Cilium identity labels of the Pod.
-    repeated string labels = 3;
+    // This field is deprecated. Use pod_labels instead.
+    repeated string labels = 3 [deprecated = true];
     // Container of the Pod from which the process that triggered the event
     // originates.
     Container container = 4;
