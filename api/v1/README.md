@@ -619,7 +619,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | ----- | ---- | ----- | ----------- |
 | namespace | [string](#string) |  | Kubernetes namespace of the Pod. |
 | name | [string](#string) |  | Name of the Pod. |
-| labels | [string](#string) | repeated | Cilium identity labels of the Pod. |
+| labels | [string](#string) | repeated | **Deprecated.** Cilium identity labels of the Pod. This field is deprecated. Use pod_labels instead. |
 | container | [Container](#tetragon-Container) |  | Container of the Pod from which the process that triggered the event originates. |
 | pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
 
