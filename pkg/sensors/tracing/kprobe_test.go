@@ -3803,11 +3803,21 @@ spec:
 }
 
 func miniTcpNopServer(c chan<- bool) {
-	miniTcpNopServerWithPort(c, 9919)
+	miniTcpNopServerWithPort(c, 9919, false)
 }
 
-func miniTcpNopServerWithPort(c chan<- bool, port int) {
-	conn, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", port))
+func miniTcpNopServer6(c chan<- bool) {
+	miniTcpNopServerWithPort(c, 9919, true)
+}
+
+func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
+	var conn net.Listener
+	var err error
+	if !ipv6 {
+		conn, err = net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", port))
+	} else {
+		conn, err = net.Listen("tcp6", fmt.Sprintf("[::1]:%d", port))
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -4239,7 +4249,7 @@ spec:
 	readyWG.Wait()
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 1020)
+	go miniTcpNopServerWithPort(tcpReady, 1020, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1020")
 	assert.NoError(t, err)
@@ -4808,6 +4818,190 @@ spec:
 				ec.NewKprobeArgumentChecker().WithLabel(sm.Full("datagram")).
 					WithSkbArg(ec.NewKprobeSkbChecker().
 						WithDaddr(sm.Full("127.0.0.1")).
+						WithDport(53).
+						WithProtocol(sm.Full("IPPROTO_UDP")),
+					),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeSockIpv6(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tcp-connect"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "::1"
+      - index: 0
+        operator: "DPort"
+        values:
+        - "9919"
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+`
+	hookPart := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tcp-connect"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "::1"
+`
+
+	if kernels.EnableLargeProgs() {
+		createCrdFile(t, hookFull)
+	} else {
+		createCrdFile(t, hookPart)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	tcpReady := make(chan bool)
+	go miniTcpNopServer6(tcpReady)
+	<-tcpReady
+	addr, err := net.ResolveTCPAddr("tcp", "[::1]:9919")
+	assert.NoError(t, err)
+	_, err = net.DialTCP("tcp", nil, addr)
+	assert.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
+		WithFunctionName(sm.Full("tcp_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockArg(ec.NewKprobeSockChecker().
+					WithDaddr(sm.Full("::1")).
+					WithDport(9919),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeSkbIpv6(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "ip6_send_skb"
+    syscall: false
+    args:
+    - index: 0
+      type: "skb"
+      label: "datagram"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "::1"
+      - index: 0
+        operator: "DPort"
+        values:
+        - "53"
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_UDP"
+`
+	hookPart := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "ip6_send_skb"
+    syscall: false
+    args:
+    - index: 0
+      type: "skb"
+      label: "datagram"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DAddr"
+        values:
+        - "::1"
+`
+
+	if kernels.EnableLargeProgs() {
+		createCrdFile(t, hookFull)
+	} else {
+		createCrdFile(t, hookPart)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	res := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			dial := net.Dialer{}
+			return dial.Dial("udp", "[::1]:53")
+		},
+	}
+	res.LookupIP(context.Background(), "ip4", "ebpf.io")
+
+	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
+		WithFunctionName(sm.Full("ip6_send_skb")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLabel(sm.Full("datagram")).
+					WithSkbArg(ec.NewKprobeSkbChecker().
+						WithDaddr(sm.Full("::1")).
 						WithDport(53).
 						WithProtocol(sm.Full("IPPROTO_UDP")),
 					),

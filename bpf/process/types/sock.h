@@ -30,8 +30,6 @@ set_event_from_sock(struct sk_type *event, struct sock *sk)
 
 	event->sockaddr = (__u64)sk;
 
-	event->tuple.family = 0;
-
 	probe_read(&event->tuple.family, sizeof(event->tuple.family),
 		   _(&common->skc_family));
 	probe_read(&event->state, sizeof(event->state),
@@ -49,8 +47,20 @@ set_event_from_sock(struct sk_type *event, struct sock *sk)
 	probe_read(&event->priority, sizeof(event->priority),
 		   _(&sk->sk_priority));
 
-	probe_read(&event->tuple.saddr, sizeof(event->tuple.saddr), _(&common->skc_rcv_saddr));
-	probe_read(&event->tuple.daddr, sizeof(event->tuple.daddr), _(&common->skc_daddr));
+	event->tuple.saddr[0] = 0;
+	event->tuple.saddr[1] = 0;
+	event->tuple.daddr[0] = 0;
+	event->tuple.daddr[1] = 0;
+	switch (event->tuple.family) {
+	case AF_INET:
+		probe_read(&event->tuple.saddr, IPV4LEN, _(&common->skc_rcv_saddr));
+		probe_read(&event->tuple.daddr, IPV4LEN, _(&common->skc_daddr));
+		break;
+	case AF_INET6:
+		probe_read(&event->tuple.saddr, IPV6LEN, _(&common->skc_v6_rcv_saddr));
+		probe_read(&event->tuple.daddr, IPV6LEN, _(&common->skc_v6_daddr));
+	}
+
 	probe_read(&event->tuple.sport, sizeof(event->tuple.sport), _(&common->skc_num));
 	probe_read(&event->tuple.dport, sizeof(event->tuple.dport), _(&common->skc_dport));
 	event->tuple.dport = bpf_ntohs(event->tuple.dport);

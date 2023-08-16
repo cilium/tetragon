@@ -771,20 +771,40 @@ struct ip_ver {
 // use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
 // is in the defined set.
 static inline __attribute__((always_inline)) long
-filter_addr4_map(struct selector_arg_filter *filter, __u32 addr)
+filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 {
 	void *addrmap;
-	__u32 map_idx = filter->value;
-	struct addr4_lpm_trie arg;
+	__u32 *map_idxs = (__u32 *)&filter->value;
+	__u32 map_idx;
+	struct addr4_lpm_trie arg4;
+	struct addr6_lpm_trie arg6;
+	void *arg;
 
-	addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
-	if (!addrmap)
+	switch (family) {
+	case AF_INET:
+		map_idx = map_idxs[0];
+		addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+		if (!addrmap)
+			return 0;
+		arg4.prefix = 32;
+		arg4.addr = addr[0];
+		arg = &arg4;
+		break;
+	case AF_INET6:
+		map_idx = map_idxs[1];
+		addrmap = map_lookup_elem(&addr6lpm_maps, &map_idx);
+		if (!addrmap)
+			return 0;
+		arg6.prefix = 128;
+		// write the address in as 4 u32s due to alignment
+		write_ipv6_addr32(arg6.addr, (__u32 *)addr);
+		arg = &arg6;
+		break;
+	default:
 		return 0;
+	}
 
-	arg.prefix = 32;
-	arg.addr = addr;
-
-	__u8 *pass = map_lookup_elem(addrmap, &arg);
+	__u8 *pass = map_lookup_elem(addrmap, arg);
 
 	switch (filter->op) {
 	case op_filter_saddr:
@@ -797,13 +817,13 @@ filter_addr4_map(struct selector_arg_filter *filter, __u32 addr)
 	return 0;
 }
 
-/* filter_inet: runs a comparison between the IPv4 addresses and ports in
+/* filter_inet: runs a comparison between the IPv4/6 addresses and ports in
  * the sock or skb in the args aginst the filter parameters.
  */
 static inline __attribute__((always_inline)) long
 filter_inet(struct selector_arg_filter *filter, char *args)
 {
-	__u32 addr = 0;
+	__u64 addr[2] = { 0, 0 };
 	__u32 port = 0;
 	__u32 value = 0;
 	struct sk_type *sk = 0;
@@ -826,11 +846,11 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	switch (filter->op) {
 	case op_filter_saddr:
 	case op_filter_notsaddr:
-		addr = tuple->saddr;
+		write_ipv6_addr(addr, tuple->saddr);
 		break;
 	case op_filter_daddr:
 	case op_filter_notdaddr:
-		addr = tuple->daddr;
+		write_ipv6_addr(addr, tuple->daddr);
 		break;
 	case op_filter_sport:
 	case op_filter_notsport:
@@ -874,7 +894,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case op_filter_daddr:
 	case op_filter_notsaddr:
 	case op_filter_notdaddr:
-		return filter_addr4_map(filter, addr);
+		return filter_addr_map(filter, addr, tuple->family);
 	case op_filter_protocol:
 	case op_filter_family:
 		return filter_32ty_map(filter, (char *)&value);

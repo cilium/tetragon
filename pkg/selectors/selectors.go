@@ -31,6 +31,11 @@ type KernelLpmTrie4 struct {
 	addr   uint32
 }
 
+type KernelLpmTrie6 struct {
+	prefix uint32
+	addr   [16]byte
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
@@ -40,6 +45,9 @@ type KernelSelectorState struct {
 
 	// addr4Maps are used to populate IPv4 address LpmTrie maps for sock and skb operators
 	addr4Maps []map[KernelLpmTrie4]struct{}
+
+	// addr6Maps are used to populate IPv6 address LpmTrie maps for sock and skb operators
+	addr6Maps []map[KernelLpmTrie6]struct{}
 
 	matchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
 	newBinVals    map[uint32]string              // these should be added in the names_map
@@ -102,6 +110,10 @@ func (k *KernelSelectorState) Addr4Maps() []map[KernelLpmTrie4]struct{} {
 	return k.addr4Maps
 }
 
+func (k *KernelSelectorState) Addr6Maps() []map[KernelLpmTrie6]struct{} {
+	return k.addr6Maps
+}
+
 // ValueMapsMaxEntries returns the maximum entries over all maps
 func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 	maxEntries := 1
@@ -117,6 +129,17 @@ func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 func (k *KernelSelectorState) Addr4MapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.addr4Maps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+// Addr6MapsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) Addr6MapsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.addr6Maps {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}
@@ -181,8 +204,22 @@ func (k *KernelSelectorState) newValueMap() (uint32, map[[8]byte]struct{}) {
 	return uint32(mapid), k.valueMaps[mapid]
 }
 
-func (k *KernelSelectorState) newAddr4Map() (uint32, map[KernelLpmTrie4]struct{}) {
+func (k *KernelSelectorState) createAddr4Map() map[KernelLpmTrie4]struct{} {
+	return map[KernelLpmTrie4]struct{}{}
+}
+
+func (k *KernelSelectorState) insertAddr4Map(addr4map map[KernelLpmTrie4]struct{}) uint32 {
 	mapid := len(k.addr4Maps)
-	k.addr4Maps = append(k.addr4Maps, map[KernelLpmTrie4]struct{}{})
-	return uint32(mapid), k.addr4Maps[mapid]
+	k.addr4Maps = append(k.addr4Maps, addr4map)
+	return uint32(mapid)
+}
+
+func (k *KernelSelectorState) createAddr6Map() map[KernelLpmTrie6]struct{} {
+	return map[KernelLpmTrie6]struct{}{}
+}
+
+func (k *KernelSelectorState) insertAddr6Map(addr6map map[KernelLpmTrie6]struct{}) uint32 {
+	mapid := len(k.addr6Maps)
+	k.addr6Maps = append(k.addr6Maps, addr6map)
+	return uint32(mapid)
 }

@@ -217,6 +217,7 @@ func TestParseMatchArg(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 8, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -252,9 +253,10 @@ func TestParseMatchArg(t *testing.T) {
 	expected3 := []byte{
 		0x05, 0x00, 0x00, 0x00, // Index == 5
 		13, 0x00, 0x00, 0x00, // operator == saddr
-		12, 0x00, 0x00, 0x00, // length == 32
+		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
+		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
 	}
 	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, k.e[nextArg:k.off], arg3)
@@ -284,6 +286,20 @@ func TestParseMatchArg(t *testing.T) {
 	}
 	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, k.e[nextArg:k.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, k.e[nextArg:k.off], arg5)
+	}
+
+	nextArg = k.off
+	arg6 := &v1alpha1.ArgSelector{Index: 8, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
+	expected6 := []byte{
+		0x08, 0x00, 0x00, 0x00, // Index == 8
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x07, 0x00, 0x00, 0x00, // value type == sock
+		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+	}
+	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, k.e[nextArg:k.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, k.e[nextArg:k.off], arg6)
 	}
 
 	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4

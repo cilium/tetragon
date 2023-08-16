@@ -37,6 +37,12 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			},
 		}, {
 			Index: 0,
+			Name:  "addr6lpm_maps",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateAddr6FilterMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
 			Name:  "sel_names_map",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
@@ -137,6 +143,66 @@ func populateAddr4FilterMap(
 		Name:       innerName,
 		Type:       ebpf.LPMTrie,
 		KeySize:    8, // NB: KernelLpmTrie4 consists of 32bit prefix and 32bit address
+		ValueSize:  uint32(1),
+		MaxEntries: maxEntries,
+		Flags:      bpf.BPF_F_NO_PREALLOC,
+	}
+	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+		PinPath: sensors.PathJoin(pinPathPrefix, innerName),
+	})
+	if err != nil {
+		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+	}
+	defer innerMap.Close()
+
+	one := uint8(1)
+	for val := range innerData {
+		err := innerMap.Update(val, one, 0)
+		if err != nil {
+			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+		}
+	}
+
+	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
+		return fmt.Errorf("failed to insert %s: %w", innerName, err)
+	}
+
+	return nil
+}
+
+func populateAddr6FilterMaps(
+	k *selectors.KernelSelectorState,
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+) error {
+	maxEntries := k.Addr6MapsMaxEntries()
+	for i, am := range k.Addr6Maps() {
+		nrEntries := uint32(len(am))
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			nrEntries = uint32(maxEntries)
+		}
+		err := populateAddr6FilterMap(pinPathPrefix, outerMap, uint32(i), am, nrEntries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func populateAddr6FilterMap(
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+	innerID uint32,
+	innerData map[selectors.KernelLpmTrie6]struct{},
+	maxEntries uint32,
+) error {
+	innerName := fmt.Sprintf("addr6filter_map_%d", innerID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       innerName,
+		Type:       ebpf.LPMTrie,
+		KeySize:    20, // NB: KernelLpmTrie6 consists of 32bit prefix and 128bit address
 		ValueSize:  uint32(1),
 		MaxEntries: maxEntries,
 		Flags:      bpf.BPF_F_NO_PREALLOC,

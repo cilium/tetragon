@@ -153,8 +153,8 @@ func (m MsgGenericKprobeArgSize) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeTuple struct {
-	Saddr    uint32
-	Daddr    uint32
+	Saddr    [2]uint64
+	Daddr    [2]uint64
 	Sport    uint16
 	Dport    uint16
 	Protocol uint16

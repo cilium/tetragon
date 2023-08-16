@@ -1418,7 +1418,7 @@ There are different types supported for each operator. In case of `matchArgs`:
 * NotDPort - Not Destination Port
 * DPortPriv - Destination Port is Privileged (0-1023)
 * NotDPortPriv - Destination Port is Not Privileged (Not 0-1023)
-* SAddr - Source Address, can be IPv4 address or IPv4 CIDR (for ex 1.2.3.4/24)
+* SAddr - Source Address, can be IPv4/6 address or IPv4/6 CIDR (for ex 1.2.3.4/24 or 2a1:56::1/128)
 * NotSAddr - Not Source Address
 * DAddr - Destination Address
 * NotDAddr - Not Destination Address
@@ -1504,7 +1504,7 @@ as trailing.
 
 The operators relating to ports, addresses and protocol are used with sock or skb
 types. Port operators can accept a range of ports specified as `min:max` as well
-as lists of individual ports. Address operators can accept IPv4 CIDR ranges as well
+as lists of individual ports. Address operators can accept IPv4/6 CIDR ranges as well
 as lists of individual addresses.
 
 The `Protocol` operator can accept integer values to match against, or the equivalent
@@ -1513,8 +1513,7 @@ TCP can be specified as either `IPPROTO_TCP` or 6.
 
 The `Family` operator can accept integer values to match against or the equivalent
 AF_ enumeration. For example, IPv4 can be specified as either `AF_INET` or 2; IPv6
-can be specified as either `AF_INET6` or 10. (Please note that IPv6 support is
-currently very limited, but will be improved in the future.)
+can be specified as either `AF_INET6` or 10.
 
 The `State` operator can accept integer values to match against or the equivalent
 TCP_ enumeration. For example, an established socket can be matched with
