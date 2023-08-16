@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/ringbufqueuemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -242,6 +243,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 					case eventsQueue <- &record:
 					default:
 						// eventsQueue channel is full, drop the event
+						ringbufqueuemetrics.Lost.Inc()
 					}
 					k.recvCntr++
 					ringbufmetrics.PerfEventReceived.Inc()
@@ -263,6 +265,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 			select {
 			case event := <-eventsQueue:
 				k.receiveEvent(event.RawSample)
+				ringbufqueuemetrics.Received.Inc()
 			case <-stopCtx.Done():
 				k.log.WithError(stopCtx.Err()).Infof("Listening for events completed.")
 				k.log.Debugf("Unprocessed events in RB queue: %d", len(eventsQueue))

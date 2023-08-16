@@ -14,6 +14,7 @@ import (
 	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
 	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/ringbufqueuemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -30,6 +31,7 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	pfmetrics.InitMetrics(registry)
 	processexecmetrics.InitMetrics(registry)
 	ringbufmetrics.InitMetrics(registry)
+	ringbufqueuemetrics.InitMetrics(registry)
 	syscallmetrics.InitMetrics(registry)
 	watchermetrics.InitMetrics(registry)
 	observer.InitMetrics(registry)
