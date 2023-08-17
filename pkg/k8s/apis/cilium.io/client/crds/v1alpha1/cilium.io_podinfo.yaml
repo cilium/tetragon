@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: podsinfo.cilium.io
+  name: podinfo.cilium.io
 spec:
   group: cilium.io
   names:
     kind: PodInfo
     listKind: PodInfoList
-    plural: podsinfo
+    plural: podinfo
     singular: podinfo
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PodInfo is the Schema for the PodsInfo API
+        description: PodInfo is the Schema for the PodInfo API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

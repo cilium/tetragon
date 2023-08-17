@@ -29,7 +29,7 @@ const (
 	// TPNamespacedName
 	TPNamespacedName = TPNamespacedPluralName + "." + ciliumio.GroupName
 
-	// TPKindDefinition is the kind name of Cilium Tracing Policy
+	// TPNamespacedKindDefinition is the kind name of Cilium Tracing Policy
 	TPNamespacedKindDefinition = "TracingPolicyNamespaced"
 )
 

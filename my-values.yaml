@@ -1,7 +1,0 @@
-tetragonPod:
-  enabled: true
-tetragonOperator:
-  enabled: true
-  image:
-    override: quay.io/cilium/tetragon-operator-ci:c157214083290547ad6f8637c25e63b3c59695d8
-  skipTetragonPodCRD: false
