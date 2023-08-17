@@ -1,0 +1,129 @@
+# Datagram monitoring for kernel v5.18 onwards.
+#
+# Prior to 5.18, the kernel would call __cgroup_bpf_run_filter_skb for every
+# datagram (assuming cgroup_bpf_enabled() returned true), and therefore was
+# a reasonable place to hook for datagram observability.
+# 
+# In 5.18, an extra check was introduced (cgroup_bpf_sock_enabled) which
+# checks if a BPF program is attached to the cgroup hook before calling
+# __cgroup_bpf_run_filter_skb. As a result, from 5.18 onwards, our datagram
+# observability has to change.
+#
+# This example only matches on datagrams on loopback, but these selectors can
+# be removed or replaced to change the scope. They are just examples.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram-518"
+spec:
+  kprobes:
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+      - index: 1
+        type: int
+    returnArg:
+      type: sock
+    returnArgAction: TrackSock
+    selectors:
+      - matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - 2
+          - 10
+  - call: "__sk_free"
+    syscall: false
+    args:
+      - index: 0
+        type: sock
+    selectors:
+      - matchArgs:
+        - index: 0
+          operator: "Family"
+          values:
+          - 2
+          - 10
+      - matchActions:
+        - action: UntrackSock
+  - call: "sk_filter_trim_cap"
+    syscall: false
+    args:
+    - index: 0
+      type: sock
+    - index: 1
+      type: skb
+      label: "datagram"
+    selectors:
+      - matchArgs:
+        - index: 1
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        - index: 1
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/32"
+          - "::1/128"
+  - call: "ip_output"
+    syscall: false
+    args:
+    - index: 1
+      type: sock
+      label: "sock"
+    - index: 2
+      type: skb
+      label: "datagram"
+    selectors:
+      - matchArgs:
+        - index: 2
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        - index: 2
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/32"
+          - "::1/128"
+  - call: "ip_mc_output"
+    syscall: false
+    args:
+    - index: 1
+      type: sock
+      label: "sock"
+    - index: 2
+      type: skb
+      label: "datagram"
+    selectors:
+      - matchArgs:
+        - index: 2
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        - index: 2
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/32"
+          - "::1/128"
+  - call: "ip6_output"
+    syscall: false
+    args:
+    - index: 1
+      type: sock
+      label: "sock"
+    - index: 2
+      type: skb
+      label: "datagram"
+    selectors:
+      - matchArgs:
+        - index: 2
+          operator: "Protocol"
+          values:
+          - "IPPROTO_UDP"
+        - index: 2
+          operator: "DAddr"
+          values:
+          - "127.0.0.1/32"
+          - "::1/128"
+
