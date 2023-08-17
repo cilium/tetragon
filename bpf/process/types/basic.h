@@ -1727,7 +1727,6 @@ static inline __attribute__((always_inline)) int
 tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 {
 	long sockoff;
-	int err = 0;
 	__u64 sockaddr;
 	__u64 pid_tgid;
 	struct sk_type *skt;
@@ -1752,6 +1751,8 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	sockaddr = skt->sockaddr;
 	if (!sockaddr)
 		return 0;
+	if (!track)
+		return map_delete_elem(&socktrack_map, &sockaddr);
 	pid_tgid = get_current_pid_tgid();
 	pid = pid_tgid >> 32;
 	value = execve_map_get_noinit(pid);
@@ -1761,12 +1762,8 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	owner.tid = (__u32)pid_tgid;
 	owner.ktime = value->key.ktime;
 
-	if (track)
-		map_update_elem(&socktrack_map, &sockaddr, &owner, BPF_ANY);
-	else
-		err = map_delete_elem(&socktrack_map, &sockaddr);
-
-	return err;
+	map_update_elem(&socktrack_map, &sockaddr, &owner, BPF_ANY);
+	return 0;
 }
 
 /* update_pid_tid_from_sock(e, sock)
