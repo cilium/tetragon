@@ -548,6 +548,32 @@ spec:
                   - call
                   type: object
                 type: array
+              lists:
+                description: A list of list specs.
+                items:
+                  properties:
+                    name:
+                      description: Name of the list
+                      type: string
+                    pattern:
+                      description: Pattern for 'generated' lists.
+                      type: string
+                    type:
+                      description: Indicates the type of the list values.
+                      enum:
+                      - syscalls
+                      - generated_syscalls
+                      - generated_ftrace
+                      type: string
+                    values:
+                      description: Values of the list
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  type: object
+                type: array
               loader:
                 description: Enable loader events
                 type: boolean

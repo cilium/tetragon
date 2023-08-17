@@ -89,6 +89,10 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// PodSelector selects pods that this policy applies to
 	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// A list of list specs.
+	Lists []ListSpec `json:"lists"`
 }
 
 func (tp *TracingPolicy) TpName() string {
@@ -330,4 +334,19 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors"`
+}
+
+type ListSpec struct {
+	// Name of the list
+	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	// Values of the list
+	Values []string `json:"values"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=syscalls;generated_syscalls;generated_ftrace
+	// Indicates the type of the list values.
+	Type string `json:"type"`
+	// +kubebuilder:validation:Optional
+	// Pattern for 'generated' lists.
+	Pattern string `json:"pattern"`
 }
