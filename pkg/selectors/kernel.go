@@ -411,88 +411,131 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 	return 0, fmt.Errorf("argFilter for unknown index")
 }
 
+func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
+	// We store the start and end of the range as uint64s for unsigned values, and as int64s
+	// for signed values. This is to allow both a signed range from -5 to 5, and also an
+	// unsigned range where at least limit exceeds max(int64). If we only stored the range
+	// limits as uint64s, then the range from -5 to 5 would be interpretted as being from
+	// 5 to uint64(-5), which is the literal opposite of what was intended. If we only stored
+	// the range as int64s, then we couldn't correctly accommodate values that exceed max(int64),
+	// for similar reasons.
+	var uRangeVal [2]uint64
+	var sRangeVal [2]int64
+	rangeStr := strings.Split(v, ":")
+	if len(rangeStr) > 2 {
+		return fmt.Errorf("MatchArgs value %s invalid: range should be 'min:max'", v)
+	} else if len(rangeStr) == 1 {
+		// If only one value in the string, e.g. "5", then add it a second time to simulate
+		// a range that starts and ends with itself, e.g. as if "5:5" had been specified.
+		rangeStr = append(rangeStr, rangeStr[0])
+
+		// Special actions for particular network ops
+		switch op {
+		case SelectorOpProtocol:
+			protocol, err := network.InetProtocolNumber(v)
+			if err == nil {
+				protocolStr := fmt.Sprintf("%d", protocol)
+				rangeStr = []string{protocolStr, protocolStr}
+			}
+		case SelectorOpFamily:
+			family, err := network.InetFamilyNumber(v)
+			if err == nil {
+				familyStr := fmt.Sprintf("%d", family)
+				rangeStr = []string{familyStr, familyStr}
+			}
+		case SelectorOpState:
+			state, err := network.TcpStateNumber(v)
+			if err == nil {
+				stateStr := fmt.Sprintf("%d", state)
+				rangeStr = []string{stateStr, stateStr}
+			}
+		}
+	}
+	for idx := 0; idx < 2; idx++ {
+		switch ty {
+		case argTypeS64, argTypeInt:
+			i, err := strconv.ParseInt(rangeStr[idx], 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			}
+			sRangeVal[idx] = i
+
+		case argTypeU64:
+			i, err := strconv.ParseUint(rangeStr[idx], 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			}
+			uRangeVal[idx] = i
+		default:
+			return fmt.Errorf("Unknown type: %d", ty)
+		}
+	}
+	switch ty {
+	case argTypeS64, argTypeInt:
+		if sRangeVal[0] > sRangeVal[1] {
+			sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
+		}
+		for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
+			var valByte [8]byte
+			binary.LittleEndian.PutUint64(valByte[:], uint64(val))
+			m.Data[valByte] = struct{}{}
+		}
+
+	case argTypeU64:
+		if uRangeVal[0] > uRangeVal[1] {
+			uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
+		}
+		for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
+			var valByte [8]byte
+			binary.LittleEndian.PutUint64(valByte[:], val)
+			m.Data[valByte] = struct{}{}
+		}
+	}
+	return nil
+}
+
 func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
-		// We store the start and end of the range as uint64s for unsigned values, and as int64s
-		// for signed values. This is to allow both a signed range from -5 to 5, and also an
-		// unsigned range where at least limit exceeds max(int64). If we only stored the range
-		// limits as uint64s, then the range from -5 to 5 would be interpretted as being from
-		// 5 to uint64(-5), which is the literal opposite of what was intended. If we only stored
-		// the range as int64s, then we couldn't correctly accommodate values that exceed max(int64),
-		// for similar reasons.
-		var uRangeVal [2]uint64
-		var sRangeVal [2]int64
-		rangeStr := strings.Split(v, ":")
-		if len(rangeStr) > 2 {
-			return fmt.Errorf("MatchArgs value %s invalid: range should be 'min:max'", v)
-		} else if len(rangeStr) == 1 {
-			// If only one value in the string, e.g. "5", then add it a second time to simulate
-			// a range that starts and ends with itself, e.g. as if "5:5" had been specified.
-			rangeStr = append(rangeStr, rangeStr[0])
-
-			// Special actions for particular network ops
-			switch op {
-			case SelectorOpProtocol:
-				protocol, err := network.InetProtocolNumber(v)
-				if err == nil {
-					protocolStr := fmt.Sprintf("%d", protocol)
-					rangeStr = []string{protocolStr, protocolStr}
-				}
-			case SelectorOpFamily:
-				family, err := network.InetFamilyNumber(v)
-				if err == nil {
-					familyStr := fmt.Sprintf("%d", family)
-					rangeStr = []string{familyStr, familyStr}
-				}
-			case SelectorOpState:
-				state, err := network.TcpStateNumber(v)
-				if err == nil {
-					stateStr := fmt.Sprintf("%d", state)
-					rangeStr = []string{stateStr, stateStr}
-				}
-			}
+		err := writeRangeInMap(v, ty, op, &m)
+		if err != nil {
+			return err
 		}
-		for idx := 0; idx < 2; idx++ {
-			switch ty {
-			case argTypeS64, argTypeInt:
-				i, err := strconv.ParseInt(rangeStr[idx], 10, 64)
-				if err != nil {
-					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-				}
-				sRangeVal[idx] = i
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
+	return nil
+}
 
-			case argTypeU64:
-				i, err := strconv.ParseUint(rangeStr[idx], 10, 64)
-				if err != nil {
-					return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-				}
-				uRangeVal[idx] = i
-			default:
-				return fmt.Errorf("Unknown type: %d", ty)
+func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
+	mid, m := k.newValueMap()
+	for _, v := range values {
+		var val [8]byte
+		// most likely port range
+		if strings.Contains(v, ":") {
+			err := writeRangeInMap(v, ty, op, &m)
+			if err != nil {
+				return err
 			}
+			continue
 		}
 		switch ty {
 		case argTypeS64, argTypeInt:
-			if sRangeVal[0] > sRangeVal[1] {
-				sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
+			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
-				var valByte [8]byte
-				binary.LittleEndian.PutUint64(valByte[:], uint64(val))
-				m.Data[valByte] = struct{}{}
-			}
-
+			binary.LittleEndian.PutUint64(val[:], uint64(i))
 		case argTypeU64:
-			if uRangeVal[0] > uRangeVal[1] {
-				uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
+			i, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
-				var valByte [8]byte
-				binary.LittleEndian.PutUint64(valByte[:], val)
-				m.Data[valByte] = struct{}{}
-			}
+			binary.LittleEndian.PutUint64(val[:], uint64(i))
+		default:
+			return fmt.Errorf("Unknown type: %d", ty)
 		}
+		m.Data[val] = struct{}{}
 	}
 	// write the map id into the selector
 	WriteSelectorUint32(k, mid)
@@ -650,7 +693,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(k, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
-		err := writeMatchRangesInMap(k, arg.Values, ty, op)
+		err := writeMatchValuesInMap(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
