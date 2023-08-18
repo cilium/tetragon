@@ -711,6 +711,38 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	return nil
 }
 
+// User specifies rateLimit in seconds, minutes or hours, but we store it in milliseconds.
+func parseRateLimit(str string) (uint32, error) {
+	multiplier := uint32(0)
+	switch str[len(str)-1] {
+	case 's', 'S':
+		multiplier = 1
+	case 'm', 'M':
+		multiplier = 60
+	case 'h', 'H':
+		multiplier = 60 * 60
+	}
+	var rateLimit uint64
+	var err error
+	if multiplier != 0 {
+		if len(str) == 1 {
+			return 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
+		}
+		rateLimit, err = strconv.ParseUint(str[:len(str)-1], 10, 32)
+	} else {
+		rateLimit, err = strconv.ParseUint(str, 10, 32)
+		multiplier = 1
+	}
+	if err != nil {
+		return 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
+	}
+	rateLimit = rateLimit * uint64(multiplier) * 1000
+	if rateLimit > 0xffffffff {
+		rateLimit = 0xffffffff
+	}
+	return uint32(rateLimit), nil
+}
+
 func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
@@ -718,42 +750,15 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	}
 	WriteSelectorUint32(k, act)
 
-	// User specifies rateLimit in seconds, minutes or hours, but we store it in milliseconds.
-	if len(action.RateLimit) == 0 {
-		WriteSelectorUint32(k, 0)
-	} else {
-		if !kernels.EnableLargeProgs() {
-			return fmt.Errorf("parseMatchAction: rateLimit is only available on kernel v5.3 onwards")
-		}
-		multiplier := uint32(0)
-		switch action.RateLimit[len(action.RateLimit)-1] {
-		case 's', 'S':
-			multiplier = 1
-		case 'm', 'M':
-			multiplier = 60
-		case 'h', 'H':
-			multiplier = 60 * 60
-		}
-		var rateLimit uint64
+	rateLimit := uint32(0)
+	if action.RateLimit != "" {
 		var err error
-		if multiplier != 0 {
-			if len(action.RateLimit) == 1 {
-				return fmt.Errorf("parseMatchAction: rateLimit value %s is invalid", action.RateLimit)
-			}
-			rateLimit, err = strconv.ParseUint(action.RateLimit[:len(action.RateLimit)-1], 10, 32)
-		} else {
-			rateLimit, err = strconv.ParseUint(action.RateLimit, 10, 32)
-			multiplier = 1
-		}
+		rateLimit, err = parseRateLimit(action.RateLimit)
 		if err != nil {
-			return fmt.Errorf("parseMatchAction: rateLimit value %s is invalid", action.RateLimit)
+			return err
 		}
-		rateLimit = rateLimit * uint64(multiplier) * 1000
-		if rateLimit > 0xffffffff {
-			rateLimit = 0xffffffff
-		}
-		WriteSelectorUint32(k, uint32(rateLimit))
 	}
+	WriteSelectorUint32(k, rateLimit)
 
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
