@@ -33,6 +33,10 @@ func (watcher *FakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
 	return nil, fmt.Errorf("podID %s not found (in %d pods)", podID, len(watcher.pods))
 }
 
+func (watcher *FakeK8sWatcher) FindServiceByIP(ip string) (*corev1.Service, error) {
+	return nil, fmt.Errorf("service with IP %s not found", ip)
+}
+
 // AddPod adds a pod to the fake k8s watcher. This is intended for testing.
 func (watcher *FakeK8sWatcher) AddPod(pod *corev1.Pod) {
 	watcher.pods = append(watcher.pods, pod)

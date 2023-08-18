@@ -568,6 +568,10 @@ func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1
 	return &pod, &container, true
 }
 
+func (f *fakeK8sWatcher) FindServiceByIP(ip string) (*corev1.Service, error) {
+	return nil, fmt.Errorf("service with IP %s not found", ip)
+}
+
 // Used to wait for a process to start, we do a lookup on PROCFS because this
 // may be called before obs is created.
 func WaitForProcess(process string) error {
