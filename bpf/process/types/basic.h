@@ -1899,7 +1899,7 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 		if (!i)
 			return false;
 
-		nopost |= actions->act[0] == ACTION_NOPOST;
+		nopost |= actions->act[i] == ACTION_NOPOST;
 	}
 
 	return !nopost;
