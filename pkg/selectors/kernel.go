@@ -480,7 +480,7 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 			for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
 				var valByte [8]byte
 				binary.LittleEndian.PutUint64(valByte[:], uint64(val))
-				m[valByte] = struct{}{}
+				m.Data[valByte] = struct{}{}
 			}
 
 		case argTypeU64:
@@ -490,7 +490,7 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 			for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
 				var valByte [8]byte
 				binary.LittleEndian.PutUint64(valByte[:], val)
-				m[valByte] = struct{}{}
+				m.Data[valByte] = struct{}{}
 			}
 		}
 	}

@@ -58,13 +58,13 @@ func populateArgFilterMaps(
 ) error {
 	maxEntries := k.ValueMapsMaxEntries()
 	for i, vm := range k.ValueMaps() {
-		nrEntries := uint32(len(vm))
+		nrEntries := uint32(len(vm.Data))
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
 		if !kernels.MinKernelVersion("5.9") {
 			nrEntries = uint32(maxEntries)
 		}
-		err := populateArgFilterMap(pinPathPrefix, outerMap, uint32(i), vm, nrEntries)
+		err := populateArgFilterMap(pinPathPrefix, outerMap, uint32(i), vm.Data, nrEntries)
 		if err != nil {
 			return err
 		}
