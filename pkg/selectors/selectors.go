@@ -36,12 +36,16 @@ type KernelLpmTrie6 struct {
 	addr   [16]byte
 }
 
+type ValueMap struct {
+	Data map[[8]byte]struct{}
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
-	valueMaps []map[[8]byte]struct{}
+	valueMaps []ValueMap
 
 	// addr4Maps are used to populate IPv4 address LpmTrie maps for sock and skb operators
 	addr4Maps []map[KernelLpmTrie4]struct{}
@@ -102,7 +106,7 @@ func (k *KernelSelectorState) Buffer() [4096]byte {
 	return k.e
 }
 
-func (k *KernelSelectorState) ValueMaps() []map[[8]byte]struct{} {
+func (k *KernelSelectorState) ValueMaps() []ValueMap {
 	return k.valueMaps
 }
 
@@ -118,7 +122,7 @@ func (k *KernelSelectorState) Addr6Maps() []map[KernelLpmTrie6]struct{} {
 func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.valueMaps {
-		if l := len(vm); l > maxEntries {
+		if l := len(vm.Data); l > maxEntries {
 			maxEntries = l
 		}
 	}
@@ -198,9 +202,11 @@ func ArgSelectorValue(v string) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
-func (k *KernelSelectorState) newValueMap() (uint32, map[[8]byte]struct{}) {
+func (k *KernelSelectorState) newValueMap() (uint32, ValueMap) {
 	mapid := len(k.valueMaps)
-	k.valueMaps = append(k.valueMaps, map[[8]byte]struct{}{})
+	vm := ValueMap{}
+	vm.Data = make(map[[8]byte]struct{})
+	k.valueMaps = append(k.valueMaps, vm)
 	return uint32(mapid), k.valueMaps[mapid]
 }
 
