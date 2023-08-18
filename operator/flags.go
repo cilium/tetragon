@@ -45,12 +45,15 @@ func initializeFlags() {
 
 	flags.String(operatorOption.ConfigDir, "", "Directory in which tetragon-operator-config configmap is mounted")
 
+	flags.Bool(operatorOption.SkipPodInfoCRD, false, "When true, PodInfo Custom Resource Definition (CRD) will not be created")
+
 	viper.BindPFlags(flags)
 }
 
-// Populate sets all options with the values from viper.
+// configPopulate sets all options with the values from viper.
 func configPopulate() {
 	operatorOption.Config.SkipCRDCreation = viper.GetBool(operatorOption.SkipCRDCreation)
 	operatorOption.Config.KubeCfgPath = viper.GetString(operatorOption.KubeCfgPath)
 	operatorOption.Config.ConfigDir = viper.GetString(operatorOption.ConfigDir)
+	operatorOption.Config.SkipPodInfoCRD = viper.GetBool(operatorOption.SkipPodInfoCRD)
 }
