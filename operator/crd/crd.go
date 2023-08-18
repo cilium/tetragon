@@ -55,8 +55,9 @@ func RegisterCRDs() {
 	// Register the CRDs after validating that we are running on a supported
 	// version of K8s.
 	if !option.Config.SkipCRDCreation {
-		if err := client.RegisterCRDs(k8sAPIExtClient); err != nil {
-			log.WithError(err).Fatal("Unable to register CRDs")
+		// if skipPodInfoCRD flag set true, don't register Pod Info CRD.
+		if err := client.RegisterCRDs(k8sAPIExtClient, option.Config.SkipPodInfoCRD); err != nil {
+			log.WithError(err).Fatal("Unable to Register CRDs")
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")
