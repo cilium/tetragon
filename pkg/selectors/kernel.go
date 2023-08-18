@@ -759,6 +759,9 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeFollowFd, ActionTypeCopyFd:
 		WriteSelectorUint32(k, action.ArgFd)
 		WriteSelectorUint32(k, action.ArgName)
+	case ActionTypeUnfollowFd:
+		WriteSelectorUint32(k, action.ArgFd)
+		WriteSelectorUint32(k, action.ArgName)
 	case ActionTypeOverride:
 		WriteSelectorInt32(k, action.ArgError)
 	case ActionTypeGetUrl, ActionTypeDnsLookup:
@@ -777,6 +780,13 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(k, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:
 		WriteSelectorUint32(k, action.ArgSock)
+	case ActionTypePost, ActionTypeNoPost:
+		// no arguments
+	case ActionTypeSigKill:
+		// no arguments
+		// NB: we should deprecate this action and just use ActionTypeSignal with SIGKILL
+	default:
+		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
 	return nil
 }
