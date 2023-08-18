@@ -571,11 +571,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0xea, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0xe6, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x1e, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x1a, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -684,11 +684,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // value 2
 
 		// actions header
-		28, 0x00, 0x00, 0x00, // size = (2 * sizeof(uint32) * number of actions) + args + 4
+		24, 0x00, 0x00, 0x00, // size = (2 * sizeof(uint32) * number of actions) + args
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
-		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
@@ -711,11 +710,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		102, 111, 111, 98, 97, 114, // value ascii "foobar"
 
 		// actions header
-		28, 0x00, 0x00, 0x00, // size = (2 * sizeof(uint32) * number of actions) + args + 4
+		24, 0x00, 0x00, 0x00, // size = (2 * sizeof(uint32) * number of actions) + args + 4
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
-		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
@@ -790,6 +788,6 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
 	if bytes.Equal(expected[0:len(expected)], b[0:len(expected)]) == false {
-		t.Errorf("InitKernelSelectors: expected %v bytes %v\n", expected, b[0:len(expected)])
+		t.Errorf("InitKernelSelectors:\nexpected %v\nbytes    %v\n", expected, b[0:len(expected)])
 	}
 }

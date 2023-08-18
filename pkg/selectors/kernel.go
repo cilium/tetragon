@@ -752,13 +752,15 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 
 	rateLimit := uint32(0)
 	if action.RateLimit != "" {
+		if act != ActionTypePost {
+			return fmt.Errorf("rate limiting can only applied to post action (was applied to '%s')", action.Action)
+		}
 		var err error
 		rateLimit, err = parseRateLimit(action.RateLimit)
 		if err != nil {
 			return err
 		}
 	}
-	WriteSelectorUint32(k, rateLimit)
 
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
@@ -785,7 +787,9 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(k, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:
 		WriteSelectorUint32(k, action.ArgSock)
-	case ActionTypePost, ActionTypeNoPost:
+	case ActionTypePost:
+		WriteSelectorUint32(k, rateLimit)
+	case ActionTypeNoPost:
 		// no arguments
 	case ActionTypeSigKill:
 		// no arguments
