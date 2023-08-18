@@ -1798,11 +1798,10 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 
 static inline __attribute__((always_inline)) __u32
 do_action(__u32 i, struct msg_generic_kprobe *e,
-	  struct selector_action *actions, struct bpf_map_def *override_tasks)
+	  struct selector_action *actions, struct bpf_map_def *override_tasks, bool *post)
 {
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
-	__u64 ratelimit_interval __maybe_unused = actions->act[++i];
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
@@ -1810,15 +1809,19 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 	int err = 0;
 	__u64 id;
 
-#ifdef __LARGE_BPF_PROG
-	// Only support rate limiting on later kernels
-	if (rate_limit(ratelimit_interval, e)) {
-		/* This action is rate-limited. */
-		return 0;
-	}
-#endif
-
 	switch (action) {
+	case ACTION_NOPOST:
+		*post = false;
+		break;
+	case ACTION_POST: {
+		__u64 ratelimit_interval __maybe_unused = actions->act[++i];
+#ifdef __LARGE_BPF_PROG
+		if (rate_limit(ratelimit_interval, e))
+			*post = false;
+#endif /* __LARGE_BPF_PROG */
+		break;
+	}
+
 	case ACTION_UNFOLLOWFD:
 	case ACTION_FOLLOWFD:
 		fdi = actions->act[++i];
@@ -1885,7 +1888,7 @@ static inline __attribute__((always_inline)) bool
 do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 	   struct bpf_map_def *override_tasks)
 {
-	bool nopost = false;
+	bool post = true;
 	__u32 l, i = 0;
 
 #ifndef __LARGE_BPF_PROG
@@ -1893,16 +1896,11 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 #endif
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
-			return !nopost;
-
-		i = do_action(i, e, actions, override_tasks);
-		if (!i)
-			return false;
-
-		nopost |= actions->act[i] == ACTION_NOPOST;
+			break;
+		i = do_action(i, e, actions, override_tasks, &post);
 	}
 
-	return !nopost;
+	return post;
 }
 
 static inline __attribute__((always_inline)) long
