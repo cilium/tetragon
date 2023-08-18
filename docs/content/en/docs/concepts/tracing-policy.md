@@ -983,9 +983,10 @@ The difference is to use the signal action with `SIGKILL(9)` signal.
 
 `Override` action allows to modify the return value of call. While `Sigkill`
 will terminate the entire process responsible for making the call, `Override`
-will override the return value that was supposed to be returned with the value
-given in the `argError` field. It's then up to the process handling of the
-return value of the function to stop or continue the execution.
+will run in place of the original kprobed function and return the value
+specified in the `argError` field. It's then up to the code path or the user
+space process handling the returned value to whether stop or proceed with the
+execution.
 
 For example, you can create a `TracingPolicy` that intercepts `sys_symlinkat`
 and will make it return `-1` every time the first argument is equal to the
@@ -1012,10 +1013,22 @@ kprobes:
     - action: Override
       argError: -1
 ```
+
+{{< note >}}
+`Override` uses the kernel error injection framework and is only available
+on kernels compiled with `CONFIG_BPF_KPROBE_OVERRIDE` configuration option.
+
+Overriding system calls is the primary use case, but there are other kernel
+functions that support error injections too. These functions are annotated
+with `ALLOW_ERROR_INJECTION()` in the kernel source, and can be identified by
+reading the file `/sys/kernel/debug/error_injection/list`.
+
+Starting from kernel version `5.7` overriding `security_` hooks is also possible.
+{{< /note >}}
+
 {{< caution >}}
-`Override` can override the return value of any call but doing so in kernel
-functions can create unexpected code path execution. While syscall are a stable
-user interface that should handle errors gracefully.
+For kernel developers: if you want to override your kernel functions then
+ensure they properly follow the [Error Injectable Functions](https://docs.kernel.org/fault-injection/fault-injection.html#error-injectable-functions) guide.
 {{< /caution >}}
 
 ##### FollowFD action
