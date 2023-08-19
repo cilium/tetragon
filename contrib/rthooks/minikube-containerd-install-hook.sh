@@ -15,7 +15,7 @@ echo "temporary directory: $xdir"
 
 set -x
 
-go build -o $LOCALHOOK  $SCRIPTPATH/tetragon-oci-hook
+CGO_ENABLED=0 go build -o $LOCALHOOK  $SCRIPTPATH/tetragon-oci-hook
 
 mapfile -d '' JQCMD << EOF
 . += { "hooks": {
