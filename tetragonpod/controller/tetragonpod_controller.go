@@ -301,7 +301,7 @@ func generatePod(pod *corev1.Pod) *ciliumiov1alpha1.TetragonPod {
 			Namespace:   pod.Namespace,
 			Labels:      pod.Labels,
 			Annotations: pod.Annotations,
-			// setting up ownder reference to the pod will ensure that the tetragonPod resource is deleted when the pod is deleted.
+			// setting up owner reference to the pod will ensure that the tetragonPod resource is deleted when the pod is deleted.
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: pod.APIVersion,
