@@ -75,7 +75,8 @@ func TestGenericTracepointSimple(t *testing.T) {
 
 	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID, "policyName")
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
+		"policyName", []v1alpha1.ListSpec{})
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
@@ -134,7 +135,8 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 
 	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, policyfilter.NoFilterID, "policyName")
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, policyfilter.NoFilterID,
+		"policyName", []v1alpha1.ListSpec{})
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
@@ -525,7 +527,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	sm := tus.StartTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID, "policyName")
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
+		"policyName", []v1alpha1.ListSpec{})
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
