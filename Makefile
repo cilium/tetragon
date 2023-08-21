@@ -18,7 +18,7 @@ BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 VERSION ?= $(shell git describe --tags --always)
 
 # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
-GOLANGCILINT_WANT_VERSION = 1.53.3
+GOLANGCILINT_WANT_VERSION = v1.54.2
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 # Do a parallel build with multiple jobs, based on the number of CPUs online
