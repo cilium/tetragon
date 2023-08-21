@@ -9,10 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	CelAllowKubeSystem = `!("io.kubernetes.pod.namespace" in annotations) || annotations["io.kubernetes.pod.namespace"] != "kube-system"`
-)
-
 func celUserExprNoError(t *testing.T, expr string) *celProg {
 	ret, err := celUserExpr(expr)
 	require.NoError(t, err)
@@ -42,6 +38,10 @@ func TestCel(t *testing.T) {
 		// expected value false: program will not fail because namespace is kube-system
 		{prog: celAllowNamespacesNoError(t, []string{"root", "kube-system"}), expectedVal: false, annotations: map[string]string{
 			"io.kubernetes.pod.namespace": "kube-system",
+		}},
+		// expected value false: program will not fail because namespace is kube-system
+		{prog: celAllowNamespacesNoError(t, []string{"root", "kube-system"}), expectedVal: false, annotations: map[string]string{
+			"io.kubernetes.cri.sandbox-namespace": "kube-system",
 		}},
 	}
 
