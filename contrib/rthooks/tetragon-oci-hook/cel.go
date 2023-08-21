@@ -31,7 +31,7 @@ func celUserExpr(expr string) (*celProg, error) {
 	return &celProg{
 		p: p,
 		values: map[string]interface{}{
-			"annotations_namespace_key": *annotationsNamespaceKey,
+			"annotations_namespace_keys": *annotationsNamespaceKeys,
 		},
 	}, nil
 }
@@ -39,14 +39,18 @@ func celUserExpr(expr string) (*celProg, error) {
 func celAllowNamespaces(vals []string) (*celProg, error) {
 	env, err := cel.NewEnv(
 		cel.Variable("annotations", cel.MapType(cel.StringType, cel.StringType)),
-		cel.Variable("annotations_namespace_key", cel.StringType),
+		cel.Variable("annotations_namespace_keys", cel.ListType(cel.StringType)),
 		cel.Variable("allow_labels", cel.ListType(cel.StringType)),
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	expr := `!(annotations_namespace_key in annotations && annotations[annotations_namespace_key] in allow_labels)`
+	//expr := `!(annotations_namespace_key in annotations && annotations[annotations_namespace_key] in allow_labels)`
+	expr := `annotations_namespace_keys.all(key, !(key in annotations && annotations[key] in allow_labels))`
 	ast, issues := env.Compile(expr)
 	if issues != nil && issues.Err() != nil {
-		return nil, fmt.Errorf("failed to compile `%s`: %w", expr, err)
+		return nil, fmt.Errorf("failed to compile `%s`: %w", expr, issues.Err())
 	}
 
 	p, err := env.Program(ast)
@@ -57,8 +61,8 @@ func celAllowNamespaces(vals []string) (*celProg, error) {
 	return &celProg{
 		p: p,
 		values: map[string]interface{}{
-			"allow_labels":              vals,
-			"annotations_namespace_key": *annotationsNamespaceKey,
+			"allow_labels":               vals,
+			"annotations_namespace_keys": *annotationsNamespaceKeys,
 		},
 	}, nil
 }

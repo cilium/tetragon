@@ -29,14 +29,15 @@ import (
 )
 
 var (
-	logFname                       = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
-	agentAddress                   = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
-	grpcTimeout                    = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
-	disableGrpc                    = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
-	annotationsNamespaceDefaultKey = "io.kubernetes.pod.namespace"
-	annotationsNamespaceKey        = flag.String(
+	logFname                        = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
+	logLevel                        = flag.String("log-level", "info", "log level")
+	agentAddress                    = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
+	grpcTimeout                     = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
+	disableGrpc                     = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
+	annotationsNamespaceDefaultKeys = []string{"io.kubernetes.pod.namespace", "io.kubernetes.cri.sandbox-namespace"}
+	annotationsNamespaceKeys        = flag.StringSlice(
 		"annotations-namespace-key",
-		annotationsNamespaceDefaultKey,
+		annotationsNamespaceDefaultKeys,
 		"Runtime annotations  key for kubernetes namespace")
 	failCelUser = flag.String(
 		"fail-cel-expr",
@@ -215,6 +216,7 @@ func checkFail(log *logrus.Entry, annotations map[string]string) {
 		log.WithError(err).Fatal("failCheck failed")
 	}
 
+	log.Debugf("running fail check with annotations: %v", annotations)
 	fail, err := prog.RunFailCheck(annotations)
 	if err != nil {
 		log.WithError(err).Fatal("failCheck failed")
@@ -237,6 +239,12 @@ func main() {
 		MaxBackups: 3,
 		MaxAge:     7, //days
 	})
+
+	if lvl, err := logrus.ParseLevel(*logLevel); err == nil {
+		log.SetLevel(lvl)
+	} else {
+		log.WithField("log-level", *logLevel).Warn("unknonwn log level, ignoring")
+	}
 
 	args := flag.Args()
 	if len(args) < 1 {
