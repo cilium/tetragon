@@ -103,7 +103,7 @@ example, used to implement enforcement.
 
 {{< note >}}
 For more details about TracingPolicies and how to write them, refer to the
-[TracingPolicy documentation]({{< ref "docs/concepts/tracing-policy" >}}).
+[TracingPolicy documentation]({{< ref "/docs/concepts/tracing-policy" >}}).
 {{< /note >}}
 
 ### Observability with TracingPolicy
@@ -394,5 +394,5 @@ file using `cat ./tracing_policy.yaml` will bypass the policies presented here.
 ## What's next
 
 - Try Tetragon in [Kubernetes environments]({{< ref "docs/getting-started/kubernetes-quickstart-guide" >}}).
-- Learn more about [TracingPolicy]({{< ref "docs/concepts/tracing-policy" >}}).
+- Learn more about [TracingPolicy]({{< ref "/docs/concepts/tracing-policy" >}}).
 - See more use cases for observability in the [Use cases section]({{< ref "docs/use-cases" >}}).

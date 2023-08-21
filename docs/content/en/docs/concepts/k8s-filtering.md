@@ -11,7 +11,7 @@ This is currently a beta feature.
 
 ## Motivation
 
-Tetragon is configured via [TracingPolicies]({{< ref "docs/concepts/tracing-policy" >}}). Broadly
+Tetragon is configured via [TracingPolicies]({{< ref "/docs/concepts/tracing-policy" >}}). Broadly
 speaking, TracingPolicies define _what_ situations Tetragon should react to and _how_. The _what_
 can be, for example, specific system calls with specific argument values. The _how_ defines what
 action the Tetragon agent should perform when the specified situation occurs. The most common action

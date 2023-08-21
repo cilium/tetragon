@@ -1,0 +1,346 @@
+---
+title: "Hook points"
+icon: "features"
+weight: 2
+description: "Hook points for Tracing Policies and arguments description"
+---
+
+The `spec` or specification of a `TracingPolicy` can be composed of `kprobes`,
+`tracepoints` or `uprobes` at the moment. It describes the arbitrary event in
+the kernel that Tetragon will trace. These hook points have arguments and
+return values that can be specified using the `args` and `returnArg` fields
+detailed in the following sections.
+
+## Kprobes
+
+Kprobes enables you to dynamically break into any kernel routine and collect
+debugging and performance information non-disruptively. kprobes are highly
+tight to your kernel version and might not be portable since the kernel symbols
+depend on your build.
+
+Conveniently, you can list all kernel symbols reading the `/proc/kallsyms`
+file. For example to search for the `write` syscall kernel function, you can
+execute `sudo grep sys_write /proc/kallsyms`, the output should be similar to
+this, minus the architecture specific prefixes.
+
+```
+ffffdeb14ea712e0 T __arm64_sys_writev
+ffffdeb14ea73010 T ksys_write
+ffffdeb14ea73140 T __arm64_sys_write
+ffffdeb14eb5a460 t proc_sys_write
+ffffdeb15092a700 d _eil_addr___arm64_sys_writev
+ffffdeb15092a740 d _eil_addr___arm64_sys_write
+```
+
+You can see that the exact name of the symbol for the write syscall on our
+kernel version is `__arm64_sys_write`. Note that on `x86_64`, the prefix should
+be `__x64_` instead of `__arm64_`.
+
+{{< caution >}}
+Kernel symbols contain an architecture specific prefix when they refer to
+syscall symbols. To write portable tracing policies, i.e. policies that can run
+on multiple architectures, just use the symbol name without the prefix.
+
+For example, instead of writing `call: "__arm64_sys_write"` or `call:
+"__x64_sys_write"`, just write `call: "sys_write"`, Tetragon will adapt and add
+the correct prefix based on the architecture of the underlying machine. Note
+that the event generated as output currently includes the prefix.
+{{< /caution >}}
+
+In our example, we will explore a `kprobe` hooking into the
+[`fd_install`](https://elixir.bootlin.com/linux/v6.1.9/source/fs/file.c#L602)
+kernel function. The `fd_install` kernel function is called each time a file
+descriptor is installed into the file descriptor table of a process, typically
+referenced within system calls like `open` or `openat`. Hooking `fd_install`
+has its benefits and limitations, which are out of the scope of this document.
+
+```yaml
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+```
+
+{{< note >}}
+Notice the `syscall` field, specific to a `kprobe` spec, with default value
+`false`, that indicates whether Tetragon will hook a syscall or just a regular
+kernel function. Tetragon needs this information because syscall and kernel
+function use a [different ABI](https://gitlab.com/x86-psABIs/x86-64-ABI).
+{{< /note >}}
+
+
+As usual, kprobes calls can be defined independently in different policies,
+or together in the same Policy. For example, we can define trace multiple
+kprobes under the same tracing policy:
+```yaml
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    # [...]
+  - call: "sys_write"
+    syscall: true
+    # [...]
+```
+
+## Uprobes
+
+{{% pageinfo %}}
+This hook point method lacks documentation, see [issue #878](https://github.com/cilium/tetragon/issues/878).
+{{% /pageinfo %}}
+
+## Tracepoints
+
+A tracepoint placed in the Linux kernel code provides a hook to call a function
+that you can provide at runtime using Tetragon. Tracepoints have the advantage
+of being stable across kernel versions and thus more portable than kprobes.
+
+To see the list of tracepoints available on your kernel, you can list them
+using `sudo ls /sys/kernel/debug/tracing/events`, the output should be similar
+to this.
+
+```
+alarmtimer    ext4            iommu           page_pool     sock
+avc           fib             ipi             pagemap       spi
+block         fib6            irq             percpu        swiotlb
+bpf_test_run  filelock        jbd2            power         sync_trace
+bpf_trace     filemap         kmem            printk        syscalls
+bridge        fs_dax          kvm             pwm           task
+btrfs         ftrace          libata          qdisc         tcp
+cfg80211      gpio            lock            ras           tegra_apb_dma
+cgroup        hda             mctp            raw_syscalls  thermal
+clk           hda_controller  mdio            rcu           thermal_power_allocator
+cma           hda_intel       migrate         regmap        thermal_pressure
+compaction    header_event    mmap            regulator     thp
+cpuhp         header_page     mmap_lock       rpm           timer
+cros_ec       huge_memory     mmc             rpmh          tlb
+dev           hwmon           module          rseq          tls
+devfreq       i2c             mptcp           rtc           udp
+devlink       i2c_slave       napi            sched         vmscan
+dma_fence     initcall        neigh           scmi          wbt
+drm           interconnect    net             scsi          workqueue
+emulation     io_uring        netlink         signal        writeback
+enable        iocost          oom             skb           xdp
+error_report  iomap           page_isolation  smbus         xhci-hcd
+```
+
+You can then choose the subsystem that you want to trace, and look the
+tracepoint you want to use and its format. For example, if we choose the
+`netif_receive_skb` tracepoints from the `net` subsystem, we can read its
+format with `sudo cat /sys/kernel/debug/tracing/events/net/netif_receive_skb/format`,
+the output should be similar to the following.
+
+```
+name: netif_receive_skb
+ID: 1398
+format:
+        field:unsigned short common_type;       offset:0;       size:2; signed:0;
+        field:unsigned char common_flags;       offset:2;       size:1; signed:0;
+        field:unsigned char common_preempt_count;       offset:3;       size:1; signed:0;
+        field:int common_pid;   offset:4;       size:4; signed:1;
+
+        field:void * skbaddr;   offset:8;       size:8; signed:0;
+        field:unsigned int len; offset:16;      size:4; signed:0;
+        field:__data_loc char[] name;   offset:20;      size:4; signed:0;
+
+print fmt: "dev=%s skbaddr=%px len=%u", __get_str(name), REC->skbaddr, REC->len
+```
+
+Similarly to kprobes, tracepoints can also hook into system calls. For more
+details, see the `raw_syscalls` and `syscalls` subysystems.
+
+An example of tracepoints `TracingPolicy` could be the following, observing all
+syscalls and getting the syscall ID from the argument at index 4:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "raw-syscalls"
+spec:
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "int64"
+```
+
+## Arguments
+
+Kprobes, uprobes and tracepoints all share a needed arguments fields called
+`args`. It's a list of function arguments to include in the trace output.
+Indeed the BPF code that runs on the hook point requires information about the
+types of arguments of the function being traced to properly read, print and
+filter on its arguments. Currently, this information needs to be provided by
+the user under the `args` section. For the [available
+types](https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml#L64-L88),
+see directly in the `TracingPolicy` CRD.
+
+Following our example, here is the part that defines the arguments:
+```yaml
+args:
+- index: 0
+  type: "int"
+- index: 1
+  type: "file"
+```
+
+Each argument can optionally include a 'label' parameter, which will be included
+in the output. This can be used to annotate the arguments to help with understanding
+and processing the output. As an example, here is the same definition, with an
+appropriate label on the int argument:
+```yaml
+args:
+- index: 0
+  type: "int"
+  label: "FD"
+- index: 1
+  type: "file"
+```
+
+To properly read and hook onto the `fd_install(unsigned int fd, struct file
+*file)` function, the YAML snippet above tells the BPF code that the first
+argument is an `int` and the second argument is a `file`, which is the
+[`struct file`](https://elixir.bootlin.com/linux/latest/source/include/linux/fs.h#L940)
+of the kernel. In this way, the BPF code and its printer can properly collect
+and print the arguments.
+
+These types are sorted by the `index` field, where you can specify the order.
+The indexing starts with 0. So, `index: 0` means, this is going to be the first
+argument of the function, `index: 1` means this is going to be the second
+argument of the function, etc.
+
+Note that for some args types, `char_buf` and `char_iovec`, there are
+additional fields named `returnCopy` and `sizeArgIndex` available:
+- `returnCopy` indicates that the corresponding argument should be read later (when
+  the kretprobe for the symbol is triggered) because it might not be populated
+  when the kprobe is triggered at the entrance of the function. For example, a
+  buffer supplied to `read(2)` won't have content until kretprobe is triggered.
+- `sizeArgIndex` indicates the (1-based, see warning below) index of the arguments
+  that represents the size of the `char_buf` or `iovec`. For example, for
+  `write(2)`, the third argument, `size_t count` is the number of `char`
+  element that we can read from the `const void *buf` pointer from the second
+  argument. Similarly, if we would like to capture the `__x64_sys_writev(long,
+  iovec *, vlen)` syscall, then `iovec` has a size of `vlen`, which is going to
+  be the third argument.
+
+{{< caution >}}
+`sizeArgIndex` is inconsistent at the moment and does not take the index, but
+the number of the index (or index + 1). So if the size is the third argument,
+index 2, the value should be 3.
+{{< /caution >}}
+
+These flags can be combined, see the example below.
+
+```yaml
+- call: "sys_write"
+  syscall: true
+  args:
+  - index: 0
+    type: "int"
+  - index: 1
+    type: "char_buf"
+    returnCopy: true
+    sizeArgIndex: 3
+  - index: 2
+    type: "size_t"
+```
+
+Note that you can specify which arguments you would like to print from a
+specific syscall. For example if you don't care about the file descriptor,
+which is the first `int` argument with `index: 0` and just want the `char_buf`,
+what is written, then you can leave this section out and just define:
+
+```yaml
+args:
+- index: 1
+  type: "char_buf"
+  returnCopy: true
+  sizeArgIndex: 3
+- index: 2
+  type: "size_t"
+```
+This tells the printer to skip printing the `int` arg because it's not useful.
+
+For `char_buf` type up to the 4096 bytes are stored. Data with bigger size are
+cut and returned as truncated bytes.
+
+You can specify `maxData` flag for `char_buf` type to read maximum possible data
+(currently 327360 bytes), like:
+
+```yaml
+args:
+- index: 1
+  type: "char_buf"
+  maxData: true
+  sizeArgIndex: 3
+- index: 2
+  type: "size_t"
+```
+
+This field is only used for `char_buff` data. When this value is false (default),
+the bpf program will fetch at most 4096 bytes.  In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on.
+
+The `maxData` flag does not work with `returnCopy` flag at the moment, so it's
+usable only for syscalls/functions that do not require return probe to read the
+data.
+
+## Return values
+
+A `TracingPolicy` spec can specify that the return value should be reported in
+the tracing output. To do this, the `return` parameter of the call needs to be
+set to `true`, and the `returnArg` parameter needs to be set to specify the
+`type` of the return argument. For example:
+
+```yaml
+- call: "sk_alloc"
+  syscall: false
+  return: true
+  args:
+  - index: 1
+    type: int
+    label: "family"
+  returnArg:
+    type: sock
+```
+
+In this case, the `sk_alloc` hook is specified to return a value of type `sock`
+(a pointer to a `struct sock`). Whenever the `sk_alloc` hook is hit, not only
+will it report the `family` parameter in index 1, it will also report the socket
+that was created.
+
+### Return values for socket tracking
+
+A unique feature of a `sock` being returned from a hook such as `sk_alloc` is that
+the socket it refers to can be tracked. Most networking hooks in the network stack
+are run in a context that is not that of the process that owns the socket for which
+the actions relate; this is because networking happens asynchronously and not
+entirely in-line with the process. The `sk_alloc` hook does, however, occur in the
+context of the process, such that the task, the PID, and the TGID are of the process
+that requested that the socket was created.
+
+Specifying socket tracking tells Tetragon to store a mapping between the socket
+and the process' PID and TGID; and to use that mapping when it sees the socket in a
+`sock` argument in another hook to replace the PID and TGID of the context with the
+process that actually owns the socket. This can be done by adding a `returnArgAction`
+to the call. Available actions are `TrackSock` and `UntrackSock`.
+See [`TrackSock`](#tracksock-action) and [`UntrackSock`](#untracksock-action).
+
+```yaml
+- call: "sk_alloc"
+  syscall: false
+  return: true
+  args:
+  - index: 1
+    type: int
+    label: "family"
+  returnArg:
+    type: sock
+  returnArgAction: TrackSock
+```
+
+Socket tracking is only available on kernels >=5.3.
+
+
