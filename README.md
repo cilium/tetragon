@@ -257,7 +257,7 @@ and generates enriched events from them. In the next sections we detail the
 available sensors and the events they produce:
 1. [Process execution](#process-execution): generating `process_exec` and
    `process_exit` events.
-1. [Generic tracing](#tracepoints-and-kprobes): generating `process_kprobes`
+1. [Generic tracing](#generic-tracing): generating `process_kprobes`
    and `process_tracepoint` events.
 
 Along, we present use cases on how they can be used as a starting point.
