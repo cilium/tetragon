@@ -507,11 +507,43 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 	return nil
 }
 
+func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueMap) error {
+	if k.listReader == nil {
+		return fmt.Errorf("failed list values loading is not supported")
+	}
+	values, err := k.listReader.Read(v)
+	if err != nil {
+		return err
+	}
+	for idx := range values {
+		var val [8]byte
+
+		switch ty {
+		case argTypeS64, argTypeInt:
+			binary.LittleEndian.PutUint64(val[:], uint64(values[idx]))
+		case argTypeU64:
+			binary.LittleEndian.PutUint64(val[:], uint64(values[idx]))
+		default:
+			return fmt.Errorf("Unknown type: %d", ty)
+		}
+		m.Data[val] = struct{}{}
+	}
+	return nil
+}
+
 func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
 		var val [8]byte
-		// most likely port range
+
+		if strings.HasPrefix(v, "list:") {
+			err := writeListValuesInMap(k, v[len("list:"):], ty, &m)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		// if not list, most likely port range
 		if strings.Contains(v, ":") {
 			err := writeRangeInMap(v, ty, op, &m)
 			if err != nil {
@@ -1142,7 +1174,7 @@ func parseSelector(
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable)
+	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable, nil)
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1150,8 +1182,8 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 }
 
 func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table) (*KernelSelectorState, error) {
-	kernelSelectors := NewKernelSelectorState()
+	actionArgTable *idtable.Table, listReader ValueReader) (*KernelSelectorState, error) {
+	kernelSelectors := NewKernelSelectorState(listReader)
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
