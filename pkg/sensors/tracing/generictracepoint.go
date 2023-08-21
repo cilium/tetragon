@@ -351,6 +351,7 @@ func createGenericTracepointSensor(
 	confs []GenericTracepointConf,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	lists []v1alpha1.ListSpec,
 ) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
@@ -383,7 +384,7 @@ func createGenericTracepointSensor(
 			"generic_tracepoint",
 		)
 
-		err := tp.InitKernelSelectors()
+		err := tp.InitKernelSelectors(lists)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
@@ -438,7 +439,7 @@ func createGenericTracepointSensor(
 	}, nil
 }
 
-func (tp *genericTracepoint) InitKernelSelectors() error {
+func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
 	if tp.selectors != nil {
 		return fmt.Errorf("InitKernelSelectors: selectors already initialized")
 	}
@@ -477,7 +478,7 @@ func (tp *genericTracepoint) InitKernelSelectors() error {
 		}
 	}
 
-	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs, nil)
+	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs, &listReader{lists})
 	if err != nil {
 		return err
 	}
