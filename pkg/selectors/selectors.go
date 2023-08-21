@@ -40,6 +40,10 @@ type ValueMap struct {
 	Data map[[8]byte]struct{}
 }
 
+type ValueReader interface {
+	Read(value string) ([]uint32, error)
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
@@ -55,12 +59,15 @@ type KernelSelectorState struct {
 
 	matchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
 	newBinVals    map[uint32]string              // these should be added in the names_map
+
+	listReader ValueReader
 }
 
-func NewKernelSelectorState() *KernelSelectorState {
+func NewKernelSelectorState(listReader ValueReader) *KernelSelectorState {
 	return &KernelSelectorState{
 		matchBinaries: make(map[int]*MatchBinariesMappings),
 		newBinVals:    make(map[uint32]string),
+		listReader:    listReader,
 	}
 }
 
