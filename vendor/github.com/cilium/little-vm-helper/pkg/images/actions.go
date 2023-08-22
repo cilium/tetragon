@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/kernels"
-	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/cilium/little-vm-helper/pkg/step"
 )
 
 // ActionOp is the interface that actions operations need to implement.
@@ -20,7 +20,7 @@ import (
 // works.
 type ActionOp interface {
 	ActionOpName() string
-	ToSteps(s *StepConf) ([]multistep.Step, error)
+	ToSteps(s *StepConf) ([]step.Step, error)
 }
 
 type Action struct {
@@ -54,8 +54,8 @@ func (rc *RunCommand) ActionOpName() string {
 	return "run-command"
 }
 
-func (rc *RunCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (rc *RunCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--run-command", rc.Cmd},
 	}}, nil
@@ -71,8 +71,8 @@ func (c *CopyInCommand) ActionOpName() string {
 	return "copy-in"
 }
 
-func (c *CopyInCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *CopyInCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--copy-in", fmt.Sprintf("%s:%s", c.LocalPath, c.RemoteDir)},
 	}}, nil
@@ -87,8 +87,8 @@ func (c *SetHostnameCommand) ActionOpName() string {
 	return "set-hostname"
 }
 
-func (c *SetHostnameCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *SetHostnameCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--hostname", c.Hostname},
 	}}, nil
@@ -103,8 +103,8 @@ func (c *MkdirCommand) ActionOpName() string {
 	return "mkdir"
 }
 
-func (c *MkdirCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *MkdirCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--mkdir", c.Dir},
 	}}, nil
@@ -120,8 +120,8 @@ func (c *UploadCommand) ActionOpName() string {
 	return "upload"
 }
 
-func (c *UploadCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *UploadCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--upload", fmt.Sprintf("%s:%s", c.File, c.Dest)},
 	}}, nil
@@ -137,8 +137,8 @@ func (c *ChmodCommand) ActionOpName() string {
 	return "chmod"
 }
 
-func (c *ChmodCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *ChmodCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--chmod", fmt.Sprintf("%s:%s", c.Permissions, c.File)},
 	}}, nil
@@ -154,8 +154,8 @@ func (c *AppendLineCommand) ActionOpName() string {
 	return "append-line"
 }
 
-func (c *AppendLineCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *AppendLineCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--append-line", fmt.Sprintf("%s:%s", c.File, c.Line)},
 	}}, nil
@@ -171,8 +171,8 @@ func (c *LinkCommand) ActionOpName() string {
 	return "link"
 }
 
-func (c *LinkCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
-	return []multistep.Step{&VirtCustomizeStep{
+func (c *LinkCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
 		StepConf: s,
 		Args:     []string{"--link", fmt.Sprintf("%s:%s", c.Target, c.Link)},
 	}}, nil
@@ -187,7 +187,7 @@ func (c *InstallKernelCommand) ActionOpName() string {
 	return "install-kernel"
 }
 
-func (c *InstallKernelCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
+func (c *InstallKernelCommand) ToSteps(s *StepConf) ([]step.Step, error) {
 	installDir := c.KernelInstallDir
 	// NB(kkourt): quick hack for having a proper (independent of base
 	// directory) relative path for install dirs. Should figure out
@@ -203,7 +203,7 @@ func (c *InstallKernelCommand) ToSteps(s *StepConf) ([]multistep.Step, error) {
 		return nil, err
 	}
 	kernelPath := filepath.Join("/", kernel)
-	return []multistep.Step{
+	return []step.Step{
 		// boot files, configs, etc.
 		&VirtCustomizeStep{StepConf: s, Args: []string{"--copy-in", fmt.Sprintf("%s/boot:/", installDir)}},
 		// modules

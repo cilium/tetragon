@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/cilium/little-vm-helper/pkg/step"
 	"github.com/sirupsen/logrus"
 )
 
@@ -228,8 +228,7 @@ func (s *CreateImage) makeDerivedImage(ctx context.Context) error {
 	return nil
 }
 
-func (s *CreateImage) Run(ctx context.Context, b multistep.StateBag) multistep.StepAction {
-
+func (s *CreateImage) Do(ctx context.Context) (step.Result, error) {
 	var err error
 	if s.imgCnf.Parent == "" {
 		err = s.makeRootImage(ctx)
@@ -239,12 +238,10 @@ func (s *CreateImage) Run(ctx context.Context, b multistep.StateBag) multistep.S
 
 	if err != nil {
 		s.log.WithField("image", s.imgCnf.Name).WithError(err).Error("error buiding image")
-		b.Put("err", err)
-		return multistep.ActionHalt
+		return step.Stop, err
 	}
-	return multistep.ActionContinue
-
+	return step.Continue, nil
 }
 
-func (s *CreateImage) Cleanup(b multistep.StateBag) {
+func (s *CreateImage) Cleanup(ctx context.Context) {
 }
