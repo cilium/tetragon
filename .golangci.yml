@@ -1,7 +1,7 @@
 # See https://golangci-lint.run/usage/configuration/ for available options.
 # Also https://github.com/cilium/cilium/blob/master/.golangci.yaml as a reference.
 run:
-  timeout: 5m
+  timeout: 10m
 
 output:
   format: tab
