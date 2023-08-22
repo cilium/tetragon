@@ -10,7 +10,7 @@ import (
 	"path"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/cilium/little-vm-helper/pkg/step"
 )
 
 // VirtCustomizeStep is a step implemented a set of arguments in virt-customize
@@ -25,7 +25,7 @@ type VirtCustomizeStep struct {
 	Args []string
 }
 
-func (s *VirtCustomizeStep) Run(ctx context.Context, b multistep.StateBag) multistep.StepAction {
+func (s *VirtCustomizeStep) Do(ctx context.Context) (step.Result, error) {
 	imgFname := path.Join(s.imagesDir, s.imgCnf.Name)
 	args := []string{"-a", imgFname}
 	args = append(args, s.Args...)
@@ -33,16 +33,16 @@ func (s *VirtCustomizeStep) Run(ctx context.Context, b multistep.StateBag) multi
 	err := logcmd.RunAndLogCommand(cmd, s.log)
 	if err != nil {
 		s.log.WithField("image", s.imgCnf.Name).WithError(err).Error("error executing command")
-		b.Put("err", err)
-		return multistep.ActionHalt
+		return step.Stop, err
 	}
-	return multistep.ActionContinue
+
+	return step.Continue, nil
 }
 
-func (s *VirtCustomizeStep) Cleanup(b multistep.StateBag) {
+func (s *VirtCustomizeStep) Cleanup(ctx context.Context) {
 }
 
-func (s *VirtCustomizeStep) Merge(step multistep.Step) error {
+func (s *VirtCustomizeStep) Merge(step step.Step) error {
 	vcs, ok := step.(*VirtCustomizeStep)
 	if !ok {
 		return fmt.Errorf("type %T cannot be merged to a VirtCustomizeStep", step)

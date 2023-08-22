@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/cilium/little-vm-helper/pkg/step"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,9 +28,9 @@ func (f *ImageForest) doBuildImageDryRun(image string) error {
 }
 
 // merge act2 to act1, or return an error
-func mergeSteps(step1, step2 multistep.Step) error {
+func mergeSteps(step1, step2 step.Step) error {
 	mergable, ok := step1.(interface {
-		Merge(step multistep.Step) error
+		Merge(step step.Step) error
 	})
 	if !ok {
 		return fmt.Errorf("step1 (%v) not mergable", step1)
@@ -60,8 +60,7 @@ func (f *ImageForest) doBuildImage(
 		log:       log,
 	}
 
-	state := new(multistep.BasicStateBag)
-	steps := make([]multistep.Step, 2, 2+len(cnf.Actions))
+	steps := make([]step.Step, 2, 2+len(cnf.Actions))
 
 	steps[0] = NewCreateImage(stepConf)
 	// NB: We might need an --chdir option or similar, but for now just
@@ -93,13 +92,11 @@ func (f *ImageForest) doBuildImage(
 		}
 	}
 
-	runner := &multistep.BasicRunner{Steps: steps}
-	runner.Run(ctx, state)
-	err := state.Get("err")
+	err := step.DoSteps(ctx, steps)
 	if err != nil {
 		imgFname := f.imageFilename(image)
 		log.Warnf("image file '%s' not deleted so that it can be inspected", imgFname)
-		return err.(error)
+		return err
 	}
 	return nil
 }
