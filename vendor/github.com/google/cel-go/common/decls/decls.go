@@ -243,7 +243,8 @@ func (f *FunctionDecl) Bindings() ([]*functions.Overload, error) {
 	// performs dynamic dispatch to the proper overload based on the argument types.
 	bindings := append([]*functions.Overload{}, overloads...)
 	funcDispatch := func(args ...ref.Val) ref.Val {
-		for _, o := range f.overloads {
+		for _, oID := range f.overloadOrdinals {
+			o := f.overloads[oID]
 			// During dynamic dispatch over multiple functions, signature agreement checks
 			// are preserved in order to assist with the function resolution step.
 			switch len(args) {
