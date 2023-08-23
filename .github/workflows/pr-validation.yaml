@@ -1,0 +1,36 @@
+name: pr
+
+on:
+  pull_request:
+    branches:
+      - main
+      - v*
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+      - labeled
+      - unlabeled
+
+env:
+  LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+
+jobs:
+  # based on https://github.com/WordPress/performance/blob/trunk/.github/workflows/pr-validation.yml
+  labels:
+    name: validate labels
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: release-note/*
+        if: always() && !contains(env.LABELS, 'release-note/')
+        run: |
+          echo "please add a release-note/* label to the pull request"
+          exit 1
+      - name: dont-merge/*
+        if: always() && contains(env.LABELS, 'dont-merge/')
+        run: |
+          echo "pull request has a dont-merge label"
+          exit 1
