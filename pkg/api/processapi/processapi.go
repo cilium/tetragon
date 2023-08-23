@@ -33,6 +33,9 @@ const (
 	/* Execve extra flags */
 	ExecveSetuid = 0x01
 	ExecveSetgid = 0x02
+
+	// flags of MsgCommon
+	MSG_COMMON_FLAG_RETURN = 0x1
 )
 
 type MsgExec struct {
