@@ -123,7 +123,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	enter = event_find_curr(&ppid, &walker);
 
 	e->common.op = MSG_OP_GENERIC_KPROBE;
-	e->common.flags = 1;
+	e->common.flags |= MSG_COMMON_FLAG_RETURN;
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = size;

@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -1140,7 +1141,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Capabilities = m.Capabilities
 	unix.PolicyName = gk.policyName
 
-	returnEvent := m.Common.Flags > 0
+	returnEvent := m.Common.Flags&processapi.MSG_COMMON_FLAG_RETURN != 0
 
 	var ktimeEnter uint64
 	var printers []argPrinters

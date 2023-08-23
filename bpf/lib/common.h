@@ -3,6 +3,9 @@
 #ifndef _MSG_COMMON__
 #define _MSG_COMMON__
 
+/* msg_common internal flags */
+#define MSG_COMMON_FLAG_RETURN BIT(0)
+
 /* Msg Layout */
 struct msg_common {
 	__u8 op;
