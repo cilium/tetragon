@@ -56,7 +56,7 @@ func (c *collection) load(bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) erro
 	if err != nil {
 		// NB: we could try to unload sensors going back from the one that failed, but since
 		// unload() checks s.Loaded, is easier to just to use unload().
-		if unloadErr := c.unload(nil); unloadErr != nil {
+		if unloadErr := c.unload(); unloadErr != nil {
 			err = multierr.Append(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
 		}
 	} else {
@@ -74,21 +74,18 @@ func (c *collection) load(bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) erro
 }
 
 // unload will attempt to unload all the sensors in a collection
-func (c *collection) unload(cbArg *UnloadArg) error {
+func (c *collection) unload() error {
 	var err error
 	for _, s := range c.sensors {
 		if !s.Loaded {
 			continue
 		}
 		unloadErr := s.Unload()
-		if unloadErr == nil && cbArg != nil && s.Ops != nil {
-			s.Ops.Unloaded(*cbArg)
-		}
 		err = multierr.Append(err, unloadErr)
 	}
 
 	if err != nil {
-		err = fmt.Errorf("failed to unload all sensors from collection %s: %w", c.name, err)
+		return fmt.Errorf("failed to unload all sensors from collection %s: %w", c.name, err)
 	}
-	return err
+	return nil
 }

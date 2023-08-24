@@ -135,7 +135,7 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)
 	}
-	err := col.unload(nil)
+	err := col.unload()
 	if err != nil {
 		col.err = fmt.Errorf("failed to unload tracing policy: %w", err)
 		return err
@@ -197,7 +197,7 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
-	err := col.unload(nil)
+	err := col.unload()
 	delete(h.collections, op.name)
 	return err
 }
@@ -221,8 +221,7 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
 
-	// NB: see LoadArg for sensorEnable
-	return col.unload(&UnloadArg{})
+	return col.unload()
 }
 
 func (h *handler) listSensors(op *sensorList) error {
