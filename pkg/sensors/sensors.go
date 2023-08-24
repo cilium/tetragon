@@ -48,10 +48,10 @@ type Sensor struct {
 	Loaded bool
 	// Ops contains an implementation to perform on this sensor.
 	Ops Operations
-	// UnloadHook can optionally contain a pointer to a function to be
+	// PreUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
-	UnloadHook SensorUnloadHook
+	PreUnloadHook SensorUnloadHook
 }
 
 // Operations is the interface to the underlying sensor implementations.
