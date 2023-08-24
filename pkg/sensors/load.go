@@ -122,9 +122,9 @@ func (s *Sensor) Unload() error {
 		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", s.Name)
 	}
 
-	if s.UnloadHook != nil {
-		if err := s.UnloadHook(); err != nil {
-			logger.GetLogger().Warnf("Sensor %s unload hook failed: %s", s.Name, err)
+	if s.PreUnloadHook != nil {
+		if err := s.PreUnloadHook(); err != nil {
+			logger.GetLogger().Warnf("Sensor %s pre unload hook failed: %s", s.Name, err)
 		}
 	}
 
