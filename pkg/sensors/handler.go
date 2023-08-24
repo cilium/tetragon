@@ -120,7 +120,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		tracingpolicyID: uint64(tpID),
 		policyfilterID:  uint64(filterID),
 	}
-	if err := col.load(h.bpfDir, h.mapDir, h.ciliumDir, nil); err != nil {
+	if err := col.load(h.bpfDir, h.mapDir, h.ciliumDir); err != nil {
 		return err
 	}
 
@@ -208,11 +208,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
 
-	// NB: LoadArg was passed for a previous implementation of a sensor.
-	// The idea is that sensors can get a handle to the stt manager when
-	// they are loaded which they can use to attach stt information to
-	// events. Need to revsit this, and until we do we keep LoadArg.
-	return col.load(h.bpfDir, h.mapDir, h.ciliumDir, &LoadArg{})
+	return col.load(h.bpfDir, h.mapDir, h.ciliumDir)
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {
@@ -237,53 +233,6 @@ func (h *handler) listSensors(op *sensorList) error {
 		}
 	}
 	op.result = &ret
-	return nil
-}
-
-func (h *handler) configSet(op *sensorConfigSet) error {
-	col, exists := h.collections[op.name]
-	if !exists {
-		return fmt.Errorf("sensor %s does not exist", op.name)
-	}
-	// NB: sensorConfigSet was used before tracing policies were
-	// introduced. The idea was that it could be used to provide
-	// sensor-specifc configuration values. We can either modify the
-	// call to specify a sensor within a collection, or completely
-	// remove it. TBD.
-	if len(col.sensors) != 1 {
-		return fmt.Errorf("configuration only supported for collections of one sensor, but %s has %d sensors", op.name, len(col.sensors))
-	}
-	s := col.sensors[0]
-	if s.Ops == nil {
-		return fmt.Errorf("sensor %s does not support configuration", op.name)
-	}
-	if err := s.Ops.SetConfig(op.key, op.val); err != nil {
-		return fmt.Errorf("sensor %s SetConfig failed: %w", op.name, err)
-	}
-
-	return nil
-}
-
-func (h *handler) configGet(op *sensorConfigGet) error {
-	col, exists := h.collections[op.name]
-	if !exists {
-		return fmt.Errorf("sensor %s does not exist", op.name)
-	}
-	// NB: see sensorConfigSet
-	if len(col.sensors) != 1 {
-		return fmt.Errorf("configuration only supported for collections of one sensor, but %s has %d sensors", op.name, len(col.sensors))
-	}
-	s := col.sensors[0]
-	if s.Ops == nil {
-		return fmt.Errorf("sensor %s does not support configuration", op.name)
-	}
-
-	var err error
-	op.val, err = s.Ops.GetConfig(op.key)
-	if err != nil {
-		return fmt.Errorf("sensor %s GetConfig failed: %s", op.name, err)
-	}
-
 	return nil
 }
 

@@ -82,14 +82,6 @@ func (i *ioReaderClient) DisableSensor(_ context.Context, _ *tetragon.DisableSen
 	panic("stub")
 }
 
-func (i *ioReaderClient) SetSensorConfig(_ context.Context, _ *tetragon.SetSensorConfigRequest, _ ...grpc.CallOption) (*tetragon.SetSensorConfigResponse, error) {
-	panic("stub")
-}
-
-func (i *ioReaderClient) GetSensorConfig(_ context.Context, _ *tetragon.GetSensorConfigRequest, _ ...grpc.CallOption) (*tetragon.GetSensorConfigResponse, error) {
-	panic("stub")
-}
-
 func (i *ioReaderClient) GetStackTraceTree(_ context.Context, _ *tetragon.GetStackTraceTreeRequest, _ ...grpc.CallOption) (*tetragon.GetStackTraceTreeResponse, error) {
 	panic("stub")
 }

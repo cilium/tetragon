@@ -26,14 +26,6 @@ func (f *FakeObserver) DisableSensor(ctx context.Context, name string) error {
 	return nil
 }
 
-func (f *FakeObserver) GetSensorConfig(ctx context.Context, k string, v string) (string, error) {
-	return "", nil
-}
-
-func (f *FakeObserver) SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error {
-	return nil
-}
-
 func (f *FakeObserver) GetTreeProto(ctx context.Context, tname string) (*tetragon.StackTraceNode, error) {
 	return nil, nil
 }

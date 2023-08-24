@@ -87,10 +87,6 @@ func startSensorManager(
 				err = handler.disableSensor(op)
 			case *sensorList:
 				err = handler.listSensors(op)
-			case *sensorConfigSet:
-				err = handler.configSet(op)
-			case *sensorConfigGet:
-				err = handler.configGet(op)
 			case *sensorCtlStop:
 				logger.GetLogger().Debugf("stopping sensor controller...")
 				done = true
@@ -164,38 +160,6 @@ func (h *Manager) ListSensors(ctx context.Context) (*[]SensorStatus, error) {
 	}
 
 	return nil, err
-}
-
-func (h *Manager) GetSensorConfig(ctx context.Context, name string, cfgkey string) (string, error) {
-	retc := make(chan error)
-	op := &sensorConfigGet{
-		ctx:     ctx,
-		name:    name,
-		key:     cfgkey,
-		retChan: retc,
-	}
-
-	h.sensorCtl <- op
-	err := <-retc
-	if err == nil {
-		return op.val, nil
-	}
-
-	return "", err
-}
-
-func (h *Manager) SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error {
-	retc := make(chan error)
-	op := &sensorConfigSet{
-		ctx:     ctx,
-		name:    name,
-		key:     cfgkey,
-		val:     cfgval,
-		retChan: retc,
-	}
-
-	h.sensorCtl <- op
-	return <-retc
 }
 
 // TracingPolicy is an interface for a tracing policy
@@ -385,24 +349,6 @@ type sensorList struct {
 	retChan chan error
 }
 
-// set a configuration option on a sensor
-type sensorConfigSet struct {
-	ctx     context.Context
-	name    string
-	key     string
-	val     string
-	retChan chan error
-}
-
-// get a configuration option on a sensor
-type sensorConfigGet struct {
-	ctx     context.Context
-	name    string
-	key     string
-	val     string
-	retChan chan error
-}
-
 // sensorCtlStop stops the controller
 type sensorCtlStop struct {
 	ctx     context.Context
@@ -421,8 +367,6 @@ func (s *sensorRemove) sensorOpDone(e error)        { s.retChan <- e }
 func (s *sensorEnable) sensorOpDone(e error)        { s.retChan <- e }
 func (s *sensorDisable) sensorOpDone(e error)       { s.retChan <- e }
 func (s *sensorList) sensorOpDone(e error)          { s.retChan <- e }
-func (s *sensorConfigSet) sensorOpDone(e error)     { s.retChan <- e }
-func (s *sensorConfigGet) sensorOpDone(e error)     { s.retChan <- e }
 func (s *sensorCtlStop) sensorOpDone(e error)       { s.retChan <- e }
 
 type sensorCtlHandle = chan<- sensorOp
