@@ -5,6 +5,7 @@ package selectors
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
 )
 
@@ -44,6 +45,24 @@ type ValueReader interface {
 	Read(value string) ([]uint32, error)
 }
 
+const (
+	stringMapsKeyIncSize = 24
+	StringMapsNumSubMaps = 6
+	MaxStringMapsSize    = 6*stringMapsKeyIncSize + 1
+)
+
+var (
+	StringMapsSizes = [StringMapsNumSubMaps]int{1*stringMapsKeyIncSize + 1,
+		2*stringMapsKeyIncSize + 1,
+		3*stringMapsKeyIncSize + 1,
+		4*stringMapsKeyIncSize + 1,
+		5*stringMapsKeyIncSize + 1,
+		6*stringMapsKeyIncSize + 1}
+)
+
+type StringMapLists [StringMapsNumSubMaps][]map[[MaxStringMapsSize]byte]struct{}
+type SelectorStringMaps [StringMapsNumSubMaps]map[[MaxStringMapsSize]byte]struct{}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
@@ -61,6 +80,8 @@ type KernelSelectorState struct {
 	newBinVals    map[uint32]string              // these should be added in the names_map
 
 	listReader ValueReader
+	// stringMaps are used to populate string and char buf matches
+	stringMaps StringMapLists
 }
 
 func NewKernelSelectorState(listReader ValueReader) *KernelSelectorState {
@@ -125,6 +146,10 @@ func (k *KernelSelectorState) Addr6Maps() []map[KernelLpmTrie6]struct{} {
 	return k.addr6Maps
 }
 
+func (k *KernelSelectorState) StringMaps(subMap int) []map[[MaxStringMapsSize]byte]struct{} {
+	return k.stringMaps[subMap]
+}
+
 // ValueMapsMaxEntries returns the maximum entries over all maps
 func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 	maxEntries := 1
@@ -151,6 +176,17 @@ func (k *KernelSelectorState) Addr4MapsMaxEntries() int {
 func (k *KernelSelectorState) Addr6MapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.addr6Maps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+// StringMapsMaxEntries returns the maximum entries over all maps inside a particular map of map
+func (k *KernelSelectorState) StringMapsMaxEntries(subMap int) int {
+	maxEntries := 1
+	for _, vm := range k.stringMaps[subMap] {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}
@@ -209,6 +245,35 @@ func ArgSelectorValue(v string) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
+func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, int, error) {
+	if removeNul {
+		// Remove any trailing nul characters ("\0" or 0x00)
+		for v[len(v)-1] == 0 {
+			v = v[0 : len(v)-1]
+		}
+	}
+	ret := [MaxStringMapsSize]byte{}
+	b := []byte(v)
+	s := len(b)
+	if s >= MaxStringMapsSize {
+		return ret, 0, fmt.Errorf("string is too long")
+	}
+	if s == 0 {
+		return ret, 0, fmt.Errorf("string is empty")
+	}
+	paddedLen := s
+	// Calculate length of string padded to next multiple of key increment size
+	if s%stringMapsKeyIncSize != 0 {
+		paddedLen = ((s / stringMapsKeyIncSize) + 1) * stringMapsKeyIncSize
+	}
+
+	// Add real length to start and padding to end
+	ret[0] = byte(s)
+	copy(ret[1:], b)
+	// Total length is padded string len + prefixed length byte.
+	return ret, paddedLen + 1, nil
+}
+
 func (k *KernelSelectorState) newValueMap() (uint32, ValueMap) {
 	mapid := len(k.valueMaps)
 	vm := ValueMap{}
@@ -235,4 +300,56 @@ func (k *KernelSelectorState) insertAddr6Map(addr6map map[KernelLpmTrie6]struct{
 	mapid := len(k.addr6Maps)
 	k.addr6Maps = append(k.addr6Maps, addr6map)
 	return uint32(mapid)
+}
+
+func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
+	return SelectorStringMaps{
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
+	}
+}
+
+// In BPF, the string "equal" operator uses six hash maps, each stored within a matching array.
+// For each kprobe there could be multiple string match selectors. Each of these selectors has
+// up to six hash maps (of different sizes) that hold potential matches. Each kprobe could have
+// multiple string match selectors (for different parameters, and/or different actions). Arrays
+// of hash maps can only hold hash maps of a singular type; e.g. an array of hash maps with a
+// key size of 25 can only hold hash maps that have that key size – it can't hold hash maps with
+// different key sizes.
+//
+// As we have six different key sizes (to facilitate faster look ups for shorter strings), each
+// selector can potentially have six hash maps to look up the string in. And as each kprobe
+// could have multiple string match selectors, each kprobe could potentially have multiple hash
+// maps for each key size. Each kprobe therefore has six arrays of hash maps to hold these hash
+// maps.
+//
+// In golang we create a list of hash maps for each key size. Each of these is inserted into the
+// corresponding array of hash maps in BPF. The indices of the arrays correspond to the positions
+// in the list. As we don't needlessly create hash maps when they would otherwise be empty, we
+// also don't insert empty hash maps into the array. Therefore, at look up, it is possible that
+// there is no hash map for a particular key size for a particular selector. In this instance,
+// instead of storing the index of the hash map, we store 0xffffffff (int32(-1)) to indicate that
+// no hash map exists for that key size.
+//
+// For a simpler example of this construction, see the InMap functionality.
+func (k *KernelSelectorState) insertStringMaps(stringMaps SelectorStringMaps) [StringMapsNumSubMaps]uint32 {
+
+	details := [StringMapsNumSubMaps]uint32{}
+	mapid := uint32(0)
+
+	for subMap := 0; subMap < StringMapsNumSubMaps; subMap++ {
+		if len(stringMaps[subMap]) > 0 {
+			mapid = uint32(len(k.stringMaps[subMap]))
+			k.stringMaps[subMap] = append(k.stringMaps[subMap], stringMaps[subMap])
+		} else {
+			mapid = 0xffffffff
+		}
+		details[subMap] = mapid
+	}
+
+	return details
 }

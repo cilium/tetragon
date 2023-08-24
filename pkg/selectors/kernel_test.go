@@ -225,13 +225,17 @@ func TestParseMatchArg(t *testing.T) {
 	expected1 := []byte{
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
-		18, 0x00, 0x00, 0x00, // length == 18
+		32, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string
-		0x06, 0x00, 0x00, 0x00, // value length == 6
-		102, 111, 111, 98, 97, 114, // value ascii "foobar"
+		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
 	}
 	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, k.e[0:k.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected1, k.e[0:k.off], arg1)
+		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, k.e[0:k.off], arg1)
 	}
 
 	nextArg := k.off
@@ -304,9 +308,9 @@ func TestParseMatchArg(t *testing.T) {
 
 	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
 		length := []byte{
-			74, 0x00, 0x00, 0x00,
+			88, 0x00, 0x00, 0x00,
 			24, 0x00, 0x00, 0x00,
-			50, 0x00, 0x00, 0x00,
+			64, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
@@ -316,7 +320,7 @@ func TestParseMatchArg(t *testing.T) {
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := &KernelSelectorState{off: 0}
 		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
-			t.Errorf("parseMatchArgs: error %v expected %v bytes %v parsing %v\n", err, expected3, ks.e[0:k.off], arg3)
+			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, ks.e[0:k.off], arg3)
 		}
 	}
 }
@@ -571,11 +575,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0xe6, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0xf4, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x1a, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x28, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -660,9 +664,9 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	expected_last_large := []byte{
 		// arg header
-		74, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		88, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
 		24, 0x00, 0x00, 0x00, // arg[0] offset
-		50, 0x00, 0x00, 0x00, // arg[1] offset
+		64, 0x00, 0x00, 0x00, // arg[1] offset
 		0x00, 0x00, 0x00, 0x00, // arg[2] offset
 		0x00, 0x00, 0x00, 0x00, // arg[3] offset
 		0x00, 0x00, 0x00, 0x00, // arg[4] offset
@@ -670,10 +674,14 @@ func TestInitKernelSelectors(t *testing.T) {
 		//arg1 size = 26
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
-		18, 0x00, 0x00, 0x00, // length == 18
+		32, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string
-		0x06, 0x00, 0x00, 0x00, // value length == 6
-		102, 111, 111, 98, 97, 114, // value ascii "foobar"
+		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
 
 		//arg2 size = 24
 		0x02, 0x00, 0x00, 0x00, // Index == 2
@@ -694,7 +702,7 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	expected_last_small := []byte{
 		// arg header
-		50, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		64, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
 		24, 0x00, 0x00, 0x00, // arg[0] offset
 		0x00, 0x00, 0x00, 0x00, // arg[1] offset
 		0x00, 0x00, 0x00, 0x00, // arg[2] offset
@@ -704,10 +712,14 @@ func TestInitKernelSelectors(t *testing.T) {
 		//arg1 size = 26
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
-		18, 0x00, 0x00, 0x00, // length == 18
+		32, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string
-		0x06, 0x00, 0x00, 0x00, // value length == 6
-		102, 111, 111, 98, 97, 114, // value ascii "foobar"
+		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
 
 		// actions header
 		24, 0x00, 0x00, 0x00, // size = (2 * sizeof(uint32) * number of actions) + args + 4

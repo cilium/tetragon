@@ -17,6 +17,7 @@
 #include "cred.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
+#include "../string_maps.h"
 #include "common.h"
 #include "process/data_event.h"
 
@@ -632,8 +633,100 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 }
 
 static inline __attribute__((always_inline)) long
+filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
+{
+	__u32 *map_ids = (__u32 *)&filter->value;
+	void *string_map;
+	__u32 map_idx;
+	__u8 len;
+	__u8 padded_len;
+	int index;
+	char *heap, *zero_heap;
+	int zero = 0;
+
+	if (orig_len >= STRING_MAPS_SIZE_5 || !orig_len)
+		return 0;
+
+	len = (__u8)orig_len;
+	// Calculate padded string length
+	padded_len = len;
+	if (len % STRING_MAPS_KEY_INC_SIZE != 0)
+		padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
+
+	// Check if we have entries for this padded length.
+	// Do this before we copy data for efficiency.
+	index = (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
+	map_idx = map_ids[index & 0x7];
+	if (map_idx == 0xffffffff)
+		return 0;
+
+	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
+	zero_heap = (char *)map_lookup_elem(&string_maps_ro_zero, &zero);
+	if (!heap || !zero_heap)
+		return 0;
+
+	// Copy string to heap, preceded by length
+	heap[0] = len;
+
+	asm volatile("%[len] &= 0xff;\n"
+		     : [len] "+r"(len)
+		     :);
+	probe_read(&heap[1], len, arg_str);
+
+	// Pad string to multiple of key increment size
+	if (padded_len > len) {
+		asm volatile("%[len] &= 0xff;\n"
+			     : [len] "+r"(len)
+			     :);
+		probe_read(heap + len + 1, (padded_len - len) & 0xff, zero_heap);
+	}
+
+	// Get map for this string length
+	switch (index) {
+	case 0:
+		string_map = map_lookup_elem(&string_maps_0, &map_idx);
+		break;
+	case 1:
+		string_map = map_lookup_elem(&string_maps_1, &map_idx);
+		break;
+	case 2:
+		string_map = map_lookup_elem(&string_maps_2, &map_idx);
+		break;
+	case 3:
+		string_map = map_lookup_elem(&string_maps_3, &map_idx);
+		break;
+	case 4:
+		string_map = map_lookup_elem(&string_maps_4, &map_idx);
+		break;
+	case 5:
+		string_map = map_lookup_elem(&string_maps_5, &map_idx);
+		break;
+	default:
+		return 0;
+	}
+
+	if (!string_map)
+		return 0;
+
+	__u8 *pass = map_lookup_elem(string_map, heap);
+
+	return !!pass;
+}
+
+static inline __attribute__((always_inline)) long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
+	// Arg length is 4 bytes before the value data
+	uint len = *(uint *)&args[value_off - 4];
+	char *arg_str = &args[value_off];
+
+	// Ignore the nul char on the end of strings
+	if (filter->type == string_type && len)
+		len--;
+
+	if (filter->op == op_filter_eq)
+		return filter_char_buf_equal(filter, arg_str, len);
+
 	char *value = (char *)&filter->value;
 	long i, j = 0;
 
