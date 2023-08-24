@@ -274,62 +274,44 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 	return nil
 }
 
-func GetSyscallsYaml(binary string) (string, error) {
-	crd := `apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "syscalls"
-spec:
-  kprobes:`
-
+// AvailableSyscalls returns the list of available syscalls.
+//
+// It uses syscallinfo.SyscallsNames() and filters calls via information in BTF.
+func AvailableSyscalls() ([]string, error) {
+	// NB(kkourt): we should have a single function for this (see observerFindBTF)
 	btfFile := "/sys/kernel/btf/vmlinux"
-
 	tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
 	if tetragonBtfEnv != "" {
 		if _, err := os.Stat(tetragonBtfEnv); err != nil {
-			return "", fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
+			return nil, fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
 		}
 		btfFile = tetragonBtfEnv
 	}
-
 	bspec, err := btf.LoadSpec(btfFile)
 	if err != nil {
-		return "", fmt.Errorf("BTF load failed: %v", err)
+		return nil, fmt.Errorf("BTF load failed: %v", err)
 	}
 
+	ret := []string{}
 	for _, key := range syscallinfo.SyscallsNames() {
-		var fn *btf.Func
-
 		if key == "" {
 			continue
 		}
 
 		sym, err := arch.AddSyscallPrefix(key)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		err = bspec.TypeByName(sym, &fn)
-		if err != nil {
+		var fn *btf.Func
+		if err = bspec.TypeByName(sym, &fn); err != nil {
 			continue
 		}
 
-		crd = crd + "\n" + fmt.Sprintf("  - call: \"%s\"", key)
-		crd = crd + "\n" + fmt.Sprintf("    syscall: true")
-
-		if binary != "" {
-			filter := `
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + binary + `"`
-
-			crd = crd + filter
-		}
+		ret = append(ret, key)
 	}
 
-	return crd, nil
+	return ret, nil
 }
 
 func GetSyscallsList() ([]string, error) {
@@ -371,69 +353,4 @@ func GetSyscallsList() ([]string, error) {
 	}
 
 	return list, nil
-}
-
-func GetSyscallsYamlList(binary string) (string, error) {
-	crd := `apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "syscalls"
-spec:
-  lists:
-  - name: "syscalls"
-    type: "syscalls"
-    values:`
-
-	btfFile := "/sys/kernel/btf/vmlinux"
-
-	tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
-	if tetragonBtfEnv != "" {
-		if _, err := os.Stat(tetragonBtfEnv); err != nil {
-			return "", fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
-		}
-		btfFile = tetragonBtfEnv
-	}
-
-	bspec, err := btf.LoadSpec(btfFile)
-	if err != nil {
-		return "", fmt.Errorf("BTF load failed: %v", err)
-	}
-
-	for _, key := range syscallinfo.SyscallsNames() {
-		var fn *btf.Func
-
-		if key == "" {
-			continue
-		}
-
-		sym, err := arch.AddSyscallPrefix(key)
-		if err != nil {
-			return "", err
-		}
-
-		err = bspec.TypeByName(sym, &fn)
-		if err != nil {
-			continue
-		}
-
-		crd = crd + "\n" + fmt.Sprintf("    - \"%s\"", key)
-	}
-
-	crd = crd + `
-  kprobes:
-    - call: "list:syscalls"
-      syscall: true`
-
-	if binary != "" {
-		filter := `
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + binary + `"`
-
-		crd = crd + filter
-	}
-
-	return crd, nil
 }
