@@ -293,7 +293,7 @@ func TestKprobeSelectors(t *testing.T) {
 				Call:    "sys_lseek",
 				Return:  true,
 				Syscall: true,
-				ReturnArg: v1alpha1.KProbeArg{
+				ReturnArg: &v1alpha1.KProbeArg{
 					Type: "int",
 				},
 				Args: []v1alpha1.KProbeArg{{
