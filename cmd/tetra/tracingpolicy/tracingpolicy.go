@@ -46,8 +46,8 @@ func New() *cobra.Command {
 	}
 
 	tpDelCmd := &cobra.Command{
-		Use:   "delete <sensor_name>",
-		Short: "delete a sensor",
+		Use:   "delete <name>",
+		Short: "delete a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
