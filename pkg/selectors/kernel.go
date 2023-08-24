@@ -662,6 +662,21 @@ func parseAddr(v string) ([]byte, uint32, error) {
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
+	switch ty {
+	case argTypeString, argTypeCharBuf:
+		if op == SelectorOpNEQ || op == SelectorOpNotPrefix || op == SelectorOpNotPostfix {
+			return fmt.Errorf("MatchArgs types char_buf and string do not support operators NotEqual, NotPrefix, and NotPostfix")
+		}
+		switch op {
+		case SelectorOpEQ:
+			err := writeMatchStrings(k, values, ty)
+			if err != nil {
+				return fmt.Errorf("writeMatchStrings error: %w", err)
+			}
+			return nil
+		}
+	}
+
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
@@ -670,9 +685,6 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
 		case argTypeString, argTypeCharBuf:
-			if op == SelectorOpNEQ || op == SelectorOpNotPrefix || op == SelectorOpNotPostfix {
-				return fmt.Errorf("MatchArgs types char_buf and string do not support operators NotEqual, NotPrefix, and NotPostfix")
-			}
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
@@ -705,6 +717,30 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 		case argTypeCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
+	}
+	return nil
+}
+
+func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error {
+	maps := k.createStringMaps()
+
+	for _, v := range values {
+		trimNulSuffix := ty == argTypeString
+		value, size, err := ArgStringSelectorValue(v, trimNulSuffix)
+		if err != nil {
+			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+		}
+		for sizeIdx := 0; sizeIdx < StringMapsNumSubMaps; sizeIdx++ {
+			if size == StringMapsSizes[sizeIdx] {
+				maps[sizeIdx][value] = struct{}{}
+				break
+			}
+		}
+	}
+	// write the map ids into the selector
+	mapDetails := k.insertStringMaps(maps)
+	for _, md := range mapDetails {
+		WriteSelectorUint32(k, md)
 	}
 	return nil
 }

@@ -242,6 +242,15 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	// that we do not need to SetInnerMaxEntries() here.
 	maps = append(maps, addr6FilterMaps)
 
+	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
+	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
+		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
+			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
+		// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
+		// that we do not need to SetInnerMaxEntries() here.
+		maps = append(maps, stringFilterMap[string_map_index])
+	}
+
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	maps = append(maps, retProbe)
 
@@ -748,6 +757,19 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	out.maps = append(out.maps, addr6FilterMaps)
+
+	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
+	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
+		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
+			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := kprobeEntry.loadArgs.selectors.StringMapsMaxEntries(string_map_index)
+			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
+		}
+		out.maps = append(out.maps, stringFilterMap[string_map_index])
+	}
 
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	out.maps = append(out.maps, retProbe)

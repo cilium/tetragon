@@ -643,7 +643,17 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.NoError(t, err)
 }
 
-func testKprobeObjectOpenHook(pidStr string, path string) string {
+// String matches should not require the '\0' null character on the end.
+// Any '\0' null characters should be handled gracefully.
+// Test with and without the null character.
+func testKprobeObjectOpenHookFileName(withNull bool) string {
+	if withNull {
+		return `testfile\0`
+	}
+	return `testfile`
+}
+
+func testKprobeObjectOpenHook(pidStr string, path string, withNull bool) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
@@ -670,22 +680,196 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `/testfile\0"
+          - "` + path + `/` + testKprobeObjectOpenHookFileName(withNull) + `"
   `
 }
 
 func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
-	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectOpenWithNull(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
-	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectOpenMountWithNull(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func testKprobeStringMatch(t *testing.T,
+	readHook string,
+	checker ec.MultiEventChecker,
+	dir string) {
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	filePath := dir + "/testfile"
+
+	readConfigHook := []byte(readHook)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	syscall.Open(filePath, syscall.O_RDONLY, 0)
+	err = jsonchecker.JsonTestCheckExpect(t, checker, false)
+	assert.NoError(t, err)
+}
+
+func testKprobeStringMatchHook(pidStr string, dir string) string {
+	return `
+  apiVersion: cilium.io/v1alpha1
+  metadata:
+    name: "sys-read"
+  spec:
+    kprobes:
+    - call: "sys_openat"
+      return: false
+      syscall: true
+      args:
+      - index: 0
+        type: int
+      - index: 1
+        type: "string"
+      - index: 2
+        type: "int"
+      selectors:
+      - matchPIDs:
+        - operator: In
+          followForks: true
+          values:
+          - ` + pidStr + `
+        matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - "` + dir + `/testfile"
+  `
+}
+
+func TestKprobeStringMatchHash0Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 24
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash1Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 25
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash1Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 48
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash2Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 49
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash2Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 72
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash3Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 73
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash3Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 96
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash4Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 97
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash4Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 120
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash5Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 121
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash5Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 144
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
 }
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
@@ -715,8 +899,8 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `/foobar\0"
-          - "` + path + `/testfile\0"
+          - "` + path + `/foobar"
+          - "` + path + `/testfile"
   `
 }
 
@@ -763,7 +947,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + dir + `/foofile\0"
+        - "` + dir + `/foofile"
 `
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
@@ -797,8 +981,8 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + dir + `/foo\0"
-        - "` + dir + `/bar\0"
+        - "` + dir + `/foo"
+        - "` + dir + `/bar"
 `
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
@@ -1109,7 +1293,7 @@ func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `\0"
+          - "` + path + `"
         matchReturnArgs:
         - index: 0
           operator: "GT"
@@ -1147,7 +1331,7 @@ func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `\0"
+          - "` + path + `"
         matchReturnArgs:
         - index: 0
           operator: "LT"
@@ -1952,7 +2136,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2011,7 +2195,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2161,7 +2345,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2225,7 +2409,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Signal
         argSig: 12
@@ -2289,7 +2473,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Signal
         argSig: 10
@@ -2431,7 +2615,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -1
@@ -2461,7 +2645,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2484,7 +2668,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -3
@@ -2509,7 +2693,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
 `
 
 	openChecker := ec.NewProcessKprobeChecker("").

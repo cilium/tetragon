@@ -47,6 +47,42 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
 			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_0",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 0)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_1",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 1)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_2",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 2)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_3",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 3)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_4",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 4)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_maps_5",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 5)
+			},
 		},
 	}
 }
@@ -217,6 +253,68 @@ func populateAddr6FilterMap(
 
 	one := uint8(1)
 	for val := range innerData {
+		err := innerMap.Update(val, one, 0)
+		if err != nil {
+			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+		}
+	}
+
+	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
+		return fmt.Errorf("failed to insert %s: %w", innerName, err)
+	}
+
+	return nil
+}
+
+func populateStringFilterMaps(
+	k *selectors.KernelSelectorState,
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+	subMap int,
+) error {
+	maxEntries := k.StringMapsMaxEntries(subMap)
+	for i, am := range k.StringMaps(subMap) {
+		nrEntries := uint32(len(am))
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			nrEntries = uint32(maxEntries)
+		}
+		err := populateStringFilterMap(pinPathPrefix, outerMap, subMap, uint32(i), am, nrEntries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func populateStringFilterMap(
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+	subMap int,
+	innerID uint32,
+	innerData map[[selectors.MaxStringMapsSize]byte]struct{},
+	maxEntries uint32,
+) error {
+	innerName := fmt.Sprintf("string_maps_%d_%d", subMap, innerID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       innerName,
+		Type:       ebpf.Hash,
+		KeySize:    uint32(selectors.StringMapsSizes[subMap]),
+		ValueSize:  uint32(1),
+		MaxEntries: maxEntries,
+	}
+	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+		PinPath: sensors.PathJoin(pinPathPrefix, innerName),
+	})
+	if err != nil {
+		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+	}
+	defer innerMap.Close()
+
+	one := uint8(1)
+	for rawVal := range innerData {
+		val := rawVal[:selectors.StringMapsSizes[subMap]]
 		err := innerMap.Update(val, one, 0)
 		if err != nil {
 			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
