@@ -15,35 +15,51 @@ import (
 func New() *cobra.Command {
 
 	var matchBinary string
-	var regex string
 
-	cmd := &cobra.Command{
-		Use:   "generate <all-syscalls|all-syscalls-list|ftrace-list|empty>",
-		Short: "generate tracing policies",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			generateTracingPolicy(args[0], matchBinary, regex)
+	empty := &cobra.Command{
+		Use:   "empty",
+		Short: "empty",
+		Run: func(cmd *cobra.Command, _ []string) {
+			generateEmpty()
 		},
 	}
 
-	flags := cmd.Flags()
-	flags.StringVarP(&matchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
-	flags.StringVarP(&regex, "regex", "r", "", "Use regex to limit the generated symbols")
-
-	return cmd
-}
-
-func generateTracingPolicy(cmd, binary, regex string) {
-	switch cmd {
-	case "all-syscalls":
-		generateAllSyscalls(binary)
-	case "all-syscalls-list":
-		generateAllSyscallsList(binary)
-	case "ftrace-list":
-		generateFtrace(binary, regex)
-	case "empty":
-		generateEmpty()
+	allSyscalls := &cobra.Command{
+		Use:   "all-syscalls",
+		Short: "all system calls",
+		Run: func(cmd *cobra.Command, _ []string) {
+			generateAllSyscalls(matchBinary)
+		},
 	}
+
+	allSyscallsList := &cobra.Command{
+		Use:   "all-syscalls-list",
+		Short: "all system calls using a list",
+		Run: func(cmd *cobra.Command, _ []string) {
+			generateAllSyscallsList(matchBinary)
+		},
+	}
+
+	var ftraceRegex string
+	ftraceList := &cobra.Command{
+		Use:   "ftrace-list",
+		Short: "ftrace list",
+		Run: func(cmd *cobra.Command, _ []string) {
+			generateFtrace(matchBinary, ftraceRegex)
+		},
+	}
+	ftraceFlags := ftraceList.Flags()
+	ftraceFlags.StringVarP(&ftraceRegex, "regex", "r", "", "Use regex to limit the generated symbols")
+
+	cmd := &cobra.Command{
+		Use:   "generate",
+		Short: "generate tracing policies",
+	}
+	pflags := cmd.PersistentFlags()
+	pflags.StringVarP(&matchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
+
+	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList)
+	return cmd
 }
 
 func generateAllSyscalls(binary string) {
