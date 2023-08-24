@@ -41,8 +41,6 @@ type Sensor struct {
 	Maps []*program.Map
 	// Loaded indicates whether the sensor has been Loaded.
 	Loaded bool
-	// Ops contains an implementation to perform on this sensor.
-	Ops Operations
 	// PreUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
@@ -51,14 +49,6 @@ type Sensor struct {
 	// called during sensor unloading, after the programs and maps being
 	// unloaded.
 	PostUnloadHook SensorUnloadHook
-}
-
-// Operations is the interface to the underlying sensor implementations.
-type Operations interface {
-	Loaded(arg LoadArg)
-
-	GetConfig(cfg string) (string, error)
-	SetConfig(cfg string, val string) error
 }
 
 // SensorUnloadHook is the function signature for an optional function

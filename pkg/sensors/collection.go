@@ -32,7 +32,7 @@ func (c *collection) info() string {
 
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it
 // will attempt to unload the already loaded sensors.
-func (c *collection) load(bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) error {
+func (c *collection) load(bpfDir, mapDir, ciliumDir string) error {
 
 	var err error
 	for _, sensor := range c.sensors {
@@ -58,15 +58,6 @@ func (c *collection) load(bpfDir, mapDir, ciliumDir string, cbArg *LoadArg) erro
 		// unload() checks s.Loaded, is easier to just to use unload().
 		if unloadErr := c.unload(); unloadErr != nil {
 			err = multierr.Append(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
-		}
-	} else {
-		// otherwise, call the loaded callbalcks for all the sensors
-		if cbArg != nil {
-			for _, sensor := range c.sensors {
-				if sensor.Ops != nil {
-					sensor.Ops.Loaded(*cbArg)
-				}
-			}
 		}
 	}
 

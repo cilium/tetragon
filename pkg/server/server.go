@@ -46,8 +46,6 @@ type observer interface {
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error
 	ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error)
-	GetSensorConfig(ctx context.Context, name string, cfgkey string) (string, error)
-	SetSensorConfig(ctx context.Context, name string, cfgkey string, cfgval string) error
 	RemoveSensor(ctx context.Context, sensorName string) error
 }
 
@@ -309,40 +307,6 @@ func (s *Server) DisableSensor(ctx context.Context, req *tetragon.DisableSensorR
 	return &tetragon.DisableSensorResponse{}, nil
 }
 
-func (s *Server) GetSensorConfig(ctx context.Context, req *tetragon.GetSensorConfigRequest) (*tetragon.GetSensorConfigResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"sensor.name":   req.GetName(),
-		"sensor.config": req.GetCfgkey(),
-	}).Debug("Received a GetSensorConfig request")
-	cfgval, err := s.observer.GetSensorConfig(ctx, req.GetName(), req.GetCfgkey())
-	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"sensor.name":   req.GetName(),
-			"sensor.config": req.GetCfgkey(),
-		}).WithError(err).Warn("Server GetSensorConfig request failed")
-		return nil, err
-	}
-
-	return &tetragon.GetSensorConfigResponse{Cfgval: cfgval}, nil
-}
-
-func (s *Server) SetSensorConfig(ctx context.Context, req *tetragon.SetSensorConfigRequest) (*tetragon.SetSensorConfigResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"sensor.name":         req.GetName(),
-		"sensor.config":       req.GetCfgkey(),
-		"sensor.config.value": req.GetCfgval(),
-	}).Debug("Received a SetSensorConfig request")
-	err := s.observer.SetSensorConfig(ctx, req.GetName(), req.GetCfgkey(), req.GetCfgval())
-	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"sensor.name":   req.GetName(),
-			"sensor.config": req.GetCfgkey(),
-		}).WithError(err).Warn("Server SetSensorConfig request failed")
-		return nil, err
-	}
-
-	return &tetragon.SetSensorConfigResponse{}, nil
-}
 func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTree request")
 	err := fmt.Errorf("Unsupported GetStackTraceTree")

@@ -76,8 +76,6 @@
     - [DisableSensorResponse](#tetragon-DisableSensorResponse)
     - [EnableSensorRequest](#tetragon-EnableSensorRequest)
     - [EnableSensorResponse](#tetragon-EnableSensorResponse)
-    - [GetSensorConfigRequest](#tetragon-GetSensorConfigRequest)
-    - [GetSensorConfigResponse](#tetragon-GetSensorConfigResponse)
     - [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest)
     - [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
@@ -89,8 +87,6 @@
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
     - [SensorStatus](#tetragon-SensorStatus)
-    - [SetSensorConfigRequest](#tetragon-SetSensorConfigRequest)
-    - [SetSensorConfigResponse](#tetragon-SetSensorConfigResponse)
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
@@ -1294,37 +1290,6 @@ Determins the behaviour of a field filter
 
 
 
-<a name="tetragon-GetSensorConfigRequest"></a>
-
-### GetSensorConfigRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| cfgkey | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-GetSensorConfigResponse"></a>
-
-### GetSensorConfigResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| cfgval | [string](#string) |  |  |
-
-
-
-
-
-
 <a name="tetragon-GetStackTraceTreeRequest"></a>
 
 ### GetStackTraceTreeRequest
@@ -1472,33 +1437,6 @@ Determins the behaviour of a field filter
 
 
 
-<a name="tetragon-SetSensorConfigRequest"></a>
-
-### SetSensorConfigRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| cfgkey | [string](#string) |  |  |
-| cfgval | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="tetragon-SetSensorConfigResponse"></a>
-
-### SetSensorConfigResponse
-
-
-
-
-
-
-
 <a name="tetragon-TracingPolicyStatus"></a>
 
 ### TracingPolicyStatus
@@ -1540,8 +1478,6 @@ Determins the behaviour of a field filter
 | ListSensors | [ListSensorsRequest](#tetragon-ListSensorsRequest) | [ListSensorsResponse](#tetragon-ListSensorsResponse) |  |
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
-| SetSensorConfig | [SetSensorConfigRequest](#tetragon-SetSensorConfigRequest) | [SetSensorConfigResponse](#tetragon-SetSensorConfigResponse) |  |
-| GetSensorConfig | [GetSensorConfigRequest](#tetragon-GetSensorConfigRequest) | [GetSensorConfigResponse](#tetragon-GetSensorConfigResponse) |  |
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
