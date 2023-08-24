@@ -139,6 +139,13 @@ func (s *Sensor) Unload() error {
 	}
 
 	s.Loaded = false
+
+	if s.PostUnloadHook != nil {
+		if err := s.PostUnloadHook(); err != nil {
+			logger.GetLogger().Warnf("Sensor %s post unload hook failed: %s", s.Name, err)
+		}
+	}
+
 	return nil
 }
 

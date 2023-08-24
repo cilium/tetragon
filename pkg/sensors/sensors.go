@@ -52,6 +52,10 @@ type Sensor struct {
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
 	PreUnloadHook SensorUnloadHook
+	// PostUnloadHook can optionally contain a pointer to a function to be
+	// called during sensor unloading, after the programs and maps being
+	// unloaded.
+	PostUnloadHook SensorUnloadHook
 }
 
 // Operations is the interface to the underlying sensor implementations.
