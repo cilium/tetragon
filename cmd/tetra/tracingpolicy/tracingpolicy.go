@@ -22,8 +22,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
-	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/ftrace"
+	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy/generate"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -76,22 +75,7 @@ func New() *cobra.Command {
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
-	var tpGenerateMatchBinary string
-	var tpGenerateRegex string
-	tpGenerateCmd := &cobra.Command{
-		Use:   "generate <all-syscalls|all-syscalls-list|ftrace-list|empty>",
-		Short: "generate tracing policies",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			generateTracingPolicy(args[0], tpGenerateMatchBinary, tpGenerateRegex)
-		},
-	}
-
-	tpGenerateFlags := tpGenerateCmd.Flags()
-	tpGenerateFlags.StringVarP(&tpGenerateMatchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
-	tpGenerateFlags.StringVarP(&tpGenerateRegex, "regex", "r", "", "Use regex to limit the generated symbols")
-
-	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpListCmd, tpGenerateCmd)
+	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpListCmd, generate.New())
 	return tpCmd
 }
 
@@ -149,82 +133,5 @@ func listTracingPolicies(
 		fmt.Println(string(b))
 	} else {
 		listTracingPoliciesText(res)
-	}
-}
-
-func generateAllSyscalls(binary string) {
-	crd, err := btf.GetSyscallsYaml(binary)
-	if err != nil {
-		fmt.Print(err)
-		return
-	}
-	fmt.Printf("%s\n", crd)
-}
-
-func generateAllSyscallsList(binary string) {
-	crd, err := btf.GetSyscallsYamlList(binary)
-	if err != nil {
-		fmt.Print(err)
-		return
-	}
-	fmt.Printf("%s\n", crd)
-}
-
-func generateFtrace(binary, regex string) {
-	syms, err := ftrace.ReadAvailFuncs(regex)
-	if err != nil {
-		logger.GetLogger().WithError(err).Fatalf("failed to read ftrace functions: %s", err)
-	}
-
-	crd := `apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "ftrace"
-spec:
-  lists:
-  - name: "ftrace"
-    values:`
-
-	for idx := range syms {
-		crd = crd + "\n" + fmt.Sprintf("    - \"%s\"", syms[idx])
-	}
-
-	crd = crd + `
-  kprobes:
-    - call: "list:ftrace"`
-
-	if binary != "" {
-		filter := `
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + binary + `"`
-
-		crd = crd + filter
-	}
-
-	fmt.Printf("%s\n", crd)
-}
-
-func generateEmpty() {
-	crd := `apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "empty" `
-
-	fmt.Printf("%s\n", crd)
-}
-
-func generateTracingPolicy(cmd, binary, regex string) {
-	switch cmd {
-	case "all-syscalls":
-		generateAllSyscalls(binary)
-	case "all-syscalls-list":
-		generateAllSyscallsList(binary)
-	case "ftrace-list":
-		generateFtrace(binary, regex)
-	case "empty":
-		generateEmpty()
 	}
 }
