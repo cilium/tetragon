@@ -16,6 +16,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
@@ -25,6 +26,7 @@ var (
 	probeAddr            string
 	scheme               = runtime.NewScheme()
 	setupLog             = ctrl.Log.WithName("setup")
+	env                  envtest.Environment
 )
 
 func init() {
