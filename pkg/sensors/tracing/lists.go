@@ -83,10 +83,10 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 
 	// Generate ftrace list
 	if listTypeFromString(list.Type) == ListTypeGeneratedFtrace {
-		if list.Pattern == "" {
+		if list.Pattern != nil && *(list.Pattern) == "" {
 			return fmt.Errorf("Error generated ftrace list '%s' must specify pattern", list.Name)
 		}
-		list.Values, err = ftrace.ReadAvailFuncs(list.Pattern)
+		list.Values, err = ftrace.ReadAvailFuncs(*(list.Pattern))
 		return err
 	}
 

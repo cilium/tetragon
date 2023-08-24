@@ -156,7 +156,7 @@ func TestNamespacedPolicies(t *testing.T) {
 		Call:    "sys_lseek",
 		Return:  false,
 		Syscall: true,
-		ReturnArg: v1alpha1.KProbeArg{
+		ReturnArg: &v1alpha1.KProbeArg{
 			Type: "int",
 		},
 		Args: []v1alpha1.KProbeArg{
