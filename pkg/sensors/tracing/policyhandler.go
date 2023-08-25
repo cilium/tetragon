@@ -33,7 +33,7 @@ func (h policyHandler) PolicyHandler(
 		name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 		err := preValidateKprobes(name, spec.KProbes, spec.Lists)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validation failed: %w", err)
 		}
 		return createGenericKprobeSensor(name, spec.KProbes, policyID, policyName, spec.Lists)
 	}

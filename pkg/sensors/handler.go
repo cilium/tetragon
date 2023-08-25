@@ -260,7 +260,7 @@ func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfi
 		var sensor *Sensor
 		sensor, err := s.PolicyHandler(tp, filterID)
 		if err != nil {
-			return nil, fmt.Errorf("policy handler %s failed: %w", n, err)
+			return nil, fmt.Errorf("policy handler '%s' failed loading policy '%s': %w", n, tp.TpName(), err)
 		}
 		if sensor == nil {
 			continue

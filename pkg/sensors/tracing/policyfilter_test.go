@@ -252,7 +252,7 @@ func TestNamespacedPolicies(t *testing.T) {
 				return v
 			},
 		)
-		require.Equal(t, res, expected)
+		require.Equal(t, expected, res)
 	}
 
 	// Let's start testing!

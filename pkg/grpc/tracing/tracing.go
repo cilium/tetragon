@@ -6,12 +6,14 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/reader/kernel"
+	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -256,6 +258,32 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		}
 	}
 
+	var stackTrace []*tetragon.StackTraceEntry
+	for _, addr := range event.StackTrace {
+		if addr == 0 {
+			// the stack trace from the MsgGenericKprobeUnix is a fixed size
+			// array, [unix.PERF_MAX_STACK_DEPTH]uint64, used for binary decode,
+			// it might contain multiple zeros to ignore since stack trace might
+			// be less than PERF_MAX_STACK_DEPTH most of the time.
+			continue
+		}
+		kernelSymbols, err := ksyms.KernelSymbols()
+		if err != nil {
+			logger.GetLogger().WithError(err).Warn("stacktrace: failed to read kernel symbols")
+		}
+		fnOffset, err := kernelSymbols.GetFnOffset(addr)
+		if err != nil {
+			// maybe group those errors as they might come in pack
+			logger.GetLogger().WithField("address", fmt.Sprintf("0x%x", addr)).Warn("stacktrace: failed to retrieve symbol and offset")
+			continue
+		}
+		stackTrace = append(stackTrace, &tetragon.StackTraceEntry{
+			Address: addr,
+			Offset:  fnOffset.Offset,
+			Symbol:  fnOffset.SymName,
+		})
+	}
+
 	tetragonEvent := &tetragon.ProcessKprobe{
 		Process:      tetragonProcess,
 		Parent:       tetragonParent,
@@ -263,6 +291,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Args:         tetragonArgs,
 		Return:       tetragonReturnArg,
 		Action:       kprobeAction(event.Action),
+		StackTrace:   stackTrace,
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -420,6 +449,7 @@ type MsgGenericKprobeUnix struct {
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
 	PolicyName   string
+	StackTrace   [unix.PERF_MAX_STACK_DEPTH]uint64
 }
 
 func (msg *MsgGenericKprobeUnix) Notify() bool {
