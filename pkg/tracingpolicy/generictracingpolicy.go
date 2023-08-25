@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -15,8 +16,9 @@ import (
 )
 
 type Metadata struct {
-	Name        string            `yaml:"name"`
-	Annotations map[string]string `yaml:"annotations"`
+	Name              string            `json:"name"`
+	Annotations       map[string]string `json:"annotations"`
+	CreationTimestamp time.Time         `json:"creationTimestamp,omitempty"`
 }
 
 type GenericTracingPolicy struct {
