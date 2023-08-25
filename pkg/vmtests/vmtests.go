@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
+
 // Package vmtests includes utilities for running tetragon tests inside VMs. It allows the program
 // that manages the VM to coordinate with the tester, i.e., program that runs the tests (inside the VM). The
 // former will provide a configuration file (TesterConf) to the latter, and the latter will produce
