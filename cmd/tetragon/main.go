@@ -304,7 +304,7 @@ func tetragonExecute() error {
 	if err != nil {
 		return err
 	}
-	ciliumState, err := cilium.InitCiliumState(ctx, option.Config.EnableCilium)
+	_, err = cilium.InitCiliumState(ctx, option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,6 @@ func tetragonExecute() error {
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
-		ciliumState,
 		observer.SensorManager,
 		hookRunner)
 	if err != nil {

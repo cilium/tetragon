@@ -160,7 +160,6 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 	_, err = NewProcessManager(
 		context.Background(),
 		&wg,
-		cilium.GetFakeCiliumState(),
 		nil,
 		&rthooks.Runner{})
 	assert.NoError(t, err)

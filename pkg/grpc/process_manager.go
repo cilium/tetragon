@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	"github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -26,23 +25,20 @@ type ProcessManager struct {
 	nodeName string
 	Server   *server.Server
 	// synchronize access to the listeners map.
-	mux         sync.Mutex
-	listeners   map[server.Listener]struct{}
-	ciliumState *cilium.State
+	mux       sync.Mutex
+	listeners map[server.Listener]struct{}
 }
 
 // NewProcessManager returns a pointer to an initialized ProcessManager struct.
 func NewProcessManager(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	ciliumState *cilium.State,
 	manager *sensors.Manager,
 	hookRunner *rthooks.Runner,
 ) (*ProcessManager, error) {
 	pm := &ProcessManager{
-		nodeName:    node.GetNodeNameForExport(),
-		ciliumState: ciliumState,
-		listeners:   make(map[server.Listener]struct{}),
+		nodeName:  node.GetNodeNameForExport(),
+		listeners: make(map[server.Listener]struct{}),
 	}
 
 	pm.Server = server.NewServer(ctx, wg, pm, manager, hookRunner)

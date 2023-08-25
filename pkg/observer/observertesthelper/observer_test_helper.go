@@ -349,7 +349,6 @@ func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, l
 
 func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
 	watcher := opts.watcher
-	ciliumState := opts.ciliumState
 	processCacheSize := 32768
 	dataCacheSize := 1024
 
@@ -397,7 +396,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opt
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
 	option.Config.EnableCilium = false
-	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, ciliumState, sensorManager, hookRunner)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner)
 	if err != nil {
 		return err
 	}
