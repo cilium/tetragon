@@ -217,6 +217,7 @@ static int BPF_FUNC(get_current_comm, char *buf, uint32_t size);
 static int BPF_FUNC(perf_event_output, void *ctx, void *map, uint64_t flags, void *data, uint64_t size);
 
 static int BPF_FUNC(get_stack, void *ctx, void *buf, uint32_t size, uint64_t flags);
+static long BPF_FUNC(get_stackid, void *ctx, void *map, uint64_t flags);
 
 static int BPF_FUNC(send_signal, uint32_t sig);
 

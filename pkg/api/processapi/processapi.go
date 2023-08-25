@@ -35,7 +35,8 @@ const (
 	ExecveSetgid = 0x02
 
 	// flags of MsgCommon
-	MSG_COMMON_FLAG_RETURN = 0x1
+	MSG_COMMON_FLAG_RETURN     = 0x1
+	MSG_COMMON_FLAG_STACKTRACE = 0x2
 )
 
 type MsgExec struct {
@@ -61,6 +62,7 @@ type MsgCommon struct {
 	Op uint8
 	// Flags is used to:
 	//  - distinguish between an entry and a return kprobe event
+	//  - indicate if a stack trace id was passed in the event
 	Flags  uint8
 	Pad_v2 [2]uint8
 	Size   uint32

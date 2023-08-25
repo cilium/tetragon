@@ -1959,8 +1959,17 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 }
 #endif
 
+// from linux/perf_event.h, note that this can be controlled with sysctl kernel.perf_event_max_stack
+#define PERF_MAX_STACK_DEPTH 127
+struct {
+	__uint(type, BPF_MAP_TYPE_STACK_TRACE);
+	__uint(max_entries, 32768);
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
+} stack_trace_map SEC(".maps");
+
 static inline __attribute__((always_inline)) __u32
-do_action(__u32 i, struct msg_generic_kprobe *e,
+do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 	  struct selector_action *actions, struct bpf_map_def *override_tasks, bool *post)
 {
 	int signal __maybe_unused = FGS_SIGKILL;
@@ -1982,6 +1991,19 @@ do_action(__u32 i, struct msg_generic_kprobe *e,
 		if (rate_limit(ratelimit_interval, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
+		__u32 stack_trace = actions->act[++i];
+
+		if (stack_trace) {
+			// Stack id 0 is valid so we need a flag.
+			e->common.flags |= MSG_COMMON_FLAG_STACKTRACE;
+			// We could use BPF_F_REUSE_STACKID to override old with new stack if
+			// same stack id. It means that if we have a collision and user space
+			// reads the old one too late, we are reading the wrong stack (the new,
+			// old one was overwritten).
+			//
+			// Here we just signal that there was a collision returning -EEXIST.
+			e->stack_id = get_stackid(ctx, &stack_trace_map, 0);
+		}
 		break;
 	}
 
@@ -2048,7 +2070,7 @@ has_action(struct selector_action *actions, __u32 idx)
 
 /* Currently supporting 2 actions for selector. */
 static inline __attribute__((always_inline)) bool
-do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
+do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *actions,
 	   struct bpf_map_def *override_tasks)
 {
 	bool post = true;
@@ -2060,7 +2082,7 @@ do_actions(struct msg_generic_kprobe *e, struct selector_action *actions,
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(i, e, actions, override_tasks, &post);
+		i = do_action(ctx, i, e, actions, override_tasks, &post);
 	}
 
 	return post;
@@ -2137,7 +2159,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 		     :);
 	actions = (struct selector_action *)&f[actoff];
 
-	postit = do_actions(e, actions, override_tasks);
+	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
 		tail_call(ctx, tailcalls, 12);
 	return 1;
