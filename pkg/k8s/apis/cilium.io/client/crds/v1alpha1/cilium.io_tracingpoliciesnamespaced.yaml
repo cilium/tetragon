@@ -264,6 +264,10 @@ spec:
                                     in seconds (default or with 's' suffix), minutes
                                     ('m' suffix) or hours ('h' suffix).
                                   type: string
+                                stackTrace:
+                                  description: Enable stack trace export, only valid
+                                    with for the post action
+                                  type: boolean
                               required:
                               - action
                               type: object
@@ -789,6 +793,10 @@ spec:
                                     in seconds (default or with 's' suffix), minutes
                                     ('m' suffix) or hours ('h' suffix).
                                   type: string
+                                stackTrace:
+                                  description: Enable stack trace export, only valid
+                                    with for the post action
+                                  type: boolean
                               required:
                               - action
                               type: object
@@ -1156,6 +1164,10 @@ spec:
                                     in seconds (default or with 's' suffix), minutes
                                     ('m' suffix) or hours ('h' suffix).
                                   type: string
+                                stackTrace:
+                                  description: Enable stack trace export, only valid
+                                    with for the post action
+                                  type: boolean
                               required:
                               - action
                               type: object

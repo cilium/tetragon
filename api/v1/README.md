@@ -44,6 +44,7 @@
     - [ProcessUprobe](#tetragon-ProcessUprobe)
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
     - [RuntimeHookResponse](#tetragon-RuntimeHookResponse)
+    - [StackTraceEntry](#tetragon-StackTraceEntry)
     - [Test](#tetragon-Test)
     - [UserNamespace](#tetragon-UserNamespace)
   
@@ -786,6 +787,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed kprobe. |
 | return | [KprobeArgument](#tetragon-KprobeArgument) |  | Return value definition of the observed kprobe. |
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the kprobe matched. |
+| stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | Kernel stack trace to the call. |
 
 
 
@@ -865,6 +867,23 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 
 ### RuntimeHookResponse
 
+
+
+
+
+
+
+<a name="tetragon-StackTraceEntry"></a>
+
+### StackTraceEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address | [uint64](#uint64) |  | address is the kernel function address. |
+| offset | [uint64](#uint64) |  | offset is the offset into the native instructions for the function. |
+| symbol | [string](#string) |  | symbol is the symbol name of the function. |
 
 
 
