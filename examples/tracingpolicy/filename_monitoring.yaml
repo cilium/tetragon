@@ -21,7 +21,7 @@ spec:
       - index: 0
         operator: "Prefix"
         values:
-        - "/etc/" # the files that we care
+        - "/etc/" # filenames to filter for
   - call: "security_mmap_file"
     syscall: false
     return: true
@@ -41,7 +41,7 @@ spec:
       - index: 0
         operator: "Prefix"
         values:
-        - "/etc/" # the files that we care
+        - "/etc/" # filenames to filter for
   - call: "security_path_truncate"
     syscall: false
     return: true
@@ -57,4 +57,4 @@ spec:
       - index: 0
         operator: "Prefix"
         values:
-        - "/etc/" # the files that we care
+        - "/etc/" # filenames to filter for
