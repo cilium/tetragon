@@ -355,19 +355,3 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
-
-func GetProcessEndpoint(p *tetragon.Process) *hubblev1.Endpoint {
-	if p == nil {
-		return nil
-	}
-	if p.Docker == "" {
-		return nil
-	}
-	pod, _, ok := k8s.FindContainer(p.Docker)
-	if !ok {
-		logger.GetLogger().WithField("container id", p.Docker).Trace("failed to get pod")
-		return nil
-	}
-	endpoint, _ := cilium.GetCiliumState().GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
-	return endpoint
-}
