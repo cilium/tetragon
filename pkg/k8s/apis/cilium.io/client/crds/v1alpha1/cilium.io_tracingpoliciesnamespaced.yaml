@@ -105,6 +105,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - load_info
                             type: string
                         required:
                         - index
@@ -182,6 +183,7 @@ spec:
                           - kiocb
                           - iov_iter
                           - cred
+                          - load_info
                           type: string
                       required:
                       - index
@@ -700,6 +702,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - load_info
                             type: string
                         required:
                         - index
