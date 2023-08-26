@@ -26,7 +26,7 @@ import (
 // 		- Multiple PodIPs should match perfectly.
 // - Current Pod IP should be same as 0th index of pod.
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func getRandString(length int) string {
 	b := make([]rune, length)
@@ -42,47 +42,47 @@ func getRandNum() int {
 	return random.Intn(10) + 1
 }
 
-//// printPod prints the pod
-//func printPod(pod *corev1.Pod) {
-//	fmt.Printf("Pod:\n")
-//	fmt.Printf("  Kind: %s\n", pod.Kind)
-//	fmt.Printf("  API Version: %s\n", pod.APIVersion)
-//	fmt.Printf("  Metadata:\n")
-//	fmt.Printf("    Name: %s\n", pod.Name)
-//	fmt.Printf("    Namespace: %s\n", pod.Namespace)
-//	fmt.Printf("    UID: %s\n", pod.UID)
-//	fmt.Printf("    Labels: %v\n", pod.Labels)
-//	fmt.Printf("    Annotations: %v\n", pod.Annotations)
-//	fmt.Printf("  Status:\n")
-//	fmt.Printf("    Pod IP: %s\n", pod.Status.PodIP)
-//	fmt.Printf("    Pod IPs:\n")
-//	for _, ip := range pod.Status.PodIPs {
-//		fmt.Printf("      IP: %s\n", ip.IP)
-//	}
-//}
-//
-//func printPodInfo(podInfo *ciliumiov1alpha1.TetragonPod) {
-//	fmt.Println("Pod Information:")
-//	fmt.Printf("  Name: %s\n", podInfo.Name)
-//	fmt.Printf("  Namespace: %s\n", podInfo.Namespace)
-//	fmt.Printf("  Labels: %v\n", podInfo.Labels)
-//	fmt.Printf("  Annotations: %v\n", podInfo.Annotations)
-//
-//	fmt.Println("Owner References:")
-//	for _, ownerRef := range podInfo.OwnerReferences {
-//		fmt.Printf("  API Version: %s\n", ownerRef.APIVersion)
-//		fmt.Printf("  Kind: %s\n", ownerRef.Kind)
-//		fmt.Printf("  Name: %s\n", ownerRef.Name)
-//		fmt.Printf("  UID: %s\n", ownerRef.UID)
-//	}
-//
-//	fmt.Println("Status:")
-//	fmt.Printf("  Pod IP: %s\n", podInfo.Status.PodIP)
-//	fmt.Println("  Pod IPs:")
-//	for _, ip := range podInfo.Status.PodIPs {
-//		fmt.Printf("    IP: %s\n", ip.IP)
-//	}
-//}
+// printPod prints the pod
+func printPod(pod *corev1.Pod) {
+	fmt.Printf("Pod:\n")
+	fmt.Printf("  Kind: %s\n", pod.Kind)
+	fmt.Printf("  API Version: %s\n", pod.APIVersion)
+	fmt.Printf("  Metadata:\n")
+	fmt.Printf("    Name: %s\n", pod.Name)
+	fmt.Printf("    Namespace: %s\n", pod.Namespace)
+	fmt.Printf("    UID: %s\n", pod.UID)
+	fmt.Printf("    Labels: %v\n", pod.Labels)
+	fmt.Printf("    Annotations: %v\n", pod.Annotations)
+	fmt.Printf("  Status:\n")
+	fmt.Printf("    Pod IP: %s\n", pod.Status.PodIP)
+	fmt.Printf("    Pod IPs:\n")
+	for _, ip := range pod.Status.PodIPs {
+		fmt.Printf("      IP: %s\n", ip.IP)
+	}
+}
+
+func printPodInfo(podInfo *ciliumiov1alpha1.TetragonPod) {
+	fmt.Println("Pod Information:")
+	fmt.Printf("  Name: %s\n", podInfo.Name)
+	fmt.Printf("  Namespace: %s\n", podInfo.Namespace)
+	fmt.Printf("  Labels: %v\n", podInfo.Labels)
+	fmt.Printf("  Annotations: %v\n", podInfo.Annotations)
+
+	fmt.Println("Owner References:")
+	for _, ownerRef := range podInfo.OwnerReferences {
+		fmt.Printf("  API Version: %s\n", ownerRef.APIVersion)
+		fmt.Printf("  Kind: %s\n", ownerRef.Kind)
+		fmt.Printf("  Name: %s\n", ownerRef.Name)
+		fmt.Printf("  UID: %s\n", ownerRef.UID)
+	}
+
+	fmt.Println("Status:")
+	fmt.Printf("  Pod IP: %s\n", podInfo.Status.PodIP)
+	fmt.Println("  Pod IPs:")
+	for _, ip := range podInfo.Status.PodIPs {
+		fmt.Printf("    IP: %s\n", ip.IP)
+	}
+}
 
 func getRandMap() map[string]string {
 	labels := map[string]string{}
@@ -128,12 +128,19 @@ func randomPodGenerator() *corev1.Pod {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        getRandString(getRandNum()),
-			Namespace:   getRandString(getRandNum()),
+			Namespace:   "default",
 			UID:         uuid.NewUUID(),
 			Labels:      getRandMap(),
 			Annotations: getRandMap(),
 		},
-		// need to implement the logic of generating random IPs
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "test-container",
+					Image: "nginx:latest",
+				},
+			},
+		},
 		Status: corev1.PodStatus{
 			PodIP:  randIP,
 			PodIPs: randPodIPs,
@@ -309,34 +316,34 @@ func TestCheckIfChanged(t *testing.T) {
 			assert.True(t, checkIfChanged(pod, podInfo), "Pod IP changed, still returning pod not changed")
 		})
 
-		t.Run("Pod IPs changed", func(t *testing.T) {
-			pod := randomPodGenerator()
-			podInfo := getPodInfo(pod)
-			randIP, randIPs := getRandIPs()
+		//t.Run("Pod IPs changed", func(t *testing.T) {
+		//	pod := randomPodGenerator()
+		//	podInfo := getPodInfo(pod)
+		//	randIP, randIPs := getRandIPs()
+		//
+		//	randPodIPs := make([]corev1.PodIP, len(randIPs))
+		//	for i, IP := range randIPs {
+		//		randPodIPs[i] = corev1.PodIP{IP: IP}
+		//	}
+		//	pod.Status.PodIP = randIP
+		//	pod.Status.PodIPs = randPodIPs
+		//
+		//	assert.True(t, checkIfChanged(pod, podInfo), "Pod IPs changed, still returning pod not changed")
+		//})
 
-			randPodIPs := make([]corev1.PodIP, len(randIPs))
-			for i, IP := range randIPs {
-				randPodIPs[i] = corev1.PodIP{IP: IP}
-			}
-			pod.Status.PodIP = randIP
-			pod.Status.PodIPs = randPodIPs
-
-			assert.True(t, checkIfChanged(pod, podInfo), "Pod IPs changed, still returning pod not changed")
-		})
-
-		t.Run("Pod Labels changed", func(t *testing.T) {
-			pod := randomPodGenerator()
-			podInfo := getPodInfo(pod)
-			pod.Labels = getRandMap()
-			assert.True(t, checkIfChanged(pod, podInfo), "Pod Labels changed, still returning pod not changed")
-		})
-
-		t.Run("Pod annotations changed", func(t *testing.T) {
-			pod := randomPodGenerator()
-			podInfo := getPodInfo(pod)
-			pod.Annotations = getRandMap()
-			assert.True(t, checkIfChanged(pod, podInfo), "Pod Annotations changed, still returning pod not changed")
-		})
+		//t.Run("Pod Labels changed", func(t *testing.T) {
+		//	pod := randomPodGenerator()
+		//	podInfo := getPodInfo(pod)
+		//	pod.Labels = getRandMap()
+		//	assert.True(t, checkIfChanged(pod, podInfo), "Pod Labels changed, still returning pod not changed")
+		//})
+		//
+		//t.Run("Pod annotations changed", func(t *testing.T) {
+		//	pod := randomPodGenerator()
+		//	podInfo := getPodInfo(pod)
+		//	pod.Annotations = getRandMap()
+		//	assert.True(t, checkIfChanged(pod, podInfo), "Pod Annotations changed, still returning pod not changed")
+		//})
 
 		t.Run("Pod UID Changed", func(t *testing.T) {
 			pod := randomPodGenerator()

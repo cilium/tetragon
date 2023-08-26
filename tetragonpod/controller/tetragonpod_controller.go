@@ -102,6 +102,8 @@ func (r *TetragonPodReconciler) checkExistsAndChanged(ctx context.Context, req c
 
 }
 
+// TODO: Change the logic to check if maps have changed, because number of labels can be same still the labels can be different.
+
 // checkIfChanged returns true if the pod has changed.
 func checkIfChanged(pod *corev1.Pod, tetragonPod *ciliumiov1alpha1.TetragonPod) bool {
 	podStringFields := []string{
