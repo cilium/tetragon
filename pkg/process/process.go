@@ -355,3 +355,9 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
+
+// GetK8s returns K8sResourceWatcher. You must call InitCache before calling this function to ensure
+// that k8s has been initialized.
+func GetK8s() watcher.K8sResourceWatcher {
+	return k8s
+}
