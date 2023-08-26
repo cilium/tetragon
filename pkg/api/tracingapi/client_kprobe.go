@@ -27,6 +27,7 @@ const (
 const (
 	BPF_OBJ_NAME_LEN = 16
 	KSYM_NAME_LEN    = 128
+	MODULE_NAME_LEN  = 64
 )
 
 type MsgLoader struct {
@@ -311,6 +312,27 @@ func (m MsgGenericKprobeArgUserNamespace) GetIndex() uint64 {
 }
 
 func (m MsgGenericKprobeArgUserNamespace) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericLoadModule struct {
+	SigOk uint32
+	Pad   uint32
+	Name  [MODULE_NAME_LEN]byte
+}
+
+type MsgGenericKprobeArgLoadModule struct {
+	Index uint64
+	SigOk uint32
+	Name  string
+	Label string
+}
+
+func (m MsgGenericKprobeArgLoadModule) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgLoadModule) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 

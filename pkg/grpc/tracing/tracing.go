@@ -229,6 +229,13 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			cArg.Name, _ = caps.GetCapability(e.Value)
 			a.Arg = &tetragon.KprobeArgument_CapabilityArg{CapabilityArg: cArg}
 			a.Label = e.Label
+		case api.MsgGenericKprobeArgLoadModule:
+			mArg := &tetragon.KernelModule{
+				Name:        e.Name,
+				SignatureOk: &wrapperspb.BoolValue{Value: e.SigOk != 0},
+			}
+			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
+			a.Label = e.Label
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}
