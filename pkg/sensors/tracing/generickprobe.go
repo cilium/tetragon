@@ -1343,6 +1343,23 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 			arg.Value = output.Value
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericLoadModule:
+			var output api.MsgGenericLoadModule
+			var arg api.MsgGenericKprobeArgLoadModule
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("load_module type error")
+			} else if output.Name[0] != 0x00 {
+				i := bytes.IndexByte(output.Name[:api.MODULE_NAME_LEN], 0)
+				if i == -1 {
+					i = api.MODULE_NAME_LEN
+				}
+				arg.Name = string(output.Name[:i])
+				arg.SigOk = output.SigOk
+			}
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 		}

@@ -15,6 +15,7 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "cred.h"
+#include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
 #include "common.h"
@@ -55,6 +56,8 @@ enum {
 
 	kiocb_type = 24,
 	iov_iter_type = 25,
+
+	load_module_type = 26,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -536,6 +539,28 @@ copy_capability(char *args, unsigned long arg)
 	info->cap = cap;
 
 	return sizeof(struct capability_info_type);
+}
+
+static inline __attribute__((always_inline)) long
+copy_load_module(char *args, unsigned long arg)
+{
+	int ok;
+	const char *name;
+	const struct load_info *mod = (struct load_info *)arg;
+	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
+
+	memset(info, 0, sizeof(struct tg_kernel_module));
+
+	if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
+		return 0;
+
+	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, name) < 0)
+		return 0;
+
+	if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
+		info->sig_ok = !!ok;
+
+	return sizeof(struct tg_kernel_module);
 }
 
 #define ARGM_INDEX_MASK	 0xf
@@ -1259,6 +1284,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_user_namespace);
 	case capability_type:
 		return sizeof(struct capability_info_type);
+	case load_module_type:
+		return sizeof(struct tg_kernel_module);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2179,6 +2206,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case capability_type: {
 		size = copy_capability(args, arg);
+		break;
+	}
+	case load_module_type: {
+		size = copy_load_module(args, arg);
 		break;
 	}
 	default:
