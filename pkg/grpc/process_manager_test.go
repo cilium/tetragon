@@ -59,10 +59,9 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 	err = process.InitCache(watcher.NewFakeK8sWatcher(pods), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
-	pod, endpoint := process.GetPodInfo("container-id-not-found", "", "", 0)
+	pod := process.GetPodInfo("container-id-not-found", "", "", 0)
 	assert.Nil(t, pod)
-	assert.Nil(t, endpoint)
-	pod, endpoint = process.GetPodInfo("aaaaaaa", "", "", 1234)
+	pod = process.GetPodInfo("aaaaaaa", "", "", 1234)
 	assert.Equal(t,
 		&tetragon.Pod{
 			Namespace: podA.Namespace,
@@ -81,7 +80,6 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 				Pid: &wrapperspb.UInt32Value{Value: 1234},
 			},
 		}, pod)
-	assert.Nil(t, endpoint)
 }
 
 func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
@@ -119,7 +117,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	err = process.InitCache(watcher.NewFakeK8sWatcher(pods), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
-	pod, endpoint := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
+	pod := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
 	assert.Equal(t,
 		&tetragon.Pod{
 			Namespace: podA.Namespace,
@@ -132,7 +130,6 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 				MaybeExecProbe: true,
 			},
 		}, pod)
-	assert.Nil(t, endpoint)
 }
 
 func TestProcessManager_GetProcessExec(t *testing.T) {

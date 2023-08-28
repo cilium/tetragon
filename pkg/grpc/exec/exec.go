@@ -173,7 +173,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	nspid := msg.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
-		podInfo, _ = process.GetPodInfo(containerId, filename, args, nspid)
+		podInfo = process.GetPodInfo(containerId, filename, args, nspid)
 		if podInfo == nil {
 			errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
 			return eventcache.ErrFailedToGetPodInfo
