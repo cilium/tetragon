@@ -388,6 +388,15 @@ func (e *Env) HasLibrary(libName string) bool {
 	return exists && configured
 }
 
+// Libraries returns a list of SingletonLibrary that have been configured in the environment.
+func (e *Env) Libraries() []string {
+	libraries := make([]string, 0, len(e.libraries))
+	for libName := range e.libraries {
+		libraries = append(libraries, libName)
+	}
+	return libraries
+}
+
 // HasValidator returns whether a specific ASTValidator has been configured in the environment.
 func (e *Env) HasValidator(name string) bool {
 	for _, v := range e.validators {
