@@ -9,7 +9,6 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
-	hubblev1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/watcher"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -39,15 +38,15 @@ func getPodInfo(
 	binary string,
 	args string,
 	nspid uint32,
-) (*tetragon.Pod, *hubblev1.Endpoint) {
+) *tetragon.Pod {
 	if containerID == "" {
-		return nil, nil
+		return nil
 	}
 	pod, container, ok := w.FindContainer(containerID)
 	if !ok {
 		watchermetrics.GetWatcherErrors("k8s", watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
-		return nil, nil
+		return nil
 	}
 	var startTime *timestamppb.Timestamp
 	livenessProbe, readinessProbe := getProbes(pod, container)
@@ -89,5 +88,5 @@ func getPodInfo(
 			StartTime:      startTime,
 			MaybeExecProbe: maybeExecProbe,
 		},
-	}, endpoint
+	}
 }

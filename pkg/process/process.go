@@ -28,8 +28,6 @@ import (
 	"github.com/cilium/tetragon/pkg/watcher"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	hubblev1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 )
 
 // ProcessInternal is the internal representation of a process.
@@ -192,7 +190,7 @@ func initProcessInternalExec(
 	parent tetragonAPI.MsgExecveKey,
 	capabilities tetragonAPI.MsgCapabilities,
 	namespaces tetragonAPI.MsgNamespaces,
-) (*ProcessInternal, *hubblev1.Endpoint) {
+) *ProcessInternal {
 	args, cwd := ArgsDecoder(process.Args, process.Flags)
 	var parentExecID string
 	if parent.Pid != 0 {
@@ -201,7 +199,7 @@ func initProcessInternalExec(
 		parentExecID = GetProcessID(0, 1)
 	}
 	execID := GetExecID(&process)
-	protoPod, endpoint := GetPodInfo(containerID, process.Filename, args, process.NSPID)
+	protoPod := GetPodInfo(containerID, process.Filename, args, process.NSPID)
 	caps := caps.GetMsgCapabilities(capabilities)
 	ns := namespace.GetMsgNamespaces(namespaces)
 	return &ProcessInternal{
@@ -224,7 +222,7 @@ func initProcessInternalExec(
 		capabilities: caps,
 		namespaces:   ns,
 		refcnt:       1,
-	}, endpoint
+	}
 }
 
 // initProcessInternalClone() initialize and returns ProcessInternal from
@@ -269,7 +267,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 	}
 	if option.Config.EnableK8s && pi.process.Docker != "" && pi.process.Pod == nil {
-		if podInfo, _ := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
+		if podInfo := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
 			pi.AddPodInfo(podInfo)
 		}
 	}
@@ -277,9 +275,9 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	return pi, nil
 }
 
-// GetPodInfo() constructs and returns the Kubernetes Pod information associated with
+// GetPodInfo constructs and returns the Kubernetes Pod information associated with
 // the Container ID and the PID inside this container.
-func GetPodInfo(cid, bin, args string, nspid uint32) (*tetragon.Pod, *hubblev1.Endpoint) {
+func GetPodInfo(cid, bin, args string, nspid uint32) *tetragon.Pod {
 	return getPodInfo(k8s, cid, bin, args, nspid)
 }
 
@@ -307,9 +305,9 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	if event.CleanupProcess.Ktime == 0 || event.Process.Flags&api.EventClone != 0 {
 		// there is a case where we cannot find this entry in execve_map
 		// in that case we use as parent what Linux knows
-		proc, _ = initProcessInternalExec(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
+		proc = initProcessInternalExec(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
 	} else {
-		proc, _ = initProcessInternalExec(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
+		proc = initProcessInternalExec(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
 	}
 
 	// Ensure that exported events have the TID set. For events from Kernel
