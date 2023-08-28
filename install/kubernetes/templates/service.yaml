@@ -9,7 +9,7 @@ metadata:
     {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
     {{- end }}
-  name: {{ .Chart.Name }}
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
