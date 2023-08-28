@@ -15,7 +15,10 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
@@ -110,4 +113,73 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestKprobeListSyscallDups(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	myPid := observertesthelper.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+  kprobes:
+  - call: "list:test"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - 9999
+`
+
+	// The test hooks sys_dup[23] syscalls through the list and
+	// makes sure we receive events for all of them.
+
+	kpCheckerDup := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_dup"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(9999)),
+			))
+
+	kpCheckerDup2 := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_dup2"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(9999)),
+			))
+
+	kpCheckerDup3 := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_dup3"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(9999)),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpCheckerDup, kpCheckerDup2, kpCheckerDup3)
+
+	testListSyscallsDups(t, checker, configHook)
 }
