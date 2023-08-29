@@ -20,6 +20,7 @@ import (
 )
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
+	controller := true
 	pod := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test-pod",
@@ -29,6 +30,13 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 			Generation:        1,
 			CreationTimestamp: metav1.Time{},
 			Labels:            map[string]string{"a": "b", "c": "d"},
+			GenerateName:      "test-workload-",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Name:       "test-workload",
+					Controller: &controller,
+				},
+			},
 		},
 		Status: v1.PodStatus{
 			ContainerStatuses: []v1.ContainerStatus{
@@ -49,6 +57,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	podInfo := getPodInfo(watcher, "abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
 		Namespace: pod.Namespace,
+		Workload:  pod.OwnerReferences[0].Name,
 		Name:      pod.Name,
 		Container: &tetragon.Container{
 			Id:  pod.Status.ContainerStatuses[0].ContainerID,

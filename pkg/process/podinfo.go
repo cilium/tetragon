@@ -74,6 +74,7 @@ func getPodInfo(
 	watchermetrics.GetWatcherEvents("k8s").Inc()
 	return &tetragon.Pod{
 		Namespace: pod.Namespace,
+		Workload:  getWorkloadNameFromPod(pod),
 		Name:      pod.Name,
 		Labels:    labels,
 		PodLabels: pod.Labels,
