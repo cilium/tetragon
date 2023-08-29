@@ -8,20 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
-	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
-	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
-	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
-	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,6 +20,8 @@ import (
 )
 
 var (
+	registry           *prometheus.Registry
+	registryOnce       sync.Once
 	metricsWithPod     []*prometheus.MetricVec
 	metricsWithPodOnce sync.Once
 	podQueue           workqueue.DelayingInterface
@@ -99,20 +90,11 @@ func DeleteMetricsForPod(pod *corev1.Pod) {
 	}
 }
 
-func InitAllMetrics(registry *prometheus.Registry) {
-	errormetrics.InitMetrics(registry)
-	eventcachemetrics.InitMetrics(registry)
-	eventmetrics.InitMetrics(registry)
-	kprobemetrics.InitMetrics(registry)
-	mapmetrics.InitMetrics(registry)
-	opcodemetrics.InitMetrics(registry)
-	pfmetrics.InitMetrics(registry)
-	processexecmetrics.InitMetrics(registry)
-	ringbufmetrics.InitMetrics(registry)
-	syscallmetrics.InitMetrics(registry)
-	watchermetrics.InitMetrics(registry)
-	observer.InitMetrics(registry)
-	tracing.InitMetrics(registry)
+func GetRegistry() *prometheus.Registry {
+	registryOnce.Do(func() {
+		registry = prometheus.NewRegistry()
+	})
+	return registry
 }
 
 func StartPodDeleteHandler() {
@@ -127,8 +109,8 @@ func StartPodDeleteHandler() {
 }
 
 func EnableMetrics(address string) {
-	reg := prometheus.NewRegistry()
-	InitAllMetrics(reg)
+	reg := GetRegistry()
+
 	logger.GetLogger().WithField("addr", address).Info("Starting metrics server")
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	http.ListenAndServe(address, nil)

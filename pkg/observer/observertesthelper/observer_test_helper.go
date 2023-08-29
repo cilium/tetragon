@@ -21,6 +21,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/metrics"
+	metricsconfig "github.com/cilium/tetragon/pkg/metrics/config"
 	"github.com/cilium/tetragon/pkg/observer"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
@@ -281,6 +282,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	// a lot of code changes in a lot of a files.
 	if !metricsEnabled {
 		go metrics.EnableMetrics(metricsAddr)
+		metricsconfig.InitAllMetrics(metrics.GetRegistry())
 		metricsEnabled = true
 	}
 
