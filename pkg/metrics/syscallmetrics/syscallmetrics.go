@@ -16,7 +16,7 @@ var (
 		Name:        "syscalls_total",
 		Help:        "System calls observed.",
 		ConstLabels: nil,
-	}, []string{"syscall", "namespace", "pod", "binary"})
+	}, []string{"syscall", "namespace", "workload", "pod", "binary"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
@@ -29,13 +29,14 @@ func Handle(event interface{}) {
 		return
 	}
 
-	var syscall, namespace, pod, binary string
+	var syscall, namespace, workload, pod, binary string
 	if tpEvent := ev.GetProcessTracepoint(); tpEvent != nil {
 		if tpEvent.Subsys == "raw_syscalls" && tpEvent.Event == "sys_enter" {
 			syscall = rawSyscallName(tpEvent)
 			if tpEvent.Process != nil {
 				if tpEvent.Process.Pod != nil {
 					namespace = tpEvent.Process.Pod.Namespace
+					workload = tpEvent.Process.Pod.Workload
 					pod = tpEvent.Process.Pod.Name
 				}
 				binary = tpEvent.Process.Binary
@@ -44,7 +45,7 @@ func Handle(event interface{}) {
 	}
 
 	if syscall != "" {
-		syscallStats.WithLabelValues(syscall, namespace, pod, binary).Inc()
+		syscallStats.WithLabelValues(syscall, namespace, workload, pod, binary).Inc()
 	}
 }
 
