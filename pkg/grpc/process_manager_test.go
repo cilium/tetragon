@@ -29,10 +29,18 @@ import (
 )
 
 func TestProcessManager_getPodInfo(t *testing.T) {
+	controller := true
 	podA := corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "pod-a",
-			Namespace: "namespace-a",
+			Name:         "pod-a",
+			Namespace:    "namespace-a",
+			GenerateName: "test-workload-",
+			OwnerReferences: []v1.OwnerReference{
+				{
+					Name:       "test-workload",
+					Controller: &controller,
+				},
+			},
 		},
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
@@ -65,6 +73,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 	assert.Equal(t,
 		&tetragon.Pod{
 			Namespace: podA.Namespace,
+			Workload:  podA.OwnerReferences[0].Name,
 			Name:      podA.Name,
 			Container: &tetragon.Container{
 				Id:   podA.Status.ContainerStatuses[0].ContainerID,
@@ -83,10 +92,18 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 }
 
 func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
+	controller := true
 	var podA = corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "pod-a",
-			Namespace: "namespace-a",
+			Name:         "pod-a",
+			Namespace:    "namespace-a",
+			GenerateName: "test-workload-",
+			OwnerReferences: []v1.OwnerReference{
+				{
+					Name:       "test-workload",
+					Controller: &controller,
+				},
+			},
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -121,6 +138,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	assert.Equal(t,
 		&tetragon.Pod{
 			Namespace: podA.Namespace,
+			Workload:  podA.OwnerReferences[0].Name,
 			Name:      podA.Name,
 			Container: &tetragon.Container{
 				Id:             podA.Status.ContainerStatuses[0].ContainerID,
