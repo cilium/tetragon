@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -44,7 +43,7 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, 10*time.Second)
+	connCtx, connCancel := context.WithTimeout(ctx, viper.GetDuration(KeyTimeout))
 	defer connCancel()
 
 	var conn *grpc.ClientConn

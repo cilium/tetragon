@@ -4,6 +4,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -40,6 +41,7 @@ func New() *cobra.Command {
 	flags := rootCmd.PersistentFlags()
 	flags.BoolP(common.KeyDebug, "d", false, "Enable debug messages")
 	flags.String(common.KeyServerAddress, "localhost:54321", "gRPC server address")
+	flags.Duration(common.KeyTimeout, 10*time.Second, "Connection timeout")
 	viper.BindPFlags(flags)
 	return rootCmd
 }
