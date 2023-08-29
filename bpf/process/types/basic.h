@@ -714,6 +714,33 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 }
 
 static inline __attribute__((always_inline)) long
+filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
+{
+	void *addrmap;
+	__u32 map_idx = *(__u32 *)&filter->value;
+	struct string_prefix_lpm_trie *arg;
+	int zero = 0;
+
+	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	if (arg_len > STRING_PREFIX_MAX_LENGTH || !arg_len)
+		return 0;
+
+	arg = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_prefix_maps_heap, &zero);
+	if (!arg)
+		return 0;
+
+	arg->prefixlen = arg_len * 8; // prefix is in bits
+	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
+
+	__u8 *pass = map_lookup_elem(addrmap, arg);
+
+	return !!pass;
+}
+
+static inline __attribute__((always_inline)) long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	// Arg length is 4 bytes before the value data
@@ -726,6 +753,8 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 
 	if (filter->op == op_filter_eq)
 		return filter_char_buf_equal(filter, arg_str, len);
+	else if (filter->op == op_filter_str_prefix)
+		return filter_char_buf_prefix(filter, arg_str, len);
 
 	char *value = (char *)&filter->value;
 	long i, j = 0;

@@ -583,10 +583,10 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 		}
 		if len(addr) == 4 {
-			val := KernelLpmTrie4{prefix: maskLen, addr: binary.LittleEndian.Uint32(addr)}
+			val := KernelLPMTrie4{prefixLen: maskLen, addr: binary.LittleEndian.Uint32(addr)}
 			m4[val] = struct{}{}
 		} else if len(addr) == 16 {
-			val := KernelLpmTrie6{prefix: maskLen}
+			val := KernelLPMTrie6{prefixLen: maskLen}
 			copy(val.addr[:], addr)
 			m6[val] = struct{}{}
 		} else {
@@ -674,6 +674,12 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 				return fmt.Errorf("writeMatchStrings error: %w", err)
 			}
 			return nil
+		case SelectorOpPrefix:
+			err := writePrefixStrings(k, values)
+			if err != nil {
+				return fmt.Errorf("writePrefixStrings error: %w", err)
+			}
+			return nil
 		}
 	}
 
@@ -742,6 +748,22 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	for _, md := range mapDetails {
 		WriteSelectorUint32(k, md)
 	}
+	return nil
+}
+
+func writePrefixStrings(k *KernelSelectorState, values []string) error {
+	mid, m := k.newStringPrefixMap()
+	for _, v := range values {
+		value, size := ArgSelectorValue(v)
+		if size > StringPrefixMaxLength {
+			return fmt.Errorf("MatchArgs value %s invalid: string is longer than %d characters", v, StringPrefixMaxLength)
+		}
+		val := KernelLPMTrieStringPrefix{prefixLen: size * 8} // prefix is in bits, but size is in bytes
+		copy(val.data[:], value)
+		m[val] = struct{}{}
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
 	return nil
 }
 
