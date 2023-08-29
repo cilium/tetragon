@@ -138,4 +138,32 @@ struct {
 	__uint(value_size, 512);
 } string_maps_ro_zero SEC(".maps");
 
+#define STRING_PREFIX_MAX_LENGTH 128
+
+struct string_prefix_lpm_trie {
+	__u32 prefixlen;
+	__u8 data[STRING_PREFIX_MAX_LENGTH];
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_LPM_TRIE);
+			__uint(max_entries, 1);
+			__type(key, __u8[sizeof(struct string_prefix_lpm_trie)]); // Need to specify as byte array as wouldn't take struct as key type
+			__type(value, __u8);
+			__uint(map_flags, BPF_F_NO_PREALLOC);
+		});
+} string_prefix_maps SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(struct string_prefix_lpm_trie));
+} string_prefix_maps_heap SEC(".maps");
+
 #endif // STRING_MAPS_H__
