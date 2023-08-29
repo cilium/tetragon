@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package metrics
+package metrics_test
 
 import (
 	"testing"
@@ -15,6 +15,8 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/metrics"
+	"github.com/cilium/tetragon/pkg/metrics/config"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 )
 
@@ -23,8 +25,8 @@ var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
 }
 
 func TestPodDelete(t *testing.T) {
-	reg := prometheus.NewRegistry()
-	InitAllMetrics(reg)
+	reg := metrics.GetRegistry()
+	config.InitAllMetrics(reg)
 
 	// Process four events, each one with different combination of pod/namespace.
 	// These events should be counted by multiple metrics with a "pod" label:
@@ -61,7 +63,7 @@ func TestPodDelete(t *testing.T) {
 
 	// Exactly one timeseries should be deleted for each metric (matching both
 	// pod name and namespace).
-	DeleteMetricsForPod(&corev1.Pod{
+	metrics.DeleteMetricsForPod(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "fake-pod",
 			Namespace: "fake-namespace",
