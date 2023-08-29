@@ -234,7 +234,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, kprobe.Process)
-		switch arch.CutSyscallPrefix(kprobe.FunctionName) {
+		syscallName := arch.CutSyscallPrefix(kprobe.FunctionName)
+		switch syscallName {
 		case "sys_write":
 			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
 			file := ""
@@ -425,7 +426,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
-			event := p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
+			event := p.Colorer.Blue.Sprintf("%s %-7s", syscallinfo.GetSyscallEmojiByName(syscallName), "syscall")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
@@ -436,7 +437,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, tp.Process)
 		switch fmt.Sprintf("%s/%s", tp.Subsys, tp.Event) {
 		case "raw_syscalls/sys_enter":
-			event := p.Colorer.Blue.Sprintf("☎  %-7s", "syscall")
+			event := p.Colorer.Blue.Sprintf("%s %-7s", syscallinfo.GetSyscallEmojiById(int(rawSyscallEnterId(tp))), "syscall")
 			sysName := rawSyscallEnter(tp)
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, sysName), caps), nil
 		default:
@@ -448,13 +449,18 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 	return "", ErrUnknownEventType
 }
 
-func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
+func rawSyscallEnterId(tp *tetragon.ProcessTracepoint) int64 {
 	sysID := int64(-1)
 	if len(tp.Args) > 0 && tp.Args[0] != nil {
 		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {
 			sysID = x.LongArg
 		}
 	}
+	return sysID
+}
+
+func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
+	sysID := rawSyscallEnterId(tp)
 	sysName := "unknown"
 	if name := syscallinfo.GetSyscallName(int(sysID)); name != "" {
 		sysName = name
