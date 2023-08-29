@@ -41,43 +41,43 @@ func TestHandleProcessedEvent(t *testing.T) {
 	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
 		Process: &tetragon.Process{
 			Binary: "binary_a",
-			Pod:    &tetragon.Pod{Namespace: "namespace_a", Name: "pod_a"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_a", Name: "pod_a", Workload: "workload_a"},
 		},
 	}}})
 	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{
 		Process: &tetragon.Process{
 			Binary: "binary_b",
-			Pod:    &tetragon.Pod{Namespace: "namespace_b", Name: "pod_b"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_b", Name: "pod_b", Workload: "workload_b"},
 		},
 	}}})
 	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: &tetragon.ProcessTracepoint{
 		Process: &tetragon.Process{
 			Binary: "binary_c",
-			Pod:    &tetragon.Pod{Namespace: "namespace_c", Name: "pod_c"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_c", Name: "pod_c", Workload: "workload_c"},
 		},
 	}}})
 	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessExit{ProcessExit: &tetragon.ProcessExit{
 		Process: &tetragon.Process{
 			Binary: "binary_e",
-			Pod:    &tetragon.Pod{Namespace: "namespace_e", Name: "pod_e"},
+			Pod:    &tetragon.Pod{Namespace: "namespace_e", Name: "pod_e", Workload: "workload_e"},
 		},
 	}}})
 
 	expected := strings.NewReader(`# HELP tetragon_events_total The total number of Tetragon events
 # TYPE tetragon_events_total counter
-tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE"} 1
-tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC"} 1
-tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXIT"} 1
-tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
-tetragon_events_total{binary="",namespace="",pod="",type="unknown"} 1
-tetragon_events_total{binary="binary_a",namespace="",pod="",type="PROCESS_KPROBE"} 1
-tetragon_events_total{binary="binary_a",namespace="namespace_a",pod="pod_a",type="PROCESS_KPROBE"} 1
-tetragon_events_total{binary="binary_b",namespace="",pod="",type="PROCESS_EXEC"} 1
-tetragon_events_total{binary="binary_b",namespace="namespace_b",pod="pod_b",type="PROCESS_EXEC"} 1
-tetragon_events_total{binary="binary_c",namespace="",pod="",type="PROCESS_TRACEPOINT"} 1
-tetragon_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type="PROCESS_TRACEPOINT"} 1
-tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT"} 1
-tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT"} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_KPROBE",workload=""} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXEC",workload=""} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_EXIT",workload=""} 1
+tetragon_events_total{binary="",namespace="",pod="",type="PROCESS_TRACEPOINT",workload=""} 1
+tetragon_events_total{binary="",namespace="",pod="",type="unknown",workload=""} 1
+tetragon_events_total{binary="binary_a",namespace="",pod="",type="PROCESS_KPROBE",workload=""} 1
+tetragon_events_total{binary="binary_a",namespace="namespace_a",pod="pod_a",type="PROCESS_KPROBE",workload="workload_a"} 1
+tetragon_events_total{binary="binary_b",namespace="",pod="",type="PROCESS_EXEC",workload=""} 1
+tetragon_events_total{binary="binary_b",namespace="namespace_b",pod="pod_b",type="PROCESS_EXEC",workload="workload_b"} 1
+tetragon_events_total{binary="binary_c",namespace="",pod="",type="PROCESS_TRACEPOINT",workload=""} 1
+tetragon_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type="PROCESS_TRACEPOINT",workload="workload_c"} 1
+tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT",workload=""} 1
+tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT",workload="workload_e"} 1
 `)
 	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
 }
