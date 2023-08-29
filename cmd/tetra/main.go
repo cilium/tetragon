@@ -44,6 +44,7 @@ func new() *cobra.Command {
 	flags.BoolP(common.KeyDebug, "d", false, "Enable debug messages")
 	flags.String(common.KeyServerAddress, "localhost:54321", "gRPC server address")
 	flags.Duration(common.KeyTimeout, 10*time.Second, "Connection timeout")
+	flags.Int(common.KeyRetries, 0, "Connection retries with exponential backoff")
 	viper.BindPFlags(flags)
 	return rootCmd
 }
