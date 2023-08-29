@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -39,10 +40,7 @@ func getActiveServAddr(fname string) (string, error) {
 	return info.ServerAddr, nil
 }
 
-func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
+func connect(ctx context.Context) (*grpc.ClientConn, string, error) {
 	connCtx, connCancel := context.WithTimeout(ctx, viper.GetDuration(KeyTimeout))
 	defer connCancel()
 
@@ -78,11 +76,38 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 		serverAddr = viper.GetString(KeyServerAddress)
 		conn, err = grpc.DialContext(connCtx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	}
-	if err != nil {
-		fnErr(err)
-		logger.GetLogger().WithField("server-address", serverAddr).WithError(err).Fatal("Failed to connect to server")
+
+	return conn, serverAddr, err
+}
+
+func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	var conn *grpc.ClientConn
+	var serverAddr string
+	var err error
+
+	backoff := time.Second
+	attempts := 0
+	for {
+		conn, serverAddr, err = connect(ctx)
+		if err != nil {
+			if attempts < viper.GetInt(KeyRetries) {
+				// Exponential backoff
+				attempts++
+				logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Error("Connection attempt failed, retrying...")
+				time.Sleep(backoff)
+				backoff *= 2
+				continue
+			}
+			logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Fatal("Failed to connect to server")
+			fnErr(err)
+		}
+		break
 	}
 	defer conn.Close()
+
 	client := tetragon.NewFineGuidanceSensorsClient(conn)
 	fn(ctx, client)
 }
