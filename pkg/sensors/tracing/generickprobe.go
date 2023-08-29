@@ -256,6 +256,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	// that we do not need to SetInnerMaxEntries() here.
 	maps = append(maps, stringPrefixFilterMaps)
 
+	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
+	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
+	// that we do not need to SetInnerMaxEntries() here.
+	maps = append(maps, stringPostfixFilterMaps)
+
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	maps = append(maps, retProbe)
 
@@ -784,6 +789,15 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	out.maps = append(out.maps, stringPrefixFilterMaps)
+
+	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.StringPostfixMapsMaxEntries()
+		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	out.maps = append(out.maps, stringPostfixFilterMaps)
 
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	out.maps = append(out.maps, retProbe)

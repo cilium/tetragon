@@ -673,24 +673,24 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
 			}
-			return nil
 		case SelectorOpPrefix:
 			err := writePrefixStrings(k, values)
 			if err != nil {
 				return fmt.Errorf("writePrefixStrings error: %w", err)
 			}
-			return nil
+		case SelectorOpPostfix:
+			err := writePostfixStrings(k, values, ty)
+			if err != nil {
+				return fmt.Errorf("writePostfixStrings error: %w", err)
+			}
 		}
+		return nil
 	}
 
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
 		case argTypeFd, argTypeFile, argTypePath:
-			value, size := ArgSelectorValue(v)
-			WriteSelectorUint32(k, size)
-			WriteSelectorByteArray(k, value, size)
-		case argTypeString, argTypeCharBuf:
 			value, size := ArgSelectorValue(v)
 			WriteSelectorUint32(k, size)
 			WriteSelectorByteArray(k, value, size)
@@ -760,6 +760,33 @@ func writePrefixStrings(k *KernelSelectorState, values []string) error {
 		}
 		val := KernelLPMTrieStringPrefix{prefixLen: size * 8} // prefix is in bits, but size is in bytes
 		copy(val.data[:], value)
+		m[val] = struct{}{}
+	}
+	// write the map id into the selector
+	WriteSelectorUint32(k, mid)
+	return nil
+}
+
+func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
+	mid, m := k.newStringPostfixMap()
+	for _, v := range values {
+		var value []byte
+		var size uint32
+		if ty == argTypeCharBuf {
+			value, size = ArgPostfixSelectorValue(v, false)
+		} else {
+			value, size = ArgPostfixSelectorValue(v, true)
+		}
+		// Due to the constraints of the reverse copy in BPF, we will not be able to match a postfix
+		// longer than 127 characters, so throw an error if the user specified one.
+		if size >= StringPostfixMaxLength {
+			return fmt.Errorf("MatchArgs value %s invalid: string is longer than %d characters", v, StringPostfixMaxLength-1)
+		}
+		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
+		// Copy postfix in reverse order, so that it can be used in LPM map
+		for i := 0; i < len(value); i++ {
+			val.data[len(value)-i-1] = value[i]
+		}
 		m[val] = struct{}{}
 	}
 	// write the map id into the selector

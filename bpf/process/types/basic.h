@@ -446,10 +446,12 @@ copy_strings(char *args, unsigned long arg)
 	int *s = (int *)args;
 	long size;
 
+	// probe_read_str() always nul-terminates the string.
 	size = probe_read_str(&args[4], MAX_STRING, (char *)arg);
-	if (size < 0) {
+	if (size <= 1)
 		return invalid_ty;
-	}
+	// Remove the nul character from end.
+	size--;
 	*s = size;
 	// Initial 4 bytes hold string length
 	return size + 4;
@@ -740,6 +742,59 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
+static inline __attribute__((always_inline)) void
+copy_reverse(__u8 *dest, uint len, __u8 *src)
+{
+	uint i;
+
+	len &= STRING_POSTFIX_MAX_MASK;
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	// Maximum we can go to is one less than the absolute maximum.
+	// This is to allow the masking and indexing to work correctly.
+	// (Appreciate this is a bit ugly.)
+	// If len == STRING_POSTFIX_MAX_LENGTH, and this is 128, then
+	// it will have been masked to 0 above, leading to src indices
+	// of -1, -2, -3... masked with STRING_POSTFIX_MAX_MASK (127).
+	// These will equal 127, 126, 125... which will therefore
+	// reverse copy the string as if it was 127 chars long.
+	// Alternative (prettier) fixes resulted in a confused verifier
+	// unfortunately.
+	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
+		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len - 1 - i) & STRING_POSTFIX_MAX_MASK];
+		if (len == (i + 1))
+			return;
+	}
+}
+
+static inline __attribute__((always_inline)) long
+filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
+{
+	void *addrmap;
+	__u32 map_idx = *(__u32 *)&filter->value;
+	struct string_postfix_lpm_trie *arg;
+	int zero = 0;
+
+	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	if (arg_len > STRING_POSTFIX_MAX_LENGTH || !arg_len)
+		return 0;
+
+	arg = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+	if (!arg)
+		return 0;
+
+	arg->prefixlen = arg_len * 8; // prefix is in bits
+	copy_reverse(arg->data, arg_len, (__u8 *)arg_str);
+
+	__u8 *pass = map_lookup_elem(addrmap, arg);
+
+	return !!pass;
+}
+
 static inline __attribute__((always_inline)) long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
@@ -747,57 +802,15 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	uint len = *(uint *)&args[value_off - 4];
 	char *arg_str = &args[value_off];
 
-	// Ignore the nul char on the end of strings
-	if (filter->type == string_type && len)
-		len--;
-
-	if (filter->op == op_filter_eq)
+	switch (filter->op) {
+	case op_filter_eq:
 		return filter_char_buf_equal(filter, arg_str, len);
-	else if (filter->op == op_filter_str_prefix)
+	case op_filter_str_prefix:
 		return filter_char_buf_prefix(filter, arg_str, len);
-
-	char *value = (char *)&filter->value;
-	long i, j = 0;
-
-#pragma unroll
-	for (i = 0; i < MAX_MATCH_STRING_VALUES; i++) {
-		__u32 length;
-		int err, a, postoff = 0;
-
-		/* filter->vallen is pulled from user input so we also need to
-		 * ensure its bounded.
-		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
-		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0xff;\n" ::[length] "+r"(length)
-			     :);
-		// arg length is 4 bytes before the value data
-		a = *(int *)&args[value_off - 4];
-		if (filter->op == op_filter_eq) {
-			if (length != a)
-				goto skip_string;
-		} else if (filter->op == op_filter_str_postfix) {
-			postoff = a - length;
-			asm volatile("%[postoff] &= 0x3f;\n" ::[postoff] "+r"(
-					     postoff)
-				     :);
-		}
-
-		/* This is redundant, but seems we lost 'j' bounds from
-		 * above so at the moment its necessary until we improve
-		 * compiler.
-		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
-		err = cmpbytes(&value[j + 4], &args[value_off + postoff], length);
-		if (!err)
-			return 1;
-	skip_string:
-		j += length + 4;
-		if (j + 8 >= filter->vallen)
-			break;
+	case op_filter_str_postfix:
+		return filter_char_buf_postfix(filter, arg_str, len);
 	}
+
 	return 0;
 }
 
