@@ -17,7 +17,8 @@ PROGS = sigkill-tester \
 	lseek-pipe \
 	threads-tester \
 	bench-reader \
-	threads-exit
+	threads-exit \
+	killer-tester
 
 all: $(PROGS)
 
