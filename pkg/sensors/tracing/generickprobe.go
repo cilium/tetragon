@@ -340,13 +340,9 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 	}
 
 	// validate lists first
-	for i := range lists {
-		list := &lists[i]
-
-		err := preValidateList(list)
-		if err != nil {
-			return err
-		}
+	err = preValidateLists(lists)
+	if err != nil {
+		return err
 	}
 
 	for i := range kprobes {

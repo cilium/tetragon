@@ -52,7 +52,7 @@ func isSyscallListType(typ string) bool {
 		listTypeFromString(typ) == ListTypeGeneratedSyscalls
 }
 
-func preValidateList(list *v1alpha1.ListSpec) (err error) {
+func validateList(list *v1alpha1.ListSpec) (err error) {
 	if listTypeFromString(list.Type) == ListTypeInvalid {
 		return fmt.Errorf("Invalid list type: %s", list.Type)
 	}
@@ -94,6 +94,22 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func preValidateLists(lists []v1alpha1.ListSpec) (err error) {
+	for i := range lists {
+		list := &lists[i]
+
+		if list.Validated {
+			continue
+		}
+		err := validateList(list)
+		if err != nil {
+			return err
+		}
+		list.Validated = true
+	}
 	return nil
 }
 
