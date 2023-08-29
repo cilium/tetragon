@@ -52,6 +52,8 @@ message Pod {
     // Contains all the labels of the pod. Note that the labels field contains
     // Cilium identity labels, which is a subset of pod labels.
     map<string, string> pod_labels = 5;
+    // Kubernetes workload of the Pod.
+    string workload = 6;
 }
 
 message Capabilities {
