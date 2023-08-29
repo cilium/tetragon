@@ -9,4 +9,5 @@ const (
 	KeyOutput        = "output"         // string
 	KeyServerAddress = "server-address" // string
 	KeyTimeout       = "timeout"        // duration
+	KeyRetries       = "retries"        // int
 )
