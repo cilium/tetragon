@@ -1156,7 +1156,17 @@ spec:
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
 
-func TestKprobeObjectPostfixOpen(t *testing.T) {
+// String matches should not require the '\0' null character on the end.
+// Any '\0' null characters should be handled gracefully.
+// Test with and without the null character.
+func testKprobeObjectPostfixOpenFileName(withNull bool) string {
+	if withNull {
+		return `testfile\0`
+	}
+	return `testfile`
+}
+
+func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1185,9 +1195,17 @@ spec:
       - index: 1
         operator: "Postfix"
         values:
-        - "testfile\0"
+        - "` + testKprobeObjectPostfixOpenFileName(withNull) + `"
 `
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectPostfixOpen(t *testing.T) {
+	testKprobeObjectPostfixOpen(t, false)
+}
+
+func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
+	testKprobeObjectPostfixOpen(t, true)
 }
 
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {

@@ -46,10 +46,11 @@ type ValueReader interface {
 }
 
 const (
-	stringMapsKeyIncSize  = 24
-	StringMapsNumSubMaps  = 6
-	MaxStringMapsSize     = 6*stringMapsKeyIncSize + 1
-	StringPrefixMaxLength = 128
+	stringMapsKeyIncSize   = 24
+	StringMapsNumSubMaps   = 6
+	MaxStringMapsSize      = 6*stringMapsKeyIncSize + 1
+	StringPrefixMaxLength  = 128
+	StringPostfixMaxLength = 128
 )
 
 var (
@@ -67,6 +68,11 @@ type SelectorStringMaps [StringMapsNumSubMaps]map[[MaxStringMapsSize]byte]struct
 type KernelLPMTrieStringPrefix struct {
 	prefixLen uint32
 	data      [StringPrefixMaxLength]byte
+}
+
+type KernelLPMTrieStringPostfix struct {
+	prefixLen uint32
+	data      [StringPostfixMaxLength]byte
 }
 
 type KernelSelectorState struct {
@@ -91,6 +97,8 @@ type KernelSelectorState struct {
 
 	// stringPrefixMaps are used to populate string and char buf prefix matches
 	stringPrefixMaps []map[KernelLPMTrieStringPrefix]struct{}
+	// stringPostfixMaps are used to populate string and char buf postfix matches
+	stringPostfixMaps []map[KernelLPMTrieStringPostfix]struct{}
 }
 
 func NewKernelSelectorState(listReader ValueReader) *KernelSelectorState {
@@ -164,6 +172,10 @@ func (k *KernelSelectorState) StringPrefixMaps() []map[KernelLPMTrieStringPrefix
 	return k.stringPrefixMaps
 }
 
+func (k *KernelSelectorState) StringPostfixMaps() []map[KernelLPMTrieStringPostfix]struct{} {
+	return k.stringPostfixMaps
+}
+
 // ValueMapsMaxEntries returns the maximum entries over all maps
 func (k *KernelSelectorState) ValueMapsMaxEntries() int {
 	maxEntries := 1
@@ -212,6 +224,17 @@ func (k *KernelSelectorState) StringMapsMaxEntries(subMap int) int {
 func (k *KernelSelectorState) StringPrefixMapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.stringPrefixMaps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+// StringPostfixMapsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) StringPostfixMapsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.stringPostfixMaps {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}
@@ -299,6 +322,17 @@ func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, 
 	return ret, paddedLen + 1, nil
 }
 
+func ArgPostfixSelectorValue(v string, removeNul bool) ([]byte, uint32) {
+	if removeNul {
+		// Remove any trailing nul characters ("\0" or 0x00)
+		for v[len(v)-1] == 0 {
+			v = v[0 : len(v)-1]
+		}
+	}
+	b := []byte(v)
+	return b, uint32(len(b))
+}
+
 func (k *KernelSelectorState) newValueMap() (uint32, ValueMap) {
 	mapid := len(k.valueMaps)
 	vm := ValueMap{}
@@ -383,4 +417,10 @@ func (k *KernelSelectorState) newStringPrefixMap() (uint32, map[KernelLPMTrieStr
 	mapid := len(k.stringPrefixMaps)
 	k.stringPrefixMaps = append(k.stringPrefixMaps, map[KernelLPMTrieStringPrefix]struct{}{})
 	return uint32(mapid), k.stringPrefixMaps[mapid]
+}
+
+func (k *KernelSelectorState) newStringPostfixMap() (uint32, map[KernelLPMTrieStringPostfix]struct{}) {
+	mapid := len(k.stringPostfixMaps)
+	k.stringPostfixMaps = append(k.stringPostfixMaps, map[KernelLPMTrieStringPostfix]struct{}{})
+	return uint32(mapid), k.stringPostfixMaps[mapid]
 }
