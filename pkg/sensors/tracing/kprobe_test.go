@@ -5012,3 +5012,55 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestKprobeListSyscallDupsRange(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	myPid := observertesthelper.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  kprobes:
+  - call: "sys_dup"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - 9910:9920
+`
+
+	// The test hooks sys_dup syscall and filters for fd
+	// in range 9910 to 9920.
+
+	checker := ec.NewUnorderedEventChecker()
+
+	for i := 9910; i < 9920; i++ {
+		kpCheckerDup := ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_dup"))).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithIntArg(int32(i)),
+				))
+
+		checker.AddChecks(kpCheckerDup)
+	}
+
+	testListSyscallsDupsRange(t, checker, configHook)
+}

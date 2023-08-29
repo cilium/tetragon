@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -759,4 +761,93 @@ func TestStringTracepoint(t *testing.T) {
 
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, 1, countPizza, "expected events with 'pizzaisthebest'")
+}
+
+func testListSyscallsDupsRange(t *testing.T, checker *eventchecker.UnorderedEventChecker, configHook string) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	err := os.WriteFile(testConfigFile, []byte(configHook), 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := 9900; i < 9930; i++ {
+		syscall.Dup(i)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestTracepointListSyscallDupsRange(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	myPid := observertesthelper.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "uint64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:test"
+      - index: 1
+        operator: "InMap"
+        values:
+        - 9910:9920
+`
+
+	// The test hooks raw tracepoint and uses InMap operator to filter
+	// for dup syscall and for fd in range 9910 to 9920.
+
+	checker := ec.NewUnorderedEventChecker()
+
+	for i := 9910; i < 9920; i++ {
+		tpCheckerDup := ec.NewProcessTracepointChecker("").
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_DUP),
+					ec.NewKprobeArgumentChecker().WithSizeArg(uint64(i)),
+				))
+
+		checker.AddChecks(tpCheckerDup)
+	}
+
+	testListSyscallsDupsRange(t, checker, configHook)
 }
