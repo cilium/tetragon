@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,14 +18,47 @@ import (
 )
 
 var (
-	registry           *prometheus.Registry
-	registryOnce       sync.Once
-	metricsWithPod     []*prometheus.MetricVec
-	metricsWithPodOnce sync.Once
-	podQueue           workqueue.DelayingInterface
-	podQueueOnce       sync.Once
-	deleteDelay        = 1 * time.Minute
+	registry            *prometheus.Registry
+	registryOnce        sync.Once
+	metricsWithPod      []*prometheus.MetricVec
+	metricsWithPodMutex sync.RWMutex
+	podQueue            workqueue.DelayingInterface
+	podQueueOnce        sync.Once
+	deleteDelay         = 1 * time.Minute
 )
+
+// NewCounterVecWithPod is a wrapper around prometheus.NewCounterVec that also registers the metric
+// to be cleaned up when a pod is deleted. It should be used only to register metrics that have
+// "pod" and "namespace" labels.
+func NewCounterVecWithPod(opts prometheus.CounterOpts, labels []string) *prometheus.CounterVec {
+	metric := prometheus.NewCounterVec(opts, labels)
+	metricsWithPodMutex.Lock()
+	metricsWithPod = append(metricsWithPod, metric.MetricVec)
+	metricsWithPodMutex.Unlock()
+	return metric
+}
+
+// NewGaugeVecWithPod is a wrapper around prometheus.NewGaugeVec that also registers the metric
+// to be cleaned up when a pod is deleted. It should be used only to register metrics that have
+// "pod" and "namespace" labels.
+func NewGaugeVecWithPod(opts prometheus.GaugeOpts, labels []string) *prometheus.GaugeVec {
+	metric := prometheus.NewGaugeVec(opts, labels)
+	metricsWithPodMutex.Lock()
+	metricsWithPod = append(metricsWithPod, metric.MetricVec)
+	metricsWithPodMutex.Unlock()
+	return metric
+}
+
+// NewHistogramVecWithPod is a wrapper around prometheus.NewHistogramVec that also registers the metric
+// to be cleaned up when a pod is deleted. It should be used only to register metrics that have
+// "pod" and "namespace" labels.
+func NewHistogramVecWithPod(opts prometheus.HistogramOpts, labels []string) *prometheus.HistogramVec {
+	metric := prometheus.NewHistogramVec(opts, labels)
+	metricsWithPodMutex.Lock()
+	metricsWithPod = append(metricsWithPod, metric.MetricVec)
+	metricsWithPodMutex.Unlock()
+	return metric
+}
 
 // RegisterPodDeleteHandler registers handler for deleting metrics associated
 // with deleted pods. Without it, Tetragon kept exposing stale metrics for
@@ -71,16 +102,6 @@ func GetPodQueue() workqueue.DelayingInterface {
 	return podQueue
 }
 
-// ListMetricsWithPod returns the global list of all metrics that have "pod"
-// and "namespace" labels, initializing it if needed.
-func ListMetricsWithPod() []*prometheus.MetricVec {
-	metricsWithPodOnce.Do(func() {
-		metricsWithPod = append(metricsWithPod, eventmetrics.ListMetricsWithPod()...)
-		metricsWithPod = append(metricsWithPod, syscallmetrics.ListMetricsWithPod()...)
-	})
-	return metricsWithPod
-}
-
 func DeleteMetricsForPod(pod *corev1.Pod) {
 	for _, metric := range ListMetricsWithPod() {
 		metric.DeletePartialMatch(prometheus.Labels{
@@ -88,6 +109,12 @@ func DeleteMetricsForPod(pod *corev1.Pod) {
 			"namespace": pod.Namespace,
 		})
 	}
+}
+
+func ListMetricsWithPod() []*prometheus.MetricVec {
+	// NB: All additions to the list happen when registering metrics, so it's safe to just return
+	// the list here.
+	return metricsWithPod
 }
 
 func GetRegistry() *prometheus.Registry {

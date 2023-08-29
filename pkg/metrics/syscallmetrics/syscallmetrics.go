@@ -5,13 +5,14 @@ package syscallmetrics
 
 import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
-	syscallStats = prometheus.NewCounterVec(prometheus.CounterOpts{
+	syscallStats = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "syscalls_total",
 		Help:        "System calls observed.",
@@ -21,13 +22,6 @@ var (
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(syscallStats)
-}
-
-// ListMetricsWithPod returns a list of metrics with "pod" and "namespace" labels.
-func ListMetricsWithPod() []*prometheus.MetricVec {
-	return []*prometheus.MetricVec{
-		syscallStats.MetricVec,
-	}
 }
 
 func Handle(event interface{}) {
