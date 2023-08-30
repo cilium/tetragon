@@ -106,6 +106,7 @@ spec:
                             - iov_iter
                             - cred
                             - load_info
+                            - module
                             type: string
                         required:
                         - index
@@ -184,6 +185,7 @@ spec:
                           - iov_iter
                           - cred
                           - load_info
+                          - module
                           type: string
                       required:
                       - index
@@ -703,6 +705,7 @@ spec:
                             - iov_iter
                             - cred
                             - load_info
+                            - module
                             type: string
                         required:
                         - index
