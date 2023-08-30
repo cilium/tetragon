@@ -90,6 +90,7 @@ func (k *KernelSelectorState) AddBinaryName(selIdx int, binary string) {
 	defer binMu.Unlock()
 	idx, ok := binVals[binary]
 	if ok {
+		k.newBinVals[idx] = binary
 		k.matchBinaries[selIdx].selNamesMap[idx] = 1
 		return
 	}
