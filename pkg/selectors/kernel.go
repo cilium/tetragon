@@ -692,17 +692,23 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
 			}
-			return nil
+		case SelectorOpPrefix, SelectorOpNotPrefix:
+			err := writePrefixStrings(k, values)
+			if err != nil {
+				return fmt.Errorf("writePrefixStrings error: %w", err)
+			}
+		case SelectorOpPostfix, SelectorOpNotPostfix:
+			err := writePostfixStrings(k, values, ty)
+			if err != nil {
+				return fmt.Errorf("writePostfixStrings error: %w", err)
+			}
 		}
+		return nil
 	}
 
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
-		case argTypeFd, argTypeFile, argTypePath:
-			value, size := ArgSelectorValue(v)
-			WriteSelectorUint32(k, size)
-			WriteSelectorByteArray(k, value, size)
 		case argTypeS32, argTypeInt, argTypeSizet:
 			i, err := strconv.ParseInt(v, base, 32)
 			if err != nil {

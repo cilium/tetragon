@@ -869,41 +869,6 @@ struct string_buf {
 	char buf[];
 };
 
-#define FILTER_FILE_MATCH   0
-#define FILTER_FILE_NOMATCH 1
-
-static inline __attribute__((always_inline)) long
-__filter_file_buf(struct string_buf *value, struct string_buf *args, __u32 op)
-{
-	__u32 v = value->len, a = args->len;
-	int err;
-
-	if (op == op_filter_eq || op == op_filter_neq) {
-		if (v != a)
-			goto skip_string;
-	} else if (op == op_filter_str_prefix || op == op_filter_str_notprefix) {
-		if (a < v)
-			goto skip_string;
-	} else if (op == op_filter_str_postfix || op == op_filter_str_notpostfix) {
-		err = rcmpbytes(value->buf, args->buf, v - 1, a - 1);
-		if (!err)
-			return FILTER_FILE_MATCH;
-		goto skip_string;
-	}
-	err = cmpbytes(value->buf, args->buf, v);
-	if (!err)
-		return FILTER_FILE_MATCH;
-skip_string:
-	return FILTER_FILE_NOMATCH;
-}
-
-struct file_buf {
-	__u32 index; // index of filter
-	__u32 op; // op_filter_eq, op_filter_str_prefix, or op_filter_str_postfix
-	__u32 total_sz; // size of all values (len + bytes) + sizeof(total_sz) + sizeof(type)
-	__u32 type; // path_ty, file_ty, or fd_ty
-};
-
 static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
 {
 	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
@@ -915,9 +880,9 @@ static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
  * a reverse search.
  */
 static inline __attribute__((always_inline)) long
-filter_file_buf(struct file_buf *filter, struct string_buf *args)
+filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 {
-	long match;
+	long match = 0;
 
 	/* There are cases where file pointer may not contain a path.
 	 * An example is using an unnamed pipe. This is not a match.
@@ -928,33 +893,19 @@ filter_file_buf(struct file_buf *filter, struct string_buf *args)
 	switch (filter->op) {
 	case op_filter_eq:
 	case op_filter_neq:
-		match = filter_char_buf_equal((struct selector_arg_filter *)filter, args->buf, args->len);
-		return is_not_operator(filter->op) ? !match : match;
+		match = filter_char_buf_equal(filter, args->buf, args->len);
+		break;
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix:
+		match = filter_char_buf_prefix(filter, args->buf, args->len);
+		break;
+	case op_filter_str_postfix:
+	case op_filter_str_notpostfix:
+		match = filter_char_buf_postfix(filter, args->buf, args->len);
+		break;
 	}
 
-	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
-	__u32 next, remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
-	long i;
-
-#ifndef __LARGE_BPF_PROG
-#pragma unroll
-#endif
-	for (i = 0; i < MAX_MATCH_FILE_VALUES; ++i) {
-		struct string_buf *value = (struct string_buf *)values;
-
-		match = __filter_file_buf(value, args, filter->op);
-		if (match == FILTER_FILE_MATCH)
-			return is_not_operator(filter->op) ? 0 : 1;
-
-		next = value->len + sizeof(struct string_buf);
-		remain -= next;
-		if (remain == 0)
-			goto done_filter_file;
-		values += (next & 0x7f);
-	}
-
-done_filter_file:
-	return is_not_operator(filter->op);
+	return is_not_operator(filter->op) ? !match : match;
 }
 
 struct ip_ver {
@@ -1615,7 +1566,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf((struct file_buf *)filter, (struct string_buf *)args);
+			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
 			/* for strings, we just encode the length */
