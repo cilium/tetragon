@@ -68,12 +68,15 @@
 {{- end }}
 {{- if .Values.tetragon.grpc.enabled }}
   livenessProbe:
+     timeoutSeconds: 60
      exec:
        command:
        - tetra
        - status
        - --server-address
        - {{ .Values.tetragon.grpc.address }}
+       - --retries
+       - "5"
 {{- end -}}
 {{- end -}}
 
