@@ -917,15 +917,24 @@ static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
 static inline __attribute__((always_inline)) long
 filter_file_buf(struct file_buf *filter, struct string_buf *args)
 {
-	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
-	__u32 next, remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
-	long i, match;
+	long match;
 
 	/* There are cases where file pointer may not contain a path.
 	 * An example is using an unnamed pipe. This is not a match.
 	 */
 	if (args->len == 0)
 		return 0;
+
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		match = filter_char_buf_equal((struct selector_arg_filter *)filter, args->buf, args->len);
+		return is_not_operator(filter->op) ? !match : match;
+	}
+
+	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
+	__u32 next, remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
+	long i;
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll

@@ -685,6 +685,15 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			}
 		}
 		return nil
+	case argTypeFd, argTypeFile, argTypePath:
+		switch op {
+		case SelectorOpEQ, SelectorOpNEQ:
+			err := writeMatchStrings(k, values, ty)
+			if err != nil {
+				return fmt.Errorf("writeMatchStrings error: %w", err)
+			}
+			return nil
+		}
 	}
 
 	for _, v := range values {
