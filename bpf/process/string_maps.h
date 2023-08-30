@@ -171,7 +171,7 @@ struct {
 #ifdef __LARGE_BPF_PROG
 #define STRING_POSTFIX_MAX_MATCH_LENGTH STRING_POSTFIX_MAX_LENGTH
 #else
-#define STRING_POSTFIX_MAX_MATCH_LENGTH 40
+#define STRING_POSTFIX_MAX_MATCH_LENGTH 96
 #endif
 
 struct string_postfix_lpm_trie {
