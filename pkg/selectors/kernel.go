@@ -662,50 +662,6 @@ func parseAddr(v string) ([]byte, uint32, error) {
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
-	switch ty {
-	case argTypeString, argTypeCharBuf:
-		if op == SelectorOpNEQ || op == SelectorOpNotPrefix || op == SelectorOpNotPostfix {
-			return fmt.Errorf("MatchArgs types char_buf and string do not support operators NotEqual, NotPrefix, and NotPostfix")
-		}
-		switch op {
-		case SelectorOpEQ:
-			err := writeMatchStrings(k, values, ty)
-			if err != nil {
-				return fmt.Errorf("writeMatchStrings error: %w", err)
-			}
-		case SelectorOpPrefix:
-			err := writePrefixStrings(k, values)
-			if err != nil {
-				return fmt.Errorf("writePrefixStrings error: %w", err)
-			}
-		case SelectorOpPostfix:
-			err := writePostfixStrings(k, values, ty)
-			if err != nil {
-				return fmt.Errorf("writePostfixStrings error: %w", err)
-			}
-		}
-		return nil
-	case argTypeFd, argTypeFile, argTypePath:
-		switch op {
-		case SelectorOpEQ, SelectorOpNEQ:
-			err := writeMatchStrings(k, values, ty)
-			if err != nil {
-				return fmt.Errorf("writeMatchStrings error: %w", err)
-			}
-		case SelectorOpPrefix, SelectorOpNotPrefix:
-			err := writePrefixStrings(k, values)
-			if err != nil {
-				return fmt.Errorf("writePrefixStrings error: %w", err)
-			}
-		case SelectorOpPostfix, SelectorOpNotPostfix:
-			err := writePostfixStrings(k, values, ty)
-			if err != nil {
-				return fmt.Errorf("writePostfixStrings error: %w", err)
-			}
-		}
-		return nil
-	}
-
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
@@ -828,6 +784,29 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		err := writeMatchValuesInMap(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpEQ, SelectorOpNEQ:
+		switch ty {
+		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf:
+			err := writeMatchStrings(k, arg.Values, ty)
+			if err != nil {
+				return fmt.Errorf("writeMatchStrings error: %w", err)
+			}
+		default:
+			err = writeMatchValues(k, arg.Values, ty, op)
+			if err != nil {
+				return fmt.Errorf("writeMatchValues error: %w", err)
+			}
+		}
+	case SelectorOpPrefix, SelectorOpNotPrefix:
+		err := writePrefixStrings(k, arg.Values)
+		if err != nil {
+			return fmt.Errorf("writePrefixStrings error: %w", err)
+		}
+	case SelectorOpPostfix, SelectorOpNotPostfix:
+		err := writePostfixStrings(k, arg.Values, ty)
+		if err != nil {
+			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
 		if ty != argTypeSock && ty != argTypeSkb {
