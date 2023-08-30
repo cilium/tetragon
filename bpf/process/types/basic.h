@@ -795,34 +795,41 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	return !!pass;
 }
 
+static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
+{
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
+}
+
 static inline __attribute__((always_inline)) long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
+	long match = 0;
 	// Arg length is 4 bytes before the value data
 	uint len = *(uint *)&args[value_off - 4];
 	char *arg_str = &args[value_off];
 
 	switch (filter->op) {
 	case op_filter_eq:
-		return filter_char_buf_equal(filter, arg_str, len);
+	case op_filter_neq:
+		match = filter_char_buf_equal(filter, arg_str, len);
+		break;
 	case op_filter_str_prefix:
-		return filter_char_buf_prefix(filter, arg_str, len);
+	case op_filter_str_notprefix:
+		match = filter_char_buf_prefix(filter, arg_str, len);
+		break;
 	case op_filter_str_postfix:
-		return filter_char_buf_postfix(filter, arg_str, len);
+	case op_filter_str_notpostfix:
+		match = filter_char_buf_postfix(filter, arg_str, len);
+		break;
 	}
 
-	return 0;
+	return is_not_operator(filter->op) ? !match : match;
 }
 
 struct string_buf {
 	__u32 len;
 	char buf[];
 };
-
-static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
-{
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
-}
 
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
