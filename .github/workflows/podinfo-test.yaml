@@ -1,0 +1,64 @@
+name: PodInfo Integration Test
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths-ignore:
+      - 'docs/**'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 40
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+    - name: Set Up Job Variables
+      id: vars
+      run: |
+        if [ ${{ github.event.issue.pull_request || github.event.pull_request }} ]; then
+          PR_API_JSON=$(curl \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            ${{ github.event.issue.pull_request.url || github.event.pull_request.url }})
+          SHA=$(echo "$PR_API_JSON" | jq -r ".head.sha")
+        else
+          SHA=${{ github.sha }}
+        fi
+        echo "sha=${SHA}" >> $GITHUB_OUTPUT
+        echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
+
+    - name: Install Go
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.20.8'
+
+    - name: Install Kind and create cluster
+      uses: helm/kind-action@v1.5.0
+
+    - name: Pull Tetragon Images
+      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      with:
+        timeout_minutes: 2
+        max_attempts: 30
+        retry_wait_seconds: 30
+        warning_on_retry: false
+        command: |
+          set -e
+          docker pull ${{ steps.vars.outputs.operatorImage }}
+
+    - name: Run go tests
+      run: |
+        helm upgrade --install tetragon ./install/kubernetes -n kube-system \
+          --set podWatcher.enabled=true \
+          --set tetragonOperator.image.override=${{ steps.vars.outputs.operatorImage }}
+        kubectl rollout status -n kube-system deployment/tetragon-operator
+        go test --tags=integration -v ./operator/...
