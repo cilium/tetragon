@@ -14,6 +14,12 @@ assignees: ''
 
       export RELEASE=v0.8.1
 
+- If you create a `X.Y` branch:
+
+  - [ ] Create a "starting `X.Y+1` development" PR on the master branch with the following changes:
+    - Update [CustomResourceDefinitionSchemaVersion](https://github.com/cilium/tetragon/blob/6f2809c51b3fbd35b1de0a178f1e3d0b18c52bcc/pkg/k8s/apis/cilium.io/v1alpha1/register.go#L18) to `X.Y+1.0`.
+  - [ ] Once PR is merged, tag the first commit in master which is not in the `X.Y` branch as `vX.Y+1.0-pre.0`.
+
 - [ ] Open a pull request to update the Helm chart and docs version:
 
       git checkout -b pr/prepare-$RELEASE
