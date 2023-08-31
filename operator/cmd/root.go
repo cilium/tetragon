@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/tetragon/operator/cmd/serve"
 	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/pkg/cmdref"
@@ -69,5 +70,6 @@ func New() *cobra.Command {
 
 	viper.BindPFlags(flags)
 
+	rootCmd.AddCommand(serve.New())
 	return rootCmd
 }

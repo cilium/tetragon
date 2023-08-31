@@ -209,7 +209,7 @@ clean: cli-clean tarball-clean
 
 .PHONY: test
 test: tester-progs tetragon-bpf
-	$(SUDO) $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ${EXTRA_TESTFLAGS}
+	$(SUDO) $(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
 
 # Agent image to use for end-to-end tests
 E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
