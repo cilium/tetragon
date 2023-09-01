@@ -5064,3 +5064,34 @@ spec:
 
 	testListSyscallsDupsRange(t, checker, configHook)
 }
+
+// This just tests if the hooks that we are using in our
+// trace kernel module examples are stable enough
+func TestTraceKernelModuleCallsStability(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-kernel-modules"
+spec:
+  kprobes:
+  - call: "do_init_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+  - call: "free_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+`
+	createCrdFile(t, hookFull)
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+}
