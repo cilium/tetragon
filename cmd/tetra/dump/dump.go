@@ -9,9 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/spf13/cobra"
 )
 
@@ -24,8 +27,26 @@ func New() *cobra.Command {
 	}
 
 	ret.AddCommand(
+		execveMapCmd(),
 		policyfilterCmd(),
 	)
+
+	return ret
+}
+
+func execveMapCmd() *cobra.Command {
+	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, base.ExecveMap.Name)
+	ret := &cobra.Command{
+		Use:   "execve",
+		Short: "dump execve map",
+		Args:  cobra.ExactArgs(0),
+		Run: func(cmd *cobra.Command, _ []string) {
+			dumpExecveMap(mapFname)
+		},
+	}
+
+	flags := ret.Flags()
+	flags.StringVar(&mapFname, "map-fname", mapFname, "execve map filename")
 
 	return ret
 }
@@ -47,6 +68,37 @@ func policyfilterCmd() *cobra.Command {
 	flags.StringVar(&mapFname, "map-fname", mapFname, "policyfilter map filename")
 
 	return ret
+}
+
+func dumpExecveMap(fname string) {
+	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
+		ReadOnly: true,
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).Fatal("failed to open execve map")
+	}
+
+	data := make(map[execvemap.ExecveKey]execvemap.ExecveValue)
+	iter := m.Iterate()
+
+	var key execvemap.ExecveKey
+	var val execvemap.ExecveValue
+	for iter.Next(&key, &val) {
+		data[key] = val
+	}
+
+	if err := iter.Err(); err != nil {
+		logger.GetLogger().WithError(err).Fatal("error iterating execve map")
+	}
+
+	if len(data) == 0 {
+		fmt.Printf("(empty)")
+		return
+	}
+
+	for k, v := range data {
+		fmt.Printf("%d %+v\n", k, v)
+	}
 }
 
 func dumpPolicyfilterState(fname string) {
