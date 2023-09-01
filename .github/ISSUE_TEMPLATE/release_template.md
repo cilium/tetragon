@@ -14,12 +14,6 @@ assignees: ''
 
       export RELEASE=v0.8.1
 
-- If you create a `X.Y` branch:
-
-  - [ ] Create a "starting `X.Y+1` development" PR on the master branch with the following changes:
-    - Update [CustomResourceDefinitionSchemaVersion](https://github.com/cilium/tetragon/blob/6f2809c51b3fbd35b1de0a178f1e3d0b18c52bcc/pkg/k8s/apis/cilium.io/v1alpha1/register.go#L18) to `X.Y+1.0`.
-  - [ ] Once PR is merged, tag the first commit in master which is not in the `X.Y` branch as `vX.Y+1.0-pre.0`.
-
 - [ ] Open a pull request to update the Helm chart and docs version:
 
       git checkout -b pr/prepare-$RELEASE
@@ -30,6 +24,7 @@ assignees: ''
       git add install/kubernetes/
       # update hugo version
       sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/hugo.toml
+      git add docs/
 
       git commit -s -m "Prepare for $RELEASE release"
       git push origin HEAD
@@ -40,6 +35,32 @@ assignees: ''
       git pull origin main
       git tag -a $RELEASE -m "$RELEASE release" -s
       git push origin $RELEASE
+
+- If release is `X.Y.0`:
+
+  - [ ] Create `vX.Y` branch.
+  - [ ] Create a "Starting `X.Y+1` development" PR on the master branch with the following changes:
+    - Update [CustomResourceDefinitionSchemaVersion](https://github.com/cilium/tetragon/blob/6f2809c51b3fbd35b1de0a178f1e3d0b18c52bcc/pkg/k8s/apis/cilium.io/v1alpha1/register.go#L18) to `X.Y+1.0`.
+  - [ ] Once PR is merged, tag the first commit in master which is not in the `X.Y` branch as `vX.Y+1.0-pre.0`. The high level view of the status after this tag is shown in the following figure (RELEASE is `v0.10.0` in this example):
+
+```mermaid
+
+gitGraph
+    commit
+    commit tag: "v0.10.0"
+    branch "v0.10"
+    commit
+    commit
+    checkout main
+    commit id: "CRD -> v0.11.0" tag: "v0.11.0-pre.0"
+    commit
+    commit
+    checkout "v0.10"
+    commit
+    commit
+    commit tag: "v0.10.1"
+
+```
 
 - [ ] Go to [Image CI Releases workflow] and wait for the release image build to finish.
       - Get approval for your release build workflow from [a Tetragon maintainer]
