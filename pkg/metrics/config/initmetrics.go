@@ -17,7 +17,10 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/version"
+	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 func InitAllMetrics(registry *prometheus.Registry) {
@@ -34,4 +37,9 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	watchermetrics.InitMetrics(registry)
 	observer.InitMetrics(registry)
 	tracing.InitMetrics(registry)
+
+	registry.MustRegister(collectors.NewGoCollector())
+	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	registry.MustRegister(grpcmetrics.NewServerMetrics())
+	version.InitMetrics(registry)
 }
