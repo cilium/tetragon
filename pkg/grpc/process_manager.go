@@ -46,7 +46,7 @@ func NewProcessManager(
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.New(pm.Server)
 
-	logger.GetLogger().WithField("enableCilium", option.Config.EnableCilium).WithFields(logrus.Fields{
+	logger.GetLogger().WithFields(logrus.Fields{
 		"enableK8s":         option.Config.EnableK8s,
 		"enableProcessCred": option.Config.EnableProcessCred,
 		"enableProcessNs":   option.Config.EnableProcessNs,

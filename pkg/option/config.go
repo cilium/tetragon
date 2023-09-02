@@ -24,7 +24,6 @@ type config struct {
 	ForceSmallProgs bool
 	ForceLargeProgs bool
 
-	EnableCilium      bool
 	EnableProcessNs   bool
 	EnableProcessCred bool
 	EnableK8s         bool

@@ -12,7 +12,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -266,11 +265,6 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 
 func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *sync.WaitGroup, watcher watcher.K8sResourceWatcher) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
-
-	_, err := cilium.InitCiliumState(ctx, false)
-	if err != nil {
-		t.Fatalf("failed to call cilium.InitCiliumState %s", err)
-	}
 
 	if err := process.InitCache(watcher, 65536); err != nil {
 		t.Fatalf("failed to call process.InitCache %s", err)
