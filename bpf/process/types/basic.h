@@ -2248,6 +2248,8 @@ generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
 	if (!e)
 		return 0;
 
+/* We don't need this data in return kprobe event */
+#ifndef GENERIC_KRETPROBE
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */
 	if (e->sel.match_ns) {
@@ -2272,6 +2274,7 @@ generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
 			get_current_subj_caps(&enter->caps, task);
 	}
 #endif
+#endif // !GENERIC_KRETPROBE
 
 	total = e->common.size + generic_kprobe_common_size();
 	/* Code movement from clang forces us to inline bounds checks here */
