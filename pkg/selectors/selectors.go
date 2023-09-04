@@ -71,9 +71,13 @@ type MatchBinariesSelectorOptions struct {
 	Op uint32
 }
 
-type KernelSelectorState struct {
+type KernelSelectorData struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
+}
+
+type KernelSelectorState struct {
+	data KernelSelectorData
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
 	valueMaps []ValueMap
@@ -134,7 +138,7 @@ func (k *KernelSelectorState) MatchBinariesPathsMaxEntries() int {
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {
-	return k.e
+	return k.data.e
 }
 
 func (k *KernelSelectorState) ValueMaps() []ValueMap {
@@ -227,47 +231,47 @@ func (k *KernelSelectorState) StringPostfixMapsMaxEntries() int {
 	return maxEntries
 }
 
-func WriteSelectorInt32(k *KernelSelectorState, v int32) {
+func WriteSelectorInt32(k *KernelSelectorData, v int32) {
 	binary.LittleEndian.PutUint32(k.e[k.off:], uint32(v))
 	k.off += 4
 }
 
-func WriteSelectorUint32(k *KernelSelectorState, v uint32) {
+func WriteSelectorUint32(k *KernelSelectorData, v uint32) {
 	binary.LittleEndian.PutUint32(k.e[k.off:], v)
 	k.off += 4
 }
 
-func WriteSelectorInt64(k *KernelSelectorState, v int64) {
+func WriteSelectorInt64(k *KernelSelectorData, v int64) {
 	binary.LittleEndian.PutUint64(k.e[k.off:], uint64(v))
 	k.off += 8
 }
 
-func WriteSelectorUint64(k *KernelSelectorState, v uint64) {
+func WriteSelectorUint64(k *KernelSelectorData, v uint64) {
 	binary.LittleEndian.PutUint64(k.e[k.off:], v)
 	k.off += 8
 }
 
-func WriteSelectorLength(k *KernelSelectorState, loff uint32) {
+func WriteSelectorLength(k *KernelSelectorData, loff uint32) {
 	diff := k.off - loff
 	binary.LittleEndian.PutUint32(k.e[loff:], diff)
 }
 
-func WriteSelectorOffsetUint32(k *KernelSelectorState, loff uint32, val uint32) {
+func WriteSelectorOffsetUint32(k *KernelSelectorData, loff uint32, val uint32) {
 	binary.LittleEndian.PutUint32(k.e[loff:], val)
 }
 
-func GetCurrentOffset(k *KernelSelectorState) uint32 {
+func GetCurrentOffset(k *KernelSelectorData) uint32 {
 	return k.off
 }
 
-func WriteSelectorByteArray(k *KernelSelectorState, b []byte, size uint32) {
+func WriteSelectorByteArray(k *KernelSelectorData, b []byte, size uint32) {
 	for l := uint32(0); l < size; l++ {
 		k.e[k.off+l] = b[l]
 	}
 	k.off += size
 }
 
-func AdvanceSelectorLength(k *KernelSelectorState) uint32 {
+func AdvanceSelectorLength(k *KernelSelectorData) uint32 {
 	off := k.off
 	k.off += 4
 	return off
