@@ -365,6 +365,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
 		maps = append(maps, socktrack)
 
+		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
+		maps = append(maps, tailCalls)
+
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 	}
 
@@ -923,6 +926,9 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 
 		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
 		maps = append(maps, retConfigMap)
+
+		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
+		maps = append(maps, tailCalls)
 
 		// add maps with non-default paths (pins) to the retprobe
 		program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)

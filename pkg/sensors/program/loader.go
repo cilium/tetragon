@@ -455,7 +455,7 @@ func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int)
 func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
-		if mName == "kprobe_calls" {
+		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
 			ci = &customInstall{mPath, "kprobe"}
 			break
 		}
@@ -513,10 +513,17 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 }
 
 func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+	var ci *customInstall
+	for mName, mPath := range load.PinMap {
+		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
+			ci = &customInstall{mPath, "kprobe"}
+			break
+		}
+	}
 	opts := &loadOpts{
 		attach: MultiKprobeAttach(load, bpfDir),
 		open:   KprobeOpen(load),
-		ci:     &customInstall{fmt.Sprintf("%s-kp_calls", load.PinPath), "kprobe"},
+		ci:     ci,
 	}
 	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
