@@ -3,8 +3,10 @@
 
 #include "vmlinux.h"
 #include "api.h"
-#include "bpf_tracing.h"
 
+#define GENERIC_KRETPROBE
+
+#include "bpf_tracing.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
 #include "retprobe_map.h"
@@ -20,6 +22,13 @@ struct {
 	__type(key, __u32);
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 1);
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u32));
+} retkprobe_calls SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
@@ -56,7 +65,6 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	bool walker = false;
 	int zero = 0;
 	__u32 ppid;
-	long total = 0;
 	long size = 0;
 	long ty_arg, do_copy;
 	__u64 pid_tgid;
@@ -139,17 +147,14 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->current.pad[3] = 0;
 
 	e->func_id = config->func_id;
+	e->common.size = size;
 
-	total = size;
-	total += generic_kprobe_common_size();
-	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[total] &= 0x7fff;\n"
-		     "if %[total] < 9000 goto +1\n;"
-		     "%[total] = 9000;\n"
-		     :
-		     : [total] "+r"(total)
-		     :);
-	e->common.size = total;
-	perf_event_output_metric(ctx, MSG_OP_GENERIC_KPROBE, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
-	return 0;
+	tail_call(ctx, &retkprobe_calls, 0);
+	return 1;
+}
+
+__attribute__((section("kprobe/0"), used)) int
+BPF_KRETPROBE(generic_retkprobe_output)
+{
+	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_KPROBE);
 }
