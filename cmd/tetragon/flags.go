@@ -34,7 +34,6 @@ const (
 	keyMetricsServer     = "metrics-server"
 	keyServerAddress     = "server-address"
 	keyGopsAddr          = "gops-address"
-	keyCiliumBPF         = "cilium-bpf"
 	keyEnableProcessCred = "enable-process-cred"
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
@@ -114,7 +113,6 @@ func readAndSetFlags() {
 
 	option.Config.MetricsServer = viper.GetString(keyMetricsServer)
 	option.Config.ServerAddress = viper.GetString(keyServerAddress)
-	option.Config.CiliumDir = viper.GetString(keyCiliumBPF)
 
 	option.Config.ExportFilename = viper.GetString(keyExportFilename)
 	option.Config.ExportFileMaxSizeMB = viper.GetInt(keyExportFileMaxSizeMB)

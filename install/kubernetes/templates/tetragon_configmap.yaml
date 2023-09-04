@@ -31,7 +31,6 @@ data:
 {{- end }}
 {{- if .Values.tetragon.enableCiliumAPI }}
   enable-cilium-api: "true"
-  cilium-bpf: /sys/fs/bpf/tc/globals/
 {{- end }}
 {{- if .Values.tetragon.prometheus.enabled }}
   metrics-server: {{ .Values.tetragon.prometheus.address }}:{{ .Values.tetragon.prometheus.port }}
