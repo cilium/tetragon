@@ -128,14 +128,14 @@ func withNotestfail(notestfail bool) TestOption {
 	}
 }
 
-func testDone(t *testing.T, obs *observer.Observer) {
-	if t.Failed() {
+func testDone(tb testing.TB, obs *observer.Observer) {
+	if tb.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
 		if err := bugtool.Bugtool(bugtoolFname, ""); err == nil {
-			logger.GetLogger().WithField("test", t.Name()).
+			logger.GetLogger().WithField("test", tb.Name()).
 				WithField("file", bugtoolFname).Info("Dumped bugtool info")
 		} else {
-			logger.GetLogger().WithField("test", t.Name()).
+			logger.GetLogger().WithField("test", tb.Name()).
 				WithField("file", bugtoolFname).Warnf("Failed to dump bugtool info: %v", err)
 		}
 	}
@@ -218,11 +218,11 @@ func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
 	return observer.NewObserver(oo.config)
 }
 
-func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, []*sensors.Sensor, error) {
+func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, []*sensors.Sensor, error) {
 	var cnfSensor *sensors.Sensor
 	var ret []*sensors.Sensor
 
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
 
 	o := newDefaultTestOptions(opts...)
 
@@ -240,7 +240,7 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		option.Config.Verbosity = 1
 	}
 
-	if err := loadExporter(t, ctx, obs, &o.exporter, &o.observer); err != nil {
+	if err := loadExporter(tb, ctx, obs, &o.exporter, &o.observer); err != nil {
 		return nil, ret, err
 	}
 
@@ -261,11 +261,11 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		ret = append(ret, cnfSensor)
 	}
 
-	if err := loadObserver(t, base, cnfSensor, o.observer.notestfail); err != nil {
+	if err := loadObserver(tb, base, cnfSensor, o.observer.notestfail); err != nil {
 		return nil, ret, err
 	}
 
-	exportFname, err := testutils.GetExportFilename(t)
+	exportFname, err := testutils.GetExportFilename(tb)
 	if err != nil {
 		return nil, ret, err
 	}
@@ -285,8 +285,8 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 		metricsEnabled = true
 	}
 
-	t.Cleanup(func() {
-		testDone(t, obs)
+	tb.Cleanup(func() {
+		testDone(tb, obs)
 	})
 
 	ret = append(ret, base)
@@ -296,12 +296,12 @@ func getDefaultObserverSensors(t *testing.T, ctx context.Context, base *sensors.
 	return obs, ret, nil
 }
 
-func getDefaultObserver(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
-	obs, _, err := getDefaultObserverSensors(t, ctx, base, opts...)
+func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
+	obs, _, err := getDefaultObserverSensors(tb, ctx, base, opts...)
 	return obs, err
 }
 
-func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
+func GetDefaultObserverWithWatchers(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
 	const (
 		testPod       = "pod-1"
 		testNamespace = "ns-1"
@@ -312,43 +312,43 @@ func GetDefaultObserverWithWatchers(t *testing.T, ctx context.Context, base *sen
 
 	opts = append(opts, withK8sWatcher(w))
 	opts = append(opts, withCiliumState(s))
-	return getDefaultObserver(t, ctx, base, opts...)
+	return getDefaultObserver(tb, ctx, base, opts...)
 }
 
-func GetDefaultObserverWithBase(t *testing.T, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*observer.Observer, error) {
+func GetDefaultObserverWithBase(tb testing.TB, ctx context.Context, b *sensors.Sensor, file, lib string, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
-	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
+	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) (*observer.Observer, error) {
-	opts = append(opts, WithConfig(file))
-	opts = append(opts, WithLib(lib))
-
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
-}
-
-func GetDefaultSensorsWithFile(t *testing.T, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
+func GetDefaultObserverWithFile(tb testing.TB, ctx context.Context, file, lib string, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
 	b := base.GetInitialSensor()
-	_, sens, err := getDefaultObserverSensors(t, ctx, b, opts...)
+	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
+}
+
+func GetDefaultSensorsWithFile(tb testing.TB, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, WithLib(lib))
+
+	b := base.GetInitialSensor()
+	_, sens, err := getDefaultObserverSensors(tb, ctx, b, opts...)
 	return sens, err
 }
 
-func GetDefaultObserverWithFileNoTest(t *testing.T, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*observer.Observer, error) {
+func GetDefaultObserverWithFileNoTest(tb testing.TB, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*observer.Observer, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 	opts = append(opts, withNotestfail(fail))
 
 	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
+	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
+func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
 	watcher := opts.watcher
 	processCacheSize := 32768
 	dataCacheSize := 1024
@@ -360,7 +360,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opt
 	// NB(kkourt): we use the global that was set up by InitSensorManager(). We should clean
 	// this up and remove/hide the global variable.
 	sensorManager := observer.SensorManager
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		sensorManager.StopSensorManager(context.TODO())
 	})
 
@@ -401,7 +401,7 @@ func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opt
 	if err != nil {
 		return err
 	}
-	outF, err := testutils.CreateExportFile(t)
+	outF, err := testutils.CreateExportFile(tb)
 	if err != nil {
 		return err
 	}
@@ -412,34 +412,34 @@ func loadExporter(t *testing.T, ctx context.Context, obs *observer.Observer, opt
 	logger.GetLogger().Info("Starting JSON exporter")
 	exporter.Start()
 	obs.AddListener(processManager)
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		obs.RemoveListener(processManager)
 	})
 	return nil
 }
 
-func loadObserver(t *testing.T, base *sensors.Sensor, sens *sensors.Sensor, notestfail bool) error {
+func loadObserver(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor, notestfail bool) error {
 	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
-		t.Fatalf("Load base error: %s\n", err)
+		tb.Fatalf("Load base error: %s\n", err)
 	}
 
 	if err := sens.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		if notestfail {
 			return err
 		}
-		t.Fatalf("LoadConfig error: %s\n", err)
+		tb.Fatalf("LoadConfig error: %s\n", err)
 	}
 	return nil
 }
 
-func LoopEvents(ctx context.Context, t *testing.T, doneWG, readyWG *sync.WaitGroup, obs *observer.Observer) {
+func LoopEvents(ctx context.Context, tb testing.TB, doneWG, readyWG *sync.WaitGroup, obs *observer.Observer) {
 	doneWG.Add(1)
 	readyWG.Add(1)
 	go func() {
 		defer doneWG.Done()
 
 		if err := obs.RunEvents(ctx, func() { readyWG.Done() }); err != nil {
-			t.Errorf("runEvents error: %s", err)
+			tb.Errorf("runEvents error: %s", err)
 		}
 	}()
 }
@@ -464,20 +464,20 @@ func ExecWGCurl(readyWG *sync.WaitGroup, retries uint, args ...string) error {
 // dockerRun starts a new docker container in the background. The container will
 // be killed and removed on test cleanup.
 // It returns the containerId on success, or an error if spawning the container failed.
-func DockerRun(t *testing.T, args ...string) (containerId string) {
+func DockerRun(tb testing.TB, args ...string) (containerId string) {
 	// note: we are not using `--rm` so we can choose to wait on the container
 	// with `docker wait`. We remove it manually below in t.Cleanup instead
 	args = append([]string{"run", "--detach"}, args...)
 	id, err := exec.Command("docker", args...).Output()
 	if err != nil {
-		t.Fatalf("failed to spawn docker container %v: %s", args, err)
+		tb.Fatalf("failed to spawn docker container %v: %s", args, err)
 	}
 
 	containerId = strings.TrimSpace(string(id))
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		err := exec.Command("docker", "rm", "--force", containerId).Run()
 		if err != nil {
-			t.Logf("failed to remove container %s: %s", containerId, err)
+			tb.Logf("failed to remove container %s: %s", containerId, err)
 		}
 	})
 
@@ -579,21 +579,21 @@ func WriteConfigFile(fileName, config string) error {
 	return out.Sync()
 }
 
-func GetDefaultObserver(t *testing.T, ctx context.Context, lib string, opts ...TestOption) (*observer.Observer, error) {
+func GetDefaultObserver(tb testing.TB, ctx context.Context, lib string, opts ...TestOption) (*observer.Observer, error) {
 	b := base.GetInitialSensor()
 
 	opts = append(opts, WithLib(lib))
 
-	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
+	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func GetDefaultObserverWithConfig(t *testing.T, ctx context.Context, config, lib string, opts ...TestOption) (*observer.Observer, error) {
+func GetDefaultObserverWithConfig(tb testing.TB, ctx context.Context, config, lib string, opts ...TestOption) (*observer.Observer, error) {
 	b := base.GetInitialSensor()
 
 	opts = append(opts, WithConfig(config))
 	opts = append(opts, WithLib(lib))
 
-	return GetDefaultObserverWithWatchers(t, ctx, b, opts...)
+	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
 func GetMyPid() uint32 {

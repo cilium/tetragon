@@ -14,7 +14,7 @@ import (
 )
 
 type LogCapturer struct {
-	*testing.T
+	TB  testing.TB
 	Log *logrus.Logger
 }
 
@@ -22,19 +22,19 @@ func (tl LogCapturer) Write(p []byte) (n int, err error) {
 	// Since we are calling T.Log() here, we want to avoid appending multiple "\n", so
 	// trim whatever was added by the inner logger.
 	s := strings.TrimRight(string(p), "\n")
-	tl.T.Log(s)
+	tl.TB.Log(s)
 	return len(s), nil
 }
 
 // CaptureLog redirects logrus output to testing.Log
-func CaptureLog(t *testing.T, l *logrus.Logger) {
+func CaptureLog(tb testing.TB, l *logrus.Logger) {
 	lc := &LogCapturer{
-		T:   t,
+		TB:  tb,
 		Log: l,
 	}
 
 	origOut := logrus.StandardLogger().Out
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		l.SetOutput(origOut)
 	})
 
