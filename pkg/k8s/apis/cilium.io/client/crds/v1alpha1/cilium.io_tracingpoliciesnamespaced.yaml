@@ -262,11 +262,12 @@ spec:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
                                     in seconds (default or with 's' suffix), minutes
-                                    ('m' suffix) or hours ('h' suffix).
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
                                   type: string
                                 stackTrace:
-                                  description: Enable stack trace export, only valid
-                                    with for the post action
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
                                   type: boolean
                               required:
                               - action
@@ -791,11 +792,12 @@ spec:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
                                     in seconds (default or with 's' suffix), minutes
-                                    ('m' suffix) or hours ('h' suffix).
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
                                   type: string
                                 stackTrace:
-                                  description: Enable stack trace export, only valid
-                                    with for the post action
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1162,11 +1164,12 @@ spec:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
                                     in seconds (default or with 's' suffix), minutes
-                                    ('m' suffix) or hours ('h' suffix).
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
                                   type: string
                                 stackTrace:
-                                  description: Enable stack trace export, only valid
-                                    with for the post action
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
                                   type: boolean
                               required:
                               - action

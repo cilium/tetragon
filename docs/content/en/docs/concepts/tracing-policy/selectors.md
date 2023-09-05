@@ -509,20 +509,6 @@ executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
 
-All actions can be rate limited by adding the rateLimit parameter with a
-time value. This value defaults to seconds, but post-fixing 'm' or 'h' will
-cause the value to be interpreted in minutes or hours. When this parameter is
-specified for an action, that action will check if the same action has fired
-within the time window, with the same inspected arguments. (Only the first 16
-bytes of each inspected argument is used in the matching. Only supported on
-kernels v5.3 onwards.)
-
-```yaml
-matchActions:
-- action: Post
-  rateLimit: 5m
-```
-
 ### Sigkill action
 
 `Sigkill` action terminates synchronously the process that made the call that
@@ -800,9 +786,29 @@ matchActions:
 
 ### Post action
 
-The `Post` action is intended to create an event but at the moment should be
-considered as deprecated as all `TracingPolicy` will generate an event by
-default.
+The `Post` action allows an event to be transmitted to the agent, from
+kernelspace to userspace. By default, all `TracingPolicy` hook will create an
+event with the `Post` action except in those situations:
+- a `NoPost` action was specified in a `matchActions`;
+- a rate-limiting parameter is in place, see details below.
+
+This action allows you to specify parameters for the `Post` action.
+
+`Post` takes the `rateLimit` parameter with a time value. This value defaults
+to seconds, but post-fixing 'm' or 'h' will cause the value to be interpreted
+in minutes or hours. When this parameter is specified for an action, that
+action will check if the same action has fired within the time window, with the
+same inspected arguments. (Only the first 16 bytes of each inspected argument
+is used in the matching. Only supported on kernels v5.3 onwards.)
+
+For example, you can specify a selector to only generate an event every 5
+minutes with adding the following action and its paramater:
+
+```yaml
+matchActions:
+- action: Post
+  rateLimit: 5m
+```
 
 ### NoPost action
 

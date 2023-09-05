@@ -209,11 +209,12 @@ type ActionSelector struct {
 	// An arg index for the sock for trackSock and untrackSock actions
 	ArgSock uint32 `json:"argSock"`
 	// +kubebuilder:validation:Optional
-	// A time period within which repeated messages will not be posted. Can be specified in seconds (default or with
-	// 's' suffix), minutes ('m' suffix) or hours ('h' suffix).
+	// A time period within which repeated messages will not be posted. Can be
+	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+	// or hours ('h' suffix). Only valid with the post action.
 	RateLimit string `json:"rateLimit"`
 	// +kubebuilder:validation:Optional
-	// Enable stack trace export, only valid with for the post action
+	// Enable stack trace export. Only valid with the post action.
 	StackTrace bool `json:"stackTrace"`
 }
 
