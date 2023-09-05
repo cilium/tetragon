@@ -794,6 +794,8 @@ event with the `Post` action except in those situations:
 
 This action allows you to specify parameters for the `Post` action.
 
+#### Rate limiting
+
 `Post` takes the `rateLimit` parameter with a time value. This value defaults
 to seconds, but post-fixing 'm' or 'h' will cause the value to be interpreted
 in minutes or hours. When this parameter is specified for an action, that
@@ -809,6 +811,78 @@ matchActions:
 - action: Post
   rateLimit: 5m
 ```
+
+#### Stack traces
+
+`Post` takes the `stackTrace` parameter, when turned to `true` (by default to
+`false`) it enables dump of the kernel stack trace to the hook point in kprobes
+events. For example, the following kprobe hook can be used to retrieve the
+kernel stack to `kfree_skb_reason`, the function called in the kernel to drop
+kernel socket buffers.
+
+```yaml
+kprobes:
+  - call: kfree_skb_reason
+    selectors:
+    - matchActions:
+      - action: post
+        stackTrace: true
+```
+
+Once loaded, events created from this policy will contain a new `stack_trace`
+field on the `process_kprobe` event with an output similar to:
+
+```
+{
+  "address": "18446670264256120896",
+  "offset": "272",
+  "symbol": "skb_release_head_state"
+},
+{
+  "address": "18446670264257081512",
+  "offset": "88",
+  "symbol": "ip_protocol_deliver_rcu"
+},
+{
+  "address": "18446670264257082152",
+  "offset": "88",
+  "symbol": "ip_local_deliver_finish"
+},
+[...]
+```
+
+The "address" is the kernel function address, "offset" is the offset into the
+native instruction for the function and "symbol" is the function symbol name.
+
+This output can be enhanced in a more human friendly using the `tetra getevents
+-o compact` command. Indeed, by default, it will print the stack trace along
+the compact output of the event similarly to this:
+
+```
+❓ syscall  /usr/bin/curl kfree_skb_reason
+   0xffffbcdee5bf4840: skb_release_head_state+0x110
+   0xffffbcdee5be3678: __sys_connect_file+0x88
+   0xffffbcdee5be376c: __sys_connect+0xbc
+   0xffffbcdee5be37bc: __arm64_sys_connect+0x28
+   0xffffbcdee4dfcd68: invoke_syscall+0x78
+   0xffffbcdee4dfcf70: el0_svc_common.constprop.0+0x180
+   0xffffbcdee4dfcfa4: do_el0_svc+0x30
+   0xffffbcdee5e861e8: el0_svc+0x48
+   0xffffbcdee5e881b4: el0t_64_sync_handler+0xa4
+   0xffffbcdee4de1e38: el0t_64_sync+0x1a4
+```
+
+The printing format is `"0x%x: %s+0x%x", address, symbol, offset`.
+
+{{< warning >}}
+Please note that the Tetragon agent is using its privilege to read the kernel
+symbols and their address. Being able to retrieve kernel symbols address is
+considered privileged and can be used to break kernel address space layout
+randomization (KASLR).
+
+Thus only privileged users should be able to enable this feature and read
+events containing stack traces.
+{{< /warning >}}
 
 ### NoPost action
 
