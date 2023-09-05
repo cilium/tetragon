@@ -254,6 +254,9 @@ type ListSpec struct {
 	// +kubebuilder:validation:Optional
 	// Pattern for 'generated' lists.
 	Pattern *string `json:"pattern,omitempty"`
+	// +kubebuilder:validation:Optional
+	// List was validated
+	Validated bool `json:"validated"`
 }
 
 type PodInfoSpec struct {

@@ -581,6 +581,9 @@ spec:
                       - generated_syscalls
                       - generated_ftrace
                       type: string
+                    validated:
+                      description: List was validated
+                      type: boolean
                     values:
                       description: Values of the list
                       items:
