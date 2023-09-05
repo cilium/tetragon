@@ -54,8 +54,8 @@
     "enabled": true
   },
   "labels": [
-    "kind/enhancement",
-    "release-blocker"
+    "release-blocker",
+    "release-note/dependency"
   ],
   "schedule": [
     "on monday"
