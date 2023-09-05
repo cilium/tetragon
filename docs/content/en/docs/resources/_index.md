@@ -24,11 +24,21 @@ description: "Additional resources to learn about Tetragon"
 
 ### Blog posts
 
+[Can I Use Tetragon without Cilium? Yes!](https://isovalent.com/blog/post/can-i-use-tetragon-without-cilium-yes/) - [Dean Lewis](https://twitter.com/saintdle), 2023
+
+[Strengthen your system with Tetragon's eBPF-based Security Observability and Runtime Enforcement capabilities](https://b-nova.com/en/home/content/strengthen-your-system-with-tetragons-ebpf-based-security-observability-and-runtime-enforcement-capabilities) - Stefan Welsch, 2022
+
 [Detecting a Container Escape with Cilium and eBPF](https://isovalent.com/blog/post/2021-11-container-escape) - Natália Réka Ivánkó, 2021
 
 [Detecting and Blocking log4shell with Isovalent Cilium Enterprise](https://isovalent.com/blog/post/2021-12-log4shell) - Jed Salazar, 2021
 
+### Videos
+
+[Quick Start into Tetragon](https://www.youtube.com/watch?v=Y4xsUgCTFMA) - Natália Réka Ivánkó, 2021
+
 ### Hands-on lab
 
-[Security Observability with eBPF and Tetragon](https://isovalent.com/labs/) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
+[Security Observability with eBPF and Tetragon: Getting Started](https://isovalent.com/labs/security-observability-with-ebpf-and-cilium-tetragon/?journey=security) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
+
+
 
