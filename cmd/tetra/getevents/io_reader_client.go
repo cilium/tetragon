@@ -16,10 +16,11 @@ import (
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // ioReaderClient implements tetragon.FineGuidanceSensors_GetEventsClient.
-// ioReaderObserver implements tetragon.FineGuidanceSensorsClient interface. It reads FGS events
+// ioReaderObserver implements tetragon.FineGuidanceSensorsClient interface. It reads Tetragon events
 type ioReaderClient struct {
 	scanner      *bufio.Scanner
 	allowlist    hubbleFilters.FilterFuncs
@@ -102,10 +103,18 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 		if !hubbleFilters.Apply(i.allowlist, nil, &hubbleV1.Event{Event: &res}) {
 			continue
 		}
-		for _, filter := range i.fieldFilters {
-			filter.Filter(&res)
+		filterEvent := &res
+		if len(i.fieldFilters) > 0 && filterEvent.GetProcessExec() != nil { // this is an exec event and we have fieldFilters
+			// We need a copy of the exec event as modifing the original message
+			// can cause issues in the process cache (we keep a copy of that message there).
+			filterEvent = proto.Clone(&res).(*tetragon.GetEventsResponse)
 		}
-		return &res, nil
+		for _, filter := range i.fieldFilters {
+			// we need not to change res
+			// maybe only for exec events
+			filter.Filter(filterEvent)
+		}
+		return filterEvent, nil
 	}
 	if err := i.scanner.Err(); err != nil {
 		return nil, err
