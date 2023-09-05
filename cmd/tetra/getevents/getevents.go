@@ -53,17 +53,18 @@ type Opts struct {
 	Host          bool
 	Timestamps    bool
 	TTYEncode     string
+	StackTraces   bool
 }
 
 var Options Opts
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
-var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string) encoder.EventEncoder {
+var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string, stackTraces bool) encoder.EventEncoder {
 	if tty != "" {
 		return encoder.NewTtyEncoder(w, tty)
 	}
 	if compact {
-		return encoder.NewCompactEncoder(w, colorMode, timestamps)
+		return encoder.NewCompactEncoder(w, colorMode, timestamps, stackTraces)
 	}
 	return encoder.NewProtojsonEncoder(w)
 }
@@ -133,7 +134,7 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
 	}
-	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode)
+	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode, Options.StackTraces)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -213,5 +214,6 @@ func New() *cobra.Command {
 	flags.BoolVar(&Options.Host, "host", false, "Get host events")
 	flags.BoolVar(&Options.Timestamps, "timestamps", false, "Include timestamps in compact output")
 	flags.StringVarP(&Options.TTYEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
+	flags.BoolVar(&Options.StackTraces, "stack-traces", true, "Include stack traces in compact output")
 	return &cmd
 }

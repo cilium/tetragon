@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -83,17 +84,19 @@ func (p *TtyEncoder) Encode(v interface{}) error {
 
 // CompactEncoder encodes tetragon.GetEventsResponse in a short format with emojis and colors.
 type CompactEncoder struct {
-	Writer     io.Writer
-	Colorer    *Colorer
-	Timestamps bool
+	Writer      io.Writer
+	Colorer     *Colorer
+	Timestamps  bool
+	StackTraces bool
 }
 
 // NewCompactEncoder initializes and returns a pointer to CompactEncoder.
-func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool) *CompactEncoder {
+func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool, stackTraces bool) *CompactEncoder {
 	return &CompactEncoder{
-		Writer:     w,
-		Colorer:    NewColorer(colorMode),
-		Timestamps: timestamps,
+		Writer:      w,
+		Colorer:     NewColorer(colorMode),
+		Timestamps:  timestamps,
+		StackTraces: stackTraces,
 	}
 }
 
@@ -113,6 +116,13 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 		str = fmt.Sprintf("%s %s", ts, str)
 	}
 	fmt.Fprintln(p.Writer, str)
+
+	// print stack trace if available
+	if p.StackTraces {
+		st := HumanStackTrace(event, p.Colorer)
+		fmt.Fprint(p.Writer, st)
+	}
+
 	return nil
 }
 
@@ -186,6 +196,21 @@ var nsId = map[int32]string{
 
 func PrintNS(ns int32) string {
 	return nsId[ns]
+}
+
+func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) string {
+	out := new(strings.Builder)
+	if ev, ok := response.Event.(*tetragon.GetEventsResponse_ProcessKprobe); ok {
+		if ev.ProcessKprobe.StackTrace != nil {
+			for _, st := range ev.ProcessKprobe.StackTrace {
+				colorer.Green.Fprintf(out, "   0x%x:", st.Address)
+				colorer.Blue.Fprintf(out, " %s", st.Symbol)
+				fmt.Fprintf(out, "+")
+				colorer.Yellow.Fprintf(out, "0x%x\n", st.Offset)
+			}
+		}
+	}
+	return out.String()
 }
 
 func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (string, error) {
