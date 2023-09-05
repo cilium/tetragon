@@ -72,7 +72,7 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 	// Generate syscalls list
 	if listTypeFromString(list.Type) == ListTypeGeneratedSyscalls {
 		if len(list.Values) != 0 {
-			return fmt.Errorf("Error generated list '%s' has generate and values", list.Name)
+			return fmt.Errorf("Error generated list '%s' has values", list.Name)
 		}
 		tmp, err := btf.GetSyscallsList()
 		if err != nil {
@@ -84,6 +84,9 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 
 	// Generate ftrace list
 	if listTypeFromString(list.Type) == ListTypeGeneratedFtrace {
+		if len(list.Values) != 0 {
+			return fmt.Errorf("Error generated list '%s' has values", list.Name)
+		}
 		if list.Pattern != nil && *(list.Pattern) == "" {
 			return fmt.Errorf("Error generated ftrace list '%s' must specify pattern", list.Name)
 		}
