@@ -118,7 +118,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 	}
 
 	if err != nil && len(ksyms.table) == 0 {
-		err = errors.New("No synmbols found")
+		err = errors.New("no symbols found")
 	}
 
 	if err != nil {
@@ -142,6 +142,10 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 
 // GetFnOffset -- returns the FnOffset for a given address
 func (k *Ksyms) GetFnOffset(addr uint64) (*FnOffset, error) {
+	if k == nil {
+		return nil, errors.New("kernel symbols uninitialized")
+	}
+
 	// no cache
 	if k.fnCache == nil {
 		return k.getFnOffset(addr)
