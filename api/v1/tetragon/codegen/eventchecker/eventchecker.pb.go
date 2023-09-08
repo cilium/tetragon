@@ -4297,6 +4297,7 @@ type KprobeArgumentChecker struct {
 	CapabilityArg         *KprobeCapabilityChecker     `json:"capabilityArg,omitempty"`
 	ProcessCredentialsArg *ProcessCredentialsChecker   `json:"processCredentialsArg,omitempty"`
 	UserNsArg             *UserNamespaceChecker        `json:"userNsArg,omitempty"`
+	ModuleArg             *KernelModuleChecker         `json:"moduleArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -4507,6 +4508,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: UserNsArg check failed: %T is not a UserNsArg", event)
 			}
 		}
+		if checker.ModuleArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_ModuleArg:
+				if err := checker.ModuleArg.Check(event.ModuleArg); err != nil {
+					return fmt.Errorf("ModuleArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: ModuleArg check failed: %T is not a ModuleArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -4631,6 +4642,12 @@ func (checker *KprobeArgumentChecker) WithProcessCredentialsArg(check *ProcessCr
 // WithUserNsArg adds a UserNsArg check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithUserNsArg(check *UserNamespaceChecker) *KprobeArgumentChecker {
 	checker.UserNsArg = check
+	return checker
+}
+
+// WithModuleArg adds a ModuleArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithModuleArg(check *KernelModuleChecker) *KprobeArgumentChecker {
+	checker.ModuleArg = check
 	return checker
 }
 
@@ -4759,8 +4776,206 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 			checker.UserNsArg = NewUserNamespaceChecker().FromUserNamespace(event.UserNsArg)
 		}
 	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_ModuleArg:
+		if event.ModuleArg != nil {
+			checker.ModuleArg = NewKernelModuleChecker().FromKernelModule(event.ModuleArg)
+		}
+	}
 	checker.Label = stringmatcher.Full(event.Label)
 	return checker
+}
+
+// KernelModuleChecker implements a checker struct to check a KernelModule field
+type KernelModuleChecker struct {
+	Name        *stringmatcher.StringMatcher `json:"name,omitempty"`
+	SignatureOk *bool                        `json:"signatureOk,omitempty"`
+	Tainted     *TaintedBitsTypeListMatcher  `json:"tainted,omitempty"`
+}
+
+// NewKernelModuleChecker creates a new KernelModuleChecker
+func NewKernelModuleChecker() *KernelModuleChecker {
+	return &KernelModuleChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KernelModuleChecker) GetCheckerType() string {
+	return "KernelModuleChecker"
+}
+
+// Check checks a KernelModule field
+func (checker *KernelModuleChecker) Check(event *tetragon.KernelModule) error {
+	if event == nil {
+		return fmt.Errorf("%s: KernelModule field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		if checker.SignatureOk != nil {
+			if event.SignatureOk == nil {
+				return fmt.Errorf("SignatureOk is nil and does not match expected value %v", *checker.SignatureOk)
+			}
+			if *checker.SignatureOk != event.SignatureOk.Value {
+				return fmt.Errorf("SignatureOk has value %v which does not match expected value %v", event.SignatureOk.Value, *checker.SignatureOk)
+			}
+		}
+		if checker.Tainted != nil {
+			if err := checker.Tainted.Check(event.Tainted); err != nil {
+				return fmt.Errorf("Tainted check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithName adds a Name check to the KernelModuleChecker
+func (checker *KernelModuleChecker) WithName(check *stringmatcher.StringMatcher) *KernelModuleChecker {
+	checker.Name = check
+	return checker
+}
+
+// WithSignatureOk adds a SignatureOk check to the KernelModuleChecker
+func (checker *KernelModuleChecker) WithSignatureOk(check bool) *KernelModuleChecker {
+	checker.SignatureOk = &check
+	return checker
+}
+
+// WithTainted adds a Tainted check to the KernelModuleChecker
+func (checker *KernelModuleChecker) WithTainted(check *TaintedBitsTypeListMatcher) *KernelModuleChecker {
+	checker.Tainted = check
+	return checker
+}
+
+//FromKernelModule populates the KernelModuleChecker using data from a KernelModule field
+func (checker *KernelModuleChecker) FromKernelModule(event *tetragon.KernelModule) *KernelModuleChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	if event.SignatureOk != nil {
+		val := event.SignatureOk.Value
+		checker.SignatureOk = &val
+	}
+	{
+		var checks []*TaintedBitsTypeChecker
+		for _, check := range event.Tainted {
+			var convertedCheck *TaintedBitsTypeChecker
+			convertedCheck = NewTaintedBitsTypeChecker(check)
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewTaintedBitsTypeListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Tainted = lm
+	}
+	return checker
+}
+
+// TaintedBitsTypeListMatcher checks a list of tetragon.TaintedBitsType fields
+type TaintedBitsTypeListMatcher struct {
+	Operator listmatcher.Operator      `json:"operator"`
+	Values   []*TaintedBitsTypeChecker `json:"values"`
+}
+
+// NewTaintedBitsTypeListMatcher creates a new TaintedBitsTypeListMatcher. The checker defaults to a subset checker unless otherwise specified using WithOperator()
+func NewTaintedBitsTypeListMatcher() *TaintedBitsTypeListMatcher {
+	return &TaintedBitsTypeListMatcher{
+		Operator: listmatcher.Subset,
+	}
+}
+
+// WithOperator sets the match kind for the TaintedBitsTypeListMatcher
+func (checker *TaintedBitsTypeListMatcher) WithOperator(operator listmatcher.Operator) *TaintedBitsTypeListMatcher {
+	checker.Operator = operator
+	return checker
+}
+
+// WithValues sets the checkers that the TaintedBitsTypeListMatcher should use
+func (checker *TaintedBitsTypeListMatcher) WithValues(values ...*TaintedBitsTypeChecker) *TaintedBitsTypeListMatcher {
+	checker.Values = values
+	return checker
+}
+
+// Check checks a list of tetragon.TaintedBitsType fields
+func (checker *TaintedBitsTypeListMatcher) Check(values []tetragon.TaintedBitsType) error {
+	switch checker.Operator {
+	case listmatcher.Ordered:
+		return checker.orderedCheck(values)
+	case listmatcher.Unordered:
+		return checker.unorderedCheck(values)
+	case listmatcher.Subset:
+		return checker.subsetCheck(values)
+	default:
+		return fmt.Errorf("Unhandled ListMatcher operator %s", checker.Operator)
+	}
+}
+
+// orderedCheck checks a list of ordered tetragon.TaintedBitsType fields
+func (checker *TaintedBitsTypeListMatcher) orderedCheck(values []tetragon.TaintedBitsType) error {
+	innerCheck := func(check *TaintedBitsTypeChecker, value tetragon.TaintedBitsType) error {
+		if err := check.Check(&value); err != nil {
+			return fmt.Errorf("Tainted check failed: %w", err)
+		}
+		return nil
+	}
+
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("TaintedBitsTypeListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	for i, check := range checker.Values {
+		value := values[i]
+		if err := innerCheck(check, value); err != nil {
+			return fmt.Errorf("TaintedBitsTypeListMatcher: Check failed on element %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// unorderedCheck checks a list of unordered tetragon.TaintedBitsType fields
+func (checker *TaintedBitsTypeListMatcher) unorderedCheck(values []tetragon.TaintedBitsType) error {
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("TaintedBitsTypeListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	return checker.subsetCheck(values)
+}
+
+// subsetCheck checks a subset of tetragon.TaintedBitsType fields
+func (checker *TaintedBitsTypeListMatcher) subsetCheck(values []tetragon.TaintedBitsType) error {
+	innerCheck := func(check *TaintedBitsTypeChecker, value tetragon.TaintedBitsType) error {
+		if err := check.Check(&value); err != nil {
+			return fmt.Errorf("Tainted check failed: %w", err)
+		}
+		return nil
+	}
+
+	numDesired := len(checker.Values)
+	numMatched := 0
+
+nextCheck:
+	for _, check := range checker.Values {
+		for _, value := range values {
+			if err := innerCheck(check, value); err == nil {
+				numMatched += 1
+				continue nextCheck
+			}
+		}
+	}
+
+	if numMatched < numDesired {
+		return fmt.Errorf("TaintedBitsTypeListMatcher: Check failed, only matched %d elements but wanted %d", numMatched, numDesired)
+	}
+
+	return nil
 }
 
 // CapabilitiesTypeChecker checks a tetragon.CapabilitiesType
@@ -4915,6 +5130,58 @@ func (enum *KprobeActionChecker) Check(val *tetragon.KprobeAction) error {
 	}
 	if *enum != KprobeActionChecker(*val) {
 		return fmt.Errorf("KprobeActionChecker: KprobeAction has value %s which does not match expected value %s", (*val), tetragon.KprobeAction(*enum))
+	}
+	return nil
+}
+
+// TaintedBitsTypeChecker checks a tetragon.TaintedBitsType
+type TaintedBitsTypeChecker tetragon.TaintedBitsType
+
+// MarshalJSON implements json.Marshaler interface
+func (enum TaintedBitsTypeChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.TaintedBitsType_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "TAINT_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown TaintedBitsType %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *TaintedBitsTypeChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.TaintedBitsType_value[str]; ok {
+		*enum = TaintedBitsTypeChecker(n)
+	} else if n, ok := tetragon.TaintedBitsType_value["TAINT_"+str]; ok {
+		*enum = TaintedBitsTypeChecker(n)
+	} else {
+		return fmt.Errorf("Unknown TaintedBitsType %s", str)
+	}
+
+	return nil
+}
+
+// NewTaintedBitsTypeChecker creates a new TaintedBitsTypeChecker
+func NewTaintedBitsTypeChecker(val tetragon.TaintedBitsType) *TaintedBitsTypeChecker {
+	enum := TaintedBitsTypeChecker(val)
+	return &enum
+}
+
+// Check checks a TaintedBitsType against the checker
+func (enum *TaintedBitsTypeChecker) Check(val *tetragon.TaintedBitsType) error {
+	if val == nil {
+		return fmt.Errorf("TaintedBitsTypeChecker: TaintedBitsType is nil and does not match expected value %s", tetragon.TaintedBitsType(*enum))
+	}
+	if *enum != TaintedBitsTypeChecker(*val) {
+		return fmt.Errorf("TaintedBitsTypeChecker: TaintedBitsType has value %s which does not match expected value %s", (*val), tetragon.TaintedBitsType(*enum))
 	}
 	return nil
 }
