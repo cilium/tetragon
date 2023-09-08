@@ -462,8 +462,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
+	if ec := eventcache.Get(); ec != nil && ec.Needed(tetragonProcess) {
 		tetragonEvent := &ProcessLoaderNotify{}
 		tetragonEvent.Process = tetragonProcess
 		tetragonEvent.Path = msg.Path
