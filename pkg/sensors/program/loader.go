@@ -161,35 +161,45 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec, sym
 	}, nil
 }
 
+func kprobeAttachOverride(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
+
+	spec, ok := collSpec.Programs["generic_kprobe_override"]
+	if !ok {
+		return fmt.Errorf("spec for generic_kprobe_override program not found")
+	}
+
+	prog, ok := coll.Programs["generic_kprobe_override"]
+	if !ok {
+		return fmt.Errorf("program generic_kprobe_override not found")
+	}
+
+	prog, err := prog.Clone()
+	if err != nil {
+		return fmt.Errorf("failed to clone generic_kprobe_override program: %w", err)
+	}
+
+	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+
+	if err := prog.Pin(pinPath); err != nil {
+		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+	}
+
+	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach)
+	if err != nil {
+		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
+	}
+
+	return nil
+}
+
 func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		if load.Override {
-			progOverrideSpec, ok := collSpec.Programs["generic_kprobe_override"]
-			if ok {
-				progOverrideSpec.Type = ebpf.UnspecifiedProgram
-			}
-
-			progOverride, ok := coll.Programs["generic_kprobe_override"]
-			if !ok {
-				return nil, fmt.Errorf("program for section '%s' not found", load.Label)
-			}
-
-			progOverride, err := progOverride.Clone()
-			if err != nil {
-				return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
-			}
-
-			pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
-
-			if err := progOverride.Pin(pinPath); err != nil {
-				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-			}
-
-			load.unloaderOverride, err = kprobeAttach(load, progOverride, progOverrideSpec, load.Attach)
-			if err != nil {
-				logger.GetLogger().Warnf("Failed to attach override program: %w", err)
+			if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
+				return nil, err
 			}
 		}
 
