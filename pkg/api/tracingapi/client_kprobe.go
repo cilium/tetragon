@@ -338,6 +338,21 @@ func (m MsgGenericKprobeArgLoadModule) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeArgKernelModule struct {
+	Index  uint64
+	Name   string
+	Taints uint64
+	Label  string
+}
+
+func (m MsgGenericKprobeArgKernelModule) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgKernelModule) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeBpfAttr struct {
 	ProgType uint32
 	InsnCnt  uint32

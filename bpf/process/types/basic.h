@@ -58,6 +58,7 @@ enum {
 	iov_iter_type = 25,
 
 	load_module_type = 26,
+	kernel_module_type = 27,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -561,6 +562,28 @@ copy_load_module(char *args, unsigned long arg)
 
 	if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
 		info->sig_ok = !!ok;
+
+	return sizeof(struct tg_kernel_module);
+}
+
+static inline __attribute__((always_inline)) long
+copy_kernel_module(char *args, unsigned long arg)
+{
+	const struct module *mod = (struct module *)arg;
+	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
+
+	memset(info, 0, sizeof(struct tg_kernel_module));
+
+	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, mod->name) < 0)
+		return 0;
+
+	BPF_CORE_READ_INTO(&info->taints, mod, taints);
+
+	/*
+	 * Todo: allow to check if module is signed here too.
+	 *  the module->sig_ok is available only under CONFIG_MODULE_SIG option, so
+	 *  let's not fail here, and users can check the load_info->sig_ok instead.
+	 */
 
 	return sizeof(struct tg_kernel_module);
 }
@@ -1287,6 +1310,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case capability_type:
 		return sizeof(struct capability_info_type);
 	case load_module_type:
+		return sizeof(struct tg_kernel_module);
+	case kernel_module_type:
 		return sizeof(struct tg_kernel_module);
 	// nop or something else we do not process here
 	default:
@@ -2212,6 +2237,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case load_module_type: {
 		size = copy_load_module(args, arg);
+		break;
+	}
+	case kernel_module_type: {
+		size = copy_kernel_module(args, arg);
 		break;
 	}
 	default:
