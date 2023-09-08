@@ -258,6 +258,7 @@ var isReservedField = map[string]struct{}{
 	"Int64Value":  {},
 	"StringValue": {},
 	"Duration":    {},
+	"BoolValue":   {},
 }
 
 // GetFields returns a list of all messages that are fields

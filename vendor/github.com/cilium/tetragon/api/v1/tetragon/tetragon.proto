@@ -362,6 +362,7 @@ message KprobeArgument {
 	KprobeCapability capability_arg = 17;
 	ProcessCredentials process_credentials_arg = 19;
 	UserNamespace user_ns_arg = 20;
+	KernelModule module_arg = 21;
     }
     string label = 18;
 }
@@ -428,6 +429,16 @@ message ProcessUprobe {
     string symbol = 4;
 }
 
+message KernelModule {
+	// Kernel module name
+	string name = 1;
+	// If true the module signature was verified successfully. Depends on kernels compiled with
+	// CONFIG_MODULE_SIG option, for details please read: https://www.kernel.org/doc/Documentation/admin-guide/module-signing.rst
+	google.protobuf.BoolValue signature_ok = 2;
+	// The module tainted flags that will be applied on the kernel. For further details please read: https://docs.kernel.org/admin-guide/tainted-kernels.html
+	repeated TaintedBitsType tainted = 3;
+}
+
 message Test {
 	uint64 arg0 = 1;
 	uint64 arg1 = 2;
@@ -449,6 +460,35 @@ enum HealthStatusResult {
 
 message GetHealthStatusRequest {
     repeated HealthStatusType event_set = 1;
+}
+
+// Tainted bits to indicate if the kernel was tainted. For further details: https://docs.kernel.org/admin-guide/tainted-kernels.html
+enum TaintedBitsType {
+	TAINT_UNSET = 0;
+
+	/* A proprietary module was loaded. */
+	TAINT_PROPRIETARY_MODULE = 1;
+
+	/* A module was force loaded. */
+	TAINT_FORCED_MODULE = 2;
+
+	/* A module was force unloaded. */
+	TAINT_FORCED_UNLOAD_MODULE = 4;
+
+	/* A staging driver was loaded. */
+	TAINT_STAGED_MODULE = 1024;
+
+	/* An out of tree module was loaded. */
+	TAINT_OUT_OF_TREE_MODULE = 4096;
+
+	/* An unsigned module was loaded. Supported only on kernels built with CONFIG_MODULE_SIG option. */
+	TAINT_UNSIGNED_MODULE = 8192;
+
+	/* The kernel has been live patched. */
+	TAINT_KERNEL_LIVE_PATCH_MODULE = 32768;
+
+	/* Loading a test module. */
+	TAINT_TEST_MODULE = 262144;
 }
 
 message HealthStatus {
