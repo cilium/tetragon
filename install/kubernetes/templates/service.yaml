@@ -1,4 +1,4 @@
-{{- if .Values.tetragon.prometheus.enabled -}}
+{{- if or (eq .Values.tetragon.prometheus.enabled true) (eq .Values.tetragon.grpc.enabled true) }}
 ---
 apiVersion: v1
 kind: Service
@@ -13,10 +13,18 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
+{{- if .Values.tetragon.prometheus.enabled }}
     - name: metrics
       port: 2112
       protocol: TCP
       targetPort: {{ .Values.tetragon.prometheus.port }}
+{{- end }}
+{{- if .Values.tetragon.grpc.enabled }}
+    - name: grpc
+      port: {{ .Values.tetragon.grpc.port }}
+      protocol: TCP
+      targetPort: {{ .Values.tetragon.grpc.port }}
+{{- end }}
   selector:
     {{- with .Values.daemonSetLabelsOverride}}
     {{- toYaml . | nindent 4 }}
