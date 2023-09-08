@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/spf13/viper"
 )
 
@@ -46,10 +47,11 @@ type config struct {
 	ProcessCacheSize int
 	DataCacheSize    int
 
-	MetricsServer    string
-	ServerAddress    string
-	TracingPolicy    string
-	TracingPolicyDir string
+	MetricsServer      string
+	MetricsLabelFilter map[string]interface{}
+	ServerAddress      string
+	TracingPolicy      string
+	TracingPolicyDir   string
 
 	ExportFilename             string
 	ExportFileMaxSizeMB        int
@@ -93,6 +95,15 @@ var (
 
 		// LogOpts contains logger parameters
 		LogOpts: make(map[string]string),
+
+		// Default to logging metrics with the greatest granularity.
+		MetricsLabelFilter: func() map[string]interface{} {
+			result := make(map[string]interface{})
+			for _, label := range consts.KnownMetricLabelFilters {
+				result[label] = nil
+			}
+			return result
+		}(),
 	}
 )
 

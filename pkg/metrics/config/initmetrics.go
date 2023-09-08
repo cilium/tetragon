@@ -23,6 +23,8 @@ import (
 	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+
+	"strings"
 )
 
 func InitAllMetrics(registry *prometheus.Registry) {
@@ -46,4 +48,12 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registry.MustRegister(grpcmetrics.NewServerMetrics())
 	version.InitMetrics(registry)
+}
+
+func ParseMetricsLabelFilter(labels string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, label := range strings.Split(labels, ",") {
+		result[label] = nil
+	}
+	return result
 }

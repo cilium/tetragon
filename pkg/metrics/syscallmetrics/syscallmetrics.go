@@ -12,16 +12,16 @@ import (
 )
 
 var (
-	syscallStats = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
+	syscallStats = metrics.MustNewGranularCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "syscalls_total",
 		Help:        "System calls observed.",
 		ConstLabels: nil,
-	}, []string{"syscall", "namespace", "workload", "pod", "binary"})
+	}, []string{"syscall"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(syscallStats)
+	registry.MustRegister(syscallStats.ToProm())
 }
 
 func Handle(event interface{}) {
@@ -46,7 +46,9 @@ func Handle(event interface{}) {
 	}
 
 	if syscall != "" {
-		syscallStats.WithLabelValues(syscall, namespace, workload, pod, binary).Inc()
+		syscallStats.ToProm().
+			WithLabelValues(metrics.FilterMetricLabels(syscall, namespace, workload, pod, binary)...).
+			Inc()
 	}
 }
 

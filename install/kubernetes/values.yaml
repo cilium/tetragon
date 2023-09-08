@@ -126,6 +126,9 @@ tetragon:
     address: ""
     # -- The port at which to expose metrics.
     port: 2112
+    # -- The labels to include with supporting metrics.
+    # The possible values are "namespace", "workload", "pod" and "binary".
+    metricsLabelFilter: "namespace,workload,pod,binary"
     serviceMonitor:
       # -- Whether to create a 'ServiceMonitor' resource targeting the 'tetragon' pods.
       enabled: false

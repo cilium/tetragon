@@ -20,12 +20,12 @@ import (
 )
 
 var (
-	EventsProcessed = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
+	EventsProcessed = metrics.MustNewGranularCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
-	}, []string{"type", "namespace", "workload", "pod", "binary"})
+	}, []string{"type"})
 	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "flags_total",
@@ -39,19 +39,19 @@ var (
 		ConstLabels: nil,
 	})
 
-	policyStats = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
+	policyStats = metrics.MustNewGranularCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policy_events_total",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
-	}, []string{"policy", "hook", "namespace", "workload", "pod", "binary"})
+	}, []string{"policy", "hook"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(EventsProcessed)
+	registry.MustRegister(EventsProcessed.ToProm())
 	registry.MustRegister(FlagCount)
 	registry.MustRegister(NotifyOverflowedEvents)
-	registry.MustRegister(policyStats)
+	registry.MustRegister(policyStats.ToProm())
 }
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace string) {
@@ -93,10 +93,10 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.WithLabelValues(eventType, namespace, workload, pod, binary).Inc()
+	EventsProcessed.ToProm().WithLabelValues(metrics.FilterMetricLabels(eventType, namespace, workload, pod, binary)...).Inc()
 	if pInfo != nil && pInfo.Name != "" {
-		policyStats.
-			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary).
+		policyStats.ToProm().
+			WithLabelValues(metrics.FilterMetricLabels(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary)...).
 			Inc()
 	}
 }

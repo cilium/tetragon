@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/config"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/spf13/viper"
@@ -31,13 +32,14 @@ const (
 	keyEnableCiliumAPI        = "enable-cilium-api"
 	keyEnableProcessAncestors = "enable-process-ancestors"
 
-	keyMetricsServer     = "metrics-server"
-	keyServerAddress     = "server-address"
-	keyGopsAddr          = "gops-address"
-	keyEnableProcessCred = "enable-process-cred"
-	keyEnableProcessNs   = "enable-process-ns"
-	keyTracingPolicy     = "tracing-policy"
-	keyTracingPolicyDir  = "tracing-policy-dir"
+	keyMetricsServer      = "metrics-server"
+	keyMetricsLabelFilter = "metrics-label-filter"
+	keyServerAddress      = "server-address"
+	keyGopsAddr           = "gops-address"
+	keyEnableProcessCred  = "enable-process-cred"
+	keyEnableProcessNs    = "enable-process-ns"
+	keyTracingPolicy      = "tracing-policy"
+	keyTracingPolicyDir   = "tracing-policy-dir"
 
 	keyCpuProfile = "cpuprofile"
 	keyMemProfile = "memprofile"
@@ -113,6 +115,7 @@ func readAndSetFlags() {
 	option.Config.DataCacheSize = viper.GetInt(keyDataCacheSize)
 
 	option.Config.MetricsServer = viper.GetString(keyMetricsServer)
+	option.Config.MetricsLabelFilter = config.ParseMetricsLabelFilter(viper.GetString(keyMetricsLabelFilter))
 	option.Config.ServerAddress = viper.GetString(keyServerAddress)
 
 	option.Config.ExportFilename = viper.GetString(keyExportFilename)
