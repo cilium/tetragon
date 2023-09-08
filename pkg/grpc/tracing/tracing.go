@@ -5,6 +5,8 @@ package tracing
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/reader/kernel"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -233,6 +235,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			mArg := &tetragon.KernelModule{
 				Name:        e.Name,
 				SignatureOk: &wrapperspb.BoolValue{Value: e.SigOk != 0},
+				Tainted:     kernel.GetTaintedBitsTypes(e.Taints),
 			}
 			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
 			a.Label = e.Label

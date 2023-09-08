@@ -557,6 +557,8 @@ copy_load_module(char *args, unsigned long arg)
 	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, name) < 0)
 		return 0;
 
+	BPF_CORE_READ_INTO(&info->taints, mod, mod, taints);
+
 	if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
 		info->sig_ok = !!ok;
 

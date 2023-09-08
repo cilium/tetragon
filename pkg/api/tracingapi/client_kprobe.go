@@ -316,16 +316,18 @@ func (m MsgGenericKprobeArgUserNamespace) IsReturnArg() bool {
 }
 
 type MsgGenericLoadModule struct {
-	SigOk uint32
-	Pad   uint32
-	Name  [MODULE_NAME_LEN]byte
+	SigOk  uint32
+	Pad    uint32
+	Taints uint64
+	Name   [MODULE_NAME_LEN]byte
 }
 
 type MsgGenericKprobeArgLoadModule struct {
-	Index uint64
-	SigOk uint32
-	Name  string
-	Label string
+	Index  uint64
+	SigOk  uint32
+	Taints uint64
+	Name   string
+	Label  string
 }
 
 func (m MsgGenericKprobeArgLoadModule) GetIndex() uint64 {
