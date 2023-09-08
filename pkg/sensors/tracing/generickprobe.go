@@ -1357,6 +1357,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 				}
 				arg.Name = string(output.Name[:i])
 				arg.SigOk = output.SigOk
+				arg.Taints = output.Taints
 			}
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)

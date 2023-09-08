@@ -11,6 +11,7 @@
 struct tg_kernel_module {
 	u32 sig_ok;
 	u32 pad;
+	u64 taints; /* same bits as kernel:taint_flags */
 	char name[TG_MODULE_NAME_LEN];
 } __attribute__((packed));
 
