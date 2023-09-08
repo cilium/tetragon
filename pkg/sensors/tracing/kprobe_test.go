@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -5094,4 +5096,124 @@ spec:
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
+}
+
+// Test module loading/unloading on Ubuntu
+func TestTraceKernelModule(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-kernel-modules"
+spec:
+  kprobes:
+  - call: "security_kernel_read_file"
+    # Explicit module loading using file descriptor finit_module() to print module full path
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"  # READING_MODULE
+  - call: "do_init_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+  - call: "free_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+`
+
+	// This test works only on Ubuntu
+	f, err := os.Open("/etc/os-release")
+	if err != nil {
+		t.Skip("Skipping test: could not parse /etc/os-release file")
+	}
+	defer f.Close()
+
+	ubuntu := false
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "Ubuntu") {
+			ubuntu = true
+			break
+		}
+	}
+
+	if ubuntu == false {
+		t.Skip("Skipping test: could not determin if this is an Ubuntu machine")
+	}
+
+	createCrdFile(t, hookFull)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	module := "xfs"
+	if err := exec.Command("/usr/sbin/modprobe", module).Run(); err != nil {
+		t.Fatalf("failed to load %s module: %s", module, err)
+	}
+
+	if err := exec.Command("/usr/sbin/modprobe", "-r", module).Run(); err != nil {
+		t.Fatalf("failed to unload %s module: %s", module, err)
+	}
+
+	process := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("modprobe"))
+
+	kpChecker1 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("security_kernel_read_file")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().
+						WithPath(sm.Suffix(fmt.Sprintf("%s.ko", module)))),
+				ec.NewKprobeArgumentChecker().WithIntArg(2),
+			),
+		)
+
+	kpChecker2 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("do_init_module")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)),
+				),
+			))
+
+	kpChecker3 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("free_module")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
