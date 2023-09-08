@@ -247,6 +247,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct load_info *":
 			return true
 		}
+	case "module":
+		switch kernelTy {
+		case "struct module *":
+			return true
+		}
 	}
 
 	return false

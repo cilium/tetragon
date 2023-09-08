@@ -239,6 +239,13 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			}
 			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
 			a.Label = e.Label
+		case api.MsgGenericKprobeArgKernelModule:
+			mArg := &tetragon.KernelModule{
+				Name:    e.Name,
+				Tainted: kernel.GetTaintedBitsTypes(e.Taints),
+			}
+			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
+			a.Label = e.Label
 		default:
 			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 		}
