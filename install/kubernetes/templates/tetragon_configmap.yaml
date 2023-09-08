@@ -37,6 +37,9 @@ data:
 {{- else }}
   metrics-server: ""
 {{- end }}
+{{- if .Values.tetragon.prometheus.enabled }}
+  metrics-label-filter: {{ .Values.tetragon.prometheus.metricsLabelFilter }}
+{{- end }}
 {{- if .Values.tetragon.grpc.enabled }}
   server-address: {{ .Values.tetragon.grpc.address }}
 {{- else }}

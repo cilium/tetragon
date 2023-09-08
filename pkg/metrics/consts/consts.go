@@ -4,3 +4,4 @@
 package consts
 
 var MetricsNamespace = "tetragon"
+var KnownMetricLabelFilters = []string{"namespace", "workload", "pod", "binary"}
