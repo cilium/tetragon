@@ -5130,6 +5130,14 @@ spec:
         operator: "Equal"
         values:
         - "2"  # READING_MODULE
+  - call: "find_module_sections"
+    # On some kernels find_module_sections is inlined, if so this kprobe will fail.
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    - index: 1
+      type: "load_info"
   - call: "do_init_module"
     syscall: false
     args:
@@ -5195,6 +5203,16 @@ spec:
 		)
 
 	kpChecker2 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("find_module_sections")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)).
+						WithSignatureOk(true)),
+			),
+		)
+
+	kpChecker3 := ec.NewProcessKprobeChecker("").WithProcess(process).
 		WithFunctionName(sm.Full("do_init_module")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
@@ -5203,7 +5221,7 @@ spec:
 				),
 			))
 
-	kpChecker3 := ec.NewProcessKprobeChecker("").WithProcess(process).
+	kpChecker4 := ec.NewProcessKprobeChecker("").WithProcess(process).
 		WithFunctionName(sm.Full("free_module")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
@@ -5212,7 +5230,7 @@ spec:
 				),
 			))
 
-	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3)
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3, kpChecker4)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
