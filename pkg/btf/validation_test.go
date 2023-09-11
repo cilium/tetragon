@@ -66,7 +66,7 @@ func TestSpecs(t *testing.T) {
 		specFname := testFiles[fi].specFname
 		t.Run(specFname, func(t *testing.T) {
 			specFname := filepath.Join(testdataPath, specFname)
-			tp, err := tracingpolicy.PolicyFromYAMLFilename(specFname)
+			tp, err := tracingpolicy.FromFile(specFname)
 			if err != nil {
 				t.Fatal(err)
 			}

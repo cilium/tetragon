@@ -240,7 +240,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 	var tp tracingpolicy.TracingPolicy
 	if o.observer.config != "" {
 		var err error
-		tp, err = tracingpolicy.PolicyFromYAMLFilename(o.observer.config)
+		tp, err = tracingpolicy.FromFile(o.observer.config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse tracingpolicy: %w", err)
 		}
@@ -344,7 +344,7 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 	var err error
 
 	if o.observer.config != "" {
-		tp, err = tracingpolicy.PolicyFromYAMLFilename(o.observer.config)
+		tp, err = tracingpolicy.FromFile(o.observer.config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse tracingpolicy: %w", err)
 		}
