@@ -74,7 +74,8 @@ type Program struct {
 	ErrorFatal bool
 
 	// Needs override bpf program
-	Override bool
+	Override        bool
+	OverrideFmodRet bool
 
 	// Type is the type of BPF program. For example, tc, skb, tracepoint,
 	// etc.
