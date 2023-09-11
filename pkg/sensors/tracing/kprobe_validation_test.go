@@ -12,7 +12,7 @@ import (
 )
 
 func checkCrd(t *testing.T, crd string) error {
-	tp, err := tracingpolicy.PolicyFromYAML(crd)
+	tp, err := tracingpolicy.FromYAML(crd)
 	if err != nil {
 		t.Fatalf("failed to parse tracingpolicy: %s", err)
 	}

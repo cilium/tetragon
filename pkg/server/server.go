@@ -231,7 +231,7 @@ func (s *Server) ListSensors(ctx context.Context, _ *tetragon.ListSensorsRequest
 }
 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
-	tp, err := tracingpolicy.PolicyFromYAML(req.GetYaml())
+	tp, err := tracingpolicy.FromYAML(req.GetYaml())
 	if err != nil {
 		logger.GetLogger().WithError(err).Warn("Server AddTracingPolicy request failed")
 		return nil, err
