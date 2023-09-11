@@ -302,3 +302,20 @@ generic_kprobe_override(void *ctx)
 	map_delete_elem(&override_tasks, &id);
 	return 0;
 }
+
+/* Putting security_task_prctl in here to pass contrib/verify/verify.sh test,
+ * in normal run the function is set by tetragon dynamically.
+ */
+__attribute__((section("fmod_ret/security_task_prctl"), used)) long
+generic_fmodret_override(void *ctx)
+{
+	__u64 id = get_current_pid_tgid();
+	__s32 *error;
+
+	error = map_lookup_elem(&override_tasks, &id);
+	if (!error)
+		return 0;
+
+	map_delete_elem(&override_tasks, &id);
+	return (long)*error;
+}

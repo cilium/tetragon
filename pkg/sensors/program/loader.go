@@ -138,6 +138,18 @@ func KprobeOpen(load *Program) OpenFunc {
 		// loaded and bpftool will show it.
 		if !load.Override {
 			disableProg(coll, "generic_kprobe_override")
+			disableProg(coll, "generic_fmodret_override")
+		} else {
+			if load.OverrideFmodRet {
+				spec, ok := coll.Programs["generic_fmodret_override"]
+				if !ok {
+					return fmt.Errorf("failed to find generic_fmodret_override")
+				}
+				spec.AttachTo = load.Attach
+				disableProg(coll, "generic_kprobe_override")
+			} else {
+				disableProg(coll, "generic_fmodret_override")
+			}
 		}
 		return nil
 	}
@@ -196,13 +208,64 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 	return nil
 }
 
+func fmodretAttachOverride(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
+
+	spec, ok := collSpec.Programs["generic_fmodret_override"]
+	if !ok {
+		return fmt.Errorf("spec for generic_fmodret_override program not found")
+	}
+
+	prog, ok := coll.Programs["generic_fmodret_override"]
+	if !ok {
+		return fmt.Errorf("program generic_fmodret_override not found")
+	}
+
+	prog, err := prog.Clone()
+	if err != nil {
+		return fmt.Errorf("failed to clone generic_fmodret_override program: %w", err)
+	}
+
+	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+
+	if err := prog.Pin(pinPath); err != nil {
+		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+	}
+
+	linkFn := func() (link.Link, error) {
+		return link.AttachTracing(link.TracingOptions{
+			Program: prog,
+		})
+	}
+
+	lnk, err := linkFn()
+	if err != nil {
+		return fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+	}
+
+	load.unloaderOverride = &unloader.RelinkUnloader{
+		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+		IsLinked:   true,
+		Link:       lnk,
+		RelinkFn:   linkFn,
+	}
+
+	return nil
+}
+
 func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		if load.Override {
-			if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
-				return nil, err
+			if load.OverrideFmodRet {
+				if err := fmodretAttachOverride(load, bpfDir, coll, collSpec); err != nil {
+					return nil, err
+				}
+			} else {
+				if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
+					return nil, err
+				}
 			}
 		}
 
