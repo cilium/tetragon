@@ -8,4 +8,5 @@ const (
 	KeyDebug         = "debug"          // bool
 	KeyOutput        = "output"         // string
 	KeyServerAddress = "server-address" // string
+	KeyTimeout       = "timeout"        // duration
 )
