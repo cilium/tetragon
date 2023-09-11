@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
 	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/ratelimitmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufqueuemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
@@ -39,6 +40,7 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	watchermetrics.InitMetrics(registry)
 	observer.InitMetrics(registry)
 	tracing.InitMetrics(registry)
+	ratelimitmetrics.InitMetrics(registry)
 
 	registry.MustRegister(collectors.NewGoCollector())
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
