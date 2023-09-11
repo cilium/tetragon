@@ -623,6 +623,19 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		}
 	}
 
+	isSecurityFunc := strings.HasPrefix(funcName, "security_")
+
+	if selectors.HasOverride(f) {
+		if isSecurityFunc && in.useMulti {
+			return nil, fmt.Errorf("Error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
+				funcName)
+		}
+		if isSecurityFunc && !bpf.HasModifyReturn() {
+			return nil, fmt.Errorf("Error: can't override '%s' function without fmodret support",
+				funcName)
+		}
+	}
+
 	argRetprobe = nil // holds pointer to arg for return handler
 
 	// Parse Arguments
@@ -808,6 +821,9 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		"generic_kprobe").
 		SetLoaderData(kprobeEntry.tableId)
 	load.Override = kprobeEntry.hasOverride
+	if load.Override {
+		load.OverrideFmodRet = isSecurityFunc && bpf.HasModifyReturn()
+	}
 	out.progs = append(out.progs, load)
 
 	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(in.sensorPath, "fdinstall_map"), load)
@@ -1003,6 +1019,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 	}
 
 	load.Override = len(data.Overrides) > 0
+	load.OverrideFmodRet = false
 	load.SetAttachData(data)
 
 	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err == nil {
