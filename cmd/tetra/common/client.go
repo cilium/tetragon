@@ -7,7 +7,6 @@ import (
 	"context"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -20,7 +19,7 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, 10*time.Second)
+	connCtx, connCancel := context.WithTimeout(ctx, viper.GetDuration(KeyTimeout))
 	defer connCancel()
 	conn, err := grpc.DialContext(connCtx, viper.GetString(KeyServerAddress), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
