@@ -365,7 +365,7 @@ var expectedData = GenericTracingPolicy{
 }
 
 func TestYamlWritev(t *testing.T) {
-	pol, err := PolicyFromYAML(writev)
+	pol, err := FromYAML(writev)
 	if err != nil {
 		t.Errorf("YamlWritev error %s", err)
 	}
@@ -376,7 +376,7 @@ func TestYamlWritev(t *testing.T) {
 }
 
 func TestYamlData(t *testing.T) {
-	pol, err := PolicyFromYAML(data)
+	pol, err := FromYAML(data)
 	if err != nil {
 		t.Errorf("YamlData error %s", err)
 	}
@@ -423,7 +423,7 @@ func TestYamlLseek(t *testing.T) {
 		},
 	}
 
-	pol, err := PolicyFromYAML(lseekExample)
+	pol, err := FromYAML(lseekExample)
 	if err != nil {
 		t.Errorf("YamlData error %s", err)
 	}
@@ -447,7 +447,7 @@ func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingP
 	var buf bytes.Buffer
 	templ.Execute(&buf, data)
 
-	pol, err := PolicyFromYAML(buf.String())
+	pol, err := FromYAML(buf.String())
 	if err != nil {
 		return nil, fmt.Errorf("PolicyFromYaml error %s", err)
 	}
@@ -493,7 +493,7 @@ metadata:
   name: "invalid_name"`
 
 func TestReadConfigYamlInvalidName(t *testing.T) {
-	_, err := PolicyFromYAML(invalidNameYaml)
+	_, err := FromYAML(invalidNameYaml)
 	assert.Error(t, err)
 }
 
@@ -509,7 +509,7 @@ spec:
 `
 
 func TestYamlNamespaced(t *testing.T) {
-	tp, err := PolicyFromYAML(tpNamespaced)
+	tp, err := FromYAML(tpNamespaced)
 	require.NoError(t, err)
 	_, ok := tp.(TracingPolicyNamespaced)
 	require.True(t, ok)

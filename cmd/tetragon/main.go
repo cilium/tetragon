@@ -439,7 +439,7 @@ func addTracingPolicy(ctx context.Context, file string) error {
 		return err
 	}
 
-	tp, err := tracingpolicy.PolicyFromYAMLFilename(f)
+	tp, err := tracingpolicy.FromFile(f)
 	if err != nil {
 		return err
 	}

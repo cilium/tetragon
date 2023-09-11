@@ -3616,7 +3616,7 @@ spec:
 		return fmt.Errorf("load base sensor failed: %w", err)
 	}
 
-	tp, _ := tracingpolicy.PolicyFromYAML(testHook)
+	tp, _ := tracingpolicy.FromYAML(testHook)
 	if tp == nil {
 		return nil
 	}
@@ -3791,7 +3791,7 @@ spec:
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	assert.NoError(t, err)
 
-	tp, err := tracingpolicy.PolicyFromYAML(testHook)
+	tp, err := tracingpolicy.FromYAML(testHook)
 	assert.NoError(t, err)
 	assert.NotNil(t, tp)
 

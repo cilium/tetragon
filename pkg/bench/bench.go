@@ -114,7 +114,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		}
 	}
 
-	tp, err := tracingpolicy.PolicyFromYAMLFilename(configFile)
+	tp, err := tracingpolicy.FromFile(configFile)
 	if err != nil {
 		log.Fatalf("PolicyFromYamlFilename: %v", err)
 	}
