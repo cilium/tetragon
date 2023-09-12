@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	srvconf "github.com/containerd/containerd/services/server/config"
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
