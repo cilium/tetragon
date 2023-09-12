@@ -143,3 +143,25 @@ func HasModifyReturn() bool {
 	})
 	return modifyReturn.detected
 }
+
+func LogFeatures() string {
+	feats := ""
+
+	if HasOverrideHelper() {
+		feats += "override_return "
+	}
+	if HasBuildId() {
+		feats += "buildid "
+	}
+	if HasKprobeMulti() {
+		feats += "kprobe_multi "
+	}
+	if HasModifyReturn() {
+		feats += "fmodret "
+	}
+	// cut the final ' '
+	if len(feats) != 0 {
+		feats = feats[:len(feats)-1]
+	}
+	return feats
+}

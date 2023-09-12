@@ -160,6 +160,8 @@ func tetragonExecute() error {
 	log.WithField("version", version.Version).Info("Starting tetragon")
 	log.WithField("config", viper.AllSettings()).Info("config settings")
 
+	log.Info("BPF detected features: ", bpf.LogFeatures())
+
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
 		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
 	}
