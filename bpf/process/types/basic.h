@@ -1767,10 +1767,6 @@ do_action_signal(int signal)
 /* The number of bytes per argument to include in the key
  * that we use to check for repeating data.
  * 16 is good for IPv4 data. Should increase for IPv6.
- * Be aware that we use (KEY_BYTES_PER_ARG - 1) as a bit
- * mask to limit indicies to 0 - (KEY_BYTES_PER_ARG - 1)
- * later on, so any increase needs to accommodate this
- * restriction.
  */
 #define KEY_BYTES_PER_ARG 16
 
@@ -1797,7 +1793,7 @@ struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
-	__type(value, struct ratelimit_key);
+	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_heap SEC(".maps");
 
 #ifdef __LARGE_BPF_PROG
@@ -1840,12 +1836,16 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 			arg_size = e->common.size - e->argsoff[i];
 		if (arg_size > 0) {
 			key_index = e->argsoff[i] & 16383;
-			arg_size = arg_size & (KEY_BYTES_PER_ARG - 1);
+			if (arg_size > KEY_BYTES_PER_ARG)
+				arg_size = KEY_BYTES_PER_ARG;
 			asm volatile("%[dst] = %[data64];\n"
 				     : [dst] "=r"(dst)
 				     : [data64] "r"(data64)
 				     :);
-			memcpy(&dst[index], &e->args[key_index], 16);
+			asm volatile("%[arg_size] &= 0x1f;\n"
+				     : [arg_size] "+r"(arg_size)
+				     :);
+			probe_read(&dst[index], arg_size, &e->args[key_index]);
 			index += arg_size;
 		}
 	}
