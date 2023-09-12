@@ -125,16 +125,19 @@ func RawTracepointAttach(load *Program) AttachFunc {
 	}
 }
 
+func disableProg(coll *ebpf.CollectionSpec, name string) {
+	if spec, ok := coll.Programs[name]; ok {
+		spec.Type = ebpf.UnspecifiedProgram
+	}
+}
+
 func KprobeOpen(load *Program) OpenFunc {
 	return func(coll *ebpf.CollectionSpec) error {
 		// The generic_kprobe_override program is part of bpf_generic_kprobe.o object,
 		// so let's disable it if the override is not configured. Otherwise it gets
 		// loaded and bpftool will show it.
 		if !load.Override {
-			progOverrideSpec, ok := coll.Programs["generic_kprobe_override"]
-			if ok {
-				progOverrideSpec.Type = ebpf.UnspecifiedProgram
-			}
+			disableProg(coll, "generic_kprobe_override")
 		}
 		return nil
 	}
