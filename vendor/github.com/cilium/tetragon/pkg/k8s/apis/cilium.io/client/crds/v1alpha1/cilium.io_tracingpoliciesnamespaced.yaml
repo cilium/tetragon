@@ -610,6 +610,20 @@ spec:
               loader:
                 description: Enable loader events
                 type: boolean
+              options:
+                description: A list of overloaded options
+                items:
+                  properties:
+                    name:
+                      description: Name of the option
+                      type: string
+                    value:
+                      description: Value of the option
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
               podSelector:
                 description: PodSelector selects pods that this policy applies to
                 properties:
