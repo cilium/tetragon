@@ -16,6 +16,7 @@ PROGS = sigkill-tester \
 	uprobe-test-2 \
 	lseek-pipe \
 	threads-tester \
+	samefile-tester \
 	bench-reader \
 	threads-exit \
 	killer-tester

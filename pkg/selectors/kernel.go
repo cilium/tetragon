@@ -7,8 +7,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -237,6 +240,9 @@ const (
 	// more socket ops
 	SelectorOpFamily = 28
 	SelectorOpState  = 29
+	// more file ops
+	SelectorOpSameFile    = 30
+	SelectorOpNotSameFile = 31
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -268,6 +274,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpNotPostfix:   "NotPostfix",
 	SelectorOpFamily:       "Family",
 	SelectorOpState:        "State",
+	SelectorOpSameFile:     "SameFile",
+	SelectorOpNotSameFile:  "NotSameFile",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -328,6 +336,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpFamily, nil
 	case "state", "State":
 		return SelectorOpState, nil
+	case "samefile", "SameFile":
+		return SelectorOpSameFile, nil
+	case "notsamefile", "NotSameFile":
+		return SelectorOpNotSameFile, nil
 	}
 
 	return 0, fmt.Errorf("Unknown op '%s'", op)
@@ -768,6 +780,45 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 	return nil
 }
 
+func identifyFile(path string) (*KernelFileIdentity, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s", path)
+	}
+	defer f.Close()
+
+	stat := new(unix.Stat_t)
+	err = unix.Fstat(int(f.Fd()), stat)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file %s: %s", path, err)
+	}
+
+	// Kernel device is structured differently
+	major := uint32((stat.Dev & 0xfff00) >> 8)
+	minor := uint32((stat.Dev & 0xff) | ((stat.Dev >> 12) & 0xfff00))
+	kernelDev := ((major) << 20) | minor
+
+	return &KernelFileIdentity{
+		inode:  stat.Ino,
+		device: kernelDev,
+	}, nil
+}
+
+func writeMatchFileIdentitiesInMap(k *KernelSelectorState, values []string) error {
+	m := k.createFileIdentityMap()
+	for _, v := range values {
+		f, err := identifyFile(v)
+		if err != nil {
+			return err
+		}
+		m[*f] = struct{}{}
+	}
+	// write the map id into the selector
+	id := k.insertFileIdentityMap(m)
+	WriteSelectorUint32(k, id)
+	return nil
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(k, arg.Index)
 
@@ -831,6 +882,14 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
 		if ty != argTypeSock && ty != argTypeSkb {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
+		}
+	case SelectorOpSameFile, SelectorOpNotSameFile:
+		if ty != argTypeFile && ty != argTypePath {
+			return fmt.Errorf("file operators specified for non-file/path type")
+		}
+		err := writeMatchFileIdentitiesInMap(k, arg.Values)
+		if err != nil {
+			return fmt.Errorf("writeMatchFileIdentitiesInMap error: %w", err)
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)

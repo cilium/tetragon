@@ -3787,9 +3787,11 @@ func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *Kprob
 
 // KprobePathChecker implements a checker struct to check a KprobePath field
 type KprobePathChecker struct {
-	Mount *stringmatcher.StringMatcher `json:"mount,omitempty"`
-	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
-	Flags *stringmatcher.StringMatcher `json:"flags,omitempty"`
+	Mount  *stringmatcher.StringMatcher `json:"mount,omitempty"`
+	Path   *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Flags  *stringmatcher.StringMatcher `json:"flags,omitempty"`
+	Inode  *uint64                      `json:"inode,omitempty"`
+	Device *uint32                      `json:"device,omitempty"`
 }
 
 // NewKprobePathChecker creates a new KprobePathChecker
@@ -3824,6 +3826,16 @@ func (checker *KprobePathChecker) Check(event *tetragon.KprobePath) error {
 				return fmt.Errorf("Flags check failed: %w", err)
 			}
 		}
+		if checker.Inode != nil {
+			if *checker.Inode != event.Inode {
+				return fmt.Errorf("Inode has value %d which does not match expected value %d", event.Inode, *checker.Inode)
+			}
+		}
+		if checker.Device != nil {
+			if *checker.Device != event.Device {
+				return fmt.Errorf("Device has value %d which does not match expected value %d", event.Device, *checker.Device)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3850,6 +3862,18 @@ func (checker *KprobePathChecker) WithFlags(check *stringmatcher.StringMatcher) 
 	return checker
 }
 
+// WithInode adds a Inode check to the KprobePathChecker
+func (checker *KprobePathChecker) WithInode(check uint64) *KprobePathChecker {
+	checker.Inode = &check
+	return checker
+}
+
+// WithDevice adds a Device check to the KprobePathChecker
+func (checker *KprobePathChecker) WithDevice(check uint32) *KprobePathChecker {
+	checker.Device = &check
+	return checker
+}
+
 //FromKprobePath populates the KprobePathChecker using data from a KprobePath field
 func (checker *KprobePathChecker) FromKprobePath(event *tetragon.KprobePath) *KprobePathChecker {
 	if event == nil {
@@ -3858,14 +3882,24 @@ func (checker *KprobePathChecker) FromKprobePath(event *tetragon.KprobePath) *Kp
 	checker.Mount = stringmatcher.Full(event.Mount)
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Flags = stringmatcher.Full(event.Flags)
+	{
+		val := event.Inode
+		checker.Inode = &val
+	}
+	{
+		val := event.Device
+		checker.Device = &val
+	}
 	return checker
 }
 
 // KprobeFileChecker implements a checker struct to check a KprobeFile field
 type KprobeFileChecker struct {
-	Mount *stringmatcher.StringMatcher `json:"mount,omitempty"`
-	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
-	Flags *stringmatcher.StringMatcher `json:"flags,omitempty"`
+	Mount  *stringmatcher.StringMatcher `json:"mount,omitempty"`
+	Path   *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Flags  *stringmatcher.StringMatcher `json:"flags,omitempty"`
+	Inode  *uint64                      `json:"inode,omitempty"`
+	Device *uint32                      `json:"device,omitempty"`
 }
 
 // NewKprobeFileChecker creates a new KprobeFileChecker
@@ -3900,6 +3934,16 @@ func (checker *KprobeFileChecker) Check(event *tetragon.KprobeFile) error {
 				return fmt.Errorf("Flags check failed: %w", err)
 			}
 		}
+		if checker.Inode != nil {
+			if *checker.Inode != event.Inode {
+				return fmt.Errorf("Inode has value %d which does not match expected value %d", event.Inode, *checker.Inode)
+			}
+		}
+		if checker.Device != nil {
+			if *checker.Device != event.Device {
+				return fmt.Errorf("Device has value %d which does not match expected value %d", event.Device, *checker.Device)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3926,6 +3970,18 @@ func (checker *KprobeFileChecker) WithFlags(check *stringmatcher.StringMatcher) 
 	return checker
 }
 
+// WithInode adds a Inode check to the KprobeFileChecker
+func (checker *KprobeFileChecker) WithInode(check uint64) *KprobeFileChecker {
+	checker.Inode = &check
+	return checker
+}
+
+// WithDevice adds a Device check to the KprobeFileChecker
+func (checker *KprobeFileChecker) WithDevice(check uint32) *KprobeFileChecker {
+	checker.Device = &check
+	return checker
+}
+
 //FromKprobeFile populates the KprobeFileChecker using data from a KprobeFile field
 func (checker *KprobeFileChecker) FromKprobeFile(event *tetragon.KprobeFile) *KprobeFileChecker {
 	if event == nil {
@@ -3934,6 +3990,14 @@ func (checker *KprobeFileChecker) FromKprobeFile(event *tetragon.KprobeFile) *Kp
 	checker.Mount = stringmatcher.Full(event.Mount)
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Flags = stringmatcher.Full(event.Flags)
+	{
+		val := event.Inode
+		checker.Inode = &val
+	}
+	{
+		val := event.Device
+		checker.Device = &val
+	}
 	return checker
 }
 

@@ -179,15 +179,19 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgFile:
 			fileArg := &tetragon.KprobeFile{
-				Path:  e.Value,
-				Flags: path.FilePathFlagsToStr(e.Flags),
+				Path:   e.Value,
+				Flags:  path.FilePathFlagsToStr(e.Flags),
+				Inode:  e.Inode,
+				Device: e.Device,
 			}
 			a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
 			a.Label = e.Label
 		case api.MsgGenericKprobeArgPath:
 			pathArg := &tetragon.KprobePath{
-				Path:  e.Value,
-				Flags: path.FilePathFlagsToStr(e.Flags),
+				Path:   e.Value,
+				Flags:  path.FilePathFlagsToStr(e.Flags),
+				Inode:  e.Inode,
+				Device: e.Device,
 			}
 			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
 			a.Label = e.Label

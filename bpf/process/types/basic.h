@@ -17,6 +17,7 @@
 #include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
+#include "../file_identity_maps.h"
 #include "../string_maps.h"
 #include "common.h"
 #include "process/data_event.h"
@@ -404,27 +405,31 @@ static inline __attribute__((always_inline)) int cmpbytes(char *s1, char *s2,
 static inline __attribute__((always_inline)) long
 copy_path(char *args, const struct path *arg)
 {
-	int *s = (int *)args;
+	__u64 ino = 0;
+	__u32 dev = 0;
 	int size = 0, flags = 0;
 	char *buffer;
-	void *curr = &args[4];
+	void *curr = &args[16];
 
-	buffer = d_path_local(arg, &size, &flags);
+	buffer = d_path_local(arg, &size, &flags, &ino, &dev);
 	if (!buffer)
 		return 0;
 
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
 		     :);
 	probe_read(curr, size, buffer);
-	*s = size;
-	size += 4;
+
+	*((__u64 *)&args[0]) = ino;
+	*((__u32 *)&args[8]) = dev;
+	*((int *)&args[12]) = size;
+	size += 16;
 
 	/*
 	 * the format of the path is:
-	 * -------------------------------
-	 * | 4 bytes | N bytes | 4 bytes |
-	 * | pathlen |  path   |  flags  |
-	 * -------------------------------
+	 * ---------------------------------------------------
+	 * | 8 bytes | 4 bytes | 4 bytes | N bytes | 4 bytes |
+	 * |   ino   |  rdev   | pathlen |  path   |  flags  |
+	 * ---------------------------------------------------
 	 * Next we set up the flags.
 	 */
 	asm volatile goto(
@@ -848,7 +853,10 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 
 static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
 {
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
+	return (op == op_filter_neq ||
+		op == op_filter_str_notprefix ||
+		op == op_filter_str_notpostfix ||
+		op == op_filter_not_same_file);
 }
 
 static inline __attribute__((always_inline)) long
@@ -877,10 +885,28 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	return is_not_operator(filter->op) ? !match : match;
 }
 
-struct string_buf {
+struct file_buf {
+	__u64 inode;
+	__u32 device;
 	__u32 len;
 	char buf[];
-};
+} __attribute__((packed));
+
+static inline __attribute__((always_inline)) long
+filter_file_identity(struct selector_arg_filter *filter, struct file_buf *file)
+{
+	void *argmap;
+	__u32 map_idx = filter->value;
+
+	argmap = map_lookup_elem(&fileid_maps, &map_idx);
+	if (!argmap)
+		return 0;
+
+	struct file_identity fid = { .inode = file->inode, .device = file->device };
+	__u8 *pass = map_lookup_elem(argmap, &fid);
+
+	return !!pass;
+}
 
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
@@ -888,7 +914,7 @@ struct string_buf {
  * a reverse search.
  */
 static inline __attribute__((always_inline)) long
-filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
+filter_file_buf(struct selector_arg_filter *filter, struct file_buf *args)
 {
 	long match = 0;
 
@@ -911,6 +937,9 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 	case op_filter_str_notpostfix:
 		match = filter_char_buf_postfix(filter, args->buf, args->len);
 		break;
+	case op_filter_same_file:
+	case op_filter_not_same_file:
+		match = filter_file_identity(filter, args);
 	}
 
 	return is_not_operator(filter->op) ? !match : match;
@@ -1574,7 +1603,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf(filter, (struct string_buf *)args);
+			pass &= filter_file_buf(filter, (struct file_buf *)args);
 			break;
 		case string_type:
 			/* for strings, we just encode the length */
@@ -1651,7 +1680,7 @@ struct fdinstall_key {
 };
 
 struct fdinstall_value {
-	char file[264]; // 256B paths + 4B length + 4B flags
+	char file[276]; // 8B Ino + 4B Rdev + 4B length + 256B paths + 4B flags
 };
 
 struct {
@@ -1699,12 +1728,13 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     : [nameoff] "+r"(nameoff)
 			     :);
 
-		size = *(__u32 *)&e->args[nameoff];
+		// String size is 12 bytes after start of buffer
+		size = *(__u32 *)(&e->args[nameoff + 12]);
 		asm volatile("%[size] &= 0xff;\n"
 			     : [size] "+r"(size)
 			     :);
 
-		probe_read(&val.file[0], size + 4 /* size */ + 4 /* flags */,
+		probe_read(&val.file[0], size + 8 /* inode */ + 4 /* device */ + 4 /* size */ + 4 /* flags */,
 			   &e->args[nameoff]);
 		map_update_elem(&fdinstall_map, &key, &val, BPF_ANY);
 	} else {
@@ -2297,19 +2327,14 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
-			__u32 bytes = (__u32)val->file[0];
+			__u32 bytes = *(__u32 *)(&val->file[12]);
 
 			probe_read(&args[0], sizeof(__u32), &fd);
 			asm volatile("%[bytes] &= 0xff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
-			size = bytes + 4 + 4;
-
-			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
-			size += 4;
+			probe_read(&args[4], bytes + 4 + 8 + 4 + 4, (char *)&val->file[0]);
+			size = bytes + 4 + 4 + 8 + 4 + 4;
 		} else {
 			/* If filter specification is fd type then we
 			 * expect the fd has been previously followed

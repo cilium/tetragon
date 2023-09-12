@@ -480,6 +480,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| inode | [uint64](#uint64) |  |  |
+| device | [uint32](#uint32) |  |  |
 
 
 
@@ -497,6 +499,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| inode | [uint64](#uint64) |  |  |
+| device | [uint32](#uint32) |  |  |
 
 
 

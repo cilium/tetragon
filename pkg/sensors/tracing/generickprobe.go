@@ -256,6 +256,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	// that we do not need to SetInnerMaxEntries() here.
 	maps = append(maps, addr6FilterMaps)
 
+	fileIdentifierMaps := program.MapBuilderPin("fileid_maps", sensors.PathJoin(pinPath, "fileid_maps"), load)
+	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
+	// that we do not need to SetInnerMaxEntries() here.
+	maps = append(maps, fileIdentifierMaps)
+
 	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
 	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
 		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
@@ -1105,6 +1110,12 @@ func parseString(r io.Reader) (string, error) {
 	return strutils.UTF8FromBPFBytes(stringBuffer), nil
 }
 
+func convertKernelDeviceToUser(kd uint32) uint32 {
+	major := kd >> 20
+	minor := kd & 0xfffff
+	return (minor & 0xff) | (major << 8) | ((minor & 0xfff00) << 12)
+}
+
 func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
 	var bytes, bytes_rd, hasDataEvents int32
 	var arg api.MsgGenericKprobeArgBytes
@@ -1299,6 +1310,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			var arg api.MsgGenericKprobeArgFile
 			var flags uint32
 			var b int32
+			var kernelDevice uint32
 
 			/* Eat file descriptor its not used in userland */
 			if a.ty == gt.GenericFdType {
@@ -1306,6 +1318,18 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			}
 
 			arg.Index = uint64(a.index)
+
+			err := binary.Read(r, binary.LittleEndian, &arg.Inode)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("error parsing inode of file")
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &kernelDevice)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("error parsing device of file")
+			}
+			arg.Device = convertKernelDeviceToUser(kernelDevice)
+
 			arg.Value, err = parseString(r)
 			if err != nil {
 				if errors.Is(err, errParseStringSize) {
@@ -1321,7 +1345,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			}
 
 			// read the first byte that keeps the flags
-			err := binary.Read(r, binary.LittleEndian, &flags)
+			err = binary.Read(r, binary.LittleEndian, &flags)
 			if err != nil {
 				flags = 0
 			}
@@ -1332,8 +1356,21 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		case gt.GenericPathType:
 			var arg api.MsgGenericKprobeArgPath
 			var flags uint32
+			var kernelDevice uint32
 
 			arg.Index = uint64(a.index)
+
+			err := binary.Read(r, binary.LittleEndian, &arg.Inode)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("error parsing inode of file")
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &kernelDevice)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("error parsing device of file")
+			}
+			arg.Device = convertKernelDeviceToUser(kernelDevice)
+
 			arg.Value, err = parseString(r)
 			if err != nil {
 				if errors.Is(err, errParseStringSize) {
@@ -1344,7 +1381,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			}
 
 			// read the first byte that keeps the flags
-			err := binary.Read(r, binary.LittleEndian, &flags)
+			err = binary.Read(r, binary.LittleEndian, &flags)
 			if err != nil {
 				flags = 0
 			}

@@ -1,0 +1,20 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "samefile"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "{{.SameFileOp}}"
+        values:
+        - {{.MatchValues}}

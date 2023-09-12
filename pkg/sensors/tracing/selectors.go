@@ -43,6 +43,12 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			},
 		}, {
 			Index: 0,
+			Name:  "fileid_maps",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateFileIdentityMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
 			Name:  "sel_names_map",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
@@ -254,6 +260,65 @@ func populateAddr6FilterMap(
 		ValueSize:  uint32(1),
 		MaxEntries: maxEntries,
 		Flags:      bpf.BPF_F_NO_PREALLOC,
+	}
+	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+		PinPath: sensors.PathJoin(pinPathPrefix, innerName),
+	})
+	if err != nil {
+		return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+	}
+	defer innerMap.Close()
+
+	one := uint8(1)
+	for val := range innerData {
+		err := innerMap.Update(val, one, 0)
+		if err != nil {
+			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+		}
+	}
+
+	if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
+		return fmt.Errorf("failed to insert %s: %w", innerName, err)
+	}
+
+	return nil
+}
+
+func populateFileIdentityMaps(
+	k *selectors.KernelSelectorState,
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+) error {
+	maxEntries := k.FileIdentityMapsMaxEntries()
+	for i, fm := range k.FileIdentityMaps() {
+		nrEntries := uint32(len(fm))
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			nrEntries = uint32(maxEntries)
+		}
+		err := populateFileIdentityMap(pinPathPrefix, outerMap, uint32(i), fm, nrEntries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func populateFileIdentityMap(
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+	innerID uint32,
+	innerData map[selectors.KernelFileIdentity]struct{},
+	maxEntries uint32,
+) error {
+	innerName := fmt.Sprintf("fileidfilter_map_%d", innerID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       innerName,
+		Type:       ebpf.Hash,
+		KeySize:    12, // Consists of 8-byte inode, 4-byte device id
+		ValueSize:  uint32(1),
+		MaxEntries: maxEntries,
 	}
 	innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
 		PinPath: sensors.PathJoin(pinPathPrefix, innerName),

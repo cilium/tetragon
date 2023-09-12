@@ -41,6 +41,9 @@ enum {
 	// more socket ops
 	op_filter_family = 28,
 	op_filter_state = 29,
+	// more file ops
+	op_filter_same_file = 30,
+	op_filter_not_same_file = 31,
 };
 
 #endif // __OPERATIONS_H__

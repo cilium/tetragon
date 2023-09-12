@@ -37,6 +37,11 @@ type KernelLPMTrie6 struct {
 	addr      [16]byte
 }
 
+type KernelFileIdentity struct {
+	inode  uint64
+	device uint32
+}
+
 type ValueMap struct {
 	Data map[[8]byte]struct{}
 }
@@ -96,6 +101,9 @@ type KernelSelectorState struct {
 
 	// addr6Maps are used to populate IPv6 address LpmTrie maps for sock and skb operators
 	addr6Maps []map[KernelLPMTrie6]struct{}
+
+	// fileIdentityMaps are used to store file data for SameFile and NotSameFile operators
+	fileIdentityMaps []map[KernelFileIdentity]struct{}
 
 	matchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
 	newBinVals    map[uint32]string              // these should be added in the names_map
@@ -172,6 +180,10 @@ func (k *KernelSelectorState) Addr6Maps() []map[KernelLPMTrie6]struct{} {
 	return k.addr6Maps
 }
 
+func (k *KernelSelectorState) FileIdentityMaps() []map[KernelFileIdentity]struct{} {
+	return k.fileIdentityMaps
+}
+
 func (k *KernelSelectorState) StringMaps(subMap int) []map[[MaxStringMapsSize]byte]struct{} {
 	return k.maps.stringMaps[subMap]
 }
@@ -210,6 +222,17 @@ func (k *KernelSelectorState) Addr4MapsMaxEntries() int {
 func (k *KernelSelectorState) Addr6MapsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.addr6Maps {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+// FileIdentityMapsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) FileIdentityMapsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.fileIdentityMaps {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}
@@ -366,6 +389,16 @@ func (k *KernelSelectorState) createAddr6Map() map[KernelLPMTrie6]struct{} {
 func (k *KernelSelectorState) insertAddr6Map(addr6map map[KernelLPMTrie6]struct{}) uint32 {
 	mapid := len(k.addr6Maps)
 	k.addr6Maps = append(k.addr6Maps, addr6map)
+	return uint32(mapid)
+}
+
+func (k *KernelSelectorState) createFileIdentityMap() map[KernelFileIdentity]struct{} {
+	return map[KernelFileIdentity]struct{}{}
+}
+
+func (k *KernelSelectorState) insertFileIdentityMap(fileIdentityMap map[KernelFileIdentity]struct{}) uint32 {
+	mapid := len(k.fileIdentityMaps)
+	k.fileIdentityMaps = append(k.fileIdentityMaps, fileIdentityMap)
 	return uint32(mapid)
 }
 

@@ -302,12 +302,16 @@ message KprobePath {
     string mount = 1;
     string path  = 2;
     string flags = 3;
+    uint64 inode = 4;
+    uint32 device = 5;
 }
 
 message KprobeFile {
     string mount = 1;
     string path  = 2;
     string flags = 3;
+    uint64 inode = 4;
+    uint32 device = 5;
 }
 
 message KprobeTruncatedBytes {

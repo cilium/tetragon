@@ -273,11 +273,17 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 
 static inline __attribute__((always_inline)) int
 path_with_deleted(const struct path *path, const struct path *root, char *bf,
-		  char **buf, int *buflen)
+		  char **buf, int *buflen, __u64 *ino, __u32 *dev)
 {
 	struct dentry *dentry;
 
 	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+
+	if (ino)
+		BPF_CORE_READ_INTO(ino, dentry, d_inode, i_ino);
+	if (dev)
+		BPF_CORE_READ_INTO(dev, dentry, d_inode, i_sb, s_dev);
+
 	if (d_unlinked(dentry)) {
 		int error = prepend(buf, buflen, " (deleted)", 10);
 		if (error) // will never happen as prepend will never return a value != 0
@@ -322,7 +328,7 @@ path_with_deleted(const struct path *path, const struct path *root, char *bf,
  * ps. The size of the path will be (initial value of buflen) - (return value of buflen) if (buflen != 0)
  */
 static inline __attribute__((always_inline)) char *
-__d_path_local(const struct path *path, char *buf, int *buflen, int *error)
+__d_path_local(const struct path *path, char *buf, int *buflen, int *error, __u64 *ino, __u32 *dev)
 {
 	char *res = buf + *buflen;
 	struct task_struct *task;
@@ -330,7 +336,7 @@ __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
 
 	task = (struct task_struct *)get_current_task();
 	probe_read(&fs, sizeof(fs), _(&task->fs));
-	*error = path_with_deleted(path, _(&fs->root), buf, &res, buflen);
+	*error = path_with_deleted(path, _(&fs->root), buf, &res, buflen, ino, dev);
 	return res;
 }
 
@@ -345,10 +351,11 @@ __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
  * resolved path (0 < buflen <= 256) and will not be negative. If buflen == 0
  * nothing is written to the buffer (still the value to the buffer is valid).
  * 'error' is 0 in case of success or UNRESOLVED_PATH_COMPONENTS in the case
- * where the path is larger than the provided buffer.
+ * where the path is larger than the provided buffer. File identification values
+ * (ino and dev from the dentry) will be set even if an error occurs.
  */
 static inline __attribute__((always_inline)) char *
-d_path_local(const struct path *path, int *buflen, int *error)
+d_path_local(const struct path *path, int *buflen, int *error, __u64 *ino, __u32 *dev)
 {
 	int zero = 0;
 	char *buffer = 0;
@@ -358,7 +365,7 @@ d_path_local(const struct path *path, int *buflen, int *error)
 		return 0;
 
 	*buflen = 256;
-	buffer = __d_path_local(path, buffer, buflen, error);
+	buffer = __d_path_local(path, buffer, buflen, error, ino, dev);
 	if (*buflen > 0)
 		*buflen = 256 - *buflen;
 
@@ -379,7 +386,7 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 		return 0;
 	}
 
-	buffer = d_path_local(_(&fs->pwd), &size, &flags);
+	buffer = d_path_local(_(&fs->pwd), &size, &flags, NULL, NULL);
 	if (!buffer)
 		return 0;
 
