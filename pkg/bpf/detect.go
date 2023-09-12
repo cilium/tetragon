@@ -7,6 +7,7 @@
 package bpf
 
 import (
+	"fmt"
 	"sync"
 	"unsafe"
 
@@ -142,4 +143,9 @@ func HasModifyReturn() bool {
 		modifyReturn.detected = detectModifyReturn()
 	})
 	return modifyReturn.detected
+}
+
+func LogFeatures() string {
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t",
+		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn())
 }
