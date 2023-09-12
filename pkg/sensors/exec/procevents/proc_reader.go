@@ -57,7 +57,8 @@ type procs struct {
 	pktime               uint64
 	pargs                []byte
 	size                 uint32
-	uid                  uint32
+	uids                 []uint32
+	gids                 []uint32
 	pid                  uint32
 	tid                  uint32
 	nspid                uint32
@@ -90,7 +91,6 @@ func procKernel() procs {
 		pktime:      1,
 		pargs:       kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		uid:         0,
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
@@ -98,6 +98,8 @@ func procKernel() procs {
 		flags:       api.EventProcFS,
 		ktime:       1,
 		args:        kernelArgs,
+		uids:        []uint32{0, 0, 0, 0},
+		gids:        []uint32{0, 0, 0, 0},
 		effective:   0,
 		inheritable: 0,
 		permitted:   0,
@@ -168,8 +170,13 @@ func pushExecveEvents(p procs) {
 	m.Process.PID = p.pid
 	m.Process.TID = p.tid
 	m.Process.NSPID = p.nspid
-	m.Process.UID = p.uid
+	// use euid to be compatible with ps
+	m.Process.UID = p.uids[1]
 	m.Process.AUID = p.auid
+	m.Creds = processapi.MsgGenericCredMinimal{
+		Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
+		Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
+	}
 	m.Process.Flags = p.flags | flags
 	m.Process.Ktime = p.ktime
 	m.Common.Ktime = p.ktime
@@ -324,19 +331,25 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 
 		// Initialize with invalid uid
-		euid := proc.InvalidUid
+		uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
+		gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
 		auid := proc.InvalidUid
 		// Get process status
 		status, err := proc.GetStatus(pathName)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Reading process status error")
 		} else {
-			_, euid, err = proc.GetUids(status)
+			uids, err = status.GetUids()
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(euid))
+				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to uid: %d", pathName, uint32(proc.InvalidUid))
 			}
 
-			auid, err = proc.GetLoginUid(status)
+			gids, err = status.GetGids()
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Reading Uids of %s failed, falling back to gid: %d", pathName, uint32(proc.InvalidUid))
+			}
+
+			auid, err = status.GetLoginUid()
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid))
 			}
@@ -421,7 +434,8 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
 			pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			pktime:               pktime,
-			uid:                  euid, // use euid to be compatible with ps
+			uids:                 uids,
+			gids:                 gids,
 			auid:                 auid,
 			pid:                  uint32(pid),
 			tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
