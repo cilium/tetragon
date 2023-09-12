@@ -1,23 +1,43 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Cilium
 
-package main
+package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/cilium/cilium/pkg/logging"
+	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
+	"github.com/cilium/tetragon/pkg/cmdref"
 	"github.com/cilium/tetragon/pkg/option"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func init() {
-	initializeFlags()
-}
+// New create a new root command.
+func New() *cobra.Command {
+	binaryName := filepath.Base(os.Args[0])
+	log := logging.DefaultLogger.WithField(logfields.LogSubsys, binaryName)
 
-func initializeFlags() {
+	rootCmd := &cobra.Command{
+		Use:   binaryName,
+		Short: "Run " + binaryName,
+		Run: func(cmd *cobra.Command, args []string) {
+			// Populate option.Config with options from CLI.
+			operatorOption.ConfigPopulate()
+			cmdRefDir := viper.GetString(operatorOption.CMDRef)
+			if cmdRefDir != "" {
+				cmdref.GenMarkdown(cmd, cmdRefDir)
+				os.Exit(0)
+			}
+			crd.RegisterCRDs()
+		},
+	}
+
 	cobra.OnInitialize(func() {
 		replacer := strings.NewReplacer("-", "_", ".", "_")
 		viper.SetEnvKeyReplacer(replacer)
@@ -48,12 +68,6 @@ func initializeFlags() {
 	flags.Bool(operatorOption.SkipPodInfoCRD, false, "When true, PodInfo Custom Resource Definition (CRD) will not be created")
 
 	viper.BindPFlags(flags)
-}
 
-// configPopulate sets all options with the values from viper.
-func configPopulate() {
-	operatorOption.Config.SkipCRDCreation = viper.GetBool(operatorOption.SkipCRDCreation)
-	operatorOption.Config.KubeCfgPath = viper.GetString(operatorOption.KubeCfgPath)
-	operatorOption.Config.ConfigDir = viper.GetString(operatorOption.ConfigDir)
-	operatorOption.Config.SkipPodInfoCRD = viper.GetBool(operatorOption.SkipPodInfoCRD)
+	return rootCmd
 }
