@@ -48,13 +48,18 @@ func TestGetPid1Status(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, status.Uids)
 
-	ruid, euid, err := GetUids(status)
+	uids, err := status.GetUids()
 	assert.NoError(t, err)
-	assert.Equal(t, uint32(0), ruid)
-	assert.Equal(t, uint32(0), euid)
+	assert.Equal(t, uint32(0), uids[0])
+	assert.Equal(t, uint32(0), uids[1])
+
+	gids, err := status.GetGids()
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(0), gids[0])
+	assert.Equal(t, uint32(0), gids[1])
 
 	// PID 1 does not have a loginuid
-	loginuid, err := GetLoginUid(status)
+	loginuid, err := status.GetLoginUid()
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(4294967295), loginuid)
 }

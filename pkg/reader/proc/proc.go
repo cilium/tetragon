@@ -16,6 +16,7 @@ import (
 type Status struct {
 	// Real, effective, saved, and filesystem.
 	Uids []string
+	Gids []string
 
 	// /proc/[pid]/loginuid
 	LoginUid string
@@ -110,6 +111,16 @@ func fillStatus(file string, status *Status) error {
 				return fmt.Errorf("Reading Uid from %s failed: malformed input", path)
 			}
 			status.Uids = []string{fields[1], fields[2], fields[3], fields[4]}
+		}
+
+		if fields[0] == "Gid:" {
+			if len(fields) != 5 {
+				return fmt.Errorf("Reading Gid from %s failed: malformed input", path)
+			}
+			status.Gids = []string{fields[1], fields[2], fields[3], fields[4]}
+		}
+
+		if len(status.Uids) > 0 && len(status.Gids) > 0 {
 			break
 		}
 	}
@@ -164,29 +175,50 @@ func GetProcPid(pid string) (uint64, error) {
 	return strconv.ParseUint(pid, 10, 32)
 }
 
-// Returns real uid and effective uid on success. If we fail we do not
+// Returns all parsed UIDs on success. If we fail for one value we do not
 // return the overflow ID, we return the invalid UID 4294967295
 // (-1 as an unsigned integer).
 // The overflow ID is returned when the kernel decides and pass it back,
 // as it can be a valid indication of UID mapping error.
-func GetUids(status *Status) (uint32, uint32, error) {
-	ruid, err := strconv.ParseUint(status.Uids[0], 10, 32)
-	if err != nil {
-		return InvalidUid, InvalidUid, err
+func (status *Status) GetUids() ([]uint32, error) {
+	uids := []uint32{InvalidUid, InvalidUid, InvalidUid, InvalidUid}
+
+	for i, v := range status.Uids {
+		uid, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return uids, err
+		}
+		uids[i] = uint32(uid)
 	}
 
-	euid, err := strconv.ParseUint(status.Uids[1], 10, 32)
-	if err != nil {
-		return InvalidUid, InvalidUid, err
+	return uids, nil
+}
+
+// Returns all parsed GIDs on success. If we fail for one value we do not
+// return the overflow ID, we return the invalid UID 4294967295
+// (-1 as an unsigned integer).
+// The overflow ID is returned when the kernel decides and pass it back,
+// as it can be a valid indication of UID mapping error.
+func (status *Status) GetGids() ([]uint32, error) {
+	gids := []uint32{InvalidUid, InvalidUid, InvalidUid, InvalidUid}
+
+	for i, v := range status.Gids {
+		gid, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return gids, err
+		}
+		gids[i] = uint32(gid)
 	}
 
-	return uint32(ruid), uint32(euid), nil
+	return gids, nil
 }
 
 // Returns the task loginuid on success, if we fail we return
 // the invalid uid 4294967295 that is same value of tasks
+// Returns the task loginuid on success, if we fail we return
+// the invalid uid 4294967295 that is same value of tasks
 // without loginuid.
-func GetLoginUid(status *Status) (uint32, error) {
+func (status *Status) GetLoginUid() (uint32, error) {
 	auid, err := strconv.ParseUint(status.LoginUid, 10, 32)
 	if err != nil {
 		return InvalidUid, err
