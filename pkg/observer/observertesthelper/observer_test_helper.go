@@ -271,6 +271,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 		testDone(tb, obs)
 	})
 
+	logger.GetLogger().Info("BPF detected features: ", bpf.LogFeatures())
+
 	obs.PerfConfig = bpf.DefaultPerfEventConfig()
 	obs.PerfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
 	return obs, nil
