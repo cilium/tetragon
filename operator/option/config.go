@@ -3,6 +3,8 @@
 
 package option
 
+import "github.com/spf13/viper"
+
 const (
 	TetragonOpEnvPrefix = "TETRAGON_OPERATOR"
 
@@ -42,3 +44,11 @@ type OperatorConfig struct {
 
 // Config represents the operator configuration.
 var Config = &OperatorConfig{}
+
+// ConfigPopulate sets all options with the values from viper.
+func ConfigPopulate() {
+	Config.SkipCRDCreation = viper.GetBool(SkipCRDCreation)
+	Config.KubeCfgPath = viper.GetString(KubeCfgPath)
+	Config.ConfigDir = viper.GetString(ConfigDir)
+	Config.SkipPodInfoCRD = viper.GetBool(SkipPodInfoCRD)
+}
