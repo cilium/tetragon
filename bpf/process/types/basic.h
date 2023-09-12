@@ -1766,16 +1766,16 @@ do_action_signal(int signal)
 
 /* The number of bytes per argument to include in the key
  * that we use to check for repeating data.
- * 16 is good for IPv4 data. Should increase for IPv6.
+ * 40 is good for IPv6 data.
  */
-#define KEY_BYTES_PER_ARG 16
+#define KEY_BYTES_PER_ARG 40
 
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 retprobe_id;
 	__u64 action;
 	__u64 tid;
-	char data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
+	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
 };
 
 struct ratelimit_value {
@@ -1789,12 +1789,23 @@ struct {
 	__type(value, struct ratelimit_value);
 } ratelimit_map SEC(".maps");
 
+// The value has extra headroom to allow copying argument data without upsetting the verifier.
+// This is not hashed when the key is used in the ratelimit_map.
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_heap SEC(".maps");
+
+// This is zeroed memory that we NEVER write to, and use to copy over reusable heap in order
+// to zero it.
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
+} ratelimit_ro_heap SEC(".maps");
 
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) bool
@@ -1803,10 +1814,10 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 	__u64 curr_time = ktime_get_ns();
 	__u64 *last_repeat_entry;
 	struct ratelimit_key *key;
+	void *ro_heap;
 	__u32 zero = 0;
 	__u32 index = 0;
 	__u32 key_index = 0;
-	__u64 *data64 = 0;
 	int arg_size;
 	int i;
 	__u8 *dst;
@@ -1817,15 +1828,16 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 	key = map_lookup_elem(&ratelimit_heap, &zero);
 	if (!key)
 		return false;
+	ro_heap = map_lookup_elem(&ratelimit_ro_heap, &zero);
 
 	key->func_id = e->func_id;
 	key->retprobe_id = e->retprobe_id;
 	key->action = e->action;
 	key->tid = e->tid;
 
-	data64 = (__u64 *)key->data;
-	for (i = 0; i < (MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG) / 8; i++)
-		data64[i] = 0;
+	// Clean the heap
+	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
+	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
 		if (e->argsoff[i] >= e->common.size)
@@ -1838,11 +1850,7 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 			key_index = e->argsoff[i] & 16383;
 			if (arg_size > KEY_BYTES_PER_ARG)
 				arg_size = KEY_BYTES_PER_ARG;
-			asm volatile("%[dst] = %[data64];\n"
-				     : [dst] "=r"(dst)
-				     : [data64] "r"(data64)
-				     :);
-			asm volatile("%[arg_size] &= 0x1f;\n"
+			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
 				     : [arg_size] "+r"(arg_size)
 				     :);
 			probe_read(&dst[index], arg_size, &e->args[key_index]);
