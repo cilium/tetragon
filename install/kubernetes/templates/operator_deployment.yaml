@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   labels: 
     {{- include "tetragon-operator.labels" . | nindent 4 }}
-  name: {{ .Chart.Name }}-operator
+  name: {{ .Release.Name }}-operator
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -17,7 +17,7 @@ spec:
         {{- include "tetragon-operator.labels" . | nindent 8 }}
     spec:
       containers:
-      - name: {{ .Chart.Name }}-operator
+      - name: {{ .Release.Name }}-operator
         command:
           - /usr/bin/tetragon-operator
         args:
@@ -47,6 +47,6 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-      serviceAccountName: {{ .Chart.Name }}-operator-service-account
+      serviceAccountName: {{ .Release.Name }}-operator-service-account
       terminationGracePeriodSeconds: 10
 {{- end }}

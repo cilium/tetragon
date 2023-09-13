@@ -11,7 +11,7 @@ metadata:
   {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
   {{- end }}
-  name: {{ .Chart.Name }}
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -39,7 +39,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ .Chart.Name }}
+      serviceAccountName: {{ .Release.Name }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 6 }}
@@ -82,7 +82,7 @@ spec:
 {{- if .Values.tetragon.enabled }}
       - name: tetragon-config
         configMap:
-          name: {{ .Chart.Name }}-config
+          name: {{ .Release.Name }}-config
       - name: bpf-maps
         hostPath:
           path: /sys/fs/bpf
@@ -99,7 +99,7 @@ spec:
 {{- if .Values.tetragonOperator.enabled }}
       - name: tetragon-operator-config
         configMap:
-          name: {{ .Chart.Name }}-operator-config
+          name: {{ .Release.Name }}-operator-config
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
