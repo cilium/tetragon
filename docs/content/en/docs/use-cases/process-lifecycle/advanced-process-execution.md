@@ -157,7 +157,7 @@ events contain the binary being executed. In the above case they are:
 
 - `function_name`: where we are hooking into the kernel to read the binary that is being executed.
 - `file_arg`: that includes the `path` being executed, and here it is `/bin/busybox` that is the real
-   binary being executed, since on the `xwing` pod the container is running [busybox](https://busybox.net/).
+   binary being executed, since on the `xwing` pod the container is running busybox.
    The binary `/usr/bin/id -> /bin/busybox` points to busybox.
 
 

@@ -48,7 +48,7 @@ and generates events enriched with Linux and Kubernetes metadata:
    about these events on the [TracingPolicy concept page](https://tetragon.cilium.io/docs/concepts/tracing-policy/)
    and discover [multiple use cases](https://tetragon.cilium.io/docs/use-cases/) like:
    - [🌏 network observability](https://tetragon.cilium.io/docs/use-cases/network-observability/)
-   - [📂 file access](https://tetragon.cilium.io/docs/use-cases/file-access/)
+   - [📂 filename access](https://tetragon.cilium.io/docs/use-cases/filename-access/)
    - [🔑 credentials monitoring](https://tetragon.cilium.io/docs/use-cases/linux-process-credentials/)
    - [🔓 privileged execution](https://tetragon.cilium.io/docs/use-cases/process-lifecycle/privileged-execution/)
 
