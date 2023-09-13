@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
@@ -19,12 +20,12 @@ import (
 )
 
 var (
-	EventsProcessed = prometheus.NewCounterVec(prometheus.CounterOpts{
+	EventsProcessed = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
-	}, []string{"type", "namespace", "pod", "binary"})
+	}, []string{"type", "namespace", "workload", "pod", "binary"})
 	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "flags_total",
@@ -38,12 +39,12 @@ var (
 		ConstLabels: nil,
 	})
 
-	policyStats = prometheus.NewCounterVec(prometheus.CounterOpts{
+	policyStats = metrics.NewCounterVecWithPod(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policy_events_total",
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
-	}, []string{"policy", "hook", "namespace", "pod", "binary"})
+	}, []string{"policy", "hook", "namespace", "workload", "pod", "binary"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
@@ -53,17 +54,18 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(policyStats)
 }
 
-func GetProcessInfo(process *tetragon.Process) (binary, pod, namespace string) {
+func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace string) {
 	if process != nil {
 		binary = process.Binary
 		if process.Pod != nil {
 			namespace = process.Pod.Namespace
+			workload = process.Pod.Workload
 			pod = process.Pod.Name
 		}
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventMissingProcessInfo)
 	}
-	return binary, pod, namespace
+	return binary, pod, workload, namespace
 }
 
 func handleOriginalEvent(originalEvent interface{}) {
@@ -78,10 +80,10 @@ func handleOriginalEvent(originalEvent interface{}) {
 }
 
 func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interface{}) {
-	var eventType, namespace, pod, binary string
+	var eventType, namespace, workload, pod, binary string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
-		binary, pod, namespace = GetProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
+		binary, pod, workload, namespace = GetProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
 		var err error
 		eventType, err = helpers.ResponseTypeString(ev)
 		if err != nil {
@@ -91,10 +93,10 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.WithLabelValues(eventType, namespace, pod, binary).Inc()
+	EventsProcessed.WithLabelValues(eventType, namespace, workload, pod, binary).Inc()
 	if pInfo != nil && pInfo.Name != "" {
 		policyStats.
-			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, pod, binary).
+			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary).
 			Inc()
 	}
 }

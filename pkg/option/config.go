@@ -34,14 +34,14 @@ type config struct {
 
 	GopsAddr string
 
-	CiliumDir string
-	MapDir    string
-	BpfDir    string
+	MapDir string
+	BpfDir string
 
 	LogOpts map[string]string
 
 	RBSize      int
 	RBSizeTotal int
+	RBQueueSize int
 
 	ProcessCacheSize int
 	DataCacheSize    int

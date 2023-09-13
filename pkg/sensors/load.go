@@ -55,16 +55,16 @@ const (
 )
 
 // LoadConfig loads the default sensor, including any from the configuration file.
-func LoadConfig(bpfDir, mapDir, ciliumDir string, sens []*Sensor) error {
+func LoadConfig(bpfDir, mapDir string, sens []*Sensor) error {
 	load := mergeSensors(sens)
-	if err := load.Load(bpfDir, mapDir, ciliumDir); err != nil {
+	if err := load.Load(bpfDir, mapDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 	return nil
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(bpfDir, mapDir, ciliumDir string) error {
+func (s *Sensor) Load(bpfDir, mapDir string) error {
 	if s == nil {
 		return nil
 	}
@@ -105,7 +105,7 @@ func (s *Sensor) Load(bpfDir, mapDir, ciliumDir string) error {
 			continue
 		}
 
-		if err := observerLoadInstance(bpfDir, mapDir, ciliumDir, p); err != nil {
+		if err := observerLoadInstance(bpfDir, mapDir, p); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
@@ -248,7 +248,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program) error {
+func observerLoadInstance(bpfDir, mapDir string, load *program.Program) error {
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return err
@@ -260,33 +260,33 @@ func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Progra
 		"kern_version": version,
 	}).Debug("observerLoadInstance", load.Name, version)
 	if load.Type == "tracepoint" {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"raw_tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
 	} else {
-		err = loadInstance(bpfDir, mapDir, ciliumDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
@@ -295,7 +295,7 @@ func observerLoadInstance(bpfDir, mapDir, ciliumDir string, load *program.Progra
 	return nil
 }
 
-func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, version, verbose int) error {
+func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
@@ -308,16 +308,15 @@ func loadInstance(bpfDir, mapDir, ciliumDir string, load *program.Program, versi
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
 		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
 	} else if load.Type == "cgrp_socket" {
-		return cgroup.LoadCgroupProgram(bpfDir, mapDir, ciliumDir, load, verbose)
+		return cgroup.LoadCgroupProgram(bpfDir, mapDir, load, verbose)
 	} else if probe != nil {
 		// Registered probes need extra setup
 		return probe.LoadProbe(LoadProbeArgs{
-			BPFDir:    bpfDir,
-			MapDir:    mapDir,
-			CiliumDir: ciliumDir,
-			Load:      load,
-			Version:   version,
-			Verbose:   verbose,
+			BPFDir:  bpfDir,
+			MapDir:  mapDir,
+			Load:    load,
+			Version: version,
+			Verbose: verbose,
 		})
 	} else {
 		return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)

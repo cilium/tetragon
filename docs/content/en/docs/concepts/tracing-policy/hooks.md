@@ -83,6 +83,187 @@ spec:
     # [...]
 ```
 
+### Lists
+
+It's possible to define list of functions and use it in the kprobe's `call` field.
+
+Following example traces all `sys_dup[23]` syscalls.
+
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+  kprobes:
+  - call: "list:dups"
+```
+
+It is basically a shortcut for following policy:
+
+```yaml
+spec:
+  kprobes:
+  - call: "sys_dup"
+    syscall: true
+  - call: "sys_dup2"
+    syscall: true
+  - call: "sys_dup3"
+    syscall: true
+```
+
+As shown in subsequent examples, its main benefit is allowing a single definition for
+calls that have the same filters.
+
+The list is defined under `lists` field with arbitrary values for `name` and `values` fields.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+    ...
+```
+
+It's possible to define multiple lists.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+    name: "another"
+    - "sys_open"
+    - "sys_close"
+```
+
+Specific list can be referenced in kprobe's `call` field with `"list:NAME"` value.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+  ...
+
+  kprobes:
+  - call: "list:dups"
+```
+
+The kprobe definition creates a kprobe for each item in the list and shares the rest
+of the config specified for kprobe.
+
+List can also specify `type` field that implies extra checks on the values (like for `syscall` type)
+or denote that the list is generated automatically (see below).
+User must specify `syscall` type for list with syscall functions. Also `syscall` functions
+can't be mixed with regular functions in the list.
+
+The additional selector configuration is shared with all functions in the list.
+In following example we create 3 kprobes that share the same pid filter.
+
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+  kprobes:
+  - call: "list:dups"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - 12345
+```
+
+It's possible to use argument filter together with the `list`.
+
+It's important to understand that the argument will be retrieved by using the specified
+argument type for all the functions in the list.
+
+Following example adds argument filter for first argument on all functions in dups list to
+match value 9999.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+  kprobes:
+  - call: "list:dups"
+    args:
+    - index: 0
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - 9999
+```
+
+There are two additional special types of generated lists.
+
+The `generated_syscalls` type of list that generates list with all possible
+syscalls on the system.
+
+Following example traces all syscalls for `/usr/bin/kill` binary.
+
+```yaml
+spec:
+  lists:
+  - name: "all-syscalls"
+    type: "generated_syscalls"
+  kprobes:
+  - call: "list:all-syscalls"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/kill"
+```
+
+The `generated_ftrace` type of list that generates functions from ftrace `available_filter_functions`
+file with specified filter. The filter is specified with `pattern` field and expects regular expression.
+
+Following example traces all kernel `ksys_*` functions for `/usr/bin/kill` binary.
+
+```yaml
+spec:
+  lists:
+  - name: "ksys"
+    type: "generated_ftrace"
+    pattern: "^ksys_*"
+  kprobes:
+  - call: "list:ksys"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/kill"
+```
+
 ## Uprobes
 
 {{% pageinfo %}}

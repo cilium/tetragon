@@ -14,8 +14,8 @@ import (
 
 type handler struct {
 	// map of sensor collections: name -> collection
-	collections               map[string]collection
-	bpfDir, mapDir, ciliumDir string
+	collections    map[string]collection
+	bpfDir, mapDir string
 
 	nextPolicyID uint64
 	pfState      policyfilter.State
@@ -23,12 +23,11 @@ type handler struct {
 
 func newHandler(
 	pfState policyfilter.State,
-	bpfDir, mapDir, ciliumDir string) (*handler, error) {
+	bpfDir, mapDir string) (*handler, error) {
 	return &handler{
 		collections: map[string]collection{},
 		bpfDir:      bpfDir,
 		mapDir:      mapDir,
-		ciliumDir:   ciliumDir,
 		pfState:     pfState,
 		// NB: we are using policy ids for filtering, so we start with
 		// the first valid id. This is because value 0 is reserved to
@@ -120,7 +119,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		tracingpolicyID: uint64(tpID),
 		policyfilterID:  uint64(filterID),
 	}
-	if err := col.load(h.bpfDir, h.mapDir, h.ciliumDir); err != nil {
+	if err := col.load(h.bpfDir, h.mapDir); err != nil {
 		return err
 	}
 
@@ -208,7 +207,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
 
-	return col.load(h.bpfDir, h.mapDir, h.ciliumDir)
+	return col.load(h.bpfDir, h.mapDir)
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {

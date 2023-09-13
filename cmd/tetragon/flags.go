@@ -34,7 +34,6 @@ const (
 	keyMetricsServer     = "metrics-server"
 	keyServerAddress     = "server-address"
 	keyGopsAddr          = "gops-address"
-	keyCiliumBPF         = "cilium-bpf"
 	keyEnableProcessCred = "enable-process-cred"
 	keyEnableProcessNs   = "enable-process-ns"
 	keyConfigFile        = "config-file"
@@ -67,6 +66,7 @@ const (
 
 	keyRBSize      = "rb-size"
 	keyRBSizeTotal = "rb-size-total"
+	keyRBQueueSize = "rb-queue-size"
 
 	keyEventQueueSize = "event-queue-size"
 
@@ -102,6 +102,7 @@ func readAndSetFlags() {
 
 	option.Config.RBSize = viper.GetInt(keyRBSize)
 	option.Config.RBSizeTotal = viper.GetInt(keyRBSizeTotal)
+	option.Config.RBQueueSize = viper.GetInt(keyRBQueueSize)
 
 	option.Config.GopsAddr = viper.GetString(keyGopsAddr)
 
@@ -114,7 +115,6 @@ func readAndSetFlags() {
 
 	option.Config.MetricsServer = viper.GetString(keyMetricsServer)
 	option.Config.ServerAddress = viper.GetString(keyServerAddress)
-	option.Config.CiliumDir = viper.GetString(keyCiliumBPF)
 
 	option.Config.ExportFilename = viper.GetString(keyExportFilename)
 	option.Config.ExportFileMaxSizeMB = viper.GetInt(keyExportFileMaxSizeMB)

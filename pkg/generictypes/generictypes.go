@@ -34,6 +34,9 @@ const (
 	GenericKiocb   = 24
 	GenericIovIter = 25
 
+	GenericLoadModule   = 26
+	GenericKernelModule = 27
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -90,6 +93,10 @@ func GenericTypeFromString(arg string) int {
 		return GenericKiocb
 	case "iov_iter":
 		return GenericIovIter
+	case "load_info":
+		return GenericLoadModule
+	case "module":
+		return GenericKernelModule
 	default:
 		return GenericInvalidType
 	}

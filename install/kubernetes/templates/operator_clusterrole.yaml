@@ -17,7 +17,7 @@ rules:
   - apiGroups:
       - cilium.io
     resources:
-      - tetragonpods
+      - podinfo
     verbs:
       - create
       - delete

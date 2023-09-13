@@ -8,7 +8,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Release.Name }}-operator-role
+  name: {{ .Release.Name }}-operator
 subjects:
   - kind: ServiceAccount
     namespace: {{ .Release.Namespace }}

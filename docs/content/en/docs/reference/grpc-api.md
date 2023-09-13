@@ -166,6 +166,16 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | id | [string](#string) |  | Identifier of the container image composed of the registry path and the sha256. |
 | name | [string](#string) |  | Name of the container image composed of the registry path and the tag. |
 
+<a name="tetragon-KernelModule"></a>
+
+### KernelModule
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | Kernel module name |
+| signature_ok | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | If true the module signature was verified successfully. Depends on kernels compiled with CONFIG_MODULE_SIG option, for details please read: https://www.kernel.org/doc/Documentation/admin-guide/module-signing.rst |
+| tainted | [TaintedBitsType](#tetragon-TaintedBitsType) | repeated | The module tainted flags that will be applied on the kernel. For further details please read: https://docs.kernel.org/admin-guide/tainted-kernels.html |
+
 <a name="tetragon-KprobeArgument"></a>
 
 ### KprobeArgument
@@ -191,6 +201,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | capability_arg | [KprobeCapability](#tetragon-KprobeCapability) |  |  |
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
+| module_arg | [KernelModule](#tetragon-KernelModule) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -360,6 +371,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | labels | [string](#string) | repeated | **Deprecated.** Cilium identity labels of the Pod. This field is deprecated. Use pod_labels instead. |
 | container | [Container](#tetragon-Container) |  | Container of the Pod from which the process that triggered the event originates. |
 | pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
+| workload | [string](#string) |  | Kubernetes workload of the Pod. |
 
 <a name="tetragon-Pod-PodLabelsEntry"></a>
 
@@ -552,6 +564,23 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | KPROBE_ACTION_DNSLOOKUP | 8 | GetURL action issue a DNS lookup against an URL from userspace. |
 | KPROBE_ACTION_NOPOST | 9 | NoPost action suppresses the transmission of the event to userspace. |
 | KPROBE_ACTION_SIGNAL | 10 | Signal action sends specified signal to the process. |
+
+<a name="tetragon-TaintedBitsType"></a>
+
+### TaintedBitsType
+Tainted bits to indicate if the kernel was tainted. For further details: https://docs.kernel.org/admin-guide/tainted-kernels.html
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TAINT_UNSET | 0 |  |
+| TAINT_PROPRIETARY_MODULE | 1 | A proprietary module was loaded. |
+| TAINT_FORCED_MODULE | 2 | A module was force loaded. |
+| TAINT_FORCED_UNLOAD_MODULE | 4 | A module was force unloaded. |
+| TAINT_STAGED_MODULE | 1024 | A staging driver was loaded. |
+| TAINT_OUT_OF_TREE_MODULE | 4096 | An out of tree module was loaded. |
+| TAINT_UNSIGNED_MODULE | 8192 | An unsigned module was loaded. Supported only on kernels built with CONFIG_MODULE_SIG option. |
+| TAINT_KERNEL_LIVE_PATCH_MODULE | 32768 | The kernel has been live patched. |
+| TAINT_TEST_MODULE | 262144 | Loading a test module. |
 
 <a name="tetragon_events-proto"></a>
 

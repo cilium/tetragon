@@ -113,9 +113,9 @@ func RegisterProbeType(probeType string, s probeLoader) {
 
 // LoadProbeArgs are the args to the LoadProbe function.
 type LoadProbeArgs struct {
-	BPFDir, MapDir, CiliumDir string
-	Load                      *program.Program
-	Version, Verbose          int
+	BPFDir, MapDir   string
+	Load             *program.Program
+	Version, Verbose int
 }
 
 func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (*Sensor, error) {

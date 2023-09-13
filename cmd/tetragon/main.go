@@ -31,6 +31,7 @@ import (
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
+	metricsconfig "github.com/cilium/tetragon/pkg/metrics/config"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -295,6 +296,10 @@ func tetragonExecute() error {
 
 	if option.Config.MetricsServer != "" {
 		go metrics.EnableMetrics(option.Config.MetricsServer)
+		metricsconfig.InitAllMetrics(metrics.GetRegistry())
+		go metrics.StartPodDeleteHandler()
+		// Handler must be registered before the watcher is started
+		metrics.RegisterPodDeleteHandler()
 	}
 
 	// Probe runtime configuration and do not fail on errors
@@ -357,7 +362,7 @@ func tetragonExecute() error {
 	obs.LogPinnedBpf(observerDir)
 
 	// load base sensor
-	if err := base.GetInitialSensor().Load(observerDir, observerDir, option.Config.CiliumDir); err != nil {
+	if err := base.GetInitialSensor().Load(observerDir, observerDir); err != nil {
 		return err
 	}
 
@@ -700,7 +705,6 @@ func execute() error {
 	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
 	flags.String(keyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
 	flags.String(keyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
-	flags.String(keyCiliumBPF, "", "Cilium BPF directory")
 	flags.Bool(keyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(keyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
@@ -762,6 +766,8 @@ func execute() error {
 	flags.Bool(keyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 
 	flags.StringSlice(keyKmods, []string{}, "List of kernel modules to load symbols from")
+
+	flags.Int(keyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()

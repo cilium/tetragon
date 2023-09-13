@@ -32,7 +32,7 @@ func (c *collection) info() string {
 
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it
 // will attempt to unload the already loaded sensors.
-func (c *collection) load(bpfDir, mapDir, ciliumDir string) error {
+func (c *collection) load(bpfDir, mapDir string) error {
 
 	var err error
 	for _, sensor := range c.sensors {
@@ -46,7 +46,7 @@ func (c *collection) load(bpfDir, mapDir, ciliumDir string) error {
 			break
 		}
 
-		if err = sensor.Load(bpfDir, mapDir, ciliumDir); err != nil {
+		if err = sensor.Load(bpfDir, mapDir); err != nil {
 			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.Name, c.name, err)
 			break
 		}

@@ -15,8 +15,10 @@
 #include "user_namespace.h"
 #include "capabilities.h"
 #include "cred.h"
+#include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
+#include "../string_maps.h"
 #include "common.h"
 #include "process/data_event.h"
 
@@ -55,6 +57,9 @@ enum {
 
 	kiocb_type = 24,
 	iov_iter_type = 25,
+
+	load_module_type = 26,
+	kernel_module_type = 27,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -445,10 +450,12 @@ copy_strings(char *args, unsigned long arg)
 	int *s = (int *)args;
 	long size;
 
+	// probe_read_str() always nul-terminates the string.
 	size = probe_read_str(&args[4], MAX_STRING, (char *)arg);
-	if (size < 0) {
+	if (size <= 1)
 		return invalid_ty;
-	}
+	// Remove the nul character from end.
+	size--;
 	*s = size;
 	// Initial 4 bytes hold string length
 	return size + 4;
@@ -536,6 +543,52 @@ copy_capability(char *args, unsigned long arg)
 	info->cap = cap;
 
 	return sizeof(struct capability_info_type);
+}
+
+static inline __attribute__((always_inline)) long
+copy_load_module(char *args, unsigned long arg)
+{
+	int ok;
+	const char *name;
+	const struct load_info *mod = (struct load_info *)arg;
+	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
+
+	memset(info, 0, sizeof(struct tg_kernel_module));
+
+	if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
+		return 0;
+
+	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, name) < 0)
+		return 0;
+
+	BPF_CORE_READ_INTO(&info->taints, mod, mod, taints);
+
+	if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
+		info->sig_ok = !!ok;
+
+	return sizeof(struct tg_kernel_module);
+}
+
+static inline __attribute__((always_inline)) long
+copy_kernel_module(char *args, unsigned long arg)
+{
+	const struct module *mod = (struct module *)arg;
+	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
+
+	memset(info, 0, sizeof(struct tg_kernel_module));
+
+	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, mod->name) < 0)
+		return 0;
+
+	BPF_CORE_READ_INTO(&info->taints, mod, taints);
+
+	/*
+	 * Todo: allow to check if module is signed here too.
+	 *  the module->sig_ok is available only under CONFIG_MODULE_SIG option, so
+	 *  let's not fail here, and users can check the load_info->sig_ok instead.
+	 */
+
+	return sizeof(struct tg_kernel_module);
 }
 
 #define ARGM_INDEX_MASK	 0xf
@@ -632,51 +685,195 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 }
 
 static inline __attribute__((always_inline)) long
+filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
+{
+	__u32 *map_ids = (__u32 *)&filter->value;
+	void *string_map;
+	__u32 map_idx;
+	__u8 len;
+	__u8 padded_len;
+	int index;
+	char *heap, *zero_heap;
+	int zero = 0;
+
+	if (orig_len >= STRING_MAPS_SIZE_5 || !orig_len)
+		return 0;
+
+	len = (__u8)orig_len;
+	// Calculate padded string length
+	padded_len = len;
+	if (len % STRING_MAPS_KEY_INC_SIZE != 0)
+		padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
+
+	// Check if we have entries for this padded length.
+	// Do this before we copy data for efficiency.
+	index = (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
+	map_idx = map_ids[index & 0x7];
+	if (map_idx == 0xffffffff)
+		return 0;
+
+	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
+	zero_heap = (char *)map_lookup_elem(&string_maps_ro_zero, &zero);
+	if (!heap || !zero_heap)
+		return 0;
+
+	// Copy string to heap, preceded by length
+	heap[0] = len;
+
+	asm volatile("%[len] &= 0xff;\n"
+		     : [len] "+r"(len)
+		     :);
+	probe_read(&heap[1], len, arg_str);
+
+	// Pad string to multiple of key increment size
+	if (padded_len > len) {
+		asm volatile("%[len] &= 0xff;\n"
+			     : [len] "+r"(len)
+			     :);
+		probe_read(heap + len + 1, (padded_len - len) & 0xff, zero_heap);
+	}
+
+	// Get map for this string length
+	switch (index) {
+	case 0:
+		string_map = map_lookup_elem(&string_maps_0, &map_idx);
+		break;
+	case 1:
+		string_map = map_lookup_elem(&string_maps_1, &map_idx);
+		break;
+	case 2:
+		string_map = map_lookup_elem(&string_maps_2, &map_idx);
+		break;
+	case 3:
+		string_map = map_lookup_elem(&string_maps_3, &map_idx);
+		break;
+	case 4:
+		string_map = map_lookup_elem(&string_maps_4, &map_idx);
+		break;
+	case 5:
+		string_map = map_lookup_elem(&string_maps_5, &map_idx);
+		break;
+	default:
+		return 0;
+	}
+
+	if (!string_map)
+		return 0;
+
+	__u8 *pass = map_lookup_elem(string_map, heap);
+
+	return !!pass;
+}
+
+static inline __attribute__((always_inline)) long
+filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
+{
+	void *addrmap;
+	__u32 map_idx = *(__u32 *)&filter->value;
+	struct string_prefix_lpm_trie *arg;
+	int zero = 0;
+
+	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	if (arg_len > STRING_PREFIX_MAX_LENGTH || !arg_len)
+		return 0;
+
+	arg = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_prefix_maps_heap, &zero);
+	if (!arg)
+		return 0;
+
+	arg->prefixlen = arg_len * 8; // prefix is in bits
+	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
+
+	__u8 *pass = map_lookup_elem(addrmap, arg);
+
+	return !!pass;
+}
+
+static inline __attribute__((always_inline)) void
+copy_reverse(__u8 *dest, uint len, __u8 *src)
+{
+	uint i;
+
+	len &= STRING_POSTFIX_MAX_MASK;
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	// Maximum we can go to is one less than the absolute maximum.
+	// This is to allow the masking and indexing to work correctly.
+	// (Appreciate this is a bit ugly.)
+	// If len == STRING_POSTFIX_MAX_LENGTH, and this is 128, then
+	// it will have been masked to 0 above, leading to src indices
+	// of -1, -2, -3... masked with STRING_POSTFIX_MAX_MASK (127).
+	// These will equal 127, 126, 125... which will therefore
+	// reverse copy the string as if it was 127 chars long.
+	// Alternative (prettier) fixes resulted in a confused verifier
+	// unfortunately.
+	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
+		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len - 1 - i) & STRING_POSTFIX_MAX_MASK];
+		if (len == (i + 1))
+			return;
+	}
+}
+
+static inline __attribute__((always_inline)) long
+filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
+{
+	void *addrmap;
+	__u32 map_idx = *(__u32 *)&filter->value;
+	struct string_postfix_lpm_trie *arg;
+	int zero = 0;
+
+	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
+	if (!addrmap)
+		return 0;
+
+	if (arg_len > STRING_POSTFIX_MAX_LENGTH || !arg_len)
+		return 0;
+
+	arg = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+	if (!arg)
+		return 0;
+
+	arg->prefixlen = arg_len * 8; // prefix is in bits
+	copy_reverse(arg->data, arg_len, (__u8 *)arg_str);
+
+	__u8 *pass = map_lookup_elem(addrmap, arg);
+
+	return !!pass;
+}
+
+static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
+{
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
+}
+
+static inline __attribute__((always_inline)) long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
-	char *value = (char *)&filter->value;
-	long i, j = 0;
+	long match = 0;
+	// Arg length is 4 bytes before the value data
+	uint len = *(uint *)&args[value_off - 4];
+	char *arg_str = &args[value_off];
 
-#pragma unroll
-	for (i = 0; i < MAX_MATCH_STRING_VALUES; i++) {
-		__u32 length;
-		int err, a, postoff = 0;
-
-		/* filter->vallen is pulled from user input so we also need to
-		 * ensure its bounded.
-		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
-		length = *(__u32 *)&value[j];
-		asm volatile("%[length] &= 0xff;\n" ::[length] "+r"(length)
-			     :);
-		// arg length is 4 bytes before the value data
-		a = *(int *)&args[value_off - 4];
-		if (filter->op == op_filter_eq) {
-			if (length != a)
-				goto skip_string;
-		} else if (filter->op == op_filter_str_postfix) {
-			postoff = a - length;
-			asm volatile("%[postoff] &= 0x3f;\n" ::[postoff] "+r"(
-					     postoff)
-				     :);
-		}
-
-		/* This is redundant, but seems we lost 'j' bounds from
-		 * above so at the moment its necessary until we improve
-		 * compiler.
-		 */
-		asm volatile("%[j] &= 0xff;\n" ::[j] "+r"(j)
-			     :);
-		err = cmpbytes(&value[j + 4], &args[value_off + postoff], length);
-		if (!err)
-			return 1;
-	skip_string:
-		j += length + 4;
-		if (j + 8 >= filter->vallen)
-			break;
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		match = filter_char_buf_equal(filter, arg_str, len);
+		break;
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix:
+		match = filter_char_buf_prefix(filter, arg_str, len);
+		break;
+	case op_filter_str_postfix:
+	case op_filter_str_notpostfix:
+		match = filter_char_buf_postfix(filter, arg_str, len);
+		break;
 	}
-	return 0;
+
+	return is_not_operator(filter->op) ? !match : match;
 }
 
 struct string_buf {
@@ -684,57 +881,15 @@ struct string_buf {
 	char buf[];
 };
 
-#define FILTER_FILE_MATCH   0
-#define FILTER_FILE_NOMATCH 1
-
-static inline __attribute__((always_inline)) long
-__filter_file_buf(struct string_buf *value, struct string_buf *args, __u32 op)
-{
-	__u32 v = value->len, a = args->len;
-	int err;
-
-	if (op == op_filter_eq || op == op_filter_neq) {
-		if (v != a)
-			goto skip_string;
-	} else if (op == op_filter_str_prefix || op == op_filter_str_notprefix) {
-		if (a < v)
-			goto skip_string;
-	} else if (op == op_filter_str_postfix || op == op_filter_str_notpostfix) {
-		err = rcmpbytes(value->buf, args->buf, v - 1, a - 1);
-		if (!err)
-			return FILTER_FILE_MATCH;
-		goto skip_string;
-	}
-	err = cmpbytes(value->buf, args->buf, v);
-	if (!err)
-		return FILTER_FILE_MATCH;
-skip_string:
-	return FILTER_FILE_NOMATCH;
-}
-
-struct file_buf {
-	__u32 index; // index of filter
-	__u32 op; // op_filter_eq, op_filter_str_prefix, or op_filter_str_postfix
-	__u32 total_sz; // size of all values (len + bytes) + sizeof(total_sz) + sizeof(type)
-	__u32 type; // path_ty, file_ty, or fd_ty
-};
-
-static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
-{
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
-}
-
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
  * and the filter file path in the normal order. For the 'postfix' operator we do
  * a reverse search.
  */
 static inline __attribute__((always_inline)) long
-filter_file_buf(struct file_buf *filter, struct string_buf *args)
+filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 {
-	char *values = (char *)filter + sizeof(struct file_buf); // all values are after the header
-	__u32 next, remain = filter->total_sz - sizeof(__u32) - sizeof(__u32);
-	long i, match;
+	long match = 0;
 
 	/* There are cases where file pointer may not contain a path.
 	 * An example is using an unnamed pipe. This is not a match.
@@ -742,25 +897,22 @@ filter_file_buf(struct file_buf *filter, struct string_buf *args)
 	if (args->len == 0)
 		return 0;
 
-#ifndef __LARGE_BPF_PROG
-#pragma unroll
-#endif
-	for (i = 0; i < MAX_MATCH_FILE_VALUES; ++i) {
-		struct string_buf *value = (struct string_buf *)values;
-
-		match = __filter_file_buf(value, args, filter->op);
-		if (match == FILTER_FILE_MATCH)
-			return is_not_operator(filter->op) ? 0 : 1;
-
-		next = value->len + sizeof(struct string_buf);
-		remain -= next;
-		if (remain == 0)
-			goto done_filter_file;
-		values += (next & 0x7f);
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		match = filter_char_buf_equal(filter, args->buf, args->len);
+		break;
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix:
+		match = filter_char_buf_prefix(filter, args->buf, args->len);
+		break;
+	case op_filter_str_postfix:
+	case op_filter_str_notpostfix:
+		match = filter_char_buf_postfix(filter, args->buf, args->len);
+		break;
 	}
 
-done_filter_file:
-	return is_not_operator(filter->op);
+	return is_not_operator(filter->op) ? !match : match;
 }
 
 struct ip_ver {
@@ -1259,6 +1411,10 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_user_namespace);
 	case capability_type:
 		return sizeof(struct capability_info_type);
+	case load_module_type:
+		return sizeof(struct tg_kernel_module);
+	case kernel_module_type:
+		return sizeof(struct tg_kernel_module);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1417,7 +1573,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
-			pass &= filter_file_buf((struct file_buf *)filter, (struct string_buf *)args);
+			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
 			/* for strings, we just encode the length */
@@ -2179,6 +2335,14 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case capability_type: {
 		size = copy_capability(args, arg);
+		break;
+	}
+	case load_module_type: {
+		size = copy_load_module(args, arg);
+		break;
+	}
+	case kernel_module_type: {
+		size = copy_kernel_module(args, arg);
 		break;
 	}
 	default:

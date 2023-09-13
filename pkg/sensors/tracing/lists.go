@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
 func hasList(name string, lists []v1alpha1.ListSpec) bool {
@@ -91,4 +92,42 @@ func preValidateList(list *v1alpha1.ListSpec) (err error) {
 	}
 
 	return nil
+}
+
+type listReader struct {
+	lists []v1alpha1.ListSpec
+}
+
+func (lr *listReader) Read(name string) ([]uint32, error) {
+	list := func() *v1alpha1.ListSpec {
+		for idx := range lr.lists {
+			if lr.lists[idx].Name == name {
+				return &lr.lists[idx]
+			}
+		}
+		return nil
+	}()
+
+	if list == nil {
+		return []uint32{}, fmt.Errorf("Error list '%s' not found", name)
+	}
+	if !isSyscallListType(list.Type) {
+		return []uint32{}, fmt.Errorf("Error list '%s' is not syscall type", name)
+	}
+
+	var res []uint32
+
+	for idx := range list.Values {
+		sc := arch.CutSyscallPrefix(list.Values[idx])
+		if strings.HasPrefix(sc, "sys_") {
+			sc = sc[len("sys_"):]
+		}
+		id := syscallinfo.GetSyscallID(sc)
+		if id == -1 {
+			return []uint32{}, fmt.Errorf("failed list '%s' cannot translate syscall '%s'", name, sc)
+		}
+		res = append(res, uint32(id))
+	}
+
+	return res, nil
 }

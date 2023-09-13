@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -98,7 +100,7 @@ spec:
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(bpf.MapPrefixPath(), bpf.MapPrefixPath(), "")
+	initialSensor.Load(bpf.MapPrefixPath(), bpf.MapPrefixPath())
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -641,7 +643,17 @@ func testKprobeObjectFiltered(t *testing.T,
 	assert.NoError(t, err)
 }
 
-func testKprobeObjectOpenHook(pidStr string, path string) string {
+// String matches should not require the '\0' null character on the end.
+// Any '\0' null characters should be handled gracefully.
+// Test with and without the null character.
+func testKprobeObjectOpenHookFileName(withNull bool) string {
+	if withNull {
+		return `testfile\0`
+	}
+	return `testfile`
+}
+
+func testKprobeObjectOpenHook(pidStr string, path string, withNull bool) string {
 	return `
   apiVersion: cilium.io/v1alpha1
   metadata:
@@ -668,22 +680,196 @@ func testKprobeObjectOpenHook(pidStr string, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `/testfile\0"
+          - "` + path + `/` + testKprobeObjectOpenHookFileName(withNull) + `"
   `
 }
 
 func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
-	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectOpenWithNull(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
-	readHook := testKprobeObjectOpenHook(pidStr, dir)
+	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectOpenMountWithNull(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func testKprobeStringMatch(t *testing.T,
+	readHook string,
+	checker ec.MultiEventChecker,
+	dir string) {
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	filePath := dir + "/testfile"
+
+	readConfigHook := []byte(readHook)
+	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	syscall.Open(filePath, syscall.O_RDONLY, 0)
+	err = jsonchecker.JsonTestCheckExpect(t, checker, false)
+	assert.NoError(t, err)
+}
+
+func testKprobeStringMatchHook(pidStr string, dir string) string {
+	return `
+  apiVersion: cilium.io/v1alpha1
+  metadata:
+    name: "sys-read"
+  spec:
+    kprobes:
+    - call: "sys_openat"
+      return: false
+      syscall: true
+      args:
+      - index: 0
+        type: int
+      - index: 1
+        type: "string"
+      - index: 2
+        type: "int"
+      selectors:
+      - matchPIDs:
+        - operator: In
+          followForks: true
+          values:
+          - ` + pidStr + `
+        matchArgs:
+        - index: 1
+          operator: "Equal"
+          values:
+          - "` + dir + `/testfile"
+  `
+}
+
+func TestKprobeStringMatchHash0Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 24
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash1Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 25
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash1Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 48
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash2Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 49
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash2Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 72
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash3Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 73
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash3Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 96
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash4Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 97
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash4Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 120
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash5Min(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 121
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash5Max(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 144
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
 }
 
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
@@ -713,8 +899,8 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `/foobar\0"
-          - "` + path + `/testfile\0"
+          - "` + path + `/foobar"
+          - "` + path + `/testfile"
   `
 }
 
@@ -761,7 +947,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + dir + `/foofile\0"
+        - "` + dir + `/foofile"
 `
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
@@ -795,8 +981,8 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + dir + `/foo\0"
-        - "` + dir + `/bar\0"
+        - "` + dir + `/foo"
+        - "` + dir + `/bar"
 `
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
@@ -970,7 +1156,17 @@ spec:
 	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
 }
 
-func TestKprobeObjectPostfixOpen(t *testing.T) {
+// String matches should not require the '\0' null character on the end.
+// Any '\0' null characters should be handled gracefully.
+// Test with and without the null character.
+func testKprobeObjectPostfixOpenFileName(withNull bool) string {
+	if withNull {
+		return `testfile\0`
+	}
+	return `testfile`
+}
+
+func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -999,9 +1195,17 @@ spec:
       - index: 1
         operator: "Postfix"
         values:
-        - "testfile\0"
+        - "` + testKprobeObjectPostfixOpenFileName(withNull) + `"
 `
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+}
+
+func TestKprobeObjectPostfixOpen(t *testing.T) {
+	testKprobeObjectPostfixOpen(t, false)
+}
+
+func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
+	testKprobeObjectPostfixOpen(t, true)
 }
 
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
@@ -1107,7 +1311,7 @@ func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `\0"
+          - "` + path + `"
         matchReturnArgs:
         - index: 0
           operator: "GT"
@@ -1145,7 +1349,7 @@ func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
         - index: 1
           operator: "Equal"
           values:
-          - "` + path + `\0"
+          - "` + path + `"
         matchReturnArgs:
         - index: 0
           operator: "LT"
@@ -1766,7 +1970,10 @@ func TestMultipleMountPath(t *testing.T) {
 
 func TestMultipleMountPathFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/7/8/9/10/11/12/13/14/15/16")
+	if kernels.EnableLargeProgs() {
+		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
+	}
 	testMultipleMountPathFiltered(t, readHook)
 }
 
@@ -1950,7 +2157,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2009,7 +2216,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2159,7 +2366,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2223,7 +2430,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Signal
         argSig: 12
@@ -2287,7 +2494,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Signal
         argSig: 10
@@ -2429,7 +2636,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -1
@@ -2459,7 +2666,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -2
@@ -2482,7 +2689,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
       matchActions:
       - action: Override
         argError: -3
@@ -2507,7 +2714,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - "` + file.Name() + `\0"
+        - "` + file.Name() + `"
 `
 
 	openChecker := ec.NewProcessKprobeChecker("").
@@ -3405,7 +3612,7 @@ spec:
    syscall: true
 `
 	b := base.GetInitialSensor()
-	if err := b.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := b.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		return fmt.Errorf("load base sensor failed: %w", err)
 	}
 
@@ -3418,7 +3625,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	return sens.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir)
+	return sens.Load(option.Config.BpfDir, option.Config.MapDir)
 }
 
 func TestKprobeBpfAttr(t *testing.T) {
@@ -5008,6 +5215,227 @@ spec:
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeListSyscallDupsRange(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("TestCopyFd requires at least 5.3.0 version")
+	}
+	myPid := observertesthelper.GetMyPid()
+	pidStr := strconv.Itoa(int(myPid))
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  kprobes:
+  - call: "sys_dup"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - 9910:9920
+`
+
+	// The test hooks sys_dup syscall and filters for fd
+	// in range 9910 to 9920.
+
+	checker := ec.NewUnorderedEventChecker()
+
+	for i := 9910; i < 9920; i++ {
+		kpCheckerDup := ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_dup"))).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithIntArg(int32(i)),
+				))
+
+		checker.AddChecks(kpCheckerDup)
+	}
+
+	testListSyscallsDupsRange(t, checker, configHook)
+}
+
+// This just tests if the hooks that we are using in our
+// trace kernel module examples are stable enough
+func TestTraceKernelModuleCallsStability(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-kernel-modules"
+spec:
+  kprobes:
+  - call: "do_init_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+  - call: "free_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+`
+	createCrdFile(t, hookFull)
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+}
+
+// Test module loading/unloading on Ubuntu
+func TestTraceKernelModule(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-kernel-modules"
+spec:
+  kprobes:
+  - call: "security_kernel_read_file"
+    # Explicit module loading using file descriptor finit_module() to print module full path
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"  # READING_MODULE
+  - call: "find_module_sections"
+    # On some kernels find_module_sections is inlined, if so this kprobe will fail.
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    - index: 1
+      type: "load_info"
+  - call: "do_init_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+  - call: "free_module"
+    syscall: false
+    args:
+    - index: 0
+      type: "module"
+`
+
+	// This test works only on Ubuntu
+	f, err := os.Open("/etc/os-release")
+	if err != nil {
+		t.Skip("Skipping test: could not parse /etc/os-release file")
+	}
+	defer f.Close()
+
+	ubuntu := false
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "Ubuntu") {
+			ubuntu = true
+			break
+		}
+	}
+
+	if ubuntu == false {
+		t.Skip("Skipping test: could not determin if this is an Ubuntu machine")
+	}
+
+	createCrdFile(t, hookFull)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	module := "xfs"
+	if err := exec.Command("/usr/sbin/modprobe", module).Run(); err != nil {
+		t.Fatalf("failed to load %s module: %s", module, err)
+	}
+
+	if err := exec.Command("/usr/sbin/modprobe", "-r", module).Run(); err != nil {
+		t.Fatalf("failed to unload %s module: %s", module, err)
+	}
+
+	process := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("modprobe"))
+
+	kpChecker1 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("security_kernel_read_file")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().
+						WithPath(sm.Suffix(fmt.Sprintf("%s.ko", module)))),
+				ec.NewKprobeArgumentChecker().WithIntArg(2),
+			),
+		)
+
+	kpChecker2 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("find_module_sections")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)).
+						WithSignatureOk(true)),
+			),
+		)
+
+	kpChecker3 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("do_init_module")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)),
+				),
+			))
+
+	kpChecker4 := ec.NewProcessKprobeChecker("").WithProcess(process).
+		WithFunctionName(sm.Full("free_module")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithModuleArg(
+					ec.NewKernelModuleChecker().WithName(sm.Contains(module)),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3, kpChecker4)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)

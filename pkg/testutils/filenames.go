@@ -17,12 +17,12 @@ var exportFilesLock sync.Mutex
 
 type ExportFile struct {
 	*os.File
-	t          *testing.T
+	tb         testing.TB
 	fName      string // file name
 	deleteFile bool   // should we delete the file at the end?
 }
 
-func fixupTestName(t *testing.T) string {
+func fixupTestName(t testing.TB) string {
 	return strings.ReplaceAll(t.Name(), "/", "-")
 }
 
@@ -31,22 +31,22 @@ func (f *ExportFile) Close() error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 
-	tName := fixupTestName(f.t)
+	tName := fixupTestName(f.tb)
 	ef, ok := exportFiles[tName]
 	if !ok {
-		f.t.Logf("could not find ourself in exportFiles: testName=%s fname=%s", tName, f.fName)
+		f.tb.Logf("could not find ourself in exportFiles: testName=%s fname=%s", tName, f.fName)
 		return f.File.Close()
 	}
 	if ef != f {
-		f.t.Logf("Unexpected file %+v vs %+v", ef, f)
+		f.tb.Logf("Unexpected file %+v vs %+v", ef, f)
 	}
 	defer delete(exportFiles, tName)
 
 	err := f.File.Close()
 	if !f.deleteFile {
-		f.t.Logf("keeping export file for %s (%s)", tName, ef.fName)
+		f.tb.Logf("keeping export file for %s (%s)", tName, ef.fName)
 	} else {
-		f.t.Logf("deleting export file for %s (%s)", tName, ef.fName)
+		f.tb.Logf("deleting export file for %s (%s)", tName, ef.fName)
 		os.Remove(f.fName)
 	}
 	return err
@@ -56,11 +56,11 @@ func (f *ExportFile) Close() error {
 // It returns an ExportFile that has a .Close() method, that will be called by the observer loop.
 // This function is responsible to delete the file.
 // For a file to be deleted, the tester should call DoneWithExportFile() if the test was successful.
-func CreateExportFile(t *testing.T) (*ExportFile, error) {
+func CreateExportFile(tb testing.TB) (*ExportFile, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 
-	testName := fixupTestName(t)
+	testName := fixupTestName(tb)
 	if _, ok := exportFiles[testName]; ok {
 		return nil, fmt.Errorf("unexpected error: t.Name() %s already exists", testName)
 	}
@@ -70,13 +70,13 @@ func CreateExportFile(t *testing.T) (*ExportFile, error) {
 	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
 	f, err := os.CreateTemp("/tmp", fname)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create export file for test %s: %s", t.Name(), err)
+		return nil, fmt.Errorf("failed to create export file for test %s: %s", tb.Name(), err)
 	}
 	os.Chmod(f.Name(), 0644)
 
 	ret := &ExportFile{
 		File:       f,
-		t:          t,
+		tb:         tb,
 		fName:      f.Name(),
 		deleteFile: false,
 	}
@@ -86,7 +86,7 @@ func CreateExportFile(t *testing.T) (*ExportFile, error) {
 }
 
 // GetExportFilename return export filename for test
-func GetExportFilename(t *testing.T) (string, error) {
+func GetExportFilename(t testing.TB) (string, error) {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := fixupTestName(t)
@@ -99,7 +99,7 @@ func GetExportFilename(t *testing.T) (string, error) {
 
 // DoneWithExportFile: marks the export file to be deleted
 // It is the tester's responsibility to call this function
-func DoneWithExportFile(t *testing.T) error {
+func DoneWithExportFile(t testing.TB) error {
 	exportFilesLock.Lock()
 	defer exportFilesLock.Unlock()
 	testName := fixupTestName(t)

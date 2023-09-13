@@ -351,6 +351,7 @@ func createGenericTracepointSensor(
 	confs []GenericTracepointConf,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	lists []v1alpha1.ListSpec,
 ) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
@@ -383,7 +384,7 @@ func createGenericTracepointSensor(
 			"generic_tracepoint",
 		)
 
-		err := tp.InitKernelSelectors()
+		err := tp.InitKernelSelectors(lists)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
@@ -427,6 +428,36 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, addr6FilterMaps)
 
+		for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
+			stringFilterMap := program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
+				sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), prog0)
+			if !kernels.MinKernelVersion("5.9") {
+				// Versions before 5.9 do not allow inner maps to have different sizes.
+				// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+				maxEntries := tp.selectors.StringMapsMaxEntries(string_map_index)
+				stringFilterMap.SetInnerMaxEntries(maxEntries)
+			}
+			maps = append(maps, stringFilterMap)
+		}
+
+		stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), prog0)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := tp.selectors.StringPrefixMapsMaxEntries()
+			stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
+		}
+		maps = append(maps, stringPrefixFilterMaps)
+
+		stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), prog0)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := tp.selectors.StringPostfixMapsMaxEntries()
+			stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
+		}
+		maps = append(maps, stringPostfixFilterMaps)
+
 		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), prog0)
 		maps = append(maps, selNamesMap)
 	}
@@ -438,7 +469,7 @@ func createGenericTracepointSensor(
 	}, nil
 }
 
-func (tp *genericTracepoint) InitKernelSelectors() error {
+func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
 	if tp.selectors != nil {
 		return fmt.Errorf("InitKernelSelectors: selectors already initialized")
 	}
@@ -477,7 +508,7 @@ func (tp *genericTracepoint) InitKernelSelectors() error {
 		}
 	}
 
-	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs)
+	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs, &listReader{lists})
 	if err != nil {
 		return err
 	}

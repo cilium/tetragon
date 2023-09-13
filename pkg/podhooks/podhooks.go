@@ -15,15 +15,16 @@ type Callbacks struct {
 	PodCallbacks func(podInformer cache.SharedIndexInformer)
 }
 
-// RegisterCallbacksAtInit registers callbacks (should be called at init())
+// RegisterCallbacksAtInit registers callbacks.
+// Must be called before InstallHooks and callers need to be serialized externally.
 func RegisterCallbacksAtInit(cbs Callbacks) {
 	if !allowRegister {
-		panic("podhooks.RegisterCallbacksAtInit must be called only in init()")
+		panic("podhooks.RegisterCallbacksAtInit must be called before podhooks.InstallHooks()")
 	}
 	allCallbacks = append(allCallbacks, cbs)
 }
 
-// runHooks executes all registered callbacks
+// InstallHooks executes all registered callbacks
 func InstallHooks(podInformer cache.SharedIndexInformer) {
 	allowRegister = false
 	for _, cbs := range allCallbacks {

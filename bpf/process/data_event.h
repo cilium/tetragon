@@ -79,7 +79,7 @@ static inline __attribute__((always_inline)) long
 __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 {
 	size_t size, max = sizeof(msg->arg) - 1;
-	int err;
+	long ret;
 
 	/* Code movement from clang forces us to inline bounds checks here */
 	asm volatile("%[max] &= 0x7fff;\n"
@@ -89,25 +89,25 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 		     : [max] "+r"(max)
 		     :);
 
-	err = probe_read_str(&msg->arg[0], max, (char *)arg);
-	if (err < 0)
-		return err;
+	ret = probe_read_str(&msg->arg[0], max, (char *)arg);
+	if (ret < 0)
+		return ret;
 
-	*done = err != max;
+	*done = ret != max;
+	if (ret == 0)
+		return 0;
 	/* cut out the zero byte */
-	err -= 1;
+	ret -= 1;
 
-	msg->common.size = offsetof(struct msg_data, arg) + err;
-
-	size = err + offsetof(struct msg_data, arg);
-
+	size = ret + offsetof(struct msg_data, arg);
 	/* Code movement from clang forces us to inline bounds checks here */
 	asm volatile("%[size] &= 0x7fff;\n"
 		     :
 		     : [size] "+r"(size)
 		     :);
+	msg->common.size = size;
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
-	return err;
+	return ret;
 }
 
 static inline __attribute__((always_inline)) long
@@ -116,15 +116,16 @@ do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 {
 	size_t rd_bytes = 0;
 	bool done = false;
-	int err, i;
+	long ret;
+	int i;
 
 #define __CNT 2
 #pragma unroll
 	for (i = 0; i < __CNT; i++) {
-		err = __do_str(ctx, msg, arg + rd_bytes, &done);
-		if (err < 0)
-			return err;
-		rd_bytes += err;
+		ret = __do_str(ctx, msg, arg + rd_bytes, &done);
+		if (ret < 0)
+			return ret;
+		rd_bytes += ret;
 		if (done)
 			break;
 	}

@@ -10,7 +10,6 @@
 
 bpf-lib: /var/lib/tetragon/
 btf:
-cilium-bpf:
 config-dir:
 tracing-policy:
 debug: false

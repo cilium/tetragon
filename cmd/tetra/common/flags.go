@@ -9,4 +9,6 @@ const (
 	KeyOutput        = "output"         // string
 	KeyTty           = "tty-encode"     // string
 	KeyServerAddress = "server-address" // string
+	KeyTimeout       = "timeout"        // duration
+	KeyRetries       = "retries"        // int
 )

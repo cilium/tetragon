@@ -29,6 +29,7 @@ generate:
 	  -o . \
 	  --trim-path-prefix github.com/cilium/tetragon/pkg/k8s \
 	  --plural-exceptions TracingPolicyNamespaced:TracingPoliciesNamespaced \
+	  --plural-exceptions PodInfo:PodInfo \
 
 .PHONY: vendor
 vendor:

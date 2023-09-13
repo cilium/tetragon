@@ -18,6 +18,10 @@ const (
 
 	// ConfigDir specifies the directory in which tetragon-operator-config configmap is mounted.
 	ConfigDir = "config-dir"
+
+	// SkipPodInfoCRD specifies whether the tetragonPod CustomResourceDefinition will be
+	// disabled
+	SkipPodInfoCRD = "skip-pod-info-crd"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -31,6 +35,9 @@ type OperatorConfig struct {
 
 	// ConfigDir specifies the directory in which tetragon-operator-config configmap is mounted.
 	ConfigDir string
+
+	// SkipPodInfoCRD disables creation of the TetragonPod CustomResourceDefinition only.
+	SkipPodInfoCRD bool
 }
 
 // Config represents the operator configuration.

@@ -18,4 +18,4 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - "/etc/passwd\0"
+        - "/etc/passwd"

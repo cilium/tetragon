@@ -126,11 +126,11 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 
 	baseSensors := base.GetInitialSensor()
 
-	if err := baseSensors.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := baseSensors.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		log.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := benchSensors.Load(option.Config.BpfDir, option.Config.MapDir, option.Config.CiliumDir); err != nil {
+	if err := benchSensors.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		log.Fatalf("Load sensors error: %s\n", err)
 	}
 

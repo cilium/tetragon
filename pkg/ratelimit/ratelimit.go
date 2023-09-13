@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/ratelimitmetrics"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -77,4 +78,5 @@ func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 
 func (r *RateLimiter) Drop() {
 	atomic.AddUint64(&r.dropped, 1)
+	ratelimitmetrics.RateLimitDropped.Inc()
 }

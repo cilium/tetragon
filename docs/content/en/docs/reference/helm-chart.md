@@ -89,7 +89,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v0.10.0"` |  |
+| tetragon.image.tag | string | `"v0.11.0"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
@@ -99,7 +99,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
 | tetragonOperator.enabled | bool | `true` | Enable the tetragon-operator component (required). |
-| tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.10.0"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.11.0"}` | tetragon-operator image. |
 | tetragonOperator.skipCRDCreation | bool | `false` |  |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
