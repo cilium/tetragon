@@ -24,6 +24,7 @@ spec:
       - index: 1
         type: int
     returnArg:
+      index: 0
       type: sock
     returnArgAction: TrackSock
     selectors:
@@ -31,8 +32,8 @@ spec:
         - index: 1
           operator: "Equal"
           values:
-          - 2
-          - 10
+          - "2"
+          - "10"
   - call: "__sk_free"
     syscall: false
     args:
@@ -43,8 +44,8 @@ spec:
         - index: 0
           operator: "Family"
           values:
-          - 2
-          - 10
+          - "2"
+          - "10"
       - matchActions:
         - action: UntrackSock
   - call: "sk_filter_trim_cap"
