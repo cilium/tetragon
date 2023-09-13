@@ -91,5 +91,7 @@
     - mountPath: /etc/tetragon/operator.conf.d/
       name: tetragon-operator-config
       readOnly: true
+  resources:
+    {{- toYaml .Values.tetragonOperator.resources | nindent 4 }}
 {{- end }}
 {{- end -}}

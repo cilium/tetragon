@@ -151,6 +151,7 @@ tetragon:
 podWatcher:
   enabled: false
 tetragonOperator:
+  resources: {}
   # -- Enable the tetragon-operator component (required).
   enabled: true
   # -- tetragon-operator image.
