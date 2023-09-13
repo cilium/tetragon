@@ -149,16 +149,12 @@ type errorContext struct {
 }
 
 func (d *decoder) typeMismatchError(toml string, target reflect.Type) error {
-	return fmt.Errorf("toml: %s", d.typeMismatchString(toml, target))
-}
-
-func (d *decoder) typeMismatchString(toml string, target reflect.Type) string {
 	if d.errorContext != nil && d.errorContext.Struct != nil {
 		ctx := d.errorContext
 		f := ctx.Struct.FieldByIndex(ctx.Field)
-		return fmt.Sprintf("cannot decode TOML %s into struct field %s.%s of type %s", toml, ctx.Struct, f.Name, f.Type)
+		return fmt.Errorf("toml: cannot decode TOML %s into struct field %s.%s of type %s", toml, ctx.Struct, f.Name, f.Type)
 	}
-	return fmt.Sprintf("cannot decode TOML %s into a Go value of type %s", toml, target)
+	return fmt.Errorf("toml: cannot decode TOML %s into a Go value of type %s", toml, target)
 }
 
 func (d *decoder) expr() *unstable.Node {
@@ -967,7 +963,7 @@ func (d *decoder) unmarshalInteger(value *unstable.Node, v reflect.Value) error 
 	case reflect.Interface:
 		r = reflect.ValueOf(i)
 	default:
-		return unstable.NewParserError(d.p.Raw(value.Raw), d.typeMismatchString("integer", v.Type()))
+		return d.typeMismatchError("integer", v.Type())
 	}
 
 	if !r.Type().AssignableTo(v.Type()) {
@@ -986,7 +982,7 @@ func (d *decoder) unmarshalString(value *unstable.Node, v reflect.Value) error {
 	case reflect.Interface:
 		v.Set(reflect.ValueOf(string(value.Data)))
 	default:
-		return unstable.NewParserError(d.p.Raw(value.Raw), d.typeMismatchString("string", v.Type()))
+		return unstable.NewParserError(d.p.Raw(value.Raw), "cannot store TOML string into a Go %s", v.Kind())
 	}
 
 	return nil
@@ -1174,10 +1170,10 @@ func initAndDereferencePointer(v reflect.Value) reflect.Value {
 
 // Same as reflect.Value.FieldByIndex, but creates pointers if needed.
 func fieldByIndex(v reflect.Value, path []int) reflect.Value {
-	for _, x := range path {
+	for i, x := range path {
 		v = v.Field(x)
 
-		if v.Kind() == reflect.Ptr {
+		if i < len(path)-1 && v.Kind() == reflect.Ptr {
 			if v.IsNil() {
 				v.Set(reflect.New(v.Type().Elem()))
 			}
