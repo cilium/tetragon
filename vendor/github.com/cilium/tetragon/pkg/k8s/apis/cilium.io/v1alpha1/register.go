@@ -15,7 +15,7 @@ const (
 	// Used to determine if CRD needs to be updated in cluster
 	//
 	// Developers: Bump patch for each change in the CRD schema.
-	CustomResourceDefinitionSchemaVersion = "0.12.2"
+	CustomResourceDefinitionSchemaVersion = "0.12.3"
 
 	CRDVersion = "v1alpha1"
 
