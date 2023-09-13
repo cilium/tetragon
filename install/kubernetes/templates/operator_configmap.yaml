@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Chart.Name }}-operator-config
+  name: {{ .Release.Name }}-operator-config
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
