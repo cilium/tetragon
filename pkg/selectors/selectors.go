@@ -11,12 +11,14 @@ import (
 
 // as we use a single names_map for all kprobes, so we have to use
 // a global variable to assign values to binary names
-var (
-	binMu  sync.Mutex
-	binIdx uint32 = 1
-	// contains all entries for the names_map
-	binVals = make(map[string]uint32)
-)
+var globalBinaryNames = struct {
+	mu     sync.Mutex
+	index  uint32
+	values map[string]uint32
+}{
+	index:  1,
+	values: make(map[string]uint32),
+}
 
 type MatchBinariesMappings struct {
 	op          uint32
@@ -132,20 +134,17 @@ func (k *KernelSelectorState) GetBinaryOp(selIdx int) uint32 {
 }
 
 func (k *KernelSelectorState) AddBinaryName(selIdx int, binary string) {
-	binMu.Lock()
-	defer binMu.Unlock()
-	idx, ok := binVals[binary]
-	if ok {
-		k.newBinVals[idx] = binary
-		k.matchBinaries[selIdx].selNamesMap[idx] = 1
-		return
+	globalBinaryNames.mu.Lock()
+	defer globalBinaryNames.mu.Unlock()
+	index, ok := globalBinaryNames.values[binary]
+	if !ok {
+		index = globalBinaryNames.index
+		globalBinaryNames.index++
+		globalBinaryNames.values[binary] = index // global map of all names_map entries
 	}
 
-	idx = binIdx
-	binIdx++
-	binVals[binary] = idx                        // global map of all names_map entries
-	k.newBinVals[idx] = binary                   // new names_map entries that we should add
-	k.matchBinaries[selIdx].selNamesMap[idx] = 1 // value in the per-selector names_map (we ignore the value)
+	k.newBinVals[index] = binary                   // new names_map entries that we should add
+	k.matchBinaries[selIdx].selNamesMap[index] = 1 // value in the per-selector names_map (we ignore the value)
 }
 
 func (k *KernelSelectorState) GetNewBinaryMappings() map[uint32]string {
