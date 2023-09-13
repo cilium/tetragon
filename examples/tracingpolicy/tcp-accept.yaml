@@ -10,8 +10,9 @@ spec:
     args:
     - index: 1
       type: int
-      label: "family"
+      label: "Family"
     returnArg:
+      index: 0
       type: sock
     returnArgAction: TrackSock
     selectors:
@@ -19,7 +20,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 2
+        - "2"
   - call: "__sk_free"
     syscall: false
     args:
@@ -28,7 +29,7 @@ spec:
     selectors:
     - matchArgs:
       - index: 0
-        operator: "family"
+        operator: "Family"
         values:
         - "AF_INET"
     - matchActions:
@@ -45,13 +46,13 @@ spec:
     selectors:
     - matchArgs:
       - index: 0
-        operator: "state"
+        operator: "State"
         values:
         - "TCP_SYN_RECV"
       - index: 1
         operator: "Equal"
         values:
-        - 1
+        - "1"
   - call: "tcp_close"
     syscall: false
     args:
@@ -70,6 +71,7 @@ spec:
     - index: 0
       type: "sock"
     returnArg:
+      index: 0
       type: sock
     returnArgAction: TrackSock
 

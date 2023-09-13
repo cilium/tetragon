@@ -15,6 +15,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: int
     selectors:
     - matchArgs:
@@ -25,11 +26,11 @@ spec:
       - index: 2
         operator: "Mask"
         values:
-        - 0x40 # CREATE
-        - 0x1  # WRONLY
-        - 0x2  # RDWR
+        - "64" # CREATE (0x40)
+        - "1"  # WRONLY (0x01)
+        - "2"  # RDWR (0x02)
       matchReturnArgs:
       - index: 0
         operator: "GT"
         values:
-        - 0
+        - "0"

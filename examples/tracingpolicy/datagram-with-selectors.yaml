@@ -25,4 +25,4 @@ spec:
           - "IPPROTO_UDP"
         matchActions:
         - action: Post
-          rateLimit: 5
+          rateLimit: "5"

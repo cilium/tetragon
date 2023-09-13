@@ -72,4 +72,4 @@ spec:
         values:
         - "/tmp/passwd"
       matchActions:
-      - action: SigKill
+      - action: Sigkill

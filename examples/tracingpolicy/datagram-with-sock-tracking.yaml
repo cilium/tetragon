@@ -12,6 +12,7 @@ spec:
         type: int
         label: "family"
     returnArg:
+      index: 0
       type: sock
     returnArgAction: TrackSock
     selectors:
@@ -19,7 +20,7 @@ spec:
         - index: 1
           operator: "Equal"
           values:
-          - 2
+          - "2"
   - call: "__sk_free"
     syscall: false
     args:
@@ -51,4 +52,4 @@ spec:
           - "IPPROTO_UDP"
         matchActions:
         - action: Post
-          rateLimit: 5
+          rateLimit: "5"

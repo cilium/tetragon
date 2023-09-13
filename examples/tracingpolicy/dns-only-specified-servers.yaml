@@ -42,7 +42,7 @@ spec:
       - index: 2
         operator: "DPort"
         values:
-        - 53
+        - "53"
       - index: 2
         operator: "NotDAddr"
         values:
