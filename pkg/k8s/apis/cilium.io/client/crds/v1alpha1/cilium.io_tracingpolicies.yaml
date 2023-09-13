@@ -303,6 +303,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -530,6 +532,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -823,6 +827,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1050,6 +1056,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1187,6 +1195,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1414,6 +1424,8 @@ spec:
                                   - Protocol
                                   - Family
                                   - State
+                                  - InMap
+                                  - NotInMap
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
