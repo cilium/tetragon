@@ -349,6 +349,10 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 		}
 
+		if selectors.HasSigkillAction(f) && !kernels.EnableLargeProgs() {
+			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
+		}
+
 		if strings.HasPrefix(f.Call, "list:") {
 			listName := f.Call[len("list:"):]
 
