@@ -96,8 +96,8 @@ github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWR
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/cilium/checkmate v1.0.3 h1:CQC5eOmlAZeEjPrVZY3ZwEBH64lHlx9mXYdUehEwI5w=
-github.com/cilium/cilium v1.14.1 h1:8yj+DVgv7bvBkqiKL3F/nPB6ddNTnnnbye6gznAsXH4=
-github.com/cilium/cilium v1.14.1/go.mod h1:ghd9LkTSbRPtJal0Bsdq1ise+j5Ezy14xgaM2o3XLCI=
+github.com/cilium/cilium v1.14.2 h1:NVz14uSoKB0Y37iFveMQGYH03ZflEuZegmQWpTMf5TM=
+github.com/cilium/cilium v1.14.2/go.mod h1:ghd9LkTSbRPtJal0Bsdq1ise+j5Ezy14xgaM2o3XLCI=
 github.com/cilium/client-go v0.27.2-fix h1:dbFQGtP5Y1lFVBhkMCIAwyf/PUWFBn8M1ZTCKA6BUdw=
 github.com/cilium/client-go v0.27.2-fix/go.mod h1:tY0gVmUsHrAmjzHX9zs7eCjxcBsf8IiNe7KQ52biTcQ=
 github.com/cilium/controller-tools v0.6.2 h1:oIkqAzqncKsm+lQFJVP6n+bqHOVs9nUZ06hgZ4PxlMM=
