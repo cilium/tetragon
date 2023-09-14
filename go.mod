@@ -3,14 +3,14 @@ module github.com/cilium/tetragon
 go 1.20
 
 require (
-	github.com/cilium/cilium v1.14.1
+	github.com/cilium/cilium v1.14.2
 	github.com/cilium/ebpf v0.11.0
 	github.com/cilium/little-vm-helper v0.0.13-0.20230822094713-37431633085a
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.5
+	github.com/containerd/containerd v1.7.6
 	github.com/fatih/color v1.15.0
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2

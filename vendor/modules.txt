@@ -18,7 +18,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.14.1
+# github.com/cilium/cilium v1.14.2
 ## explicit; go 1.20
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -248,7 +248,7 @@ github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
 github.com/containerd/cgroups/v2
 github.com/containerd/cgroups/v2/stats
-# github.com/containerd/containerd v1.7.5
+# github.com/containerd/containerd v1.7.6
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events

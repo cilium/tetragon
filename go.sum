@@ -96,8 +96,8 @@ github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWR
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/cilium/checkmate v1.0.3 h1:CQC5eOmlAZeEjPrVZY3ZwEBH64lHlx9mXYdUehEwI5w=
-github.com/cilium/cilium v1.14.1 h1:8yj+DVgv7bvBkqiKL3F/nPB6ddNTnnnbye6gznAsXH4=
-github.com/cilium/cilium v1.14.1/go.mod h1:ghd9LkTSbRPtJal0Bsdq1ise+j5Ezy14xgaM2o3XLCI=
+github.com/cilium/cilium v1.14.2 h1:NVz14uSoKB0Y37iFveMQGYH03ZflEuZegmQWpTMf5TM=
+github.com/cilium/cilium v1.14.2/go.mod h1:ghd9LkTSbRPtJal0Bsdq1ise+j5Ezy14xgaM2o3XLCI=
 github.com/cilium/client-go v0.27.2-fix h1:dbFQGtP5Y1lFVBhkMCIAwyf/PUWFBn8M1ZTCKA6BUdw=
 github.com/cilium/client-go v0.27.2-fix/go.mod h1:tY0gVmUsHrAmjzHX9zs7eCjxcBsf8IiNe7KQ52biTcQ=
 github.com/cilium/controller-tools v0.6.2 h1:oIkqAzqncKsm+lQFJVP6n+bqHOVs9nUZ06hgZ4PxlMM=
@@ -124,8 +124,8 @@ github.com/cncf/xds/go v0.0.0-20230607035331-e9ce68804cb4/go.mod h1:eXthEFrGJvWH
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/containerd/cgroups v1.1.0 h1:v8rEWFl6EoqHB+swVNjVoCJE8o3jX7e8nqBGPLaDFBM=
 github.com/containerd/cgroups v1.1.0/go.mod h1:6ppBcbh/NOOUU+dMKrykgaBnK9lCIBxHqJDGwsa1mIw=
-github.com/containerd/containerd v1.7.5 h1:i9T9XpAWMe11BHMN7pu1BZqOGjXaKTPyz2v+KYOZgkY=
-github.com/containerd/containerd v1.7.5/go.mod h1:ieJNCSzASw2shSGYLHx8NAE7WsZ/gEigo5fQ78W5Zvw=
+github.com/containerd/containerd v1.7.6 h1:oNAVsnhPoy4BTPQivLgTzI9Oleml9l/+eYIDYXRCYo8=
+github.com/containerd/containerd v1.7.6/go.mod h1:SY6lrkkuJT40BVNO37tlYTSnKJnP5AXBc0fhx0q+TJ4=
 github.com/containerd/ttrpc v1.2.2 h1:9vqZr0pxwOF5koz6N0N3kJ0zDHokrcPxIR/ZR2YFtOs=
 github.com/containerd/ttrpc v1.2.2/go.mod h1:sIT6l32Ph/H9cvnJsfXM5drIVzTr5A2flTf1G5tYZak=
 github.com/containerd/typeurl/v2 v2.1.1 h1:3Q4Pt7i8nYwy2KmQWIw2+1hTvwTE/6w9FqcttATPO/4=
