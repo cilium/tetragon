@@ -65,11 +65,16 @@ jobs:
         fail-fast: false
         matrix:
            kernel:
-              - 'bpf-next-main'
-              - '5.15-main'
-              - '5.10-main'
-              - '5.4-main'
-              - '4.19-main'
+              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+              - 'bpf-next-20230912.113936'
+              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+              - '5.15-20230912.113936'
+              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+              - '5.10-20230912.113936'
+              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+              - '5.4-20230912.113936'
+              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+              - '4.19-20230912.113936'
            group:
               - 0
     concurrency:
