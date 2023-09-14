@@ -40,17 +40,17 @@ func (e *ValidationFailed) Error() string {
 // NB: turns out we need more than BTF information for the validation (see
 // syscalls). We still keep this code in the btf package for now, and we can
 // move it once we found a better home for it.
-func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
+func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec) error {
 	var fn *btf.Func
 
-	err := bspec.TypeByName(kspec.Call, &fn)
+	err := bspec.TypeByName(call, &fn)
 	if err != nil {
-		return &ValidationFailed{s: fmt.Sprintf("call %q not found", kspec.Call)}
+		return &ValidationFailed{s: fmt.Sprintf("call %q not found", call)}
 	}
 
 	proto, ok := fn.Type.(*btf.FuncProto)
 	if !ok {
-		return fmt.Errorf("kprobe spec validation failed: proto for call %s not found", kspec.Call)
+		return fmt.Errorf("kprobe spec validation failed: proto for call %s not found", call)
 	}
 
 	// Syscalls are special.
@@ -93,10 +93,10 @@ func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 		// next try to deduce the syscall name.
 		// NB: this might change in different kernels so if we fail we treat it as a warning
 		prefix := "__x64_sys_"
-		if !strings.HasPrefix(kspec.Call, prefix) {
-			return &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s: arguments will not be verified", kspec.Call)}
+		if !strings.HasPrefix(call, prefix) {
+			return &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s: arguments will not be verified", call)}
 		}
-		syscall := strings.TrimPrefix(kspec.Call, prefix)
+		syscall := strings.TrimPrefix(call, prefix)
 		return validateSycall(kspec, syscall)
 	}
 

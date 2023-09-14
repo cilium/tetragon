@@ -378,7 +378,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		}
 
 		// Now go over BTF validation
-		if err := btf.ValidateKprobeSpec(btfobj, f); err != nil {
+		if err := btf.ValidateKprobeSpec(btfobj, f.Call, f); err != nil {
 			if warn, ok := err.(*btf.ValidationWarn); ok {
 				logger.GetLogger().WithFields(logrus.Fields{
 					"sensor": name,

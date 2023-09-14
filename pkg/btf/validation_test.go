@@ -72,7 +72,7 @@ func TestSpecs(t *testing.T) {
 			}
 			spec := tp.TpSpec()
 			for ki := range spec.KProbes {
-				err = ValidateKprobeSpec(btf, &spec.KProbes[ki])
+				err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki])
 				if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {
 					t.Fatal(checkErr)
 				}
