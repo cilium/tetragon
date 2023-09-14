@@ -340,33 +340,20 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 	for i := range kprobes {
 		f := &kprobes[i]
 
-		if selectors.HasOverride(f) {
-			if !bpf.HasOverrideHelper() {
-				return fmt.Errorf("Error override action not supported, bpf_override_return helper not available")
-			}
-			if !f.Syscall && strings.HasPrefix(f.Call, "security_") == false {
-				return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
-			}
-		}
+		var list *v1alpha1.ListSpec
 
-		if selectors.HasSigkillAction(f) && !kernels.EnableLargeProgs() {
-			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
-		}
-
+		// the f.Call is either defined as list:NAME
+		// or specifies directly the function
 		if strings.HasPrefix(f.Call, "list:") {
 			listName := f.Call[len("list:"):]
 
-			if !hasList(listName, lists) {
+			list = getList(listName, lists)
+			if list == nil {
 				return fmt.Errorf("Error list '%s' not found", listName)
 			}
-
-			// all lists are already validated, we're done
-			continue
-		}
-
-		// modifying f.Call directly since BTF validation
-		// later will use v1alpha1.KProbeSpec object
-		if f.Syscall {
+		} else if f.Syscall {
+			// modifying f.Call directly since BTF validation
+			// later will use v1alpha1.KProbeSpec object
 			prefixedName, err := arch.AddSyscallPrefix(f.Call)
 			if err != nil {
 				logger.GetLogger().WithFields(logrus.Fields{
@@ -377,24 +364,51 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 		}
 
-		// Now go over BTF validation
-		if err := btf.ValidateKprobeSpec(btfobj, f.Call, f); err != nil {
-			if warn, ok := err.(*btf.ValidationWarn); ok {
-				logger.GetLogger().WithFields(logrus.Fields{
-					"sensor": name,
-				}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-			} else if e, ok := err.(*btf.ValidationFailed); ok {
-				return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
-			} else {
-				err = fmt.Errorf("invalid or old kprobe spec: %s", err)
-				logger.GetLogger().WithFields(logrus.Fields{
-					"sensor": name,
-				}).WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+		// get the call possible values, either from f.Call or the list
+		calls := func() []string {
+			if list != nil {
+				return list.Values
 			}
-		} else {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"sensor": name,
-			}).Debug("Kprobe spec pre-validation succeeded")
+			return []string{f.Call}
+		}()
+
+		if selectors.HasOverride(f) {
+			if !bpf.HasOverrideHelper() {
+				return fmt.Errorf("Error override action not supported, bpf_override_return helper not available")
+			}
+			if !f.Syscall {
+				for idx := range calls {
+					if strings.HasPrefix(calls[idx], "security_") == false {
+						return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
+					}
+				}
+			}
+		}
+
+		if selectors.HasSigkillAction(f) && !kernels.EnableLargeProgs() {
+			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
+		}
+
+		for idx := range calls {
+			// Now go over BTF validation
+			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f); err != nil {
+				if warn, ok := err.(*btf.ValidationWarn); ok {
+					logger.GetLogger().WithFields(logrus.Fields{
+						"sensor": name,
+					}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+				} else if e, ok := err.(*btf.ValidationFailed); ok {
+					return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
+				} else {
+					err = fmt.Errorf("invalid or old kprobe spec: %s", err)
+					logger.GetLogger().WithFields(logrus.Fields{
+						"sensor": name,
+					}).WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+				}
+			} else {
+				logger.GetLogger().WithFields(logrus.Fields{
+					"sensor": name,
+				}).Debug("Kprobe spec pre-validation succeeded")
+			}
 		}
 	}
 

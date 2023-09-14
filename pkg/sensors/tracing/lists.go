@@ -14,14 +14,14 @@ import (
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
-func hasList(name string, lists []v1alpha1.ListSpec) bool {
+func getList(name string, lists []v1alpha1.ListSpec) *v1alpha1.ListSpec {
 	for idx := range lists {
-		list := lists[idx]
+		list := &lists[idx]
 		if list.Name == name {
-			return true
+			return list
 		}
 	}
-	return false
+	return nil
 }
 
 const (
