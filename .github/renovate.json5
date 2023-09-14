@@ -380,6 +380,7 @@
   // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
   "regexManagers": [
     {
+      "customType": "regex",
       "fileMatch": [
         "^\\.github/workflows/[^/]+\\.ya?ml$"
       ],
@@ -395,6 +396,7 @@
       ]
     },
     {
+      "customType": "regex",
       "fileMatch": [
         "^Makefile\\.cli$"
       ],
@@ -403,6 +405,7 @@
       ]
     },
     {
+      "customType": "regex",
       "fileMatch": [
         "^\\.github/renovate\\.json5$"
       ],
@@ -411,6 +414,7 @@
       ]
     },
     {
+      "customType": "regex",
       "fileMatch": [
         "^Makefile$"
       ],
