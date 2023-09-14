@@ -1311,3 +1311,16 @@ func HasEarlyBinaryFilter(selectors []v1alpha1.KProbeSelector) bool {
 	}
 	return false
 }
+
+func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
+	for i := range kspec.Selectors {
+		s := &kspec.Selectors[i]
+		for j := range s.MatchActions {
+			act := strings.ToLower(s.MatchActions[j].Action)
+			if act == "sigkill" {
+				return true
+			}
+		}
+	}
+	return false
+}

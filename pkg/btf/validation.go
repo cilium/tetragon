@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
@@ -36,29 +35,12 @@ func (e *ValidationFailed) Error() string {
 	return e.s
 }
 
-func hasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
-	for i := range kspec.Selectors {
-		s := &kspec.Selectors[i]
-		for j := range s.MatchActions {
-			act := strings.ToLower(s.MatchActions[j].Action)
-			if act == "sigkill" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // ValidateKprobeSpec validates a kprobe spec based on BTF information
 //
 // NB: turns out we need more than BTF information for the validation (see
 // syscalls). We still keep this code in the btf package for now, and we can
 // move it once we found a better home for it.
 func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
-	if hasSigkillAction(kspec) && !kernels.EnableLargeProgs() {
-		return &ValidationFailed{s: "sigkill action requires kernel >= 5.3.0"}
-	}
-
 	var fn *btf.Func
 
 	err := bspec.TypeByName(kspec.Call, &fn)
