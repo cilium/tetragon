@@ -36,23 +36,6 @@ func (e *ValidationFailed) Error() string {
 	return e.s
 }
 
-/*
-func validate(btf bpf.BTF, spec *v1alpha1.KProbeSpec) (bpf.BtfID, error) {
-
-	llCallID, err := btf.FindByNameKind(llCall, bpf.BtfKindFunc)
-	if err != nil {
-		return bpf.BtfID(0), &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s. Arguments will not be verified", spec.Call)}
-	}
-
-	llCallTy, err := btf.TypeByID(llCallID)
-	if err != nil {
-		fmt.Errorf("failed to to find syscall type by id: %w", err)
-	}
-
-	return btf.UnderlyingType(llCallTy)
-}
-*/
-
 func hasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 	for i := range kspec.Selectors {
 		s := &kspec.Selectors[i]
