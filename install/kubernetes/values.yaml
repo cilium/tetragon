@@ -151,6 +151,10 @@ tetragon:
   enablePolicyFilterDebug: false
   # Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
+  # -- Location of the host proc filesystem in the runtime environment. If the runtime runs in the
+  # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
+  # does not run on the host.
+  hostProcPath: "/proc"
 tetragonOperator:
   # -- tetragon-operator image.
   image:

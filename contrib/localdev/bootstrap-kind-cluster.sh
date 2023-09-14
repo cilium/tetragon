@@ -40,7 +40,7 @@ done
 bootstrap_cluster() {
     if ! kind get clusters | grep "$CLUSTER_NAME" &>/dev/null; then
         echo "Creating a new cluster \"$CLUSTER_NAME\"..." 1>&2
-        kind create cluster --name "$CLUSTER_NAME" --wait=2m
+        kind create cluster --name "$CLUSTER_NAME" --config ./contrib/localdev/kind-config.yaml --wait=2m
     else
         if [ "$FORCE" != 1 ]; then
             echo "Cluster already exists... Exiting... (Re-run with -f to force.)" 1>&2
@@ -48,7 +48,7 @@ bootstrap_cluster() {
         else
             echo "Recreating cluster..." 1>&2
             kind delete cluster --name "$CLUSTER_NAME"
-            kind create cluster --name "$CLUSTER_NAME" --wait=5m
+            kind create cluster --name "$CLUSTER_NAME" --config ./contrib/localdev/kind-config.yaml --wait=5m
         fi
     fi
 

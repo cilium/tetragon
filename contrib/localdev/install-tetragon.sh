@@ -90,6 +90,11 @@ if [ -n "$VALUES" ]; then
 fi
 helm_opts+=("tetragon" "./install/kubernetes")
 
+if [ "$IS_KIND" == 1 ]; then
+	# NB: configured in kind-config.yaml
+	helm_opts+=("--set" "tetragon.hostProcPath=/procHost")
+fi
+
 echo "Installing Tetragon in cluster..." 1>&2
 helm upgrade --install "${helm_opts[@]}"
 
