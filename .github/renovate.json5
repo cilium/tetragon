@@ -273,7 +273,40 @@
         "executionMode": "branch"
       }
     },
+    {
+      "matchDepNames": [
+        "quay.io/lvh-images/kind"
+      ],
+      // LVH uses custom versioning for its images, need to match those kinds of tags:
+      // - bpf-next-20230914.012459
+      // - 5.15-20230912.232842
+      "versioning": "regex:^((?<compatibility>[a-z-]+)|((?<major>\\d+)\\.(?<minor>\\d+)))\\-(?<patch>\\d+)\\.(?<build>\\d+)(@(?<currentDigest>sha256:[a-f0-9]+))?$"
+    },
+    {
+      "groupName": "all lvh-images main",
+      "groupSlug": "all-lvh-images-main",
+      "matchPackageNames": [
+        "quay.io/lvh-images/kind"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+    },
     // ignore deps section
+    {
+      // do not allow any updates for major.minor for LVH, they will be done by maintainers
+      "enabled": false,
+      "matchPackageNames": [
+        "quay.io/lvh-images/kind"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+    },
     {
       // do not update those packages as they are replaced by the local copy
       // see https://github.com/cilium/tetragon/blob/7623babdf54e9a38326420c1b188308f6cf96fff/go.mod#L178-L179
@@ -351,7 +384,14 @@
         "^\\.github/workflows/[^/]+\\.ya?ml$"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+version: *['\"]?(?<currentValue>[^'\"\\s]*)"
+        // this regex is used to match both:
+        //
+        // # renovate: datasource=golang-version depName=go
+        // go: '1.20.8'
+        //
+        // # renovate: datasource=docker depName=quay.io/lvh-images/kind
+        // - 'bpf-next-20230912.113936'
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+ ['\"]?(?<currentValue>[^'\"\\s]*)"
       ]
     },
     {
