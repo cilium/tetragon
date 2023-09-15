@@ -271,6 +271,7 @@ type PodIP struct {
 	IP string `json:"IP,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:singular="podinfo",path="podinfo",scope="Namespaced",shortName={}
