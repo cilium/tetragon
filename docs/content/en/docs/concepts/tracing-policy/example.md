@@ -51,7 +51,7 @@ metadata:
 The first part follows a common pattern among all Cilium Policies or more
 widely [Kubernetes object](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/).
 It first declares the Kubernetes API used, then the kind of Kubernetes object
-it is in this API and an arbitrary name for the object, that has to comply with
+it is in this API and an arbitrary name for the object that has to comply with
 [Kubernetes naming convention](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/).
 
 ## Hook point
@@ -68,12 +68,12 @@ spec:
       type: "file"
 ```
 
-The beginning of the specification describe the hook point to use, here we are
+The beginning of the specification describe the hook point to use. Here we are
 using a kprobe, hooking on the kernel function `fd_install`. That's the kernel
 function that gets called when a new file descriptor needs to be created. We
-indicate that it's not a syscall, but a regular kernel function. Then we
+indicate that it's not a syscall, but a regular kernel function. We then
 specify the argument of the specified function symbol to be able to extract
-them, and optionally perform filtering on them.
+and optionally perform filtering on them.
 
 See the [hook points page]({{< ref "/docs/concepts/tracing-policy/hooks" >}})
 for further information on the various hook points available and arguments.
