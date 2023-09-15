@@ -275,7 +275,8 @@
     },
     {
       "matchDepNames": [
-        "quay.io/lvh-images/kernel-images"
+        "quay.io/lvh-images/kernel-images",
+        "quay.io/lvh-images/kind"
       ],
       // LVH uses custom versioning for its images, need to match those kinds of tags:
       // - bpf-next-20230914.012459
@@ -287,7 +288,8 @@
       "groupName": "all lvh-images main",
       "groupSlug": "all-lvh-images-main",
       "matchPackageNames": [
-        "quay.io/lvh-images/kernel-images"
+        "quay.io/lvh-images/kernel-images",
+        "quay.io/lvh-images/kind"
       ],
       "matchUpdateTypes": [
         "digest",
@@ -301,7 +303,8 @@
       // do not allow any updates for major.minor for LVH, they will be done by maintainers
       "enabled": false,
       "matchPackageNames": [
-        "quay.io/lvh-images/kernel-images"
+        "quay.io/lvh-images/kernel-images",
+        "quay.io/lvh-images/kind"
       ],
       "matchUpdateTypes": [
         "major",
