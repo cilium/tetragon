@@ -40,6 +40,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=cilium.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("podinfo"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cilium().V1alpha1().PodInfo().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tracingpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cilium().V1alpha1().TracingPolicies().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tracingpoliciesnamespaced"):

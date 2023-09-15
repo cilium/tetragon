@@ -11,6 +11,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// PodInfo returns a PodInfoInformer.
+	PodInfo() PodInfoInformer
 	// TracingPolicies returns a TracingPolicyInformer.
 	TracingPolicies() TracingPolicyInformer
 	// TracingPoliciesNamespaced returns a TracingPolicyNamespacedInformer.
@@ -26,6 +28,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// PodInfo returns a PodInfoInformer.
+func (v *version) PodInfo() PodInfoInformer {
+	return &podInfoInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // TracingPolicies returns a TracingPolicyInformer.

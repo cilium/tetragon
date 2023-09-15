@@ -5,6 +5,14 @@
 
 package v1alpha1
 
+// PodInfoListerExpansion allows custom methods to be added to
+// PodInfoLister.
+type PodInfoListerExpansion interface{}
+
+// PodInfoNamespaceListerExpansion allows custom methods to be added to
+// PodInfoNamespaceLister.
+type PodInfoNamespaceListerExpansion interface{}
+
 // TracingPolicyListerExpansion allows custom methods to be added to
 // TracingPolicyLister.
 type TracingPolicyListerExpansion interface{}
