@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestProcessManager_getPodInfo(t *testing.T) {
@@ -63,8 +64,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 
 	_, err := cilium.InitCiliumState(context.Background(), false)
 	assert.NoError(t, err)
-	pods := []interface{}{&podA}
-	err = process.InitCache(watcher.NewFakeK8sWatcher(pods), 10)
+	err = process.InitCache(watcher.NewK8sWatcher(fake.NewSimpleClientset(&podA), 0), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("container-id-not-found", "", "", 0)
@@ -130,8 +130,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	}
 	_, err := cilium.InitCiliumState(context.Background(), false)
 	assert.NoError(t, err)
-	pods := []interface{}{&podA}
-	err = process.InitCache(watcher.NewFakeK8sWatcher(pods), 10)
+	err = process.InitCache(watcher.NewK8sWatcher(fake.NewSimpleClientset(&podA), 0), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
@@ -153,7 +152,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 func TestProcessManager_GetProcessExec(t *testing.T) {
 	_, err := cilium.InitCiliumState(context.Background(), false)
 	assert.NoError(t, err)
-	err = process.InitCache(watcher.NewFakeK8sWatcher(nil), 10)
+	err = process.InitCache(watcher.NewK8sWatcher(fake.NewSimpleClientset(), 0), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	var wg sync.WaitGroup
@@ -210,7 +209,7 @@ func TestProcessManager_GetProcessID(t *testing.T) {
 	_, err := cilium.InitCiliumState(context.Background(), false)
 	assert.NoError(t, err)
 
-	err = process.InitCache(watcher.NewFakeK8sWatcher([]interface{}{}), 10)
+	err = process.InitCache(watcher.NewK8sWatcher(fake.NewSimpleClientset(), 0), 10)
 	assert.NoError(t, err)
 	defer process.FreeCache()
 	id := process.GetProcessID(1, 2)

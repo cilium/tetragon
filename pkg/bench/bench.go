@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/watcher"
+	"k8s.io/client-go/kubernetes/fake"
 
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -214,7 +215,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 		return err
 	}
 
-	watcher := watcher.NewFakeK8sWatcher(nil)
+	watcher := watcher.NewK8sWatcher(fake.NewSimpleClientset(), 0)
 	if err := process.InitCache(watcher, processCacheSize); err != nil {
 		return err
 	}

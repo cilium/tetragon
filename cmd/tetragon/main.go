@@ -59,6 +59,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 var (
@@ -634,7 +635,7 @@ func getWatcher() (watcher.K8sResourceWatcher, error) {
 
 	}
 	log.Info("Disabling Kubernetes API")
-	return watcher.NewFakeK8sWatcher(nil), nil
+	return watcher.NewK8sWatcher(fake.NewSimpleClientset(), 0), nil
 }
 
 func startGopsServer() error {

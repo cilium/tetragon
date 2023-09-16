@@ -49,6 +49,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 var (
@@ -198,7 +199,7 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 			lib:    "",
 		},
 		exporter: testExporterOptions{
-			watcher:     watcher.NewFakeK8sWatcher(nil),
+			watcher:     watcher.NewK8sWatcher(fake.NewSimpleClientset(), 0),
 			ciliumState: ciliumState,
 			allowList:   []*tetragon.Filter{},
 			denyList:    []*tetragon.Filter{},
