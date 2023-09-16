@@ -6,6 +6,7 @@ package watcher
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -70,4 +71,8 @@ func (watcher *FakeK8sWatcher) AddService(service *corev1.Service) {
 // ClearAllServices removes all services from the fake watcher.
 func (watcher *FakeK8sWatcher) ClearAllServices() {
 	watcher.services = nil
+}
+
+func (watcher *FakeK8sWatcher) FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error) {
+	return nil, fmt.Errorf("PodInfo with IP %q not found", ip)
 }

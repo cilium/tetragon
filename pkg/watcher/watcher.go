@@ -10,15 +10,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/fake"
+	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -26,11 +29,13 @@ const (
 	containerIdx   = "containers-ids"
 	podIdx         = "pod-ids"
 	serviceIPsIdx  = "service-ips"
+	podInfoIPsIdx  = "pod-info-ips"
 )
 
 var (
 	errNoPod     = errors.New("object is not a *corev1.Pod")
 	errNoService = errors.New("object is not a *corev1.Service")
+	errNoPodInfo = errors.New("object is not a *PodInfo")
 )
 
 // K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
@@ -43,12 +48,16 @@ type K8sResourceWatcher interface {
 
 	// FindServiceByIP finds a service given the IP address.
 	FindServiceByIP(ip string) ([]*corev1.Service, error)
+
+	// FindPodInfoByIP finds a service given the IP address.
+	FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
 type K8sWatcher struct {
 	podInformer     cache.SharedIndexInformer
 	serviceInformer cache.SharedIndexInformer
+	podInfoInformer cache.SharedIndexInformer
 }
 
 func podIndexFunc(obj interface{}) ([]string, error) {
@@ -115,8 +124,26 @@ func serviceIPIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoService, obj)
 }
 
+// podInfoIPIndexFunc indexes services by their IP addresses
+func podInfoIPIndexFunc(obj interface{}) ([]string, error) {
+	switch t := obj.(type) {
+	case *v1alpha1.PodInfo:
+		var ips []string
+		for _, ip := range t.Status.PodIPs {
+			ips = append(ips, ip.IP)
+		}
+		return ips, nil
+	}
+	return nil, fmt.Errorf("%w - found %T", errNoPodInfo, obj)
+}
+
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
 func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
+	return NewK8sWatcherWithTetragonClient(k8sClient, fake.NewSimpleClientset(), stateSyncIntervalSec)
+}
+
+// NewK8sWatcherWithTetragonClient returns a pointer to an initialized K8sWatcher struct.
+func NewK8sWatcherWithTetragonClient(k8sClient kubernetes.Interface, tetragonClient versioned.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
 	nodeName := os.Getenv("NODE_NAME")
 	if nodeName == "" {
 		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
@@ -150,15 +177,29 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 		panic(err)
 	}
 
+	podInfoInformerFactory := externalversions.NewSharedInformerFactory(tetragonClient, stateSyncIntervalSec)
+	podInfoInformer := podInfoInformerFactory.Cilium().V1alpha1().PodInfo().Informer()
+	err = podInfoInformer.AddIndexers(map[string]cache.IndexFunc{
+		podInfoIPsIdx: podInfoIPIndexFunc,
+	})
+	if err != nil {
+		// Panic during setup since this should never fail, if it fails is a
+		// developer mistake.
+		panic(err)
+	}
+
 	podhooks.InstallHooks(podInformer)
 
 	k8sInformerFactory.Start(wait.NeverStop)
 	k8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	serviceInformerFactory.Start(wait.NeverStop)
 	serviceInformerFactory.WaitForCacheSync(wait.NeverStop)
+	podInfoInformerFactory.Start(wait.NeverStop)
+	podInfoInformerFactory.WaitForCacheSync(wait.NeverStop)
 	logger.GetLogger().WithField("num_pods", len(podInformer.GetStore().ListKeys())).Info("Initialized pod cache")
 	logger.GetLogger().WithField("num_services", len(serviceInformer.GetStore().ListKeys())).Info("Initialized service cache")
-	return &K8sWatcher{podInformer, serviceInformer}
+	logger.GetLogger().WithField("num_pod_info", len(podInfoInformer.GetStore().ListKeys())).Info("Initialized pod info cache")
+	return &K8sWatcher{podInformer, serviceInformer, podInfoInformer}
 }
 
 // FindContainer implements K8sResourceWatcher.FindContainer.
@@ -259,4 +300,23 @@ func (watcher *K8sWatcher) FindServiceByIP(ip string) ([]*corev1.Service, error)
 		services = append(services, service)
 	}
 	return services, nil
+}
+
+func (watcher *K8sWatcher) FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error) {
+	objs, err := watcher.podInfoInformer.GetIndexer().ByIndex(podInfoIPsIdx, ip)
+	if err != nil {
+		return nil, fmt.Errorf("pod info watcher returned: %w", err)
+	}
+	if len(objs) == 0 {
+		return nil, fmt.Errorf("PodInfo with IP %s not found", ip)
+	}
+	var podInfo []*v1alpha1.PodInfo
+	for _, obj := range objs {
+		service, ok := obj.(*v1alpha1.PodInfo)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type %t", objs[0])
+		}
+		podInfo = append(podInfo, service)
+	}
+	return podInfo, nil
 }
