@@ -7,25 +7,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	k8sv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
 )
 
-type Metadata struct {
-	Name              string            `json:"name"`
-	Annotations       map[string]string `json:"annotations"`
-	CreationTimestamp time.Time         `json:"creationTimestamp,omitempty"`
-}
-
 type GenericTracingPolicy struct {
-	ApiVersion string                     `json:"apiVersion"`
-	Kind       string                     `json:"kind"`
-	Metadata   Metadata                   `json:"metadata"`
-	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
+	k8sv1.TypeMeta
+	Metadata k8sv1.ObjectMeta           `json:"metadata"`
+	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
 func (gtp *GenericTracingPolicy) TpName() string {
@@ -69,17 +62,10 @@ func PolicyFromYAMLFilename(fileName string) (TracingPolicy, error) {
 	return PolicyFromYAML(string(policy))
 }
 
-type MetadataNamespaced struct {
-	Name        string            `yaml:"name"`
-	Namespace   string            `yaml:"namespace"`
-	Annotations map[string]string `yaml:"annotations"`
-}
-
 type GenericTracingPolicyNamespaced struct {
-	ApiVersion string                     `json:"apiVersion"`
-	Kind       string                     `json:"kind"`
-	Metadata   MetadataNamespaced         `json:"metadata"`
-	Spec       v1alpha1.TracingPolicySpec `json:"spec"`
+	k8sv1.TypeMeta
+	Metadata k8sv1.ObjectMeta           `json:"metadata"`
+	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
 func (gtp *GenericTracingPolicyNamespaced) TpNamespace() string {

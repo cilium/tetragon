@@ -32,6 +32,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/google/uuid"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/containerd/cgroups"
 	cgroupsv2 "github.com/containerd/cgroups/v2"
@@ -172,7 +173,7 @@ func TestNamespacedPolicies(t *testing.T) {
 		},
 	}
 	kpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
-		Metadata: tracingpolicy.MetadataNamespaced{
+		Metadata: v1.ObjectMeta{
 			Name:      "lseek-test",
 			Namespace: "ns1",
 		},
@@ -201,7 +202,7 @@ func TestNamespacedPolicies(t *testing.T) {
 		},
 	}
 	tpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
-		Metadata: tracingpolicy.MetadataNamespaced{
+		Metadata: v1.ObjectMeta{
 			Name:      "lseek-test",
 			Namespace: "ns1",
 		},
