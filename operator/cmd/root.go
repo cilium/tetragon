@@ -10,10 +10,9 @@ import (
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/tetragon/operator/cmd/common"
 	"github.com/cilium/tetragon/operator/cmd/serve"
-	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/pkg/cmdref"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,14 +27,7 @@ func New() *cobra.Command {
 		Use:   binaryName,
 		Short: "Run " + binaryName,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Populate option.Config with options from CLI.
-			operatorOption.ConfigPopulate()
-			cmdRefDir := viper.GetString(operatorOption.CMDRef)
-			if cmdRefDir != "" {
-				cmdref.GenMarkdown(cmd, cmdRefDir)
-				os.Exit(0)
-			}
-			crd.RegisterCRDs()
+			common.Initialize(cmd)
 		},
 	}
 
@@ -55,21 +47,8 @@ func New() *cobra.Command {
 		}
 	})
 
-	flags := rootCmd.Flags()
-
-	flags.String(operatorOption.CMDRef, "", "Path to cmdref output directory")
-	flags.MarkHidden(operatorOption.CMDRef)
-
-	flags.Bool(operatorOption.SkipCRDCreation, false, "When true, Kubernetes Custom Resource Definitions (CRDs) will not be created")
-
-	flags.String(operatorOption.KubeCfgPath, "", "Kubeconfig filepath to connect to k8s")
-
-	flags.String(operatorOption.ConfigDir, "", "Directory in which tetragon-operator-config configmap is mounted")
-
-	flags.Bool(operatorOption.SkipPodInfoCRD, false, "When true, PodInfo Custom Resource Definition (CRD) will not be created")
-
-	viper.BindPFlags(flags)
-
+	common.AddCommonFlags(rootCmd)
+	viper.BindPFlags(rootCmd.Flags())
 	rootCmd.AddCommand(serve.New())
 	return rootCmd
 }

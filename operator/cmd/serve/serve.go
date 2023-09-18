@@ -9,10 +9,11 @@ import (
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
-
+	"github.com/cilium/tetragon/operator/cmd/common"
 	"github.com/cilium/tetragon/operator/podinfo"
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,6 +41,7 @@ func New() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			log := logrusr.New(logging.DefaultLogger.WithField(logfields.LogSubsys, "operator"))
 			ctrl.SetLogger(log)
+			common.Initialize(cmd)
 			mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     metricsAddr,
@@ -88,5 +90,7 @@ func New() *cobra.Command {
 	cmd.Flags().BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	common.AddCommonFlags(&cmd)
+	viper.BindPFlags(cmd.Flags())
 	return &cmd
 }

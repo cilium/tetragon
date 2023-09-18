@@ -22,7 +22,12 @@ spec:
           - /usr/bin/tetragon-operator
         args:
           - serve
+          - --config-dir=/etc/tetragon/operator.conf.d/
         image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
+        volumeMounts:
+          - mountPath: /etc/tetragon/operator.conf.d/
+            name: tetragon-operator-config
+            readOnly: true
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -49,4 +54,8 @@ spec:
             memory: 64Mi
       serviceAccountName: {{ .Release.Name }}-operator-service-account
       terminationGracePeriodSeconds: 10
+      volumes:
+        - name: tetragon-operator-config
+          configMap:
+            name: {{ .Release.Name }}-operator-config
 {{- end }}
