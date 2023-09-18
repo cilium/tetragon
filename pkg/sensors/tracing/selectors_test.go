@@ -33,6 +33,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // loadGenericSensorTest loads a tracing sensor for testing
@@ -42,7 +43,7 @@ func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sens
 	}
 
 	tp := &tracingpolicy.GenericTracingPolicy{
-		Metadata: tracingpolicy.Metadata{Name: "name"},
+		Metadata: v1.ObjectMeta{Name: "name"},
 		Spec:     *spec,
 	}
 	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
