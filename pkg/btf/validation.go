@@ -159,20 +159,22 @@ func ValidateKprobeSpec(bspec *btf.Spec, kspec *v1alpha1.KProbeSpec) error {
 }
 
 func getKernelType(arg btf.Type) string {
+	suffix := ""
 	ptr, ok := arg.(*btf.Pointer)
 	if ok {
 		arg = ptr.Target
+		suffix = suffix + " *"
 	}
 	num, ok := arg.(*btf.Int)
 	if ok {
-		return num.Name
+		return num.Name + suffix
 	}
 	strct, ok := arg.(*btf.Struct)
 	if ok {
-		return strct.Name
+		return "struct " + strct.Name + suffix
 	}
 	// TODO - add more types, above is enough to make validation_test pass
-	return arg.TypeName()
+	return arg.TypeName() + suffix
 }
 
 func typesCompatible(specTy string, kernelTy string) bool {
