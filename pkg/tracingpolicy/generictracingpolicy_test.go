@@ -17,6 +17,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,8 +91,8 @@ spec:
 `
 
 var expectedWrite = GenericTracingPolicy{
-	ApiVersion: "cilium.io/v1alpha1",
-	Metadata:   Metadata{Name: "sys-write"},
+	TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+	Metadata: v1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
@@ -252,8 +253,8 @@ spec:
 `
 
 var expectedData = GenericTracingPolicy{
-	ApiVersion: "cilium.io/v1alpha1",
-	Metadata:   Metadata{Name: "sys-write"},
+	TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+	Metadata: v1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
@@ -391,8 +392,8 @@ var lseekExample string
 func TestYamlLseek(t *testing.T) {
 
 	expected := GenericTracingPolicy{
-		ApiVersion: "cilium.io/v1alpha1",
-		Metadata:   Metadata{Name: "tracepoint-lseek"},
+		TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+		Metadata: v1.ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
