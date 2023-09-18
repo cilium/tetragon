@@ -112,11 +112,15 @@ type terminalError struct {
 	err error
 }
 
+// This function will return nil if te.err is nil.
 func (te *terminalError) Unwrap() error {
 	return te.err
 }
 
 func (te *terminalError) Error() string {
+	if te.err == nil {
+		return "nil terminal error"
+	}
 	return "terminal error: " + te.err.Error()
 }
 
