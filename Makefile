@@ -51,9 +51,11 @@ ifeq ($(TARGET_ARCH),arm64)
 endif
 BPF_TARGET_ARCH ?= x86
 
+__BPF_DEBUG_FLAGS :=
 ifeq ($(DEBUG),1)
 	NOOPT=1
 	NOSTRIP=1
+	__BPF_DEBUG_FLAGS += DEBUG=1
 endif
 
 # GO_BUILD_LDFLAGS is initialized to empty use EXTRA_GO_BUILD_LDFLAGS to add link flags
@@ -147,11 +149,11 @@ tetragon-bpf: tetragon-bpf-container
 endif
 
 tetragon-bpf-local:
-	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) -j$(JOBS)
+	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) -j$(JOBS) $(__BPF_DEBUG_FLAGS)
 
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
-	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf -j$(JOBS)
+	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf -j$(JOBS) $(__BPF_DEBUG_FLAGS)
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
 .PHONY: verify
