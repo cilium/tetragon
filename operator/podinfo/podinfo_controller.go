@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/process"
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -87,13 +88,16 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 		Controller:         &controller,
 		BlockOwnerDeletion: &blockOwnerDeletion,
 	}
+	workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
 	return pod.Name == podInfo.Name &&
 		pod.Namespace == podInfo.Namespace &&
 		pod.Status.PodIP == podInfo.Status.PodIP &&
 		maps.Equal(pod.Annotations, podInfo.Annotations) &&
 		maps.Equal(pod.Labels, podInfo.Labels) &&
 		len(podInfo.OwnerReferences) == 1 &&
-		reflect.DeepEqual(podInfo.OwnerReferences[0], expectedOwnerReference)
+		reflect.DeepEqual(podInfo.OwnerReferences[0], expectedOwnerReference) &&
+		reflect.DeepEqual(podInfo.WorkloadObject, workloadObject) &&
+		reflect.DeepEqual(podInfo.WorkloadType, workloadType)
 }
 
 // hasAllRequiredFields checks if the necessary pod fields are available.
@@ -112,6 +116,7 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 	for _, podIP := range pod.Status.PodIPs {
 		podIPs = append(podIPs, ciliumiov1alpha1.PodIP{IP: podIP.IP})
 	}
+	workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
 	controller := true
 	blockOwnerDeletion := true
 	return &ciliumiov1alpha1.PodInfo{
@@ -136,6 +141,8 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 			PodIP:  pod.Status.PodIP,
 			PodIPs: podIPs,
 		},
+		WorkloadType:   workloadType,
+		WorkloadObject: workloadObject,
 	}
 }
 

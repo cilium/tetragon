@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,6 +114,7 @@ func TestGeneratePod(t *testing.T) {
 		for _, podIP := range pod.Status.PodIPs {
 			podIPs = append(podIPs, ciliumv1alpha1.PodIP{IP: podIP.IP})
 		}
+		workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
 		expectedPodInfo := &ciliumv1alpha1.PodInfo{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        pod.Name,
@@ -134,6 +136,8 @@ func TestGeneratePod(t *testing.T) {
 				PodIP:  pod.Status.PodIP,
 				PodIPs: podIPs,
 			},
+			WorkloadType:   workloadType,
+			WorkloadObject: workloadObject,
 		}
 		generatedPodInfo := generatePodInfo(pod)
 		assert.Equal(t, expectedPodInfo, generatedPodInfo, "Generated incorrect PodInfo corresponding to the pod")
@@ -243,6 +247,24 @@ func TestEqual(t *testing.T) {
 			podInfo := generatePodInfo(pod)
 			pod.Annotations = getRandMap()
 			assert.False(t, equal(pod, podInfo), "Pod Annotations changed, still returning pod not changed")
+		})
+
+		t.Run("Pod owner references changed", func(t *testing.T) {
+			pod := randomPodGenerator()
+			controller, blockOwnerDeletion := true, true
+			podInfo := generatePodInfo(pod)
+			pod.GenerateName = "tetragon-"
+			pod.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion:         "apps/v1",
+					Kind:               "DaemonSet",
+					Name:               "tetragon",
+					UID:                "00000000-0000-0000-0000-000000000000",
+					Controller:         &controller,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			}
+			assert.False(t, equal(pod, podInfo), "Pod owner references changed, still returning pod not changed")
 		})
 	})
 }

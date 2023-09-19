@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,15 +19,16 @@ import (
 var cronJobNameRegexp = regexp.MustCompile(`(.+)-\d{8,10}$`)
 
 // GetWorkloadMetaFromPod heuristically derives workload metadata from the pod spec.
-func getWorkloadMetaFromPod(pod *corev1.Pod) (metav1.ObjectMeta, metav1.TypeMeta) {
+func GetWorkloadMetaFromPod(pod *corev1.Pod) (v1alpha1.WorkloadObjectMeta, metav1.TypeMeta) {
 	if pod == nil {
-		return metav1.ObjectMeta{}, metav1.TypeMeta{}
+		return v1alpha1.WorkloadObjectMeta{}, metav1.TypeMeta{}
 	}
 	// try to capture more useful namespace/name info for deployments, etc.
 	// TODO(dougreid): expand to enable lookup of OWNERs recursively a la kubernetesenv
-	deployMeta := pod.ObjectMeta
-	deployMeta.ManagedFields = nil
-	deployMeta.OwnerReferences = nil
+	deployMeta := v1alpha1.WorkloadObjectMeta{
+		Name:      pod.GetObjectMeta().GetName(),
+		Namespace: pod.GetObjectMeta().GetNamespace(),
+	}
 
 	typeMetadata := metav1.TypeMeta{
 		Kind:       "Pod",
@@ -65,7 +67,6 @@ func getWorkloadMetaFromPod(pod *corev1.Pod) (metav1.ObjectMeta, metav1.TypeMeta
 				// https://github.com/openshift/library-go/blob/7a65fdb398e28782ee1650959a5e0419121e97ae/pkg/apps/appsutil/const.go#L25
 				deployMeta.Name = pod.Labels["deploymentconfig"]
 				typeMetadata.Kind = "DeploymentConfig"
-				delete(deployMeta.Labels, "deploymentconfig")
 			} else if typeMetadata.Kind == "Job" {
 				// If job name suffixed with `-<digit-timestamp>`, where the length of digit timestamp is 8~10,
 				// trim the suffix and set kind to cron job.
@@ -89,6 +90,6 @@ func getWorkloadMetaFromPod(pod *corev1.Pod) (metav1.ObjectMeta, metav1.TypeMeta
 }
 
 func getWorkloadNameFromPod(pod *corev1.Pod) string {
-	objMeta, _ := getWorkloadMetaFromPod(pod)
+	objMeta, _ := GetWorkloadMetaFromPod(pod)
 	return objMeta.Name
 }
