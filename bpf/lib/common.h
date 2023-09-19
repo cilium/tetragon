@@ -49,4 +49,11 @@ struct bpf_map_def {
 #define BIT(nr)	    (1 << (nr))
 #define BIT_ULL(nr) (1ULL << (nr))
 
+#ifdef TETRAGON_BPF_DEBUG
+#include <bpf_tracing.h>
+#define DEBUG(__fmt, ...) bpf_printk(__fmt, ##__VA_ARGS__)
+#else
+#define DEBUG(__fmt, ...)
+#endif
+
 #endif // _MSG_COMMON__
