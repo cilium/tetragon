@@ -36,7 +36,6 @@ const (
 	keyGopsAddr          = "gops-address"
 	keyEnableProcessCred = "enable-process-cred"
 	keyEnableProcessNs   = "enable-process-ns"
-	keyConfigFile        = "config-file"
 	keyTracingPolicy     = "tracing-policy"
 	keyTracingPolicyDir  = "tracing-policy-dir"
 
@@ -144,13 +143,6 @@ func readAndSetFlags() {
 
 	option.Config.KMods = viper.GetStringSlice(keyKmods)
 
-	// deprecation timeline: deprecated -> 0.10.0, removed -> 0.11.0
-	// manually handle the deprecation of --config-file
-	if viper.IsSet(keyConfigFile) {
-		log.Warnf("Flag --%s has been deprecated, please use --%s instead", keyConfigFile, keyTracingPolicy)
-		option.Config.TracingPolicy = viper.GetString(keyConfigFile)
-	}
-	// if both --config-file and --tracing-policy are set, the latter takes priority
 	if viper.IsSet(keyTracingPolicy) {
 		option.Config.TracingPolicy = viper.GetString(keyTracingPolicy)
 	}
