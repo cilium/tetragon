@@ -56,7 +56,12 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx, __u
 		exit->current.pad[3] = 0;
 		exit->current.ktime = enter->key.ktime;
 
-		/* We track and report only thread leader so here tgid == tid */
+		/**
+		 * Per thread tracking rules TID == PID :
+		 *  We want the exit event to match the exec one, and since during exec
+		 *  we report the thread group leader, do same here as we read the exec
+		 *  entry from the execve_map anyway and explicitly set it to the to tgid.
+		 */
 		exit->info.tid = tgid;
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));

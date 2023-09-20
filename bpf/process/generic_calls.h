@@ -79,7 +79,10 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 
 	e->action = 0;
 
-	/* Initialize with the calling TID */
+	/**
+	 * Per thread tracking rules TID is the calling thread:
+	 *  At kprobes, tracpoints etc we report the calling thread ID to user space.
+	 */
 	e->tid = (__u32)get_current_pid_tgid();
 }
 

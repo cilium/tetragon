@@ -69,10 +69,14 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	}
 
 	if internal != nil {
+		// When we report the per thread fields, take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
+		// The cost to get this is relatively high because it requires a
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
 		proc := internal.GetProcessCopy()
-		// The TID of the cached process can be different from the
-		// TID that triggered the event, so always use the recorded
-		// one from bpf.
 		process.UpdateEventProcessTid(proc, tid)
 		ev.SetProcess(proc)
 	} else {
@@ -97,10 +101,14 @@ func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid 
 		return ErrFailedToGetPodInfo
 	}
 
+	// When we report the per thread fields, take a copy
+	// of the thread leader from the cache then update the corresponding
+	// per thread fields.
+	//
+	// The cost to get this is relatively high because it requires a
+	// deep copy of all the fields of the thread leader from the cache in
+	// order to safely modify them, to not corrupt gRPC streams.
 	proc := internal.GetProcessCopy()
-	// The TID of the cached process can be different from the
-	// TID that triggered the event, so always use the recorded
-	// one from bpf.
 	process.UpdateEventProcessTid(proc, tid)
 	ev.SetProcess(proc)
 	return nil
