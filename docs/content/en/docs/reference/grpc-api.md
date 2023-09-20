@@ -372,6 +372,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | container | [Container](#tetragon-Container) |  | Container of the Pod from which the process that triggered the event originates. |
 | pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. Note that the labels field contains Cilium identity labels, which is a subset of pod labels. |
 | workload | [string](#string) |  | Kubernetes workload of the Pod. |
+| workload_kind | [string](#string) |  | Kubernetes workload kind (e.g. &#34;Deployment&#34;, &#34;DaemonSet&#34;) of the Pod. |
 
 <a name="tetragon-Pod-PodLabelsEntry"></a>
 

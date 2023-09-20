@@ -1701,12 +1701,13 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 
 // PodChecker implements a checker struct to check a Pod field
 type PodChecker struct {
-	Namespace *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
-	Name      *stringmatcher.StringMatcher           `json:"name,omitempty"`
-	Labels    map[string]stringmatcher.StringMatcher `json:"labels,omitempty"`
-	Container *ContainerChecker                      `json:"container,omitempty"`
-	PodLabels map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
-	Workload  *stringmatcher.StringMatcher           `json:"workload,omitempty"`
+	Namespace    *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
+	Name         *stringmatcher.StringMatcher           `json:"name,omitempty"`
+	Labels       map[string]stringmatcher.StringMatcher `json:"labels,omitempty"`
+	Container    *ContainerChecker                      `json:"container,omitempty"`
+	PodLabels    map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
+	Workload     *stringmatcher.StringMatcher           `json:"workload,omitempty"`
+	WorkloadKind *stringmatcher.StringMatcher           `json:"workloadKind,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -1809,6 +1810,11 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 				return fmt.Errorf("Workload check failed: %w", err)
 			}
 		}
+		if checker.WorkloadKind != nil {
+			if err := checker.WorkloadKind.Match(event.WorkloadKind); err != nil {
+				return fmt.Errorf("WorkloadKind check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1853,6 +1859,12 @@ func (checker *PodChecker) WithWorkload(check *stringmatcher.StringMatcher) *Pod
 	return checker
 }
 
+// WithWorkloadKind adds a WorkloadKind check to the PodChecker
+func (checker *PodChecker) WithWorkloadKind(check *stringmatcher.StringMatcher) *PodChecker {
+	checker.WorkloadKind = check
+	return checker
+}
+
 //FromPod populates the PodChecker using data from a Pod field
 func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event == nil {
@@ -1866,6 +1878,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	}
 	// TODO: implement fromMap
 	checker.Workload = stringmatcher.Full(event.Workload)
+	checker.WorkloadKind = stringmatcher.Full(event.WorkloadKind)
 	return checker
 }
 
