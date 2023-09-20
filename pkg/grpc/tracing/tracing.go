@@ -273,8 +273,14 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	if proc != nil {
+		// At kprobes we report the per thread fields, so take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
+		// The cost to get this is relatively high because it requires a
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		// Use the bpf recorded TID to update the event
 		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
 	if parent != nil {
@@ -373,10 +379,14 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	if proc != nil {
-		tetragonEvent.Process = proc.GetProcessCopy()
-		// Use the bpf recorded TID to update the event
+		// At tracepoints we report the per thread fields, so take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
 		// The cost to get this is relatively high because it requires a
-		// deep copyo of the process in order to safely modify it.
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
+		tetragonEvent.Process = proc.GetProcessCopy()
 		process.UpdateEventProcessTid(tetragonEvent.Process, &msg.Tid)
 	}
 
@@ -593,8 +603,14 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	if proc != nil {
+		// At uprobes we report the per thread fields, so take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
+		// The cost to get this is relatively high because it requires a
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		// Use the bpf recorded TID to update the event
 		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Tid)
 	}
 	return tetragonEvent
