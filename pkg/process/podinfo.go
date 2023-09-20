@@ -70,14 +70,15 @@ func getPodInfo(
 			Value: nspid,
 		}
 	}
-
+	workloadObject, workloadType := GetWorkloadMetaFromPod(pod)
 	watchermetrics.GetWatcherEvents("k8s").Inc()
 	return &tetragon.Pod{
-		Namespace: pod.Namespace,
-		Workload:  getWorkloadNameFromPod(pod),
-		Name:      pod.Name,
-		Labels:    labels,
-		PodLabels: pod.Labels,
+		Namespace:    pod.Namespace,
+		Workload:     workloadObject.Name,
+		WorkloadKind: workloadType.Kind,
+		Name:         pod.Name,
+		Labels:       labels,
+		PodLabels:    pod.Labels,
 		Container: &tetragon.Container{
 			Id:   container.ContainerID,
 			Pid:  containerPID,

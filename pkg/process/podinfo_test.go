@@ -34,6 +34,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Name:       "test-workload",
+					Kind:       "Deployment",
 					Controller: &controller,
 				},
 			},
@@ -56,9 +57,10 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	pid := uint32(1)
 	podInfo := getPodInfo(watcher, "abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
-		Namespace: pod.Namespace,
-		Workload:  pod.OwnerReferences[0].Name,
-		Name:      pod.Name,
+		Namespace:    pod.Namespace,
+		Workload:     pod.OwnerReferences[0].Name,
+		WorkloadKind: pod.OwnerReferences[0].Kind,
+		Name:         pod.Name,
 		Container: &tetragon.Container{
 			Id:  pod.Status.ContainerStatuses[0].ContainerID,
 			Pid: &wrapperspb.UInt32Value{Value: pid},

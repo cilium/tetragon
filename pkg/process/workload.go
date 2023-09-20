@@ -88,8 +88,3 @@ func GetWorkloadMetaFromPod(pod *corev1.Pod) (v1alpha1.WorkloadObjectMeta, metav
 
 	return deployMeta, typeMetadata
 }
-
-func getWorkloadNameFromPod(pod *corev1.Pod) string {
-	objMeta, _ := GetWorkloadMetaFromPod(pod)
-	return objMeta.Name
-}
