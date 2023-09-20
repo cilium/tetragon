@@ -12,10 +12,10 @@ Tetragon will be managed as a systemd service. Tarballs are built and
 distributed along the assets in [the releases](https://github.com/cilium/tetragon/releases).
 
 {{< note >}}
-The binary tarball only supports amd64 for now.
+Tetragon as of version 1.0 supports amd64 and arm64 architectures.
 {{< /note >}}
 
-1. First download the latest binary tarball, using `curl` for example:
+1. First download the latest binary tarball, using `curl` for example to download the `amd64` release:
 
    ```shell
    curl -LO https://github.com/cilium/tetragon/releases/download/{{< latest-version >}}/tetragon-{{< latest-version >}}-amd64.tar.gz
