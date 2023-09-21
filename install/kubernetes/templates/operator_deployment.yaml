@@ -1,4 +1,3 @@
-{{- if .Values.podWatcher.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,4 +57,4 @@ spec:
         - name: tetragon-operator-config
           configMap:
             name: {{ .Release.Name }}-operator-config
-{{- end }}
+

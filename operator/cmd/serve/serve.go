@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/tetragon/operator/cmd/common"
+	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/operator/podinfo"
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/spf13/cobra"
@@ -65,10 +66,12 @@ func New() *cobra.Command {
 				return fmt.Errorf("unable to start manager: %w", err)
 			}
 
-			if err = (&podinfo.Reconciler{
-				Client: mgr.GetClient(),
-			}).SetupWithManager(mgr); err != nil {
-				return fmt.Errorf("unable to create controller: %w %s %s", err, "controller", "podinfo")
+			if !operatorOption.Config.SkipPodInfoCRD {
+				if err = (&podinfo.Reconciler{
+					Client: mgr.GetClient(),
+				}).SetupWithManager(mgr); err != nil {
+					return fmt.Errorf("unable to create controller: %w %s %s", err, "controller", "podinfo")
+				}
 			}
 
 			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

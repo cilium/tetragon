@@ -1,4 +1,4 @@
-{{- if and .Values.serviceAccount.create .Values.podWatcher.enabled }}
+{{- if .Values.serviceAccount.create }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
