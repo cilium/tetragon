@@ -55,7 +55,6 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | podAnnotations | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
-| podWatcher.enabled | bool | `false` |  |
 | selectorLabelsOverride | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |
@@ -98,8 +97,8 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.serviceMonitor.labelsOverride | object | `{}` | The set of labels to place on the 'ServiceMonitor' resource. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator.enabled | bool | `true` | Enable the tetragon-operator component (required). |
 | tetragonOperator.image | object | `{"override":null,"repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v0.11.0"}` | tetragon-operator image. |
+| tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
 | tetragonOperator.skipCRDCreation | bool | `false` |  |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |

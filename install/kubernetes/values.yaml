@@ -148,11 +148,7 @@ tetragon:
   enablePolicyFilterDebug: false
   # Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
-podWatcher:
-  enabled: false
 tetragonOperator:
-  # -- Enable the tetragon-operator component (required).
-  enabled: true
   # -- tetragon-operator image.
   image:
     override: ~
@@ -162,6 +158,10 @@ tetragonOperator:
     suffix: ""
   # Skip CRD creation.
   skipCRDCreation: false
+  podInfo:
+    # -- Enables the PodInfo CRD and the controller that reconciles PodInfo
+    # custom resources.
+    enabled: false
 export:
   # "stdout". "" to disable.
   mode: "stdout"
