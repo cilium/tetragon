@@ -2795,24 +2795,101 @@ nextCheck:
 	return nil
 }
 
+// BinaryPropertiesChecker implements a checker struct to check a BinaryProperties field
+type BinaryPropertiesChecker struct {
+	Setuid *uint32 `json:"setuid,omitempty"`
+	Setgid *uint32 `json:"setgid,omitempty"`
+}
+
+// NewBinaryPropertiesChecker creates a new BinaryPropertiesChecker
+func NewBinaryPropertiesChecker() *BinaryPropertiesChecker {
+	return &BinaryPropertiesChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *BinaryPropertiesChecker) GetCheckerType() string {
+	return "BinaryPropertiesChecker"
+}
+
+// Check checks a BinaryProperties field
+func (checker *BinaryPropertiesChecker) Check(event *tetragon.BinaryProperties) error {
+	if event == nil {
+		return fmt.Errorf("%s: BinaryProperties field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Setuid != nil {
+			if event.Setuid == nil {
+				return fmt.Errorf("Setuid is nil and does not match expected value %v", *checker.Setuid)
+			}
+			if *checker.Setuid != event.Setuid.Value {
+				return fmt.Errorf("Setuid has value %v which does not match expected value %v", event.Setuid.Value, *checker.Setuid)
+			}
+		}
+		if checker.Setgid != nil {
+			if event.Setgid == nil {
+				return fmt.Errorf("Setgid is nil and does not match expected value %v", *checker.Setgid)
+			}
+			if *checker.Setgid != event.Setgid.Value {
+				return fmt.Errorf("Setgid has value %v which does not match expected value %v", event.Setgid.Value, *checker.Setgid)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithSetuid adds a Setuid check to the BinaryPropertiesChecker
+func (checker *BinaryPropertiesChecker) WithSetuid(check uint32) *BinaryPropertiesChecker {
+	checker.Setuid = &check
+	return checker
+}
+
+// WithSetgid adds a Setgid check to the BinaryPropertiesChecker
+func (checker *BinaryPropertiesChecker) WithSetgid(check uint32) *BinaryPropertiesChecker {
+	checker.Setgid = &check
+	return checker
+}
+
+//FromBinaryProperties populates the BinaryPropertiesChecker using data from a BinaryProperties field
+func (checker *BinaryPropertiesChecker) FromBinaryProperties(event *tetragon.BinaryProperties) *BinaryPropertiesChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Setuid != nil {
+		val := event.Setuid.Value
+		checker.Setuid = &val
+	}
+	if event.Setgid != nil {
+		val := event.Setgid.Value
+		checker.Setgid = &val
+	}
+	return checker
+}
+
 // ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
-	ExecId       *stringmatcher.StringMatcher       `json:"execId,omitempty"`
-	Pid          *uint32                            `json:"pid,omitempty"`
-	Uid          *uint32                            `json:"uid,omitempty"`
-	Cwd          *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
-	Binary       *stringmatcher.StringMatcher       `json:"binary,omitempty"`
-	Arguments    *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
-	Flags        *stringmatcher.StringMatcher       `json:"flags,omitempty"`
-	StartTime    *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
-	Auid         *uint32                            `json:"auid,omitempty"`
-	Pod          *PodChecker                        `json:"pod,omitempty"`
-	Docker       *stringmatcher.StringMatcher       `json:"docker,omitempty"`
-	ParentExecId *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
-	Refcnt       *uint32                            `json:"refcnt,omitempty"`
-	Cap          *CapabilitiesChecker               `json:"cap,omitempty"`
-	Ns           *NamespacesChecker                 `json:"ns,omitempty"`
-	Tid          *uint32                            `json:"tid,omitempty"`
+	ExecId             *stringmatcher.StringMatcher       `json:"execId,omitempty"`
+	Pid                *uint32                            `json:"pid,omitempty"`
+	Uid                *uint32                            `json:"uid,omitempty"`
+	Cwd                *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
+	Binary             *stringmatcher.StringMatcher       `json:"binary,omitempty"`
+	Arguments          *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
+	Flags              *stringmatcher.StringMatcher       `json:"flags,omitempty"`
+	StartTime          *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
+	Auid               *uint32                            `json:"auid,omitempty"`
+	Pod                *PodChecker                        `json:"pod,omitempty"`
+	Docker             *stringmatcher.StringMatcher       `json:"docker,omitempty"`
+	ParentExecId       *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
+	Refcnt             *uint32                            `json:"refcnt,omitempty"`
+	Cap                *CapabilitiesChecker               `json:"cap,omitempty"`
+	Ns                 *NamespacesChecker                 `json:"ns,omitempty"`
+	Tid                *uint32                            `json:"tid,omitempty"`
+	ProcessCredentials *ProcessCredentialsChecker         `json:"processCredentials,omitempty"`
+	BinaryProperties   *BinaryPropertiesChecker           `json:"binaryProperties,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -2924,6 +3001,16 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 				return fmt.Errorf("Tid has value %v which does not match expected value %v", event.Tid.Value, *checker.Tid)
 			}
 		}
+		if checker.ProcessCredentials != nil {
+			if err := checker.ProcessCredentials.Check(event.ProcessCredentials); err != nil {
+				return fmt.Errorf("ProcessCredentials check failed: %w", err)
+			}
+		}
+		if checker.BinaryProperties != nil {
+			if err := checker.BinaryProperties.Check(event.BinaryProperties); err != nil {
+				return fmt.Errorf("BinaryProperties check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3028,6 +3115,18 @@ func (checker *ProcessChecker) WithTid(check uint32) *ProcessChecker {
 	return checker
 }
 
+// WithProcessCredentials adds a ProcessCredentials check to the ProcessChecker
+func (checker *ProcessChecker) WithProcessCredentials(check *ProcessCredentialsChecker) *ProcessChecker {
+	checker.ProcessCredentials = check
+	return checker
+}
+
+// WithBinaryProperties adds a BinaryProperties check to the ProcessChecker
+func (checker *ProcessChecker) WithBinaryProperties(check *BinaryPropertiesChecker) *ProcessChecker {
+	checker.BinaryProperties = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -3070,6 +3169,12 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	if event.Tid != nil {
 		val := event.Tid.Value
 		checker.Tid = &val
+	}
+	if event.ProcessCredentials != nil {
+		checker.ProcessCredentials = NewProcessCredentialsChecker().FromProcessCredentials(event.ProcessCredentials)
+	}
+	if event.BinaryProperties != nil {
+		checker.BinaryProperties = NewBinaryPropertiesChecker().FromBinaryProperties(event.BinaryProperties)
 	}
 	return checker
 }
