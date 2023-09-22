@@ -140,6 +140,13 @@ message ProcessCredentials {
 	UserNamespace user_ns = 11;
 }
 
+message BinaryProperties {
+	// If set then this is the set user ID used for execution
+	google.protobuf.UInt32Value setuid = 1;
+	// If set then this is the set group ID used for execution
+	google.protobuf.UInt32Value setgid = 2;
+}
+
 message Process {
     // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
     string exec_id = 1;
@@ -229,6 +236,10 @@ message Process {
     Namespaces ns = 15;
     // Thread ID, note that for the thread group leader, tid is equal to pid.
     google.protobuf.UInt32Value tid = 16;
+    // Process credentials
+    ProcessCredentials process_credentials = 17;
+    // Executed binary properties. This field is only available on ProcessExec events.
+    BinaryProperties binary_properties = 18;
 }
 
 message ProcessExec {

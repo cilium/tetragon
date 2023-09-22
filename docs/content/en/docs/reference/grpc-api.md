@@ -85,6 +85,15 @@ version 1 of this API is defined in
 
 ## tetragon/tetragon.proto
 
+<a name="tetragon-BinaryProperties"></a>
+
+### BinaryProperties
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| setuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set user ID used for execution |
+| setgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set group ID used for execution |
+
 <a name="tetragon-Capabilities"></a>
 
 ### Capabilities
@@ -405,6 +414,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 | ns | [Namespaces](#tetragon-Namespaces) |  | Linux namespaces of the process, disabled by default, can be enabled by the `--enable-process-ns` flag. |
 | tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
+| process_credentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials |
+| binary_properties | [BinaryProperties](#tetragon-BinaryProperties) |  | Executed binary properties. This field is only available on ProcessExec events. |
 
 <a name="tetragon-ProcessCredentials"></a>
 
