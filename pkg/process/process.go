@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
 
@@ -220,6 +221,7 @@ func initProcessInternalExec(
 		}).Warn("ExecveEvent: process PID and TID mismatch")
 		// Explicitly reset TID to be PID
 		process.TID = process.PID
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 	return &ProcessInternal{
 		process: &tetragon.Process{
@@ -273,6 +275,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 			"event.process.exec_id": pi.process.ExecId,
 			"event.parent.exec_id":  parentExecId,
 		}).Debug("CloneEvent: process PID and TID mismatch")
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 	// Set the TID here and if we have an exit without an exec we report
 	// directly this TID without copying again objects.

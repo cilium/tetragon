@@ -314,6 +314,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 			"event.process.tid":    event.Info.Tid,
 			"event.process.binary": tetragonProcess.Binary,
 		}).Warn("ExitEvent: process PID and TID mismatch")
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 
 	tetragonEvent := &tetragon.ProcessExit{
