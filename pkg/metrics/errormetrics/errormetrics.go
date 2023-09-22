@@ -21,6 +21,8 @@ var (
 	ProcessCacheEvicted ErrorType = "process_cache_evicted"
 	// Process not found on remove() call.
 	ProcessCacheMissOnRemove ErrorType = "process_cache_miss_on_remove"
+	// Tid and Pid mismatch that could affect BPF and user space caching logic
+	ProcessPidTidMismatch ErrorType = "process_pid_tid_mismatch"
 	// Event cache podInfo retries failed.
 	EventCachePodInfoRetryFailed ErrorType = "event_cache_podinfo_retry_failed"
 	// Event cache failed to set process information for an event.
