@@ -501,6 +501,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [NoPost action](#nopost-action)
 - [TrackSock action](#tracksock-action)
 - [UntrackSock action](#untracksock-action)
+- [Notify Killer action](#notify-killer-action)
 
 {{< note >}}
 `Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
@@ -981,6 +982,100 @@ broken.
 {{< /caution >}}
 
 Socket tracking is only available on kernel >=5.3.
+
+### Notify Killer action
+
+The `NotifyKiller` action notifies the killer program to kill or override a syscall.
+
+It's meant to be used on systems with kernel that lacks multi kprobe feature, that
+allows to attach many kprobes quickly). To workaround that the killer sensor uses
+the raw syscall tracepoint and attaches simple program to syscalls that we need to
+kill or override.
+
+The specs needs to have `killer` program definition, that instructs tetragon to load
+the `killer` program and attach it to specified syscalls.
+
+```yaml
+spec:
+  killers:
+  - syscalls:
+    - "list:dups"
+```
+
+The syscalls expects list of syscalls or `list:XXX` pointer to list.
+
+Note that currently only single killer definition is allowed.
+
+
+The `NotifyKiller` action takes 2 arguments.
+
+```yaml
+matchActions:
+- action: "NotifyKiller"
+  argError: -1
+  argSig: 9
+```
+
+If specified the argError will be passed to `bpf_override_return` helper to override the syscall return value.
+If specified the argSig will be passed to `bpf_send_signal` helper to override the syscall return value.
+
+The following is spec for killing `/usr/bin/bash` program whenever it calls `sys_dup` or `sys_dup2` syscalls.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+  killers:
+  - syscalls:
+    - "list:dups"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "uint64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:dups"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/bash"
+      matchActions:
+      - action: "NotifyKiller"
+        argSig: 9
+```
+
+Note as mentioned above the `NotifyKiller` with killer program is meant to be used only on kernel versions
+with no support for fast attach of multiple kprobes (`kprobe_multi` link).
+
+With `kprobe_multi` link support the above example can be easily replaced with:
+
+```yaml
+spec:
+  lists:
+  - name: "syscalls"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+  kprobes:
+  - call: "list:syscalls"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/bash"
+      matchActions:
+      - action: "Sigkill"
+```
 
 ## Selector Semantics
 
