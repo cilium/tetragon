@@ -46,18 +46,13 @@ char _license[] __attribute__((section("license"), used)) = "GPL";
  * won't race with another clone, because there's no other thread to call
  * it (current thread is in do_exit).
  */
-__attribute__((section("kprobe/do_task_dead"), used)) int
-event_exit(struct pt_regs *ctx)
+__attribute__((section("kprobe/acct_collect"), used)) int
+BPF_KPROBE(tg_kp_event_exit, long code, int group_dead)
 {
-	struct task_struct *task = (struct task_struct *)get_current_task();
 	__u64 pid_tgid = get_current_pid_tgid();
-	struct signal_struct *signal;
-	atomic_t live;
 
-	probe_read(&signal, sizeof(signal), _(&task->signal));
-	probe_read(&live, sizeof(live), _(&signal->live));
-
-	if (live.counter == 0)
+	if (group_dead) {
 		event_exit_send(ctx, pid_tgid >> 32);
+	}
 	return 0;
 }

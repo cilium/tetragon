@@ -20,9 +20,9 @@ var (
 
 	Exit = program.Builder(
 		"bpf_exit.o",
-		"do_task_dead",
-		"kprobe/do_task_dead",
-		"event_exit",
+		"acct_collect",
+		"kprobe/acct_collect",
+		"tg_kp_event_exit",
 		"kprobe",
 	)
 
