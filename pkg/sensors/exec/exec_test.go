@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
@@ -149,6 +150,78 @@ func TestNamespaces(t *testing.T) {
 
 	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestEventExitThreads(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observer.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observer.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testThreadsExit := testutils.RepoRootPath("contrib/tester-progs/threads-exit")
+
+	// array of all pids we shuold receive in exet events
+	tgids := make(map[int]bool)
+
+	// running the workload 10 times to make the change we hit the race
+	// window bigger and collect all tgids from testThreadsExit output
+	for i := 0; i < 10; i++ {
+		out, err := exec.Command(testThreadsExit).Output()
+		if err != nil {
+			t.Fatalf("Failed to execute test binary: %s\n", err)
+		}
+
+		tgid := 0
+		if n, err := fmt.Sscanf(string(out[:]), "TGID %d", &tgid); n != 1 || err != nil {
+			t.Fatalf("Failed to parse test binary output: %s\n", err)
+		}
+		tgids[tgid] = false
+	}
+
+	// check we got single exit event for each testThreadsExit
+	// execution and no more
+	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+		switch ev := event.(type) {
+		case *tetragon.ProcessExit:
+			if ev.Process.Binary != testThreadsExit {
+				return false, nil
+			}
+			// Make sure there's only single exit event with given pid
+			pid := int(ev.Process.Pid.GetValue())
+			assert.False(t, tgids[pid], "got extra exit event with pid %d", pid)
+			tgids[pid] = true
+			return false, nil
+		default:
+			return false, nil
+
+		}
+	}
+
+	finalCheck := func(l *logrus.Logger) error {
+		// Make sure we saw all pids
+		for pid, used := range tgids {
+			assert.True(t, used, "did not see exit event for pid %d", pid)
+		}
+		return nil
+	}
+
+	checker_ := ec.FnEventChecker{
+		NextCheckFn:  nextCheck,
+		FinalCheckFn: finalCheck,
+	}
+
+	checker := testsensor.NewTestChecker(&checker_)
+
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
