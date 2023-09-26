@@ -16,7 +16,8 @@ PROGS = sigkill-tester \
 	uprobe-test-2 \
 	lseek-pipe \
 	threads-tester \
-	bench-reader
+	bench-reader \
+	threads-exit
 
 all: $(PROGS)
 
@@ -27,6 +28,9 @@ bench-reader: bench-reader.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
 threads-tester: threads-tester.c
+	$(GCC) -Wall -fno-inline $< -o $@ -lcap -lpthread
+
+threads-exit: threads-exit.c
 	$(GCC) -Wall -fno-inline $< -o $@ -lcap -lpthread
 
 capabilities-tester: capabilities-tester.c
