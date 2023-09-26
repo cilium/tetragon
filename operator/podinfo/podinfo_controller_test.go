@@ -266,5 +266,12 @@ func TestEqual(t *testing.T) {
 			}
 			assert.False(t, equal(pod, podInfo), "Pod owner references changed, still returning pod not changed")
 		})
+
+		t.Run("Pod spec hostNetwork changed", func(t *testing.T) {
+			pod := randomPodGenerator()
+			podInfo := generatePodInfo(pod)
+			pod.Spec.HostNetwork = true
+			assert.False(t, equal(pod, podInfo), "Pod spec hostNetwork changed, still returning pod not changed")
+		})
 	})
 }
