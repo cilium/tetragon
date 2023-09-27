@@ -2239,37 +2239,6 @@ spec:
 	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT, true)
 }
 
-func TestKprobeOverrideNonSyscall(t *testing.T) {
-	closeFdHook := `
-apiVersion: cilium.io/v1alpha1
-metadata:
-  name: "close-fd-override"
-spec:
-  kprobes:
-  - call: "close_fd"
-    syscall: false
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchActions:
-      - action: Override
-        argError: -2
-`
-
-	configHook := []byte(closeFdHook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
-
-	_, err = observertesthelper.GetDefaultObserverWithFileNoTest(t, context.Background(), testConfigFile, tus.Conf().TetragonLib, true, observertesthelper.WithMyPid())
-	if err == nil {
-		t.Fatalf("GetDefaultObserverWithFileNoTest ok, should fail\n")
-	}
-	assert.Error(t, err)
-}
-
 func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChecker,
 	testFile string, testErr error, nopost bool, expectedSig syscall.Signal) {
 	var doneWG, readyWG sync.WaitGroup

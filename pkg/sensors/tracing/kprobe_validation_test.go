@@ -203,3 +203,29 @@ spec:
 	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
+
+func TestKprobeValidationNonSyscallOverride(t *testing.T) {
+
+	// override on non syscall (non override-able) function
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "override-non-syscall"
+spec:
+  kprobes:
+  - call: "close_fd"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -2
+`
+
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+
+}
