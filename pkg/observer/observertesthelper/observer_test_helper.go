@@ -212,9 +212,8 @@ func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
 	return observer.NewObserver(oo.config)
 }
 
-func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, []*sensors.Sensor, error) {
+func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
 	var cnfSensor *sensors.Sensor
-	var ret []*sensors.Sensor
 
 	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
 
@@ -235,7 +234,7 @@ func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors
 	}
 
 	if err := loadExporter(tb, ctx, obs, &o.exporter, &o.observer); err != nil {
-		return nil, ret, err
+		return nil, err
 	}
 
 	var tp tracingpolicy.TracingPolicy
@@ -243,25 +242,24 @@ func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors
 		var err error
 		tp, err = tracingpolicy.PolicyFromYAMLFilename(o.observer.config)
 		if err != nil {
-			return nil, ret, fmt.Errorf("failed to parse tracingpolicy: %w", err)
+			return nil, fmt.Errorf("failed to parse tracingpolicy: %w", err)
 		}
 	}
 	if tp != nil {
 		var err error
 		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(tp)
 		if err != nil {
-			return nil, ret, err
+			return nil, err
 		}
-		ret = append(ret, cnfSensor)
 	}
 
 	if err := loadSensor(tb, base, cnfSensor); err != nil {
-		return nil, ret, err
+		return nil, err
 	}
 
 	exportFname, err := testutils.GetExportFilename(tb)
 	if err != nil {
-		return nil, ret, err
+		return nil, err
 	}
 	saveInitInfo(o, exportFname)
 
@@ -283,16 +281,9 @@ func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors
 		testDone(tb, obs)
 	})
 
-	ret = append(ret, base)
-
 	obs.PerfConfig = bpf.DefaultPerfEventConfig()
 	obs.PerfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
-	return obs, ret, nil
-}
-
-func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
-	obs, _, err := getDefaultObserverSensors(tb, ctx, base, opts...)
-	return obs, err
+	return obs, nil
 }
 
 func GetDefaultObserverWithWatchers(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
