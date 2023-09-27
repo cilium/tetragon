@@ -1,6 +1,6 @@
 module github.com/cilium/tetragon/api
 
-go 1.20
+go 1.21
 
 require (
 	github.com/cilium/tetragon v0.0.0-00010101000000-000000000000
