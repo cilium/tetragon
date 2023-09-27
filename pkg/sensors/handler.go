@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
@@ -191,7 +192,25 @@ func (h *handler) addSensor(op *sensorAdd) error {
 	return nil
 }
 
+func removeAllSensors(h *handler) error {
+	var errs error
+	for _, col := range h.collections {
+		if err := col.unload(); err != nil {
+			errs = errors.Join(errs, err)
+		}
+		delete(h.collections, col.name)
+	}
+	return errs
+}
+
 func (h *handler) removeSensor(op *sensorRemove) error {
+	if op.all {
+		if op.name != "" {
+			return fmt.Errorf("removeSensor called with all flag and sensor name %s",
+				op.name)
+		}
+		return removeAllSensors(h)
+	}
 	col, exists := h.collections[op.name]
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", op.name)
