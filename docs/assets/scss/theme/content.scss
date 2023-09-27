@@ -23,10 +23,26 @@
 
   >h2:not(:first-child) {
     margin-top: 48px;
+
+    // Scroll margin calculation for desktop:
+    // nav height (80px) + margin-top (48px)
+    scroll-margin-top: 128px;
+
+    @media screen and (max-width: 767px) {
+      scroll-margin-top: 48px;
+    }
   }
 
   >h2+h3 {
     margin-top: 20px;
+
+    // Scroll margin calculation for desktop:
+    // nav height (80px) + margin-top (20px)
+    scroll-margin-top: 100px;
+
+    @media screen and (max-width: 767px) {
+      scroll-margin-top: 20px;
+    }
   }
 
   >h3,
@@ -36,6 +52,14 @@
     margin-bottom: 12px;
     margin-top: 28px !important;
     font-weight: 600;
+
+    // Scroll margin calculation for desktop:
+    // nav height (80px) + margin-top (28px)
+    scroll-margin-top: 108px;
+
+    @media screen and (max-width: 767px) {
+      scroll-margin-top: 28px;
+    }
   }
 
   #whats-next {
