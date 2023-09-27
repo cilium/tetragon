@@ -15,12 +15,16 @@ PROGS = sigkill-tester \
 	uprobe-test-1 \
 	uprobe-test-2 \
 	lseek-pipe \
-	threads-tester
+	threads-tester \
+	bench-reader
 
 all: $(PROGS)
 
 %: %.c
 	$(GCC) -Wall $< -o $@
+
+bench-reader: bench-reader.c
+	$(GCC) -Wall $< -o $@ -lpthread
 
 threads-tester: threads-tester.c
 	$(GCC) -Wall -fno-inline $< -o $@ -lcap -lpthread
