@@ -235,6 +235,20 @@ func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
 	return err
 }
 
+func (h *Manager) RemoveAllSensors(ctx context.Context) error {
+	retc := make(chan error)
+	op := &sensorRemove{
+		ctx:     ctx,
+		all:     true,
+		retChan: retc,
+	}
+
+	h.sensorCtl <- op
+	err := <-retc
+
+	return err
+}
+
 func (h *Manager) StopSensorManager(ctx context.Context) error {
 	retc := make(chan error)
 	op := &sensorCtlStop{
@@ -325,6 +339,7 @@ type sensorAdd struct {
 type sensorRemove struct {
 	ctx     context.Context
 	name    string
+	all     bool
 	retChan chan error
 }
 
