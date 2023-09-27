@@ -13,13 +13,20 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+
+	"github.com/cilium/tetragon/pkg/logger"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExit(t *testing.T) {
@@ -242,4 +249,61 @@ func TestExitCode(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+// This test ensures that we get the exit event only once
+func TestExitEventOnce(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 3
+
+	tus.LoadSensor(t, base.GetInitialSensor())
+	testManager := setupObserver(ctx, t)
+
+	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
+	t.Cleanup(func() {
+		testManager.DisableSensors(ctx, t, loadedSensors)
+	})
+
+	pid := 0
+	exitCounter := 0
+	pidTidMismatch := 0
+	trigger := func() {
+		testAllThreads := testutils.RepoRootPath("contrib/tester-progs/exit-all-threads")
+		testCmd := exec.CommandContext(ctx, testAllThreads)
+		testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer testPipes.Close()
+		if err := testCmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		pid = testCmd.Process.Pid
+		logWG := testPipes.ParseAndLogCmdOutput(t, nil, nil)
+		logWG.Wait()
+
+		if err := testCmd.Wait(); err != nil {
+			t.Fatalf("command '%s' failed with: %s. Context error: %v", testAllThreads, err, ctx.Err())
+		}
+	}
+
+	events := perfring.RunTestEvents(t, ctx, trigger)
+	for _, ev := range events {
+		if event, ok := ev.(*grpcexec.MsgExitEventUnix); ok {
+			if uint32(pid) == event.ProcessKey.Pid {
+				exitCounter++
+			}
+			if event.ProcessKey.Pid != event.Info.Tid {
+				pidTidMismatch++
+			}
+		}
+	}
+
+	require.Equalf(t, 1, exitCounter, "Error received more than one exit event")
+	require.Zerof(t, pidTidMismatch, "Error Pid and Tid mismatch")
 }

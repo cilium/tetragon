@@ -16,12 +16,16 @@ PROGS = sigkill-tester \
 	uprobe-test-2 \
 	lseek-pipe \
 	threads-tester \
-	bench-reader
+	bench-reader \
+	exit-all-threads
 
 all: $(PROGS)
 
 %: %.c
 	$(GCC) -Wall $< -o $@
+
+exit-all-threads: exit-all-threads.c
+	$(GCC) -Wall $< -o $@ -lpthread
 
 bench-reader: bench-reader.c
 	$(GCC) -Wall $< -o $@ -lpthread
