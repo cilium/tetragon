@@ -255,7 +255,7 @@ func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors
 		ret = append(ret, cnfSensor)
 	}
 
-	if err := loadObserver(tb, base, cnfSensor); err != nil {
+	if err := loadSensor(tb, base, cnfSensor); err != nil {
 		return nil, ret, err
 	}
 
@@ -324,13 +324,57 @@ func GetDefaultObserverWithFile(tb testing.TB, ctx context.Context, file, lib st
 	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func GetDefaultSensorsWithFile(tb testing.TB, ctx context.Context, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
+func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
-	b := base.GetInitialSensor()
-	_, sens, err := getDefaultObserverSensors(tb, ctx, b, opts...)
-	return sens, err
+	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.MapDir = bpf.MapPrefixPath()
+
+	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
+
+	o := newDefaultTestOptions(opts...)
+
+	option.Config.HubbleLib = os.Getenv("TETRAGON_LIB")
+	if option.Config.HubbleLib == "" {
+		option.Config.HubbleLib = o.observer.lib
+	}
+
+	procfs := os.Getenv("TETRAGON_PROCFS")
+	if procfs != "" {
+		option.Config.ProcFS = procfs
+	}
+
+	if testing.Verbose() {
+		option.Config.Verbosity = 1
+	}
+
+	var tp tracingpolicy.TracingPolicy
+	var err error
+
+	if o.observer.config != "" {
+		tp, err = tracingpolicy.PolicyFromYAMLFilename(o.observer.config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse tracingpolicy: %w", err)
+		}
+	}
+
+	var sensor *sensors.Sensor
+
+	if tp != nil {
+		sensor, err = sensors.GetMergedSensorFromParserPolicy(tp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	base := base.GetInitialSensor()
+
+	if err = loadSensor(tb, base, sensor); err != nil {
+		return nil, err
+	}
+
+	return []*sensors.Sensor{sensor, base}, nil
 }
 
 func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
@@ -403,7 +447,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	return nil
 }
 
-func loadObserver(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor) error {
+func loadSensor(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor) error {
 	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
