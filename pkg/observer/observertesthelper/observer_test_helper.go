@@ -58,10 +58,9 @@ var (
 )
 
 type testObserverOptions struct {
-	crd        bool
-	config     string
-	lib        string
-	notestfail bool
+	crd    bool
+	config string
+	lib    string
 }
 
 type testExporterOptions struct {
@@ -120,12 +119,6 @@ func withCiliumState(s *hubbleCilium.State) TestOption {
 func WithLib(lib string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.lib = lib
-	}
-}
-
-func withNotestfail(notestfail bool) TestOption {
-	return func(o *TestOptions) {
-		o.observer.notestfail = notestfail
 	}
 }
 
@@ -262,7 +255,7 @@ func getDefaultObserverSensors(tb testing.TB, ctx context.Context, base *sensors
 		ret = append(ret, cnfSensor)
 	}
 
-	if err := loadObserver(tb, base, cnfSensor, o.observer.notestfail); err != nil {
+	if err := loadObserver(tb, base, cnfSensor); err != nil {
 		return nil, ret, err
 	}
 
@@ -340,15 +333,6 @@ func GetDefaultSensorsWithFile(tb testing.TB, ctx context.Context, file, lib str
 	return sens, err
 }
 
-func GetDefaultObserverWithFileNoTest(tb testing.TB, ctx context.Context, file, lib string, fail bool, opts ...TestOption) (*observer.Observer, error) {
-	opts = append(opts, WithConfig(file))
-	opts = append(opts, WithLib(lib))
-	opts = append(opts, withNotestfail(fail))
-
-	b := base.GetInitialSensor()
-	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
-}
-
 func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
 	watcher := opts.watcher
 	processCacheSize := 32768
@@ -419,15 +403,12 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	return nil
 }
 
-func loadObserver(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor, notestfail bool) error {
+func loadObserver(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor) error {
 	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 
 	if err := sens.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
-		if notestfail {
-			return err
-		}
 		tb.Fatalf("LoadConfig error: %s\n", err)
 	}
 	return nil
