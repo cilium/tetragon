@@ -4,21 +4,20 @@
 package tracing
 
 import (
-	"context"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
 )
 
-func runObserver(t *testing.T, crd string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+func checkCrd(t *testing.T, crd string) error {
+	tp, err := tracingpolicy.PolicyFromYAML(crd)
+	if err != nil {
+		t.Fatalf("failed to parse tracingpolicy: %s", err)
+	}
 
-	createCrdFile(t, crd)
-
-	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	_, err = sensors.GetMergedSensorFromParserPolicy(tp)
 	return err
 }
 
@@ -41,7 +40,7 @@ spec:
   - call: "list:syscalls"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -69,7 +68,7 @@ spec:
         argError: -1
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -93,7 +92,7 @@ spec:
   - call: "list:wrongname"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -117,7 +116,7 @@ spec:
   - call: "list:syscalls"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -141,7 +140,7 @@ spec:
   - call: "list:ftrace"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -162,7 +161,7 @@ spec:
   - call: "list:ftrace"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 func TestKprobeValidationWrongSyscallName(t *testing.T) {
@@ -179,7 +178,7 @@ spec:
   - call: "sys_dupXXX"
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
 
@@ -201,6 +200,6 @@ spec:
         argError: -1
 `
 
-	err := runObserver(t, crd)
+	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }
