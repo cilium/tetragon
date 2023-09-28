@@ -41,7 +41,7 @@ those events. It is possible to filter the events after their generation, but th
 unnecessary overhead. Tetragon, using BPF, allows filtering these events directly in the kernel.
 
 For example, the following snippet shows how you can limit the events from the
-`security_file_permission` hook only for the `/etc/shadow` file. For this, you need to specify the
+`security_file_permission` hook only for the `/etc/passwd` file. For this, you need to specify the
 arguments of the function that you hooking into, as well as their type.
 
 ```yaml
