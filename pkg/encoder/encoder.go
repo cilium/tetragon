@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -234,7 +235,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, kprobe.Process)
-		switch arch.CutSyscallPrefix(kprobe.FunctionName) {
+		fn := arch.CutSyscallPrefix(kprobe.FunctionName)
+		switch fn {
 		case "sys_write":
 			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
 			file := ""
@@ -425,7 +427,14 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
-			event := p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
+			var event string
+
+			if strings.HasPrefix(fn, "sys_") {
+				event = p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
+			} else {
+				event = p.Colorer.Blue.Sprintf("❓ %-7s", "probe")
+			}
+
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
 		}
 	case *tetragon.GetEventsResponse_ProcessTracepoint:
