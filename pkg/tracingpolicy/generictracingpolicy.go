@@ -15,9 +15,12 @@ import (
 
 	ext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apischema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	k8sv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kube-openapi/pkg/validation/validate"
@@ -30,6 +33,57 @@ var validatorState = struct {
 	initError  error
 }{
 	validators: make(map[schema.GroupVersionKind]*validate.SchemaValidator),
+}
+
+func DefaultRaw(rawPolicy []byte) (*GenericTracingPolicy, error) {
+	// bytes, err := json.Marshal(client.GetPregeneratedCRD(v1alpha1.SPName).Spec.Versions[0].Schema)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to load CRD `%s`: %w", v1alpha1.SPName, err)
+	// }
+
+	custom := client.GetPregeneratedCRD(v1alpha1.TPCRDName)
+	var crvInternal ext.CustomResourceDefinition
+	err := extv1.Convert_v1_CustomResourceDefinition_To_apiextensions_CustomResourceDefinition(
+		&custom,
+		&crvInternal,
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert CRD: %w", err)
+	}
+
+	// validator, _, err := validation.NewSchemaValidator(&crvInternal)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to initialize validator: %w", err)
+	// }
+
+	structural, err := apischema.NewStructural(crvInternal.Spec.Validation.OpenAPIV3Schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize structural: %w", err)
+	}
+
+	// unmarshall into an unstructured object
+	var policyUnstr unstructured.Unstructured
+	err = yaml.UnmarshalStrict(rawPolicy, &policyUnstr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshall policy: %v", err)
+	}
+	// apply defaults
+	structuraldefaulting.Default(policyUnstr.Object, structural)
+
+	// marshal defaulted unstructured object into json
+	data, err := policyUnstr.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal defaulted object: %w", err)
+	}
+
+	var policy GenericTracingPolicy
+	err = yaml.UnmarshalStrict(data, &policy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal defaulted object: %w", err)
+	}
+
+	return &policy, nil
 }
 
 func ValidateCRD(policy GenericTracingPolicy) (*validate.Result, error) {
@@ -126,14 +180,19 @@ func (gtp GenericTracingPolicy) Namespaced() bool {
 }
 
 func FromYAML(data string) (TracingPolicy, error) {
-	var k GenericTracingPolicy
+	// var k GenericTracingPolicy
 
-	err := yaml.UnmarshalStrict([]byte(data), &k)
+	// err := yaml.UnmarshalStrict([]byte(data), &k)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error unmarshalling the policy: %w", err)
+	// }
+
+	k, err := DefaultRaw([]byte(data))
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling the policy: %w", err)
+		return nil, fmt.Errorf("error unmarshalling the policy and applying defaults: %w", err)
 	}
 
-	validationResult, err := ValidateCRD(k)
+	validationResult, err := ValidateCRD(*k)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +217,7 @@ func FromYAML(data string) (TracingPolicy, error) {
 		return nil, fmt.Errorf("validation failed: %w", validationResult.AsError())
 	}
 
-	return &k, nil
+	return k, nil
 }
 
 func FromFile(path string) (TracingPolicy, error) {
