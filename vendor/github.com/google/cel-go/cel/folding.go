@@ -248,23 +248,26 @@ func pruneOptionalListElements(ctx *OptimizerContext, e ast.Expr) {
 	}
 	updatedElems := []ast.Expr{}
 	updatedIndices := []int32{}
-	for i, e := range elems {
-		if !l.IsOptional(int32(i)) {
+	newOptIndex := -1
+	for _, e := range elems {
+		newOptIndex++
+		if !l.IsOptional(int32(newOptIndex)) {
 			updatedElems = append(updatedElems, e)
 			continue
 		}
 		if e.Kind() != ast.LiteralKind {
 			updatedElems = append(updatedElems, e)
-			updatedIndices = append(updatedIndices, int32(i))
+			updatedIndices = append(updatedIndices, int32(newOptIndex))
 			continue
 		}
 		optElemVal, ok := e.AsLiteral().(*types.Optional)
 		if !ok {
 			updatedElems = append(updatedElems, e)
-			updatedIndices = append(updatedIndices, int32(i))
+			updatedIndices = append(updatedIndices, int32(newOptIndex))
 			continue
 		}
 		if !optElemVal.HasValue() {
+			newOptIndex-- // Skipping causes the list to get smaller.
 			continue
 		}
 		e.SetKindCase(ctx.NewLiteral(optElemVal.GetValue()))

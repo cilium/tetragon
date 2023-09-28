@@ -158,13 +158,24 @@ func MaxID(a *AST) int64 {
 func NewSourceInfo(src common.Source) *SourceInfo {
 	var lineOffsets []int32
 	var desc string
+	baseLine := int32(0)
+	baseCol := int32(0)
 	if src != nil {
 		desc = src.Description()
 		lineOffsets = src.LineOffsets()
+		// Determine whether the source metadata should be computed relative
+		// to a base line and column value. This can be determined by requesting
+		// the location for offset 0 from the source object.
+		if loc, found := src.OffsetLocation(0); found {
+			baseLine = int32(loc.Line()) - 1
+			baseCol = int32(loc.Column())
+		}
 	}
 	return &SourceInfo{
 		desc:         desc,
 		lines:        lineOffsets,
+		baseLine:     baseLine,
+		baseCol:      baseCol,
 		offsetRanges: make(map[int64]OffsetRange),
 		macroCalls:   make(map[int64]Expr),
 	}
@@ -200,6 +211,8 @@ type SourceInfo struct {
 	syntax       string
 	desc         string
 	lines        []int32
+	baseLine     int32
+	baseCol      int32
 	offsetRanges map[int64]OffsetRange
 	macroCalls   map[int64]Expr
 }
@@ -332,6 +345,10 @@ func (s *SourceInfo) GetStopLocation(id int64) common.Location {
 
 // ComputeOffset calculates the 0-based character offset from a 1-based line and 0-based column.
 func (s *SourceInfo) ComputeOffset(line, col int32) int32 {
+	if s != nil {
+		line = s.baseLine + line
+		col = s.baseCol + col
+	}
 	if line == 1 {
 		return col
 	}

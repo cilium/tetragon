@@ -393,7 +393,7 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
-# github.com/google/cel-go v0.18.0
+# github.com/google/cel-go v0.18.1
 ## explicit; go 1.18
 github.com/google/cel-go/cel
 github.com/google/cel-go/checker
@@ -446,7 +446,7 @@ github.com/google/gops/signal
 # github.com/google/uuid v1.3.1
 ## explicit
 github.com/google/uuid
-# github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
+# github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0
 ## explicit; go 1.19
 github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus
 # github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0
@@ -547,7 +547,7 @@ github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mennanov/fmutils v0.2.0
+# github.com/mennanov/fmutils v0.2.1
 ## explicit; go 1.15
 github.com/mennanov/fmutils
 # github.com/miekg/dns v1.1.43 => github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc

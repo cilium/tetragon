@@ -1,6 +1,6 @@
 # Golang protobuf FieldMask utils
 
-[![Build Status](https://cloud.drone.io/api/badges/mennanov/fmutils/status.svg?ref=refs/heads/main)](https://cloud.drone.io/mennanov/fmutils)
+[![Build Status](https://github.com/mennanov/fmutils/actions/workflows/tests.yml/badge.svg)](https://github.com/mennanov/fmutils/actions/workflows/tests.yml)
 [![Coverage Status](https://codecov.io/gh/mennanov/fmutils/branch/main/graph/badge.svg)](https://codecov.io/gh/mennanov/fmutils)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/mennanov/fmutils)](https://pkg.go.dev/github.com/mennanov/fmutils)
 
