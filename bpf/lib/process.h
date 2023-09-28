@@ -6,6 +6,7 @@
 
 #include "bpf_event.h"
 #include "bpf_helpers.h"
+#include "bpf_cred.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -185,25 +186,6 @@ struct msg_clone_event {
 	__u64 ktime;
 } __attribute__((packed));
 
-// NB: in some cases we want to access the capabilities via an array to simplify the BPF code, which is why we define it as a union.
-struct msg_capabilities {
-	union {
-		struct {
-			__u64 permitted;
-			__u64 effective;
-			__u64 inheritable;
-		};
-		__u64 c[3];
-	};
-}; // All fields aligned so no 'packed' attribute.
-
-// indexes to access msg_capabilities's array (->c) -- should have the same order as the fields above.
-enum {
-	caps_permitted = 0,
-	caps_effective = 1,
-	caps_inheritable = 2,
-};
-
 struct exit_info {
 	__u32 code;
 	__u32 tid; // Thread ID
@@ -264,6 +246,8 @@ struct msg_execve_event {
 	struct msg_execve_key parent;
 	__u64 parent_flags;
 	struct msg_capabilities caps;
+	/* TODO: convert this msg_cred_minimal to msg_cred and include caps above inside */
+	struct msg_cred_minimal creds;
 	struct msg_ns ns;
 	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of

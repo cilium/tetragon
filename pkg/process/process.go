@@ -41,6 +41,7 @@ type ProcessInternal struct {
 	process *tetragon.Process
 	// additional internal fields below
 	capabilities *tetragon.Capabilities
+	apiCreds     *tetragon.ProcessCredentials
 	namespaces   *tetragon.Namespaces
 	// garbage collector metadata
 	color  int
@@ -99,6 +100,7 @@ func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 	return &ProcessInternal{
 		process:      proto.Clone(pi.process).(*tetragon.Process),
 		capabilities: pi.capabilities,
+		apiCreds:     pi.apiCreds,
 		namespaces:   pi.namespaces,
 		refcnt:       1, // Explicitly initialize refcnt to 1
 	}
@@ -131,6 +133,7 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	}
 	if cred {
 		process.Cap = pi.capabilities
+		process.ProcessCredentials = pi.apiCreds
 	}
 	if ns {
 		process.Ns = pi.namespaces
@@ -186,12 +189,11 @@ func GetExecIDFromKey(key *tetragonAPI.MsgExecveKey) string {
 // initProcessInternalExec() initialize and returns ProcessInternal and
 // hubblev1.Endpoint objects from an execve event
 func initProcessInternalExec(
-	process tetragonAPI.MsgProcess,
-	containerID string,
+	event *tetragonAPI.MsgExecveEventUnix,
 	parent tetragonAPI.MsgExecveKey,
-	capabilities tetragonAPI.MsgCapabilities,
-	namespaces tetragonAPI.MsgNamespaces,
 ) *ProcessInternal {
+	process := event.Process
+	containerID := event.Kube.Docker
 	args, cwd := ArgsDecoder(process.Args, process.Flags)
 	var parentExecID string
 	if parent.Pid != 0 {
@@ -201,9 +203,22 @@ func initProcessInternalExec(
 	}
 	execID := GetExecID(&process)
 	protoPod := GetPodInfo(containerID, process.Filename, args, process.NSPID)
-	caps := caps.GetMsgCapabilities(capabilities)
-	ns := namespace.GetMsgNamespaces(namespaces)
+	apiCaps := caps.GetMsgCapabilities(event.Capabilities)
+	apiNs := namespace.GetMsgNamespaces(event.Namespaces)
 	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
+
+	creds := &event.Creds
+	apiCreds := &tetragon.ProcessCredentials{
+		Uid:        &wrapperspb.UInt32Value{Value: creds.Uid},
+		Gid:        &wrapperspb.UInt32Value{Value: creds.Gid},
+		Euid:       &wrapperspb.UInt32Value{Value: creds.Euid},
+		Egid:       &wrapperspb.UInt32Value{Value: creds.Egid},
+		Suid:       &wrapperspb.UInt32Value{Value: creds.Suid},
+		Sgid:       &wrapperspb.UInt32Value{Value: creds.Sgid},
+		Fsuid:      &wrapperspb.UInt32Value{Value: creds.FSuid},
+		Fsgid:      &wrapperspb.UInt32Value{Value: creds.FSgid},
+		Securebits: caps.GetSecureBitsTypes(creds.SecureBits),
+	}
 
 	// Per thread tracking rules PID == TID
 	//
@@ -240,8 +255,9 @@ func initProcessInternalExec(
 			ParentExecId: parentExecID,
 			Refcnt:       0,
 		},
-		capabilities: caps,
-		namespaces:   ns,
+		capabilities: apiCaps,
+		apiCreds:     apiCreds,
+		namespaces:   apiNs,
 		refcnt:       1,
 	}
 }
@@ -328,9 +344,9 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	if event.CleanupProcess.Ktime == 0 || event.Process.Flags&api.EventClone != 0 {
 		// there is a case where we cannot find this entry in execve_map
 		// in that case we use as parent what Linux knows
-		proc = initProcessInternalExec(event.Process, event.Kube.Docker, event.Parent, event.Capabilities, event.Namespaces)
+		proc = initProcessInternalExec(event, event.Parent)
 	} else {
-		proc = initProcessInternalExec(event.Process, event.Kube.Docker, event.CleanupProcess, event.Capabilities, event.Namespaces)
+		proc = initProcessInternalExec(event, event.CleanupProcess)
 	}
 
 	procCache.add(proc)

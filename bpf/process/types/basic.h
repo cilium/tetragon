@@ -6,15 +6,14 @@
 
 #include "operations.h"
 #include "bpf_task.h"
+#include "bpf_cred.h"
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
 #include "perfevent.h"
 #include "bpfmap.h"
-#include "user_namespace.h"
 #include "capabilities.h"
-#include "cred.h"
 #include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
@@ -494,15 +493,15 @@ static inline __attribute__((always_inline)) long
 copy_user_ns(char *args, unsigned long arg)
 {
 	struct user_namespace *ns = (struct user_namespace *)arg;
-	struct tg_user_namespace *u_ns_info =
-		(struct tg_user_namespace *)args;
+	struct msg_user_namespace *u_ns_info =
+		(struct msg_user_namespace *)args;
 
 	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
 	probe_read(&u_ns_info->uid, sizeof(__u32), _(&ns->owner));
 	probe_read(&u_ns_info->gid, sizeof(__u32), _(&ns->group));
 	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
 
-	return sizeof(struct tg_user_namespace);
+	return sizeof(struct msg_user_namespace);
 }
 
 static inline __attribute__((always_inline)) long copy_cred(char *args,
@@ -510,9 +509,9 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 {
 	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
-	struct tg_cred *info = (struct tg_cred *)args;
+	struct msg_cred *info = (struct msg_cred *)args;
 	struct msg_capabilities *caps = &info->caps;
-	struct tg_user_namespace *user_ns_info = &info->user_ns;
+	struct msg_user_namespace *user_ns_info = &info->user_ns;
 
 	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
 	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
@@ -530,7 +529,7 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
 	copy_user_ns((char *)user_ns_info, (unsigned long)ns);
 
-	return sizeof(struct tg_cred);
+	return sizeof(struct msg_cred);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1391,7 +1390,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case sock_type:
 		return sizeof(struct sk_type);
 	case cred_type:
-		return sizeof(struct tg_cred);
+		return sizeof(struct msg_cred);
 	case size_type:
 	case s64_ty:
 	case u64_ty:
@@ -1408,7 +1407,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case bpf_map_type:
 		return sizeof(struct bpf_map_info_type);
 	case user_namespace_type:
-		return sizeof(struct tg_user_namespace);
+		return sizeof(struct msg_user_namespace);
 	case capability_type:
 		return sizeof(struct capability_info_type);
 	case load_module_type:

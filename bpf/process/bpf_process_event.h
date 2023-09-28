@@ -7,6 +7,7 @@
 #include "bpf_helpers.h"
 
 #include "bpf_cgroup.h"
+#include "bpf_cred.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
 
@@ -451,6 +452,25 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 	/* Get the task's subjective creds */
 	probe_read(&cred, sizeof(cred), _(&task->cred));
 	__get_caps(msg, cred);
+}
+
+static inline __attribute__((always_inline)) void
+get_current_subj_creds_uids(struct msg_cred_minimal *info, struct task_struct *task)
+{
+	const struct cred *cred;
+
+	/* Get the task's subjective creds */
+	probe_read(&cred, sizeof(cred), _(&task->cred));
+
+	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
+	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
+	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
+	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
+	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
+	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
+	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
+	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
+	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
 }
 
 static inline __attribute__((always_inline)) void
