@@ -9,11 +9,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// FromError returns a grpc status if error code is a valid grpc status.
-func FromError(err error) (s *status.Status, ok bool) {
-	return status.FromError(err)
-
-	// TODO: @yashrsharma44 - discuss if we require more error handling from the previous package
+// FromError returns a grpc status. If the error code is neither a valid grpc status nor a context error, codes.Unknown
+// will be set.
+func FromError(err error) *status.Status {
+	s, ok := status.FromError(err)
+	// Mirror what the grpc server itself does, i.e. also convert context errors to status
+	if !ok {
+		s = status.FromContextError(err)
+	}
+	return s
 }
 
 // A CounterOption lets you add options to Counter metrics using With* funcs.
@@ -35,6 +39,13 @@ func WithConstLabels(labels prometheus.Labels) CounterOption {
 	}
 }
 
+// WithSubsystem allows you to add a Subsystem to Counter metrics.
+func WithSubsystem(subsystem string) CounterOption {
+	return func(o *prometheus.CounterOpts) {
+		o.Subsystem = subsystem
+	}
+}
+
 // A HistogramOption lets you add options to Histogram metrics using With*
 // funcs.
 type HistogramOption func(*prometheus.HistogramOpts)
@@ -53,11 +64,34 @@ func WithHistogramBuckets(buckets []float64) HistogramOption {
 	return func(o *prometheus.HistogramOpts) { o.Buckets = buckets }
 }
 
+// WithHistogramOpts allows you to specify HistogramOpts but makes sure the correct name and label is used.
+// This function is helpful when specifying more than just the buckets, like using NativeHistograms.
+func WithHistogramOpts(opts *prometheus.HistogramOpts) HistogramOption {
+	// TODO: This isn't ideal either if new fields are added to prometheus.HistogramOpts.
+	// Maybe we can change the interface to accept abitrary HistogramOpts and
+	// only make sure to overwrite the necessary fields (name, labels).
+	return func(o *prometheus.HistogramOpts) {
+		o.Buckets = opts.Buckets
+		o.NativeHistogramBucketFactor = opts.NativeHistogramBucketFactor
+		o.NativeHistogramZeroThreshold = opts.NativeHistogramZeroThreshold
+		o.NativeHistogramMaxBucketNumber = opts.NativeHistogramMaxBucketNumber
+		o.NativeHistogramMinResetDuration = opts.NativeHistogramMinResetDuration
+		o.NativeHistogramMaxZeroThreshold = opts.NativeHistogramMaxZeroThreshold
+	}
+}
+
 // WithHistogramConstLabels allows you to add custom ConstLabels to
 // histograms metrics.
 func WithHistogramConstLabels(labels prometheus.Labels) HistogramOption {
 	return func(o *prometheus.HistogramOpts) {
 		o.ConstLabels = labels
+	}
+}
+
+// WithHistogramSubsystem allows you to add a Subsystem to histograms metrics.
+func WithHistogramSubsystem(subsystem string) HistogramOption {
+	return func(o *prometheus.HistogramOpts) {
+		o.Subsystem = subsystem
 	}
 }
 

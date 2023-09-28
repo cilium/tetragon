@@ -21,6 +21,14 @@ func Prune(msg proto.Message, paths []string) {
 	NestedMaskFromPaths(paths).Prune(msg)
 }
 
+// Overwrite overwrites all the fields listed in paths in the dest msg using values from src msg.
+//
+// This is a handy wrapper for NestedMask.Overwrite method.
+// If the same paths are used to process multiple proto messages use NestedMask.Overwrite method directly.
+func Overwrite(src, dest proto.Message, paths []string) {
+	NestedMaskFromPaths(paths).Overwrite(src, dest)
+}
+
 // NestedMask represents a field mask as a recursive map.
 type NestedMask map[string]NestedMask
 
@@ -149,4 +157,54 @@ func (mask NestedMask) Prune(msg proto.Message) {
 		}
 		return true
 	})
+}
+
+// Overwrite overwrites all the fields listed in paths in the dest msg using values from src msg.
+//
+// All other fields are kept untouched. If the mask is empty, no fields are overwritten.
+// Supports scalars, messages, repeated fields, and maps.
+// If the parent of the field is nil message, the parent is initiated before overwriting the field
+// If the field in src is empty value, the field in dest is cleared.
+// Paths are assumed to be valid and normalized otherwise the function may panic.
+func (mask NestedMask) Overwrite(src, dest proto.Message) {
+	mask.overwrite(src.ProtoReflect(), dest.ProtoReflect())
+}
+
+func (mask NestedMask) overwrite(src, dest protoreflect.Message) {
+	for k, v := range mask {
+		srcFD := src.Descriptor().Fields().ByName(protoreflect.Name(k))
+		destFD := dest.Descriptor().Fields().ByName(protoreflect.Name(k))
+		if srcFD == nil || destFD == nil {
+			continue
+		}
+
+		// Leaf mask -> copy value from src to dest
+		if len(v) == 0 {
+			if srcFD.Kind() == destFD.Kind() { // TODO: Full type equality check
+				val := src.Get(srcFD)
+				if isValid(srcFD, val) {
+					dest.Set(destFD, val)
+				} else {
+					dest.Clear(destFD)
+				}
+			}
+		} else if srcFD.Kind() == protoreflect.MessageKind {
+			// If dest field is nil
+			if !dest.Get(destFD).Message().IsValid() {
+				dest.Set(destFD, protoreflect.ValueOf(dest.Get(destFD).Message().New()))
+			}
+			v.overwrite(src.Get(srcFD).Message(), dest.Get(destFD).Message())
+		}
+	}
+}
+
+func isValid(fd protoreflect.FieldDescriptor, val protoreflect.Value) bool {
+	if fd.IsMap() {
+		return val.Map().IsValid()
+	} else if fd.IsList() {
+		return val.List().IsValid()
+	} else if fd.Message() != nil {
+		return val.Message().IsValid()
+	}
+	return true
 }
