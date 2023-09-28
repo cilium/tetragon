@@ -86,6 +86,15 @@ const (
 	// HubbleRecorderSinkQueueSize is the queue size for each recorder sink
 	HubbleRecorderSinkQueueSize = 1024
 
+	// HubbleRedactEnabled controls if sensitive information will be redacted from L7 flows
+	HubbleRedactEnabled = false
+
+	// HubbleRedactHttpURLQuery controls if the URL query will be redacted from flows
+	HubbleRedactHttpURLQuery = false
+
+	// HubbleRedactKafkaApiKey controls if the Kafka API key will be redacted from flows
+	HubbleRedactKafkaApiKey = false
+
 	// MonitorSockPath1_2 is the path to the UNIX domain socket used to
 	// distribute BPF and agent events to listeners.
 	// This is the 1.2 protocol version.
@@ -273,6 +282,10 @@ const (
 	// EnableHealthCheckNodePort is the default value for
 	// EnableHealthCheckNodePort
 	EnableHealthCheckNodePort = true
+
+	// EnableHealthCheckLoadBalancerIP is the default value for
+	// EnableHealthCheckLoadBalancerIP
+	EnableHealthCheckLoadBalancerIP = false
 
 	// AlignCheckerName is the BPF object name for the alignchecker.
 	AlignCheckerName = "bpf_alignchecker.o"
@@ -502,10 +515,10 @@ const (
 	// InstallNoConntrackRules instructs Cilium to install Iptables rules to skip netfilter connection tracking on all pod traffic.
 	InstallNoConntrackIptRules = false
 
-	// WireguardSubnetV4 is a default wireguard tunnel subnet
+	// WireguardSubnetV4 is a default WireGuard tunnel subnet
 	WireguardSubnetV4 = "172.16.43.0/24"
 
-	// WireguardSubnetV6 is a default wireguard tunnel subnet
+	// WireguardSubnetV6 is a default WireGuard tunnel subnet
 	WireguardSubnetV6 = "fdc9:281f:04d7:9ee9::1/64"
 
 	// ExternalClusterIP enables cluster external access to ClusterIP services.

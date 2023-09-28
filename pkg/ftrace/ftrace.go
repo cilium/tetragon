@@ -42,7 +42,7 @@ func ReadAvailFuncs(pattern string) ([]string, error) {
 		}
 	}
 
-	slices.Sort[string](list)
+	slices.Sort(list)
 	list = slices.Compact[[]string, string](list)
 
 	var r *regexp.Regexp

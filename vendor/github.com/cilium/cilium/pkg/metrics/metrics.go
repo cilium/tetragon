@@ -461,9 +461,14 @@ var (
 
 	// IPAM events
 
-	// IpamEvent is the number of IPAM events received labeled by action and
+	// IPAMEvent is the number of IPAM events received labeled by action and
 	// datapath family type
-	IpamEvent = NoOpCounterVec
+	IPAMEvent = NoOpCounterVec
+
+	// IPAMCapacity tracks the total number of IPs that could be allocated. To
+	// get the current number of available IPs, it would be this metric
+	// subtracted by IPAMEvent{allocated}.
+	IPAMCapacity = NoOpGaugeVec
 
 	// KVstore events
 
@@ -476,14 +481,6 @@ var (
 
 	// KVStoreQuorumErrors records the number of kvstore quorum errors
 	KVStoreQuorumErrors = NoOpCounterVec
-
-	// KVStoreSyncQueueSize records the number of elements queued for
-	// synchronization in the kvstore.
-	KVStoreSyncQueueSize = NoOpGaugeVec
-
-	// KVStoreInitialSyncCompleted records whether the initial synchronization
-	// from/to the kvstore has completed.
-	KVStoreInitialSyncCompleted = NoOpGaugeVec
 
 	// FQDNGarbageCollectorCleanedTotal is the number of domains cleaned by the
 	// GC job.
@@ -621,12 +618,11 @@ type LegacyMetrics struct {
 	KubernetesAPICallsTotal          metric.Vec[metric.Counter]
 	KubernetesCNPStatusCompletion    metric.Vec[metric.Observer]
 	TerminatingEndpointsEvents       metric.Counter
-	IpamEvent                        metric.Vec[metric.Counter]
+	IPAMEvent                        metric.Vec[metric.Counter]
+	IPAMCapacity                     metric.Vec[metric.Gauge]
 	KVStoreOperationsDuration        metric.Vec[metric.Observer]
 	KVStoreEventsQueueDuration       metric.Vec[metric.Observer]
 	KVStoreQuorumErrors              metric.Vec[metric.Counter]
-	KVStoreSyncQueueSize             metric.Vec[metric.Gauge]
-	KVStoreInitialSyncCompleted      metric.Vec[metric.Gauge]
 	FQDNGarbageCollectorCleanedTotal metric.Counter
 	FQDNActiveNames                  metric.Vec[metric.Gauge]
 	FQDNActiveIPs                    metric.Vec[metric.Gauge]
@@ -1039,12 +1035,19 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:       "Number of terminating endpoint events received from Kubernetes",
 		}),
 
-		IpamEvent: metric.NewCounterVec(metric.CounterOpts{
+		IPAMEvent: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_ipam_events_total",
 			Namespace:  Namespace,
 			Name:       "ipam_events_total",
 			Help:       "Number of IPAM events received labeled by action and datapath family type",
 		}, []string{LabelAction, LabelDatapathFamily}),
+
+		IPAMCapacity: metric.NewGaugeVec(metric.GaugeOpts{
+			ConfigName: Namespace + "_ipam_capacity",
+			Namespace:  Namespace,
+			Name:       "ipam_capacity",
+			Help:       "Total number of IPs in the IPAM pool labeled by family",
+		}, []string{LabelDatapathFamily}),
 
 		KVStoreOperationsDuration: metric.NewHistogramVec(metric.HistogramOpts{
 			ConfigName: Namespace + "_" + SubsystemKVStore + "_operations_duration_seconds",
@@ -1070,22 +1073,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Name:       "quorum_errors_total",
 			Help:       "Number of quorum errors",
 		}, []string{LabelError}),
-
-		KVStoreSyncQueueSize: metric.NewGaugeVec(metric.GaugeOpts{
-			ConfigName: Namespace + "_" + SubsystemKVStore + "_sync_queue_size",
-			Namespace:  Namespace,
-			Subsystem:  SubsystemKVStore,
-			Name:       "sync_queue_size",
-			Help:       "Number of elements queued for synchronization in the kvstore",
-		}, []string{LabelScope, LabelSourceCluster}),
-
-		KVStoreInitialSyncCompleted: metric.NewGaugeVec(metric.GaugeOpts{
-			ConfigName: Namespace + "_" + SubsystemKVStore + "_initial_sync_completed",
-			Namespace:  Namespace,
-			Subsystem:  SubsystemKVStore,
-			Name:       "initial_sync_completed",
-			Help:       "Whether the initial synchronization from/to the kvstore has completed",
-		}, []string{LabelScope, LabelSourceCluster, LabelAction}),
 
 		IPCacheErrorsTotal: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_" + SubsystemIPCache + "_errors_total",
@@ -1349,12 +1336,11 @@ func NewLegacyMetrics() *LegacyMetrics {
 	KubernetesAPICallsTotal = lm.KubernetesAPICallsTotal
 	KubernetesCNPStatusCompletion = lm.KubernetesCNPStatusCompletion
 	TerminatingEndpointsEvents = lm.TerminatingEndpointsEvents
-	IpamEvent = lm.IpamEvent
+	IPAMEvent = lm.IPAMEvent
+	IPAMCapacity = lm.IPAMCapacity
 	KVStoreOperationsDuration = lm.KVStoreOperationsDuration
 	KVStoreEventsQueueDuration = lm.KVStoreEventsQueueDuration
 	KVStoreQuorumErrors = lm.KVStoreQuorumErrors
-	KVStoreSyncQueueSize = lm.KVStoreSyncQueueSize
-	KVStoreInitialSyncCompleted = lm.KVStoreInitialSyncCompleted
 	FQDNGarbageCollectorCleanedTotal = lm.FQDNGarbageCollectorCleanedTotal
 	FQDNActiveNames = lm.FQDNActiveNames
 	FQDNActiveIPs = lm.FQDNActiveIPs
@@ -1440,15 +1426,6 @@ func Reinitialize() {
 	if err == nil {
 		reg.Reinitialize()
 	}
-}
-
-// MustRegister adds the collector to the registry, exposing this metric to
-// prometheus scrapes.
-// It will panic on error.
-func MustRegister(c ...prometheus.Collector) {
-	withRegistry(func(reg *Registry) {
-		reg.MustRegister(c...)
-	})
 }
 
 // Register registers a collector

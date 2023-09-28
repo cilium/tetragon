@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/cilium/pkg/loadbalancer"
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/cilium/pkg/option"
 )
 
 var (
@@ -123,9 +124,9 @@ func (s *ClusterService) Unmarshal(_ string, data []byte) error {
 }
 
 func (s *ClusterService) validate() error {
-	// Explicitly allow the ClusterID to be zero for backward compatibility,
-	// as this field was not present in v1.13.
-	if s.ClusterID != 0 {
+	// Skip the ClusterID check if it matches the local one, as we assume that
+	// it has already been validated, and to allow it to be zero.
+	if s.ClusterID != option.Config.ClusterID {
 		if err := cmtypes.ValidateClusterID(s.ClusterID); err != nil {
 			return err
 		}

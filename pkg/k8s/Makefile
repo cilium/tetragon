@@ -11,6 +11,7 @@ help:
 
 generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
+	chmod +x vendor/k8s.io/code-generator/generate-internal-groups.sh
 	# Do two invocations of generate-groups.sh, one with --plural-exceptions, one without
 	export GOPATH=$$(go env GOPATH); \
 	  bash vendor/k8s.io/code-generator/generate-groups.sh deepcopy,defaulter \
