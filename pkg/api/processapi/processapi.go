@@ -74,12 +74,26 @@ type MsgK8sUnix struct {
 	Docker string
 }
 
+type MsgGenericCredMinimal struct {
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+}
+
 type MsgExecveEvent struct {
 	Common         MsgCommon
 	Kube           MsgK8s
 	Parent         MsgExecveKey
 	ParentFlags    uint64
 	Capabilities   MsgCapabilities
+	Creds          MsgGenericCredMinimal
 	Namespaces     MsgNamespaces
 	CleanupProcess MsgExecveKey
 }
@@ -90,6 +104,7 @@ type MsgExecveEventUnix struct {
 	Parent         MsgExecveKey
 	ParentFlags    uint64
 	Capabilities   MsgCapabilities
+	Creds          MsgGenericCredMinimal
 	Namespaces     MsgNamespaces
 	CleanupProcess MsgExecveKey
 	Process        MsgProcess
