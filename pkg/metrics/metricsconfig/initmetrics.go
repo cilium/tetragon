@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package config
+package metricsconfig
 
 import (
 	"github.com/cilium/tetragon/pkg/eventcache"
