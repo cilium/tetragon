@@ -83,6 +83,8 @@ type config struct {
 	KMods []string
 
 	EnablePodInfo bool
+
+	ExposeKernelAddresses bool
 }
 
 var (

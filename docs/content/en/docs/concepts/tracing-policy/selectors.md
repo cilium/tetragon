@@ -829,6 +829,16 @@ kprobes:
         stackTrace: true
 ```
 
+{{< caution >}}
+By default Tetragon does not expose the kernel addresses, you need to enable
+the flag `--expose-kernel-addresses` to get the addresses along the rest.
+
+Note that the Tetragon agent is using its privilege to read the kernel symbols
+and their address. Being able to retrieve kernel symbols address can be used to
+break kernel address space layout randomization (KASLR) so only privileged users
+should be able to enable this feature and read events containing stack traces.
+{{< /caution >}}
+
 Once loaded, events created from this policy will contain a new `stack_trace`
 field on the `process_kprobe` event with an output similar to:
 
@@ -874,15 +884,10 @@ the compact output of the event similarly to this:
 
 The printing format is `"0x%x: %s+0x%x", address, symbol, offset`.
 
-{{< warning >}}
-Please note that the Tetragon agent is using its privilege to read the kernel
-symbols and their address. Being able to retrieve kernel symbols address is
-considered privileged and can be used to break kernel address space layout
-randomization (KASLR).
-
-Thus only privileged users should be able to enable this feature and read
-events containing stack traces.
-{{< /warning >}}
+{{< note >}}
+Compact output will display missing addresses as `0x0`, see the above note on
+`--expose-kernel-addresses` for more info.
+{{< /note >}}
 
 ### NoPost action
 

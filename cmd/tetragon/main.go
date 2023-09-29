@@ -813,6 +813,8 @@ func execute() error {
 
 	flags.Bool(keyEnablePodInfo, false, "Enable PodInfo custom resource")
 
+	flags.Bool(keyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }
