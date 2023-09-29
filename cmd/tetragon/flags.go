@@ -5,7 +5,7 @@ package main
 
 import (
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/config"
+	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/spf13/viper"
@@ -113,7 +113,7 @@ func readAndSetFlags() {
 	option.Config.DataCacheSize = viper.GetInt(keyDataCacheSize)
 
 	option.Config.MetricsServer = viper.GetString(keyMetricsServer)
-	option.Config.MetricsLabelFilter = config.ParseMetricsLabelFilter(viper.GetString(keyMetricsLabelFilter))
+	option.Config.MetricsLabelFilter = metricsconfig.ParseMetricsLabelFilter(viper.GetString(keyMetricsLabelFilter))
 	option.Config.ServerAddress = viper.GetString(keyServerAddress)
 
 	option.Config.ExportFilename = viper.GetString(keyExportFilename)

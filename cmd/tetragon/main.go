@@ -32,7 +32,7 @@ import (
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
-	metricsconfig "github.com/cilium/tetragon/pkg/metrics/config"
+	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
