@@ -36,6 +36,8 @@ func CheckStructAlignments(path string) error {
 		"tetragon_conf":         {confapi.TetragonConf{}},
 		"cgroup_tracking_value": {processapi.MsgCgroupData{}},
 		"msg_cgroup_event":      {processapi.MsgCgroupEvent{}},
+		"msg_cred":              {tracingapi.MsgGenericCred{}},
+		"msg_cred_minimal":      {processapi.MsgGenericCredMinimal{}},
 	}
 
 	confMap := map[string][]any{
