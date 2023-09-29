@@ -277,11 +277,14 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			logger.GetLogger().WithField("address", fmt.Sprintf("0x%x", addr)).Warn("stacktrace: failed to retrieve symbol and offset")
 			continue
 		}
-		stackTrace = append(stackTrace, &tetragon.StackTraceEntry{
-			Address: addr,
-			Offset:  fnOffset.Offset,
-			Symbol:  fnOffset.SymName,
-		})
+		entry := &tetragon.StackTraceEntry{
+			Offset: fnOffset.Offset,
+			Symbol: fnOffset.SymName,
+		}
+		if option.Config.ExposeKernelAddresses {
+			entry.Address = addr
+		}
+		stackTrace = append(stackTrace, entry)
 	}
 
 	tetragonEvent := &tetragon.ProcessKprobe{

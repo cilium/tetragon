@@ -82,6 +82,8 @@ const (
 	keyKmods = "kmods"
 
 	keyEnablePodInfo = "enable-pod-info"
+
+	keyExposeKernelAddresses = "expose-kernel-addresses"
 )
 
 func readAndSetFlags() {
@@ -151,4 +153,6 @@ func readAndSetFlags() {
 	if viper.IsSet(keyTracingPolicy) {
 		option.Config.TracingPolicy = viper.GetString(keyTracingPolicy)
 	}
+
+	option.Config.ExposeKernelAddresses = viper.GetBool(keyExposeKernelAddresses)
 }
