@@ -150,9 +150,7 @@ func readAndSetFlags() {
 
 	option.Config.EnablePodInfo = viper.GetBool(keyEnablePodInfo)
 
-	if viper.IsSet(keyTracingPolicy) {
-		option.Config.TracingPolicy = viper.GetString(keyTracingPolicy)
-	}
+	option.Config.TracingPolicy = viper.GetString(keyTracingPolicy)
 
 	option.Config.ExposeKernelAddresses = viper.GetBool(keyExposeKernelAddresses)
 }
