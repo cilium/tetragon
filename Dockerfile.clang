@@ -1,9 +1,8 @@
 FROM docker.io/library/ubuntu:22.04@sha256:0bced47fffa3361afa981854fcabcd4577cd43cebbb808cea2b1f33a3dd7f508
-ARG VERSION=1:15.0.7-0ubuntu0.22.04.2
-RUN apt-get update && apt-get install -y --no-install-recommends                 \
-    clang-15=$VERSION libclang-common-15-dev=$VERSION libclang-cpp15=$VERSION    \
-    libllvm15=$VERSION llvm-15-linker-tools=$VERSION libclang1-15=$VERSION       \
-    llvm-15=$VERSION llvm-15-runtime=$VERSION llvm-15-linker-tools=$VERSION make \
+RUN apt-get update && apt-get install -y --no-install-recommends  \
+    clang-15 libclang-common-15-dev libclang-cpp15    	          \
+    libllvm15 llvm-15-linker-tools libclang1-15                   \
+    llvm-15 llvm-15-runtime llvm-15-linker-tools make             \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN ln -vsnf /usr/lib/llvm-15/bin/clang /usr/bin/clang
 RUN ln -vsnf /usr/lib/llvm-15/bin/llc /usr/bin/llc
