@@ -1,0 +1,547 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Hubble
+
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package tetragon;
+
+import "tetragon/capabilities.proto";
+
+message Image {
+    // Identifier of the container image composed of the registry path and the
+    // sha256.
+    string id = 1;
+    // Name of the container image composed of the registry path and the tag.
+    string name = 2;
+}
+
+message Container {
+    // Identifier of the container.
+    string id = 1;
+    // Name of the container.
+    string name = 2;
+    // Image of the container.
+    Image image = 3;
+    // Start time of the container.
+    google.protobuf.Timestamp start_time = 4;
+    // Process identifier in the container namespace.
+    google.protobuf.UInt32Value pid = 5;
+    // If this is set true, it means that the process might have been originated from
+    // a Kubernetes exec probe. For this field to be true, the following must be true:
+    // 1. The binary field matches the first element of the exec command list for either
+    //    liveness or readiness probe excluding the basename. For example, "/bin/ls"
+    //    and "ls" are considered a match.
+    // 2. The arguments field exactly matches the rest of the exec command list.
+    bool maybe_exec_probe = 13;
+}
+
+message Pod {
+    // Kubernetes namespace of the Pod.
+    string namespace = 1;
+    // Name of the Pod.
+    string name = 2;
+    // Cilium identity labels of the Pod.
+    // This field is deprecated. Use pod_labels instead.
+    repeated string labels = 3 [deprecated = true];
+    // Container of the Pod from which the process that triggered the event
+    // originates.
+    Container container = 4;
+    // Contains all the labels of the pod. Note that the labels field contains
+    // Cilium identity labels, which is a subset of pod labels.
+    map<string, string> pod_labels = 5;
+    // Kubernetes workload of the Pod.
+    string workload = 6;
+    // Kubernetes workload kind (e.g. "Deployment", "DaemonSet") of the Pod.
+    string workload_kind = 7;
+}
+
+message Capabilities {
+    // Permitted set indicates what capabilities the process can use. This is a
+    // limiting superset for the effective capabilities that the thread may
+    // assume. It is also a limiting superset for the capabilities that may be
+    // added to the inheritable set by a thread without the CAP_SETPCAP in its
+    // effective set.
+    repeated CapabilitiesType permitted = 1;
+    // Effective set indicates what capabilities are active in a process. This
+    // is the set used by the kernel to perform permission checks for the
+    // thread.
+    repeated CapabilitiesType effective = 2;
+    // Inheritable set indicates which capabilities will be inherited by the
+    // current process when running as a root user.
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message Namespace {
+    // Inode number of the namespace.
+    uint32 inum = 1;
+    // Indicates if namespace belongs to host.
+    bool is_host = 2;
+}
+
+message Namespaces {
+    // Hostname and NIS domain name.
+    Namespace uts = 1;
+    // System V IPC, POSIX message queues.
+    Namespace ipc = 2;
+    // Mount points.
+    Namespace mnt = 3;
+    // Process IDs.
+    Namespace pid = 4;
+    // Process IDs for children processes.
+    Namespace pid_for_children = 5;
+    // Network devices, stacks, ports, etc.
+    Namespace net = 6;
+    // Boot and monotonic clocks.
+    Namespace time = 7;
+    // Boot and monotonic clocks for children processes.
+    Namespace time_for_children = 8;
+    // Cgroup root directory.
+    Namespace cgroup = 9;
+    // User and group IDs.
+    Namespace user = 10;
+}
+
+message UserNamespace {
+	// Nested level of the user namespace. Init or host user namespace is at level 0.
+	google.protobuf.Int32Value level = 1;
+	// The owner user ID of the namespace
+	google.protobuf.UInt32Value uid = 2;
+	// The owner group ID of the namepace.
+	google.protobuf.UInt32Value gid = 3;
+	// The user namespace details that include the inode number of the namespace.
+	Namespace ns = 4;
+}
+
+message ProcessCredentials {
+	// The real user ID
+	google.protobuf.UInt32Value uid = 1;
+	// The real group ID
+	google.protobuf.UInt32Value gid = 2;
+	// The effective user ID
+	google.protobuf.UInt32Value euid = 3;
+	// The effective group ID
+	google.protobuf.UInt32Value egid = 4;
+	// The saved user ID
+	google.protobuf.UInt32Value suid = 5;
+	// The saved group ID
+	google.protobuf.UInt32Value sgid = 6;
+	// the filesystem user ID
+	google.protobuf.UInt32Value fsuid = 7;
+	// The filesystem group ID
+	google.protobuf.UInt32Value fsgid = 8;
+	// Secure management flags
+	repeated SecureBitsType securebits = 9;
+	// Set of capabilities that define the permissions the process can execute with.
+	Capabilities caps = 10;
+	// User namespace where the UIDs, GIDs and capabilities are relative to.
+	UserNamespace user_ns = 11;
+}
+
+message BinaryProperties {
+	// If set then this is the set user ID used for execution
+	google.protobuf.UInt32Value setuid = 1;
+	// If set then this is the set group ID used for execution
+	google.protobuf.UInt32Value setgid = 2;
+}
+
+message Process {
+    // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
+    string exec_id = 1;
+    // Process identifier from host PID namespace.
+    google.protobuf.UInt32Value pid = 2;
+    // User identifier associated with the process.
+    google.protobuf.UInt32Value uid = 3;
+    // Current working directory of the process.
+    string cwd = 4;
+    // Absolute path of the executed binary.
+    string binary = 5;
+    // Arguments passed to the binary at execution.
+    string arguments = 6;
+    // Flags are for debugging purposes only and should not be considered a
+    // reliable source of information. They hold various information about
+    // which syscalls generated events, use of internal Tetragon buffers,
+    // errors and more.
+    // - `execve` This event is generated by an execve syscall for a new
+    // process. See procFs for the other option. A correctly formatted event
+    // should either set execve or procFS (described next).
+    // - `procFS` This event is generated from a proc interface. This happens
+    // at Tetragon init when existing processes are being loaded into Tetragon
+    // event buffer. All events should have either execve or procFS set.
+    // - `truncFilename` Indicates a truncated processes filename because the
+    // buffer size is too small to contain the process filename. Consider
+    // increasing buffer size to avoid this.
+    // - `truncArgs` Indicates truncated the processes arguments because the
+    // buffer size was too small to contain all exec args. Consider increasing
+    // buffer size to avoid this.
+    // - `taskWalk` Primarily useful for debugging. Indicates a walked process
+    // hierarchy to find a parent process in the Tetragon buffer. This may
+    // happen when we did not receive an exec event for the immediate parent of
+    // a process. Typically means we are looking at a fork that in turn did
+    // another fork we don't currently track fork events exactly and instead
+    // push an event with the original parent exec data. This flag can provide
+    // this insight into the event if needed.
+    // - `miss` An error flag indicating we could not find parent info in the
+    // Tetragon event buffer. If this is set it should be reported to Tetragon
+    // developers for debugging. Tetragon will do its best to recover
+    // information about the process from available kernel data structures
+    // instead of using cached info in this case. However, args will not be
+    // available.
+    // - `needsAUID` An internal flag for Tetragon to indicate the audit has
+    // not yet been resolved. The BPF hooks look at this flag to determine if
+    // probing the audit system is necessary.
+    // - `errorFilename` An error flag indicating an error happened while
+    // reading the filename. If this is set it should be reported to Tetragon
+    // developers for debugging.
+    // - `errorArgs` An error flag indicating an error happened while reading
+    // the process args. If this is set it should be reported to Tetragon
+    // developers for debugging
+    // - `needsCWD` An internal flag for Tetragon to indicate the current
+    // working directory has not yet been resolved. The Tetragon hooks look at
+    // this flag to determine if probing the CWD is necessary.
+    // - `noCWDSupport` Indicates that CWD is removed from the event because
+    // the buffer size is too small. Consider increasing buffer size to avoid
+    // this.
+    // - `rootCWD` Indicates that CWD is the root directory. This is necessary
+    // to inform readers the CWD is not in the event buffer and is '/' instead.
+    // - `errorCWD` An error flag indicating an error occurred while reading
+    // the CWD of a process. If this is set it should be reported to Tetragon
+    // developers for debugging.
+    // - `clone` Indicates the process issued a clone before exec*. This is the
+    // general flow to exec* a new process, however its possible to replace the
+    // current process with a new process by doing an exec* without a clone. In
+    // this case the flag will be omitted and the same PID will be used by the
+    // kernel for both the old process and the newly exec'd process.
+    string flags = 7;
+    // Start time of the execution.
+    google.protobuf.Timestamp start_time = 8;
+    // Audit user ID, this ID is assigned to a user upon login and is inherited
+    // by every process even when the user's identity changes. For example, by
+    // switching user accounts with su - john.
+    google.protobuf.UInt32Value auid = 9;
+    // Information about the the Kubernetes Pod where the event originated.
+    Pod pod = 10;
+    // The 15 first digits of the container ID.
+    string docker = 11;
+    // Exec ID of the parent process.
+    string parent_exec_id = 12;
+    // Reference counter from the Tetragon process cache.
+    uint32 refcnt = 13;
+    // Set of capabilities that define the permissions the process can execute with.
+    Capabilities cap = 14;
+    // Linux namespaces of the process, disabled by default, can be enabled by
+    // the `--enable-process-ns` flag.
+    Namespaces ns = 15;
+    // Thread ID, note that for the thread group leader, tid is equal to pid.
+    google.protobuf.UInt32Value tid = 16;
+    // Process credentials
+    ProcessCredentials process_credentials = 17;
+    // Executed binary properties. This field is only available on ProcessExec events.
+    BinaryProperties binary_properties = 18;
+}
+
+message ProcessExec {
+    // Process that triggered the exec.
+    Process process = 1;
+    // Immediate parent of the process.
+    Process parent = 2;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 3;
+}
+
+message ProcessExit {
+    // Process that triggered the exit.
+    Process process = 1;
+    // Immediate parent of the process.
+    Process parent  = 2;
+    // Signal that the process received when it exited, for example SIGKILL or
+    // SIGTERM (list all signal names with `kill -l`). If there is no signal
+    // handler implemented for a specific process, we report the exit status
+    // code that can be found in the status field. 
+    string  signal  = 3;
+    // Status code on process exit. For example, the status code can indicate
+    // if an error was encountered or the program exited successfully.
+    uint32  status  = 4;
+    // Date and time of the event.
+    google.protobuf.Timestamp time = 5;
+}
+
+message KprobeSock {
+    string family = 1;
+    string type = 2;
+    string protocol = 3;
+    uint32 mark = 4;
+    uint32 priority = 5;
+    string saddr = 6;
+    string daddr = 7;
+    uint32 sport = 8;
+    uint32 dport = 9;
+    uint64 cookie = 10;
+    string state = 11;
+}
+
+message KprobeSkb {
+    uint32 hash = 1;
+    uint32 len = 2;
+    uint32 priority = 3;
+    uint32 mark = 4;
+    string saddr = 5;
+    string daddr = 6;
+    uint32 sport = 7;
+    uint32 dport = 8;
+    uint32 proto = 9;
+    uint32 sec_path_len = 10;
+    uint32 sec_path_olen = 11;
+    string protocol = 12;
+    string family = 13;
+}
+
+message KprobePath {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeFile {
+    string mount = 1;
+    string path  = 2;
+    string flags = 3;
+}
+
+message KprobeTruncatedBytes {
+	bytes bytes_arg = 1;
+	uint64 orig_size = 2;
+}
+
+message KprobeCred {
+    repeated CapabilitiesType permitted = 1;
+    repeated CapabilitiesType effective = 2;
+    repeated CapabilitiesType inheritable = 3;
+}
+
+message KprobeCapability {
+	google.protobuf.Int32Value value = 1;
+	string name = 2;
+}
+
+message KprobeUserNamespace {
+	google.protobuf.Int32Value level = 1;
+	google.protobuf.UInt32Value owner = 2;
+	google.protobuf.UInt32Value group = 3;
+	Namespace ns = 4;
+}
+
+message KprobeBpfAttr {
+    string  ProgType = 1;
+    uint32  InsnCnt = 2;
+    string  ProgName = 3;
+}
+
+message KprobePerfEvent {
+    string	KprobeFunc = 1;
+    string	Type = 2;
+    uint64	Config = 3;
+    uint64	ProbeOffset = 4;
+}
+
+message KprobeBpfMap {
+    string  MapType = 1;
+    uint32  KeySize = 2;
+    uint32  ValueSize = 3;
+    uint32  MaxEntries = 4;
+    string  MapName = 5;
+}
+
+message KprobeArgument {
+    oneof arg {
+	string    string_arg = 1;
+	int32     int_arg = 2;
+	KprobeSkb skb_arg = 3;
+	uint64    size_arg = 4;
+	bytes     bytes_arg = 5;
+	KprobePath path_arg = 6;
+	KprobeFile file_arg = 7;
+	KprobeTruncatedBytes truncated_bytes_arg = 8;
+	KprobeSock sock_arg = 9;
+	KprobeCred cred_arg = 10;
+	int64 long_arg = 11;
+	KprobeBpfAttr bpf_attr_arg = 12;
+	KprobePerfEvent perf_event_arg = 13;
+	KprobeBpfMap bpf_map_arg = 14;
+	uint32 uint_arg = 15;
+	KprobeUserNamespace user_namespace_arg = 16 [deprecated = true];
+	KprobeCapability capability_arg = 17;
+	ProcessCredentials process_credentials_arg = 19;
+	UserNamespace user_ns_arg = 20;
+	KernelModule module_arg = 21;
+    }
+    string label = 18;
+}
+
+enum KprobeAction {
+    // Unknown action
+	KPROBE_ACTION_UNKNOWN    = 0;
+    // Post action creates an event (default action).
+	KPROBE_ACTION_POST	 = 1;
+    // Post action creates a mapping between file descriptors and file names.
+	KPROBE_ACTION_FOLLOWFD   = 2;
+    // Sigkill action synchronously terminates the process. 
+	KPROBE_ACTION_SIGKILL    = 3;
+    // Post action removes a mapping between file descriptors and file names.
+	KPROBE_ACTION_UNFOLLOWFD = 4;
+    // Override action modifies the return value of the call.
+	KPROBE_ACTION_OVERRIDE   = 5;
+    // Post action dupplicates a mapping between file descriptors and file
+    // names.
+	KPROBE_ACTION_COPYFD     = 6;
+    // GetURL action issue an HTTP Get request against an URL from userspace.
+	KPROBE_ACTION_GETURL     = 7;
+    // GetURL action issue a DNS lookup against an URL from userspace.
+	KPROBE_ACTION_DNSLOOKUP  = 8;
+    // NoPost action suppresses the transmission of the event to userspace.
+	KPROBE_ACTION_NOPOST     = 9;
+    // Signal action sends specified signal to the process.
+	KPROBE_ACTION_SIGNAL     = 10;
+}
+
+message ProcessKprobe {
+    // Process that triggered the kprobe.
+    Process process = 1;
+    // Immediate parent of the process.
+    Process parent = 2;
+    // Symbol on which the kprobe was attached.
+    string function_name = 3;
+    // Arguments definition of the observed kprobe.
+    repeated KprobeArgument args = 4;
+    // Return value definition of the observed kprobe.
+    KprobeArgument return = 5;
+    // Action performed when the kprobe matched.
+    KprobeAction action = 6;
+}
+
+message ProcessTracepoint {
+    // Process that triggered the tracepoint.
+    Process process = 1;
+    // Immediate parent of the process.
+    Process parent = 2;
+    // Subsystem of the tracepoint.
+    string subsys = 4;
+    // Event of the subsystem.
+    string event = 5;
+    // Arguments definition of the observed tracepoint.
+    // TODO: once we implement all we want, rename KprobeArgument to GenericArgument
+    repeated KprobeArgument args = 6;
+}
+
+message ProcessUprobe {
+    Process process = 1;
+    Process parent = 2;
+    string path = 3;
+    string symbol = 4;
+}
+
+message KernelModule {
+	// Kernel module name
+	string name = 1;
+	// If true the module signature was verified successfully. Depends on kernels compiled with
+	// CONFIG_MODULE_SIG option, for details please read: https://www.kernel.org/doc/Documentation/admin-guide/module-signing.rst
+	google.protobuf.BoolValue signature_ok = 2;
+	// The module tainted flags that will be applied on the kernel. For further details please read: https://docs.kernel.org/admin-guide/tainted-kernels.html
+	repeated TaintedBitsType tainted = 3;
+}
+
+message Test {
+	uint64 arg0 = 1;
+	uint64 arg1 = 2;
+	uint64 arg2 = 3;
+	uint64 arg3 = 4;
+}
+
+enum HealthStatusType {
+ HEALTH_STATUS_TYPE_UNDEF  = 0;
+ HEALTH_STATUS_TYPE_STATUS = 1;
+}
+
+enum HealthStatusResult {
+ HEALTH_STATUS_UNDEF    = 0;
+ HEALTH_STATUS_RUNNING  = 1;
+ HEALTH_STATUS_STOPPED  = 2;
+ HEALTH_STATUS_ERROR    = 3;
+}
+
+message GetHealthStatusRequest {
+    repeated HealthStatusType event_set = 1;
+}
+
+// Tainted bits to indicate if the kernel was tainted. For further details: https://docs.kernel.org/admin-guide/tainted-kernels.html
+enum TaintedBitsType {
+	TAINT_UNSET = 0;
+
+	/* A proprietary module was loaded. */
+	TAINT_PROPRIETARY_MODULE = 1;
+
+	/* A module was force loaded. */
+	TAINT_FORCED_MODULE = 2;
+
+	/* A module was force unloaded. */
+	TAINT_FORCED_UNLOAD_MODULE = 4;
+
+	/* A staging driver was loaded. */
+	TAINT_STAGED_MODULE = 1024;
+
+	/* An out of tree module was loaded. */
+	TAINT_OUT_OF_TREE_MODULE = 4096;
+
+	/* An unsigned module was loaded. Supported only on kernels built with CONFIG_MODULE_SIG option. */
+	TAINT_UNSIGNED_MODULE = 8192;
+
+	/* The kernel has been live patched. */
+	TAINT_KERNEL_LIVE_PATCH_MODULE = 32768;
+
+	/* Loading a test module. */
+	TAINT_TEST_MODULE = 262144;
+}
+
+message HealthStatus {
+	HealthStatusType event = 1;
+	HealthStatusResult status = 2;
+	string details = 3;
+}
+
+message GetHealthStatusResponse {
+	repeated HealthStatus health_status = 1;
+}
+
+// loader sensor event triggered for loaded binary/library
+message ProcessLoader {
+	Process process = 1;
+	string path = 2;
+	bytes buildid = 3;
+}
+
+// RuntimeHookRequest synchronously propagates information to the agent about run-time state.
+message RuntimeHookRequest {
+    oneof event {
+        CreateContainer createContainer = 1;
+    }
+}
+
+message RuntimeHookResponse {}
+
+// CreateContainer informs the agent that a container was created
+// This is intented to be used by OCI hooks (but not limited to them) and corresponds to the
+// CreateContainer hook:
+// https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontainer-hooks.
+message CreateContainer {
+    // cgroupsPath is the cgroups path for the container. The path is expected to be relative to the
+    // cgroups mountpoint. See: https://github.com/opencontainers/runtime-spec/blob/58ec43f9fc39e0db229b653ae98295bfde74aeab/specs-go/config.go#L174
+    string cgroupsPath = 1;
+    // rootDir is the absolute path of the root directory of the container.
+    // See: https://github.com/opencontainers/runtime-spec/blob/main/specs-go/config.go#L174
+    string rootDir = 2;
+    // annotations are the run-time annotations for the container
+    // see https://github.com/opencontainers/runtime-spec/blob/main/config.md#annotations
+    map<string, string> annotations = 3;
+}

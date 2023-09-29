@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Hubble
+
+syntax = "proto3";
+
+package tetragon;
+
+import "tetragon/tetragon.proto";
+import "tetragon/stack.proto";
+import "tetragon/events.proto";
+
+/**
+ * Sensors
+ */
+
+message ListSensorsRequest { }
+
+message SensorStatus {
+	// name is the name of the sensor
+	string name = 1;
+	// enabled marks whether the sensor is enabled
+	bool enabled = 2;
+	// collection is the collection the sensor belongs to (typically a tracing policy)
+	string collection = 3;
+}
+message ListSensorsResponse {
+	repeated SensorStatus sensors = 1;
+}
+
+message ListTracingPoliciesRequest { }
+
+message TracingPolicyStatus {
+	// id is the id of the policy
+	uint64 id = 1;
+	// name is the name of the policy
+	string name = 2;
+	// namespace is the namespace of the policy (or empty of the policy is global)
+	string namespace = 3;
+	// info is additional information about the policy
+	string info = 4;
+	// sensors loaded in the scope of this policy
+	repeated string sensors = 5;
+
+}
+
+message ListTracingPoliciesResponse {
+	repeated TracingPolicyStatus policies = 1;
+}
+
+message AddTracingPolicyRequest {
+	string yaml = 1;
+}
+message AddTracingPolicyResponse {}
+
+message DeleteTracingPolicyRequest {
+	string name = 1;
+}
+message DeleteTracingPolicyResponse {}
+
+message RemoveSensorRequest {
+	string name = 1;
+}
+message RemoveSensorResponse {}
+
+
+message EnableSensorRequest {
+	string name = 1;
+}
+
+message EnableSensorResponse {}
+
+message DisableSensorRequest {
+	string name = 1;
+}
+
+message DisableSensorResponse { }
+
+message GetStackTraceTreeRequest {
+	string name = 1;
+}
+
+message GetStackTraceTreeResponse {
+	StackTraceNode root = 1;
+}
+
+message GetVersionRequest{}
+message GetVersionResponse{
+	string version = 1;
+}
+
+service FineGuidanceSensors {
+    rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
+    rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
+
+    rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
+    rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
+    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
+    rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
+
+    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {}
+    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {}
+    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {}
+
+    rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
+
+    rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+
+    rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
+}
