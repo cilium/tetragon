@@ -69,7 +69,9 @@ type Reflector struct {
 	listerWatcher ListerWatcher
 	// backoff manages backoff of ListWatch
 	backoffManager wait.BackoffManager
-	resyncPeriod   time.Duration
+	// initConnBackoffManager manages backoff the initial connection with the Watch call of ListAndWatch.
+	initConnBackoffManager wait.BackoffManager
+	resyncPeriod           time.Duration
 	// clock allows tests to manipulate time
 	clock clock.Clock
 	// paginatedResult defines whether pagination should be forced for list calls.
@@ -218,10 +220,11 @@ func NewReflectorWithOptions(lw ListerWatcher, expectedType interface{}, store S
 		// We used to make the call every 1sec (1 QPS), the goal here is to achieve ~98% traffic reduction when
 		// API server is not healthy. With these parameters, backoff will stop at [30,60) sec interval which is
 		// 0.22 QPS. If we don't backoff for 2min, assume API server is healthy and we reset the backoff.
-		backoffManager:    wait.NewExponentialBackoffManager(800*time.Millisecond, 30*time.Second, 2*time.Minute, 2.0, 1.0, reflectorClock),
-		clock:             reflectorClock,
-		watchErrorHandler: WatchErrorHandler(DefaultWatchErrorHandler),
-		expectedType:      reflect.TypeOf(expectedType),
+		backoffManager:         wait.NewExponentialBackoffManager(800*time.Millisecond, 30*time.Second, 2*time.Minute, 2.0, 1.0, reflectorClock),
+		initConnBackoffManager: wait.NewExponentialBackoffManager(800*time.Millisecond, 30*time.Second, 2*time.Minute, 2.0, 1.0, reflectorClock),
+		clock:                  reflectorClock,
+		watchErrorHandler:      WatchErrorHandler(DefaultWatchErrorHandler),
+		expectedType:           reflect.TypeOf(expectedType),
 	}
 
 	if r.name == "" {
@@ -417,7 +420,7 @@ func (r *Reflector) watch(w watch.Interface, stopCh <-chan struct{}, resyncerrc 
 					select {
 					case <-stopCh:
 						return nil
-					case <-r.backoffManager.Backoff().C():
+					case <-r.initConnBackoffManager.Backoff().C():
 						continue
 					}
 				}
@@ -443,7 +446,7 @@ func (r *Reflector) watch(w watch.Interface, stopCh <-chan struct{}, resyncerrc 
 					select {
 					case <-stopCh:
 						return nil
-					case <-r.backoffManager.Backoff().C():
+					case <-r.initConnBackoffManager.Backoff().C():
 						continue
 					}
 				case apierrors.IsInternalError(err) && retry.ShouldRetry():
@@ -596,7 +599,7 @@ func (r *Reflector) watchList(stopCh <-chan struct{}) (watch.Interface, error) {
 	isErrorRetriableWithSideEffectsFn := func(err error) bool {
 		if canRetry := isWatchErrorRetriable(err); canRetry {
 			klog.V(2).Infof("%s: watch-list of %v returned %v - backing off", r.name, r.typeDescription, err)
-			<-r.backoffManager.Backoff().C()
+			<-r.initConnBackoffManager.Backoff().C()
 			return true
 		}
 		if isExpiredError(err) || isTooLargeResourceVersionError(err) {

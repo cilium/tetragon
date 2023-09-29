@@ -198,6 +198,7 @@ install:
 vendor:
 	$(MAKE) -C ./api vendor
 	$(MAKE) -C ./pkg/k8s vendor
+	$(MAKE) -C ./contrib/rthooks/tetragon-oci-hook
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify

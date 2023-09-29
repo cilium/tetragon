@@ -65,21 +65,13 @@ func CostObserver(tracker *CostTracker) EvalObserver {
 		// While the field names are identical, the boolean operation eval structs do not share an interface and so
 		// must be handled individually.
 		case *evalOr:
-			for _, term := range t.terms {
-				tracker.stack.drop(term.ID())
-			}
+			tracker.stack.drop(t.rhs.ID(), t.lhs.ID())
 		case *evalAnd:
-			for _, term := range t.terms {
-				tracker.stack.drop(term.ID())
-			}
+			tracker.stack.drop(t.rhs.ID(), t.lhs.ID())
 		case *evalExhaustiveOr:
-			for _, term := range t.terms {
-				tracker.stack.drop(term.ID())
-			}
+			tracker.stack.drop(t.rhs.ID(), t.lhs.ID())
 		case *evalExhaustiveAnd:
-			for _, term := range t.terms {
-				tracker.stack.drop(term.ID())
-			}
+			tracker.stack.drop(t.rhs.ID(), t.lhs.ID())
 		case *evalFold:
 			tracker.stack.drop(t.iterRange.ID())
 		case Qualifier:
