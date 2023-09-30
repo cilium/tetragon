@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -840,4 +841,64 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
 	}
 	observer.DataPurge()
+}
+
+// Tests process.process_credentials
+func TestExecProcessCredentials(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	gid := uint32(1879048193)
+	if err := syscall.Setegid(int(gid)); err != nil {
+		t.Fatalf("setegid(%d) error: %s", gid, err)
+	}
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	creds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(0).WithEgid(0).WithSgid(0).WithFsgid(0)
+
+	gidCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(0).WithEgid(gid).WithSgid(gid).WithFsgid(gid)
+
+	procExecChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).WithProcessCredentials(creds).WithBinaryProperties(nil)
+
+	procGidExecChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil)
+
+	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecChecker)
+	execGidChecker := ec.NewProcessExecChecker("exec").WithProcess(procGidExecChecker)
+	exitChecker := ec.NewProcessExitChecker("exit").WithProcess(procExecChecker)
+	exitGidChecker := ec.NewProcessExitChecker("exit").WithProcess(procGidExecChecker)
+
+	checker := ec.NewUnorderedEventChecker(execChecker, execGidChecker, exitChecker, exitGidChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+
+	if err = syscall.Setgid(0); err != nil {
+		t.Fatalf("Failed to restore gid to 0 :  %s\n", err)
+	}
+
 }
