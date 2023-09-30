@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
-	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -167,7 +166,6 @@ func (ec *Cache) loop() {
 			 * event anyways.
 			 */
 			ec.handleEvents()
-			mapmetrics.MapSizeSet("eventcache", 0, float64(len(ec.cache)))
 
 		case event := <-ec.objsChan:
 			eventcachemetrics.EventCacheCount.Inc()
@@ -240,4 +238,8 @@ func New(s *server.Server) *Cache {
 
 func Get() *Cache {
 	return cache
+}
+
+func (ec *Cache) len() int {
+	return len(ec.cache)
 }

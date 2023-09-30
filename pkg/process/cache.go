@@ -16,10 +16,10 @@ import (
 )
 
 type Cache struct {
-	cache           *lru.Cache[string, *ProcessInternal]
-	deleteChan      chan *ProcessInternal
-	stopChan        chan bool
-	metricsStopChan chan bool
+	cache      *lru.Cache[string, *ProcessInternal]
+	size       int
+	deleteChan chan *ProcessInternal
+	stopChan   chan bool
 }
 
 // garbage collection states
@@ -124,7 +124,6 @@ func (pc *Cache) refInc(p *ProcessInternal) {
 
 func (pc *Cache) Purge() {
 	pc.stopChan <- true
-	pc.metricsStopChan <- true
 }
 
 func NewCache(
@@ -141,22 +140,8 @@ func NewCache(
 	}
 	pm := &Cache{
 		cache: lruCache,
+		size:  processCacheSize,
 	}
-	update := func() {
-		mapmetrics.MapSizeSet("processLru", processCacheSize, float64(pm.cache.Len()))
-	}
-	ticker := time.NewTicker(60 * time.Second)
-	pm.metricsStopChan = make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				update()
-			case <-pm.metricsStopChan:
-				return
-			}
-		}
-	}()
 	pm.cacheGarbageCollector()
 	return pm, nil
 }
