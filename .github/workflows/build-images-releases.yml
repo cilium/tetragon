@@ -87,16 +87,18 @@ jobs:
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}@${{ steps.docker_build_release.outputs.digest }}
           cosign sign quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_release.outputs.digest }}
 
+     - name: Install Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version-file: 'go.mod'
+
       - name: Install Bom
-        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
         shell: bash
         env:
           # renovate: datasource=github-releases depName=kubernetes-sigs/bom
           BOM_VERSION: v0.5.1
         run: |
-          curl -L https://github.com/kubernetes-sigs/bom/releases/download/${{ env.BOM_VERSION }}/bom-amd64-linux -o bom
-          sudo mv ./bom /usr/local/bin/bom
-          sudo chmod +x /usr/local/bin/bom
+          go install sigs.k8s.io/bom/cmd/bom@${{ env.BOM_VERSION }}
 
       - name: Generate SBOM
         if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
