@@ -12,7 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
-	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
+	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/metrics/processexecmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ratelimitmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
@@ -36,7 +36,7 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	kprobemetrics.InitMetrics(registry)
 	mapmetrics.InitMetrics(registry)
 	opcodemetrics.InitMetrics(registry)
-	pfmetrics.InitMetrics(registry)
+	policyfiltermetrics.InitMetrics(registry)
 	processexecmetrics.InitMetrics(registry)
 	ringbufmetrics.InitMetrics(registry)
 	ringbufqueuemetrics.InitMetrics(registry)
