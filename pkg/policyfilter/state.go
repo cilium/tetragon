@@ -11,7 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
-	pfmetrics "github.com/cilium/tetragon/pkg/metrics/policyfilter"
+	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/podhooks"
 
 	"github.com/google/uuid"
@@ -290,7 +290,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			pfmetrics.OpInc("pod-handlers", "add", err)
+			policyfiltermetrics.OpInc("pod-handlers", "add", err)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
@@ -299,7 +299,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			pfmetrics.OpInc("pod-handlers", "update", err)
+			policyfiltermetrics.OpInc("pod-handlers", "update", err)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// Remove all containers for this pod
@@ -322,7 +322,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 					"namespace": namespace,
 				}).Warn("policyfilter, delete-pod handler: DelPod failed")
 			}
-			pfmetrics.OpInc("pod-handlers", "delete", err)
+			policyfiltermetrics.OpInc("pod-handlers", "delete", err)
 		},
 	}
 }
