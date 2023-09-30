@@ -331,8 +331,6 @@ func (k *Observer) UpdateRuntimeConf(mapDir string) error {
 
 // Start starts the observer
 func (k *Observer) Start(ctx context.Context) error {
-	k.startUpdateMapMetrics()
-
 	k.PerfConfig = bpf.DefaultPerfEventConfig()
 
 	var err error
