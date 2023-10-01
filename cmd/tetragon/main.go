@@ -224,7 +224,6 @@ func tetragonExecute() error {
 	obs := observer.NewObserver(option.Config.TracingPolicy)
 	defer func() {
 		obs.PrintStats()
-		obs.RemovePrograms()
 	}()
 
 	defaultLevel := logger.GetLogLevel()
@@ -277,6 +276,9 @@ func tetragonExecute() error {
 	if err := obs.InitSensorManager(sensorMgWait); err != nil {
 		return err
 	}
+	defer func() {
+		observer.RemoveSensors(ctx)
+	}()
 
 	/* Remove any stale programs, otherwise feature set change can cause
 	 * old programs to linger resulting in undefined behavior. And because
@@ -362,9 +364,13 @@ func tetragonExecute() error {
 	obs.LogPinnedBpf(observerDir)
 
 	// load base sensor
-	if err := base.GetInitialSensor().Load(observerDir, observerDir); err != nil {
+	base := base.GetInitialSensor()
+	if err := base.Load(observerDir, observerDir); err != nil {
 		return err
 	}
+	defer func() {
+		base.Unload()
+	}()
 
 	// now that the base sensor was loaded, we can start the sensor manager
 	close(sensorMgWait)
