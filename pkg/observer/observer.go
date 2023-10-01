@@ -401,6 +401,10 @@ func (k *Observer) RemovePrograms() {
 	RemovePrograms(option.Config.BpfDir, option.Config.MapDir)
 }
 
+func RemoveSensors(ctx context.Context) {
+	SensorManager.RemoveAllSensors(ctx)
+}
+
 // Log Active pinned BPF resources
 func (k *Observer) LogPinnedBpf(observerDir string) {
 	finfo, err := os.Stat(observerDir)

@@ -134,7 +134,6 @@ func testDone(tb testing.TB, obs *observer.Observer) {
 		}
 	}
 
-	obs.RemovePrograms()
 	obs.PrintStats()
 	obs.Remove()
 }
@@ -372,7 +371,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	// this up and remove/hide the global variable.
 	sensorManager := observer.SensorManager
 	tb.Cleanup(func() {
-		sensorManager.StopSensorManager(context.TODO())
+		sensorManager.StopSensorManager(ctx)
 	})
 
 	if oo.crd {
@@ -442,6 +441,10 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 		}
 	}
 
+	tb.Cleanup(func() {
+		observer.RemoveSensors(ctx)
+		base.Unload()
+	})
 	return nil
 }
 
