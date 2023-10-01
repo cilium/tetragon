@@ -369,3 +369,11 @@ func UnloadAll() {
 	AllPrograms = []*program.Program{}
 	AllMaps = []*program.Map{}
 }
+
+func UnloadSensors(sens []*Sensor) {
+	for i := range sens {
+		if err := sens[i].Unload(); err != nil {
+			logger.GetLogger().Warnf("Failed to unload sensor: %s", err)
+		}
+	}
+}
