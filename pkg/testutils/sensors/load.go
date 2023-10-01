@@ -118,11 +118,12 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 		1: SensorProg{Name: "event_exit", Type: ebpf.Kprobe},
 		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
 		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
+		4: SensorProg{Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
 	}
 
 	var baseMaps = []SensorMap{
 		// all programs
-		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3}},
+		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}},
 		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3}},
 
 		// all but event_execve
@@ -134,6 +135,10 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},
+
+		// event_execve and tg_kp_bprm_committing_creds
+		SensorMap{Name: "tg_execve_joined_info_map", Progs: []uint{0, 4}},
+		SensorMap{Name: "tg_execve_joined_info_map_stats", Progs: []uint{0, 4}},
 	}
 
 	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)
