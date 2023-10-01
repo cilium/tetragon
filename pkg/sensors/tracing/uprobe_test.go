@@ -92,7 +92,7 @@ spec:
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll()
+	sensors.UnloadSensors(sens)
 }
 
 func TestUprobeGeneric(t *testing.T) {
