@@ -152,6 +152,20 @@ binary_filter(void *ctx, struct msg_execve_event *event, void *filename)
 	return value ? *value : 0;
 }
 
+static inline __attribute__((always_inline)) __u32
+read_execve_shared_info(void *ctx, __u64 pid)
+{
+	__u32 secureexec = 0;
+	struct execve_info *info;
+
+	info = execve_joined_info_map_get(pid);
+	if (info) {
+		secureexec = info->secureexec;
+		execve_joined_info_map_clear(pid);
+	}
+	return secureexec;
+}
+
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
@@ -185,7 +199,7 @@ event_execve(struct sched_execve_args *ctx)
 	 */
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
-	p->pad = 0;
+	p->secureexec = read_execve_shared_info(ctx, pid);
 	p->nspid = get_task_pid_vnr();
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
