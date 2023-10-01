@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 
 	"github.com/sirupsen/logrus"
@@ -401,6 +402,11 @@ func (k *Observer) PrintStats() {
 
 func (k *Observer) RemovePrograms() {
 	RemovePrograms(option.Config.BpfDir, option.Config.MapDir)
+}
+
+func RemoveSensors(ctx context.Context) {
+	SensorManager.RemoveAllSensors(ctx)
+	base.GetInitialSensor().Unload()
 }
 
 // Log Active pinned BPF resources

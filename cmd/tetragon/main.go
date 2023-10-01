@@ -224,7 +224,7 @@ func tetragonExecute() error {
 	obs := observer.NewObserver(option.Config.TracingPolicy)
 	defer func() {
 		obs.PrintStats()
-		obs.RemovePrograms()
+		observer.RemoveSensors(ctx)
 	}()
 
 	defaultLevel := logger.GetLogLevel()

@@ -48,6 +48,12 @@ var (
 
 	/* Internal statistics for debugging */
 	ExecveStats = program.MapBuilder("execve_map_stats", Execve)
+
+	sensor = sensors.Sensor{
+		Name:  "__base__",
+		Progs: GetDefaultPrograms(),
+		Maps:  GetDefaultMaps(),
+	}
 )
 
 func GetExecveMap() *program.Map {
@@ -86,11 +92,7 @@ func GetDefaultMaps() []*program.Map {
 
 // GetInitialSensor returns the base sensor
 func GetInitialSensor() *sensors.Sensor {
-	return &sensors.Sensor{
-		Name:  "__base__",
-		Progs: GetDefaultPrograms(),
-		Maps:  GetDefaultMaps(),
-	}
+	return &sensor
 }
 
 // ExecObj returns the exec object based on the kernel version
