@@ -900,5 +900,124 @@ func TestExecProcessCredentials(t *testing.T) {
 	if err = syscall.Setgid(0); err != nil {
 		t.Fatalf("Failed to restore gid to 0 :  %s\n", err)
 	}
+}
 
+func TestExecProcessCredentialsSuid(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
+	// We should be able to create suid on local mount point
+	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
+	if err := testutils.CopyFile(testSuid, testBin, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
+		t.Fatalf("Failed to copy binary: %s", err)
+	}
+
+	t.Cleanup(func() {
+		err := os.Remove(testSuid)
+		if err != nil {
+			t.Logf("Error failed to cleanup '%s'", testSuid)
+		}
+	})
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testBin).Run(); err != nil {
+		t.Fatalf("Failed to execute '%s' binary: %s\n", testBin, err)
+	}
+
+	gid := 1879048188
+	if err := syscall.Setgid(gid); err != nil {
+		t.Fatalf("setegid(%d) error: %s", gid, err)
+	}
+
+	if err := exec.Command(testBin).Run(); err != nil {
+		t.Fatalf("Failed to execute '%s' binary: %s\n", testBin, err)
+	}
+
+	if err := exec.Command(testSuid).Run(); err != nil {
+		t.Fatalf("Failed to execute '%s' suid binary: %s\n", testSuid, err)
+	}
+
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setegid(%d) error: %s", gid, err)
+	}
+
+	if err := os.Chown(testSuid, gid, gid); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
+	}
+
+	if err := os.Chmod(testSuid, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
+	}
+
+	if err := exec.Command(testSuid).Run(); err != nil {
+		t.Fatalf("Failed to execute secound round suid '%s' binary: %s\n", testSuid, err)
+	}
+
+	/* Setgid to 0 */
+	binaryProperties1 := ec.NewBinaryPropertiesChecker().
+		WithSetgid(0)
+
+	/* Setuid and Setgid to gid */
+	binaryProperties2 := ec.NewBinaryPropertiesChecker().
+		WithSetuid(uint32(gid)).WithSetgid(uint32(gid))
+
+	normalCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(0).WithEgid(0).WithSgid(0).WithFsgid((0))
+
+	gidCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(uint32(gid)).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
+
+	suidCreds1 := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(uint32(gid)).WithEgid(0).WithSgid(0).WithFsgid(0)
+
+	suidCreds2 := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
+		WithGid(0).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
+
+	procExecNormalChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).WithProcessCredentials(normalCreds).WithBinaryProperties(nil)
+	procExecGidChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testBin)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil)
+	procExecSuidChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(binaryProperties1)
+	procExecSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(binaryProperties2)
+
+	procExitSuid1Checker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(nil)
+
+	procExitSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(nil)
+
+	execNormalChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecNormalChecker)
+	execGidChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecGidChecker)
+	execSuidChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSuidChecker)
+	execSuid2Checker := ec.NewProcessExecChecker("exec").WithProcess(procExecSuid2Checker)
+	exitSuid1Checker := ec.NewProcessExitChecker("exit").WithProcess(procExitSuid1Checker)
+	exitSuid2Checker := ec.NewProcessExitChecker("exit").WithProcess(procExitSuid2Checker)
+
+	if err = syscall.Setuid(0); err != nil {
+		t.Fatalf("Failed to restore uid to 0 :  %s\n", err)
+	}
+	if err = syscall.Setgid(0); err != nil {
+		t.Fatalf("Failed to restore gid to 0 :  %s\n", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(execNormalChecker, execGidChecker, execSuidChecker, execSuid2Checker, exitSuid1Checker, exitSuid2Checker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
 }
