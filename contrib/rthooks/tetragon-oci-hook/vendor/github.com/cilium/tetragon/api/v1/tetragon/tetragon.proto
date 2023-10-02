@@ -439,6 +439,8 @@ message ProcessTracepoint {
     repeated KprobeArgument args = 6;
     // Name of the policy that created that tracepoint.
     string policy_name = 7;
+    // Action performed when the tracepoint matched.
+    KprobeAction action = 8;
 }
 
 message ProcessUprobe {
