@@ -29,9 +29,6 @@ data:
 {{- if .Values.tetragon.enableK8sAPI }}
   enable-k8s-api: "true"
 {{- end }}
-{{- if .Values.tetragon.enableCiliumAPI }}
-  enable-cilium-api: "true"
-{{- end }}
 {{- if .Values.tetragon.prometheus.enabled }}
   metrics-server: {{ .Values.tetragon.prometheus.address }}:{{ .Values.tetragon.prometheus.port }}
 {{- else }}
