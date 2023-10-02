@@ -240,6 +240,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
+                                  - NotifyKiller
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -773,6 +774,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
+                                  - NotifyKiller
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1145,6 +1147,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
+                                  - NotifyKiller
                                   type: string
                                 argError:
                                   description: error value for override action
