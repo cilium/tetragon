@@ -107,8 +107,6 @@ tetragon:
     {}
   # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
-  # Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache.
-  enableCiliumAPI: false
   # enableProcessCred enables Capabilities visibility in exec and kprobe events.
   enableProcessCred: false
   # enableProcessNs enables Namespaces visibility in exec and kprobe events.

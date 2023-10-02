@@ -36,14 +36,13 @@ var (
 			description: "Test n0 Default configuration",
 			// expected options: default options nothing changes
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       defaults.DefaultTetragonLib,
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(10000),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      defaults.DefaultTetragonLib,
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(10000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -78,14 +77,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside /usr/lib/tetragon/tetragon.conf.d/ directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -93,14 +91,13 @@ var (
 					dropIn: true,
 					write:  true, // write empty values
 					options: map[string]interface{}{
-						keyConfigDir:       "",
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyConfigDir:      "",
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 				{ // /usr/local/lib/tetragon/tetragon.conf.d/
@@ -128,14 +125,13 @@ var (
 		{
 			description: "Test n2 Drop-in /usr/lib/tetragon/tetragon.conf.d/",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "/var/log/tetragon.log_0",
-				keyHubbleLib:       "/usr/lib/tetragon/bpf/_0",
-				keyBTF:             "/sys/kernel/btf/vmlinux-usr-lib_0",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(10000),
+				keyConfigDir:      "",
+				keyExportFilename: "/var/log/tetragon.log_0",
+				keyHubbleLib:      "/usr/lib/tetragon/bpf/_0",
+				keyBTF:            "/sys/kernel/btf/vmlinux-usr-lib_0",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(10000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -175,14 +171,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside /usr/local/lib/tetragon/tetragon.conf.d/ directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -195,14 +190,13 @@ var (
 					dropIn: true,
 					write:  true, // write empty values
 					options: map[string]interface{}{
-						keyConfigDir:       "",
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyConfigDir:      "",
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 				{ // /etc/tetragon/tetragon.yaml
@@ -225,14 +219,13 @@ var (
 		{
 			description: "Test n4 Drop-in /usr/local/lib/tetragon/tetragon.conf.d/",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "/var/log/tetragon.log_1",
-				keyHubbleLib:       "/usr/local/lib/tetragon/bpf/_1",
-				keyBTF:             "/sys/kernel/btf/vmlinux-usr-local-lib_1",
-				keyVerbosity:       1,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(10000),
+				keyConfigDir:      "",
+				keyExportFilename: "/var/log/tetragon.log_1",
+				keyHubbleLib:      "/usr/local/lib/tetragon/bpf/_1",
+				keyBTF:            "/sys/kernel/btf/vmlinux-usr-local-lib_1",
+				keyVerbosity:      1,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(10000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -281,14 +274,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty /etc/tetragon/tetragon.yaml file
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -318,14 +310,13 @@ var (
 					dropIn: false,
 					write:  true, // write empty values
 					options: map[string]interface{}{
-						keyConfigDir:       "",
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyConfigDir:      "",
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -345,14 +336,13 @@ var (
 			// expected options: partial update
 			// As we write /etc/tetragon/tetragon.yaml file
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       defaults.DefaultTetragonLib,
-				keyBTF:             "/sys/kernel/btf/vmlinux",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(10000),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      defaults.DefaultTetragonLib,
+				keyBTF:            "/sys/kernel/btf/vmlinux",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(10000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -390,14 +380,13 @@ var (
 			// Retest default values, assert our testing logic
 			description: "Test n7 Re-test default values",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       defaults.DefaultTetragonLib,
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(10000),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      defaults.DefaultTetragonLib,
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(10000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -430,14 +419,13 @@ var (
 		{
 			description: "Test n8 /etc/tetragon/tetragon.yaml",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "/var/run/tetragon/tetragon.log_2",
-				keyHubbleLib:       "/var/lib/tetragon/bpf/_2",
-				keyBTF:             "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
-				keyVerbosity:       2,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: true,
-				keyEventQueueSize:  uint(20000),
+				keyConfigDir:      "",
+				keyExportFilename: "/var/run/tetragon/tetragon.log_2",
+				keyHubbleLib:      "/var/lib/tetragon/bpf/_2",
+				keyBTF:            "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
+				keyVerbosity:      2,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(20000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -468,13 +456,12 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/run/tetragon/tetragon.log_2",
-						keyHubbleLib:       "/var/lib/tetragon/bpf/_2",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
-						keyVerbosity:       2,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: true,
-						keyEventQueueSize:  uint(20000),
+						keyExportFilename: "/var/run/tetragon/tetragon.log_2",
+						keyHubbleLib:      "/var/lib/tetragon/bpf/_2",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
+						keyVerbosity:      2,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(20000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -494,14 +481,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside /etc/tetragon/tetragon.conf.d/ directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -524,14 +510,13 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "",
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyConfigDir:      "",
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 				{ // config-dir
@@ -544,14 +529,13 @@ var (
 		{
 			description: "Test n10 Drop-in /etc/tetragon/tetragon.conf.d/",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "",
-				keyExportFilename:  "/var/log/tetragon.log_3",
-				keyHubbleLib:       "/var/lib/tetragon/_3",
-				keyBTF:             "/sys/kernel/btf/vmlinux-etc_3",
-				keyVerbosity:       3,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(30000),
+				keyConfigDir:      "",
+				keyExportFilename: "/var/log/tetragon.log_3",
+				keyHubbleLib:      "/var/lib/tetragon/_3",
+				keyBTF:            "/sys/kernel/btf/vmlinux-etc_3",
+				keyVerbosity:      3,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(30000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -583,13 +567,12 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/run/tetragon/tetragon.log_2",
-						keyHubbleLib:       "/var/lib/tetragon/bpf/_2",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
-						keyVerbosity:       2,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: true,
-						keyEventQueueSize:  uint(20000),
+						keyExportFilename: "/var/run/tetragon/tetragon.log_2",
+						keyHubbleLib:      "/var/lib/tetragon/bpf/_2",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
+						keyVerbosity:      2,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(20000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -597,12 +580,11 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/log/tetragon.log_3",
-						keyHubbleLib:       "/var/lib/tetragon/_3",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc_3",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyExportFilename: "/var/log/tetragon.log_3",
+						keyHubbleLib:      "/var/lib/tetragon/_3",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc_3",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -617,14 +599,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside --config-dir directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/usr.lib.k8s.conf.d",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "/etc/tetragon/usr.lib.k8s.conf.d",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -632,10 +613,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /usr/local/lib/tetragon/tetragon.conf.d/
@@ -643,9 +623,8 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.yaml
@@ -653,9 +632,8 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -663,9 +641,8 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -673,13 +650,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 			},
@@ -689,14 +665,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside --config-dir directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/usr.local.lib.k8s.conf.d",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "/etc/tetragon/usr.local.lib.k8s.conf.d",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -704,10 +679,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /usr/local/lib/tetragon/tetragon.conf.d/
@@ -715,10 +689,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.local.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.local.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.yaml
@@ -726,9 +699,8 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -736,9 +708,8 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -746,13 +717,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 			},
@@ -762,14 +732,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside --config-dir directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -777,10 +746,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /usr/local/lib/tetragon/tetragon.conf.d/
@@ -788,10 +756,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.local.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.local.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.yaml
@@ -799,10 +766,9 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -810,9 +776,8 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -820,13 +785,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 			},
@@ -836,14 +800,13 @@ var (
 			// expected options: all zeroed / cleared values
 			// As we write empty drop-ins inside --config-dir directory
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/tetragon.k8s.conf.d",
-				keyExportFilename:  "",
-				keyHubbleLib:       "",
-				keyBTF:             "",
-				keyVerbosity:       0,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(0),
+				keyConfigDir:      "/etc/tetragon/tetragon.k8s.conf.d",
+				keyExportFilename: "",
+				keyHubbleLib:      "",
+				keyBTF:            "",
+				keyVerbosity:      0,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(0),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -851,10 +814,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /usr/local/lib/tetragon/tetragon.conf.d/
@@ -862,10 +824,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/usr.local.lib.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/usr.local.lib.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.yaml
@@ -873,10 +834,9 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -884,10 +844,9 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.k8s.conf.d",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/tetragon.k8s.conf.d",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -895,13 +854,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "",
-						keyHubbleLib:       "",
-						keyBTF:             "",
-						keyVerbosity:       0,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(0),
+						keyExportFilename: "",
+						keyHubbleLib:      "",
+						keyBTF:            "",
+						keyVerbosity:      0,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(0),
 					},
 				},
 			},
@@ -909,14 +867,13 @@ var (
 		{
 			description: "Test n15 Drop-in --config-dir from /etc/tetragon/tetragon.yaml",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-				keyExportFilename:  "/var/log/tetragon.log_4",
-				keyHubbleLib:       "/var/lib/tetragon/_4",
-				keyBTF:             "/sys/kernel/btf/vmlinux-etc_4",
-				keyVerbosity:       4,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(40000),
+				keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+				keyExportFilename: "/var/log/tetragon.log_4",
+				keyHubbleLib:      "/var/lib/tetragon/_4",
+				keyBTF:            "/sys/kernel/btf/vmlinux-etc_4",
+				keyVerbosity:      4,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(40000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -948,14 +905,13 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-						keyExportFilename:  "/var/run/tetragon/tetragon.log_2",
-						keyHubbleLib:       "/var/lib/tetragon/bpf/_2",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
-						keyVerbosity:       2,
-						keyEnableCiliumAPI: true,
-						keyEnableK8sAPI:    true,
-						keyEventQueueSize:  uint(20000),
+						keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+						keyExportFilename: "/var/run/tetragon/tetragon.log_2",
+						keyHubbleLib:      "/var/lib/tetragon/bpf/_2",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
+						keyVerbosity:      2,
+						keyEnableK8sAPI:   true,
+						keyEventQueueSize: uint(20000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -963,12 +919,11 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/log/tetragon.log_3",
-						keyHubbleLib:       "/var/lib/tetragon/_3",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc_3",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: true,
-						keyEventQueueSize:  uint(30000),
+						keyExportFilename: "/var/log/tetragon.log_3",
+						keyHubbleLib:      "/var/lib/tetragon/_3",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc_3",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -976,13 +931,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/log/tetragon.log_4",
-						keyHubbleLib:       "/var/lib/tetragon/_4",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc_4",
-						keyVerbosity:       4,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(40000),
+						keyExportFilename: "/var/log/tetragon.log_4",
+						keyHubbleLib:      "/var/lib/tetragon/_4",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc_4",
+						keyVerbosity:      4,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(40000),
 					},
 				},
 			},
@@ -990,14 +944,13 @@ var (
 		{
 			description: "Test n16 Drop-in --config-dir from /etc/tetragon/tetragon.conf.d/",
 			expectedOptions: map[string]interface{}{
-				keyConfigDir:       "/etc/tetragon/tetragon.k8s.conf.d",
-				keyExportFilename:  "/var/log/tetragon.log_4",
-				keyHubbleLib:       "/var/lib/tetragon/_4",
-				keyBTF:             "/sys/kernel/btf/vmlinux-etc_4",
-				keyVerbosity:       4,
-				keyEnableK8sAPI:    false,
-				keyEnableCiliumAPI: false,
-				keyEventQueueSize:  uint(40000),
+				keyConfigDir:      "/etc/tetragon/tetragon.k8s.conf.d",
+				keyExportFilename: "/var/log/tetragon.log_4",
+				keyHubbleLib:      "/var/lib/tetragon/_4",
+				keyBTF:            "/sys/kernel/btf/vmlinux-etc_4",
+				keyVerbosity:      4,
+				keyEnableK8sAPI:   false,
+				keyEventQueueSize: uint(40000),
 			},
 			confs: []confInput{
 				{ // /usr/lib/tetragon/tetragon.conf.d/
@@ -1029,14 +982,13 @@ var (
 					dropIn: false,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.yaml.k8s.conf.d",
-						keyExportFilename:  "/var/run/tetragon/tetragon.log_2",
-						keyHubbleLib:       "/var/lib/tetragon/bpf/_2",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
-						keyVerbosity:       2,
-						keyEnableCiliumAPI: true,
-						keyEnableK8sAPI:    true,
-						keyEventQueueSize:  uint(20000),
+						keyConfigDir:      "/etc/tetragon/tetragon.yaml.k8s.conf.d",
+						keyExportFilename: "/var/run/tetragon/tetragon.log_2",
+						keyHubbleLib:      "/var/lib/tetragon/bpf/_2",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc-tetragon.yaml_2",
+						keyVerbosity:      2,
+						keyEnableK8sAPI:   true,
+						keyEventQueueSize: uint(20000),
 					},
 				},
 				{ // /etc/tetragon/tetragon.conf.d/
@@ -1044,13 +996,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyConfigDir:       "/etc/tetragon/tetragon.k8s.conf.d",
-						keyExportFilename:  "/var/log/tetragon.log_3",
-						keyHubbleLib:       "/var/lib/tetragon/_3",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc_3",
-						keyVerbosity:       3,
-						keyEnableCiliumAPI: true,
-						keyEventQueueSize:  uint(30000),
+						keyConfigDir:      "/etc/tetragon/tetragon.k8s.conf.d",
+						keyExportFilename: "/var/log/tetragon.log_3",
+						keyHubbleLib:      "/var/lib/tetragon/_3",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc_3",
+						keyVerbosity:      3,
+						keyEventQueueSize: uint(30000),
 					},
 				},
 				{ // config-dir
@@ -1058,13 +1009,12 @@ var (
 					dropIn: true,
 					write:  true,
 					options: map[string]interface{}{
-						keyExportFilename:  "/var/log/tetragon.log_4",
-						keyHubbleLib:       "/var/lib/tetragon/_4",
-						keyBTF:             "/sys/kernel/btf/vmlinux-etc_4",
-						keyVerbosity:       4,
-						keyEnableK8sAPI:    false,
-						keyEnableCiliumAPI: false,
-						keyEventQueueSize:  uint(40000),
+						keyExportFilename: "/var/log/tetragon.log_4",
+						keyHubbleLib:      "/var/lib/tetragon/_4",
+						keyBTF:            "/sys/kernel/btf/vmlinux-etc_4",
+						keyVerbosity:      4,
+						keyEnableK8sAPI:   false,
+						keyEventQueueSize: uint(40000),
 					},
 				},
 			},
@@ -1207,7 +1157,6 @@ func TestReadConfigSettings(t *testing.T) {
 		flags.String(keyExportFilename, "", "Filename for JSON export. Disabled by default")
 		flags.Int(keyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 		flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate tetragon events with Kubernetes pods")
-		flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate tetragon events with Cilium endpoints and DNS cache")
 		flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
 		viper.BindPFlags(flags)
 		t.Run(c.description, func(t *testing.T) {

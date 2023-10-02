@@ -14,7 +14,6 @@ config-dir:
 tracing-policy:
 debug: false
 disable-kprobe-multi: false
-enable-cilium-api: false
 enable-export-aggregation: false
 enable-k8s-api: false
 enable-process-ancestors: true

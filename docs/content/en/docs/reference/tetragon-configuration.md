@@ -26,7 +26,6 @@ Flags:
       --data-cache-size int                       Size of the data events cache (default 1024)
   -d, --debug                                     Enable debug messages. Equivalent to '--log-level=debug'
       --disable-kprobe-multi                      Allow to disable kprobe multi interface
-      --enable-cilium-api                         Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache
       --enable-export-aggregation                 Enable JSON export aggregation
       --enable-k8s-api                            Access Kubernetes API to associate Tetragon events with Kubernetes pods
       --enable-msg-handling-latency               Enable metrics for message handling latency

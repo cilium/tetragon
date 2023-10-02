@@ -709,7 +709,6 @@ func execute() error {
 	flags.String(keyLogFormat, "text", "Set log format")
 	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
 	flags.String(keyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
-	flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate Tetragon events with Cilium endpoints and DNS cache")
 	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
 	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
 	flags.String(keyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
