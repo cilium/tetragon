@@ -404,6 +404,12 @@ enum KprobeAction {
 	KPROBE_ACTION_NOPOST     = 9;
     // Signal action sends specified signal to the process.
 	KPROBE_ACTION_SIGNAL     = 10;
+    // TrackSock action tracks socket.
+	KPROBE_ACTION_TRACKSOCK   = 11;
+    // UntrackSock action un-tracks socket.
+	KPROBE_ACTION_UNTRACKSOCK = 12;
+    // NotifyKiller action notifies killer sensor.
+	KPROBE_ACTION_NOTIFYKILLER = 13;
 }
 
 message ProcessKprobe {
