@@ -591,6 +591,9 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | KPROBE_ACTION_DNSLOOKUP | 8 | GetURL action issue a DNS lookup against an URL from userspace. |
 | KPROBE_ACTION_NOPOST | 9 | NoPost action suppresses the transmission of the event to userspace. |
 | KPROBE_ACTION_SIGNAL | 10 | Signal action sends specified signal to the process. |
+| KPROBE_ACTION_TRACKSOCK | 11 | TrackSock action tracks socket. |
+| KPROBE_ACTION_UNTRACKSOCK | 12 | UntrackSock action un-tracks socket. |
+| KPROBE_ACTION_NOTIFYKILLER | 13 | NotifyKiller action notifies killer sensor. |
 
 <a name="tetragon-TaintedBitsType"></a>
 
