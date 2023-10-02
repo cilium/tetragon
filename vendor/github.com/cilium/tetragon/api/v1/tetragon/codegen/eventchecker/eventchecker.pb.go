@@ -1098,6 +1098,7 @@ type ProcessTracepointChecker struct {
 	Event       *stringmatcher.StringMatcher `json:"event,omitempty"`
 	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Action      *KprobeActionChecker         `json:"action,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1169,6 +1170,11 @@ func (checker *ProcessTracepointChecker) Check(event *tetragon.ProcessTracepoint
 				return fmt.Errorf("PolicyName check failed: %w", err)
 			}
 		}
+		if checker.Action != nil {
+			if err := checker.Action.Check(&event.Action); err != nil {
+				return fmt.Errorf("Action check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1213,6 +1219,13 @@ func (checker *ProcessTracepointChecker) WithPolicyName(check *stringmatcher.Str
 	return checker
 }
 
+// WithAction adds a Action check to the ProcessTracepointChecker
+func (checker *ProcessTracepointChecker) WithAction(check tetragon.KprobeAction) *ProcessTracepointChecker {
+	wrappedCheck := KprobeActionChecker(check)
+	checker.Action = &wrappedCheck
+	return checker
+}
+
 //FromProcessTracepoint populates the ProcessTracepointChecker using data from a ProcessTracepoint event
 func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.ProcessTracepoint) *ProcessTracepointChecker {
 	if event == nil {
@@ -1240,6 +1253,7 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 		checker.Args = lm
 	}
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)
+	checker.Action = NewKprobeActionChecker(event.Action)
 	return checker
 }
 
