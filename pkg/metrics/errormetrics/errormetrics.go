@@ -33,6 +33,8 @@ var (
 	EventMissingProcessInfo ErrorType = "event_missing_process_info"
 	// An error occurred in an event handler.
 	HandlerError ErrorType = "handler_error"
+	// An event finalizer on Process failed
+	EventFinalizeProcessInfoFailed ErrorType = "event_finalize_process_info_failed"
 )
 
 var (

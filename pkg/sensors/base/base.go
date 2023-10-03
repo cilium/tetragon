@@ -18,6 +18,14 @@ var (
 		"execve",
 	)
 
+	ExecveBprmCommit = program.Builder(
+		"bpf_execve_bprm_commit_creds.o",
+		"security_bprm_committing_creds",
+		"kprobe/security_bprm_committing_creds",
+		"tg_kp_bprm_committing_creds",
+		"kprobe",
+	)
+
 	Exit = program.Builder(
 		"bpf_exit.o",
 		"acct_process",
@@ -40,6 +48,8 @@ var (
 	ExecveMap          = program.MapBuilder("execve_map", Execve)
 	ExecveTailCallsMap = program.MapBuilderPin("execve_calls", "execve_calls", Execve)
 
+	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
+
 	/* Policy maps populated from base programs */
 	NamesMap = program.MapBuilder("names_map", Execve)
 
@@ -47,7 +57,8 @@ var (
 	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve)
 
 	/* Internal statistics for debugging */
-	ExecveStats = program.MapBuilder("execve_map_stats", Execve)
+	ExecveStats        = program.MapBuilder("execve_map_stats", Execve)
+	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", ExecveBprmCommit)
 )
 
 func GetExecveMap() *program.Map {
@@ -67,6 +78,7 @@ func GetDefaultPrograms() []*program.Program {
 		Exit,
 		Fork,
 		Execve,
+		ExecveBprmCommit,
 	}
 	return progs
 }
@@ -74,7 +86,9 @@ func GetDefaultPrograms() []*program.Program {
 func GetDefaultMaps() []*program.Map {
 	maps := []*program.Map{
 		ExecveMap,
+		ExecveJoinMap,
 		ExecveStats,
+		ExecveJoinMapStats,
 		ExecveTailCallsMap,
 		NamesMap,
 		TCPMonMap,

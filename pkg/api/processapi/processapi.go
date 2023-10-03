@@ -29,18 +29,22 @@ const (
 
 	// MsgUnixSize of msg
 	MsgUnixSize uint32 = 640
+
+	/* Execve extra flags */
+	ExecveSetuid = 0x01
+	ExecveSetgid = 0x02
 )
 
 type MsgExec struct {
-	Size  uint32
-	PID   uint32
-	TID   uint32
-	NSPID uint32
-	PAD   uint32
-	UID   uint32
-	AUID  uint32
-	Flags uint32
-	Ktime uint64
+	Size       uint32
+	PID        uint32
+	TID        uint32
+	NSPID      uint32
+	SecureExec uint32
+	UID        uint32
+	AUID       uint32
+	Flags      uint32
+	Ktime      uint64
 }
 
 type MsgExecveKey struct {
@@ -148,16 +152,17 @@ type MsgUserNamespace struct {
 
 // API between Userspace tetragon Golang agent and Unix domain socket listener
 type MsgProcess struct {
-	Size     uint32
-	PID      uint32
-	TID      uint32
-	NSPID    uint32
-	UID      uint32
-	AUID     uint32
-	Flags    uint32
-	Ktime    uint64
-	Filename string
-	Args     string
+	Size       uint32
+	PID        uint32
+	TID        uint32
+	NSPID      uint32
+	SecureExec uint32
+	UID        uint32
+	AUID       uint32
+	Flags      uint32
+	Ktime      uint64
+	Filename   string
+	Args       string
 }
 
 type MsgExitInfo struct {
