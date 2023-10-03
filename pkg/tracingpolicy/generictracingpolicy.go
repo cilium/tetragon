@@ -10,8 +10,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/sirupsen/logrus"
 
 	ext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -48,8 +46,10 @@ var defaultState = struct {
 
 // ApplyCRDDefault uses internal k8s api server machinery and can only process
 // unustructured objects (unfortunately, since it requires to unmarshal and
-// marshal)
-func ApplyCRDDefault(rawPolicy []byte) ([]byte, error) {
+// marshal).
+// This first reading step is also used to return if the resource is namespaced
+// or not (second return value).
+func ApplyCRDDefault(rawPolicy []byte) (rawPolicyWithDefault []byte, namespaced bool, err error) {
 	defaultState.init.Do(func() {
 		// retrieve CRD
 		customTP := client.GetPregeneratedCRD(v1alpha1.TPCRDName)
@@ -90,14 +90,14 @@ func ApplyCRDDefault(rawPolicy []byte) ([]byte, error) {
 	})
 
 	if defaultState.initError != nil {
-		return nil, fmt.Errorf("failed to initialize default structural schemas: %w", validatorState.initError)
+		return nil, false, fmt.Errorf("failed to initialize default structural schemas: %w", validatorState.initError)
 	}
 
 	// unmarshall into an unstructured object
 	var policyUnstr unstructured.Unstructured
-	err := yaml.UnmarshalStrict(rawPolicy, &policyUnstr)
+	err = yaml.UnmarshalStrict(rawPolicy, &policyUnstr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshall policy: %v", err)
+		return nil, false, fmt.Errorf("failed to unmarshall policy: %v", err)
 	}
 
 	// apply defaults
@@ -106,21 +106,57 @@ func ApplyCRDDefault(rawPolicy []byte) ([]byte, error) {
 		structuraldefaulting.Default(policyUnstr.Object, defaultState.structuralSchemaTP)
 	case v1alpha1.TPNamespacedKindDefinition:
 		structuraldefaulting.Default(policyUnstr.Object, defaultState.structuralSchemaTPN)
+		namespaced = true
 	}
 
 	// marshal defaulted unstructured object into json
-	data, err := policyUnstr.MarshalJSON()
+	rawPolicyWithDefault, err = policyUnstr.MarshalJSON()
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal defaulted object: %w", err)
+		return nil, false, fmt.Errorf("failed to marshal defaulted object: %w", err)
 	}
 
-	return data, nil
+	return rawPolicyWithDefault, namespaced, nil
+}
 
+// K8sTracingPolicyObject is necessary to have a common type for
+// GenericTracingPolicy and GenericTracingPolicyNamespaced for the validation
+// functions.
+//
+// NB: we could get rid of one type as they represent the same object
+// internally, just keep GenericTracingPolicy and remove that interface. We can
+// then distinguish between Namespaced or not by reading the Kind of the
+// resource. That's a matter of preference between type casting and calling a
+// method to distinguish which kind is it really.
+type K8sTracingPolicyObject interface {
+	TracingPolicy
+	GetKind() string
+	GetGroupVersionKind() schema.GroupVersionKind
+	GetMetadata() k8sv1.ObjectMeta
+}
+
+func (gtp GenericTracingPolicy) GetKind() string {
+	return gtp.Kind
+}
+func (gtp GenericTracingPolicy) GetGroupVersionKind() schema.GroupVersionKind {
+	return gtp.GroupVersionKind()
+}
+func (gtp GenericTracingPolicy) GetMetadata() k8sv1.ObjectMeta {
+	return gtp.Metadata
+}
+
+func (gtp GenericTracingPolicyNamespaced) GetKind() string {
+	return gtp.Kind
+}
+func (gtp GenericTracingPolicyNamespaced) GetGroupVersionKind() schema.GroupVersionKind {
+	return gtp.GroupVersionKind()
+}
+func (gtp GenericTracingPolicyNamespaced) GetMetadata() k8sv1.ObjectMeta {
+	return gtp.Metadata
 }
 
 // ValidateCRD validates the metadata of the objects (name, labels,
 // annotations...) and the specification using the custom CRD schemas.
-func ValidateCRD(policy GenericTracingPolicy) (*validate.Result, error) {
+func ValidateCRD(policy K8sTracingPolicyObject) (*validate.Result, error) {
 	metaErrors := ValidateCRDMeta(policy)
 
 	specErrors, err := ValidateCRDSpec(policy)
@@ -133,16 +169,22 @@ func ValidateCRD(policy GenericTracingPolicy) (*validate.Result, error) {
 	return specErrors, nil
 }
 
-func ValidateCRDMeta(policy GenericTracingPolicy) []error {
+func ValidateCRDMeta(policy K8sTracingPolicyObject) []error {
 	errs := []error{}
-	errorList := apivalidation.ValidateObjectMeta(&policy.Metadata, false, apivalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	requireNamespace := false
+	if policy.GetKind() == v1alpha1.TPNamespacedKindDefinition {
+		requireNamespace = true
+	}
+	metadata := policy.GetMetadata()
+
+	errorList := apivalidation.ValidateObjectMeta(&metadata, requireNamespace, apivalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	for _, err := range errorList {
 		errs = append(errs, err)
 	}
 	return errs
 }
 
-func ValidateCRDSpec(policy GenericTracingPolicy) (*validate.Result, error) {
+func ValidateCRDSpec(policy K8sTracingPolicyObject) (*validate.Result, error) {
 	validatorState.init.Do(func() {
 		var crds []extv1.CustomResourceDefinition
 		crds = append(crds, client.GetPregeneratedCRD(v1alpha1.TPCRDName))
@@ -183,9 +225,9 @@ func ValidateCRDSpec(policy GenericTracingPolicy) (*validate.Result, error) {
 		return nil, fmt.Errorf("failed to initialize validators: %w", validatorState.initError)
 	}
 
-	v, ok := validatorState.validators[policy.GetObjectKind().GroupVersionKind()]
+	v, ok := validatorState.validators[policy.GetGroupVersionKind()]
 	if !ok {
-		return nil, fmt.Errorf("could not find validator for: " + policy.GetObjectKind().GroupVersionKind().String())
+		return nil, fmt.Errorf("could not find validator for: " + policy.GetGroupVersionKind().String())
 	}
 
 	return v.Validate(policy), nil
@@ -210,12 +252,18 @@ func (gtp *GenericTracingPolicy) TpInfo() string {
 }
 
 func FromYAML(data string) (TracingPolicy, error) {
-	rawPolicy, err := ApplyCRDDefault([]byte(data))
+	rawPolicy, namespaced, err := ApplyCRDDefault([]byte(data))
 	if err != nil {
 		return nil, fmt.Errorf("error applying CRD defaults: %w", err)
 	}
 
-	var policy GenericTracingPolicy
+	var policy K8sTracingPolicyObject
+	if namespaced {
+		policy = &GenericTracingPolicyNamespaced{}
+	} else {
+		policy = &GenericTracingPolicy{}
+	}
+
 	err = yaml.UnmarshalStrict(rawPolicy, &policy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal object with defaults: %w", err)
@@ -226,26 +274,11 @@ func FromYAML(data string) (TracingPolicy, error) {
 		return nil, err
 	}
 
-	// display all validation errors and warnings before maybe returning a validation error
-	for _, e := range validationResult.Errors {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"kind":    policy.Kind,
-			"version": policy.APIVersion,
-			"name":    policy.TpName(),
-		}).WithError(e).Error("Validation error")
-	}
-	for _, e := range validationResult.Warnings {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"kind":    policy.Kind,
-			"version": policy.APIVersion,
-			"name":    policy.TpName(),
-		}).WithError(e).Warn("Validation warning")
-	}
 	if len(validationResult.Errors) > 0 {
 		return nil, fmt.Errorf("validation failed: %w", validationResult.AsError())
 	}
 
-	return &policy, nil
+	return policy, nil
 }
 
 func FromFile(path string) (TracingPolicy, error) {
