@@ -463,6 +463,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 	}
 
 	readHook := `
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "raw-syscalls"
@@ -606,6 +607,7 @@ func TestTracepointForceType(t *testing.T) {
 	defer cancel()
 
 	lseekConfigHook_ := `
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "raw-syscalls"
@@ -617,10 +619,10 @@ spec:
     args:
     # fd argument
     - index: 5
-      type: "sint32"
+      type: "int32"
     # whence argument
     - index: 7
-      type: "sint32"
+      type: "int32"
 `
 
 	lseekConfigHook := []byte(lseekConfigHook_)
@@ -798,6 +800,7 @@ func TestTracepointListSyscallDupsRange(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:

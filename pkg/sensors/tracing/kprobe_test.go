@@ -62,6 +62,7 @@ var (
 func TestKprobeObjectLoad(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -117,6 +118,7 @@ func TestKprobeLseek(t *testing.T) {
 
 	lseekConfigHook_ := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -214,6 +216,7 @@ func TestKprobeObjectWriteReadHostNs(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -260,6 +263,7 @@ func TestKprobeObjectWriteRead(t *testing.T) {
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -305,6 +309,7 @@ spec:
 func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -340,6 +345,7 @@ func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
 	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -380,6 +386,7 @@ func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -471,6 +478,7 @@ func TestKprobeObjectRead(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -516,6 +524,7 @@ func TestKprobeObjectReadReturn(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -656,6 +665,7 @@ func testKprobeObjectOpenHookFileName(withNull bool) string {
 func testKprobeObjectOpenHook(pidStr string, path string, withNull bool) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -745,6 +755,7 @@ func testKprobeStringMatch(t *testing.T,
 func testKprobeStringMatchHook(pidStr string, dir string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -875,6 +886,7 @@ func TestKprobeStringMatchHash5Max(t *testing.T) {
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -923,6 +935,7 @@ func TestKprobeObjectFilterOpen(t *testing.T) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -957,6 +970,7 @@ func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -990,6 +1004,7 @@ spec:
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1035,6 +1050,7 @@ func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1080,6 +1096,7 @@ func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1127,6 +1144,7 @@ func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -1171,6 +1189,7 @@ func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -1211,6 +1230,7 @@ func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1285,6 +1305,7 @@ func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
 func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1323,6 +1344,7 @@ func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
 func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1500,6 +1522,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-writev"
 spec:
@@ -1574,6 +1597,7 @@ func TestKprobeObjectFilenameOpen(t *testing.T) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -1601,6 +1625,7 @@ func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -1628,6 +1653,7 @@ spec:
 func testKprobeObjectFileWriteHook(pidStr string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1647,7 +1673,7 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
           values:
           - ` + pidStr + `
         matchActions:
-        - action: followfd
+        - action: FollowFD
           argFd: 0
           argName: 1
     - call: "sys_write"
@@ -1671,6 +1697,7 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
 func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
+  kind: TracingPolicy
   metadata:
     name: "sys-read"
   spec:
@@ -1695,7 +1722,7 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
           values:
           - "` + dir + `/testfile"
         matchActions:
-        - action: followfd
+        - action: FollowFD
           argFd: 0
           argName: 1
     - call: "sys_write"
@@ -2131,6 +2158,7 @@ func TestKprobeOverride(t *testing.T) {
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-override"
 spec:
@@ -2190,6 +2218,7 @@ func TestKprobeOverrideNopostAction(t *testing.T) {
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-override"
 spec:
@@ -2309,6 +2338,7 @@ func TestKprobeOverrideSignal(t *testing.T) {
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-override-signal"
 spec:
@@ -2373,6 +2403,7 @@ func TestKprobeSignalOverride(t *testing.T) {
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-signal-override"
 spec:
@@ -2437,6 +2468,7 @@ func TestKprobeSignalOverrideNopost(t *testing.T) {
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-signal-override"
 spec:
@@ -2579,6 +2611,7 @@ func TestKprobeOverrideMulti(t *testing.T) {
 
 	multiHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-openat-signal-override"
 spec:
@@ -2796,6 +2829,7 @@ func TestKprobe_char_iovec(t *testing.T) {
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write-writev"
 spec:
@@ -2849,6 +2883,7 @@ func TestKprobe_char_iovec_overflow(t *testing.T) {
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write-writev"
 spec:
@@ -2902,6 +2937,7 @@ func TestKprobe_char_iovec_returnCopy(t *testing.T) {
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write-read"
 spec:
@@ -3706,6 +3742,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 	readHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
@@ -3808,6 +3845,7 @@ func TestKprobeWriteMaxDataTrunc(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -3870,6 +3908,7 @@ func TestKprobeWriteMaxData(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -3928,6 +3967,7 @@ func TestKprobeWriteMaxDataFull(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -4580,7 +4620,7 @@ spec:
     selectors:
     - matchArgs:
       - index: 0
-        operator: "NotDaddr"
+        operator: "NotDAddr"
         values:
         - "10.0.0.0/8"
 `
@@ -4751,7 +4791,7 @@ spec:
         values:
         - "IPPROTO_TCP"
       - index: 0
-        operator: "state"
+        operator: "State"
         values:
         - "TCP_SYN_RECV"
       - index: 1
@@ -4773,7 +4813,7 @@ spec:
     selectors:
     - matchArgs:
       - index: 0
-        operator: "state"
+        operator: "State"
         values:
         - "TCP_SYN_RECV"
 `
@@ -5197,6 +5237,7 @@ func TestKprobeListSyscallDupsRange(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:

@@ -100,6 +100,7 @@ func TestLoader(t *testing.T) {
 
 	loaderHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "loader"
 spec:

@@ -1,4 +1,5 @@
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "tracepoint-lseek"
 spec:
@@ -7,16 +8,18 @@ spec:
     event: "sys_enter_lseek"
     args:
     - index: 7
+      type: int
     - index: 5
+      type: fd
     selectors:
     - matchPIDs:
-        - operator: eq
+        - operator: In
           values:
           - 1111
           followForks: true
           isNamespacePID: false
       matchArgs:
       - index: 7
-        operator: eq
+        operator: Equal
         values:
         - "4444"

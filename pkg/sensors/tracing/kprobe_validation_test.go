@@ -210,6 +210,7 @@ func TestKprobeValidationNonSyscallOverride(t *testing.T) {
 
 	crd := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "override-non-syscall"
 spec:
