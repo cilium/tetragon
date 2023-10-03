@@ -46,8 +46,8 @@ func Handle(event interface{}) {
 	}
 
 	if syscall != "" {
-		syscallStats.ToProm().
-			WithLabelValues(metrics.FilterMetricLabels(syscall, namespace, workload, pod, binary)...).
+		syscallStats.
+			WithLabelValues(syscall, namespace, workload, pod, binary).
 			Inc()
 	}
 }

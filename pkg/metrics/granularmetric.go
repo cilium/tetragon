@@ -7,54 +7,100 @@ import (
 	"fmt"
 	"sync"
 
-	"golang.org/x/exp/slices"
-
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/slices"
 )
 
-type GranularCounter struct {
-	counter     *prometheus.CounterVec
-	CounterOpts prometheus.CounterOpts
-	labels      []string
-	register    sync.Once
+var (
+	granularLabelFilter = NewLabelFilter(
+		consts.KnownMetricLabelFilters,
+		option.Config.MetricsLabelFilter,
+	)
+)
+
+type LabelFilter struct {
+	known   []string
+	enabled map[string]interface{}
 }
 
-func MustNewGranularCounter(opts prometheus.CounterOpts, labels []string) *GranularCounter {
+func NewLabelFilter(known []string, enabled map[string]interface{}) *LabelFilter {
+	return &LabelFilter{
+		known:   known,
+		enabled: enabled,
+	}
+}
+
+type GranularCounter interface {
+	ToProm() *prometheus.CounterVec
+	WithLabelValues(lvs ...string) prometheus.Counter
+	filter(labels ...string) ([]string, error)
+	mustFilter(labels ...string) []string
+}
+
+type granularCounter struct {
+	labels      []string
+	labelFilter *LabelFilter
+	eval        sync.Once
+	metric      *prometheus.CounterVec
+	opts        prometheus.CounterOpts
+}
+
+func NewGranularCounter(f *LabelFilter, opts prometheus.CounterOpts, labels []string) (GranularCounter, error) {
 	for _, label := range labels {
-		if slices.Contains(consts.KnownMetricLabelFilters, label) {
-			panic(fmt.Sprintf("labels passed to GranularCounter can't contain any of the following: %v. These labels are added by Tetragon.", consts.KnownMetricLabelFilters))
+		if slices.Contains(f.known, label) {
+			return nil, fmt.Errorf("passed labels can't contain any of the following: %v", f.known)
 		}
 	}
-	return &GranularCounter{
-		CounterOpts: opts,
-		labels:      append(labels, consts.KnownMetricLabelFilters...),
+	return &granularCounter{
+		labels:      append(labels, f.known...),
+		labelFilter: f,
+		opts:        opts,
+	}, nil
+}
+
+func MustNewGranularCounter(opts prometheus.CounterOpts, labels []string) GranularCounter {
+	counter, err := NewGranularCounter(granularLabelFilter, opts, labels)
+	if err != nil {
+		panic(err)
 	}
+	return counter
 }
 
-func (m *GranularCounter) ToProm() *prometheus.CounterVec {
-	m.register.Do(func() {
-		m.labels = FilterMetricLabels(m.labels...)
-		m.counter = NewCounterVecWithPod(m.CounterOpts, m.labels)
+func (m *granularCounter) ToProm() *prometheus.CounterVec {
+	m.eval.Do(func() {
+		m.labels = m.mustFilter(m.labels...)
+		m.metric = NewCounterVecWithPod(m.opts, m.labels)
 	})
-	return m.counter
+	return m.metric
 }
 
-// The FilterMetricLabels func takes in string arguments and returns a slice of those strings omitting the labels it is not configured for.
-// IMPORTANT! The filtered metric labels must be passed last and in the exact order of consts.KnownMetricLabelFilters.
-func FilterMetricLabels(labels ...string) []string {
-	offset := len(labels) - len(consts.KnownMetricLabelFilters)
+func (m *granularCounter) WithLabelValues(lvs ...string) prometheus.Counter {
+	filtered := m.mustFilter(lvs...)
+	return m.ToProm().WithLabelValues(filtered...)
+}
+
+// filter takes in string arguments and returns a slice of those strings omitting the labels not configured in the metric labelFilter.
+// IMPORTANT! The filtered metric labels must be passed last and in the exact order of granularCounter.labelFilter.known.
+func (m *granularCounter) filter(labels ...string) ([]string, error) {
+	offset := len(labels) - len(m.labelFilter.known)
 	if offset < 0 {
-		logger.GetLogger().WithField("labels", labels).Debug("Not enough labels provided to metrics.FilterMetricLabels.")
-		return labels
+		return nil, fmt.Errorf("not enough labels provided to filter")
 	}
 	result := labels[:offset]
-	for i, label := range consts.KnownMetricLabelFilters {
-		if _, ok := option.Config.MetricsLabelFilter[label]; ok {
+	for i, label := range m.labelFilter.known {
+		if _, ok := m.labelFilter.enabled[label]; ok {
 			result = append(result, labels[offset+i])
 		}
+	}
+	return result, nil
+}
+
+func (m *granularCounter) mustFilter(labels ...string) []string {
+	result, err := m.filter(labels...)
+	if err != nil {
+		panic(err)
 	}
 	return result
 }

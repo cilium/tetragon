@@ -93,10 +93,10 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.ToProm().WithLabelValues(metrics.FilterMetricLabels(eventType, namespace, workload, pod, binary)...).Inc()
+	EventsProcessed.WithLabelValues(eventType, namespace, workload, pod, binary).Inc()
 	if pInfo != nil && pInfo.Name != "" {
-		policyStats.ToProm().
-			WithLabelValues(metrics.FilterMetricLabels(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary)...).
+		policyStats.
+			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary).
 			Inc()
 	}
 }
