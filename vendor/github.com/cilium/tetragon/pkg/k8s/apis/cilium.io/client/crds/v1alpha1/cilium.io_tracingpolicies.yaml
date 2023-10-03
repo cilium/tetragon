@@ -220,6 +220,7 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - Signal
                                   - TrackSock
                                   - UntrackSock
                                   type: string
@@ -314,7 +315,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                           matchBinaries:
@@ -543,7 +543,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                         type: object
@@ -744,6 +743,7 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - Signal
                                   - TrackSock
                                   - UntrackSock
                                   type: string
@@ -838,7 +838,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                           matchBinaries:
@@ -1067,7 +1066,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                         type: object
@@ -1112,6 +1110,7 @@ spec:
                                   - GetUrl
                                   - DnsLookup
                                   - NoPost
+                                  - Signal
                                   - TrackSock
                                   - UntrackSock
                                   type: string
@@ -1206,7 +1205,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                           matchBinaries:
@@ -1435,7 +1433,6 @@ spec:
                               required:
                               - index
                               - operator
-                              - values
                               type: object
                             type: array
                         type: object
