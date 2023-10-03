@@ -159,6 +159,7 @@ tetragonOperator:
     tag: v0.11.0
     # tetragon-operator image-digest
     suffix: ""
+    pullPolicy: IfNotPresent
   # Skip CRD creation.
   skipCRDCreation: false
   podInfo:
