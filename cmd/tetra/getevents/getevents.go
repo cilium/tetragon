@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -41,6 +42,7 @@ type Opts struct {
 	Output        string
 	Color         string
 	IncludeFields []string
+	EventTypes    []string
 	ExcludeFields []string
 	Namespaces    []string
 	Namespace     []string // deprecated: use Namespaces
@@ -86,7 +88,15 @@ var GetFilter = func() *tetragon.Filter {
 	if len(Options.Pods) > 0 {
 		filter.PodRegex = Options.Pods
 	}
+	// Is used to filter on the event types i.e. PROCESS_EXEC, PROCESS_EXIT etc.
+	if len(Options.EventTypes) > 0 {
+		var eventType tetragon.EventType
 
+		for _, v := range Options.EventTypes {
+			eventType = tetragon.EventType(tetragon.EventType_value[v])
+			filter.EventSet = append(filter.EventSet, eventType)
+		}
+	}
 	return &filter
 }
 
@@ -151,6 +161,17 @@ func New() *cobra.Command {
 				return fmt.Errorf("invalid value for %q flag: %s", "color", Options.Color)
 			}
 
+			for _, v := range Options.EventTypes {
+				if _, found := tetragon.EventType_value[v]; !found {
+					var supportedEventTypes string
+					for _, v := range tetragon.EventType_name {
+						supportedEventTypes += v + ", "
+					}
+					supportedEventTypes = strings.TrimSuffix(supportedEventTypes, ", ")
+					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, supportedEventTypes)
+				}
+			}
+
 			// merge deprecated to new flags, appending since order does not matter
 			Options.Namespaces = append(Options.Namespaces, Options.Namespace...)
 			Options.Pods = append(Options.Pods, Options.Pod...)
@@ -174,6 +195,7 @@ func New() *cobra.Command {
 	flags.StringVarP(&Options.Output, common.KeyOutput, "o", "json", "Output format. json or compact")
 	flags.StringVar(&Options.Color, "color", "auto", "Colorize compact output. auto, always, or never")
 	flags.StringSliceVarP(&Options.IncludeFields, "include-fields", "f", nil, "Include only fields in events")
+	flags.StringSliceVarP(&Options.EventTypes, "event-types", "e", nil, "Include only events of given types")
 	flags.StringSliceVarP(&Options.ExcludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
 
 	flags.StringSliceVarP(&Options.Namespaces, "namespaces", "n", nil, "Get events by Kubernetes namespaces")

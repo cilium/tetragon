@@ -31,6 +31,31 @@ func Test_GetEvents_Namespaces(t *testing.T) {
 	})
 }
 
+func Test_GetEvents_EventTypes(t *testing.T) {
+	t.Run("FilterProcessExec", func(t *testing.T) {
+		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
+		cmd := New()
+		cmd.SetArgs([]string{"--event-types", "PROCESS_EXEC"})
+		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
+		assert.Equal(t, 3, bytes.Count(output, []byte("\n")))
+	})
+
+	t.Run("FilterInexistent", func(t *testing.T) {
+		cmd := New()
+		cmd.SetArgs([]string{"--event-types", "INEXISTENT"})
+
+		// redirect stderr and stdout to not pollute test outputs. Here it
+		// works, compared to other use case where we have to redirect manually,
+		// because Cobra internal error mechanism calls internal Print methods.
+		var devNull bytes.Buffer
+		cmd.SetErr(&devNull)
+		cmd.SetOut(&devNull)
+
+		err := cmd.Execute()
+		assert.Error(t, err)
+	})
+}
+
 func Test_GetEvents_Pods(t *testing.T) {
 	t.Run("FilterTie", func(t *testing.T) {
 		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
