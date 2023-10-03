@@ -33,6 +33,8 @@
     "api/go.sum",
     "pkg/k8s/go.mod",
     "pkg/k8s/go.sum",
+    "contrib/rthooks/tetragon-oci-hook/go.mod",
+    "contrib/rthooks/tetragon-oci-hook/go.sum",
     "Dockerfile*",
     "install/kubernetes/values.yaml",
     "Makefile.cli",
@@ -94,11 +96,8 @@
       "separateMinorPatch": false,
     },
     {
-      // not grouping Go minor and major updates together
-      "matchFileNames": [
-        "go.mod",
-        "go.sum"
-      ],
+      // postUpgradeTasks and postUpdateOptions for all Go updates
+      "matchManagers": ["gomod"],
       "postUpdateOptions": [
         // update source import paths on major updates
         "gomodUpdateImportPaths",
@@ -107,14 +106,7 @@
         "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
-      },
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-      ],
-      "matchBaseBranches": [
-        "main"
-      ],
+      }
     },
     {
       "groupName": "all go dependencies main",
@@ -123,15 +115,6 @@
         "go.mod",
         "go.sum"
       ],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodUpdateImportPaths",
-      ],
-      "postUpgradeTasks": {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      },
       "matchUpdateTypes": [
         "patch",
         "digest",
@@ -150,15 +133,6 @@
         "api/go.mod",
         "api/go.sum"
       ],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodUpdateImportPaths",
-      ],
-      "postUpgradeTasks": {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      },
       "matchUpdateTypes": [
         "major",
         "minor",
@@ -172,44 +146,29 @@
       ],
     },
     {
-      // not grouping major and minor updates together
-      "matchFileNames": [
-        "pkg/k8s/go.mod",
-        "pkg/k8s/go.sum"
-      ],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodUpdateImportPaths",
-      ],
-      "postUpgradeTasks": {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      },
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-      ],
-      "matchBaseBranches": [
-        "main"
-      ],
-    },
-    {
       "groupName": "all k8s pkg go dependencies main",
       "groupSlug": "all-k8s-pkg-go-deps-main",
       "matchFileNames": [
         "pkg/k8s/go.mod",
         "pkg/k8s/go.sum"
       ],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodUpdateImportPaths",
+      "matchUpdateTypes": [
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
       ],
-      "postUpgradeTasks": {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      },
+      "matchBaseBranches": [
+        "main"
+      ],
+    },
+    {
+      "groupName": "all oci hook go dependencies main",
+      "groupSlug": "all-oci-hook-go-deps-main",
+      "matchFileNames": [
+        "contrib/rthooks/tetragon-oci-hook/go.mod",
+        "contrib/rthooks/tetragon-oci-hook/go.sum",
+      ],
       "matchUpdateTypes": [
         "patch",
         "digest",
