@@ -340,7 +340,7 @@ func tetragonExecute() error {
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
-		observer.SensorManager,
+		observer.GetSensorManager(),
 		hookRunner)
 	if err != nil {
 		return err
@@ -358,7 +358,7 @@ func tetragonExecute() error {
 	obs.AddListener(pm)
 	saveInitInfo()
 	if option.Config.EnableK8s {
-		go crd.WatchTracePolicy(ctx, observer.SensorManager)
+		go crd.WatchTracePolicy(ctx, observer.GetSensorManager())
 	}
 
 	obs.LogPinnedBpf(observerDir)
@@ -375,7 +375,7 @@ func tetragonExecute() error {
 	// now that the base sensor was loaded, we can start the sensor manager
 	close(sensorMgWait)
 	sensorMgWait = nil
-	observer.SensorManager.LogSensorsAndProbes(ctx)
+	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
 	if err != nil {
@@ -450,7 +450,7 @@ func addTracingPolicy(ctx context.Context, file string) error {
 		return err
 	}
 
-	err = observer.SensorManager.AddTracingPolicy(ctx, tp)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
 	if err != nil {
 		return err
 	}
