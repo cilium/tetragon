@@ -123,6 +123,7 @@ func TestKprobeListSyscallDups(t *testing.T) {
 	pidStr := strconv.Itoa(int(myPid))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:

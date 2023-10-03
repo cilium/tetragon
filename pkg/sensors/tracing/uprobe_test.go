@@ -68,6 +68,7 @@ func TestUprobeLoad(t *testing.T) {
 
 	nopHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
@@ -98,6 +99,7 @@ func TestUprobeGeneric(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 	nopHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
@@ -147,6 +149,7 @@ func uprobePidMatch(t *testing.T, pid uint32) error {
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
@@ -207,6 +210,7 @@ func uprobeBinariesMatch(t *testing.T, execBinary string) error {
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
@@ -277,6 +281,7 @@ func TestUprobeCloneThreads(t *testing.T) {
 
 	uprobeHook := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:

@@ -77,6 +77,7 @@ func (src traceBenchOpen) Run(ctx context.Context, _ *Arguments, _ *Summary) err
 func (src traceBenchOpen) ConfigFilename(_ *Arguments) string {
 	tmpl := `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write-writev"
 spec:

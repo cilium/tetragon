@@ -25,6 +25,7 @@ import (
 
 var writev = `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -49,7 +50,7 @@ spec:
             - 1
         matchArgs:
         - index: 0
-          operator: "equal"
+          operator: "Equal"
           values:
             - "1"
         matchNamespaces:
@@ -91,7 +92,10 @@ spec:
 `
 
 var expectedWrite = GenericTracingPolicy{
-	TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+	TypeMeta: v1.TypeMeta{
+		APIVersion: "cilium.io/v1alpha1",
+		Kind:       "TracingPolicy",
+	},
 	Metadata: v1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
@@ -127,7 +131,7 @@ var expectedWrite = GenericTracingPolicy{
 						MatchArgs: []v1alpha1.ArgSelector{
 							{
 								Index:    0,
-								Operator: "equal",
+								Operator: "Equal",
 								Values:   []string{"1"},
 							},
 						},
@@ -180,6 +184,7 @@ var expectedWrite = GenericTracingPolicy{
 
 var data = `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
@@ -220,11 +225,11 @@ spec:
             - 2
         matchArgs:
         - index: 0
-          operator: "equal"
+          operator: "Equal"
           values:
             - "1"
         - index: 1
-          operator: "notequal"
+          operator: "NotEqual"
           values:
             - "world"
         matchNamespaces:
@@ -253,7 +258,10 @@ spec:
 `
 
 var expectedData = GenericTracingPolicy{
-	TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+	TypeMeta: v1.TypeMeta{
+		APIVersion: "cilium.io/v1alpha1",
+		Kind:       "TracingPolicy",
+	},
 	Metadata: v1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
@@ -319,12 +327,12 @@ var expectedData = GenericTracingPolicy{
 						MatchArgs: []v1alpha1.ArgSelector{
 							{
 								Index:    0,
-								Operator: "equal",
+								Operator: "Equal",
 								Values:   []string{"1"},
 							},
 							{
 								Index:    1,
-								Operator: "notequal",
+								Operator: "NotEqual",
 								Values:   []string{"world"},
 							},
 						},
@@ -371,7 +379,7 @@ func TestYamlWritev(t *testing.T) {
 	}
 	k := pol.(*GenericTracingPolicy)
 	if reflect.DeepEqual(*k, expectedWrite) != true {
-		t.Errorf("not equal\nk=%v\ne= %v\n", k, expectedWrite)
+		t.Errorf("not equal\nk=%#v\ne= %#v\n", k, expectedWrite)
 	}
 }
 
@@ -382,7 +390,7 @@ func TestYamlData(t *testing.T) {
 	}
 	k := pol.(*GenericTracingPolicy)
 	if reflect.DeepEqual(*k, expectedData) != true {
-		t.Errorf("not equal\nk=%v\ne=%v\n", *k, expectedData)
+		t.Errorf("not equal\nk=%#v\ne=%#v\n", *k, expectedData)
 	}
 }
 
@@ -392,20 +400,23 @@ var lseekExample string
 func TestYamlLseek(t *testing.T) {
 
 	expected := GenericTracingPolicy{
-		TypeMeta: v1.TypeMeta{APIVersion: "cilium.io/v1alpha1"},
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "cilium.io/v1alpha1",
+			Kind:       "TracingPolicy",
+		},
 		Metadata: v1.ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
 				Event:     "sys_enter_lseek",
 				Args: []v1alpha1.KProbeArg{
-					{Index: 7},
-					{Index: 5},
+					{Index: 7, Type: "int"},
+					{Index: 5, Type: "fd"},
 				},
 				Selectors: []v1alpha1.KProbeSelector{{
 					MatchPIDs: []v1alpha1.PIDSelector{
 						{
-							Operator:       "eq",
+							Operator:       "In",
 							FollowForks:    true,
 							IsNamespacePID: false,
 							Values:         []uint32{1111},
@@ -414,7 +425,7 @@ func TestYamlLseek(t *testing.T) {
 					MatchArgs: []v1alpha1.ArgSelector{
 						{
 							Index:    7,
-							Operator: "eq",
+							Operator: "Equal",
 							Values:   []string{"4444"},
 						},
 					},
@@ -480,7 +491,7 @@ func TestExamplesSmoke(t *testing.T) {
 
 		// Attempt to parse the file
 		_, err = fileConfigWithTemplate(path, data)
-		assert.NoError(t, err, "example %s must parse correctly", info.Name())
+		assert.NoError(t, err, "example %s must parse correctly: %s", info.Name(), err)
 
 		return nil
 	})
@@ -489,6 +500,7 @@ func TestExamplesSmoke(t *testing.T) {
 }
 
 const invalidNameYaml = `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "invalid_name"`
 
@@ -499,6 +511,7 @@ func TestReadConfigYamlInvalidName(t *testing.T) {
 
 const tpNamespaced = `
 apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
 metadata:
   name: "tracepoint-lseek"
   namespace: "default"
