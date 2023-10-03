@@ -40,9 +40,6 @@ var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
 	observerList []*Observer
-
-	/* SensorManager handles dynamic sensors loading / unloading. */
-	SensorManager *sensors.Manager
 )
 
 type Event notify.Message
@@ -342,9 +339,11 @@ func (k *Observer) Start(ctx context.Context) error {
 
 // InitSensorManager starts the sensor controller
 func (k *Observer) InitSensorManager(waitChan chan struct{}) error {
-	var err error
-	SensorManager, err = sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, waitChan)
-	return err
+	mgr, err := sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, waitChan)
+	if err != nil {
+		return err
+	}
+	return SetSensorManager(mgr)
 }
 
 func NewObserver(configFile string) *Observer {
@@ -402,7 +401,9 @@ func (k *Observer) RemovePrograms() {
 }
 
 func RemoveSensors(ctx context.Context) {
-	SensorManager.RemoveAllSensors(ctx)
+	if mgr := GetSensorManager(); mgr != nil {
+		mgr.RemoveAllSensors(ctx)
+	}
 }
 
 // Log Active pinned BPF resources

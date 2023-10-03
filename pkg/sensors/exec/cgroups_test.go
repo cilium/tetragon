@@ -589,9 +589,7 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 }
 
 func setupObserver(ctx context.Context, t *testing.T) *tus.TestSensorManager {
-	testManager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = testManager.Manager
-
+	testManager := tus.GetTestSensorManager(ctx, t)
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("failed to call observer.InitDataCache %s", err)
 	}

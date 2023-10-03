@@ -11,7 +11,6 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -77,8 +76,7 @@ func TestSensorLseekEnable(t *testing.T) {
 
 	sensor := GetTestSensor()
 
-	smanager := tus.StartTestSensorManager(ctx, t)
-	observer.SensorManager = smanager.Manager
+	smanager := tus.GetTestSensorManager(ctx, t)
 	smanager.AddAndEnableSensor(ctx, t, sensor, sensor.Name)
 
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
