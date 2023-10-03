@@ -20,6 +20,13 @@ import (
 )
 
 const (
+	// Event information was completed without cache retries
+	NO_EV_CACHE = iota
+	// Cache retries was triggered in order to complete event information
+	FROM_EV_CACHE
+)
+
+const (
 	// garbage collection retries
 	CacheStrikes = 15
 	// garbage collection run interval
@@ -49,9 +56,9 @@ type Cache struct {
 }
 
 var (
-	ErrFailedToGetPodInfo     = errors.New("failed to get pod info")
-	ErrFailedToGetProcessInfo = errors.New("failed to get process info")
-	ErrFailedToGetParentInfo  = errors.New("failed to get parent info")
+	ErrFailedToGetPodInfo     = errors.New("failed to get pod info from event cache")
+	ErrFailedToGetProcessInfo = errors.New("failed to get process info from event cache")
+	ErrFailedToGetParentInfo  = errors.New("failed to get parent info from event cache")
 )
 
 // Generic internal lookup happens when events are received out of order and

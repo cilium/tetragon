@@ -79,6 +79,21 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		parent.RefInc()
 	}
 
+	// Finalize the process event with extra fields
+	if err := event.finalize(tetragonEvent, proc, eventcache.NO_EV_CACHE); err != nil {
+		// Propagate metric errors about finalizing the event
+		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
+		logger.GetLogger().WithFields(logrus.Fields{
+			"event.name":            "Execve",
+			"event.process.pid":     tetragonProcess.GetPid().GetValue(),
+			"event.process.binary":  tetragonProcess.Binary,
+			"event.process.exec_id": processId,
+			"event.event_cache":     "no",
+		}).Debugf("ExecveEvent: failed to finalize process exec event")
+		// For ProcessExec event we do not fail let's return what we have even if it's not complete
+		// The eventmetrics will count further errors
+	}
+
 	// do we need to cleanup anything?
 	if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
 		cleanupEvent.HandleMessage()
@@ -185,7 +200,6 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	// want to panic anyway to help us catch the bug faster. So no need to do a nil check
 	// here.
 	internal.AddPodInfo(podInfo)
-	ev.SetProcess(internal.UnsafeGetProcess())
 
 	// Check we have a parent with exception for pid 1, note we do this last because we want
 	// to ensure the podInfo and process are set before returning any errors.
@@ -197,6 +211,21 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		}
 		parent.RefInc()
 		ev.SetParent(parent.UnsafeGetProcess())
+	}
+
+	// As of now pod information has been added, finalize the process event with extra fields
+	if err := msg.finalize(ev, internal, eventcache.FROM_EV_CACHE); err != nil {
+		// Propagate metric errors about finalizing the event
+		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
+		logger.GetLogger().WithFields(logrus.Fields{
+			"event.name":            "Execve",
+			"event.process.pid":     proc.Pid.GetValue(),
+			"event.process.binary":  filename,
+			"event.process.exec_id": proc.GetExecId(),
+			"event.event_cache":     "yes",
+		}).Debugf("ExecveEvent: failed to finalize process exec event")
+		// For ProcessExec event we do not fail let's return what we have even if it's not complete
+		// The eventmetrics will count further errors
 	}
 
 	// do we need to cleanup anything?
@@ -230,6 +259,39 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 func (msg *MsgExecveEventUnix) Cast(o interface{}) notify.Message {
 	t := o.(processapi.MsgExecveEventUnix)
 	return &MsgExecveEventUnix{MsgExecveEventUnix: t}
+}
+
+// finalize() is called to finalize Process of the event ExecveEvent
+//
+// The aim of this function is to finalize events by adding or updating some
+// fields without propagating those into the process cache.
+// These fields could be related to the specific calling event, example only
+// for ProcessExec and not ProcessKprobe.
+//
+// There are two conditions when we could update the event:
+//  1. When the event finalize handler return update set to true, for this a deep copy
+//     of the process was made, and the related fields added then the event.Process
+//     must be set with ev.SetProcess() to this returned copy.
+//  2. The finalize() is called from the event cache retry in this
+//     case new information could have been added, so let's do another
+//     ev.SetProcess() call to update the process of the event.
+func (msg *MsgExecveEventUnix) finalize(ev notify.Event, internal *process.ProcessInternal, cache int) error {
+	// This should never happen by this time
+	if ev.GetProcess() == nil {
+		return process.ErrProcessInfoMissing
+	}
+
+	proc, update := internal.UpdateExecOutsideCache(option.Config.EnableProcessCred)
+	// Update the event.Process entry:
+	// If update == true means we made a new copy of the process, added
+	//    new information so let's update the event.
+	// If we did reach here from the event cache retries then maybe there is
+	//    new information let's update the event again.
+	if update || cache == eventcache.FROM_EV_CACHE {
+		ev.SetProcess(proc)
+	}
+
+	return nil
 }
 
 type MsgCloneEventUnix struct {

@@ -171,13 +171,20 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		Common: processapi.MsgCommon{
 			Ktime: 1234,
 		},
+		Creds: processapi.MsgGenericCredMinimal{
+			Uid:  1000,
+			Gid:  1000,
+			Euid: 10000,
+			Egid: 10000,
+		},
 		Capabilities: processapi.MsgCapabilities{
 			Permitted:   1,
 			Effective:   1,
 			Inheritable: 1,
 		},
 		Process: processapi.MsgProcess{
-			PID: 5678,
+			PID:        5678,
+			SecureExec: processapi.ExecveSetuid | processapi.ExecveSetgid,
 		},
 	}}
 
@@ -192,6 +199,21 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 			Inheritable: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_CHOWN},
 		},
 		exec.GetProcessExec(pi, false).Process.Cap)
+
+	val0 := &wrapperspb.UInt32Value{Value: 0}
+	val1000 := &wrapperspb.UInt32Value{Value: 1000}
+	val10000 := &wrapperspb.UInt32Value{Value: 10000}
+	assert.Equal(t,
+		&tetragon.ProcessCredentials{
+			Uid: val1000, Euid: val10000, Suid: val0, Fsuid: val0,
+			Gid: val1000, Egid: val10000, Sgid: val0, Fsgid: val0,
+		},
+		exec.GetProcessExec(pi, false).Process.ProcessCredentials)
+	assert.Equal(t,
+		&tetragon.BinaryProperties{
+			Setuid: val10000, Setgid: val10000,
+		},
+		exec.GetProcessExec(pi, false).Process.BinaryProperties)
 }
 
 func Test_getNodeNameForExport(t *testing.T) {
