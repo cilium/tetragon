@@ -369,10 +369,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 
 	// NB(kkourt): we use the global that was set up by InitSensorManager(). We should clean
 	// this up and remove/hide the global variable.
-	sensorManager := observer.SensorManager
+	sensorManager := observer.GetSensorManager()
 	tb.Cleanup(func() {
 		observer.RemoveSensors(ctx)
 		sensorManager.StopSensorManager(ctx)
+		observer.ResetSensorManager()
 	})
 
 	if oo.crd {
@@ -437,7 +438,7 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	}
 
 	if tp != nil {
-		if err := observer.SensorManager.AddTracingPolicy(ctx, tp); err != nil {
+		if err := observer.GetSensorManager().AddTracingPolicy(ctx, tp); err != nil {
 			tb.Fatalf("SensorManager.AddTracingPolicy error: %s\n", err)
 		}
 	}
