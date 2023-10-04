@@ -172,7 +172,7 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
                 return true, nil
             }
             if logger != nil {
-                logger.Infof("UnorderedEventChecker: checking pending %d/%d: failure: %s", idx, pending, err)
+                logger.Infof("UnorderedEventChecker: checking pending %d/%d: %s", idx, pending, err)
             }
             idx++
         }
