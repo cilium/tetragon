@@ -28,11 +28,11 @@ import (
 // validatorState is used by the CRD validation process to store the validators
 // structures.
 var validatorState = struct {
-	validators map[schema.GroupVersionKind]*validate.SchemaValidator
+	validators map[schema.GroupVersionKind]validation.SchemaValidator
 	init       sync.Once
 	initError  error
 }{
-	validators: make(map[schema.GroupVersionKind]*validate.SchemaValidator),
+	validators: make(map[schema.GroupVersionKind]validation.SchemaValidator),
 }
 
 // defaultState is used by to store the structural schemas apply the defaults in
@@ -198,15 +198,17 @@ func ValidateCRDSpec(policy K8sTracingPolicyObject) (*validate.Result, error) {
 				return
 			}
 			for _, ver := range internal.Spec.Versions {
-				var sv *validate.SchemaValidator
+				var sv validation.SchemaValidator
 				var err error
-				sv, _, err = validation.NewSchemaValidator(ver.Schema)
-				if err != nil {
-					validatorState.initError = err
-					return
+				if ver.Schema != nil {
+					sv, _, err = validation.NewSchemaValidator(ver.Schema.OpenAPIV3Schema)
+					if err != nil {
+						validatorState.initError = err
+						return
+					}
 				}
 				if internal.Spec.Validation != nil {
-					sv, _, err = validation.NewSchemaValidator(internal.Spec.Validation)
+					sv, _, err = validation.NewSchemaValidator(internal.Spec.Validation.OpenAPIV3Schema)
 					if err != nil {
 						validatorState.initError = err
 						return

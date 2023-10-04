@@ -72,6 +72,9 @@ func (m *CachingIdentityAllocator) GetIdentityCache() IdentityCache {
 	for _, identity := range m.localIdentities.GetIdentities() {
 		cache[identity.ID] = identity.Labels.LabelArray()
 	}
+	for _, identity := range m.localNodeIdentities.GetIdentities() {
+		cache[identity.ID] = identity.Labels.LabelArray()
+	}
 
 	return cache
 }
@@ -94,6 +97,9 @@ func (m *CachingIdentityAllocator) GetIdentities() IdentitiesModel {
 	})
 
 	for _, v := range m.localIdentities.GetIdentities() {
+		identities = append(identities, identitymodel.CreateModel(v))
+	}
+	for _, v := range m.localNodeIdentities.GetIdentities() {
 		identities = append(identities, identitymodel.CreateModel(v))
 	}
 
@@ -142,23 +148,21 @@ func (w *identityWatcher) watch(events allocator.AllocatorEventRecvChan) {
 			deleted := IdentityCache{}
 		First:
 			for {
+				event, ok := <-events
 				// Wait for one identity add or delete or stop
-				select {
-				case event, ok := <-events:
-					if !ok {
-						// 'events' was closed
-						return
+				if !ok {
+					// 'events' was closed
+					return
+				}
+				// Collect first added and deleted labels
+				switch event.Typ {
+				case kvstore.EventTypeCreate, kvstore.EventTypeDelete:
+					if collectEvent(event, added, deleted) {
+						// First event collected
+						break First
 					}
-					// Collect first added and deleted labels
-					switch event.Typ {
-					case kvstore.EventTypeCreate, kvstore.EventTypeDelete:
-						if collectEvent(event, added, deleted) {
-							// First event collected
-							break First
-						}
-					default:
-						// Ignore modify events
-					}
+				default:
+					// Ignore modify events
 				}
 			}
 
@@ -210,8 +214,11 @@ func (m *CachingIdentityAllocator) LookupIdentity(ctx context.Context, lbls labe
 		return reservedIdentity
 	}
 
-	if !identity.RequiresGlobalIdentity(lbls) {
+	switch identity.ScopeForLabels(lbls) {
+	case identity.IdentityScopeLocal:
 		return m.localIdentities.lookup(lbls)
+	case identity.IdentityScopeRemoteNode:
+		return m.localNodeIdentities.lookup(lbls)
 	}
 
 	if !m.isGlobalIdentityAllocatorInitialized() {
@@ -249,8 +256,11 @@ func (m *CachingIdentityAllocator) LookupIdentityByID(ctx context.Context, id id
 		return identity
 	}
 
-	if id.HasLocalScope() {
+	switch id.Scope() {
+	case identity.IdentityScopeLocal:
 		return m.localIdentities.lookupByID(id)
+	case identity.IdentityScopeRemoteNode:
+		return m.localNodeIdentities.lookupByID(id)
 	}
 
 	if !m.isGlobalIdentityAllocatorInitialized() {

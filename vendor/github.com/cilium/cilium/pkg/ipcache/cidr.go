@@ -34,6 +34,8 @@ import (
 //
 // Upon success, the caller must also arrange for the resulting identities to
 // be released via a subsequent call to ReleaseCIDRIdentitiesByCIDR().
+//
+// Deprecated: Prefer UpsertLabels() instead.
 func (ipc *IPCache) AllocateCIDRs(
 	prefixes []netip.Prefix, oldNIDs []identity.NumericIdentity, newlyAllocatedIdentities map[netip.Prefix]*identity.Identity,
 ) ([]*identity.Identity, error) {
@@ -96,6 +98,8 @@ func (ipc *IPCache) AllocateCIDRs(
 //
 // Upon success, the caller must also arrange for the resulting identities to
 // be released via a subsequent call to ReleaseCIDRIdentitiesByID().
+//
+// Deprecated: Prefer UpsertLabels() instead.
 func (ipc *IPCache) AllocateCIDRsForIPs(
 	prefixes []net.IP, newlyAllocatedIdentities map[netip.Prefix]*identity.Identity,
 ) ([]*identity.Identity, error) {
@@ -128,6 +132,8 @@ func cidrLabelToPrefix(id *identity.Identity) (prefix netip.Prefix, ok bool) {
 // that were not already upserted. If any 'usedIdentities' are upserted, these
 // are counted separately as they may provide an indication of another logic
 // error elsewhere in the codebase that is causing premature ipcache deletions.
+//
+// Deprecated: Prefer UpsertLabels() instead.
 func (ipc *IPCache) UpsertGeneratedIdentities(newlyAllocatedIdentities map[netip.Prefix]*identity.Identity, usedIdentities []*identity.Identity) {
 	for prefix, id := range newlyAllocatedIdentities {
 		ipc.Upsert(prefix.String(), nil, 0, nil, Identity{
@@ -208,22 +214,38 @@ func (ipc *IPCache) releaseCIDRIdentities(ctx context.Context, prefixes []netip.
 
 // ReleaseCIDRIdentitiesByCIDR releases the identities of a list of CIDRs.
 // When the last use of the identity is released, the ipcache entry is deleted.
+//
+// Deprecated: Prefer RemoveLabels() or RemoveIdentity() instead.
 func (ipc *IPCache) ReleaseCIDRIdentitiesByCIDR(prefixes []netip.Prefix) {
 	ipc.deferredPrefixRelease.enqueue(prefixes, "cidr-prefix-release")
 }
 
 // ReleaseCIDRIdentitiesByID releases the specified identities.
 // When the last use of the identity is released, the ipcache entry is deleted.
+//
+// Deprecated: Prefer RemoveLabels() or RemoveIdentity() instead.
 func (ipc *IPCache) ReleaseCIDRIdentitiesByID(ctx context.Context, identities []identity.NumericIdentity) {
 	prefixes := make([]netip.Prefix, 0, len(identities))
 	for _, nid := range identities {
 		if id := ipc.IdentityAllocator.LookupIdentityByID(ctx, nid); id != nil {
 			prefix, ok := cidrLabelToPrefix(id)
 			if !ok {
-				log.WithFields(logrus.Fields{
+				lgr := log.WithFields(logrus.Fields{
 					logfields.Identity: nid,
 					logfields.Labels:   id.Labels,
-				}).Warn("Unexpected release of non-CIDR identity, will leak this identity. Please report this issue to the developers.")
+				})
+
+				if !id.IsReserved() {
+					lgr.Warn("Unexpected release of non-CIDR identity, will leak this identity. Please report this issue to the developers.")
+				} else {
+					// If we have arrived here because the identity is a
+					// reserved identity, then the caller was mistaken. This
+					// currently has a number of occurrences, in which case we
+					// debug log here because this has caused excessive log
+					// pressure. https://github.com/cilium/cilium/issues/23192
+					lgr.Debug("Unexpected release of Reserved identity. Please report this issue to the developers.")
+				}
+
 				continue
 			}
 			prefixes = append(prefixes, prefix)

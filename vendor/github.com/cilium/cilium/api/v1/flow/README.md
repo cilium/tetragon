@@ -27,6 +27,7 @@
     - [Layer7](#flow-Layer7)
     - [LostEvent](#flow-LostEvent)
     - [NetworkInterface](#flow-NetworkInterface)
+    - [Policy](#flow-Policy)
     - [PolicyUpdateNotification](#flow-PolicyUpdateNotification)
     - [SCTP](#flow-SCTP)
     - [Service](#flow-Service)
@@ -296,6 +297,9 @@ EventTypeFilter is a filter describing a particular event type
 | socket_cookie | [uint64](#uint64) |  | socket_cookie is the Linux kernel socket cookie for this flow. Only applicable to TraceSock notifications, zero for other types |
 | cgroup_id | [uint64](#uint64) |  | cgroup_id of the process which emitted this event. Only applicable to TraceSock notifications, zero for other types |
 | Summary | [string](#string) |  | **Deprecated.** This is a temporary workaround to support summary field for pb.Flow without duplicating logic from the old parser. This field will be removed once we fully migrate to the new parser. |
+| extensions | [google.protobuf.Any](#google-protobuf-Any) |  | extensions can be used to add arbitrary additional metadata to flows. This can be used to extend functionality for other Hubble compatible APIs, or experiment with new functionality without needing to change the public API. |
+| egress_allowed_by | [Policy](#flow-Policy) | repeated | The CiliumNetworkPolicies allowing the egress of the flow. |
+| ingress_allowed_by | [Policy](#flow-Policy) | repeated | The CiliumNetworkPolicies allowing the ingress of the flow. |
 
 
 
@@ -337,6 +341,7 @@ multiple fields are set, then all fields must match for the filter to match.
 | destination_identity | [uint32](#uint32) | repeated | destination_identity filters by the security identity of the destination endpoint. |
 | http_method | [string](#string) | repeated | GET, POST, PUT, etc. methods. This type of field is well suited for an enum but every single existing place is using a string already. |
 | http_path | [string](#string) | repeated | http_path is a list of regular expressions to filter on the HTTP path. |
+| http_url | [string](#string) | repeated | http_url is a list of regular expressions to filter on the HTTP URL. |
 | tcp_flags | [TCPFlags](#flow-TCPFlags) | repeated | tcp_flags filters flows based on TCP header flags |
 | node_name | [string](#string) | repeated | node_name is a list of patterns to filter on the node name, e.g. &#34;k8s*&#34;, &#34;test-cluster/*.domain.com&#34;, &#34;cluster-name/&#34; etc. |
 | ip_version | [IPVersion](#flow-IPVersion) | repeated | filter based on IP version (ipv4 or ipv6) |
@@ -542,6 +547,24 @@ that happened before the events were captured by Hubble.
 | ----- | ---- | ----- | ----------- |
 | index | [uint32](#uint32) |  |  |
 | name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="flow-Policy"></a>
+
+### Policy
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
+| labels | [string](#string) | repeated |  |
+| revision | [uint64](#uint64) |  |  |
 
 
 
@@ -900,6 +923,8 @@ These values are shared with pkg/monitor/api/datapath_debug.go and bpf/lib/dbg.h
 | DBG_SK_LOOKUP4 | 62 |  |
 | DBG_SK_LOOKUP6 | 63 |  |
 | DBG_SK_ASSIGN | 64 |  |
+| DBG_L7_LB | 65 |  |
+| DBG_SKIP_POLICY | 66 |  |
 
 
 
@@ -977,6 +1002,7 @@ here.
 | INVALID_CLUSTER_ID | 192 |  |
 | UNSUPPORTED_PROTOCOL_FOR_DSR_ENCAP | 193 |  |
 | NO_EGRESS_GATEWAY | 194 |  |
+| UNENCRYPTED_TRAFFIC | 195 |  |
 | TTL_EXCEEDED | 196 |  |
 | NO_NODE_ID | 197 |  |
 
