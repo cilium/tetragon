@@ -3,6 +3,7 @@
 
 syntax = "proto3";
 
+import "google/protobuf/any.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -114,6 +115,16 @@ message Flow {
     // duplicating logic from the old parser. This field will be removed once we
     // fully migrate to the new parser.
     string Summary = 100000 [deprecated=true];
+
+    // extensions can be used to add arbitrary additional metadata to flows.
+    // This can be used to extend functionality for other Hubble compatible
+    // APIs, or experiment with new functionality without needing to change the public API.
+    google.protobuf.Any extensions = 150000;
+
+    // The CiliumNetworkPolicies allowing the egress of the flow.
+    repeated Policy egress_allowed_by = 21001;
+    // The CiliumNetworkPolicies allowing the ingress of the flow.
+    repeated Policy ingress_allowed_by = 21002;
 }
 
 enum FlowType {
@@ -391,6 +402,7 @@ enum DropReason {
     INVALID_CLUSTER_ID = 192;
     UNSUPPORTED_PROTOCOL_FOR_DSR_ENCAP = 193;
     NO_EGRESS_GATEWAY = 194;
+    UNENCRYPTED_TRAFFIC = 195;
     TTL_EXCEEDED = 196;
     NO_NODE_ID = 197;
 }
@@ -413,6 +425,13 @@ enum DebugCapturePoint {
     DBG_CAPTURE_PROXY_POST = 9;
     DBG_CAPTURE_SNAT_PRE = 10;
     DBG_CAPTURE_SNAT_POST = 11;
+}
+
+message Policy {
+	string name = 1;
+	string namespace = 2;
+	repeated string labels = 3;
+	uint64 revision = 4;
 }
 
 // EventTypeFilter is a filter describing a particular event type
@@ -515,6 +534,8 @@ message FlowFilter {
     repeated string http_method = 21;
     // http_path is a list of regular expressions to filter on the HTTP path.
     repeated string http_path = 22;
+    // http_url is a list of regular expressions to filter on the HTTP URL.
+    repeated string http_url = 31;
 
     // tcp_flags filters flows based on TCP header flags
     repeated TCPFlags tcp_flags = 23;
@@ -813,4 +834,6 @@ enum DebugEventType {
     DBG_SK_LOOKUP4 = 62;
     DBG_SK_LOOKUP6 = 63;
     DBG_SK_ASSIGN = 64;
+    DBG_L7_LB = 65;
+    DBG_SKIP_POLICY = 66;
 }

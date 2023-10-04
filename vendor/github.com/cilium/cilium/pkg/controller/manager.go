@@ -41,12 +41,13 @@ func GetGlobalStatus() models.ControllerStatuses {
 	return globalStatus.GetStatusModel()
 }
 
-// UpdateController installs or updates a controller in the manager. A
-// controller is identified by its name. If a controller with the name already
-// exists, the controller will be shut down and replaced with the provided
-// controller. Updating a controller will cause the DoFunc to be run
-// immediately regardless of any previous conditions. It will also cause any
-// statistics to be reset.
+// UpdateController installs or updates a controller in the
+// manager. A controller is primarily identified by its name.
+// If a controller with the name already exists, the controller
+// will be shut down and replaced with the provided controller.
+//
+// Updating a controller will cause the DoFunc to be run immediately regardless
+// of any previous conditions. It will also cause any statistics to be reset.
 func (m *Manager) UpdateController(name string, params ControllerParams) {
 	m.updateController(name, params)
 }
@@ -55,9 +56,16 @@ func (m *Manager) updateController(name string, params ControllerParams) *manage
 	start := time.Now()
 
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	if m.controllers == nil {
 		m.controllers = controllerMap{}
+	}
+
+	if params.Group.Name == "" {
+		log.Errorf(
+			"Controller initialized with unpopulated group information. " +
+				"Metrics will not be exported for this controller.")
 	}
 
 	ctrl, exists := m.controllers[name]
@@ -70,34 +78,57 @@ func (m *Manager) updateController(name string, params ControllerParams) *manage
 		case ctrl.update <- ctrl.params:
 		default:
 		}
-		m.mutex.Unlock()
 
 		ctrl.getLogger().Debug("Controller update time: ", time.Since(start))
 	} else {
-		ctrl = &managedController{
-			controller: controller{
-				name:       name,
-				uuid:       uuid.New().String(),
-				stop:       make(chan struct{}),
-				update:     make(chan ControllerParams, 1),
-				trigger:    make(chan struct{}, 1),
-				terminated: make(chan struct{}),
-			},
-		}
-		ctrl.updateParamsLocked(params)
-		ctrl.getLogger().Debug("Starting new controller")
-
-		m.controllers[ctrl.name] = ctrl
-		m.mutex.Unlock()
-
-		globalStatus.mutex.Lock()
-		globalStatus.controllers[ctrl.uuid] = ctrl
-		globalStatus.mutex.Unlock()
-
-		go ctrl.runController(ctrl.params)
+		return m.createControllerLocked(name, params)
 	}
 
 	return ctrl
+}
+
+func (m *Manager) createControllerLocked(name string, params ControllerParams) *managedController {
+	ctrl := &managedController{
+		controller: controller{
+			name:       name,
+			group:      params.Group,
+			uuid:       uuid.New().String(),
+			stop:       make(chan struct{}),
+			update:     make(chan ControllerParams, 1),
+			trigger:    make(chan struct{}, 1),
+			terminated: make(chan struct{}),
+		},
+	}
+	ctrl.updateParamsLocked(params)
+	ctrl.getLogger().Debug("Starting new controller")
+
+	m.controllers[ctrl.name] = ctrl
+
+	globalStatus.mutex.Lock()
+	globalStatus.controllers[ctrl.uuid] = ctrl
+	globalStatus.mutex.Unlock()
+
+	go ctrl.runController(ctrl.params)
+	return ctrl
+}
+
+// CreateController installs a new controller in the
+// manager.  If a controller with the name already exists
+// this method returns false without triggering, otherwise
+// creates the controller and runs it immediately.
+func (m *Manager) CreateController(name string, params ControllerParams) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if m.controllers != nil {
+		if _, exists := m.controllers[name]; exists {
+			return false
+		}
+	} else {
+		m.controllers = controllerMap{}
+	}
+	m.createControllerLocked(name, params)
+	return true
 }
 
 func (m *Manager) removeController(ctrl *managedController) {

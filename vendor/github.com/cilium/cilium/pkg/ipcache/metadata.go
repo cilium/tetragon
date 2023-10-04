@@ -32,6 +32,8 @@ var (
 	ErrLocalIdentityAllocatorUninitialized = errors.New("local identity allocator uninitialized")
 
 	LabelInjectorName = "ipcache-inject-labels"
+
+	injectLabelsControllerGroup = controller.NewGroup("ipcache-inject-labels")
 )
 
 // metadata contains the ipcache metadata. Mainily it holds a map which maps IP
@@ -425,14 +427,38 @@ func (ipc *IPCache) resolveIdentity(ctx context.Context, prefix netip.Prefix, in
 	}
 
 	lbls := info.ToLabels()
-	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) &&
-		(lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) ||
-			lbls.Has(labels.LabelHost[labels.IDNameHost])) {
-		// If the prefix is associated with both world and (remote-node or
-		// host), then the latter (remote-node or host) take precedence to
-		// avoid allocating a CIDR identity for an entity within the cluster.
+
+	// If we are restoring an identity in the remote-node identity scope, we need to
+	// unconditionally add remote-node and cidr labels back. We do not need to check
+	// if CIDR selection for nodes is enabled here, as we explicitly check further down
+	// when we remove CIDR labels for identities that should not have them.
+	if restoredIdentity.Scope() == identity.IdentityScopeRemoteNode {
+		lbls.MergeLabels(labels.LabelRemoteNode)
+		cidrLabels := cidrlabels.GetCIDRLabels(prefix)
+		lbls.MergeLabels(cidrLabels)
+	}
+
+	// If we are restoring a host identity and policy-cidr-match-mode includes "nodes"
+	// then merge the CIDR-label.
+	if lbls.Has(labels.LabelHost[labels.IDNameHost]) &&
+		option.Config.PolicyCIDRMatchesNodes() {
+		cidrLabels := cidrlabels.GetCIDRLabels(prefix)
+		lbls.MergeLabels(cidrLabels)
+	}
+
+	// If the prefix is associated with the host or remote-node, then
+	// force-remove the world label.
+	if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) ||
+		lbls.Has(labels.LabelHost[labels.IDNameHost]) {
 		n := lbls.Remove(labels.LabelWorld)
-		n = n.Remove(cidrlabels.GetCIDRLabels(prefix))
+		n = n.Remove(labels.LabelWorldIPv4)
+		n = n.Remove(labels.LabelWorldIPv6)
+
+		// It is not allowed for nodes to have CIDR labels, unless policy-cidr-match-mode
+		// includes "nodes". Then CIDR labels are required.
+		if !option.Config.PolicyCIDRMatchesNodes() {
+			n = n.Remove(cidrlabels.GetCIDRLabels(prefix))
+		}
 		lbls = n
 	}
 
@@ -477,7 +503,9 @@ func (ipc *IPCache) resolveIdentity(ctx context.Context, prefix netip.Prefix, in
 	// which could theoretically fail if we ever allocate a very large
 	// number of identities.
 	id, isNew, err := ipc.IdentityAllocator.AllocateIdentity(ctx, lbls, false, restoredIdentity)
-	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) {
+	if lbls.Has(labels.LabelWorld[labels.IDNameWorld]) ||
+		lbls.Has(labels.LabelWorldIPv4[labels.IDNameWorldIPv4]) ||
+		lbls.Has(labels.LabelWorldIPv6[labels.IDNameWorldIPv6]) {
 		id.CIDRLabel = labels.NewLabelsFromModel([]string{labels.LabelSourceCIDR + ":" + prefix.String()})
 	}
 	return id, isNew, err
@@ -582,6 +610,7 @@ func (ipc *IPCache) TriggerLabelInjection() {
 	ipc.UpdateController(
 		LabelInjectorName,
 		controller.ControllerParams{
+			Group:   injectLabelsControllerGroup,
 			Context: ipc.Configuration.Context,
 			DoFunc: func(ctx context.Context) error {
 				var err error

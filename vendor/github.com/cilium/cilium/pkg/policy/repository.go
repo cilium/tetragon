@@ -111,10 +111,13 @@ type Repository struct {
 	Mutex lock.RWMutex
 	rules ruleSlice
 
+	// rulesIndexByK8sUID indexes the rules by k8s UID.
+	rulesIndexByK8sUID map[string]*rule
+
 	// revision is the revision of the policy repository. It will be
 	// incremented whenever the policy repository is changed.
 	// Always positive (>0).
-	revision uint64
+	revision atomic.Uint64
 
 	// RepositoryChangeQueue is a queue which serializes changes to the policy
 	// repository.
@@ -190,11 +193,12 @@ func NewStoppedPolicyRepository(
 ) *Repository {
 	selectorCache := NewSelectorCache(idAllocator, idCache)
 	repo := &Repository{
-		revision:      1,
-		selectorCache: selectorCache,
-		certManager:   certManager,
-		secretManager: secretManager,
+		rulesIndexByK8sUID: map[string]*rule{},
+		selectorCache:      selectorCache,
+		certManager:        certManager,
+		secretManager:      secretManager,
 	}
+	repo.revision.Store(1)
 	repo.policyCache = NewPolicyCache(repo, true)
 	return repo
 }
@@ -367,6 +371,13 @@ func (p *Repository) AllowsEgressRLocked(ctx *SearchContext) api.Decision {
 func (p *Repository) SearchRLocked(lbls labels.LabelArray) api.Rules {
 	result := api.Rules{}
 
+	if uid := lbls.Get(labels.LabelSourceK8sKeyPrefix + k8sConst.PolicyLabelUID); uid != "" {
+		r, ok := p.rulesIndexByK8sUID[uid]
+		if ok {
+			result = append(result, &r.Rule)
+		}
+		return result
+	}
 	for _, r := range p.rules {
 		if r.Labels.Contains(lbls) {
 			result = append(result, &r.Rule)
@@ -381,7 +392,7 @@ func (p *Repository) SearchRLocked(lbls labels.LabelArray) api.Rules {
 // TODO: this should be in a test_helpers.go file or something similar
 // so we can clearly delineate what helpers are for testing.
 // NOTE: This is only called from unit tests, but from multiple packages.
-func (p *Repository) Add(r api.Rule, localRuleConsumers []Endpoint) (uint64, map[uint16]struct{}, error) {
+func (p *Repository) Add(r api.Rule) (uint64, map[uint16]struct{}, error) {
 	p.Mutex.Lock()
 	defer p.Mutex.Unlock()
 
@@ -406,6 +417,9 @@ func (p *Repository) AddListLocked(rules api.Rules) (ruleSlice, uint64) {
 			metadata: newRuleMetadata(),
 		}
 		newList[i] = newRule
+		if uid := rules[i].Labels.Get(labels.LabelSourceK8sKeyPrefix + k8sConst.PolicyLabelUID); uid != "" {
+			p.rulesIndexByK8sUID[uid] = newRule
+		}
 	}
 
 	p.rules = append(p.rules, newList...)
@@ -516,6 +530,9 @@ func (p *Repository) DeleteByLabelsLocked(lbls labels.LabelArray) (ruleSlice, ui
 	if deleted > 0 {
 		p.BumpRevision()
 		p.rules = new
+		if uid := lbls.Get(labels.LabelSourceK8sKeyPrefix + k8sConst.PolicyLabelUID); uid != "" {
+			delete(p.rulesIndexByK8sUID, uid)
+		}
 		metrics.Policy.Sub(float64(deleted))
 	}
 
@@ -627,7 +644,7 @@ func (p *Repository) NumRules() int {
 
 // GetRevision returns the revision of the policy repository
 func (p *Repository) GetRevision() uint64 {
-	return atomic.LoadUint64(&p.revision)
+	return p.revision.Load()
 }
 
 // Empty returns 'true' if repository has no rules, 'false' otherwise.
@@ -674,7 +691,7 @@ func (p *Repository) TranslateRules(translator Translator) (*TranslationResult, 
 // BumpRevision allows forcing policy regeneration
 func (p *Repository) BumpRevision() {
 	metrics.PolicyRevision.Inc()
-	atomic.AddUint64(&p.revision, 1)
+	p.revision.Add(1)
 }
 
 // GetRulesList returns the current policy

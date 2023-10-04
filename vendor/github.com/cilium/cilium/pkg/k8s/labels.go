@@ -108,9 +108,7 @@ func GetPodMetadata(k8sNs *slim_corev1.Namespace, pod *slim_corev1.Pod) (contain
 	}
 
 	for _, containers := range pod.Spec.Containers {
-		for _, cp := range containers.Ports {
-			containerPorts = append(containerPorts, cp)
-		}
+		containerPorts = append(containerPorts, containers.Ports...)
 	}
 
 	labels := k8sUtils.SanitizePodLabels(k8sLabels, k8sNs, pod.Spec.ServiceAccountName, option.Config.ClusterName)

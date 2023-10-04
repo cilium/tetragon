@@ -31,7 +31,7 @@ type CachedSelector interface {
 	// GetSelections returns the cached set of numeric identities
 	// selected by the CachedSelector.  The retuned slice must NOT
 	// be modified, as it is shared among multiple users.
-	GetSelections() []identity.NumericIdentity
+	GetSelections() identity.NumericIdentitySlice
 
 	// Selects return 'true' if the CachedSelector selects the given
 	// numeric identity.
@@ -161,7 +161,9 @@ type identitySelector interface {
 type scIdentity struct {
 	NID       identity.NumericIdentity
 	lbls      labels.LabelArray
-	namespace string // value of the namespace label, or ""
+	nets      []*net.IPNet // Most specific CIDR for the identity, if any.
+	computed  bool         // nets has been computed
+	namespace string       // value of the namespace label, or ""
 }
 
 // scIdentityCache is a cache of Identities keyed by the numeric identity
@@ -171,8 +173,35 @@ func newIdentity(nid identity.NumericIdentity, lbls labels.LabelArray) scIdentit
 	return scIdentity{
 		NID:       nid,
 		lbls:      lbls,
+		nets:      getLocalScopeNets(nid, lbls),
 		namespace: lbls.Get(labels.LabelSourceK8sKeyPrefix + k8sConst.PodNamespaceLabel),
+		computed:  true,
 	}
+}
+
+// getLocalScopeNets returns the most specific CIDR for a local scope identity.
+func getLocalScopeNets(id identity.NumericIdentity, lbls labels.LabelArray) []*net.IPNet {
+	if id.HasLocalScope() {
+		var (
+			maskSize         int
+			mostSpecificCidr *net.IPNet
+		)
+		for _, lbl := range lbls {
+			if lbl.Source == labels.LabelSourceCIDR {
+				_, netIP, err := net.ParseCIDR(lbl.Key)
+				if err == nil {
+					if ms, _ := netIP.Mask.Size(); ms > maskSize {
+						mostSpecificCidr = netIP
+						maskSize = ms
+					}
+				}
+			}
+		}
+		if mostSpecificCidr != nil {
+			return []*net.IPNet{mostSpecificCidr}
+		}
+	}
+	return nil
 }
 
 func getIdentityCache(ids cache.IdentityCache) scIdentityCache {
@@ -308,7 +337,7 @@ func (sc *SelectorCache) SetLocalIdentityNotifier(pop identityNotifier) {
 
 var (
 	// Empty slice of numeric identities used for all selectors that select nothing
-	emptySelection []identity.NumericIdentity
+	emptySelection identity.NumericIdentitySlice
 	// wildcardSelectorKey is used to compare if a key is for a wildcard
 	wildcardSelectorKey = api.WildcardEndpointSelector.LabelSelector.String()
 	// noneSelectorKey is used to compare if a key is for "reserved:none"
@@ -317,7 +346,7 @@ var (
 
 type selectorManager struct {
 	key              string
-	selections       atomic.Pointer[[]identity.NumericIdentity]
+	selections       atomic.Pointer[identity.NumericIdentitySlice]
 	users            map[CachedSelectionUser]struct{}
 	cachedSelections map[identity.NumericIdentity]struct{}
 }
@@ -339,8 +368,12 @@ func (s *selectorManager) Equal(b *selectorManager) bool {
 // that case GetSelections() will return either the old or new version
 // of the selections. If the old version is returned, the user is
 // guaranteed to receive a notification including the update.
-func (s *selectorManager) GetSelections() []identity.NumericIdentity {
-	return *s.selections.Load()
+func (s *selectorManager) GetSelections() identity.NumericIdentitySlice {
+	selections := s.selections.Load()
+	if selections == nil {
+		return emptySelection
+	}
+	return *selections
 }
 
 // Selects return 'true' if the CachedSelector selects the given
@@ -409,7 +442,7 @@ func (s *selectorManager) numUsers() int {
 //
 // lock must be held
 func (s *selectorManager) updateSelections() {
-	selections := make([]identity.NumericIdentity, len(s.cachedSelections))
+	selections := make(identity.NumericIdentitySlice, len(s.cachedSelections))
 	i := 0
 	for nid := range s.cachedSelections {
 		selections[i] = nid
@@ -424,7 +457,7 @@ func (s *selectorManager) updateSelections() {
 	s.setSelections(&selections)
 }
 
-func (s *selectorManager) setSelections(selections *[]identity.NumericIdentity) {
+func (s *selectorManager) setSelections(selections *identity.NumericIdentitySlice) {
 	if len(*selections) > 0 {
 		s.selections.Store(selections)
 	} else {
@@ -1093,11 +1126,18 @@ func (sc *SelectorCache) RemoveIdentitiesFQDNSelectors(fqdnSels []api.FQDNSelect
 	sc.releaseIdentityMappings(identitiesToRelease)
 }
 
-// GetLabels must be called while holding sc.mutex!
-func (sc *SelectorCache) GetLabelsLocked(id identity.NumericIdentity) labels.LabelArray {
+// GetNetsLocked returns the most specific CIDR for an identity. For the "World" identity
+// it returns both IPv4 and IPv6.
+func (sc *SelectorCache) GetNetsLocked(id identity.NumericIdentity) []*net.IPNet {
 	ident, ok := sc.idCache[id]
 	if !ok {
-		return labels.LabelArray{}
+		return nil
 	}
-	return ident.lbls
+	if !ident.computed {
+		log.WithFields(logrus.Fields{
+			logfields.Identity: id,
+			logfields.Labels:   ident.lbls,
+		}).Warning("GetNetsLocked: Identity with missing nets!")
+	}
+	return ident.nets
 }
