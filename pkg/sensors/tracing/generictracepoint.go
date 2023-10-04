@@ -174,7 +174,7 @@ func (out *genericTracepointArg) setGenericTypeId() (int, error) {
 // if such an id cannot be termined, it returns an GenericInvalidType and an error
 func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 
-	if out.userType != "" {
+	if out.userType != "" && out.userType != "auto" {
 		if out.userType == "const_buf" {
 			// const_buf type depends on the .format.field.Type to decode the result, so
 			// disallow it.

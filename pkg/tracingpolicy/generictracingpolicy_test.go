@@ -410,8 +410,8 @@ func TestYamlLseek(t *testing.T) {
 				Subsystem: "syscalls",
 				Event:     "sys_enter_lseek",
 				Args: []v1alpha1.KProbeArg{
-					{Index: 7, Type: "int"},
-					{Index: 5, Type: "fd"},
+					{Index: 7, Type: "auto"},
+					{Index: 5, Type: "auto"},
 				},
 				Selectors: []v1alpha1.KProbeSelector{{
 					MatchPIDs: []v1alpha1.PIDSelector{

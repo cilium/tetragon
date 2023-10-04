@@ -410,6 +410,12 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 				}).Debug("Kprobe spec pre-validation succeeded")
 			}
 		}
+
+		for idxArg, arg := range f.Args {
+			if arg.Type == "auto" {
+				return fmt.Errorf("spec.kprobes[%d].args[%d].type default 'auto' is invalid for a kprobe", i, idxArg)
+			}
+		}
 	}
 
 	return nil

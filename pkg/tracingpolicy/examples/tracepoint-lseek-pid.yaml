@@ -8,9 +8,7 @@ spec:
     event: "sys_enter_lseek"
     args:
     - index: 7
-      type: int
     - index: 5
-      type: fd
     selectors:
     - matchPIDs:
         - operator: In
