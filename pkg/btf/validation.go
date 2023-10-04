@@ -224,6 +224,9 @@ func typesCompatible(specTy string, kernelTy string) bool {
 
 func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 	if kspec.Return {
+		if kspec.ReturnArg == nil {
+			return fmt.Errorf("missing information for syscall %s: returnArg is missing", name)
+		}
 		if !typesCompatible(kspec.ReturnArg.Type, "long") {
 			return fmt.Errorf("unexpected syscall spec return type: %s", kspec.ReturnArg.Type)
 		}
