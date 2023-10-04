@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/checkprocfs"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/encoder"
@@ -168,6 +169,8 @@ func tetragonExecute() error {
 	if viper.IsSet(keyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(keyNetnsDir)
 	}
+
+	checkprocfs.Check()
 
 	// Setup file system mounts
 	bpf.CheckOrMountFS("")
