@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
@@ -32,10 +33,19 @@ type TestSensorManager struct {
 	Manager *sensors.Manager
 }
 
-// StartTestSensorManager starts a new sensor mananger.
-// It will use the test name to create a unqique directory for maps/etc, and
-// will also register the necessary cleanup functions using t.Cleanup()
-func StartTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
+// GetTestSensorManager returns a new test sensor manager.
+// Some tests require an observer running, some do not. To support both, the function checks if a
+// sensor manager has already been setup in the observer, and uses it if so.
+// Otherwise, it creates a new one. If it creates a new one it will use the test name to create a
+// unqique directory for maps/etc, and will also register the necessary cleanup functions using
+// t.Cleanup()
+func GetTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
+	if mgr := observer.GetSensorManager(); mgr != nil {
+		return &TestSensorManager{
+			Manager: mgr,
+		}
+	}
+
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path, path, nil)
 	if err != nil {

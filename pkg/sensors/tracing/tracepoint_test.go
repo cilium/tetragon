@@ -75,7 +75,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := tus.StartTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{})
@@ -135,7 +135,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := tus.StartTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{})
@@ -491,7 +491,7 @@ spec:
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll()
+	sensors.UnloadSensors(sens)
 }
 
 func TestTracepointCloneThreads(t *testing.T) {
@@ -527,7 +527,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := tus.StartTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{})

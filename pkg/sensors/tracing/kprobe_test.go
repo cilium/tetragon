@@ -3580,11 +3580,6 @@ spec:
  - call: "sys_write"
    syscall: true
 `
-	b := base.GetInitialSensor()
-	if err := b.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
-		return fmt.Errorf("load base sensor failed: %w", err)
-	}
-
 	tp, _ := tracingpolicy.PolicyFromYAML(testHook)
 	if tp == nil {
 		return nil
@@ -3594,7 +3589,11 @@ spec:
 	if err != nil {
 		return err
 	}
-	return sens.Load(option.Config.BpfDir, option.Config.MapDir)
+	err = sens.Load(option.Config.BpfDir, option.Config.MapDir)
+	if err != nil {
+		return err
+	}
+	return sens.Unload()
 }
 
 func TestKprobeBpfAttr(t *testing.T) {
@@ -3740,7 +3739,7 @@ spec:
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadAll()
+	sensors.UnloadSensors(sens)
 }
 
 func TestFakeSyscallError(t *testing.T) {

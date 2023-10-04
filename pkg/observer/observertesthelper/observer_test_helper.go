@@ -134,7 +134,6 @@ func testDone(tb testing.TB, obs *observer.Observer) {
 		}
 	}
 
-	obs.RemovePrograms()
 	obs.PrintStats()
 	obs.Remove()
 }
@@ -213,8 +212,6 @@ func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
 }
 
 func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
-	var cnfSensor *sensors.Sensor
-
 	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
 
 	o := newDefaultTestOptions(opts...)
@@ -245,15 +242,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 			return nil, fmt.Errorf("failed to parse tracingpolicy: %w", err)
 		}
 	}
-	if tp != nil {
-		var err error
-		cnfSensor, err = sensors.GetMergedSensorFromParserPolicy(tp)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	if err := loadSensor(tb, base, cnfSensor); err != nil {
+	if err := loadObserver(tb, ctx, base, tp); err != nil {
 		return nil, err
 	}
 
@@ -379,9 +369,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 
 	// NB(kkourt): we use the global that was set up by InitSensorManager(). We should clean
 	// this up and remove/hide the global variable.
-	sensorManager := observer.SensorManager
+	sensorManager := observer.GetSensorManager()
 	tb.Cleanup(func() {
-		sensorManager.StopSensorManager(context.TODO())
+		observer.RemoveSensors(ctx)
+		sensorManager.StopSensorManager(ctx)
+		observer.ResetSensorManager()
 	})
 
 	if oo.crd {
@@ -435,6 +427,22 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	tb.Cleanup(func() {
 		obs.RemoveListener(processManager)
 	})
+	return nil
+}
+
+func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
+	tp tracingpolicy.TracingPolicy) error {
+
+	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
+		tb.Fatalf("Load base error: %s\n", err)
+	}
+
+	if tp != nil {
+		if err := observer.GetSensorManager().AddTracingPolicy(ctx, tp); err != nil {
+			tb.Fatalf("SensorManager.AddTracingPolicy error: %s\n", err)
+		}
+	}
+
 	return nil
 }
 

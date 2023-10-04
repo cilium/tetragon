@@ -227,7 +227,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	processManager, err := grpc.NewProcessManager(
 		ctx,
 		&wg,
-		observer.SensorManager,
+		observer.GetSensorManager(),
 		hookRunner)
 	if err != nil {
 		return err
