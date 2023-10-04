@@ -79,8 +79,10 @@ spec:
                             minimum: 0
                             type: integer
                           type:
+                            default: auto
                             description: Argument type.
                             enum:
+                            - auto
                             - int
                             - uint32
                             - int32
@@ -158,8 +160,10 @@ spec:
                           minimum: 0
                           type: integer
                         type:
+                          default: auto
                           description: Argument type.
                           enum:
+                          - auto
                           - int
                           - uint32
                           - int32
@@ -681,8 +685,10 @@ spec:
                             minimum: 0
                             type: integer
                           type:
+                            default: auto
                             description: Argument type.
                             enum:
+                            - auto
                             - int
                             - uint32
                             - int32
