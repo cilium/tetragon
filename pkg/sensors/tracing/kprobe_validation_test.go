@@ -230,3 +230,22 @@ spec:
 	assert.Error(t, err)
 
 }
+
+func TestKprobeValidationMissingReturnArg(t *testing.T) {
+
+	// missing returnArg while having return: true
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+metadata:
+  name: "missing-returnarg"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+`
+
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
