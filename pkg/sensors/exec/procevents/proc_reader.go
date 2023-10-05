@@ -143,9 +143,11 @@ func pushExecveEvents(p procs) {
 	m.Kube.NetNS = 0
 	m.Kube.Cid = 0
 	m.Kube.Cgrpid = 0
-	m.Kube.Docker, err = procsDockerId(p.pid)
-	if err != nil {
-		logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+	if p.pid > 0 {
+		m.Kube.Docker, err = procsDockerId(p.pid)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+		}
 	}
 
 	m.Parent.Pid = p.ppid
