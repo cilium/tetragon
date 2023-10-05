@@ -53,13 +53,18 @@ import (
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/lumberjack/v2"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextensionsinformer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -310,16 +315,64 @@ func tetragonExecute() error {
 	// Probe runtime configuration and do not fail on errors
 	obs.UpdateRuntimeConf(option.Config.MapDir)
 
-	watcher, err := getWatcher()
-	if err != nil {
-		return err
+	var k8sWatcher watcher.K8sResourceWatcher
+	if option.Config.EnableK8s {
+		log.Info("Enabling Kubernetes API")
+		crds := map[string]struct{}{
+			v1alpha1.TPName:           {},
+			v1alpha1.TPNamespacedName: {},
+		}
+		if option.Config.EnablePodInfo {
+			crds[v1alpha1.PIName] = struct{}{}
+		}
+		config, err := k8sconf.K8sConfig()
+		if err != nil {
+			return err
+		}
+		log.WithField("crds", crds).Info("Waiting for required CRDs")
+		var wg sync.WaitGroup
+		wg.Add(1)
+		k8sClient := kubernetes.NewForConfigOrDie(config)
+		crdClient := apiextensionsclientset.NewForConfigOrDie(config)
+		crdInformer := apiextensionsinformer.NewCustomResourceDefinitionInformer(crdClient, 0*time.Second, nil)
+		_, err = crdInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				crdObject, ok := obj.(*v1.CustomResourceDefinition)
+				if !ok {
+					log.WithField("obj", obj).Warn("Received an invalid object")
+					return
+				}
+				if _, ok := crds[crdObject.Name]; ok {
+					log.WithField("crd", crdObject.Name).Info("Found CRD")
+					delete(crds, crdObject.Name)
+					if len(crds) == 0 {
+						log.Info("Found all the required CRDs")
+						wg.Done()
+					}
+				}
+			},
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to add event handler")
+			return err
+		}
+		stop := make(chan struct{})
+		go func() {
+			crdInformer.Run(stop)
+		}()
+		wg.Wait()
+		close(stop)
+		k8sWatcher = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
+	} else {
+		log.Info("Disabling Kubernetes API")
+		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
-	_, err = cilium.InitCiliumState(ctx, option.Config.EnableCilium)
+	_, err := cilium.InitCiliumState(ctx, option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}
 
-	if err := process.InitCache(watcher, option.Config.ProcessCacheSize); err != nil {
+	if err := process.InitCache(k8sWatcher, option.Config.ProcessCacheSize); err != nil {
 		return err
 	}
 
@@ -338,7 +391,7 @@ func tetragonExecute() error {
 	ctx, cancel2 := context.WithCancel(ctx)
 	defer cancel2()
 
-	hookRunner := rthooks.GlobalRunner().WithWatcher(watcher)
+	hookRunner := rthooks.GlobalRunner().WithWatcher(k8sWatcher)
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
@@ -631,21 +684,6 @@ func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {
 	return nil
 }
 
-func getWatcher() (watcher.K8sResourceWatcher, error) {
-	if option.Config.EnableK8s {
-		log.Info("Enabling Kubernetes API")
-		config, err := k8sconf.K8sConfig()
-		if err != nil {
-			return nil, err
-		}
-		k8sClient := kubernetes.NewForConfigOrDie(config)
-		return watcher.NewK8sWatcher(k8sClient, 60*time.Second), nil
-
-	}
-	log.Info("Disabling Kubernetes API")
-	return watcher.NewFakeK8sWatcher(nil), nil
-}
-
 func startGopsServer() error {
 	// Empty means no gops
 	if option.Config.GopsAddr == "" {
@@ -772,6 +810,8 @@ func execute() error {
 	flags.StringSlice(keyKmods, []string{}, "List of kernel modules to load symbols from")
 
 	flags.Int(keyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
+
+	flags.Bool(keyEnablePodInfo, false, "Enable PodInfo custom resource")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()

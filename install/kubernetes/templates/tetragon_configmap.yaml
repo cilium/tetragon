@@ -54,3 +54,4 @@ data:
 {{- if .Values.tetragon.enableMsgHandlingLatency }}
   enable-msg-handling-latency: "true"
 {{- end }}
+  enable-pod-info: {{ .Values.tetragonOperator.podInfo.enabled | quote }}

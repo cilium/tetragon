@@ -80,14 +80,3 @@
 {{- end -}}
 {{- end -}}
 
-{{- define "container.tetragon.init-operator" -}}
-- name: {{ include "container.tetragon.name" . }}-operator
-  image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}{{ .Values.tetragonOperator.image.suffix }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
-  args:
-    - --config-dir=/etc/tetragon/operator.conf.d/
-  volumeMounts:
-    - mountPath: /etc/tetragon/operator.conf.d/
-      name: tetragon-operator-config
-      readOnly: true
-{{- end -}}
