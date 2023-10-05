@@ -336,6 +336,7 @@
       "matchUpdateTypes": [
         "major",
         "minor",
+        "digest",
       ],
     }
   ],
