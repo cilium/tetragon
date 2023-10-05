@@ -44,10 +44,6 @@ spec:
       securityContext:
         {{- toYaml . | nindent 6 }}
       {{- end }}
-{{- if .Values.tetragon.enabled }}
-      initContainers:
-      {{- include "container.tetragon.init-operator" . | nindent 6 -}}
-{{- end }}
       containers:
 {{- if eq .Values.export.mode "stdout" }}
       {{- include "container.export.stdout" . | nindent 6 -}}
@@ -96,9 +92,6 @@ spec:
         name: metadata-files
 {{- end }}
 {{- end }}
-      - name: tetragon-operator-config
-        configMap:
-          name: {{ .Release.Name }}-operator-config
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
       {{- end }}
