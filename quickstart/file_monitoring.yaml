@@ -1,0 +1,176 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring-filtered"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "int" # 0x04 is MAY_READ, 0x02 is MAY_WRITE
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:      
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/boot"           # Reads to sensitive directories
+        - "/root/.ssh"      # Reads to sensitive files we want to know about
+        - "/etc/shadow"
+        - "/etc/profile"
+        - "/etc/sudoers"
+        - "/etc/pam.conf"   # Reads global shell configs bash/csh supported
+        - "/etc/bashrc"
+        - "/etc/csh.cshrc"
+        - "/etc/csh.login"  # Add additional sensitive files here
+      - index: 1
+        operator: "Equal"
+        values:
+        - "4" # MAY_READ
+    - matchArgs:      
+      - index: 0
+        operator: "Postfix"
+        values:
+        - ".bashrc"         # Reads to shell config files bash, csh supported
+        - ".bash_profile"   # add any other shell support here.
+        - ".bash_login"
+        - ".bash_logout"
+        - ".cshrc"
+        - ".cshdirs"
+        - ".profile"        # Reads to common environments files
+        - ".login"
+        - ".logout"
+        - ".history"        # Add additional sensitive files here
+      - index: 1
+        operator: "Equal"
+        values:
+        - "4" # MAY_READ
+    - matchArgs:      
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc"              # Writes to sensitive directories
+        - "/boot"
+        - "/lib"
+        - "/lib64"
+        - "/bin"
+        - "/usr/lib"
+        - "/usr/local/lib"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/var/log"          # Writes to logs
+        - "/dev/log"
+        - "/root/.ssh"        # Writes to sensitive files add here.
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2" # MAY_WRITE
+  - call: "security_mmap_file"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "uint32" # the prot flags PROT_READ(0x01), PROT_WRITE(0x02), PROT_EXEC(0x04)
+    - index: 2
+      type: "uint32" # the mmap flags (i.e. MAP_SHARED, ...)
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:      
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/boot"           # Reads to sensitive directories
+        - "/root/.ssh"      # Reads to sensitive files we want to know about
+        - "/etc/shadow"
+        - "/etc/sudoers"
+        - "/etc/pam.conf"   # Reads global shell configs bash/csh supported
+        - "/etc/profile"
+        - "/etc/bashrc"
+        - "/etc/csh.cshrc"
+        - "/etc/csh.login"
+        - ".bashrc"         # Reads to shell config files bash, csh supported
+        - ".bash_profile"   # add any other shell support here.
+        - ".bash_login"
+        - ".bash_logout"
+        - ".cshrc"
+        - ".cshdirs"
+        - ".profile"        # Reads to common environments files
+        - ".login"
+        - ".logout"
+        - ".history"        # Add additional sensitive mmap files here
+      - index: 1
+        operator: "Equal"
+        values:
+        - "1" # MAY_READ
+      - index: 2
+        operator: "Mask"
+        values:
+        - "1" # MAP_SHARED
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc"              # Writes to sensitive directories
+        - "/boot"
+        - "/lib"
+        - "/lib64"
+        - "/bin"
+        - "/usr/lib"
+        - "/usr/local/lib"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/var/log"          # Writes to logs
+        - "/dev/log"
+        - "/root/.ssh"        # Writes to sensitive files add here.
+      - index: 1
+        operator: "Mask"
+        values:
+        - "2" # PROT_WRITE
+      - index: 2
+        operator: "Mask"
+        values:
+        - "1" # MAP_SHARED
+  - call: "security_path_truncate"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "path" # (struct path *) used for getting the path
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc"              # Truncate to sensitive directories
+        - "/boot"
+        - "/lib"
+        - "/lib64"
+        - "/usr/lib"
+        - "/usr/local/lib"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/var/log"          # Truncate to logs
+        - "/dev/log"
+        - "/root/.ssh"        # Truncate to sensitive files add here.
