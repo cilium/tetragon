@@ -70,11 +70,6 @@ const (
 )
 
 var (
-	loadedSensors = []*sensors.Sensor{
-		testsensor.GetTestSensor(),
-		testsensor.GetCgroupSensor(),
-	}
-
 	defaultKubeCgroupHierarchy = []cgroupHierarchy{
 		{"tetragon-tests-39d631b6f0fbc4e261c7a0ee636cf434-defaultKubeCgroupHierarchy-system.slice", true, false, false, false, 0, 0, "", "", nil},
 		{"kubelet.slice", true, false, false, false, 0, 0, "", "", nil},
@@ -94,6 +89,13 @@ var (
 		{"devices", false, false, nil},
 	}
 )
+
+func getLoadedSensors() []*sensors.Sensor {
+	return []*sensors.Sensor{
+		testsensor.GetTestSensor(),
+		testsensor.GetCgroupSensor(),
+	}
+}
 
 func getTrackingLevel(cgroupHierarchy []cgroupHierarchy) uint32 {
 	level := 0
@@ -649,7 +651,7 @@ func TestCgroupNoEvents(t *testing.T) {
 
 	testManager := setupObserver(ctx, t)
 
-	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 
 	// Set Cgroup Tracking level to Zero means no tracking and no
 	// cgroup events, all bpf cgroups related programs have no effect
@@ -701,9 +703,9 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	testManager := setupObserver(ctx, t)
 
-	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, loadedSensors)
+		testManager.DisableSensors(ctx, t, getLoadedSensors())
 	})
 
 	// Set Tracking level to 3 so we receive notifcations about
@@ -880,9 +882,9 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
 	testManager := setupObserver(ctx, t)
 
-	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, loadedSensors)
+		testManager.DisableSensors(ctx, t, getLoadedSensors())
 	})
 
 	_, err := testutils.GetTgRuntimeConf()
@@ -1094,7 +1096,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 
 	testManager := setupObserver(ctx, t)
 
-	testManager.AddAndEnableSensors(ctx, t, loadedSensors)
+	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 
 	// Probe full environment detection
 	_, err := testutils.GetTgRuntimeConf()

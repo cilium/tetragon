@@ -41,19 +41,25 @@ type Sensor struct {
 	Maps []*program.Map
 	// Loaded indicates whether the sensor has been Loaded.
 	Loaded bool
+	// Destroyed indicates whether the sensor had been destroyed.
+	Destroyed bool
 	// PreUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
-	PreUnloadHook SensorUnloadHook
+	PreUnloadHook SensorHook
 	// PostUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, after the programs and maps being
 	// unloaded.
-	PostUnloadHook SensorUnloadHook
+	PostUnloadHook SensorHook
+	// DestroyHook can optionally contain a pointer to a function to be called
+	// when removing the sensor, sensor cannot be loaded again after this hook
+	// being triggered and must be recreated.
+	DestroyHook SensorHook
 }
 
-// SensorUnloadHook is the function signature for an optional function
-// that can be called during sensor unloading.
-type SensorUnloadHook func() error
+// SensorHook is the function signature for an optional function
+// that can be called during sensor unloading and removing.
+type SensorHook func() error
 
 func SensorCombine(name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
