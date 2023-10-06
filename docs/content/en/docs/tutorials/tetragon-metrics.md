@@ -7,10 +7,7 @@ description: "Fetching and understanding Tetragon metrics"
 
 ## Kubernetes
 
-When installed with Helm as described in 
-[Deploying on Kubernetes]({{< ref 
-"/docs/getting-started/deployment/kubernetes" >}}), Tetragon pods expose a 
-metrics endpoint by default. The chart also creates a service named `tetragon`
+Tetragon pods expose a  metrics endpoint by default. The chart also creates a service named `tetragon`
 that exposes metrics on the specified port. 
 
 ### Getting metrics port
@@ -43,8 +40,6 @@ kubectl -n kube-system port-forward service/tetragon 2112:2112
 
 ## Package
 
-Tetragon, when installed via release packages as mentioned in 
-[Package Deployment]({{< ref "/docs/getting-started/deployment/package" >}}). 
 By default, metrics are disabled, which can be enabled using `--metrics-server` 
 flag, by specifying the address.
 
