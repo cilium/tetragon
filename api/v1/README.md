@@ -13,10 +13,14 @@
     - [Container](#tetragon-Container)
     - [CreateContainer](#tetragon-CreateContainer)
     - [CreateContainer.AnnotationsEntry](#tetragon-CreateContainer-AnnotationsEntry)
+    - [File](#tetragon-File)
+    - [FileSystem](#tetragon-FileSystem)
+    - [FileSystemMount](#tetragon-FileSystemMount)
     - [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest)
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
+    - [Inode](#tetragon-Inode)
     - [KernelModule](#tetragon-KernelModule)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
@@ -201,6 +205,7 @@
 | ----- | ---- | ----- | ----------- |
 | setuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set user ID used for execution |
 | setgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set group ID used for execution |
+| file | [File](#tetragon-File) |  | File properties in case it is executed from a shm or it is not linked anywhere |
 
 
 
@@ -280,6 +285,56 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
+<a name="tetragon-File"></a>
+
+### File
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| inode | [Inode](#tetragon-Inode) |  |  |
+| path | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-FileSystem"></a>
+
+### FileSystem
+The file system context
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| type | [string](#string) |  | The file system type |
+| dev | [string](#string) |  | The major:minor |
+| source | [string](#string) |  | The file system source |
+
+
+
+
+
+
+<a name="tetragon-FileSystemMount"></a>
+
+### FileSystemMount
+The file system mount context
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| fs | [FileSystem](#tetragon-FileSystem) |  | The file system context |
+| root | [string](#string) |  | The root pathname of the directory in the filesystem |
+| point | [string](#string) |  | The mount point relative to the process&#39;s root directory. |
+
+
+
+
+
+
 <a name="tetragon-GetHealthStatusRequest"></a>
 
 ### GetHealthStatusRequest
@@ -337,6 +392,24 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | Identifier of the container image composed of the registry path and the sha256. |
 | name | [string](#string) |  | Name of the container image composed of the registry path and the tag. |
+
+
+
+
+
+
+<a name="tetragon-Inode"></a>
+
+### Inode
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| number | [uint64](#uint64) |  | The inode number |
+| mode | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The inode mode |
+| links | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The inode links on the file system. If zero means the file is only in memory. |
+| mount | [FileSystemMount](#tetragon-FileSystemMount) |  | The file system mount context |
 
 
 

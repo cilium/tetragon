@@ -2795,10 +2795,336 @@ nextCheck:
 	return nil
 }
 
+// FileSystemChecker implements a checker struct to check a FileSystem field
+type FileSystemChecker struct {
+	Type   *stringmatcher.StringMatcher `json:"type,omitempty"`
+	Dev    *stringmatcher.StringMatcher `json:"dev,omitempty"`
+	Source *stringmatcher.StringMatcher `json:"source,omitempty"`
+}
+
+// NewFileSystemChecker creates a new FileSystemChecker
+func NewFileSystemChecker() *FileSystemChecker {
+	return &FileSystemChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *FileSystemChecker) GetCheckerType() string {
+	return "FileSystemChecker"
+}
+
+// Check checks a FileSystem field
+func (checker *FileSystemChecker) Check(event *tetragon.FileSystem) error {
+	if event == nil {
+		return fmt.Errorf("%s: FileSystem field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Type != nil {
+			if err := checker.Type.Match(event.Type); err != nil {
+				return fmt.Errorf("Type check failed: %w", err)
+			}
+		}
+		if checker.Dev != nil {
+			if err := checker.Dev.Match(event.Dev); err != nil {
+				return fmt.Errorf("Dev check failed: %w", err)
+			}
+		}
+		if checker.Source != nil {
+			if err := checker.Source.Match(event.Source); err != nil {
+				return fmt.Errorf("Source check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithType adds a Type check to the FileSystemChecker
+func (checker *FileSystemChecker) WithType(check *stringmatcher.StringMatcher) *FileSystemChecker {
+	checker.Type = check
+	return checker
+}
+
+// WithDev adds a Dev check to the FileSystemChecker
+func (checker *FileSystemChecker) WithDev(check *stringmatcher.StringMatcher) *FileSystemChecker {
+	checker.Dev = check
+	return checker
+}
+
+// WithSource adds a Source check to the FileSystemChecker
+func (checker *FileSystemChecker) WithSource(check *stringmatcher.StringMatcher) *FileSystemChecker {
+	checker.Source = check
+	return checker
+}
+
+//FromFileSystem populates the FileSystemChecker using data from a FileSystem field
+func (checker *FileSystemChecker) FromFileSystem(event *tetragon.FileSystem) *FileSystemChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Type = stringmatcher.Full(event.Type)
+	checker.Dev = stringmatcher.Full(event.Dev)
+	checker.Source = stringmatcher.Full(event.Source)
+	return checker
+}
+
+// FileSystemMountChecker implements a checker struct to check a FileSystemMount field
+type FileSystemMountChecker struct {
+	Fs    *FileSystemChecker           `json:"fs,omitempty"`
+	Root  *stringmatcher.StringMatcher `json:"root,omitempty"`
+	Point *stringmatcher.StringMatcher `json:"point,omitempty"`
+}
+
+// NewFileSystemMountChecker creates a new FileSystemMountChecker
+func NewFileSystemMountChecker() *FileSystemMountChecker {
+	return &FileSystemMountChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *FileSystemMountChecker) GetCheckerType() string {
+	return "FileSystemMountChecker"
+}
+
+// Check checks a FileSystemMount field
+func (checker *FileSystemMountChecker) Check(event *tetragon.FileSystemMount) error {
+	if event == nil {
+		return fmt.Errorf("%s: FileSystemMount field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Fs != nil {
+			if err := checker.Fs.Check(event.Fs); err != nil {
+				return fmt.Errorf("Fs check failed: %w", err)
+			}
+		}
+		if checker.Root != nil {
+			if err := checker.Root.Match(event.Root); err != nil {
+				return fmt.Errorf("Root check failed: %w", err)
+			}
+		}
+		if checker.Point != nil {
+			if err := checker.Point.Match(event.Point); err != nil {
+				return fmt.Errorf("Point check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithFs adds a Fs check to the FileSystemMountChecker
+func (checker *FileSystemMountChecker) WithFs(check *FileSystemChecker) *FileSystemMountChecker {
+	checker.Fs = check
+	return checker
+}
+
+// WithRoot adds a Root check to the FileSystemMountChecker
+func (checker *FileSystemMountChecker) WithRoot(check *stringmatcher.StringMatcher) *FileSystemMountChecker {
+	checker.Root = check
+	return checker
+}
+
+// WithPoint adds a Point check to the FileSystemMountChecker
+func (checker *FileSystemMountChecker) WithPoint(check *stringmatcher.StringMatcher) *FileSystemMountChecker {
+	checker.Point = check
+	return checker
+}
+
+//FromFileSystemMount populates the FileSystemMountChecker using data from a FileSystemMount field
+func (checker *FileSystemMountChecker) FromFileSystemMount(event *tetragon.FileSystemMount) *FileSystemMountChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Fs != nil {
+		checker.Fs = NewFileSystemChecker().FromFileSystem(event.Fs)
+	}
+	checker.Root = stringmatcher.Full(event.Root)
+	checker.Point = stringmatcher.Full(event.Point)
+	return checker
+}
+
+// InodeChecker implements a checker struct to check a Inode field
+type InodeChecker struct {
+	Number *uint64                 `json:"number,omitempty"`
+	Mode   *uint32                 `json:"mode,omitempty"`
+	Links  *uint32                 `json:"links,omitempty"`
+	Mount  *FileSystemMountChecker `json:"mount,omitempty"`
+}
+
+// NewInodeChecker creates a new InodeChecker
+func NewInodeChecker() *InodeChecker {
+	return &InodeChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *InodeChecker) GetCheckerType() string {
+	return "InodeChecker"
+}
+
+// Check checks a Inode field
+func (checker *InodeChecker) Check(event *tetragon.Inode) error {
+	if event == nil {
+		return fmt.Errorf("%s: Inode field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Number != nil {
+			if *checker.Number != event.Number {
+				return fmt.Errorf("Number has value %d which does not match expected value %d", event.Number, *checker.Number)
+			}
+		}
+		if checker.Mode != nil {
+			if event.Mode == nil {
+				return fmt.Errorf("Mode is nil and does not match expected value %v", *checker.Mode)
+			}
+			if *checker.Mode != event.Mode.Value {
+				return fmt.Errorf("Mode has value %v which does not match expected value %v", event.Mode.Value, *checker.Mode)
+			}
+		}
+		if checker.Links != nil {
+			if event.Links == nil {
+				return fmt.Errorf("Links is nil and does not match expected value %v", *checker.Links)
+			}
+			if *checker.Links != event.Links.Value {
+				return fmt.Errorf("Links has value %v which does not match expected value %v", event.Links.Value, *checker.Links)
+			}
+		}
+		if checker.Mount != nil {
+			if err := checker.Mount.Check(event.Mount); err != nil {
+				return fmt.Errorf("Mount check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithNumber adds a Number check to the InodeChecker
+func (checker *InodeChecker) WithNumber(check uint64) *InodeChecker {
+	checker.Number = &check
+	return checker
+}
+
+// WithMode adds a Mode check to the InodeChecker
+func (checker *InodeChecker) WithMode(check uint32) *InodeChecker {
+	checker.Mode = &check
+	return checker
+}
+
+// WithLinks adds a Links check to the InodeChecker
+func (checker *InodeChecker) WithLinks(check uint32) *InodeChecker {
+	checker.Links = &check
+	return checker
+}
+
+// WithMount adds a Mount check to the InodeChecker
+func (checker *InodeChecker) WithMount(check *FileSystemMountChecker) *InodeChecker {
+	checker.Mount = check
+	return checker
+}
+
+//FromInode populates the InodeChecker using data from a Inode field
+func (checker *InodeChecker) FromInode(event *tetragon.Inode) *InodeChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		val := event.Number
+		checker.Number = &val
+	}
+	if event.Mode != nil {
+		val := event.Mode.Value
+		checker.Mode = &val
+	}
+	if event.Links != nil {
+		val := event.Links.Value
+		checker.Links = &val
+	}
+	if event.Mount != nil {
+		checker.Mount = NewFileSystemMountChecker().FromFileSystemMount(event.Mount)
+	}
+	return checker
+}
+
+// FileChecker implements a checker struct to check a File field
+type FileChecker struct {
+	Inode *InodeChecker                `json:"inode,omitempty"`
+	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
+}
+
+// NewFileChecker creates a new FileChecker
+func NewFileChecker() *FileChecker {
+	return &FileChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *FileChecker) GetCheckerType() string {
+	return "FileChecker"
+}
+
+// Check checks a File field
+func (checker *FileChecker) Check(event *tetragon.File) error {
+	if event == nil {
+		return fmt.Errorf("%s: File field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Inode != nil {
+			if err := checker.Inode.Check(event.Inode); err != nil {
+				return fmt.Errorf("Inode check failed: %w", err)
+			}
+		}
+		if checker.Path != nil {
+			if err := checker.Path.Match(event.Path); err != nil {
+				return fmt.Errorf("Path check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithInode adds a Inode check to the FileChecker
+func (checker *FileChecker) WithInode(check *InodeChecker) *FileChecker {
+	checker.Inode = check
+	return checker
+}
+
+// WithPath adds a Path check to the FileChecker
+func (checker *FileChecker) WithPath(check *stringmatcher.StringMatcher) *FileChecker {
+	checker.Path = check
+	return checker
+}
+
+//FromFile populates the FileChecker using data from a File field
+func (checker *FileChecker) FromFile(event *tetragon.File) *FileChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Inode != nil {
+		checker.Inode = NewInodeChecker().FromInode(event.Inode)
+	}
+	checker.Path = stringmatcher.Full(event.Path)
+	return checker
+}
+
 // BinaryPropertiesChecker implements a checker struct to check a BinaryProperties field
 type BinaryPropertiesChecker struct {
-	Setuid *uint32 `json:"setuid,omitempty"`
-	Setgid *uint32 `json:"setgid,omitempty"`
+	Setuid *uint32      `json:"setuid,omitempty"`
+	Setgid *uint32      `json:"setgid,omitempty"`
+	File   *FileChecker `json:"file,omitempty"`
 }
 
 // NewBinaryPropertiesChecker creates a new BinaryPropertiesChecker
@@ -2834,6 +3160,11 @@ func (checker *BinaryPropertiesChecker) Check(event *tetragon.BinaryProperties) 
 				return fmt.Errorf("Setgid has value %v which does not match expected value %v", event.Setgid.Value, *checker.Setgid)
 			}
 		}
+		if checker.File != nil {
+			if err := checker.File.Check(event.File); err != nil {
+				return fmt.Errorf("File check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2854,6 +3185,12 @@ func (checker *BinaryPropertiesChecker) WithSetgid(check uint32) *BinaryProperti
 	return checker
 }
 
+// WithFile adds a File check to the BinaryPropertiesChecker
+func (checker *BinaryPropertiesChecker) WithFile(check *FileChecker) *BinaryPropertiesChecker {
+	checker.File = check
+	return checker
+}
+
 //FromBinaryProperties populates the BinaryPropertiesChecker using data from a BinaryProperties field
 func (checker *BinaryPropertiesChecker) FromBinaryProperties(event *tetragon.BinaryProperties) *BinaryPropertiesChecker {
 	if event == nil {
@@ -2866,6 +3203,9 @@ func (checker *BinaryPropertiesChecker) FromBinaryProperties(event *tetragon.Bin
 	if event.Setgid != nil {
 		val := event.Setgid.Value
 		checker.Setgid = &val
+	}
+	if event.File != nil {
+		checker.File = NewFileChecker().FromFile(event.File)
 	}
 	return checker
 }

@@ -140,11 +140,49 @@ message ProcessCredentials {
 	UserNamespace user_ns = 11;
 }
 
+// The file system context
+message FileSystem {
+	// The file system type
+	string type = 1;
+	// The major:minor
+	string dev = 2;
+	// The file system source
+	string source = 3;
+}
+
+// The file system mount context
+message FileSystemMount {
+	// The file system context
+	FileSystem fs = 1;
+	// The root pathname of the directory in the filesystem
+	string root = 2;
+	// The mount point relative to the process's root directory.
+	string point = 3;
+}
+
+message Inode {
+	// The inode number
+	uint64 number = 1;
+	// The inode mode
+	google.protobuf.UInt32Value mode = 2;
+	// The inode links on the file system. If zero means the file is only in memory.
+	google.protobuf.UInt32Value links = 3;
+	// The file system mount context
+	FileSystemMount mount = 4;
+}
+
+message File {
+	Inode inode = 1;
+	string path = 2;
+}
+
 message BinaryProperties {
 	// If set then this is the set user ID used for execution
 	google.protobuf.UInt32Value setuid = 1;
 	// If set then this is the set group ID used for execution
 	google.protobuf.UInt32Value setgid = 2;
+	// File properties in case it is executed from a shm or it is not linked anywhere
+	File file = 3;
 }
 
 message Process {
