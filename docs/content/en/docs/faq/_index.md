@@ -107,9 +107,7 @@ to [can I run Tetragon on Mac computers](#can-i-run-tetragon-on-mac-computers).
 
 ### Can I install and use Tetragon in standalone mode (outside of k8s)?
 
-Yes! Check the [Container deployment](/docs/getting-started/deployment/container/) or
-[Package deployment](/docs/getting-started/deployment/package/) guides
-for alternative install methods.
+Yes! TBD docs
 
 Otherwise you can build Tetragon from source by running `make` to generate standalone
 binaries.
