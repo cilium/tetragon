@@ -202,7 +202,7 @@ github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.13-0.20230822094713-37431633085a
+# github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c
 ## explicit; go 1.18
 github.com/cilium/little-vm-helper/pkg/images
 github.com/cilium/little-vm-helper/pkg/kernels
@@ -678,7 +678,7 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc
+# github.com/sryoya/protorand v0.0.0-20230821135621-5e0808bbd3d8
 ## explicit; go 1.17
 github.com/sryoya/protorand
 # github.com/stoewer/go-strcase v1.3.0
