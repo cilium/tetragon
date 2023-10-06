@@ -69,6 +69,10 @@ func (s *Sensor) Load(bpfDir, mapDir, ciliumDir string) error {
 		return nil
 	}
 
+	if s.Destroyed {
+		return fmt.Errorf("sensor %s has been previously destroyed, please recreate it before loading", s.Name)
+	}
+
 	// Add the loaded programs and maps to All* so they can be unloaded on shutdown.
 	AllPrograms = append(AllPrograms, s.Progs...)
 	AllMaps = append(AllMaps, s.Maps...)
@@ -147,6 +151,25 @@ func (s *Sensor) Unload() error {
 	}
 
 	return nil
+}
+
+// Destroy will unload the hook and call DestroyHook, this hook is usually used
+// to clean up resources that were created during creation of the sensor.
+func (s *Sensor) Destroy() {
+	err := s.Unload()
+	if err != nil {
+		// do not return on error but just log since Unload can only error on
+		// sensor being already not loaded
+		logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Unload failed during destroy")
+	}
+
+	if s.DestroyHook != nil {
+		err = s.DestroyHook()
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Destroy hook failed")
+		}
+	}
+	s.Destroyed = true
 }
 
 func (s *Sensor) findProgram(p *program.Program) error {
