@@ -489,7 +489,7 @@ func createGenericKprobeSensor(
 		Name:  name,
 		Progs: progs,
 		Maps:  maps,
-		PostUnloadHook: func() error {
+		DestroyHook: func() error {
 			var errs error
 			for _, idx := range addedKprobeIndices {
 				_, err := genericKprobeTable.RemoveEntry(idtable.EntryID{ID: idx})

@@ -80,3 +80,10 @@ func (c *collection) unload() error {
 	}
 	return nil
 }
+
+// destroy will attempt to destroy all the sensors in a collection
+func (c *collection) destroy() {
+	for _, s := range c.sensors {
+		s.Destroy()
+	}
+}

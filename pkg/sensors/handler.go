@@ -135,20 +135,17 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)
 	}
-	err := col.unload()
-	if err != nil {
-		col.err = fmt.Errorf("failed to unload tracing policy: %w", err)
-		return err
-	}
+	defer delete(h.collections, op.name)
+
+	col.destroy()
 
 	filterID := policyfilter.PolicyID(col.policyfilterID)
-	err = h.pfState.DelPolicy(filterID)
+	err := h.pfState.DelPolicy(filterID)
 	if err != nil {
 		col.err = fmt.Errorf("failed to remove from policyfilter: %w", err)
 		return err
 	}
 
-	delete(h.collections, op.name)
 	return nil
 }
 
@@ -197,9 +194,10 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
-	err := col.unload()
+
+	col.destroy()
 	delete(h.collections, op.name)
-	return err
+	return nil
 }
 
 func (h *handler) enableSensor(op *sensorEnable) error {
