@@ -1,8 +1,8 @@
 ---
-title: "Explore security observability events"
+title: "JSON events"
 weight: 3
 icon: "reference"
-description: "Learn how to start exploring the Tetragon events"
+description: "Tetragon JSON events"
 ---
 
 After Tetragon and the [demo application is up and

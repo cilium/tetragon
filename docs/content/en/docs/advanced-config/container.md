@@ -91,5 +91,5 @@ See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) refe
 
 ## What's next
 
-- See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+- See [Explore security observability events](/docs/concepts/tetragon-events/)
 to learn how to see the Tetragon events.
