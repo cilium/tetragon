@@ -111,10 +111,6 @@ To build Tetragon tarball:
 make tarball
 ```
 
-The produced tarball will be inside directory `./build/`, then follow the
-[package deployment guide]({{< ref "/docs/getting-started/deployment/package" >}}) to
-install it as a systemd service.
-
 ### Running Tetragon in kind
 
 The scripts in contrib/localdev will help you run Tetragon locally in a kind
