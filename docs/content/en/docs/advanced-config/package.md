@@ -174,6 +174,6 @@ Tetragon also ships a gRPC client that can be used to receive events.
 
 ## What's next
 
-See [Explore security observability events](/docs/getting-started/explore-security-observability-events/)
+See [Explore security observability events](/docs/concepts/tetragon-events/)
 to learn more about how to see the Tetragon events.
 
