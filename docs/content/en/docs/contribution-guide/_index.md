@@ -1,7 +1,7 @@
 ---
 title: "Contribution Guide"
 linkTitle: "Contribution Guide"
-weight: 7
+weight: 6
 icon: "contribution"
 description: >
   How to contribute to the project
