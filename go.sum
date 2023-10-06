@@ -465,8 +465,8 @@ github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2 h1:aUhT8ib6cKposeTys
 github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2/go.mod h1:AyKxZ17L5Q7fk2doxT3yjMYGlrJdq5/jvR2xN5KMbxA=
 github.com/cilium/ebpf v0.11.0 h1:V8gS/bTCCjX9uUnkUFUpPsksM8n1lXBAvHcpiFk1X2Y=
 github.com/cilium/ebpf v0.11.0/go.mod h1:WE7CZAnqOL2RouJ4f1uyNhqr2P4CCvXFIqdRDUgWsVs=
-github.com/cilium/little-vm-helper v0.0.13-0.20230822094713-37431633085a h1:A507gvPbURMidkslEIOENfyLiqr5vSxsiPoD/V4GXrg=
-github.com/cilium/little-vm-helper v0.0.13-0.20230822094713-37431633085a/go.mod h1:wErT4smPfNaVj2s9iaTKzP/Q8hN/5o5SH5GAp2OPeRA=
+github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c h1:OwlalGy+EdB8pabLfa+ArdFZ5YQInXHEfjwQQuXzSQs=
+github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c/go.mod h1:XccVlR2A+X5lEwDwvLSeV7rbEuxvvGsMMI9Dj2FkhxA=
 github.com/cilium/lumberjack/v2 v2.3.0 h1:IhVJMvPpqDYmQzC0KDhAoy7KlaRsyOsZnT97Nsa3u0o=
 github.com/cilium/lumberjack/v2 v2.3.0/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
 github.com/cilium/proxy v0.0.0-20230914115435-e8543968fd3d h1:JtLpAxG5Sf8mi9hC8i7pyCZP4AVk9M6QS8HU+IXtD7o=
@@ -1136,8 +1136,8 @@ github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5q
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
 github.com/spf13/viper v1.16.0 h1:rGGH0XDZhdUOryiDWjmIvUSWpbNqisK8Wk0Vyefw8hc=
 github.com/spf13/viper v1.16.0/go.mod h1:yg78JgCJcbrQOvV9YLXgkLaZqUidkY9K+Dd1FofRzQg=
-github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc h1:ZPybelHpsefohBfSL6u3i+qNcf7b0UTHvY8hIlAxYNU=
-github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc/go.mod h1:9a23nlv6vzBeVlQq6JQCjljZ6sfzsB6aha1m5Ly1W2Y=
+github.com/sryoya/protorand v0.0.0-20230821135621-5e0808bbd3d8 h1:ycURGtB/l/SlFdlMCQCJbTdln5PgNn+wxba82/8N0pU=
+github.com/sryoya/protorand v0.0.0-20230821135621-5e0808bbd3d8/go.mod h1:9a23nlv6vzBeVlQq6JQCjljZ6sfzsB6aha1m5Ly1W2Y=
 github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

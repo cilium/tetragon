@@ -272,6 +272,10 @@ func (p *ProtoRand) chooseEnumValueRandomly(values protoreflect.EnumValueDescrip
 }
 
 func (p *ProtoRand) chooseOneOfFieldRandomly(oneOf protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
-	index := p.rand.Intn(oneOf.Fields().Len() - 1)
+	ln := oneOf.Fields().Len()
+	if ln == 1 {
+		return oneOf.Fields().Get(0)
+	}
+	index := p.rand.Intn(ln - 1)
 	return oneOf.Fields().Get(index)
 }

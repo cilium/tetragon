@@ -6,7 +6,7 @@ require (
 	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/cilium/cilium v1.15.0-pre.1
 	github.com/cilium/ebpf v0.11.0
-	github.com/cilium/little-vm-helper v0.0.13-0.20230822094713-37431633085a
+	github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -33,7 +33,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	github.com/sryoya/protorand v0.0.0-20230527172419-e5ae2594eadc
+	github.com/sryoya/protorand v0.0.0-20230821135621-5e0808bbd3d8
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20230807190133-6afddb37c1f0
 	go.uber.org/atomic v1.11.0
