@@ -392,6 +392,35 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
+func KprobeAttachMany(load *Program, syms []string) AttachFunc {
+	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+
+		unloader := unloader.ChainUnloader{
+			unloader.PinUnloader{
+				Prog: prog,
+			},
+		}
+
+		for idx := range syms {
+			un, err := kprobeAttach(load, prog, spec, syms[idx])
+			if err != nil {
+				return nil, err
+			}
+
+			unloader = append(unloader, un)
+		}
+		return unloader, nil
+	}
+}
+
+func LoadKprobeProgramAttachMany(bpfDir, mapDir string, load *Program, syms []string, verbose int) error {
+	opts := &loadOpts{
+		attach: KprobeAttachMany(load, syms),
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
+}
+
 func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
