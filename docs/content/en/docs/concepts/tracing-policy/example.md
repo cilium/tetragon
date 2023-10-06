@@ -115,8 +115,8 @@ echo eBPF! > /tmp/tetragon
 Starting Tetragon with the above `TracingPolicy`, for example putting the
 policy in the `example.yaml` file, compiling the project locally and starting
 Tetragon with (you can do similar things with container image releases, see the
-docker run command in the [Try Tetragon on Linux guide]({{< ref
-"/docs/getting-started/try-tetragon-linux#observability-with-tracingpolicy" >}}):
+docker run command in the [Try Tetragon on Linux guide]
+
 ```shell-session
 sudo ./tetragon --bpf-lib bpf/objs --tracing-policy example.yaml
 ```
