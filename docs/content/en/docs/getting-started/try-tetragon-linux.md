@@ -4,14 +4,6 @@ weight: 1
 description: "Discover and experiment with Tetragon on your local Linux host"
 ---
 
-{{< caution >}}
-This guide is not a tutorial on how to deploy Tetragon standalone (i.e. without
-Kubernetes), you can see the [container deployment]({{< ref "/docs/getting-started/deployment/container" >}})
-and [package deployment]({{< ref "/docs/getting-started/deployment/package" >}}) guides for
-that. This is just a walkthrough to try and experiment Tetragon for the first
-time.
-{{< /caution >}}
-
 {{< note >}}
 This guide has been tested on Ubuntu 22.04 and 22.10 with respectively kernel
 `5.15.0` and `5.19.0` on amd64 and arm64 but
