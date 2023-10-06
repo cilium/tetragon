@@ -6,9 +6,8 @@ package metrics
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"sync"
-
-	"golang.org/x/exp/slices"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/consts"

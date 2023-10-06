@@ -7,9 +7,8 @@ import (
 	"bufio"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 func readLines(path string) ([]string, error) {
@@ -42,8 +41,8 @@ func ReadAvailFuncs(pattern string) ([]string, error) {
 		}
 	}
 
-	slices.Sort[string](list)
-	list = slices.Compact[[]string, string](list)
+	slices.Sort(list)
+	list = slices.Compact(list)
 
 	var r *regexp.Regexp
 
