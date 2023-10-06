@@ -140,13 +140,13 @@ func KprobeOpen(load *Program) OpenFunc {
 	}
 }
 
-func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec, symbol string) (unloader.Unloader, error) {
 	var linkFn func() (link.Link, error)
 
 	if load.RetProbe {
-		linkFn = func() (link.Link, error) { return link.Kretprobe(load.Attach, prog, nil) }
+		linkFn = func() (link.Link, error) { return link.Kretprobe(symbol, prog, nil) }
 	} else {
-		linkFn = func() (link.Link, error) { return link.Kprobe(load.Attach, prog, nil) }
+		linkFn = func() (link.Link, error) { return link.Kprobe(symbol, prog, nil) }
 	}
 
 	lnk, err := linkFn()
@@ -187,13 +187,13 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 			}
 
-			load.unloaderOverride, err = kprobeAttach(load, progOverride, progOverrideSpec)
+			load.unloaderOverride, err = kprobeAttach(load, progOverride, progOverrideSpec, load.Attach)
 			if err != nil {
 				logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 			}
 		}
 
-		return kprobeAttach(load, prog, spec)
+		return kprobeAttach(load, prog, spec, load.Attach)
 	}
 }
 
