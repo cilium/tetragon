@@ -4,7 +4,6 @@
 package tracingpolicy
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy/generate"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -27,10 +25,24 @@ func New() *cobra.Command {
 		Use:   "add <yaml_file>",
 		Short: "add a new sensor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				addTracingPolicy(ctx, cli, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := common.NewConnectedClient()
+			defer c.Close()
+
+			yamlb, err := os.ReadFile(args[0])
+			if err != nil {
+				return fmt.Errorf("failed to read yaml file %s: %w", args[0], err)
+			}
+
+			_, err = c.Client.AddTracingPolicy(c.Ctx, &tetragon.AddTracingPolicyRequest{
+				Yaml: string(yamlb),
 			})
+			if err != nil {
+				return fmt.Errorf("failed to add tracing policy: %w", err)
+			}
+			cmd.Printf("tracing policy %q added\n", args[0])
+
+			return nil
 		},
 	}
 
@@ -38,32 +50,63 @@ func New() *cobra.Command {
 		Use:   "delete <name>",
 		Short: "delete a tracing policy",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				deleteTracingPolicy(ctx, cli, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := common.NewConnectedClient()
+			defer c.Close()
+
+			_, err := c.Client.DeleteTracingPolicy(c.Ctx, &tetragon.DeleteTracingPolicyRequest{
+				Name: args[0],
 			})
+			if err != nil {
+				return fmt.Errorf("failed to delete tracing policy: %w", err)
+			}
+			cmd.Printf("tracing policy %q deleted\n", args[0])
+
+			return nil
 		},
 	}
 
 	tpEnableCmd := &cobra.Command{
 		Use:   "enable <name>",
 		Short: "enable a tracing policy",
+		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				enableTracingPolicy(ctx, cli, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := common.NewConnectedClient()
+			defer c.Close()
+
+			_, err := c.Client.EnableTracingPolicy(c.Ctx, &tetragon.EnableTracingPolicyRequest{
+				Name: args[0],
 			})
+			if err != nil {
+				return fmt.Errorf("failed to enable tracing policy: %w", err)
+			}
+			cmd.Printf("tracing policy %q enabled\n", args[0])
+
+			return nil
 		},
 	}
 
 	tpDisableCmd := &cobra.Command{
 		Use:   "disable <name>",
 		Short: "disable a tracing policy",
+		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				disableTracingPolicy(ctx, cli, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := common.NewConnectedClient()
+			defer c.Close()
+
+			_, err := c.Client.DisableTracingPolicy(c.Ctx, &tetragon.DisableTracingPolicyRequest{
+				Name: args[0],
 			})
+
+			if err != nil {
+				return fmt.Errorf("failed to disable tracing policy: %w", err)
+			}
+
+			cmd.Printf("tracing policy %q disabled\n", args[0])
+
+			return nil
 		},
 	}
 
@@ -78,90 +121,47 @@ func New() *cobra.Command {
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				listTracingPolicies(ctx, cli, tpListOutputFlag)
-			})
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := common.NewConnectedClient()
+			defer c.Close()
+
+			res, err := c.Client.ListTracingPolicies(c.Ctx, &tetragon.ListTracingPoliciesRequest{})
+			if err != nil || res == nil {
+				return fmt.Errorf("failed to list tracing policies: %w", err)
+			}
+
+			if tpListOutputFlag == "json" {
+				b, err := res.MarshalJSON()
+				if err != nil {
+					return fmt.Errorf("failed to generate json: %w", err)
+				}
+				cmd.Println(string(b))
+			} else {
+				for _, pol := range res.Policies {
+					namespace := pol.Namespace
+					if namespace == "" {
+						namespace = "(global)"
+					}
+
+					sensors := strings.Join(pol.Sensors, ",")
+					cmd.Printf("%d %s (%s) %s %s\n", pol.Id, pol.Name, pol.Info, namespace, sensors)
+				}
+			}
+
+			return nil
 		},
 	}
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
-	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpEnableCmd, tpDisableCmd, tpListCmd, generate.New())
+	tpCmd.AddCommand(
+		tpAddCmd,
+		tpDelCmd,
+		tpEnableCmd,
+		tpDisableCmd,
+		tpListCmd,
+		generate.New(),
+	)
+
 	return tpCmd
-}
-
-func addTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, yamlFname string) {
-	yamlb, err := os.ReadFile(yamlFname)
-	if err != nil {
-		fmt.Printf("failed to read yaml file %s: %s\n", yamlFname, err)
-		return
-	}
-
-	_, err = client.AddTracingPolicy(ctx, &tetragon.AddTracingPolicyRequest{
-		Yaml: string(yamlb),
-	})
-	if err != nil {
-		fmt.Printf("failed to add tracing policy: %s\n", err)
-	}
-}
-
-func deleteTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
-	_, err := client.DeleteTracingPolicy(ctx, &tetragon.DeleteTracingPolicyRequest{
-		Name: name,
-	})
-	if err != nil {
-		fmt.Printf("failed to delete tracing policy: %s\n", err)
-	}
-}
-
-func enableTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
-	_, err := client.EnableTracingPolicy(ctx, &tetragon.EnableTracingPolicyRequest{
-		Name: name,
-	})
-	if err != nil {
-		fmt.Printf("failed to enable tracing policy: %s\n", err)
-	}
-}
-
-func disableTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
-	_, err := client.DisableTracingPolicy(ctx, &tetragon.DisableTracingPolicyRequest{
-		Name: name,
-	})
-	if err != nil {
-		fmt.Printf("failed to disable tracing policy: %s\n", err)
-	}
-}
-
-func listTracingPoliciesText(res *tetragon.ListTracingPoliciesResponse) {
-	for _, pol := range res.Policies {
-		namespace := pol.Namespace
-		if namespace == "" {
-			namespace = "(global)"
-		}
-
-		sensors := strings.Join(pol.Sensors, ",")
-		fmt.Printf("%d %s (%s) %s %s\n", pol.Id, pol.Name, pol.Info, namespace, sensors)
-	}
-}
-
-func listTracingPolicies(
-	ctx context.Context,
-	client tetragon.FineGuidanceSensorsClient,
-	output string) {
-
-	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
-	if err != nil || res == nil {
-		logger.GetLogger().WithError(err).Fatal("failed to list tracing policies")
-	}
-
-	if output == "json" {
-		b, err := res.MarshalJSON()
-		if err != nil {
-			logger.GetLogger().WithError(err).Fatal("failed to generate json")
-		}
-		fmt.Println(string(b))
-	} else {
-		listTracingPoliciesText(res)
-	}
 }

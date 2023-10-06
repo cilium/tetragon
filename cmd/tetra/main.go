@@ -25,8 +25,9 @@ func main() {
 
 func New() *cobra.Command {
 	rootCmd = &cobra.Command{
-		Use:   "tetra",
-		Short: "Tetragon CLI",
+		Use:          "tetra",
+		Short:        "Tetragon CLI",
+		SilenceUsage: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -36,6 +37,8 @@ func New() *cobra.Command {
 			}
 		},
 	}
+	// by default, it fallbacks to stderr
+	rootCmd.SetOut(os.Stdout)
 
 	addCommands(rootCmd)
 	flags := rootCmd.PersistentFlags()

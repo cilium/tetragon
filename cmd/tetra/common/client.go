@@ -115,3 +115,48 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 func CliRun(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient)) {
 	CliRunErr(fn, func(_ error) {})
 }
+
+type ConnectedClient struct {
+	Client tetragon.FineGuidanceSensorsClient
+	Ctx    context.Context
+	conn   *grpc.ClientConn
+	cancel context.CancelFunc
+}
+
+// Close cleanup resources, it closes the connection and cancel the context
+func (c ConnectedClient) Close() {
+	c.conn.Close()
+	c.cancel()
+}
+
+// NewConnectedClient return a connected client to a tetragon server, caller
+// must call Close() on the client. On failure to connect, this function calls
+// Fatal() thus stopping execution.
+func NewConnectedClient() ConnectedClient {
+	c := ConnectedClient{}
+	c.Ctx, c.cancel = signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	var serverAddr string
+	var err error
+
+	backoff := time.Second
+	attempts := 0
+	for {
+		c.conn, serverAddr, err = connect(c.Ctx)
+		if err != nil {
+			if attempts < viper.GetInt(KeyRetries) {
+				// Exponential backoff
+				attempts++
+				logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Error("Connection attempt failed, retrying...")
+				time.Sleep(backoff)
+				backoff *= 2
+				continue
+			}
+			logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Fatal("Failed to connect to server")
+		}
+		break
+	}
+
+	c.Client = tetragon.NewFineGuidanceSensorsClient(c.conn)
+	return c
+}
