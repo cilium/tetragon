@@ -52,6 +52,10 @@ type ProcessInternal struct {
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt uint32
+
+	// cache id values for process/parent
+	cacheId       CacheId
+	parentCacheId CacheId
 }
 
 var (
@@ -64,6 +68,10 @@ var (
 var (
 	ErrProcessInfoMissing = errors.New("failed process info missing")
 )
+
+func GetProcessCacheId(pid uint32, ktime uint64) CacheId {
+	return CacheId{pid, ktime, nodeName}
+}
 
 func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	var err error
@@ -90,6 +98,14 @@ func FreeCache() {
 	procCache = nil
 }
 
+func (pi *ProcessInternal) GetProcessCacheId() CacheId {
+	return pi.cacheId
+}
+
+func (pi *ProcessInternal) GetParentCacheId() CacheId {
+	return pi.parentCacheId
+}
+
 // GetProcessCopy() duplicates tetragon.Process and returns it
 func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	if pi.process == nil {
@@ -114,6 +130,7 @@ func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 		apiBinaryProp: pi.apiBinaryProp,
 		namespaces:    pi.namespaces,
 		refcnt:        1, // Explicitly initialize refcnt to 1
+		parentCacheId: pi.cacheId,
 	}
 }
 
@@ -339,6 +356,8 @@ func initProcessInternalExec(
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
 		refcnt:        1,
+		cacheId:       GetProcessCacheId(process.PID, process.Ktime),
+		parentCacheId: GetProcessCacheId(parent.Pid, parent.Ktime),
 	}
 }
 
@@ -357,6 +376,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		return nil, err
 	}
 
+	pi.cacheId = GetProcessCacheId(event.PID, event.Ktime)
 	pi.process.ParentExecId = parentExecId
 	pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 	pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}

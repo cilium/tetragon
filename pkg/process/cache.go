@@ -15,6 +15,12 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+type CacheId struct {
+	pid      uint32
+	ktime    uint64
+	nodeName string
+}
+
 type Cache struct {
 	cache      *lru.Cache[string, *ProcessInternal]
 	size       int
