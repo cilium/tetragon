@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
@@ -22,7 +21,7 @@ type CacheId struct {
 }
 
 type Cache struct {
-	cache      *lru.Cache[string, *ProcessInternal]
+	cache      *lru.Cache[CacheId, *ProcessInternal]
 	size       int
 	deleteChan chan *ProcessInternal
 	stopChan   chan bool
@@ -81,7 +80,7 @@ func (pc *Cache) cacheGarbageCollector() {
 					}
 					if p.color == deleteReady {
 						p.color = deleted
-						pc.remove(p.process)
+						pc.remove(p.cacheId)
 					} else {
 						newQueue = append(newQueue, p)
 						p.color = deleteReady
@@ -137,7 +136,7 @@ func NewCache(
 ) (*Cache, error) {
 	lruCache, err := lru.NewWithEvict(
 		processCacheSize,
-		func(_ string, _ *ProcessInternal) {
+		func(_ CacheId, _ *ProcessInternal) {
 			mapmetrics.MapDropInc("processLru")
 		},
 	)
@@ -152,28 +151,28 @@ func NewCache(
 	return pm, nil
 }
 
-func (pc *Cache) get(processID string) (*ProcessInternal, error) {
+func (pc *Cache) get(processID CacheId) (*ProcessInternal, error) {
 	process, ok := pc.cache.Get(processID)
 	if !ok {
 		logger.GetLogger().WithField("id in event", processID).Debug("process not found in cache")
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
-		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
+		return nil, fmt.Errorf("invalid entry for process ID: %v", processID)
 	}
 	return process, nil
 }
 
 // Add a ProcessInternal structure to the cache. Must be called only from
 // clone or execve events
-func (pc *Cache) add(process *ProcessInternal) bool {
-	evicted := pc.cache.Add(process.process.ExecId, process)
+func (pc *Cache) add(cacheId CacheId, process *ProcessInternal) bool {
+	evicted := pc.cache.Add(cacheId, process)
 	if evicted {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
 	}
 	return evicted
 }
 
-func (pc *Cache) remove(process *tetragon.Process) bool {
-	present := pc.cache.Remove(process.ExecId)
+func (pc *Cache) remove(cacheId CacheId) bool {
+	present := pc.cache.Remove(cacheId)
 	if !present {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnRemove)
 	}

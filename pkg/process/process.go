@@ -424,14 +424,14 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	var parent, process *ProcessInternal
 	var err error
 
-	processID := GetProcessID(pid, ktime)
+	cacheId := GetProcessCacheId(pid, ktime)
 
-	if process, err = procCache.get(processID); err != nil {
-		logger.GetLogger().WithField("id in event", processID).WithField("pid", pid).WithField("ktime", ktime).Debug("process not found in cache")
+	if process, err = procCache.get(cacheId); err != nil {
+		logger.GetLogger().WithField("id in event", cacheId).WithField("pid", pid).WithField("ktime", ktime).Debug("process not found in cache")
 		return nil, nil
 	}
 
-	if parent, err = procCache.get(process.process.ParentExecId); err != nil {
+	if parent, err = procCache.get(process.parentCacheId); err != nil {
 		logger.GetLogger().WithField("id in event", process.process.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
 		return process, nil
 	}
@@ -449,14 +449,15 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc = initProcessInternalExec(event, event.CleanupProcess)
 	}
 
-	procCache.add(proc)
+	procCache.add(proc.cacheId, proc)
 	return proc
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
-	parent, err := Get(parentExecId)
+	parentCacheId := GetProcessCacheId(event.Parent.Pid, event.Parent.Ktime)
+	parent, err := Get(parentCacheId)
 	if err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":           "Clone",
@@ -472,12 +473,12 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	}
 
 	parent.RefInc()
-	procCache.add(proc)
+	procCache.add(proc.cacheId, proc)
 	return nil
 }
 
-func Get(execId string) (*ProcessInternal, error) {
-	return procCache.get(execId)
+func Get(cacheId CacheId) (*ProcessInternal, error) {
+	return procCache.get(cacheId)
 }
 
 // GetK8s returns K8sResourceWatcher. You must call InitCache before calling this function to ensure

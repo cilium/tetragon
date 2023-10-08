@@ -289,8 +289,8 @@ func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *s
 }
 
 func GetProcessRefcntFromCache(t *testing.T, Pid uint32, Ktime uint64) uint32 {
-	procID := process.GetProcessID(Pid, Ktime)
-	proc, err := process.Get(procID)
+	cacheId := process.GetProcessCacheId(Pid, Ktime)
+	proc, err := process.Get(cacheId)
 	if err == nil {
 		return proc.RefGet()
 	}
