@@ -43,46 +43,60 @@ char _license[] __attribute__((section("license"), used)) = "GPL";
 __attribute__((section("kprobe/security_bprm_committing_creds"), used)) void
 BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 {
-	struct execve_map_value *curr;
+	struct inode *inode;
 	struct execve_heap *heap;
 	struct task_struct *task;
-	__u32 pid, euid, uid, egid, gid, sec = 0, zero = 0;
+	struct super_block *sb;
+	struct msg_inode *exec_inode;
+	__u32 euid, uid, egid, gid, sec = 0, zero = 0;
 	__u64 tid;
-
-	sec = BPF_CORE_READ(bprm, per_clear);
-	/* If no flags to clear then this is not a privileged execution */
-	if (!sec)
-		return;
-
-	tid = get_current_pid_tgid();
-	pid = (tid >> 32);
-
-	curr = execve_map_get_noinit(pid);
-	if (!curr)
-		return;
 
 	heap = map_lookup_elem(&execve_heap, &zero);
 	if (!heap)
 		return;
 
-	memset(&heap->info, 0, sizeof(struct execve_info));
+	memset(&heap->info, 0, sizeof(struct msg_execve_info));
 
-	/* Check if this is a setuid or setgid */
-	euid = BPF_CORE_READ(bprm, cred, euid.val);
-	egid = BPF_CORE_READ(bprm, cred, egid.val);
+	sec = BPF_CORE_READ(bprm, per_clear);
+	/* If no flags to clear then this is not a privileged execution */
+	if (sec) {
+		/* Check if this is a setuid or setgid */
+		euid = BPF_CORE_READ(bprm, cred, euid.val);
+		egid = BPF_CORE_READ(bprm, cred, egid.val);
 
-	task = (struct task_struct *)get_current_task();
-	uid = BPF_CORE_READ(task, cred, uid.val);
-	gid = BPF_CORE_READ(task, cred, gid.val);
+		task = (struct task_struct *)get_current_task();
+		uid = BPF_CORE_READ(task, cred, uid.val);
+		gid = BPF_CORE_READ(task, cred, gid.val);
 
-	/* Is setuid? */
-	if (euid != uid)
-		heap->info.secureexec |= EXEC_SETUID;
-	/* Is setgid? */
-	if (egid != gid)
-		heap->info.secureexec |= EXEC_SETGID;
+		/* Is setuid? */
+		if (euid != uid)
+			heap->info.secureexec |= EXEC_SETUID;
+		/* Is setgid? */
+		if (egid != gid)
+			heap->info.secureexec |= EXEC_SETGID;
+	}
+
+	tid = get_current_pid_tgid();
+	exec_inode = &heap->info.file.inode;
+
+	inode = BPF_CORE_READ(bprm, file, f_inode);
+	exec_inode->i_ino = BPF_CORE_READ(inode, i_ino);
+	exec_inode->i_nlink = BPF_CORE_READ(inode, __i_nlink);
+	sb = BPF_CORE_READ(inode, i_sb);
+	if (sb) {
+		const char *sb_name;
+		struct msg_mount *fsmount = &heap->info.file.mount;
+
+		fsmount->s_dev = BPF_CORE_READ(sb, s_dev);
+		sb_name = BPF_CORE_READ(sb, s_type, name);
+		if (sb_name)
+			probe_read_str(fsmount->type, 7 * sizeof(char), sb_name);
+	}
 
 	/* Do we cache the entry? */
-	if (heap->info.secureexec != 0)
+	if (heap->info.secureexec != 0 || (exec_inode->i_nlink == 0 && exec_inode->i_ino != 0)) {
+		heap->info.isset = 1;
+		DEBUG(" ino %d  links: %d", exec_inode->i_ino, exec_inode->i_nlink);
 		execve_joined_info_map_set(tid, &heap->info);
+	}
 }

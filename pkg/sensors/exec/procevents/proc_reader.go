@@ -179,6 +179,9 @@ func pushExecveEvents(p procs) {
 		Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
 		Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
 	}
+
+	m.ExecInfo = processapi.MsgExecveInfo{}
+
 	m.Process.Flags = p.flags | flags
 	m.Process.Ktime = p.ktime
 	m.Common.Ktime = p.ktime

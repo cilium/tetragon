@@ -182,9 +182,11 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 			Effective:   1,
 			Inheritable: 1,
 		},
+		ExecInfo: processapi.MsgExecveInfo{
+			SecureExec: processapi.ExecveSetuid | processapi.ExecveSetgid,
+		},
 		Process: processapi.MsgProcess{
 			PID:        5678,
-			SecureExec: processapi.ExecveSetuid | processapi.ExecveSetgid,
 		},
 	}}
 

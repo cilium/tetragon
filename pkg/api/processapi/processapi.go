@@ -36,15 +36,15 @@ const (
 )
 
 type MsgExec struct {
-	Size       uint32
-	PID        uint32
-	TID        uint32
-	NSPID      uint32
-	SecureExec uint32
-	UID        uint32
-	AUID       uint32
-	Flags      uint32
-	Ktime      uint64
+	Size  uint32
+	PID   uint32
+	TID   uint32
+	NSPID uint32
+	Pad   uint32
+	UID   uint32
+	AUID  uint32
+	Flags uint32
+	Ktime uint64
 }
 
 type MsgExecveKey struct {
@@ -91,6 +91,22 @@ type MsgGenericCredMinimal struct {
 	Pad        uint32
 }
 
+type MsgFile struct {
+	Ino     uint64
+	Links   uint32
+	Pad     uint32
+	Type    [8]byte
+	SubType [8]byte
+	Dev     uint32
+	Pad1    uint32
+}
+
+type MsgExecveInfo struct {
+	File       MsgFile
+	SecureExec uint32
+	IsSet      uint32
+}
+
 type MsgExecveEvent struct {
 	Common         MsgCommon
 	Kube           MsgK8s
@@ -99,6 +115,7 @@ type MsgExecveEvent struct {
 	Capabilities   MsgCapabilities
 	Creds          MsgGenericCredMinimal
 	Namespaces     MsgNamespaces
+	ExecInfo       MsgExecveInfo
 	CleanupProcess MsgExecveKey
 }
 
@@ -110,6 +127,7 @@ type MsgExecveEventUnix struct {
 	Capabilities   MsgCapabilities
 	Creds          MsgGenericCredMinimal
 	Namespaces     MsgNamespaces
+	ExecInfo       MsgExecveInfo
 	CleanupProcess MsgExecveKey
 	Process        MsgProcess
 }
@@ -156,7 +174,7 @@ type MsgProcess struct {
 	PID        uint32
 	TID        uint32
 	NSPID      uint32
-	SecureExec uint32
+	Pad uint32
 	UID        uint32
 	AUID       uint32
 	Flags      uint32

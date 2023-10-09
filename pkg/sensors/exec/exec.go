@@ -31,6 +31,7 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix.Parent = m.Parent
 	unix.Capabilities = m.Capabilities
 	unix.Creds = m.Creds
+	unix.ExecInfo = m.ExecInfo
 
 	unix.Namespaces.UtsInum = m.Namespaces.UtsInum
 	unix.Namespaces.IpcInum = m.Namespaces.IpcInum
@@ -105,7 +106,6 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 	proc.Flags = exec.Flags
 	proc.Ktime = exec.Ktime
 	proc.AUID = exec.AUID
-	proc.SecureExec = exec.SecureExec
 
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
 	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {

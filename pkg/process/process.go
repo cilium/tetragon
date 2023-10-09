@@ -4,6 +4,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -181,6 +182,11 @@ func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process,
 		}
 	}
 
+	if pi.apiBinaryProp.File != nil {
+		prop.File = pi.apiBinaryProp.File
+		update = true
+	}
+
 	// Take a copy of the process, add the necessary fields to the
 	// final ProcessExec event
 	if update == true {
@@ -292,11 +298,31 @@ func initProcessInternalExec(
 		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
 	}
 
-	if (process.SecureExec & tetragonAPI.ExecveSetuid) != 0 {
-		apiBinaryProp.Setuid = &wrapperspb.UInt32Value{Value: creds.Euid}
-	}
-	if (process.SecureExec & tetragonAPI.ExecveSetgid) != 0 {
-		apiBinaryProp.Setgid = &wrapperspb.UInt32Value{Value: creds.Egid}
+	if event.ExecInfo.IsSet != 0 {
+		if (event.ExecInfo.SecureExec & tetragonAPI.ExecveSetuid) != 0 {
+			apiBinaryProp.Setuid = &wrapperspb.UInt32Value{Value: creds.Euid}
+		}
+		if (event.ExecInfo.SecureExec & tetragonAPI.ExecveSetgid) != 0 {
+			apiBinaryProp.Setgid = &wrapperspb.UInt32Value{Value: creds.Egid}
+		}
+
+		file := &event.ExecInfo.File
+		if file.Ino != 0 {
+			i := bytes.IndexByte(file.Type[:], 0)
+			if i == -1 {
+				i = 8
+			}
+			fs := &tetragon.FileSystem{Type: string(file.Type[:i]),}
+			mnt := &tetragon.FileSystemMount{Fs: fs,}
+			inode := &tetragon.Inode{
+				Number: file.Ino,
+				Links: &wrapperspb.UInt32Value{Value: 0},
+				Mount: mnt,
+			}
+			apiBinaryProp.File = &tetragon.File{
+				Inode: inode,
+			}
+		}
 	}
 
 	// Per thread tracking rules PID == TID

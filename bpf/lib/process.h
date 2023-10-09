@@ -7,6 +7,7 @@
 #include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "bpf_cred.h"
+#include "bpf_fs.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -162,7 +163,8 @@ struct msg_execve_key {
 /* This is the struct stored in bpf map to share info between
  * different execve hooks.
  */
-struct execve_info {
+struct msg_execve_info {
+	struct msg_file file;
 	/* The secureexec is to reflect the kernel bprm->secureexec that is exposed
 	 * to userspace through auxiliary vector which can be read from
 	 * /proc/self/auxv or https://man7.org/linux/man-pages/man3/getauxval.3.html
@@ -182,7 +184,7 @@ struct execve_info {
 	 *   EXEC_SETUID or EXEC_SETGID
 	 */
 	__u32 secureexec;
-	__u32 pad;
+	__u32 isset;
 };
 
 /* process information
@@ -195,7 +197,7 @@ struct msg_process {
 	__u32 pid; // Process TGID
 	__u32 tid; // Process thread
 	__u32 nspid;
-	__u32 secureexec;
+	__u32 pad;
 	__u32 uid;
 	__u32 auid;
 	__u32 flags;
@@ -279,6 +281,7 @@ struct msg_execve_event {
 	/* TODO: convert this msg_cred_minimal to msg_cred and include caps above inside */
 	struct msg_cred_minimal creds;
 	struct msg_ns ns;
+	struct msg_execve_info exec_info;
 	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of
 	 * validate_msg_execve_size() in bpf_execve_event.c */
@@ -345,7 +348,7 @@ struct execve_heap {
 		char pathname[PATHNAME_SIZE];
 		char maxpath[4096];
 	};
-	struct execve_info info;
+	struct msg_execve_info info;
 };
 
 struct {
@@ -376,7 +379,7 @@ struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__uint(max_entries, 8192);
 	__type(key, __u64);
-	__type(value, struct execve_info);
+	__type(value, struct msg_execve_info);
 } tg_execve_joined_info_map SEC(".maps");
 
 /* The tg_execve_joined_info_map_stats will hold stats about
@@ -486,7 +489,7 @@ static inline __attribute__((always_inline)) void execve_joined_info_map_error(v
 }
 
 static inline __attribute__((always_inline)) void
-execve_joined_info_map_set(__u64 tid, struct execve_info *info)
+execve_joined_info_map_set(__u64 tid, struct msg_execve_info *info)
 {
 	int err, zero = MAP_STATS_COUNT;
 	__s64 *cntr;
@@ -528,7 +531,7 @@ execve_joined_info_map_clear(__u64 tid)
 /* Returns an execve_info if found. A missing entry is perfectly fine as it
  * could mean we are not interested into storing more information about this task.
  */
-static inline __attribute__((always_inline)) struct execve_info *
+static inline __attribute__((always_inline)) struct msg_execve_info *
 execve_joined_info_map_get(__u64 tid)
 {
 	return map_lookup_elem(&tg_execve_joined_info_map, &tid);
