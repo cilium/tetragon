@@ -52,10 +52,9 @@ var defaultState = struct {
 func ApplyCRDDefault(rawPolicy []byte) (rawPolicyWithDefault []byte, namespaced bool, err error) {
 	defaultState.init.Do(func() {
 		// retrieve CRD
-		customTP := client.GetPregeneratedCRD(v1alpha1.TPCRDName)
 		var crvInternalTP ext.CustomResourceDefinition
 		err := extv1.Convert_v1_CustomResourceDefinition_To_apiextensions_CustomResourceDefinition(
-			&customTP,
+			&client.TracingPolicyCRD.Definition,
 			&crvInternalTP,
 			nil,
 		)
@@ -64,10 +63,9 @@ func ApplyCRDDefault(rawPolicy []byte) (rawPolicyWithDefault []byte, namespaced 
 			return
 		}
 
-		customTPN := client.GetPregeneratedCRD(v1alpha1.TPNamespacedCRDName)
 		var crvInternalTPN ext.CustomResourceDefinition
 		err = extv1.Convert_v1_CustomResourceDefinition_To_apiextensions_CustomResourceDefinition(
-			&customTPN,
+			&client.TracingPolicyNamespacedCRD.Definition,
 			&crvInternalTPN,
 			nil,
 		)
@@ -186,14 +184,15 @@ func ValidateCRDMeta(policy K8sTracingPolicyObject) []error {
 
 func ValidateCRDSpec(policy K8sTracingPolicyObject) (*validate.Result, error) {
 	validatorState.init.Do(func() {
-		var crds []extv1.CustomResourceDefinition
-		crds = append(crds, client.GetPregeneratedCRD(v1alpha1.TPCRDName))
-		crds = append(crds, client.GetPregeneratedCRD(v1alpha1.TPNamespacedCRDName))
+		crds := []*extv1.CustomResourceDefinition{
+			&client.TracingPolicyCRD.Definition,
+			&client.TracingPolicyNamespacedCRD.Definition,
+		}
 
 		// initialize the validators from the CRDs
 		for _, crd := range crds {
 			internal := &ext.CustomResourceDefinition{}
-			if err := extv1.Convert_v1_CustomResourceDefinition_To_apiextensions_CustomResourceDefinition(&crd, internal, nil); err != nil {
+			if err := extv1.Convert_v1_CustomResourceDefinition_To_apiextensions_CustomResourceDefinition(crd, internal, nil); err != nil {
 				validatorState.initError = err
 				return
 			}

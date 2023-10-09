@@ -17,9 +17,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/cilium/tetragon/pkg/k8s/crdutils"
 )
 
-var log = logging.DefaultLogger.WithField(logfields.LogSubsys, "crd")
+var (
+	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "crd")
+)
 
 func RegisterCRDs() {
 	restConfig, err := getConfig()
@@ -52,11 +56,19 @@ func RegisterCRDs() {
 			version.Version(), version.MinimalVersionConstraint)
 	}
 
+	crds := []crdutils.CRD{}
+	for _, crd := range client.AllCRDs {
+		if option.Config.SkipPodInfoCRD && crd.CRDName == client.PodInfoCRD.CRDName {
+			continue
+		}
+		crds = append(crds, crd)
+	}
+
 	// Register the CRDs after validating that we are running on a supported
 	// version of K8s.
 	if !option.Config.SkipCRDCreation {
 		// if skipPodInfoCRD flag set true, don't register Pod Info CRD.
-		if err := client.RegisterCRDs(k8sAPIExtClient, option.Config.SkipPodInfoCRD); err != nil {
+		if err := crdutils.RegisterCRDs(k8sAPIExtClient, crds); err != nil {
 			log.WithError(err).Fatal("Unable to Register CRDs")
 		}
 	} else {

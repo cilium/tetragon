@@ -245,6 +245,7 @@ github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io
 github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io/v1alpha1
 github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces
 github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1
+github.com/cilium/tetragon/pkg/k8s/crdutils
 github.com/cilium/tetragon/pkg/k8s/version
 # github.com/cncf/xds/go v0.0.0-20230607035331-e9ce68804cb4
 ## explicit; go 1.11

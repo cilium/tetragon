@@ -3,7 +3,9 @@
 
 package option
 
-import "github.com/spf13/viper"
+import (
+	"github.com/spf13/viper"
+)
 
 const (
 	TetragonOpEnvPrefix = "TETRAGON_OPERATOR"
