@@ -10,10 +10,8 @@ do filtering in kernel to ensure only interesting events are published
 to userspace from the BPF programs running in kernel. This ensures overhead
 remains low even on busy systems.
 
-# File Access Monitoring
-
 The following extens the example from Execution Tracing with a policy to
-monitor sensitive files in Linux. This will monitor the directory '/etc'
+monitor sensitive files in Linux. This will monitor the directory `/etc`
 and the following files known,
 
 ```
@@ -22,27 +20,31 @@ foo
 bar
 ```
 
-To apply the policy 
+To apply the policy
 
-{{< tabpane >}}
-{{< tab header="K8s" >}}          
+{{< tabpane lang=shell-session >}}
+
+{{< tab Kubernetes >}}
 kubectl apply -f tbd.yaml
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Docker" >}}          
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Systemd" >}}
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
+
+{{< tab Docker >}}
+{{< /tab >}}
+
+{{< tab Systemd >}}
+{{< /tab >}}
+
 {{< /tabpane >}}
 
 With the file applied we can attach tetra to observe events again,
 
-```
+```shell-session
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
 ```
 
 And once again execute a curl command in the xwing,
 
-```
+```shell-session
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
 ```
 

@@ -14,30 +14,34 @@ filters, such as namespace and labels we can segment a policy to apply to
 targeted pods. For implementation details see Enforcement section and for
 modifying and creating additional policies see Tracing Policies.
 
-# Enforcement
+## Enforcement
 
-To apply the policy 
+To apply the policy
 
-{{< tabpane >}}
-{{< tab header="K8s" >}}          
+{{< tabpane lang=shell-session >}}
+
+{{< tab Kubernetes >}}
 kubectl apply -f tbd.base-enforce.yaml
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Docker" >}}          
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Systemd" >}}
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
+
+{{< tab Docker >}}
+{{< /tab >}}
+
+{{< tab Systemd >}}
+{{< /tab >}}
+
 {{< /tabpane >}}
 
 With the file applied we can attach tetra to observe events again,
 
-```
- kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
+```shell-session
+ kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 ```
 
 And once again execute a curl command in the xwing,
 
-```
- kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
+```shell-session
+ kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 ```
 
 The CLI will print the exec tracing and file access as before, but will additional show the network connection outside the K8s cluster.

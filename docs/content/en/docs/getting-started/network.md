@@ -8,29 +8,31 @@ This adds a network policy on top of execution and file tracing
 already deployed in the quick start. In this case we monitor
 all network traffic outside the Kubernetes CIDR.
 
-# Network Access Monitoring
+To apply the policy
 
-To apply the policy 
+{{< tabpane lang=shell-session >}}
 
-{{< tabpane >}}
-{{< tab header="K8s" >}}          
+{{< tab Kubernetes >}}
 kubectl apply -f tbd.network.yaml
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Docker" >}}          
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab header="Systemd" >}}
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
+
+{{< tab Docker >}}
+{{< /tab >}}
+
+{{< tab Systemd >}}
+{{< /tab >}}
+
 {{< /tabpane >}}
 
 With the file applied we can attach tetra to observe events again,
 
-```
+```shell-session
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
 ```
 
 And once again execute a curl command in the xwing,
 
-```
+```shell-session
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
 ```
 

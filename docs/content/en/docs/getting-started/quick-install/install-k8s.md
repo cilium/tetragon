@@ -17,6 +17,29 @@ Run the following command to create the Kubernetes cluster:
 kind create cluster
 ```
 
+{{< tabpane text=true >}}
+{{% tab GKE %}}
+
+The following commands create a Kubernetes cluster using [Google
+Kubernetes Engine](https://cloud.google.com/kubernetes-engine). See
+[Installing Google Cloud SDK](https://cloud.google.com/sdk/install) for
+instructions on how to install `gcloud` and prepare your account.
+
+Create the node pool with the following taint to guarantee that Pods are only
+scheduled/executed in the node when Cilium is ready. Alternatively, see the
+note below.
+
+```shell-session
+export NAME="$(whoami)-$RANDOM"
+gcloud container clusters create "${NAME}" \
+ --node-taints node.cilium.io/agent-not-ready=true:NoExecute \
+ --zone us-west2-a
+gcloud container clusters get-credentials "${NAME}" --zone us-west2-a
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
+
 #### GKE
 
 Run the following command to create a GKE cluster:
