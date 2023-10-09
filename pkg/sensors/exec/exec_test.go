@@ -193,8 +193,13 @@ func TestEventExitThreads(t *testing.T) {
 	// check we got single exit event for each testThreadsExit
 	// execution and no more
 	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+		fmt.Printf("KRAVA EV %v\n", event)
 		switch ev := event.(type) {
+		case *tetragon.ProcessExec:
+			fmt.Printf("KRAVA EXEC pid %d\n", ev.Process.Pid.GetValue())
+			return false, nil
 		case *tetragon.ProcessExit:
+			fmt.Printf("KRAVA EXIT pid %d\n", ev.Process.Pid.GetValue())
 			if ev.Process.Binary != testThreadsExit {
 				return false, nil
 			}
@@ -226,6 +231,9 @@ func TestEventExitThreads(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+
+	fmt.Printf("KRAVA %v\n", tgids)
+	fmt.Printf("KRAVA rcv %d lost %d\n", obs.ReadReceivedEvents(), obs.ReadLostEvents())
 }
 
 func TestEventExecve(t *testing.T) {
