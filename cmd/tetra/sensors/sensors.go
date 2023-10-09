@@ -12,10 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Let's deprecated and remove this sensor interface and use the tracing policy
+// gRPCs. Those are accessible trough the tracingpolicy command.
 func New() *cobra.Command {
 	sensorsCmd := &cobra.Command{
-		Use:   "sensors",
-		Short: "Manage sensors",
+		Use:        "sensors",
+		Short:      "Manage sensors",
+		Deprecated: "please use the tracingpolicy command instead.",
 	}
 
 	sensorsListCmd := &cobra.Command{
