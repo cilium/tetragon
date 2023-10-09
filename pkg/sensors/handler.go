@@ -158,9 +158,11 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 		}
 
 		pol := tetragon.TracingPolicyStatus{
-			Id:   col.tracingpolicyID,
-			Name: name,
-			Info: fmt.Sprintf("%s enabled:%t filterID:%d error:%v", col.tracingpolicy.TpInfo(), col.enabled, col.policyfilterID, col.err),
+			Id:       col.tracingpolicyID,
+			Name:     name,
+			Enabled:  col.enabled,
+			FilterId: col.policyfilterID,
+			Error:    fmt.Sprint(col.err),
 		}
 
 		pol.Namespace = ""

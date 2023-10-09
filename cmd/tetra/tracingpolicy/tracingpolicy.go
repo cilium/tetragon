@@ -144,7 +144,36 @@ func New() *cobra.Command {
 					}
 
 					sensors := strings.Join(pol.Sensors, ",")
-					cmd.Printf("%d %s (%s) %s %s\n", pol.Id, pol.Name, pol.Info, namespace, sensors)
+
+					// From v0.11 and before, enabled, filterID and error were
+					// bundled in a string. To have a retro-compatible tetra
+					// command, we scan the string. If the scan fails, it means
+					// something else might be in Info and we print it.
+					//
+					// we can drop the following block (and comment) when we
+					// feel tetra should support only version after v0.11
+					if pol.Info != "" {
+						var parsedEnabled bool
+						var parsedFilterID uint64
+						var parsedError string
+						var parsedName string
+						str := strings.NewReader(pol.Info)
+						_, err := fmt.Fscanf(str, "%253s enabled:%t filterID:%d error:%512s", &parsedName, &parsedEnabled, &parsedFilterID, &parsedError)
+						if err == nil {
+							pol.Enabled = parsedEnabled
+							pol.FilterId = parsedFilterID
+							pol.Error = parsedError
+							pol.Info = ""
+						}
+					}
+
+					cmd.Printf("[%d] %s enabled:%t filterID:%d namespace:%s sensors:%s\n", pol.Id, pol.Name, pol.Enabled, pol.FilterId, namespace, sensors)
+					if pol.Info != "" {
+						cmd.Printf("\tinfo: %s\n", pol.Info)
+					}
+					if pol.Error != "" && pol.Error != "<nil>" {
+						cmd.Printf("\terror: %s\n", pol.Error)
+					}
 				}
 			}
 
