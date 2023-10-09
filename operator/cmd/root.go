@@ -29,6 +29,9 @@ func New() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			common.Initialize(cmd)
 		},
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			return viper.BindPFlags(cmd.Flags())
+		},
 	}
 
 	cobra.OnInitialize(func() {
@@ -48,7 +51,6 @@ func New() *cobra.Command {
 	})
 
 	common.AddCommonFlags(rootCmd)
-	viper.BindPFlags(rootCmd.Flags())
 	rootCmd.AddCommand(serve.New())
 	return rootCmd
 }
