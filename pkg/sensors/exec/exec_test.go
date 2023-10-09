@@ -209,11 +209,22 @@ func TestEventExitThreads(t *testing.T) {
 		}
 	}
 
+	var seenAll bool
+
 	finalCheck := func(l *logrus.Logger) error {
 		// Make sure we saw all pids
 		for pid, used := range tgids {
-			assert.True(t, used, "did not see exit event for pid %d", pid)
+			if !used {
+				t.Logf("Did not see exit event for pid %d", pid)
+
+				// Cleanup the 'seen' tgids for one more events iteration
+				for pid := range tgids {
+					tgids[pid] = false
+				}
+				return fmt.Errorf("final check failed")
+			}
 		}
+		seenAll = true
 		return nil
 	}
 
@@ -226,6 +237,8 @@ func TestEventExitThreads(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+
+	assert.True(t, seenAll, "did not see all exit events")
 }
 
 func TestEventExecve(t *testing.T) {
