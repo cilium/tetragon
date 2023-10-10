@@ -5,10 +5,18 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"testing"
+	"time"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Fuzz_parseString(f *testing.F) {
@@ -100,4 +108,65 @@ func Test_SensorDestroyHook(t *testing.T) {
 	if genericKprobeTable.Len() != 0 {
 		t.Errorf("genericKprobeTable expected length after cleanup: 0, got: %d", genericKprobeTable.Len())
 	}
+}
+
+// Test_Kprobe_DisableEnablePolicy tests that disabling and enabling a tracing
+// policy containing a kprobe works. This is following a regression:
+// https://github.com/cilium/tetragon/issues/1489
+func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	tus.LoadSensor(t, base.GetInitialSensor())
+	path := bpf.MapPrefixPath()
+	mgr, err := sensors.StartSensorManager(path, path, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		if err := mgr.StopSensorManager(ctx); err != nil {
+			panic("failed to stop sensor manager")
+		}
+	})
+
+	const policyName = "test"
+	policy := v1alpha1.TracingPolicy{
+		ObjectMeta: v1.ObjectMeta{
+			Name: policyName,
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "tcp_connect",
+					Syscall: false,
+				},
+			},
+		},
+	}
+
+	t.Run("sensor", func(t *testing.T) {
+		err = mgr.AddTracingPolicy(ctx, &policy)
+		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err = mgr.DeleteTracingPolicy(ctx, policyName)
+			assert.NoError(t, err)
+		})
+
+		err = mgr.DisableSensor(ctx, policyName)
+		assert.NoError(t, err)
+		err = mgr.EnableSensor(ctx, policyName)
+		assert.NoError(t, err)
+	})
+
+	t.Run("tracing-policy", func(t *testing.T) {
+		err = mgr.AddTracingPolicy(ctx, &policy)
+		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err = mgr.DeleteTracingPolicy(ctx, policyName)
+			assert.NoError(t, err)
+		})
+
+		err = mgr.DisableTracingPolicy(ctx, policyName)
+		assert.NoError(t, err)
+		err = mgr.EnableTracingPolicy(ctx, policyName)
+		assert.NoError(t, err)
+	})
 }
