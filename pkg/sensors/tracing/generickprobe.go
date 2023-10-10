@@ -591,7 +591,7 @@ func createGenericKprobeSensor(
 
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
-// properly removed on kprobe unload.
+// properly removed on kprobe removal.
 func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps *selectors.KernelSelectorMaps) (out *addKprobeOut, err error) {
 	var argSigPrinters []argPrinters
 	var argReturnPrinters []argPrinters

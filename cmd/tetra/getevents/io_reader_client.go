@@ -63,6 +63,14 @@ func (i *ioReaderClient) DeleteTracingPolicy(_ context.Context, _ *tetragon.Dele
 	panic("stub")
 }
 
+func (i *ioReaderClient) EnableTracingPolicy(_ context.Context, _ *tetragon.EnableTracingPolicyRequest, _ ...grpc.CallOption) (*tetragon.EnableTracingPolicyResponse, error) {
+	panic("stub")
+}
+
+func (i *ioReaderClient) DisableTracingPolicy(_ context.Context, _ *tetragon.DisableTracingPolicyRequest, _ ...grpc.CallOption) (*tetragon.DisableTracingPolicyResponse, error) {
+	panic("stub")
+}
+
 func (i *ioReaderClient) ListTracingPolicies(_ context.Context, _ *tetragon.ListTracingPoliciesRequest, _ ...grpc.CallOption) (*tetragon.ListTracingPoliciesResponse, error) {
 	panic("stub")
 }
