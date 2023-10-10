@@ -78,8 +78,12 @@
     - [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse)
     - [DisableSensorRequest](#tetragon-DisableSensorRequest)
     - [DisableSensorResponse](#tetragon-DisableSensorResponse)
+    - [DisableTracingPolicyRequest](#tetragon-DisableTracingPolicyRequest)
+    - [DisableTracingPolicyResponse](#tetragon-DisableTracingPolicyResponse)
     - [EnableSensorRequest](#tetragon-EnableSensorRequest)
     - [EnableSensorResponse](#tetragon-EnableSensorResponse)
+    - [EnableTracingPolicyRequest](#tetragon-EnableTracingPolicyRequest)
+    - [EnableTracingPolicyResponse](#tetragon-EnableTracingPolicyResponse)
     - [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest)
     - [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
@@ -1351,6 +1355,31 @@ Determins the behaviour of a field filter
 
 
 
+<a name="tetragon-DisableTracingPolicyRequest"></a>
+
+### DisableTracingPolicyRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-DisableTracingPolicyResponse"></a>
+
+### DisableTracingPolicyResponse
+
+
+
+
+
+
+
 <a name="tetragon-EnableSensorRequest"></a>
 
 ### EnableSensorRequest
@@ -1369,6 +1398,31 @@ Determins the behaviour of a field filter
 <a name="tetragon-EnableSensorResponse"></a>
 
 ### EnableSensorResponse
+
+
+
+
+
+
+
+<a name="tetragon-EnableTracingPolicyRequest"></a>
+
+### EnableTracingPolicyRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-EnableTracingPolicyResponse"></a>
+
+### EnableTracingPolicyResponse
 
 
 
@@ -1561,6 +1615,8 @@ Determins the behaviour of a field filter
 | DeleteTracingPolicy | [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest) | [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
 | ListTracingPolicies | [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest) | [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse) |  |
+| EnableTracingPolicy | [EnableTracingPolicyRequest](#tetragon-EnableTracingPolicyRequest) | [EnableTracingPolicyResponse](#tetragon-EnableTracingPolicyResponse) |  |
+| DisableTracingPolicy | [DisableTracingPolicyRequest](#tetragon-DisableTracingPolicyRequest) | [DisableTracingPolicyResponse](#tetragon-DisableTracingPolicyResponse) |  |
 | ListSensors | [ListSensorsRequest](#tetragon-ListSensorsRequest) | [ListSensorsResponse](#tetragon-ListSensorsResponse) |  |
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |

@@ -57,6 +57,16 @@ message DeleteTracingPolicyRequest {
 }
 message DeleteTracingPolicyResponse {}
 
+message EnableTracingPolicyRequest {
+	string name = 1;
+}
+message EnableTracingPolicyResponse {}
+
+message DisableTracingPolicyRequest {
+	string name = 1;
+}
+message DisableTracingPolicyResponse {}
+
 message RemoveSensorRequest {
 	string name = 1;
 }
@@ -96,6 +106,8 @@ service FineGuidanceSensors {
     rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
     rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
     rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
+    rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {}
+    rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {}
 
     rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {}
     rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {}

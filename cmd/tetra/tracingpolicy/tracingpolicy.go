@@ -18,8 +18,9 @@ import (
 
 func New() *cobra.Command {
 	tpCmd := &cobra.Command{
-		Use:   "tracingpolicy",
-		Short: "Manage tracing policies",
+		Use:     "tracingpolicy",
+		Aliases: []string{"tp"},
+		Short:   "Manage tracing policies",
 	}
 
 	tpAddCmd := &cobra.Command{
@@ -44,6 +45,28 @@ func New() *cobra.Command {
 		},
 	}
 
+	tpEnableCmd := &cobra.Command{
+		Use:   "enable <name>",
+		Short: "enable a tracing policy",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				enableTracingPolicy(ctx, cli, args[0])
+			})
+		},
+	}
+
+	tpDisableCmd := &cobra.Command{
+		Use:   "disable <name>",
+		Short: "disable a tracing policy",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				disableTracingPolicy(ctx, cli, args[0])
+			})
+		},
+	}
+
 	var tpListOutputFlag string
 	tpListCmd := &cobra.Command{
 		Use:   "list",
@@ -64,7 +87,7 @@ func New() *cobra.Command {
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
-	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpListCmd, generate.New())
+	tpCmd.AddCommand(tpAddCmd, tpDelCmd, tpEnableCmd, tpDisableCmd, tpListCmd, generate.New())
 	return tpCmd
 }
 
@@ -89,6 +112,24 @@ func deleteTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensor
 	})
 	if err != nil {
 		fmt.Printf("failed to delete tracing policy: %s\n", err)
+	}
+}
+
+func enableTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
+	_, err := client.EnableTracingPolicy(ctx, &tetragon.EnableTracingPolicyRequest{
+		Name: name,
+	})
+	if err != nil {
+		fmt.Printf("failed to enable tracing policy: %s\n", err)
+	}
+}
+
+func disableTracingPolicy(ctx context.Context, client tetragon.FineGuidanceSensorsClient, name string) {
+	_, err := client.DisableTracingPolicy(ctx, &tetragon.DisableTracingPolicyRequest{
+		Name: name,
+	})
+	if err != nil {
+		fmt.Printf("failed to disable tracing policy: %s\n", err)
 	}
 }
 

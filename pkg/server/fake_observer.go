@@ -38,6 +38,14 @@ func (f *FakeObserver) DeleteTracingPolicy(ctx context.Context, sensorName strin
 	return nil
 }
 
+func (f *FakeObserver) EnableTracingPolicy(ctx context.Context, sensorName string) error {
+	return nil
+}
+
+func (f *FakeObserver) DisableTracingPolicy(ctx context.Context, sensorName string) error {
+	return nil
+}
+
 func (f *FakeObserver) RemoveSensor(ctx context.Context, sensorName string) error {
 	return nil
 }

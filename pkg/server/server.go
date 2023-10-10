@@ -43,6 +43,10 @@ type observer interface {
 	DeleteTracingPolicy(ctx context.Context, name string) error
 	// ListTracingPolicies lists active traing policies
 	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
+	DisableTracingPolicy(ctx context.Context, name string) error
+	EnableTracingPolicy(ctx context.Context, name string) error
+	// ListTracingPolicies lists active traing policies
+	// ListTracingPolicies lists active traing policies
 
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error
@@ -268,6 +272,34 @@ func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTr
 		return nil, err
 	}
 	return &tetragon.DeleteTracingPolicyResponse{}, nil
+}
+
+func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTracingPolicyRequest) (*tetragon.EnableTracingPolicyResponse, error) {
+	logger.GetLogger().WithFields(logrus.Fields{
+		"name": req.GetName(),
+	}).Debug("Received a EnableTracingPolicy request")
+
+	if err := s.observer.EnableTracingPolicy(ctx, req.GetName()); err != nil {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"name": req.GetName(),
+		}).WithError(err).Warn("Server EnableTracingPolicy request failed")
+		return nil, err
+	}
+	return &tetragon.EnableTracingPolicyResponse{}, nil
+}
+
+func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.DisableTracingPolicyRequest) (*tetragon.DisableTracingPolicyResponse, error) {
+	logger.GetLogger().WithFields(logrus.Fields{
+		"name": req.GetName(),
+	}).Debug("Received a DisableTracingPolicy request")
+
+	if err := s.observer.DisableTracingPolicy(ctx, req.GetName()); err != nil {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"name": req.GetName(),
+		}).WithError(err).Warn("Server DisableTracingPolicy request failed")
+		return nil, err
+	}
+	return &tetragon.DisableTracingPolicyResponse{}, nil
 }
 
 func (s *Server) ListTracingPolicies(ctx context.Context, req *tetragon.ListTracingPoliciesRequest) (*tetragon.ListTracingPoliciesResponse, error) {

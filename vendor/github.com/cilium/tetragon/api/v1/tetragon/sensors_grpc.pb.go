@@ -22,18 +22,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FineGuidanceSensors_GetEvents_FullMethodName           = "/tetragon.FineGuidanceSensors/GetEvents"
-	FineGuidanceSensors_GetHealth_FullMethodName           = "/tetragon.FineGuidanceSensors/GetHealth"
-	FineGuidanceSensors_AddTracingPolicy_FullMethodName    = "/tetragon.FineGuidanceSensors/AddTracingPolicy"
-	FineGuidanceSensors_DeleteTracingPolicy_FullMethodName = "/tetragon.FineGuidanceSensors/DeleteTracingPolicy"
-	FineGuidanceSensors_RemoveSensor_FullMethodName        = "/tetragon.FineGuidanceSensors/RemoveSensor"
-	FineGuidanceSensors_ListTracingPolicies_FullMethodName = "/tetragon.FineGuidanceSensors/ListTracingPolicies"
-	FineGuidanceSensors_ListSensors_FullMethodName         = "/tetragon.FineGuidanceSensors/ListSensors"
-	FineGuidanceSensors_EnableSensor_FullMethodName        = "/tetragon.FineGuidanceSensors/EnableSensor"
-	FineGuidanceSensors_DisableSensor_FullMethodName       = "/tetragon.FineGuidanceSensors/DisableSensor"
-	FineGuidanceSensors_GetStackTraceTree_FullMethodName   = "/tetragon.FineGuidanceSensors/GetStackTraceTree"
-	FineGuidanceSensors_GetVersion_FullMethodName          = "/tetragon.FineGuidanceSensors/GetVersion"
-	FineGuidanceSensors_RuntimeHook_FullMethodName         = "/tetragon.FineGuidanceSensors/RuntimeHook"
+	FineGuidanceSensors_GetEvents_FullMethodName            = "/tetragon.FineGuidanceSensors/GetEvents"
+	FineGuidanceSensors_GetHealth_FullMethodName            = "/tetragon.FineGuidanceSensors/GetHealth"
+	FineGuidanceSensors_AddTracingPolicy_FullMethodName     = "/tetragon.FineGuidanceSensors/AddTracingPolicy"
+	FineGuidanceSensors_DeleteTracingPolicy_FullMethodName  = "/tetragon.FineGuidanceSensors/DeleteTracingPolicy"
+	FineGuidanceSensors_RemoveSensor_FullMethodName         = "/tetragon.FineGuidanceSensors/RemoveSensor"
+	FineGuidanceSensors_ListTracingPolicies_FullMethodName  = "/tetragon.FineGuidanceSensors/ListTracingPolicies"
+	FineGuidanceSensors_EnableTracingPolicy_FullMethodName  = "/tetragon.FineGuidanceSensors/EnableTracingPolicy"
+	FineGuidanceSensors_DisableTracingPolicy_FullMethodName = "/tetragon.FineGuidanceSensors/DisableTracingPolicy"
+	FineGuidanceSensors_ListSensors_FullMethodName          = "/tetragon.FineGuidanceSensors/ListSensors"
+	FineGuidanceSensors_EnableSensor_FullMethodName         = "/tetragon.FineGuidanceSensors/EnableSensor"
+	FineGuidanceSensors_DisableSensor_FullMethodName        = "/tetragon.FineGuidanceSensors/DisableSensor"
+	FineGuidanceSensors_GetStackTraceTree_FullMethodName    = "/tetragon.FineGuidanceSensors/GetStackTraceTree"
+	FineGuidanceSensors_GetVersion_FullMethodName           = "/tetragon.FineGuidanceSensors/GetVersion"
+	FineGuidanceSensors_RuntimeHook_FullMethodName          = "/tetragon.FineGuidanceSensors/RuntimeHook"
 )
 
 // FineGuidanceSensorsClient is the client API for FineGuidanceSensors service.
@@ -46,6 +48,8 @@ type FineGuidanceSensorsClient interface {
 	DeleteTracingPolicy(ctx context.Context, in *DeleteTracingPolicyRequest, opts ...grpc.CallOption) (*DeleteTracingPolicyResponse, error)
 	RemoveSensor(ctx context.Context, in *RemoveSensorRequest, opts ...grpc.CallOption) (*RemoveSensorResponse, error)
 	ListTracingPolicies(ctx context.Context, in *ListTracingPoliciesRequest, opts ...grpc.CallOption) (*ListTracingPoliciesResponse, error)
+	EnableTracingPolicy(ctx context.Context, in *EnableTracingPolicyRequest, opts ...grpc.CallOption) (*EnableTracingPolicyResponse, error)
+	DisableTracingPolicy(ctx context.Context, in *DisableTracingPolicyRequest, opts ...grpc.CallOption) (*DisableTracingPolicyResponse, error)
 	ListSensors(ctx context.Context, in *ListSensorsRequest, opts ...grpc.CallOption) (*ListSensorsResponse, error)
 	EnableSensor(ctx context.Context, in *EnableSensorRequest, opts ...grpc.CallOption) (*EnableSensorResponse, error)
 	DisableSensor(ctx context.Context, in *DisableSensorRequest, opts ...grpc.CallOption) (*DisableSensorResponse, error)
@@ -139,6 +143,24 @@ func (c *fineGuidanceSensorsClient) ListTracingPolicies(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *fineGuidanceSensorsClient) EnableTracingPolicy(ctx context.Context, in *EnableTracingPolicyRequest, opts ...grpc.CallOption) (*EnableTracingPolicyResponse, error) {
+	out := new(EnableTracingPolicyResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_EnableTracingPolicy_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fineGuidanceSensorsClient) DisableTracingPolicy(ctx context.Context, in *DisableTracingPolicyRequest, opts ...grpc.CallOption) (*DisableTracingPolicyResponse, error) {
+	out := new(DisableTracingPolicyResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_DisableTracingPolicy_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *fineGuidanceSensorsClient) ListSensors(ctx context.Context, in *ListSensorsRequest, opts ...grpc.CallOption) (*ListSensorsResponse, error) {
 	out := new(ListSensorsResponse)
 	err := c.cc.Invoke(ctx, FineGuidanceSensors_ListSensors_FullMethodName, in, out, opts...)
@@ -203,6 +225,8 @@ type FineGuidanceSensorsServer interface {
 	DeleteTracingPolicy(context.Context, *DeleteTracingPolicyRequest) (*DeleteTracingPolicyResponse, error)
 	RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error)
 	ListTracingPolicies(context.Context, *ListTracingPoliciesRequest) (*ListTracingPoliciesResponse, error)
+	EnableTracingPolicy(context.Context, *EnableTracingPolicyRequest) (*EnableTracingPolicyResponse, error)
+	DisableTracingPolicy(context.Context, *DisableTracingPolicyRequest) (*DisableTracingPolicyResponse, error)
 	ListSensors(context.Context, *ListSensorsRequest) (*ListSensorsResponse, error)
 	EnableSensor(context.Context, *EnableSensorRequest) (*EnableSensorResponse, error)
 	DisableSensor(context.Context, *DisableSensorRequest) (*DisableSensorResponse, error)
@@ -232,6 +256,12 @@ func (UnimplementedFineGuidanceSensorsServer) RemoveSensor(context.Context, *Rem
 }
 func (UnimplementedFineGuidanceSensorsServer) ListTracingPolicies(context.Context, *ListTracingPoliciesRequest) (*ListTracingPoliciesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTracingPolicies not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) EnableTracingPolicy(context.Context, *EnableTracingPolicyRequest) (*EnableTracingPolicyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EnableTracingPolicy not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) DisableTracingPolicy(context.Context, *DisableTracingPolicyRequest) (*DisableTracingPolicyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DisableTracingPolicy not implemented")
 }
 func (UnimplementedFineGuidanceSensorsServer) ListSensors(context.Context, *ListSensorsRequest) (*ListSensorsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSensors not implemented")
@@ -374,6 +404,42 @@ func _FineGuidanceSensors_ListTracingPolicies_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FineGuidanceSensors_EnableTracingPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableTracingPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).EnableTracingPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FineGuidanceSensors_EnableTracingPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).EnableTracingPolicy(ctx, req.(*EnableTracingPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FineGuidanceSensors_DisableTracingPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableTracingPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).DisableTracingPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FineGuidanceSensors_DisableTracingPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).DisableTracingPolicy(ctx, req.(*DisableTracingPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FineGuidanceSensors_ListSensors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSensorsRequest)
 	if err := dec(in); err != nil {
@@ -508,6 +574,14 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTracingPolicies",
 			Handler:    _FineGuidanceSensors_ListTracingPolicies_Handler,
+		},
+		{
+			MethodName: "EnableTracingPolicy",
+			Handler:    _FineGuidanceSensors_EnableTracingPolicy_Handler,
+		},
+		{
+			MethodName: "DisableTracingPolicy",
+			Handler:    _FineGuidanceSensors_DisableTracingPolicy_Handler,
 		},
 		{
 			MethodName: "ListSensors",
