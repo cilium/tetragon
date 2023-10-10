@@ -193,7 +193,6 @@ func TestEventExitThreads(t *testing.T) {
 	// check we got single exit event for each testThreadsExit
 	// execution and no more
 	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
-		fmt.Printf("KRAVA EV %v\n", event)
 		switch ev := event.(type) {
 		case *tetragon.ProcessExec:
 			fmt.Printf("KRAVA EXEC pid %d\n", ev.Process.Pid.GetValue())
