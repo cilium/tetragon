@@ -198,6 +198,10 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	return meta, nil
 }
 
+func multiKprobePinPath(sensorPath string) string {
+	return sensors.PathJoin(sensorPath, "multi_kprobe")
+}
+
 func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -209,7 +213,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 		loadProgRetName = "bpf_multi_retkprobe_v61.o"
 	}
 
-	pinPath := sensors.PathJoin(sensorPath, "multi_kprobe")
+	pinPath := multiKprobePinPath(sensorPath)
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
@@ -756,10 +760,10 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 	genericKprobeTable.AddEntry(&kprobeEntry)
 	tidx := kprobeEntry.tableId.ID
 	out.tableEntryIndex = tidx
-	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", tidx))
 	config.FuncId = uint32(tidx)
 
 	if in.useMulti {
+		kprobeEntry.pinPathPrefix = multiKprobePinPath(in.sensorPath)
 		if setRetprobe {
 			out.multiRetIDs = append(out.multiRetIDs, kprobeEntry.tableId)
 		}
@@ -772,6 +776,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 		return out, nil
 	}
 
+	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", tidx))
 	pinPath := kprobeEntry.pinPathPrefix
 	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
 
