@@ -421,6 +421,8 @@ message ProcessKprobe {
     KprobeAction action = 6;
     // Kernel stack trace to the call.
     repeated StackTraceEntry stack_trace = 7;
+    // Name of the Tracing Policy that created that kprobe.
+    string policy_name = 8;
 }
 
 message ProcessTracepoint {
@@ -435,6 +437,8 @@ message ProcessTracepoint {
     // Arguments definition of the observed tracepoint.
     // TODO: once we implement all we want, rename KprobeArgument to GenericArgument
     repeated KprobeArgument args = 6;
+    // Name of the policy that created that tracepoint.
+    string policy_name = 7;
 }
 
 message ProcessUprobe {
@@ -442,6 +446,8 @@ message ProcessUprobe {
     Process parent = 2;
     string path = 3;
     string symbol = 4;
+    // Name of the policy that created that uprobe.
+    string policy_name = 5;
 }
 
 message KernelModule {
