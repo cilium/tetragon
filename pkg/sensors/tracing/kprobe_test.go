@@ -5450,3 +5450,63 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestKprobeStackTrace(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	tracingPolicy := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: uname
+spec:
+  kprobes:
+    - call: sys_newuname
+      selectors:
+      - matchActions:
+        - action: Post
+          stackTrace: true`
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	unameBin := "/usr/bin/uname"
+
+	if err := exec.Command(unameBin).Run(); err != nil {
+		t.Fatalf("failed to run %s: %s", unameBin, err)
+	}
+
+	stackTraceChecker := ec.NewProcessKprobeChecker("stack-trace").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(unameBin))).
+		WithStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("sys_newuname"))),
+			// we could technically check for more but stack traces look
+			// different on different archs, at least we check that the stack
+			// trace is enabled, works and exports something coherent
+			//
+			// syscall  /usr/bin/uname __x64_sys_newuname
+			//   0x0: __x64_sys_newuname+0x5
+			//   0x0: entry_SYSCALL_64_after_hwframe+0x72
+			//
+			// syscall  /usr/bin/uname __arm64_sys_newuname
+			//   0x0: __do_sys_newuname+0x2f0
+			//   0x0: el0_svc_common.constprop.0+0x180
+			//   0x0: do_el0_svc+0x30
+			//   0x0: el0_svc+0x48
+			//   0x0: el0t_64_sync_handler+0xa4
+			//   0x0: el0t_64_sync+0x1a4
+		))
+
+	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
