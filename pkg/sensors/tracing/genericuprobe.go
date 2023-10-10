@@ -91,6 +91,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Tid = m.Tid
 	unix.Path = uprobeEntry.path
 	unix.Symbol = uprobeEntry.symbol
+	unix.PolicyName = uprobeEntry.policyName
 
 	return []observer.Event{unix}, err
 }

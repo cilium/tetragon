@@ -295,6 +295,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Return:       tetragonReturnArg,
 		Action:       kprobeAction(event.Action),
 		StackTrace:   stackTrace,
+		PolicyName:   event.PolicyName,
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -396,11 +397,12 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	tetragonEvent := &tetragon.ProcessTracepoint{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Subsys:  msg.Subsys,
-		Event:   msg.Event,
-		Args:    tetragonArgs,
+		Process:    tetragonProcess,
+		Parent:     tetragonParent,
+		Subsys:     msg.Subsys,
+		Event:      msg.Event,
+		Args:       tetragonArgs,
+		PolicyName: msg.PolicyName,
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -622,10 +624,11 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	tetragonEvent := &tetragon.ProcessUprobe{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Path:    event.Path,
-		Symbol:  event.Symbol,
+		Process:    tetragonProcess,
+		Parent:     tetragonParent,
+		Path:       event.Path,
+		Symbol:     event.Symbol,
+		PolicyName: event.PolicyName,
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
