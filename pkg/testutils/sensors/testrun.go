@@ -111,6 +111,10 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	bpf.CheckOrMountDebugFS()
 	bpf.ConfigureResourceLimits()
 
+	if config.TetragonLib != "" {
+		option.Config.HubbleLib = config.TetragonLib
+	}
+
 	bpf.SetMapPrefix(testMapDir)
 	defer func() {
 		log := logger.GetLogger()
