@@ -8,31 +8,36 @@ description: "Discover and experiment with Tetragon in a kubernetes environment"
 
 If you don’t have a Kubernetes Cluster yet, you can use the instructions below to create a Kubernetes cluster locally or using a managed Kubernetes service:
 
-TBD tabplane this...
+{{< tabpane text=true >}}
+{{% tab GKE %}}
 
-#### Kind
+The following commands create a Kubernetes cluster using [Google
+Kubernetes Engine](https://cloud.google.com/kubernetes-engine). See
+[Installing Google Cloud SDK](https://cloud.google.com/sdk/install) for
+instructions on how to install `gcloud` and prepare your account.
 
-Run the following command to create the Kubernetes cluster:
+```shell-session
+export NAME="$(whoami)-$RANDOM"
+gcloud container clusters create "${NAME}" --zone us-west2-a
+gcloud container clusters get-credentials "${NAME}" --zone us-west2-a
 ```
+{{% /tab %}}
+
+{{% tab Kind %}}
+Run the following command to create the Kubernetes cluster:
+
+```shell-session
 kind create cluster
 ```
+{{% /tab %}}
 
-#### GKE
-
-Run the following command to create a GKE cluster:
-
-```shell
-export NAME="$(whoami)-$RANDOM"
-gcloud container clusters create "${NAME}" \
-  --zone us-west2-a \
-  --num-nodes 1
-```
+{{< /tabpane >}}
 
 ### Deploy Tetragon
 
 To install and deploy Tetragon, run the following commands:
 
-```shell
+```shell-session
 helm repo add cilium https://helm.cilium.io
 helm repo update
 helm install tetragon cilium/tetragon -n kube-system
@@ -51,24 +56,18 @@ HTTP application, but any workload would work equally well.
 To use our [demo
 application](https://docs.cilium.io/en/v1.11/gettingstarted/http/#deploy-the-demo-application)
 
-```shell
+```shell-session
 kubectl create -f https://raw.githubusercontent.com/cilium/cilium/v1.11/examples/minikube/http-sw-app.yaml
 ```
 
 Before going forward, verify that all pods are up and running - it might take
 several seconds for some pods until they satisfy all the dependencies:
 
-```shell
+```shell-session
 kubectl get pods
-```
-
-The output should be similar to:
-```
 NAME                         READY   STATUS    RESTARTS   AGE
 deathstar-6c94dcc57b-7pr8c   1/1     Running   0          10s
 deathstar-6c94dcc57b-px2vw   1/1     Running   0          10s
 tiefighter                   1/1     Running   0          10s
 xwing                        1/1     Running   0          10s
 ```
-
-
