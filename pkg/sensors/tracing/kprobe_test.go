@@ -3083,7 +3083,7 @@ func openFile(t *testing.T, file string) int {
 }
 
 // reads 32 bytes from a file, this will trigger a sys_read.
-func readFile(t *testing.T, file string) int {
+func readFile(t *testing.T, file string) {
 	fd := openFile(t, file)
 	var readBytes = make([]byte, 32)
 	i, errno := syscall.Read(fd, readBytes)
@@ -3091,7 +3091,17 @@ func readFile(t *testing.T, file string) int {
 		t.Logf("syscall.Read failed: %s\n", errno)
 		t.Fatal()
 	}
-	return fd
+}
+
+func readMmapFile(t *testing.T, file string) {
+	fd := openFile(t, file)
+	data, errno := syscall.Mmap(fd, 0, 32, syscall.PROT_READ, syscall.MAP_FILE|syscall.MAP_SHARED)
+	if errno != nil {
+		t.Logf("syscall.Mmap failed: %s\n", errno)
+		t.Fatal()
+	}
+	defer syscall.Munmap(data)
+	// no need to copy data as we capture mmap call
 }
 
 func createFdInstallChecker(fd int, filename string) *ec.ProcessKprobeChecker {
@@ -5507,6 +5517,110 @@ spec:
 		))
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeMultiMatcArgs(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support matchArgs for more than one arguments")
+	}
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring-filtered"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "int" # 0x04 is MAY_READ, 0x02 is MAY_WRITE
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "4" # MAY_READ
+  - call: "security_mmap_file"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "uint32" # the prot flags PROT_READ(0x01), PROT_WRITE(0x02), PROT_EXEC(0x04)
+    - index: 2
+      type: "nop" # the mmap flags (i.e. MAP_SHARED, ...)
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchArgs:      
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/shadow"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "1" # MAY_READ
+`
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// read with system call /etc/passwd
+	readFile(t, "/etc/passwd")
+
+	// read with mmap /etc/shadow
+	readMmapFile(t, "/etc/shadow")
+
+	kpCheckersRead := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_permission")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full("/etc/passwd"))),
+				ec.NewKprobeArgumentChecker().WithIntArg(4),
+			))
+
+	kpCheckersMmap := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_mmap_file")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full("/etc/shadow"))),
+				ec.NewKprobeArgumentChecker().WithUintArg(1),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
