@@ -58,6 +58,7 @@ Helm chart for Tetragon
 | tetragon.exportFileCompress | bool | `false` |  |
 | tetragon.exportFileMaxBackups | int | `5` |  |
 | tetragon.exportFileMaxSizeMB | int | `10` |  |
+| tetragon.exportFilePerm | string | `"600"` |  |
 | tetragon.exportFilename | string | `"tetragon.log"` |  |
 | tetragon.exportRateLimit | int | `-1` |  |
 | tetragon.extraArgs | object | `{}` |  |
