@@ -10,7 +10,8 @@ all network traffic outside the Kubernetes CIDR.
 
 # Network Access Monitoring
 
-To apply the policy
+First we apply a policy that includes the podCIDR and serviceIP list as filters
+to avoid filter out cluster local traffic. To apply the policy,
 
 {{< tabpane lang=shell-session >}}
 
@@ -42,9 +43,9 @@ sites.
 A connect will be observed in the tetra shell
 
 ```shell-session
-🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 
-🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443 
-💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 60 
+🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon
+🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443
+💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 60
 ```
 
 We can confirm in-kernel BPF filters are not producing events for in cluster
@@ -55,4 +56,13 @@ event.
 $ kubectl exec -ti xwing -- bash -c 'curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing'
 Ship landed
 ```
+
+And as expected no new events,
+
+```shell-session
+🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon
+🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443
+💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 60
+```
+
 # Whats Next
