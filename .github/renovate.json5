@@ -12,9 +12,10 @@
     "^/tmp/install-buildx$", 
     "^make codegen$", 
     "^make generate$", 
+    "^make vendor$",
     "^install/kubernetes/test.sh$",
     "^go mod vendor$",
-    "^install-tool golang [0-9]\\.[0-9]+\\.[0-9]+$"
+    "^install-tool golang \\$\\(grep -oP '\\^go \\\\K\\.\\+' go\\.mod\\)$"
   ],
   // repository configuration
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
@@ -198,8 +199,7 @@
         // We need to trigger a golang install manually here because in some
         // cases it might not be preinstalled, see:
         // https://github.com/renovatebot/renovate/discussions/23485
-        // renovate: datasource=golang-version depName=go
-        "commands": ["install-tool golang 1.21.2", "go mod vendor"],
+        "commands": ["install-tool golang $(grep -oP '^go \\K.+' go.mod)", "make vendor"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       },
@@ -355,15 +355,6 @@
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s]*)"
-      ]
-    },
-    {
-      "customType": "regex",
-      "fileMatch": [
-        "^\\.github/renovate\\.json5$"
-      ],
-      "matchStrings": [
-        "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+install-tool golang (?<currentValue>[^'\"]*)"
       ]
     },
     {
