@@ -59,6 +59,7 @@ type config struct {
 	ExportFileMaxBackups       int
 	ExportFileCompress         bool
 	ExportRateLimit            int
+	ExportFilePerm             string
 
 	// Export aggregation options
 	EnableExportAggregation     bool
