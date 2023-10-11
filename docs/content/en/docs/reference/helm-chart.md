@@ -75,6 +75,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.exportFileCompress | bool | `false` |  |
 | tetragon.exportFileMaxBackups | int | `5` |  |
 | tetragon.exportFileMaxSizeMB | int | `10` |  |
+| tetragon.exportFilePerm | string | `"600"` |  |
 | tetragon.exportFilename | string | `"tetragon.log"` |  |
 | tetragon.exportRateLimit | int | `-1` |  |
 | tetragon.extraArgs | object | `{}` |  |

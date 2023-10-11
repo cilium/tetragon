@@ -15,6 +15,7 @@ data:
   process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
 {{- if .Values.tetragon.exportFilename }}
   export-filename: {{ .Values.exportDirectory}}/{{ .Values.tetragon.exportFilename }}
+  export-file-perm: {{ .Values.tetragon.exportFilePerm | quote }}
   export-file-max-size-mb: {{ .Values.tetragon.exportFileMaxSizeMB | quote }}
   export-file-max-backups: {{ .Values.tetragon.exportFileMaxBackups | quote }}
   export-file-compress: {{ .Values.tetragon.exportFileCompress | quote }}
