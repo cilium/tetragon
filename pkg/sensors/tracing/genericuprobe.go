@@ -201,7 +201,7 @@ func createGenericUprobeSensor(
 		}
 
 		// Parse Filters into kernel filter logic
-		uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil)
+		uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
