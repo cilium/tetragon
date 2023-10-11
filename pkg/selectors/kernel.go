@@ -1258,7 +1258,7 @@ func parseSelector(
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable, nil)
+	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable, nil, nil)
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1266,8 +1266,8 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 }
 
 func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader) (*KernelSelectorState, error) {
-	kernelSelectors := NewKernelSelectorState(listReader)
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+	kernelSelectors := NewKernelSelectorState(listReader, maps)
 
 	WriteSelectorUint32(kernelSelectors, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))

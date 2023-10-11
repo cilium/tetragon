@@ -503,6 +503,7 @@ func createGenericKprobeSensor(
 	var maps []*program.Map
 	var multiIDs, multiRetIDs []idtable.EntryID
 	var useMulti bool
+	var selMaps *selectors.KernelSelectorMaps
 
 	// use multi kprobe only if:
 	// - it's not disabled by user
@@ -518,6 +519,9 @@ func createGenericKprobeSensor(
 	}
 
 	addedKprobeIndices := []int{}
+	if useMulti {
+		selMaps = &selectors.KernelSelectorMaps{}
+	}
 	for i := range kprobes {
 		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
 		if err != nil {
@@ -528,7 +532,7 @@ func createGenericKprobeSensor(
 		kprobes[i].Syscall = syscall
 
 		for idx := range syms {
-			out, err := addKprobe(syms[idx], &kprobes[i], &in)
+			out, err := addKprobe(syms[idx], &kprobes[i], &in, selMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -581,7 +585,7 @@ func createGenericKprobeSensor(
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe unload.
-func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *addKprobeOut, err error) {
+func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps *selectors.KernelSelectorMaps) (out *addKprobeOut, err error) {
 	var argSigPrinters []argPrinters
 	var argReturnPrinters []argPrinters
 	var setRetprobe bool
@@ -747,7 +751,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (out *a
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil)
+	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, selMaps)
 	if err != nil {
 		return nil, err
 	}

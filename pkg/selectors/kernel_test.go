@@ -221,7 +221,7 @@ func TestParseMatchArg(t *testing.T) {
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
-	k := &KernelSelectorState{off: 0}
+	k := NewKernelSelectorState(nil, nil)
 	expected1 := []byte{
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
@@ -318,7 +318,7 @@ func TestParseMatchArg(t *testing.T) {
 		expected3 := append(length, expected1[:]...)
 		expected3 = append(expected3, expected2[:]...)
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
-		ks := &KernelSelectorState{off: 0}
+		ks := NewKernelSelectorState(nil, nil)
 		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, ks.e[0:ks.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, ks.e[0:k.off], arg3)
 		}
