@@ -187,13 +187,6 @@
         "Dockerfile"
       ],
     },
-    // Upgrade the Go module directive, see:
-    // https://docs.renovatebot.com/modules/versioning/#go-modules-directive-versioning
-    // depName is 'go' so it will be group with the 'Go' groupName
-    {
-      "matchDatasources": ["golang-version"],
-      "rangeStrategy": "bump",
-    },
     {
       "groupName": "Go",
       "matchDepNames": [
@@ -349,11 +342,7 @@
         "^\\.github/workflows/[^/]+\\.ya?ml$"
       ],
       "matchStrings": [
-        // this regex is used to match both:
-        //
-        // # renovate: datasource=golang-version depName=go
-        // go: '1.20.8'
-        //
+        // this regex is used to match:
         // # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
         // - 'bpf-next-20230912.113936'
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+ ['\"]?(?<currentValue>[^'\"\\s]*)"
@@ -384,6 +373,16 @@
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+GOLANGCILINT_WANT_VERSION[[:blank:]]*=[[:blank:]]*(?<currentValue>[^\\s]*)"
+      ]
+    },
+    {
+      "customType": "regex",
+      // match all go.mod in all subfolders
+      "fileMatch": [
+        "go\\.mod$"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+go (?<currentValue>.*)"
       ]
     }
   ]
