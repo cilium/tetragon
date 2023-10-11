@@ -39,6 +39,9 @@ const (
 
 	// Default directory from where to load tracing policies.
 	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
+
+	// Default secure export logs permissions
+	DefaultLogsPermission = "600"
 )
 
 var (

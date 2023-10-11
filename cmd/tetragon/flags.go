@@ -50,6 +50,7 @@ const (
 	keyExportFileMaxBackups       = "export-file-max-backups"
 	keyExportFileCompress         = "export-file-compress"
 	keyExportRateLimit            = "export-rate-limit"
+	keyExportFilePerm             = "export-file-perm"
 
 	keyEnableExportAggregation     = "enable-export-aggregation"
 	keyExportAggregationWindowSize = "export-aggregation-window-size"
@@ -126,6 +127,7 @@ func readAndSetFlags() {
 	option.Config.ExportFileMaxBackups = viper.GetInt(keyExportFileMaxBackups)
 	option.Config.ExportFileCompress = viper.GetBool(keyExportFileCompress)
 	option.Config.ExportRateLimit = viper.GetInt(keyExportRateLimit)
+	option.Config.ExportFilePerm = viper.GetString(keyExportFilePerm)
 
 	option.Config.EnableExportAggregation = viper.GetBool(keyEnableExportAggregation)
 	option.Config.ExportAggregationWindowSize = viper.GetDuration(keyExportAggregationWindowSize)
