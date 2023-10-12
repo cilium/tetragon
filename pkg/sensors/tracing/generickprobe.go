@@ -1159,6 +1159,12 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, fmt.Errorf("Failed to match id")
 	}
 
+	return handleMsgGenericKprobe(&m, gk, r)
+}
+
+func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes.Reader) ([]observer.Event, error) {
+	var err error
+
 	switch m.ActionId {
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
 		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
