@@ -23,6 +23,5 @@ spec:
       - index: 0
         operator: "NotDAddr"
         values:
-        - "10.32.0.0/24"
-        - "10.36.13.58"
-        - "10.36.0.1"
+        - ${PODCIDR}
+        - ${SERVICECIDR}
