@@ -23,16 +23,21 @@ kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o co
 {{< tab Docker >}}
 docker exec tetragon-container tetra getevents -o compact
 {{< /tab >}}                                                                                                                                                                                   
-{{< tab Systemd >}}
-{{< /tab >}}                                                                                                                                                                                   
 {{< /tabpane >}}
 
 This will print a compact form of the exec logs. For an example we do the following
 with the demo application.
 
-```shell-session
+
+{{< tabpane lang=shell-session >}}
+{{< tab Kubernetes >}}
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
-```
+{{< /tab >}}                                                                                                                                                                                   
+{{< tab Docker >}}
+curl https://ebpf.io/applications/#tetragon
+{{< /tab >}}                                                                                                                                                                                   
+{{< /tabpane >}}
+
 The CLI will print a compact form of the event to the terminal
 
 ```shell-session
@@ -53,11 +58,11 @@ kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents
 {{< tab Docker >}}          
 docker exec tetragon-container tetra getevents
 {{< /tab >}}                                                                                                                                                                                   
-{{< tab Systemd >}}
-{{< /tab >}}                                                                                                                                                                                   
 {{< /tabpane >}}
 
 This will include a lot more details related the binary and event. A full example of the above curl is hown here,
+In a Kubernetes environment this will include the Kubernetes metadata include the Pod, Container, Namespaces, and
+Labels among other useful metadata.
 
 <details><summary>Process execution event</summary>
 <p>
@@ -139,8 +144,9 @@ This will include a lot more details related the binary and event. A full exampl
 }
 
 ```
-
 </p>
 </details>
 
 ## What's next
+
+Execution events are the most basic event Tetragon can produce. To see how to use tracing policies to enable file monitoring see the [File Access Monitoring]({{< ref "/docs/getting-started/file-events" >}})quickstart. To see a network policy check the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) quickstart.

@@ -1,5 +1,5 @@
 ---
-title: "Try Tetragon locally "
+title: "Quick Local Docker Install"
 weight: 1
 description: "Discover and experiment with Tetragon on your local Linux host"
 ---
@@ -30,3 +30,7 @@ docker run --name tetragon-container --rm --pull always \
 
 This will start Tetragon in a privileged container. Priviliges are required
 to load and attach BPF programs. See Installation section for more details.
+
+## Whats Next
+
+[Check for execution events.]({{< ref "/docs/getting-started/execution" >}}).
