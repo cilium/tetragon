@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -84,6 +85,9 @@ type genericTracepoint struct {
 
 	// parsed kernel selector state
 	selectors *selectors.KernelSelectorState
+
+	// custom event handler
+	customHandler eventhandler.Handler
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -317,6 +321,7 @@ func createGenericTracepoint(
 	conf *GenericTracepointConf,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	customHandler eventhandler.Handler,
 ) (*genericTracepoint, error) {
 	tp := tracepoint.Tracepoint{
 		Subsys: conf.Subsystem,
@@ -333,11 +338,12 @@ func createGenericTracepoint(
 	}
 
 	ret := &genericTracepoint{
-		Info:       &tp,
-		Spec:       conf,
-		args:       tpArgs,
-		policyID:   policyID,
-		policyName: policyName,
+		Info:          &tp,
+		Spec:          conf,
+		args:          tpArgs,
+		policyID:      policyID,
+		policyName:    policyName,
+		customHandler: customHandler,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
@@ -352,11 +358,12 @@ func createGenericTracepointSensor(
 	policyID policyfilter.PolicyID,
 	policyName string,
 	lists []v1alpha1.ListSpec,
+	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {
-		tp, err := createGenericTracepoint(name, &confs[i], policyID, policyName)
+		tp, err := createGenericTracepoint(name, &confs[i], policyID, policyName, customHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -631,7 +638,11 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		return []observer.Event{unix}, nil
 	}
 
-	return handleMsgGenericTracepoint(&m, unix, tp, r)
+	ret, err := handleMsgGenericTracepoint(&m, unix, tp, r)
+	if tp.customHandler != nil {
+		ret, err = tp.customHandler(ret, err)
+	}
+	return ret, err
 }
 
 func handleMsgGenericTracepoint(

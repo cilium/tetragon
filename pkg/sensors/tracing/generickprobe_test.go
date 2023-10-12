@@ -77,7 +77,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 			Call:    "test_symbol",
 			Syscall: false,
 		},
-	}, 0, "test_policy", nil)
+	}, 0, "test_policy", nil, nil)
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}
