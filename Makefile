@@ -87,7 +87,7 @@ endif
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 
 .PHONY: all
-all: tetragon-bpf tetragon tetra tetragon-alignchecker test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
+all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
 -include Makefile.docker
 -include Makefile.cli
@@ -160,7 +160,7 @@ tetragon-bpf-container:
 verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
-.PHONY: tetragon tetra tetragon-operator tetragon-alignchecker tetragon-bench
+.PHONY: tetragon tetra tetragon-operator tetragon-bench
 tetragon:
 	$(GO_BUILD) ./cmd/tetragon/
 
@@ -173,8 +173,9 @@ tetragon-bench:
 tetragon-operator:
 	$(GO_BUILD) -o $@ ./operator
 
-tetragon-alignchecker:
-	$(GO_BUILD) -o $@ ./tools/alignchecker/
+.PHONY: alignchecker
+alignchecker:
+	$(GO) test -c ./pkg/alignchecker -o alignchecker
 
 .PHONY: ksyms
 ksyms:
@@ -206,7 +207,7 @@ vendor:
 .PHONY: clean
 clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
-	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./tetragon-alignchecker
+	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
