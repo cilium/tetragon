@@ -68,9 +68,9 @@ sites.
 A connect will be observed in the tetra shell
 
 ```shell-session
-🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon
+🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon
 🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443
-💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 60
+💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
 We can confirm in-kernel BPF filters are not producing events for in cluster
@@ -85,9 +85,9 @@ Ship landed
 And as expected no new events,
 
 ```shell-session
-🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon
+🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon
 🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443
-💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragonon 60
+💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
 # Whats Next
