@@ -631,6 +631,16 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		return []observer.Event{unix}, nil
 	}
 
+	return handleMsgGenericTracepoint(&m, unix, tp, r)
+}
+
+func handleMsgGenericTracepoint(
+	m *tracingapi.MsgGenericTracepoint,
+	unix *tracing.MsgGenericTracepointUnix,
+	tp *genericTracepoint,
+	r *bytes.Reader,
+) ([]observer.Event, error) {
+
 	switch m.ActionId {
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
 		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
