@@ -23,5 +23,6 @@ spec:
       - index: 0
         operator: "NotDAddr"
         values:
+        - 127.0.0.1
         - ${PODCIDR}
         - ${SERVICECIDR}

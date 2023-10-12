@@ -14,9 +14,11 @@ remains low even on busy systems.
 
 The following extends the example from Execution Tracing with a policy to
 monitor sensitive files in Linux. The policy used is the [`file-monitoring.yaml`](https://github.com/cilium/tetragon/blob/main/quickstart/file-monitoring.yaml) it can be reviewed and extended
-as needed. However, files monitored here serve as a good base set of files.
+as needed. Files monitored here serve as a good base set of files.
 
-To apply the policy
+To apply the policy Kubernetes uses a CRD that can be applied with kubectl.
+Uses the same YAML configuration as Kuberenetes, but loaded through a file
+on disk.
 
 {{< tabpane lang=shell-session >}}
 
@@ -24,23 +26,39 @@ To apply the policy
 kubectl apply -f http://github.com/cilium/tetragon/quickstart/file-monitoring.yaml
 {{< /tab >}}                                                                                                                                                                                   
 {{< tab Docker >}}          
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab Systemd >}}
-{{< /tab >}}                                                                                                                                                                                   
+wget http://github.com/cilium/tetragon/quickstart/file-monitoring.yaml
+docker stop tetragon-container
+docker run --name tetragon-container --rm --pull always \
+  --pid=host --cgroupns=host --privileged               \
+  -v ${PWD}/file_monitoring.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring.yaml \
+  -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
+  quay.io/cilium/tetragon-ci:latest
+{{< /tab >}}
 {{< /tabpane >}}
 
 With the file applied we can attach tetra to observe events again,
 
-```shell-session
+{{< tabpane lang=shell-session >}}
+{{< tab Kubernetes >}}          
  kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
-```
+{{< /tab >}}
+{{< tab Docker >}}          
+docker exec tetragon-container tetra getevents -o compact
+{{< /tab >}}
+{{< /tabpane >}}
+
 Then reading a sensitive file,
 
-```shell-session
+{{< tabpane lang=shell-session >}}
+{{< tab Kubernetes >}}          
  kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
-```
+{{< /tab >}}
+{{< tab Docker >}}          
+cat /etc/shadow
+{{< /tab >}}
+{{< /tabpane >}}
 
-This will generate a read event,
+This will generate a read event (Docker events will omit Kubernetes metadata),
 
 ```shell-session
 🚀 process default/xwing /bin/bash -c "cat /etc/shadow"
@@ -59,3 +77,6 @@ Attempts to write in sensitive directories will similar create an event. For exa
 ```
 
 # What's next
+
+To explore tracing policies for networking try the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) quickstart.
+To dive into the details of policies and events please see [Concepts]({{< ref "docs/concepts" >}}) section.

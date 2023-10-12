@@ -1,5 +1,5 @@
 ---
-title: "Try Tetragon on Kubernetes"
+title: "Quick Kubernetes Install"
 weight: 1
 description: "Discover and experiment with Tetragon in a kubernetes environment"
 ---
