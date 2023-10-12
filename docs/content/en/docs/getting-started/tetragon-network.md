@@ -6,9 +6,36 @@ description: "Network Access Traces with Tetragon"
 
 This adds a network policy on top of execution and file tracing
 already deployed in the quick start. In this case we monitor
-all network traffic outside the Kubernetes CIDR.
+all network traffic outside the Kubernetes pod CIDR and service
+CIDR.
 
 # Network Access Monitoring
+
+First we must find the pod CIDR and service CIDR in use. The pod
+IP CIDR can be found relatively easily in many cases.
+
+```shell-session
+export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
+```
+
+The services CIDR can then be fetched depending on environment. We
+require environment variables ZONE, PROJECT, and NAME from install steps.
+
+{{< tabpane text=true >}}
+{{% tab GKE %}}
+
+```shell-session
+export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} --project ${PROJECT} | awk '/servicesIpv4CidrBlock/ { print $2; }')
+```
+{{% /tab %}}
+
+{{% tab Kind %}}
+```shell-session
+export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-plane | awk -F= '/--service-cluster-ip-range/ {print $2; }')
+```
+{{% /tab %}}
+
+{{< /tabpane >}}
 
 First we apply a policy that includes the podCIDR and serviceIP list as filters
 to avoid filter out cluster local traffic. To apply the policy,
@@ -17,9 +44,7 @@ to avoid filter out cluster local traffic. To apply the policy,
 
 {{< tab Kubernetes >}}          
 wget http://github.com/cilium/tetragon/quickstart/network_egress_cluster.yaml
-kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'| awk '{ for (i = 1; i <= NF; i++) print "        - \"" $i "\"" }' >> network_egress_cluster.yaml
-kubectl get services -o jsonpath='{.items[*].spec.clusterIP}'| awk '{ for (i = 1; i <= NF; i++) print "        - \"" $i "\"" }' >> network_egress_cluster.yaml
-kubectl apply -f network_egress_cluster.yaml
+envsubst < network_egress_cluster.yaml | kubectl apply -f -
 {{< /tab >}}                                                                                                                                                                   
 {{< tab Docker >}}          
 {{< /tab >}}                                                                                                                                                                                   
