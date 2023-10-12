@@ -7,18 +7,19 @@
 #include "process/retprobe_map.h"
 #include "process/types/basic.h"
 
-struct msg_generic_kprobe _1;
-struct msg_execve_event _2;
-struct msg_exit _3;
-struct msg_test _4;
-struct msg_cgroup_event _5;
-struct msg_cred _6;
-struct msg_cred_minimal _7;
+// event messages
+struct msg_generic_kprobe _msg_generic_kprobe;
+struct msg_execve_event _msg_execve_event;
+struct msg_exit _msg_exit;
+struct msg_test _msg_test;
+struct msg_cgroup_event _msg_cgroup_event;
+struct msg_cred _msg_cred;
+struct msg_cred_minimal _msg_cred_minimal;
 
 // from maps
-struct event _8;
-struct msg_execve_key _9;
-struct execve_map_value _10;
-struct event_config _11;
-struct tetragon_conf _12;
-struct cgroup_tracking_value _13;
+struct event _event;
+struct msg_execve_key _msg_execve_key;
+struct execve_map_value _execve_map_value;
+struct event_config _event_config;
+struct tetragon_conf _tetragon_conf;
+struct cgroup_tracking_value _cgroup_tracking_value;
