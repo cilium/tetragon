@@ -59,7 +59,10 @@ docker exec tetragon-container tetra getevents
 
 This will include a lot more details related the binary and event. A full example of the above curl is hown here,
 
-```
+<details><summary>Process execution event</summary>
+<p>
+
+```json
 {
   "process_exec": {
     "process": {
@@ -136,5 +139,8 @@ This will include a lot more details related the binary and event. A full exampl
 }
 
 ```
+
+</p>
+</details>
 
 ## What's next
