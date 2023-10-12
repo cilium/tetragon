@@ -335,7 +335,7 @@
   ],
   // Those regexes manage version strings in variousfiles, similar to the
   // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
-  "regexManagers": [
+  "customManagers": [
     {
       "customType": "regex",
       "fileMatch": [
