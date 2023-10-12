@@ -73,11 +73,11 @@ var (
 )
 
 func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
-	allowList, err := filters.ParseFilterList(viper.GetString(keyExportAllowlist), viper.GetBool(keyEnablePidSetFilter))
+	allowList, err := filters.ParseFilterList(viper.GetString(option.KeyExportAllowlist), viper.GetBool(option.KeyEnablePidSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
-	denyList, err := filters.ParseFilterList(viper.GetString(keyExportDenylist), viper.GetBool(keyEnablePidSetFilter))
+	denyList, err := filters.ParseFilterList(viper.GetString(option.KeyExportDenylist), viper.GetBool(option.KeyEnablePidSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -85,7 +85,7 @@ func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 }
 
 func getFieldFilters() ([]*tetragon.FieldFilter, error) {
-	fieldFilters := viper.GetString(keyFieldFilters)
+	fieldFilters := viper.GetString(option.KeyFieldFilters)
 
 	filters, err := filters.ParseFieldFilterList(fieldFilters)
 	if err != nil {
@@ -172,8 +172,8 @@ func tetragonExecute() error {
 		log.Info("Force loading smallprograms")
 	}
 
-	if viper.IsSet(keyNetnsDir) {
-		defaults.NetnsDir = viper.GetString(keyNetnsDir)
+	if viper.IsSet(option.KeyNetnsDir) {
+		defaults.NetnsDir = viper.GetString(option.KeyNetnsDir)
 	}
 
 	checkprocfs.Check()
@@ -584,7 +584,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	perms, err := fileutils.RegularFilePerms(option.Config.ExportFilePerm)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to parse export file permission '%s', failing back to %v",
-			keyExportFilePerm, perms)
+			option.KeyExportFilePerm, perms)
 	}
 	writer.FileMode = perms
 
@@ -709,7 +709,7 @@ func execute() error {
 		Use:   "tetragon",
 		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
 		Run: func(cmd *cobra.Command, args []string) {
-			readAndSetFlags()
+			option.ReadAndSetFlags()
 
 			if err := startGopsServer(); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
@@ -727,96 +727,96 @@ func execute() error {
 
 	flags := rootCmd.PersistentFlags()
 
-	flags.String(keyConfigDir, "", "Configuration directory that contains a file for each option")
-	flags.BoolP(keyDebug, "d", false, "Enable debug messages. Equivalent to '--log-level=debug'")
-	flags.String(keyHubbleLib, defaults.DefaultTetragonLib, "Location of Tetragon libs (btf and bpf files)")
-	flags.String(keyBTF, "", "Location of btf")
+	flags.String(option.KeyConfigDir, "", "Configuration directory that contains a file for each option")
+	flags.BoolP(option.KeyDebug, "d", false, "Enable debug messages. Equivalent to '--log-level=debug'")
+	flags.String(option.KeyHubbleLib, defaults.DefaultTetragonLib, "Location of Tetragon libs (btf and bpf files)")
+	flags.String(option.KeyBTF, "", "Location of btf")
 
-	flags.String(keyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
-	flags.String(keyKernelVersion, "", "Kernel version")
-	flags.Int(keyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
-	flags.Int(keyProcessCacheSize, 65536, "Size of the process cache")
-	flags.Int(keyDataCacheSize, 1024, "Size of the data events cache")
-	flags.Bool(keyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
-	flags.Bool(keyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")
-	flags.String(keyExportFilename, "", "Filename for JSON export. Disabled by default")
-	flags.Int(keyExportFileMaxSizeMB, 10, "Size in MB for rotating JSON export files")
-	flags.Duration(keyExportFileRotationInterval, 0, "Interval at which to rotate JSON export files in addition to rotating them by size")
-	flags.Int(keyExportFileMaxBackups, 5, "Number of rotated JSON export files to retain")
-	flags.Bool(keyExportFileCompress, false, "Compress rotated JSON export files")
-	flags.String(keyExportFilePerm, defaults.DefaultLogsPermission, "Access permissions on JSON export files")
-	flags.Int(keyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
-	flags.String(keyLogLevel, "info", "Set log level")
-	flags.String(keyLogFormat, "text", "Set log format")
-	flags.Bool(keyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
-	flags.String(keyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
-	flags.Bool(keyEnableProcessAncestors, true, "Include ancestors in process exec events")
-	flags.String(keyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
-	flags.String(keyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
-	flags.String(keyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
-	flags.Bool(keyEnableProcessCred, false, "Enable process_cred events")
-	flags.Bool(keyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
-	flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
+	flags.String(option.KeyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
+	flags.String(option.KeyKernelVersion, "", "Kernel version")
+	flags.Int(option.KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
+	flags.Int(option.KeyProcessCacheSize, 65536, "Size of the process cache")
+	flags.Int(option.KeyDataCacheSize, 1024, "Size of the data events cache")
+	flags.Bool(option.KeyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
+	flags.Bool(option.KeyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")
+	flags.String(option.KeyExportFilename, "", "Filename for JSON export. Disabled by default")
+	flags.Int(option.KeyExportFileMaxSizeMB, 10, "Size in MB for rotating JSON export files")
+	flags.Duration(option.KeyExportFileRotationInterval, 0, "Interval at which to rotate JSON export files in addition to rotating them by size")
+	flags.Int(option.KeyExportFileMaxBackups, 5, "Number of rotated JSON export files to retain")
+	flags.Bool(option.KeyExportFileCompress, false, "Compress rotated JSON export files")
+	flags.String(option.KeyExportFilePerm, defaults.DefaultLogsPermission, "Access permissions on JSON export files")
+	flags.Int(option.KeyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
+	flags.String(option.KeyLogLevel, "info", "Set log level")
+	flags.String(option.KeyLogFormat, "text", "Set log format")
+	flags.Bool(option.KeyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
+	flags.String(option.KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
+	flags.Bool(option.KeyEnableProcessAncestors, true, "Include ancestors in process exec events")
+	flags.String(option.KeyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
+	flags.String(option.KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
+	flags.String(option.KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
+	flags.Bool(option.KeyEnableProcessCred, false, "Enable process_cred events")
+	flags.Bool(option.KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
+	flags.Uint(option.KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 
 	// Tracing policy file
-	flags.String(keyTracingPolicy, "", "Tracing policy file to load at startup")
+	flags.String(option.KeyTracingPolicy, "", "Tracing policy file to load at startup")
 
-	flags.String(keyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
+	flags.String(option.KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
 
 	// Options for debugging/development, not visible to users
-	flags.String(keyCpuProfile, "", "Store CPU profile into provided file")
-	flags.MarkHidden(keyCpuProfile)
+	flags.String(option.KeyCpuProfile, "", "Store CPU profile into provided file")
+	flags.MarkHidden(option.KeyCpuProfile)
 
-	flags.String(keyMemProfile, "", "Store MEM profile into provided file")
-	flags.MarkHidden(keyMemProfile)
+	flags.String(option.KeyMemProfile, "", "Store MEM profile into provided file")
+	flags.MarkHidden(option.KeyMemProfile)
 
-	flags.String(keyPprofAddr, "", "Profile via pprof http")
-	flags.MarkHidden(keyPprofAddr)
+	flags.String(option.KeyPprofAddr, "", "Profile via pprof http")
+	flags.MarkHidden(option.KeyPprofAddr)
 
 	// JSON export aggregation options.
-	flags.Bool(keyEnableExportAggregation, false, "Enable JSON export aggregation")
-	flags.Duration(keyExportAggregationWindowSize, 15*time.Second, "JSON export aggregation time window")
-	flags.Uint64(keyExportAggregationBufferSize, 10000, "Aggregator channel buffer size")
+	flags.Bool(option.KeyEnableExportAggregation, false, "Enable JSON export aggregation")
+	flags.Duration(option.KeyExportAggregationWindowSize, 15*time.Second, "JSON export aggregation time window")
+	flags.Uint64(option.KeyExportAggregationBufferSize, 10000, "Aggregator channel buffer size")
 
 	// JSON export filter options
-	flags.String(keyExportAllowlist, "", "JSON export allowlist")
-	flags.String(keyExportDenylist, "", "JSON export denylist")
+	flags.String(option.KeyExportAllowlist, "", "JSON export allowlist")
+	flags.String(option.KeyExportDenylist, "", "JSON export denylist")
 
 	// Field filters options for export
-	flags.String(keyFieldFilters, "", "Field filters for event exports")
+	flags.String(option.KeyFieldFilters, "", "Field filters for event exports")
 
 	// Network namespace options
-	flags.String(keyNetnsDir, "/var/run/docker/netns/", "Network namespace dir")
+	flags.String(option.KeyNetnsDir, "/var/run/docker/netns/", "Network namespace dir")
 
 	// Allow to disable kprobe multi interface
-	flags.Bool(keyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
+	flags.Bool(option.KeyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
 
 	// Allow to specify perf ring buffer size
-	flags.Int(keyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
-	flags.Int(keyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
+	flags.Int(option.KeyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
+	flags.Int(option.KeyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
 
 	// Provide option to remove existing pinned BPF programs and maps in Tetragon's
 	// observer dir on startup. Useful for doing upgrades/downgrades. Set to false to
 	// disable.
-	flags.Bool(keyReleasePinnedBPF, true, "Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable")
+	flags.Bool(option.KeyReleasePinnedBPF, true, "Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable")
 
 	// Provide option to enable policy filtering. Because the code is new,
 	// this is set to false by default.
-	flags.Bool(keyEnablePolicyFilter, false, "Enable policy filter code (beta)")
-	flags.Bool(keyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
+	flags.Bool(option.KeyEnablePolicyFilter, false, "Enable policy filter code (beta)")
+	flags.Bool(option.KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
 
 	// Provide option to enable the pidSet export filters.
-	flags.Bool(keyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
+	flags.Bool(option.KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
 
-	flags.Bool(keyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
+	flags.Bool(option.KeyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 
-	flags.StringSlice(keyKmods, []string{}, "List of kernel modules to load symbols from")
+	flags.StringSlice(option.KeyKmods, []string{}, "List of kernel modules to load symbols from")
 
-	flags.Int(keyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
+	flags.Int(option.KeyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
 
-	flags.Bool(keyEnablePodInfo, false, "Enable PodInfo custom resource")
+	flags.Bool(option.KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 
-	flags.Bool(keyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+	flags.Bool(option.KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
