@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -29,17 +30,19 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
 		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
 	}
+
+	handler := eventhandler.GetCustomEventhandler(policy)
 	if len(spec.KProbes) > 0 {
 		name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 		err := preValidateKprobes(name, spec.KProbes, spec.Lists)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
-		return createGenericKprobeSensor(name, spec.KProbes, policyID, policyName, spec.Lists)
+		return createGenericKprobeSensor(name, spec.KProbes, policyID, policyName, spec.Lists, handler)
 	}
 	if len(spec.Tracepoints) > 0 {
 		name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return createGenericTracepointSensor(name, spec.Tracepoints, policyID, policyName, spec.Lists)
+		return createGenericTracepointSensor(name, spec.Tracepoints, policyID, policyName, spec.Lists, handler)
 	}
 	return nil, nil
 }
