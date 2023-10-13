@@ -3,7 +3,10 @@
 
 package strutils
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // UTF8FromBPFBytes transforms bpf (C) strings to valid utf-8 strings
 //
@@ -21,4 +24,29 @@ import "strings"
 // clients (e.g., tetra CLI and JSON writer) choose their preffered approach.
 func UTF8FromBPFBytes(b []byte) string {
 	return strings.ToValidUTF8(string(b), "�")
+}
+
+func ParseSize(str string) (int, error) {
+	suffix := str[len(str)-1:]
+
+	if !strings.Contains("KMG", suffix) {
+		return strconv.Atoi(str)
+	}
+
+	val, err := strconv.Atoi(str[0 : len(str)-1])
+	if err != nil {
+		return 0, err
+	}
+
+	switch suffix {
+	case "K":
+		return val * 1024, nil
+	case "M":
+		return val * 1024 * 1024, nil
+	case "G":
+		return val * 1024 * 1024 * 1024, nil
+	}
+
+	// never reached
+	return 0, nil
 }

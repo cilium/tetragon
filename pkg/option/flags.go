@@ -4,9 +4,11 @@
 package option
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/spf13/viper"
 )
 
@@ -86,7 +88,7 @@ const (
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 )
 
-func ReadAndSetFlags() {
+func ReadAndSetFlags() error {
 	Config.HubbleLib = viper.GetString(KeyHubbleLib)
 	Config.BTF = viper.GetString(KeyBTF)
 	Config.ProcFS = viper.GetString(KeyProcFS)
@@ -103,9 +105,17 @@ func ReadAndSetFlags() {
 
 	Config.DisableKprobeMulti = viper.GetBool(KeyDisableKprobeMulti)
 
-	Config.RBSize = viper.GetInt(KeyRBSize)
-	Config.RBSizeTotal = viper.GetInt(KeyRBSizeTotal)
-	Config.RBQueueSize = viper.GetInt(KeyRBQueueSize)
+	var err error
+
+	if Config.RBSize, err = strutils.ParseSize(viper.GetString(KeyRBSize)); err != nil {
+		return fmt.Errorf("failed to parse rb-size value: %s", err)
+	}
+	if Config.RBSizeTotal, err = strutils.ParseSize(viper.GetString(KeyRBSizeTotal)); err != nil {
+		return fmt.Errorf("failed to parse rb-size-total value: %s", err)
+	}
+	if Config.RBQueueSize, err = strutils.ParseSize(viper.GetString(KeyRBQueueSize)); err != nil {
+		return fmt.Errorf("failed to parse rb-queue-size value: %s", err)
+	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
 
@@ -154,6 +164,8 @@ func ReadAndSetFlags() {
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
 	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
+
+	return nil
 }
 
 func ParseMetricsLabelFilter(labels string) map[string]interface{} {
