@@ -531,45 +531,6 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	}
 }
 
-/* Gather current task cgroup id */
-static inline __attribute__((always_inline)) void
-__event_get_current_cgroup_id(struct tetragon_conf *conf, struct cgroup *cgrp,
-			      struct execve_map_value *execve_val,
-			      struct msg_execve_event *msg)
-{
-	__u64 cgrpfs_magic = 0;
-	struct msg_process *process;
-
-	process = &msg->process;
-	msg->kube.cgrpid = 0;
-
-	/* If tracking Cgroup ID is set use it, otherwise use current
-	 * context one. This way we guarantee to always have a cgrpid
-	 * and return cgroup information even if we miss the tracking
-	 * Cgroup ID.
-	 *
-	 * Ensure that execve_val is not null.
-	 */
-	if (execve_val && execve_val->cgrpid_tracker) {
-		/* Set the k8s cgrpid with the tracking ID. */
-		msg->kube.cgrpid = execve_val->cgrpid_tracker;
-		return;
-	}
-
-	/* Gather Cgroup information using current context */
-	if (conf) {
-		/* Select which cgroup version */
-		cgrpfs_magic = conf->cgrp_fs_magic;
-	}
-
-	/* Collect event cgroup ID */
-	msg->kube.cgrpid = tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
-	if (execve_val)
-		execve_val->cgrpid_tracker = msg->kube.cgrpid;
-	if (!msg->kube.cgrpid)
-		process->flags |= EVENT_ERROR_CGROUP_ID;
-}
-
 /* Gather current task cgroup name */
 static inline __attribute__((always_inline)) void
 __event_get_current_cgroup_name(struct cgroup *cgrp,
@@ -610,34 +571,22 @@ static inline __attribute__((always_inline)) void
 __event_get_cgroup_info(struct task_struct *task,
 			struct msg_execve_event *msg)
 {
-	__u32 pid;
+	__u64 cgrpfs_magic = 0;
 	int zero = 0, subsys_idx = 0;
 	struct cgroup *cgrp;
 	struct msg_process *process;
 	struct tetragon_conf *conf;
-	struct execve_map_value *execve_val;
 
 	process = &msg->process;
 
 	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
 	memset(&msg->kube, 0, sizeof(struct msg_k8s));
 
-	pid = (get_current_pid_tgid() >> 32);
-	execve_val = execve_map_get_noinit(pid);
-	/* Even if execve_val is null we must continue collect information */
-
-	/* Check if cgroup configuration is set */
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	if (conf) {
-		/* Select the right css to use */
-		if (conf->tg_cgrp_subsys_idx != 0)
-			subsys_idx = conf->tg_cgrp_subsys_idx;
-
-		/* Set the tracking cgroup ID of the task if it was not
-		 * already set, this could be the case due to race conditions.
-		 * Do not remove this as following cgroup logic depend on it.
-		 */
-		__set_task_cgrpid_tracker(conf, task, execve_val, &process->flags);
+		/* Select which cgroup version */
+		cgrpfs_magic = conf->cgrp_fs_magic;
+		subsys_idx = conf->tg_cgrp_subsys_idx;
 	}
 
 	cgrp = get_task_cgroup(task, subsys_idx, &process->flags);
@@ -645,9 +594,11 @@ __event_get_cgroup_info(struct task_struct *task,
 		return;
 
 	/* Collect event cgroup ID */
-	__event_get_current_cgroup_id(conf, cgrp, execve_val, msg);
+	msg->kube.cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
+	if (!msg->kube.cgrpid)
+		process->flags |= EVENT_ERROR_CGROUP_ID;
 
-	/* Get the cgroup name of this event. TODO: pass the tracking cgroup ID. */
+	/* Get the cgroup name of this event. */
 	__event_get_current_cgroup_name(cgrp, msg);
 }
 #endif

@@ -452,6 +452,9 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 		// all kprobe but generic_tracepoint_filter
 		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+
+		// generic_tracepoint_event
+		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if kernels.EnableLargeProgs() {

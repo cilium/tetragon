@@ -21,10 +21,7 @@ __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
-	struct task_struct *current_task;
-	struct tetragon_conf *config;
-	u32 tgid = 0, ppid = 0, error_flags = 0;
-	int zero = 0;
+	u32 tgid = 0, error_flags = 0;
 
 	if (!task)
 		return 0;
@@ -34,24 +31,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	curr = execve_map_get(tgid);
 	if (!curr)
 		return 0;
-
-	/* Cgroup environment */
-	config = map_lookup_elem(&tg_conf_map, &zero);
-	if (config) {
-		/* Set the tracking cgroup ID for the new task if not already set */
-		__set_task_cgrpid_tracker(config, task, curr, &error_flags);
-
-		/* Let's try to catch current or "parent" if it was not tracked */
-		current_task = (struct task_struct *)get_current_task();
-		probe_read(&ppid, sizeof(ppid), _(&current_task->tgid));
-		/* If they share same thread group nothing todo... */
-		if (tgid != ppid) {
-			parent = execve_map_get_noinit(ppid);
-			if (parent)
-				__set_task_cgrpid_tracker(config, current_task,
-							  parent, &error_flags);
-		}
-	}
 
 	/* Generate an EVENT_COMMON_FLAG_CLONE event once per process,
 	 * that is, thread group.

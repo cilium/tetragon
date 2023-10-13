@@ -3731,6 +3731,9 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 3, 4, 5, 12, 14}},
+
+		// generic_kprobe_event
+		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if kernels.EnableLargeProgs() {
