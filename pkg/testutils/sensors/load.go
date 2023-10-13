@@ -131,7 +131,7 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 
 		// event_execve
 		SensorMap{Name: "names_map", Progs: []uint{0}},
-		SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2}},
+		SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},

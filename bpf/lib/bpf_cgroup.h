@@ -311,7 +311,7 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
 }
 
 /**
- * tg_get_current_cgroup_id() Returns the accurate cgroup id of current task.
+ * __tg_get_current_cgroup_id() Returns the accurate cgroup id of current task.
  * @cgrp: cgroup target of current task.
  * @cgrpfs_ver: Cgroupfs Magic number either Cgroupv1 or Cgroupv2
  *
@@ -323,10 +323,8 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
  * Returns the cgroup id of current task on success, zero on failures.
  */
 static inline __attribute__((always_inline)) __u64
-tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
+__tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
 {
-	__u64 id = 0;
-
 	/*
 	 * Try the bpf helper on the default hierarchy if available
 	 * and if we are running in unified cgroupv2
@@ -334,12 +332,53 @@ tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
 	if (bpf_core_enum_value_exists(enum bpf_func_id,
 				       BPF_FUNC_get_current_cgroup_id) &&
 	    cgrpfs_ver == CGROUP2_SUPER_MAGIC) {
-		id = get_current_cgroup_id();
+		return get_current_cgroup_id();
 	} else {
-		id = get_cgroup_id(cgrp);
+		return get_cgroup_id(cgrp);
+	}
+}
+
+/**
+ * tg_get_current_cgroup_id() Returns the accurate cgroup id of current task.
+ *
+ * It works similar to __tg_get_current_cgroup_id, but computes the cgrp if it is needed.
+ * Returns the cgroup id of current task on success, zero on failures.
+ */
+static inline __attribute__((always_inline)) __u64
+tg_get_current_cgroup_id()
+{
+	__u32 error_flags;
+	struct cgroup *cgrp;
+	__u64 cgrpfs_magic = 0;
+	struct task_struct *task;
+	struct tetragon_conf *conf;
+	int zero = 0, subsys_idx = 0;
+
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf) {
+		/* Select which cgroup version */
+		cgrpfs_magic = conf->cgrp_fs_magic;
+		subsys_idx = conf->tg_cgrp_subsys_idx;
 	}
 
-	return id;
+	/*
+	 * Try the bpf helper on the default hierarchy if available
+	 * and if we are running in unified cgroupv2
+	 */
+	if (bpf_core_enum_value_exists(enum bpf_func_id,
+				       BPF_FUNC_get_current_cgroup_id) &&
+	    cgrpfs_magic == CGROUP2_SUPER_MAGIC) {
+		return get_current_cgroup_id();
+	}
+
+	task = (struct task_struct *)get_current_task();
+
+	// NB: error_flags are ignored for now
+	cgrp = get_task_cgroup(task, subsys_idx, &error_flags);
+	if (!cgrp)
+		return 0;
+
+	return get_cgroup_id(cgrp);
 }
 
 /**
@@ -390,65 +429,6 @@ __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
 
 	return heap;
-}
-
-/**
- * __set_task_cgrpid_tracker() Sets the cgrpid_tracker of a task.
- * It checks tetragon_conf if not available then exit.
- * If tetragon_conf is available then checks if the task
- * execve_map_value->cgrpid_tracker is set, if so do nothing.
- * If not, then set the task execve_map_value->cgrpid_tracker
- * to the tracking cgroup ID.
- */
-static inline __attribute__((always_inline)) int
-__set_task_cgrpid_tracker(struct tetragon_conf *conf, struct task_struct *task,
-			  struct execve_map_value *execve_val, __u32 *error_flags)
-{
-	u32 flags = 0;
-	struct cgroup *cgrp;
-	__u64 cgrpid_tracker = 0;
-
-	/* Ensure that execve_val is not null */
-	if (unlikely(!conf) || unlikely(!execve_val))
-		return 0;
-
-	probe_read(&flags, sizeof(flags), _(&task->flags));
-	/* Skip kernel threads */
-	if (flags & PF_KTHREAD)
-		return 0;
-
-	/* Set the tracking cgroup id only if it was not set,
-	 * this avoids cgroup thread granularity mess!
-	 */
-	if (execve_val->cgrpid_tracker != 0)
-		return 0;
-
-	cgrp = get_task_cgroup(task, conf->tg_cgrp_subsys_idx, error_flags);
-	if (!cgrp)
-		return 0;
-
-	/* TODO: get current cgroup ancestors and their levels,
-	 *   so we can use them as a proper reference for setting,
-	 *   cgroup tracking IDs.
-	 *
-	 * For now we just use the current cgroup ID as tracker.
-	 */
-	cgrpid_tracker = tg_get_current_cgroup_id(cgrp, conf->cgrp_fs_magic);
-	if (!cgrpid_tracker) {
-		/* Failed to get cgrpid_tracker do nothing. This should never happen */
-		*error_flags |= EVENT_ERROR_CGROUP_ID;
-		return 0;
-	}
-
-	/* Update the execve_val with the tracking cgroup ID */
-	execve_val->cgrpid_tracker = cgrpid_tracker;
-
-	/* TODO:
-	 * Lookup cgroup data from the cgroup bpf map, create an entry
-	 * if not found, otherwise update previous with the corresponding
-	 * new cgroup state.
-	 */
-	return 0;
 }
 
 #endif // __BPF_CGROUP_

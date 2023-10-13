@@ -129,7 +129,6 @@ func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 				"cgroup.event":       op.String(),
 				"PID":                msg.PID,
 				"NSPID":              msg.NSPID,
-				"cgroup.IDTracker":   msg.CgrpidTracker,
 				"cgroup.ID":          msg.Cgrpid,
 				"cgroup.state":       st,
 				"cgroup.hierarchyID": msg.CgrpData.HierarchyId,

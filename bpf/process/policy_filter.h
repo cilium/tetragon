@@ -26,23 +26,21 @@ struct {
 static inline __attribute__((always_inline)) bool
 policy_filter_check(u32 policy_id)
 {
-	__u32 pid;
 	void *policy_map;
-	struct execve_map_value *curr;
+	__u64 cgroupid;
 
 	if (!policy_id)
 		return true;
-
-	pid = (get_current_pid_tgid() >> 32);
-	curr = execve_map_get_noinit(pid);
-	if (!curr || curr->cgrpid_tracker == 0)
-		return false;
 
 	policy_map = map_lookup_elem(&policy_filter_maps, &policy_id);
 	if (!policy_map)
 		return false;
 
-	return map_lookup_elem(policy_map, &curr->cgrpid_tracker);
+	cgroupid = tg_get_current_cgroup_id();
+	if (!cgroupid)
+		return false;
+
+	return map_lookup_elem(policy_map, &cgroupid);
 }
 
 #endif /* POLICY_FILTER_MAPS_H__ */
