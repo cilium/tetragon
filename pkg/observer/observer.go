@@ -165,6 +165,18 @@ func perfBufferSize(perCPUBuffer int) int {
 	return nPages * pageSize
 }
 
+func sizeWithSuffix(size int) string {
+	suffix := [4]string{"", "K", "M", "G"}
+
+	i := 0
+	for size > 1024 && i < 3 {
+		size = size / 1024
+		i++
+	}
+
+	return fmt.Sprintf("%d%s", size, suffix[i])
+}
+
 func (k *Observer) getRBSize(cpus int) int {
 	var size int
 
@@ -179,7 +191,9 @@ func (k *Observer) getRBSize(cpus int) int {
 	cpuSize := perfBufferSize(size)
 	totalSize := cpuSize * cpus
 
-	k.log.WithField("percpu", cpuSize).WithField("total", totalSize).Info("Perf ring buffer size (bytes)")
+	k.log.WithField("percpu", sizeWithSuffix(cpuSize)).
+		WithField("total", sizeWithSuffix(totalSize)).
+		Info("Perf ring buffer size (bytes)")
 	return size
 }
 
@@ -188,7 +202,8 @@ func (k *Observer) getRBQueueSize() int {
 	if size == 0 {
 		size = 65535
 	}
-	k.log.WithField("size", size).Info("Perf ring buffer events queue size (events)")
+	k.log.WithField("size", sizeWithSuffix(size)).
+		Info("Perf ring buffer events queue size (events)")
 	return size
 }
 

@@ -709,8 +709,9 @@ func execute() error {
 		Use:   "tetragon",
 		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
 		Run: func(cmd *cobra.Command, args []string) {
-			option.ReadAndSetFlags()
-
+			if err := option.ReadAndSetFlags(); err != nil {
+				log.WithError(err).Fatal("Failed to start gops")
+			}
 			if err := startGopsServer(); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
 			}
@@ -792,8 +793,8 @@ func execute() error {
 	flags.Bool(option.KeyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
 
 	// Allow to specify perf ring buffer size
-	flags.Int(option.KeyRBSizeTotal, 0, "Set perf ring buffer size in total for all cpus (default 65k per cpu)")
-	flags.Int(option.KeyRBSize, 0, "Set perf ring buffer size for single cpu (default 65k)")
+	flags.String(option.KeyRBSizeTotal, "0", "Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)")
+	flags.String(option.KeyRBSize, "0", "Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix)")
 
 	// Provide option to remove existing pinned BPF programs and maps in Tetragon's
 	// observer dir on startup. Useful for doing upgrades/downgrades. Set to false to
@@ -812,7 +813,7 @@ func execute() error {
 
 	flags.StringSlice(option.KeyKmods, []string{}, "List of kernel modules to load symbols from")
 
-	flags.Int(option.KeyRBQueueSize, 65535, "Set size of channel between ring buffer and sensor go routines (default 65k)")
+	flags.String(option.KeyRBQueueSize, "65535", "Set size of channel between ring buffer and sensor go routines (default 65k, allows K/M/G suffix)")
 
 	flags.Bool(option.KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 
