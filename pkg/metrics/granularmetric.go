@@ -5,12 +5,12 @@ package metrics
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slices"
 )
 
 var (
