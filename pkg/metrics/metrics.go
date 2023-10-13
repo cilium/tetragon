@@ -5,7 +5,6 @@ package metrics
 
 import (
 	"net/http"
-	"slices"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
