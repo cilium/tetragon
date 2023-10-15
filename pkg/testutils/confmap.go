@@ -27,7 +27,12 @@ func GetTgRuntimeConf() (*confmap.TetragonConfValue, error) {
 	}
 
 	// Detect deployment mode
-	_, err = cgroups.DetectDeploymentMode()
+	cgrpEnv, err := cgroups.NewCgroupEnvironment()
+	if err != nil {
+		return nil, err
+	}
+
+	tgCgrpId, err := cgrpEnv.GetOwnCgroupId()
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +43,7 @@ func GetTgRuntimeConf() (*confmap.TetragonConfValue, error) {
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
 		NSPID:           uint32(nspid),
 		CgrpFsMagic:     cgroupFsMagic,
+		TgCgrpId:        tgCgrpId,
 	}, nil
 }
 

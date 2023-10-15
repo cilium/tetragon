@@ -111,7 +111,10 @@ func logDefaultCgroupConfig(t *testing.T) {
 	path := cgroups.GetCgroupFSPath()
 	magic := cgroups.GetCgroupFSMagic()
 	cgroupMode := cgroups.GetCgroupMode()
-	mode := cgroups.GetDeploymentMode()
+	cgrpEnv, err := cgroups.NewCgroupEnvironment()
+	require.NoError(t, err)
+	require.NotEmpty(t, cgrpEnv)
+	mode := cgrpEnv.GetDeploymentMode()
 
 	t.Logf("Test %s default configuration: deployment.mode='%s'  cgroup.path='%s'  cgroup.mode='%s'  cgroup.magic='%s'",
 		t.Name(), cgroups.DeploymentCode(mode).String(),

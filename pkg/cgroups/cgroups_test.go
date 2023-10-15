@@ -285,7 +285,7 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
 }
 
-func TestGetCgroupIdFromPath(t *testing.T) {
+func TestGetOwnCgroupId(t *testing.T) {
 	mode, err := DetectCgroupMode()
 	assert.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
@@ -293,15 +293,14 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	err = DiscoverSubSysIds()
 	assert.NoError(t, err)
 
-	pid := os.Getpid()
-	path, err := findMigrationPath(uint32(pid))
+	cgrpEnv, err := NewCgroupEnvironment()
 	assert.NoError(t, err)
-	assert.NotEmpty(t, path)
+	assert.NotNil(t, cgrpEnv)
 
-	id, err := GetCgroupIdFromPath(path)
+	id, err := cgrpEnv.GetOwnCgroupId()
 	assert.NoError(t, err)
 	assert.NotZero(t, id)
 
 	// Log data useful to inspect different hierarchies
-	t.Logf("\ncgroup.Path=%s cgroup.ID=%d\n", path, id)
+	t.Logf("\ncgroup.ID=%d\n", id)
 }

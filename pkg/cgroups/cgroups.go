@@ -105,19 +105,12 @@ var (
 		{id: DEPLOY_SD_USER, str: "user.slice"},
 	}
 
-	detectDeploymentOnce sync.Once
-	deploymentMode       DeploymentCode
-
 	detectCgrpModeOnce sync.Once
 	cgroupMode         CgroupModeCode
 
 	detectCgroupFSOnce sync.Once
 	cgroupFSPath       string
 	cgroupFSMagic      uint64
-
-	// Cgroup Migration Path
-	findMigPath       sync.Once
-	cgrpMigrationPath string
 
 	// Cgroup Tracking Hierarchy
 	cgrpHierarchy    uint32
@@ -141,6 +134,97 @@ func (op DeploymentCode) String() string {
 		DEPLOY_SD_SERVICE: "systemd service",
 		DEPLOY_SD_USER:    "systemd user session",
 	}[op]
+}
+
+// CgroupEnvironment is Tetragon own Cgroup Environment
+type CgroupEnvironment struct {
+	// Tetragon own Cgroup ID depends on Cgroup hierarchies
+	// Initialized by NewCgroupEnvironment()
+	tgCgrpID uint64
+
+	// Tetragon deployment mode
+	// Initialized by NewCgroupEnvironment()
+	deploymentMode DeploymentCode
+
+	// Cgroup Migration Path
+	// Initialized by NewCgroupEnvironment()
+	cgrpMigrationPath string
+}
+
+// NewCgroupEnvironment() returns an initialized Tetragon own CgroupEnvironment on
+// success, or nil and errors on failures.
+func NewCgroupEnvironment() (*CgroupEnvironment, error) {
+	cgrp := &CgroupEnvironment{}
+	_, err := cgrp.DetectDeploymentMode()
+	if err != nil {
+		return nil, err
+	}
+	return cgrp, nil
+}
+
+// setOwnCgroupId() takes a cgroup path that represents Tetragon own cgroup
+// and sets tetragon cgroup ID.
+//
+// Returns:
+//
+//	nil on success, an error on failure.
+func (cgrpEnv *CgroupEnvironment) setOwnCgroupId(cgroupPath string) error {
+	id, err := GetCgroupIdFromPath(cgroupPath)
+	if err != nil {
+		return err
+	}
+
+	cgrpEnv.tgCgrpID = id
+	return nil
+}
+
+// GetOwnCgroupId() returns Tetragon own cgroup ID.
+//
+// Returns:
+//
+//	ID, nil: if Tetragon own cgroup ID was set correctly.
+//	0, error: if Tetragon own cgroup ID is not set.
+func (cgrpEnv *CgroupEnvironment) GetOwnCgroupId() (uint64, error) {
+	if cgrpEnv.tgCgrpID == 0 {
+		return cgrpEnv.tgCgrpID, fmt.Errorf("own cgroup ID is not set")
+	}
+	return cgrpEnv.tgCgrpID, nil
+}
+
+// parseCgroupForDeployment() tries to detect and set Tetragon own
+// deployment mode. It parses the passed cgroup to improve the detection,
+// and this cgroup path can be subject to cgroup namespaces.
+//
+// Returns nil on success, error on failures.
+func (cgrpEnv *CgroupEnvironment) setDeploymentMode(cgroupPath string) error {
+	if cgrpEnv.deploymentMode != DEPLOY_UNKNOWN {
+		return nil
+	}
+
+	if option.Config.EnableK8s == true {
+		cgrpEnv.deploymentMode = DEPLOY_K8S
+		return nil
+	}
+
+	if cgroupPath == "" {
+		// Probably namespaced
+		cgrpEnv.deploymentMode = DEPLOY_CONTAINER
+		return nil
+	}
+
+	// Last go through the deployments
+	for _, d := range deployments {
+		if strings.Contains(cgroupPath, d.str) {
+			cgrpEnv.deploymentMode = d.id
+			return nil
+		}
+	}
+
+	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
+}
+
+func (cgrpEnv *CgroupEnvironment) GetDeploymentMode() DeploymentCode {
+	return cgrpEnv.deploymentMode
 }
 
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
@@ -273,41 +357,6 @@ func DiscoverSubSysIds() error {
 	return parseCgroupSubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
 }
 
-func setDeploymentMode(cgroupPath string) error {
-	if deploymentMode != DEPLOY_UNKNOWN {
-		return nil
-	}
-
-	if option.Config.EnableK8s == true {
-		deploymentMode = DEPLOY_K8S
-		return nil
-	}
-
-	if cgroupPath == "" {
-		// Probably namespaced
-		deploymentMode = DEPLOY_CONTAINER
-		return nil
-	}
-
-	// Last go through the deployments
-	for _, d := range deployments {
-		if strings.Contains(cgroupPath, d.str) {
-			deploymentMode = d.id
-			return nil
-		}
-	}
-
-	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
-}
-
-func getDeploymentMode() DeploymentCode {
-	return deploymentMode
-}
-
-func GetDeploymentMode() uint32 {
-	return uint32(getDeploymentMode())
-}
-
 func GetCgroupMode() CgroupModeCode {
 	return cgroupMode
 }
@@ -349,9 +398,10 @@ func GetCgrpControllerName() string {
 	return ""
 }
 
-// Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv1
-// and returns it on success
-func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
+// validateCgroupv1Path() Parses Tetragon own cgroupv1 paths,
+// and fills up the cgroup environment properties.
+// The paths can be cgroup namespaced in context of Tetragon.
+func (cgrpEnv *CgroupEnvironment) validateCgroupv1Path(cgroupPaths []string) error {
 	for _, controller := range CgroupControllers {
 		// First lets go again over list of active controllers
 		if controller.Active == false {
@@ -368,10 +418,9 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				_, err := os.Stat(finalpath)
 				if err != nil {
 					// Probably namespaced... run the deployment mode detection
-					err = setDeploymentMode(path)
+					err = cgrpEnv.setDeploymentMode(path)
 					if err == nil {
-						mode := getDeploymentMode()
-						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
+						if cgrpEnv.deploymentMode == DEPLOY_K8S || cgrpEnv.deploymentMode == DEPLOY_CONTAINER {
 							// Cgroups are namespaced let's try again
 							cgroupPath = filepath.Join(cgroupFSPath, controller.Name)
 							finalpath = filepath.Join(cgroupPath, "cgroup.procs")
@@ -386,9 +435,15 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				}
 
 				// Run the deployment mode detection last again, fine to rerun.
-				err = setDeploymentMode(path)
+				err = cgrpEnv.setDeploymentMode(path)
 				if err != nil {
 					logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv1 path")
+					continue
+				}
+
+				err = cgrpEnv.setOwnCgroupId(cgroupPath)
+				if err != nil {
+					logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv1 path")
 					continue
 				}
 
@@ -405,14 +460,16 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 					"cgroup.fs":   cgroupFSPath,
 					"cgroup.path": cgroupPath,
 				}).Info("Cgroupv1 hierarchy validated successfully")
-				return finalpath, nil
+
+				cgrpEnv.cgrpMigrationPath = finalpath
+				return nil
 			}
 		}
 	}
 
 	// Cgroupv1 hierarchy is not properly setup we can not support such systems,
 	// reason should have been logged in above messages.
-	return "", fmt.Errorf("could not validate Cgroupv1 hierarchies")
+	return fmt.Errorf("could not validate Cgroupv1 hierarchies")
 }
 
 // Lookup Cgroupv2 active controllers and returns one that we support
@@ -450,8 +507,10 @@ func getCgroupv2Controller(cgroupPath string) (*CgroupController, error) {
 	return nil, fmt.Errorf("Cgroupv2 no appropriate active controller")
 }
 
-// Validates cgroupPaths obtained from /proc/self/cgroup based on Cgroupv2
-func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
+// validateCgroupv2Path() Parses Tetragon own cgroupv2 paths,
+// and fills up the cgroup environment properties.
+// The paths can be cgroup namespaced in context of Tetragon.
+func (cgrpEnv *CgroupEnvironment) validateCgroupv2Path(cgroupPaths []string) error {
 	for _, s := range cgroupPaths {
 		if strings.Contains(s, cgroupv2Hierarchy) {
 			idx := strings.Index(s, "/")
@@ -461,10 +520,9 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			_, err := os.Stat(finalpath)
 			if err != nil {
 				// Namespaced ? let's force the check
-				err = setDeploymentMode(path)
+				err = cgrpEnv.setDeploymentMode(path)
 				if err == nil {
-					mode := getDeploymentMode()
-					if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
+					if cgrpEnv.deploymentMode == DEPLOY_K8S || cgrpEnv.deploymentMode == DEPLOY_CONTAINER {
 						// Cgroups are namespaced let's try again
 						cgroupPath = cgroupFSPath
 						finalpath = filepath.Join(cgroupPath, "cgroup.procs")
@@ -486,8 +544,14 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 				break
 			}
 
+			err = cgrpEnv.setOwnCgroupId(cgroupPath)
+			if err != nil {
+				logger.GetLogger().WithField("Cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect Cgroup ID from Cgroupv2 path")
+				break
+			}
+
 			// Run the deployment mode detection last again, fine to rerun.
-			err = setDeploymentMode(path)
+			err = cgrpEnv.setDeploymentMode(path)
 			if err != nil {
 				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv2 path")
 				break
@@ -499,13 +563,15 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 				"cgroup.fs":   cgroupFSPath,
 				"cgroup.path": cgroupPath,
 			}).Info("Cgroupv2 hierarchy validated successfully")
-			return finalpath, nil
+
+			cgrpEnv.cgrpMigrationPath = finalpath
+			return nil
 		}
 	}
 
 	// Cgroupv2 hierarchy is not properly setup we can not support such systems,
 	// reason should have been logged in above messages.
-	return "", fmt.Errorf("could not validate Cgroupv2 hierarchy")
+	return fmt.Errorf("could not validate Cgroupv2 hierarchy")
 }
 
 func getPidCgroupPaths(pid uint32) ([]string, error) {
@@ -523,12 +589,19 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
-func findMigrationPath(pid uint32) (string, error) {
-	if cgrpMigrationPath != "" {
-		return cgrpMigrationPath, nil
+// findMigrationPath() returns Tetragon own cgroup migration path.
+//
+// Retruns:
+//
+//	Tetragon cgroup migration path and nil on success
+//	"", error on failures
+func (cgrpEnv *CgroupEnvironment) findMigrationPath() (string, error) {
+	if cgrpEnv.cgrpMigrationPath != "" {
+		return cgrpEnv.cgrpMigrationPath, nil
 	}
 
-	cgroupPaths, err := getPidCgroupPaths(pid)
+	pid := os.Getpid()
+	cgroupPaths, err := getPidCgroupPaths(uint32(pid))
 	if err != nil {
 		logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
 		return "", err
@@ -539,30 +612,22 @@ func findMigrationPath(pid uint32) (string, error) {
 		return "", err
 	}
 
-	/* Run the validate and get cgroup migration path once
-	 * as it triggers lot of checks.
-	 */
-	findMigPath.Do(func() {
-		var err error
-		switch mode {
-		case CGROUP_LEGACY, CGROUP_HYBRID:
-			cgrpMigrationPath, err = getValidCgroupv1Path(cgroupPaths)
-		case CGROUP_UNIFIED:
-			cgrpMigrationPath, err = getValidCgroupv2Path(cgroupPaths)
-		default:
-			err = fmt.Errorf("could not detect Cgroup Mode")
-		}
-
-		if err != nil {
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
-		}
-	})
-
-	if cgrpMigrationPath == "" {
-		return "", fmt.Errorf("could not detect Cgroup migration path for pid=%d", pid)
+	// Run the validate and get cgroup migration path
+	switch mode {
+	case CGROUP_LEGACY, CGROUP_HYBRID:
+		err = cgrpEnv.validateCgroupv1Path(cgroupPaths)
+	case CGROUP_UNIFIED:
+		err = cgrpEnv.validateCgroupv2Path(cgroupPaths)
+	default:
+		err = fmt.Errorf("could not detect Cgroup Mode")
 	}
 
-	return cgrpMigrationPath, nil
+	if err != nil {
+		logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
+		return "", err
+	}
+
+	return cgrpEnv.cgrpMigrationPath, nil
 }
 
 func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
@@ -622,45 +687,36 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 	return cgroupMode, nil
 }
 
-func detectDeploymentMode() (DeploymentCode, error) {
-	mode := getDeploymentMode()
-	if mode != DEPLOY_UNKNOWN {
-		return mode, nil
+func (cgrpEnv *CgroupEnvironment) detectDeploymentMode() (DeploymentCode, error) {
+	if cgrpEnv.deploymentMode != DEPLOY_UNKNOWN {
+		return cgrpEnv.deploymentMode, nil
 	}
 
 	// Let's call findMigrationPath in case to parse own cgroup
 	// paths and detect the deployment mode.
-	pid := os.Getpid()
-	_, err := findMigrationPath(uint32(pid))
+	_, err := cgrpEnv.findMigrationPath()
 	if err != nil {
 		return DEPLOY_UNKNOWN, err
 	}
 
-	return getDeploymentMode(), nil
+	return cgrpEnv.deploymentMode, nil
 }
 
-func DetectDeploymentMode() (uint32, error) {
-	detectDeploymentOnce.Do(func() {
-		mode, err := detectDeploymentMode()
-		if err != nil {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.fs": cgroupFSPath,
-			}).WithError(err).Warn("Detection of deployment mode failed")
-			return
-		}
-
+func (cgrpEnv *CgroupEnvironment) DetectDeploymentMode() (DeploymentCode, error) {
+	mode, err := cgrpEnv.detectDeploymentMode()
+	if err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs":       cgroupFSPath,
-			"deployment.mode": DeploymentCode(mode).String(),
-		}).Info("Deployment mode detection succeeded")
-	})
-
-	mode := getDeploymentMode()
-	if mode == DEPLOY_UNKNOWN {
-		return uint32(mode), fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
+			"cgroup.fs": cgroupFSPath,
+		}).WithError(err).Warn("Detection of deployment mode failed")
+		return mode, err
 	}
 
-	return uint32(mode), nil
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":       cgroupFSPath,
+		"deployment.mode": DeploymentCode(mode).String(),
+	}).Info("Deployment mode detection succeeded")
+
+	return cgrpEnv.deploymentMode, nil
 }
 
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
