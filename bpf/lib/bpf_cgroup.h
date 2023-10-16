@@ -20,9 +20,6 @@
 #define CGROUP2_SUPER_MAGIC 0x63677270 /* Cgroupv2 pseudo FS */
 #endif
 
-/* Our kernfs node name length, can be made 256? */
-#define KN_NAME_LENGTH 128
-
 /* Max nested cgroups that are tracked. Arbitrary value, nested cgroups
  * that are at a level greater than 32 will be attached to the cgroup
  * at level 32.

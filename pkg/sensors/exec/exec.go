@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -55,34 +56,54 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 		Cgrpid: m.Kube.Cgrpid,
 	}
 
-	// The first byte is set to zero if there is no docker ID for this event.
-	if m.Kube.Docker[0] != 0x00 {
-		// We always get a null terminated buffer from bpf
-		cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.CGROUP_NAME_LENGTH])
-		docker, _ := procevents.LookupContainerId(cgroup, true, false)
-		if docker != "" {
-			kube.Docker = docker
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
-				"cgroup.name":     cgroup,
-				"docker":          kube.Docker,
-				"process.exec_id": exec_id,
-				"process.binary":  filename,
-			}).Trace("process_exec: container ID set successfully")
-		} else {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
-				"cgroup.name":     cgroup,
-				"process.exec_id": exec_id,
-				"process.binary":  filename,
-			}).Trace("process_exec: no container ID due to cgroup name not being a compatible ID, ignoring.")
-		}
-	} else {
+	// The first byte is set to zero if there is no cgroup name for this event.
+	if m.Kube.CgroupName[0] == 0x00 {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"cgroup.id":       kube.Cgrpid,
 			"process.exec_id": exec_id,
 			"process.binary":  filename,
 		}).Trace("process_exec: no container ID due to cgroup name being empty, ignoring.")
+		return kube
+	}
+
+	// We always get a null terminated buffer from bpf
+	cgroup := cgroups.CgroupNameFromCStr(m.Kube.CgroupName[:processapi.CGROUP_NAME_LENGTH])
+
+	docker, _ := procevents.LookupContainerId(cgroup, true, false)
+	if docker == "" {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.id":       kube.Cgrpid,
+			"cgroup.name":     cgroup,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: no container ID due to cgroup name not being a compatible ID, ignoring.")
+		return kube
+	}
+
+	kube.Docker = docker
+
+	// If in host namespace then log this for debugging only, as maybe
+	// valid processes can have a cgroup name that looks like a container ID.
+	//
+	// We could mark it not a container, but let's proceed as it could be
+	// useful to know from where it originates in case a real container just
+	// changed its mount namespace?
+	if m.Namespaces.MntInum == namespace.HostMntInum {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.id":       kube.Cgrpid,
+			"cgroup.name":     cgroup,
+			"docker":          kube.Docker,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: process marked as part of container but is running in host mount namespace")
+	} else {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.id":       kube.Cgrpid,
+			"cgroup.name":     cgroup,
+			"docker":          kube.Docker,
+			"process.exec_id": exec_id,
+			"process.binary":  filename,
+		}).Trace("process_exec: container ID set successfully")
 	}
 
 	return kube

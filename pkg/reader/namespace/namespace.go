@@ -15,7 +15,11 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-var hostNamespace *tetragon.Namespaces
+var (
+	// host mount namespace to determin if process exec happens in host
+	HostMntInum   uint32
+	hostNamespace *tetragon.Namespaces
+)
 
 func GetPidNsInode(pid uint32, nsStr string) uint32 {
 	pidStr := strconv.Itoa(int(pid))
@@ -198,6 +202,11 @@ func GetHostNamespace() *tetragon.Namespaces {
 			User:            createHostNs("user"),
 		}
 	}
+
+	if HostMntInum == 0 {
+		HostMntInum = hostNamespace.Mnt.Inum
+	}
+
 	return hostNamespace
 }
 

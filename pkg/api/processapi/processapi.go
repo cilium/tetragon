@@ -70,10 +70,10 @@ type MsgCommon struct {
 }
 
 type MsgK8s struct {
-	NetNS  uint32
-	Cid    uint32
-	Cgrpid uint64
-	Docker [DOCKER_ID_LENGTH]byte
+	NetNS      uint32
+	Cid        uint32
+	Cgrpid     uint64
+	CgroupName [DOCKER_ID_LENGTH]byte
 }
 
 type MsgK8sUnix struct {
