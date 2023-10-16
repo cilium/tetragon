@@ -197,12 +197,15 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Set up Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
-
       - name: Getting version tag
         id: tag
         run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME_CI }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD_CI }}
 
       - name: Generate Tetragon Tarball
         run: make tarball-release
