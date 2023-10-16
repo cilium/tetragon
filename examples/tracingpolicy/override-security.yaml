@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syswritefollowfdpsswd"
+spec:
+  kprobes:
+  - call: "security_inode_mkdir"
+    syscall: false
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/bash"
+    - matchActions:
+      - action: Override
+        argError: -1
