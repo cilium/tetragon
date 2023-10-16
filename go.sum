@@ -463,8 +463,8 @@ github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc h1:tNEOByqRaBwlf1ANK
 github.com/cilium/dns v1.1.51-0.20220729113855-5b94b11b46fc/go.mod h1:e3IlAVfNqAllflbibAZEWOXOQ+Ynzk/dDozDxY7XnME=
 github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2 h1:aUhT8ib6cKposeTys3ncn4AVOxEdAo2tXpWuCed/Nfk=
 github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2/go.mod h1:AyKxZ17L5Q7fk2doxT3yjMYGlrJdq5/jvR2xN5KMbxA=
-github.com/cilium/ebpf v0.11.0 h1:V8gS/bTCCjX9uUnkUFUpPsksM8n1lXBAvHcpiFk1X2Y=
-github.com/cilium/ebpf v0.11.0/go.mod h1:WE7CZAnqOL2RouJ4f1uyNhqr2P4CCvXFIqdRDUgWsVs=
+github.com/cilium/ebpf v0.12.0 h1:oQEuIQIXgYhe1v7sYUG0P9vtJTYZLLdA6tiQmrOB1mo=
+github.com/cilium/ebpf v0.12.0/go.mod h1:u9H29/Iq+8cy70YqI6p5pfADkFl3vdnV2qXDg5JL0Zo=
 github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c h1:OwlalGy+EdB8pabLfa+ArdFZ5YQInXHEfjwQQuXzSQs=
 github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c/go.mod h1:XccVlR2A+X5lEwDwvLSeV7rbEuxvvGsMMI9Dj2FkhxA=
 github.com/cilium/lumberjack/v2 v2.3.0 h1:IhVJMvPpqDYmQzC0KDhAoy7KlaRsyOsZnT97Nsa3u0o=
