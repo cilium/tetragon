@@ -17,14 +17,14 @@ Tetragon as of version 1.0 supports amd64 and arm64 architectures.
 
 1. First download the latest binary tarball, using `curl` for example to download the `amd64` release:
 
-   ```shell
+   ```shell-session
    curl -LO https://github.com/cilium/tetragon/releases/download/{{< latest-version >}}/tetragon-{{< latest-version >}}-amd64.tar.gz
    ```
 
 2. Extract the downloaded archive, and start the install script to install
    Tetragon. Feel free to inspect the script before starting it.
 
-   ```shell
+   ```shell-session
    tar -xvf tetragon-{{< latest-version >}}-amd64.tar.gz
    cd tetragon-{{< latest-version >}}-amd64/
    sudo ./install.sh
@@ -38,7 +38,7 @@ Tetragon as of version 1.0 supports amd64 and arm64 architectures.
 
 3. Finally, you can check the Tetragon systemd service.
 
-   ```shell
+   ```shell-session
    sudo systemctl status tetragon
    ```
 
@@ -80,19 +80,19 @@ To upgrade Tetragon:
 
 1. Download the new tarball.
 
-   ```shell
+   ```shell-session
    curl -LO https://github.com/cilium/tetragon/releases/download/{{< latest-version >}}/tetragon-{{< latest-version >}}-amd64.tar.gz
    ```
 
 2. Stop the Tetragon service.
 
-   ```shell
+   ```shell-session
    sudo systemctl stop tetragon
    ```
 
 3. Remove the old Tetragon version.
 
-   ```shell
+   ```shell-session
    sudo rm -fr /usr/lib/systemd/system/tetragon.service
    sudo rm -fr /usr/local/bin/tetragon
    sudo rm -fr /usr/local/lib/tetragon/
@@ -100,7 +100,7 @@ To upgrade Tetragon:
 
 4. Install the upgraded Tetragon version.
 
-   ```shell
+   ```shell-session
    tar -xvf tetragon-{{< latest-version >}}-amd64.tar.gz
    cd tetragon-{{< latest-version >}}-amd64/
    sudo ./install.sh
@@ -111,7 +111,7 @@ To upgrade Tetragon:
 To completely remove Tetragon run the `uninstall.sh` script that is provided
 inside the tarball.
 
-```shell
+```shell-session
 sudo ./uninstall.sh
 ```
 
@@ -129,7 +129,7 @@ sudo rm -fr /usr/local/lib/tetragon/
 
 To just purge custom settings:
 
-```shell
+```shell-session
 sudo rm -fr /etc/tetragon/
 ```
 
@@ -143,7 +143,7 @@ Tetragon tarball by default listens on `unix:///var/run/tetragon/tetragon.sock`
 
 To access the gRPC API with `tetra` client, set `--server-address` to point to the corresponding address:
 
-   ```
+   ```shell-session
    sudo tetra --server-address unix:///var/run/tetragon/tetragon.sock getevents
    ```
 
@@ -156,19 +156,19 @@ Logs are always rotated into the same directory.
 
 To read real-time JSON events, tailing the logs file is enough.
 
-   ```shell
+   ```shell-session
    sudo tail -f /var/log/tetragon/tetragon.log
    ```
 
 Tetragon also ships a gRPC client that can be used to receive events.
 
 1. To print events in `json` format using `tetra` gRPC client:
-   ```shell
+   ```shell-session
    sudo tetra --server-address "unix:///var/run/tetragon/tetragon.sock" getevents
    ```
 
 2. To print events in human compact format:
-   ```shell
+   ```shell-session
    sudo tetra --server-address "unix:///var/run/tetragon/tetragon.sock" getevents -o compact
    ```
 

@@ -14,7 +14,7 @@ To run a stable version, please check [Tetragon quay repository](https://quay.io
 and select which version you want. For example if you want to run the latest
 version which is `{{< latest-version >}}` currently.
 
-```shell
+```shell-session
 docker run --name tetragon --rm -d                   \
     --pid=host --cgroupns=host --privileged          \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
@@ -28,7 +28,7 @@ To run unstable development versions of Tetragon, use the
 This will run the image that was built from the latest commit available on the
 Tetragon main branch.
 
-```shell
+```shell-session
 docker run --name tetragon --rm -d                  \
    --pid=host --cgroupns=host --privileged          \
    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
@@ -48,7 +48,7 @@ There are multiple ways to set configuration options:
 1. Append Tetragon controlling settings at the end of the command
 
     As an example set the file where to export JSON events with `--export-filename` argument:
-    ```shell
+    ```shell-session
     docker run --name tetragon --rm -d \
         --pid=host --cgroupns=host --privileged \
         -v /sys/kernel:/sys/kernel \
@@ -61,7 +61,7 @@ There are multiple ways to set configuration options:
 
 2. Environment variables
 
-    ```shell
+    ```shell-session
     docker run --name tetragon --rm -d \
         --pid=host --cgroupns=host --privileged \
         --env "TETRAGON_EXPORT_FILENAME=/var/log/tetragon/tetragon.log" \
@@ -77,7 +77,7 @@ There are multiple ways to set configuration options:
 
     On the host machine set the configuration drop-ins inside `/etc/tetragon/tetragon.conf.d/` directory according to the [configuration examples](/docs/reference/tetragon-configuration/#configuration-examples), then mount it as volume:
 
-    ```shell
+    ```shell-session
     docker run --name tetragon --rm -d \
         --pid=host --cgroupns=host --privileged \
         -v /sys/kernel:/sys/kernel \
@@ -89,7 +89,3 @@ There are multiple ways to set configuration options:
 
 See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) reference for further details.
 
-## What's next
-
-- See [Explore security observability events](/docs/concepts/tetragon-events/)
-to learn how to see the Tetragon events.
