@@ -1,7 +1,7 @@
 ---
-title: "Tetragon Metrics"
+title: "Metrics"
 icon: "overview"
-weight: 3
+weight: 2
 description: "Documentation for Tetragon metrics"
 ---
 
