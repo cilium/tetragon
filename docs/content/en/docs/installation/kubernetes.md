@@ -22,14 +22,14 @@ in the Tetragon repository. You can use any of the values and override them
 with `--set KEY1=VALUE1,KEY2=VALUE2`.
 {{< /note >}}
 
-```shell
+```shell-session
 helm repo add cilium https://helm.cilium.io
 helm repo update
 helm install tetragon cilium/tetragon -n kube-system
 ```
 
 To wait until Tetragon deployment is ready, use the following `kubectl` command:
-```shell
+```shell-session
 kubectl rollout status -n kube-system ds/tetragon -w
 ```
 
@@ -48,14 +48,14 @@ for details and solutions.
 You can then make modifications to the Tetragon configuration using `helm
 upgrade`, see the following example.
 
-```shell
+```shell-session
 helm upgrade tetragon cilium/tetragon -n kube-system --set tetragon.grpc.address=localhost:1337
 ```
 
 You can also edit the `tetragon-config` ConfigMap directly and restart the
 Tetragon daemonset with:
 
-```shell
+```shell-session
 kubectl edit cm tetragon-config -n kube-system
 kubectl rollout restart ds/tetragon -n kube-system
 ```
@@ -64,7 +64,7 @@ kubectl rollout restart ds/tetragon -n kube-system
 
 Upgrade Tetragon using a new specific version of the helm chart.
 
-```shell
+```shell-session
 helm upgrade tetragon cilium/tetragon -n kube-system --version 0.9.0
 ```
 
@@ -72,6 +72,6 @@ helm upgrade tetragon cilium/tetragon -n kube-system --version 0.9.0
 
 Uninstall Tetragon using the following command.
 
-```shell
+```shell-session
 helm uninstall tetragon -n kube-system
 ```
