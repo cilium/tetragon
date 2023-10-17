@@ -12,7 +12,7 @@ remains low even on busy systems.
 
 The following extends the example from Execution Tracing with a policy to
 monitor sensitive files in Linux. The policy used is the
-[`file-monitoring.yaml`](https://github.com/cilium/tetragon/blob/main/quickstart/file-monitoring.yaml)
+[`file-monitoring.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file-monitoring.yaml)
 it can be reviewed and extended as needed. Files monitored here serve as a good
 base set of files.
 
@@ -23,10 +23,10 @@ on disk.
 {{< tabpane lang=shell-session >}}
 
 {{< tab Kubernetes >}}
-kubectl apply -f http://github.com/cilium/tetragon/quickstart/file-monitoring.yaml
+kubectl apply -f http://github.com/cilium/tetragon/examples/quickstart/file-monitoring.yaml
 {{< /tab >}}
 {{< tab Docker >}}
-wget http://github.com/cilium/tetragon/quickstart/file-monitoring.yaml
+wget http://github.com/cilium/tetragon/examples/quickstart/file-monitoring.yaml
 docker stop tetragon-container
 docker run --name tetragon-container --rm --pull always \
   --pid=host --cgroupns=host --privileged               \

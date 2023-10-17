@@ -60,7 +60,7 @@ export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-con
 Then we can apply the egress cluster enforcement policy
 
 ```shell-session
-wget http://github.com/cilium/tetragon/quickstart/network_egress_cluster_enforce.yaml
+wget http://github.com/cilium/tetragon/examples/quickstart/network_egress_cluster_enforce.yaml
 envsubst < network_egress_cluster_enforce.yaml | kubectl apply -n default -f -
 ```
 
@@ -107,7 +107,7 @@ devices and raw sockets application may attempt.
 
 The following extends the example from [File Access Monitoring]({{< ref "docs/getting-started/file-events" >}})
 with enforcement to ensure sensitive files are not read. The policy used is the
-[`file-monitoring-enforce.yaml`](https://github.com/cilium/tetragon/blob/main/quickstart/file-monitoring-enforce.yaml)
+[`file-monitoring-enforce.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file-monitoring-enforce.yaml)
 it can be reviewed and extended as needed. The only difference between the
 observation policy and the enforce policy is the addition of an action block
 to sigkill the application and return an error on the op.
@@ -117,11 +117,11 @@ To apply the policy:
 {{< tabpane lang=shell-session >}}
 
 {{< tab Kubernetes >}}
-kubectl delete -f http://github.com/cilium/tetragon/quickstart/file_monitoring.yaml
-kubectl apply -f http://github.com/cilium/tetragon/quickstart/file_monitoring_enforce.yaml
+kubectl delete -f http://github.com/cilium/tetragon/examples/quickstart/file_monitoring.yaml
+kubectl apply -f http://github.com/cilium/tetragon/examples/quickstart/file_monitoring_enforce.yaml
 {{< /tab >}}
 {{< tab Docker >}}
-wget http://github.com/cilium/tetragon/quickstart/file-monitoring.yaml
+wget http://github.com/cilium/tetragon/examples/quickstart/file-monitoring.yaml
 docker stop tetragon-container
 docker run --name tetragon-container --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
