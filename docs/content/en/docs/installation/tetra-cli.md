@@ -1,6 +1,6 @@
 ---
 title: "Install tetra CLI"
-weight: 5
+weight: 4
 description: "To interact with Tetragon, install the Tetragon client CLI tetra"
 ---
 
@@ -22,7 +22,7 @@ Linux distribution but you can usually find them respectively under the package
 `curl` and `coreutils`.
 {{< /note >}}
 
-```shell
+```shell-session
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 curl -L --remote-name-all https://github.com/cilium/tetragon/releases/latest/download/tetra-${GOOS}-${GOARCH}.tar.gz{,.sha256sum}
@@ -89,7 +89,7 @@ tar -xz tetra-windows-arm64.tar.gz
 fetch precompiled binaries. You can also use it to build from sources (using the
 `--build-from-source` flag) with a Go dependency.
 
-```shell
+```shell-session
 brew install tetra
 ```
 
@@ -101,7 +101,7 @@ at the following URL: https://github.com/cilium/tetragon/releases.
 To download a specific release you can use the following script, replacing the
 `OS`, `ARCH` and `TAG` values with your desired options.
 
-```shell
+```shell-session
 OS=linux
 ARCH=amd64
 TAG=v0.9.0
