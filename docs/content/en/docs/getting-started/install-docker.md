@@ -1,6 +1,6 @@
 ---
 title: "Quick Local Docker Install"
-weight: 1
+weight: 2
 description: "Discover and experiment with Tetragon on your local Linux host"
 ---
 
@@ -21,7 +21,7 @@ and how to run Tetragon on a Mac computer in [this section of the FAQ page](/doc
 The easiest way to start experimenting with Tetragon is to run it via Docker
 using the released container images.
 
-```shell
+```shell-session
 docker run --name tetragon-container --rm --pull always \
     --pid=host --cgroupns=host --privileged             \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \
@@ -31,6 +31,6 @@ docker run --name tetragon-container --rm --pull always \
 This will start Tetragon in a privileged container. Priviliges are required
 to load and attach BPF programs. See Installation section for more details.
 
-## Whats Next
+## What's Next
 
-[Check for execution events.]({{< ref "/docs/getting-started/execution" >}}).
+Check for [execution events]({{< ref "/docs/getting-started/execution" >}}).

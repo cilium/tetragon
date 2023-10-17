@@ -1,13 +1,13 @@
 ---
-title: "Execution monitoring"
-weight: 2
-description: "Execution Traces with Tetragon"
+title: "Execution Monitoring"
+weight: 3
+description: "Execution traces with Tetragon"
 ---
 
 At the core of Tetragon is the tracking of all executions in a kubernetes cluster,
 virtual machines, and baremetal systems. This creates the foundation that allows
 Tetragon to attribute all system behavior back to a specific binary and its
-associated metadata (container, pod, node, and cluster).
+associated metadata (container, Pod, Node, and cluster).
 
 ## Observe Tetragon Execution Events
 
@@ -19,10 +19,10 @@ The following command can be used to observe exec events.
 {{< tabpane lang=shell-session >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
 {{< tab Docker >}}
 docker exec tetragon-container tetra getevents -o compact
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
 {{< /tabpane >}}
 
 This will print a compact form of the exec logs. For an example we do the following
@@ -31,20 +31,20 @@ with the demo application.
 
 {{< tabpane lang=shell-session >}}
 {{< tab Kubernetes >}}
- kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon
-{{< /tab >}}                                                                                                                                                                                   
+kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
+{{< /tab >}}
 {{< tab Docker >}}
 curl https://ebpf.io/applications/#tetragon
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
 {{< /tabpane >}}
 
-The CLI will print a compact form of the event to the terminal
+The CLI will print a compact form of the event to the terminal similar to the
+following output.
 
-```shell-session
-🚀 process default/xwing /bin/bash -c "curl https://ebpf.io/applications/#tetragon" 
-🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 
-💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60 
-
+```
+🚀 process default/xwing /bin/bash -c "curl https://ebpf.io/applications/#tetragon"
+🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon
+💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
 The compact exec event contains the event type, the pod name, the binary and the args. The exit event will include the return code, in the case of curl `60` above.
@@ -52,12 +52,12 @@ The compact exec event contains the event type, the pod name, the binary and the
 For the complete exec event in JSON format remove the compact option.
 
 {{< tabpane lang=shel-session >}}
-{{< tab Kubernetes >}}          
+{{< tab Kubernetes >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents
-{{< /tab >}}                                                                                                                                                                                   
-{{< tab Docker >}}          
+{{< /tab >}}
+{{< tab Docker >}}
 docker exec tetragon-container tetra getevents
-{{< /tab >}}                                                                                                                                                                                   
+{{< /tab >}}
 {{< /tabpane >}}
 
 This will include a lot more details related the binary and event. A full example of the above curl is hown here,
@@ -149,4 +149,7 @@ Labels among other useful metadata.
 
 ## What's next
 
-Execution events are the most basic event Tetragon can produce. To see how to use tracing policies to enable file monitoring see the [File Access Monitoring]({{< ref "/docs/getting-started/file-events" >}})quickstart. To see a network policy check the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) quickstart.
+Execution events are the most basic event Tetragon can produce. To see how to
+use tracing policies to enable file monitoring see the
+[File Access Monitoring]({{< ref "/docs/getting-started/file-events" >}}) quickstart.
+To see a network policy check the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) quickstart.

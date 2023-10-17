@@ -1,7 +1,5 @@
 ---
-title: "Installion"
-linkTitle: "Installion"
-isShownInList: false
+title: "Installation"
 weight: 2
 description: >
   Installation instructions and guides.

@@ -6,7 +6,8 @@ description: "Discover and experiment with Tetragon in a kubernetes environment"
 
 ### Create a cluster
 
-If you don’t have a Kubernetes Cluster yet, you can use the instructions below to create a Kubernetes cluster locally or using a managed Kubernetes service:
+If you don’t have a Kubernetes Cluster yet, you can use the instructions below
+to create a Kubernetes cluster locally or using a managed Kubernetes service:
 
 {{< tabpane text=true >}}
 {{% tab GKE %}}
@@ -65,9 +66,18 @@ several seconds for some pods until they satisfy all the dependencies:
 
 ```shell-session
 kubectl get pods
+```
+
+The output should be similar to this:
+
+```
 NAME                         READY   STATUS    RESTARTS   AGE
 deathstar-6c94dcc57b-7pr8c   1/1     Running   0          10s
 deathstar-6c94dcc57b-px2vw   1/1     Running   0          10s
 tiefighter                   1/1     Running   0          10s
 xwing                        1/1     Running   0          10s
 ```
+
+## What's Next
+
+Check for [execution events]({{< ref "/docs/getting-started/execution" >}}).
