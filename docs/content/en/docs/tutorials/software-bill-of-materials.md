@@ -1,6 +1,6 @@
 ---
 title: "Software bill of materials"
-weight: 2
+weight: 4
 icon: "reference"
 description: "Download and verify the signature of the software bill of materials"
 ---
