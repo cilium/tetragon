@@ -36,7 +36,7 @@ First we apply a policy that includes the `podCIDR` and `serviceIP` list as
 filters to avoid filter out cluster local traffic. To apply the policy:
 
 ```shell-session
-wget http://github.com/cilium/tetragon/quickstart/network_egress_cluster.yaml
+wget http://github.com/cilium/tetragon/examples/quickstart/network_egress_cluster.yaml
 envsubst < network_egress_cluster.yaml | kubectl apply -f -
 ```
 
@@ -98,7 +98,7 @@ export SERVICECIDR="127.0.0.1/32"
 
 To create the policy,
 ```shell-session
-wget http://github.com/cilium/tetragon/quickstart/network_egress_cluster.yaml
+wget http://github.com/cilium/tetragon/examples/quickstart/network_egress_cluster.yaml
 envsubst < network_egress_cluster.yaml > network_egress_cluster_subst.yaml
 ```
 
