@@ -1,14 +1,18 @@
 ---
-title: "Tetragon Metrics"
-weight: 1
+title: "Metrics"
 icon: "overview"
-description: "Fetching and understanding Tetragon metrics"
+weight: 2
+description: "Documentation for Tetragon metrics"
 ---
+
+Tetragon's metrics are exposed to the system through an HTTP endpoint. These
+are used to expose event summaries and information about the state of the
+Tetragon agent.
 
 ## Kubernetes
 
-Tetragon pods expose a  metrics endpoint by default. The chart also creates a service named `tetragon`
-that exposes metrics on the specified port. 
+Tetragon pods exposes a metrics endpoint by default. The chart also creates a
+service named `tetragon` that exposes metrics on the specified port.
 
 ### Getting metrics port
 
@@ -25,8 +29,8 @@ tetragon   ClusterIP   10.96.54.218   <none>        2112/TCP    3m
 ```
 
 {{< note >}}
-In the previous output it shows, 2112 is the port on which the service is 
-listening. It is also the port on which the Tetragon metrics server listens 
+In the previous output it shows, 2112 is the port on which the service is
+listening. It is also the port on which the Tetragon metrics server listens
 with the default Helm values.
 {{< /note >}}
 
@@ -40,11 +44,11 @@ kubectl -n kube-system port-forward service/tetragon 2112:2112
 
 ## Package
 
-By default, metrics are disabled, which can be enabled using `--metrics-server` 
+By default, metrics are disabled, which can be enabled using `--metrics-server`
 flag, by specifying the address.
 
 Alternatively, the [examples/configuration/tetragon.yaml](https://github.com/cilium/tetragon/blob/main/examples/configuration/tetragon.yaml)
-file contains example entries showing the defaults for the address of 
+file contains example entries showing the defaults for the address of
 metrics-server. Local overrides can be created by editing and copying this file
 into `/etc/tetragon/tetragon.yaml`, or by editing and copying "drop-ins" from
 the [examples/configuration/tetragon.conf.d](https://github.com/cilium/tetragon/tree/main/examples/configuration/tetragon.conf.d)
@@ -62,25 +66,25 @@ sudo tetragon --metrics-server localhost:2112
 The output should be similar to this:
 
 ```
-time="2023-09-21T13:17:08+05:30" level=info msg="Starting tetragon" 
+time="2023-09-21T13:17:08+05:30" level=info msg="Starting tetragon"
 version=v0.11.0
-time="2023-09-21T13:17:08+05:30" level=info msg="config settings" 
+time="2023-09-21T13:17:08+05:30" level=info msg="config settings"
 config="mapeased
-time="2023-09-22T23:16:24+05:30" level=info msg="Starting metrics server" 
-addr="localhost:2112" 
+time="2023-09-22T23:16:24+05:30" level=info msg="Starting metrics server"
+addr="localhost:2112"
 [...]
 time="2023-09-21T13:17:08+05:30" level=info msg="Listening for events..."
 ```
 
-Alternatively, a file named `server-address` can be created in `etc/tetragon/tetragon.conf.d/metrics-server` with content specifying 
-a port like this `localhost:2112`, or any port of your choice as mentioned 
+Alternatively, a file named `server-address` can be created in `etc/tetragon/tetragon.conf.d/metrics-server` with content specifying
+a port like this `localhost:2112`, or any port of your choice as mentioned
 above.
 
 ## Fetch the Metrics
 
-After the metrics are exposed, either by port forwarding in case of 
-Kubernetes installation or by setting metrics address in case of Package 
-installation, the metrics can be fetched using 
+After the metrics are exposed, either by port forwarding in case of
+Kubernetes installation or by setting metrics address in case of Package
+installation, the metrics can be fetched using
 `curl` on `localhost:2112/metrics`:
 
 ```shell-session
