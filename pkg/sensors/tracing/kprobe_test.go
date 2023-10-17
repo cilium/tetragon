@@ -2207,6 +2207,64 @@ spec:
 	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT, false)
 }
 
+func TestKprobeOverrideSecurity(t *testing.T) {
+	if !bpf.HasModifyReturn() {
+		t.Skip("skipping fmod_ret support is not available")
+	}
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	openAtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-openat-override"
+spec:
+  kprobes:
+  - call: "security_file_open"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `"
+      matchActions:
+      - action: Override
+        argError: -2
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_open")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(file.Name()))),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeOverride(t, openAtHook, checker, file.Name(), syscall.ENOENT, false)
+}
+
 func TestKprobeOverrideNopostAction(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
