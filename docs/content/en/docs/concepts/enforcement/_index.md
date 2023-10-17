@@ -1,7 +1,7 @@
 ---
 title: "Enforcement"
 icon: "overview"
-weight: 5
+weight: 4
 description: "Documentation for Tetragon enforcement system"
 ---
 
