@@ -6,7 +6,7 @@ description: "Tetragon JSON events"
 ---
 
 After Tetragon and the [demo application is up and
-running](/docs/getting-started/kubernetes-quickstart-guide/#deploy-the-demo-application)
+running](/docs/getting-started/install-k8s/#deploy-demo-application)
 you can examine the security and observability events produced by Tetragon in
 different ways.
 
