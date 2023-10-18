@@ -1,0 +1,32 @@
+name: Run veristat compare
+on:
+  pull_request:
+    paths:
+      - 'bpf/**'
+
+jobs:
+  veristat-compare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        with:
+          path: branch
+
+      - name: Checkout base ref
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        with:
+          path: base
+          ref: ${{ github.base_ref }}
+
+      - name: Build BPF programs
+        run: |
+          make -C branch tetragon-bpf
+          make -C base tetragon-bpf
+
+      - name: Run veristat comparison
+        uses: mtardy/veristat-action@35c8885118c1b3046f6a5fdedf1cc5670e584cf9 # v1.0.0
+        with:
+          compare: true
+          baseline-programs: "base/bpf/objs/*.o"
+          comparison-programs: "branch/bpf/objs/*.o"
