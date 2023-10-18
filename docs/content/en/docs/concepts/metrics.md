@@ -42,11 +42,10 @@ To forward the metrics port locally, use `kubectl port forward`:
 kubectl -n kube-system port-forward service/tetragon 2112:2112
 ```
 
-## Systemd and Local Packages
+## Local Package Install
 
-By default, metrics are disabled when following systemd installation or
-using release images to install locally. The metrics can be enabled using `--metrics-server`
-flag, by specifying the address.
+By default, metrics are disabled when using release packages to install locally. The
+metrics can be enabled using `--metrics-server` flag to specify the address.
 
 Alternatively, the [examples/configuration/tetragon.yaml](https://github.com/cilium/tetragon/blob/main/examples/configuration/tetragon.yaml)
 file contains example entries showing the defaults for the address of
