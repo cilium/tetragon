@@ -12,7 +12,7 @@ to create a Kubernetes cluster locally or using a managed Kubernetes service:
 {{< tabpane text=true >}}
 {{% tab GKE %}}
 
-The following commands create a Kubernetes cluster using [Google
+The following commands create a single node Kubernetes cluster using [Google
 Kubernetes Engine](https://cloud.google.com/kubernetes-engine). See
 [Installing Google Cloud SDK](https://cloud.google.com/sdk/install) for
 instructions on how to install `gcloud` and prepare your account.
@@ -20,7 +20,7 @@ instructions on how to install `gcloud` and prepare your account.
 ```shell-session
 export NAME="$(whoami)-$RANDOM"
 export ZONE="us-west2-a"
-gcloud container clusters create "${NAME}" --zone ${ZONE}
+gcloud container clusters create "${NAME}" --zone ${ZONE} --num-nodes=1
 gcloud container clusters get-credentials "${NAME}" --zone ${ZONE}
 ```
 {{% /tab %}}
