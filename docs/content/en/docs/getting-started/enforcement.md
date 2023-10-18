@@ -6,8 +6,8 @@ description: "Policy Enforcement"
 
 This adds a network and file policy enforcement on top of execution, file tracing
 and networking policy already deployed in the quick start.  In this use case we use
-a namespace filter to limit the scope of the enforcement policy to just the `darkstar`
-cluster we installed the demo application in from the
+a namespace filter to limit the scope of the enforcement policy to just the `default`
+namespace we installed the demo application in from the
 [Quick Kubernetes Install]({{< ref "docs/getting-started/install-k8s" >}}).
 
 This highlights two important concepts of Tetragon. First in kernel filtering
