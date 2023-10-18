@@ -19,8 +19,9 @@ instructions on how to install `gcloud` and prepare your account.
 
 ```shell-session
 export NAME="$(whoami)-$RANDOM"
-gcloud container clusters create "${NAME}" --zone us-west2-a
-gcloud container clusters get-credentials "${NAME}" --zone us-west2-a
+export ZONE="us-west2-a"
+gcloud container clusters create "${NAME}" --zone ${ZONE}
+gcloud container clusters get-credentials "${NAME}" --zone ${ZONE}
 ```
 {{% /tab %}}
 
