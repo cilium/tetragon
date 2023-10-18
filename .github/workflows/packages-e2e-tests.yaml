@@ -1,7 +1,7 @@
 name: Packages e2e Tests
 
 on:
-  pull_request:
+  pull_request_target:
     paths-ignore:
     - "**.md"
     - 'docs/**'
