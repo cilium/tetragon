@@ -70,6 +70,17 @@ This will generate a read event (Docker events will omit Kubernetes metadata),
 Attempts to write in sensitive directories will similar create an event. For
 example attempting to write in `/etc`.
 
+{{< tabpane lang=shell-session >}}
+{{< tab Kubernetes >}}
+kubectl exec -ti xwing -- bash -c 'echo foo >> /etc/bar'
+{{< /tab >}}
+{{< tab Docker >}}
+cat /etc/shadow
+{{< /tab >}}
+{{< /tabpane >}}
+
+Will result in the following output in the tetra CLI.
+
 ```
 🚀 process default/xwing /bin/bash -c "echo foo >>  /etc/bar"
 📝 write   default/xwing /bin/bash /etc/bar
