@@ -1,0 +1,26 @@
+name: Run veristat
+on:
+  push:
+    branches:
+      - main
+      - v*
+    paths:
+      - 'bpf/**'
+  pull_request:
+    paths:
+      - 'bpf/**'
+
+jobs:
+  veristat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Build BPF programs
+        run: make tetragon-bpf
+
+      - name: Run veristat
+        uses: mtardy/veristat-action@35c8885118c1b3046f6a5fdedf1cc5670e584cf9 # v1.0.0
+        with:
+          programs: "bpf/objs/*.o"
