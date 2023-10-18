@@ -99,10 +99,6 @@ a Sigkill. The successful internal connect is filtered and will not be shown.
 🚀 process default/xwing /usr/bin/curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing
 ```
 
-The enforces TCP connects see [Enforce Sandbox]({{< ref "#enforce-common-security-policy" >}})
-below to further restrict possible workaround such as writing through /dev
-devices and raw sockets application may attempt.
-
 ### Enforce File Access Monitoring
 
 The following extends the example from [File Access Monitoring]({{< ref "docs/getting-started/file-events" >}})
