@@ -18,12 +18,12 @@ export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
 
 The services CIDR can then be fetched depending on environment. We
-require environment variables ZONE, PROJECT, and NAME from install steps.
+require environment variables ZONE and NAME from install steps.
 
 {{< tabpane lang=shell-session >}}
 
 {{< tab GKE >}}
-export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} --project ${PROJECT} | awk '/servicesIpv4CidrBlock/ { print $2; }')
+export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
 {{< /tab >}}
 
 {{< tab Kind >}}

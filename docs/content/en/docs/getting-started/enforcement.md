@@ -49,7 +49,7 @@ export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 
 {{< tabpane lang=shell-session >}}
 {{< tab GKE >}}
-export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} --project ${PROJECT} | awk '/servicesIpv4CidrBlock/ { print $2; }')
+export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
 {{< /tab >}}
 
 {{< tab Kind >}}
