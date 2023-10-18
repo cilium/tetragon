@@ -53,7 +53,7 @@ For the complete exec event in JSON format remove the compact option.
 
 {{< tabpane lang=shel-session >}}
 {{< tab Kubernetes >}}
-kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents
+kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents --pods xwing
 {{< /tab >}}
 {{< tab Docker >}}
 docker exec tetragon-container tetra getevents
