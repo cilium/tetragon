@@ -1460,6 +1460,34 @@ static inline __attribute__((always_inline)) int match_binaries(void *sel_names,
 	__u32 ppid, bin_key, *bin_val;
 	bool walker = 0;
 
+	// if prefix_map is NULL for the specific selidx, this means this selector
+	// does not contain any match on prefix
+	void *prefix_map = map_lookup_elem(&string_prefix_maps, &selidx);
+
+	if (prefix_map) {
+		execve = event_find_curr(&ppid, &walker);
+		if (!execve) {
+			// this should not happen, it means that the process was missed when
+			// scanning /proc for process that started before and after tetragon
+			return 0;
+		}
+
+		if (execve->binary_path.path_length < 0) {
+			// something wrong happened when copying the filename to execve_map
+			return 0;
+		}
+
+		// prepare the key on the stack to perform lookup in the LPM_TRIE
+		struct string_prefix_lpm_trie prefix_key = { 0 };
+
+		prefix_key.prefixlen = execve->binary_path.path_length * 8; // prefixlen is in bits
+		probe_read_str(prefix_key.data, execve->binary_path.path_length & (STRING_PREFIX_MAX_LENGTH - 1), execve->binary_path.path);
+
+		__u8 *pass = map_lookup_elem(prefix_map, &prefix_key);
+
+		return !!pass;
+	}
+
 	// if binaries_map is NULL for the specific selidx, this
 	// means that the specific selector does not contain any
 	// matchBinaries actions. So we just proceed.
