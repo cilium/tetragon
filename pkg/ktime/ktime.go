@@ -38,7 +38,10 @@ func NanoTimeSince(ktime int64) (time.Duration, error) {
 }
 func DecodeKtime(ktime int64, monotonic bool) (time.Time, error) {
 	var clk int32
-	if monotonic {
+	// If ktime == 0, then we should report the boot time.
+	// This is easiest done by subtracting the boottime clock
+	// from the current time.
+	if monotonic && ktime > 0 {
 		clk = int32(unix.CLOCK_MONOTONIC)
 	} else {
 		clk = int32(unix.CLOCK_BOOTTIME)

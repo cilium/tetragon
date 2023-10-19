@@ -203,6 +203,12 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	if proc == nil {
 		return true
 	}
+	// Pid=0 is the kernel; Pid=1 is the init process.
+	// For both, we will not receive any execve events or k8s watcher info
+	// to enrich the events, so the cache is not needed for these.
+	if proc.Pid.Value <= 1 {
+		return false
+	}
 	if option.Config.EnableK8s {
 		if proc.Docker != "" && proc.Pod == nil {
 			return true
