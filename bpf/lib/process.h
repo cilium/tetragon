@@ -292,6 +292,23 @@ struct msg_execve_event {
 	__u32 binary;
 }; // All fields aligned so no 'packed' attribute.
 
+#define BINARY_PATH_MAX_LEN 256
+
+// This structure stores the binary path that was recorded on execve.
+// Technically PATH_MAX is 4096 but we limit the length we store since we have
+// limits on the length of the string to compare:
+// - Artificial limits for full string comparison.
+// - Technical limits for prefix and postfix, using LPM_TRIE that have a 256
+//   bytes size limit.
+struct binary_path {
+	// length of the path stored in path, this should be < BINARY_PATH_MAX_LEN
+	// but can contain negative value in case of copy error.
+	// While s16 would be sufficient, 64 bits are handy for alignment.
+	__s64 path_length;
+	// BINARY_PATH_MAX_LEN first bytes of the path
+	char path[BINARY_PATH_MAX_LEN];
+}; // All fields aligned so no 'packed' attribute
+
 // The execve_map_value is tracked by the TGID of the thread group
 // the msg_execve_key.pid. The thread IDs are recorded on the
 // fly and sent with every corresponding event.
@@ -304,6 +321,7 @@ struct execve_map_value {
 	__u32 pad;
 	struct msg_ns ns;
 	struct msg_capabilities caps;
+	struct binary_path binary_path;
 } __attribute__((packed)) __attribute__((aligned(8)));
 
 struct {
