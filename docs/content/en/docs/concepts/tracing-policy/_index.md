@@ -30,6 +30,10 @@ Tracing Policies can be loaded and unloaded at runtime in Tetragon, or on
 startup using flags.
 - With Kubernetes, you can use `kubectl` to add and remove a `TracingPolicy`.
 - You can use `tetra` gRPC CLI to add and remove a `TracingPolicy`.
-- You can use the `--tracing-policy` and `--tracing-policy-dir` flags, see more
-  in the [daemon configuration page]({{< ref "/docs/reference/tetragon-configuration#configure-tracing-policies-location" >}}).
+- You can use the `--tracing-policy` and `--tracing-policy-dir` flags to statically add policies at
+  startup time, see more in the [daemon configuration page]({{< ref
+  "/docs/reference/tetragon-configuration#configure-tracing-policies-location" >}}).
 
+
+Hence, even though Tracing Policies are structured as a Kubernetes CR, they can also be used in
+non-Kubernetes environments using the last two loading methods.

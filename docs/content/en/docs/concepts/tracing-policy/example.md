@@ -39,6 +39,10 @@ spec:
       - action: Sigkill
 ```
 
+The policy checks for file descriptors being created, and sends a `SIGKILL` signal to any process that
+creates a file descriptor to a file named `/tmp/tetragon`. We discuss the policy in more detail
+next.
+
 ## Required fields
 
 ```yaml
@@ -68,11 +72,11 @@ spec:
       type: "file"
 ```
 
-The beginning of the specification describe the hook point to use. Here we are
+The beginning of the specification describes the hook point to use. Here we are
 using a kprobe, hooking on the kernel function `fd_install`. That's the kernel
-function that gets called when a new file descriptor needs to be created. We
+function that gets called when a new file descriptor is created. We
 indicate that it's not a syscall, but a regular kernel function. We then
-specify the argument of the specified function symbol to be able to extract
+specify the function arguments, so that Tetragon's BPF code will extract
 and optionally perform filtering on them.
 
 See the [hook points page]({{< ref "/docs/concepts/tracing-policy/hooks" >}})
@@ -92,11 +96,11 @@ for further information on the various hook points available and arguments.
 ```
 
 Selectors allow you to filter on the events to extract only a subset of the
-events based on different properties and optionally take an enforcement action.
+events based on different properties and optionally take an action.
 
 In the example, we filter on the argument at index 1, passing a `file` struct
 to the function. Tetragon has the knowledge on how to apply the `Equal`
-operator over a Linux kernel `file` struct and you can basically match on the
+operator over a Linux kernel `file` struct and match on the
 path of the file.
 
 Then we add the `Sigkill` action, meaning, that any match of the selector
@@ -112,33 +116,40 @@ First, let's create the `/tmp/tetragon` file with some content:
 echo eBPF! > /tmp/tetragon
 ```
 
-Starting Tetragon with the above `TracingPolicy`, for example putting the
-policy in the `example.yaml` file, compiling the project locally and starting
-Tetragon with (you can do similar things with container image releases, see the
-docker run command in the [Try Tetragon on Linux guide]
+You can save the policy in an `example.yaml` file, compile Tetragon locally, and start Tetragon:
 
 ```shell-session
 sudo ./tetragon --bpf-lib bpf/objs --tracing-policy example.yaml
 ```
+
+(See [Quick Kubernetes Install]({{< ref "/docs/getting-started/install-k8s" >}}) and [Quick Local
+Docker Install]({{< ref "/docs/getting-started/install-docker" >}}) for other ways to start
+Tetragon.)
+
 
 {{< note >}}
 Stop tetragon with <kbd>Ctrl</kbd>+<kbd>C</kbd> to disable the policy and
 remove the BPF programs.
 {{< /note >}}
 
+Once the Tetragon starts, you can monitor events using `tetra`, the tetragon CLI:
+```shell-session
+./tetra tetra getevents -o compact
+```
+
 Reading the `/tmp/tetragon` file with `cat`:
 ```shell-session
 cat /tmp/tetragon
 ```
 
-Should result in the following events:
+Results in the following events:
 ```
 🚀 process  /usr/bin/cat /tmp/tetragon
 📬 open     /usr/bin/cat /tmp/tetragon
 💥 exit     /usr/bin/cat /tmp/tetragon SIGKILL
 ```
 
-And the shell will return:
+And the shell where the `cat` command was performed will return:
 ```
 Killed
 ```
