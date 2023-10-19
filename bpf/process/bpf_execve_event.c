@@ -287,6 +287,14 @@ execve_send(struct sched_execve_args *ctx)
 			curr->caps.inheritable = event->caps.inheritable;
 		}
 #endif
+		// reuse p->args first string that contains the filename, this can't be
+		// above 256 in size (otherwise the complete will be send via data msg)
+		// which is okay because we need the 256 first bytes.
+		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, &p->args);
+		if (curr->bin.path_length > 1) {
+			// don't include the NULL byte in the length
+			curr->bin.path_length--;
+		}
 	}
 
 	event->common.flags = 0;
