@@ -1,0 +1,41 @@
+# This 'process-creds-change-user-namespace' Traces:
+#
+# 1. Creation of user namespaces by unprivileged.
+# 2. Changing the user namespace with sys_setns by privileged or unprivileged.
+#
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-change-user-namespace"
+  annotations:
+    author: "Djalal Harouni"
+spec:
+  kprobes:
+  - call: "create_user_ns"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "nop" # No need for argument as this targets unprivileged anyway.
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+      #- matchNamespaces:
+      #  - namespace: Pid
+      #    operator: NotIn
+      #    values:
+      #    - "host_ns"
+      - matchCapabilities:
+        - type: Effective
+          operator: NotIn
+          isNamespaceCapability: false
+          values:
+          - "CAP_SYS_ADMIN"
+  - call: "userns_install"
+    syscall: false
+    return: true
+    returnArg:
+      index: 0
+      type: "int"
