@@ -725,12 +725,12 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	return nil
 }
 
-func writePrefixStrings(k *KernelSelectorState, values []string) error {
+func writePrefix(k *KernelSelectorState, values []string, selector string) error {
 	mid, m := k.newStringPrefixMap()
 	for _, v := range values {
 		value, size := ArgSelectorValue(v)
 		if size > StringPrefixMaxLength {
-			return fmt.Errorf("MatchArgs value %s invalid: string is longer than %d characters", v, StringPrefixMaxLength)
+			return fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPrefixMaxLength)
 		}
 		val := KernelLPMTrieStringPrefix{prefixLen: size * 8} // prefix is in bits, but size is in bytes
 		copy(val.data[:], value)
@@ -739,6 +739,14 @@ func writePrefixStrings(k *KernelSelectorState, values []string) error {
 	// write the map id into the selector
 	WriteSelectorUint32(k, mid)
 	return nil
+}
+
+func writePrefixBinaries(k *KernelSelectorState, values []string) error {
+	return writePrefix(k, values, "MatchBinaries")
+}
+
+func writePrefixStrings(k *KernelSelectorState, values []string) error {
+	return writePrefix(k, values, "MatchArgs")
 }
 
 func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
@@ -1170,15 +1178,20 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	if op != SelectorOpIn && op != SelectorOpNotIn {
-		return fmt.Errorf("matchBinary error: Only In and NotIn operators are supported")
+	if op != SelectorOpIn && op != SelectorOpNotIn && op != SelectorOpPrefix {
+		return fmt.Errorf("matchBinary error: Only In, NotIn and Prefix operators are supported")
 	}
 	k.SetBinaryOp(selIdx, op)
-	for _, s := range b.Values {
-		if len(s) > 255 {
-			return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+	switch op {
+	case SelectorOpPrefix:
+		writePrefixBinaries(k, b.Values)
+	default:
+		for _, s := range b.Values {
+			if len(s) > 255 {
+				return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+			}
+			k.AddBinaryName(selIdx, s)
 		}
-		k.AddBinaryName(selIdx, s)
 	}
 	return nil
 }

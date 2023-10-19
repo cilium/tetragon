@@ -81,7 +81,7 @@ type KProbeArg struct {
 }
 
 type BinarySelector struct {
-	// +kubebuilder:validation:Enum=In;NotIn
+	// +kubebuilder:validation:Enum=In;NotIn;Prefix
 	// Filter operation.
 	Operator string `json:"operator"`
 	// Value to compare the argument against.
