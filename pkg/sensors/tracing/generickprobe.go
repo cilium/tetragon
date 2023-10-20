@@ -495,11 +495,10 @@ func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([
 }
 
 func createGenericKprobeSensor(
+	spec *v1alpha1.TracingPolicySpec,
 	name string,
-	kprobes []v1alpha1.KProbeSpec,
 	policyID policyfilter.PolicyID,
 	policyName string,
-	lists []v1alpha1.ListSpec,
 	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
@@ -507,6 +506,9 @@ func createGenericKprobeSensor(
 	var multiIDs, multiRetIDs []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
+
+	kprobes := spec.KProbes
+	lists := spec.Lists
 
 	// use multi kprobe only if:
 	// - it's not disabled by user
