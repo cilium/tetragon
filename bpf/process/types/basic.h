@@ -13,7 +13,6 @@
 #include "bpfattr.h"
 #include "perfevent.h"
 #include "bpfmap.h"
-#include "capabilities.h"
 #include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
