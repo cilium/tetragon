@@ -182,7 +182,7 @@ func TestNamespacedPolicies(t *testing.T) {
 		},
 	}
 
-	tpSpec := GenericTracepointConf{
+	tpSpec := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{

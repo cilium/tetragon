@@ -148,10 +148,6 @@ func (t *tracepointTable) getTracepoint(idx int) (*genericTracepoint, error) {
 	return nil, fmt.Errorf("tracepoint table: invalid id:%d (len=%d)", idx, len(t.arr))
 }
 
-// GenericTracepointConf is the configuration for a generic tracepoint. This is
-// a caller-defined structure that configures a tracepoint.
-type GenericTracepointConf = v1alpha1.TracepointSpec
-
 // getTracepointMetaArg is a temporary helper to find meta values while tracepoint
 // converts into new CRD and config formats.
 func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
@@ -318,7 +314,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 // the user-provided configuration
 func createGenericTracepoint(
 	sensorName string,
-	conf *GenericTracepointConf,
+	conf *v1alpha1.TracepointSpec,
 	policyID policyfilter.PolicyID,
 	policyName string,
 	customHandler eventhandler.Handler,
@@ -354,7 +350,7 @@ func createGenericTracepoint(
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
 func createGenericTracepointSensor(
 	name string,
-	confs []GenericTracepointConf,
+	confs []v1alpha1.TracepointSpec,
 	policyID policyfilter.PolicyID,
 	policyName string,
 	lists []v1alpha1.ListSpec,
