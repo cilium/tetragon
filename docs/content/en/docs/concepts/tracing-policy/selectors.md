@@ -546,6 +546,11 @@ process is spawned in the container PID namespace and is not a child of PID 1.
     - action: Sigkill
 ```
 
+{{< caution >}}
+Please consult the [Enforcement]({{<ref "/docs/concepts/enforcement" >}}) section if you plan to use
+this action for enforcement.
+{{< /caution >}}
+
 ### Signal action
 
 `Signal` action sends specified signal to current process. The signal number
@@ -582,6 +587,12 @@ The difference is to use the signal action with `SIGKILL(9)` signal.
     - action: Signal
       argSig: 9
 ```
+
+{{< caution >}}
+Please consult the [Enforcement]({{<ref "/docs/concepts/enforcement" >}}) section if you plan to use
+this action for enforcement.
+{{< /caution >}}
+
 
 ### Override action
 
