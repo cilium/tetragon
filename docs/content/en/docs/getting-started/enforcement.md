@@ -193,5 +193,4 @@ using policies. Some useful links:
 
 To explore details of writing and implementing policies the [Concepts]({{< ref "/docs/concepts" >}}) is a good jumping off point.
 For installation into production environments we recommend reviewing [Advanced Installations]({{< ref "docs/installation" >}}).
-For a more in depth discussion on Tetragon overhead and how we measure system load try [Benchmarks]({{< ref "docs/benchmarks" >}}).
 Finally [Use Cases]({{< ref "docs/use-cases" >}}) and [Tutorials]({{< ref "docs/tutorials" >}}) cover different uses and deployment concerns related to Tetragon.
