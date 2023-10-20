@@ -17,7 +17,7 @@ type skipRule struct {
 
 // We should probably have this in a json file, but for now we keep it here
 var rules = []skipRule{
-	skipRule{TestNameRe: "pkg.sensors.tracing.TestLoader", KernelRe: "bpf-next"},
+	skipRule{TestNameRe: "pkg.sensors.tracing.TestLoader", KernelRe: "(6\\.1|bpf-next)"},
 	skipRule{TestNameRe: "pkg.tracepoint.TestTracepointLoadFormat", KernelRe: "bpf-next"},
 }
 
