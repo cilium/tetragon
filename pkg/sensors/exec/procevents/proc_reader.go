@@ -175,7 +175,8 @@ func pushExecveEvents(p procs) {
 	// use euid to be compatible with ps
 	m.Process.UID = p.uids[1]
 	m.Process.AUID = p.auid
-	m.Creds = processapi.MsgGenericCredMinimal{
+	usersns := processapi.MsgUserNamespace{}
+	m.Creds = processapi.MsgGenericCred{
 		Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
 		Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
 	}

@@ -50,30 +50,6 @@ struct msg_cred {
 	struct msg_user_namespace user_ns;
 } __attribute__((packed));
 
-/*
- * TODO: we have msg_cred above that includes the full credentials
- * definition and is used in kprobes.
- * However since we are also moving to use creds for
- * exec events, so let's do it step by step, as we already
- * have the capabilities in execve inside the execve_map and
- * the user space cache, so we start with this minimal
- * credential object that holds only uids/gids, then we follow
- * up by moving the capabilities into it, and make this cred
- * the new storage in execve_map and user space process cache.
- */
-struct msg_cred_minimal {
-	__u32 uid;
-	__u32 gid;
-	__u32 suid;
-	__u32 sgid;
-	__u32 euid;
-	__u32 egid;
-	__u32 fsuid;
-	__u32 fsgid;
-	__u32 securebits;
-	__u32 pad;
-} __attribute__((packed));
-
 static inline __attribute__((always_inline)) void
 __get_caps(struct msg_capabilities *msg, const struct cred *cred)
 {
@@ -124,13 +100,8 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 }
 
 static inline __attribute__((always_inline)) void
-get_current_subj_creds_uids(struct msg_cred_minimal *info, struct task_struct *task)
+__get_current_uids(struct msg_cred *info, const struct cred *cred)
 {
-	const struct cred *cred;
-
-	/* Get the task's subjective creds */
-	probe_read(&cred, sizeof(cred), _(&task->cred));
-
 	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
 	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
 	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
@@ -140,6 +111,33 @@ get_current_subj_creds_uids(struct msg_cred_minimal *info, struct task_struct *t
 	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
 	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
 	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
+	info->pad = 0;
+}
+
+static inline __attribute__((always_inline)) void
+__get_current_userns(struct msg_user_namespace *info, const struct user_namespace *ns)
+{
+	probe_read(&info->level, sizeof(__s32), _(&ns->level));
+	probe_read(&info->uid, sizeof(__u32), _(&ns->owner));
+	probe_read(&info->gid, sizeof(__u32), _(&ns->group));
+	probe_read(&info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
+}
+
+/* get_current_subj_creds() copies uids/gids + user namespace, it still does
+ * not copy capabilities.
+ */
+static inline __attribute__((always_inline)) void
+get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
+{
+	const struct cred *cred;
+	const struct user_namespace *ns;
+
+	/* Get the task's subjective creds */
+	probe_read(&cred, sizeof(cred), _(&task->cred));
+	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
+
+	__get_current_uids(info, cred);
+	__get_current_userns(&info->user_ns, ns);
 }
 
 #endif
