@@ -537,12 +537,12 @@ static inline __attribute__((always_inline)) long
 copy_capability(char *args, unsigned long arg)
 {
 	int cap = (int)arg;
-	struct capability_info_type *info = (struct capability_info_type *)args;
+	struct msg_capability *info = (struct msg_capability *)args;
 
 	info->pad = 0;
 	info->cap = cap;
 
-	return sizeof(struct capability_info_type);
+	return sizeof(struct msg_capability);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1410,7 +1410,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case user_namespace_type:
 		return sizeof(struct msg_user_namespace);
 	case capability_type:
-		return sizeof(struct capability_info_type);
+		return sizeof(struct msg_capability);
 	case load_module_type:
 		return sizeof(struct tg_kernel_module);
 	case kernel_module_type:

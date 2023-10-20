@@ -23,7 +23,7 @@ enum {
 	caps_inheritable = 2,
 };
 
-struct capability_info_type {
+struct msg_capability {
 	__s32 cap;
 	__s32 pad;
 };
