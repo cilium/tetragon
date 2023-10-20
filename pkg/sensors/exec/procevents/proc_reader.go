@@ -18,7 +18,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -284,10 +283,6 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		return nil, err
 	}
 
-	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, procPath)
-	// time and time_for_children namespaces introduced in kernel 5.6
-	hasTimeNs := (int64(kernelVer) >= kernels.KernelStringToNumeric("5.6.0"))
-
 	for _, d := range procFS {
 		var pcmdline []byte
 		var pstats []string
@@ -359,20 +354,50 @@ func listRunningProcs(procPath string) ([]procs, error) {
 
 		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))
 
-		uts_ns := namespace.GetPidNsInode(uint32(pid), "uts")
-		ipc_ns := namespace.GetPidNsInode(uint32(pid), "ipc")
-		mnt_ns := namespace.GetPidNsInode(uint32(pid), "mnt")
-		pid_ns := namespace.GetPidNsInode(uint32(pid), "pid")
-		pid_for_children_ns := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
-		net_ns := namespace.GetPidNsInode(uint32(pid), "net")
+		uts_ns, err := namespace.GetPidNsInode(uint32(pid), "uts")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading uts namespace failed")
+		}
+		ipc_ns, err := namespace.GetPidNsInode(uint32(pid), "ipc")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading ipc namespace failed")
+		}
+		mnt_ns, err := namespace.GetPidNsInode(uint32(pid), "mnt")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading mnt namespace failed")
+		}
+		pid_ns, err := namespace.GetPidNsInode(uint32(pid), "pid")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading pid namespace failed")
+		}
+		pid_for_children_ns, err := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading pid_for_children namespace failed")
+		}
+		net_ns, err := namespace.GetPidNsInode(uint32(pid), "net")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading net namespace failed")
+		}
 		time_ns := uint32(0)
 		time_for_children_ns := uint32(0)
-		if hasTimeNs {
-			time_ns = namespace.GetPidNsInode(uint32(pid), "time")
-			time_for_children_ns = namespace.GetPidNsInode(uint32(pid), "time_for_children")
+		if namespace.TimeNsSupport == true {
+			time_ns, err = namespace.GetPidNsInode(uint32(pid), "time")
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Reading time namespace failed")
+			}
+			time_for_children_ns, err = namespace.GetPidNsInode(uint32(pid), "time_for_children")
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Reading time_for_children namespace failed")
+			}
 		}
-		cgroup_ns := namespace.GetPidNsInode(uint32(pid), "cgroup")
-		user_ns := namespace.GetPidNsInode(uint32(pid), "user")
+		cgroup_ns, err := namespace.GetPidNsInode(uint32(pid), "cgroup")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading cgroup namespace failed")
+		}
+		user_ns, err := namespace.GetPidNsInode(uint32(pid), "user")
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Reading user namespace failed")
+		}
 
 		// On error procsDockerId zeros dockerId so we can ignore any errors.
 		dockerId, _ := procsDockerId(uint32(pid))
