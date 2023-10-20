@@ -67,17 +67,21 @@ func Test_SensorDestroyHook(t *testing.T) {
 		t.Errorf("genericKprobeTable expected initial length: 0, got: %d", genericKprobeTable.Len())
 	}
 
+	spec := &v1alpha1.TracingPolicySpec{}
+
+	spec.KProbes = []v1alpha1.KProbeSpec{
+		{
+			Call:    "test_symbol",
+			Syscall: false,
+		},
+	}
+
 	// we use createGenericKprobeSensor because it's where the DestroyHook is
 	// created. It would be technically more correct if it was added just after
 	// insertion in the table in AddKprobe, but this is done by the caller to
 	// have just DestroyHook that regroups all the potential multiple kprobes
 	// contained in one sensor.
-	sensor, err := createGenericKprobeSensor("test_sensor", []v1alpha1.KProbeSpec{
-		{
-			Call:    "test_symbol",
-			Syscall: false,
-		},
-	}, 0, "test_policy", nil, nil)
+	sensor, err := createGenericKprobeSensor(spec, "test_sensor", 0, "test_policy", nil)
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}
