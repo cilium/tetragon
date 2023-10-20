@@ -44,6 +44,7 @@ import (
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -261,7 +262,10 @@ spec:
 func TestKprobeObjectWriteRead(t *testing.T) {
 	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
-	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
+	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
+	require.NoError(t, err)
+	require.NotZero(t, mntns)
+	mntNsStr := strconv.FormatUint(uint64(mntns), 10)
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -343,7 +347,10 @@ spec:
 
 func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
 	myPid := observertesthelper.GetMyPid()
-	mntNsStr := strconv.FormatUint(uint64(namespace.GetPidNsInode(myPid, "mnt")), 10)
+	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
+	require.NoError(t, err)
+	require.NotZero(t, mntns)
+	mntNsStr := strconv.FormatUint(uint64(mntns), 10)
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
