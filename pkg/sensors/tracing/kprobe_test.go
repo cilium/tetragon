@@ -2212,10 +2212,6 @@ func TestKprobeOverrideSecurity(t *testing.T) {
 		t.Skip("skipping fmod_ret support is not available")
 	}
 
-	if !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti() {
-		t.Skip("skipping fmod_ret does not work with kprobe multi")
-	}
-
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
@@ -2230,6 +2226,9 @@ kind: TracingPolicy
 metadata:
   name: "sys-openat-override"
 spec:
+  options:
+    - name: "disable-kprobe-multi"
+      value: "1"
   kprobes:
   - call: "security_file_open"
     syscall: false
