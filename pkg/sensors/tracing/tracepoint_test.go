@@ -60,7 +60,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	lseekConf := GenericTracepointConf{
+	lseekConf := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
@@ -77,7 +77,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 
 	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []v1alpha1.TracepointSpec{lseekConf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{}, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
@@ -106,7 +106,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 // doTestGenericTracepointPidFilter is a utility function for doing generic
 // tracepoint tests. It filters events based on the test program's pid, so that
 // we get more predictable results.
-func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
+func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
 	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
@@ -137,7 +137,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 
 	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{conf}, policyfilter.NoFilterID,
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []v1alpha1.TracepointSpec{conf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{}, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
@@ -193,7 +193,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf GenericTracepointConf, 
 }
 
 func TestGenericTracepointPidFilterLseek(t *testing.T) {
-	tracepointConf := GenericTracepointConf{
+	tracepointConf := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 	}
@@ -217,7 +217,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 	whenceStr := fmt.Sprintf("%d", whenceBogusValue)
 	whence := whenceBogusValue
 
-	tracepointConf := GenericTracepointConf{
+	tracepointConf := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
@@ -280,7 +280,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { syscall.Unlink("/tmp/testificate") }()
 
-	tracepointConf := GenericTracepointConf{
+	tracepointConf := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_write",
 		Args: []v1alpha1.KProbeArg{
@@ -345,7 +345,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 //
 // print fmt: "NR %ld (%lx, %lx, %lx, %lx, %lx, %lx)", REC->id, REC->args[0], REC->args[1], REC->args[2], REC->args[3], REC->args[4], REC->args[5]
 func TestGenericTracepointRawSyscall(t *testing.T) {
-	tracepointConf := GenericTracepointConf{
+	tracepointConf := v1alpha1.TracepointSpec{
 		Subsystem: "raw_syscalls",
 		Event:     "sys_enter",
 		Args: []v1alpha1.KProbeArg{
@@ -506,7 +506,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	lseekConf := GenericTracepointConf{
+	lseekConf := v1alpha1.TracepointSpec{
 		Subsystem: "syscalls",
 		Event:     "sys_enter_lseek",
 		Args: []v1alpha1.KProbeArg{
@@ -533,7 +533,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	sm := tus.GetTestSensorManager(ctx, t)
 	// create and add sensor
-	sensor, err := createGenericTracepointSensor("GtpLseekTest", []GenericTracepointConf{lseekConf}, policyfilter.NoFilterID,
+	sensor, err := createGenericTracepointSensor("GtpLseekTest", []v1alpha1.TracepointSpec{lseekConf}, policyfilter.NoFilterID,
 		"policyName", []v1alpha1.ListSpec{}, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
