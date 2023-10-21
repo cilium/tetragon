@@ -553,7 +553,7 @@ __event_get_current_cgroup_name(struct cgroup *cgrp,
 
 	name = get_cgroup_name(cgrp);
 	if (name)
-		probe_read_str(msg->kube.docker_id, KN_NAME_LENGTH, name);
+		probe_read_str(msg->kube.cgroup_name, KN_NAME_LENGTH, name);
 	else
 		process->flags |= EVENT_ERROR_CGROUP_NAME;
 }

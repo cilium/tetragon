@@ -142,12 +142,13 @@
 
 #define EVENT_COMMON_FLAG_CLONE 0x01
 
-/* Docker IDs are unique at first 12 characters, but we want to get
- * 12chars plus any extra prefix used by the container environment.
+/* Kernfs node name length for now it is 128. This is to handle
+ * container IDs that are unique at first 12 characters, but we want
+ * to get 12chars plus any extra prefix used by the container environment.
  * Minikube for example prepends 'docker-' to the id. So lets copy
  * 32B and assume at least 12B of it is ID info.
  */
-#define DOCKER_ID_LENGTH 128
+#define KN_NAME_LENGTH 128
 
 struct msg_execve_key {
 	__u32 pid; // Process TGID
@@ -267,7 +268,7 @@ struct msg_k8s {
 	__u32 net_ns;
 	__u32 cid;
 	__u64 cgrpid;
-	char docker_id[DOCKER_ID_LENGTH];
+	char cgroup_name[KN_NAME_LENGTH]; /* At user space we determin if a container */
 }; // All fields aligned so no 'packed' attribute.
 
 struct msg_execve_event {

@@ -38,6 +38,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -174,6 +175,12 @@ func tetragonExecute() error {
 
 	if viper.IsSet(option.KeyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(option.KeyNetnsDir)
+	}
+
+	// We need host namespaces info, so initialize here and fail on errors
+	ns := namespace.GetHostNamespace()
+	if ns.Mnt.Inum == 0 || ns.Pid.Inum == 0 {
+		log.Fatalf("Failed to read host mount and pid namespaces")
 	}
 
 	checkprocfs.Check()

@@ -87,11 +87,18 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
-	// Detect deployment mode
-	deployMode, err := cgroups.DetectDeploymentMode()
+	// Detect deployment mode and remaining cgroup environment
+	cgrpEnv, err := cgroups.NewCgroupEnvironment()
 	if err != nil {
 		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of deployment mode failed")
 		log.WithField("confmap-update", configMapName).Warn("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
+		return err
+	}
+
+	tgCgrpId, err := cgrpEnv.GetOwnCgroupId()
+	if err != nil {
+		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of Tetragon Cgroup ID failed")
+		log.WithField("confmap-update", configMapName).Warn("Environment detection failed, advanced Cgroups tracking will be disabled")
 		return err
 	}
 
@@ -101,6 +108,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
 		NSPID:           uint32(nspid),
 		CgrpFsMagic:     cgroupFsMagic,
+		TgCgrpId:        tgCgrpId,
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
@@ -110,13 +118,14 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 
 	log.WithFields(logrus.Fields{
 		"confmap-update":                configMapName,
-		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
-		"log.level":                     logrus.Level(v.LogLevel).String(),
 		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
 		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
 		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
-		"NSPID":                         nspid,
+		"tetragon.deployment.mode":      cgrpEnv.GetDeploymentMode().String(),
+		"tetragon.cgroup.ID":            v.TgCgrpId,
+		"tetragon.NSPID":                nspid,
+		"tetragon.log.level":            logrus.Level(v.LogLevel).String(),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil
