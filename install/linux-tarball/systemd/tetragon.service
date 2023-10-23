@@ -7,6 +7,19 @@ DefaultDependencies=no
 After=network.target local-fs.target
 Documentation=https://tetragon.io/
 
+# Do not restart the service anymore if it was started more than
+# 10 times withing a 2 minutes interval.
+# This allows to cover restart on failures but also gives users
+# the possibility to manually restart the service within those
+# limits.
+# On failures, users can do "systemctl reset-failed tetragon" to
+# flush the counters and allow the service to start again.
+
+# Burst times withing the interval
+StartLimitBurst=10
+# The interval where starting the service again is not allowed anymore.
+StartLimitIntervalSec=2min
+
 [Service]
 Environment="PATH=/usr/local/lib/tetragon/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 User=root
