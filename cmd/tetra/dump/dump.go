@@ -60,7 +60,7 @@ func policyfilterCmd() *cobra.Command {
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, _ []string) {
-			dumpPolicyfilterState(mapFname)
+			PolicyfilterState(mapFname)
 		},
 	}
 
@@ -101,7 +101,7 @@ func dumpExecveMap(fname string) {
 	}
 }
 
-func dumpPolicyfilterState(fname string) {
+func PolicyfilterState(fname string) {
 	m, err := policyfilter.OpenMap(fname)
 	if err != nil {
 		logger.GetLogger().WithError(err).Fatal("Failed to open policyfilter map")
