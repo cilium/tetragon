@@ -222,3 +222,24 @@ func OpenMap(fname string) (PfMap, error) {
 func (m PfMap) Dump() (map[PolicyID]map[CgroupID]struct{}, error) {
 	return m.readAll()
 }
+
+func (m PfMap) AddCgroup(polID PolicyID, cgID CgroupID) error {
+	var innerID uint32
+
+	if err := m.Lookup(&polID, &innerID); err != nil {
+		return fmt.Errorf("failed to lookup policy id %d: %w", polID, err)
+	}
+
+	inMap, err := ebpf.NewMapFromID(ebpf.MapID(innerID))
+	if err != nil {
+		return fmt.Errorf("error opening inner map: %w", err)
+	}
+	defer inMap.Close()
+
+	val := uint8(0)
+	if err := inMap.Update(&cgID, &val, ebpf.UpdateAny); err != nil {
+		return fmt.Errorf("error updating inner map: %w", err)
+	}
+
+	return nil
+}
