@@ -5,7 +5,7 @@
 Description=Tetragon eBPF-based Security Observability and Runtime Enforcement
 DefaultDependencies=no
 After=network.target local-fs.target
-Documentation=https://github.com/cilium/tetragon/
+Documentation=https://tetragon.io/
 
 [Service]
 Environment="PATH=/usr/local/lib/tetragon/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
