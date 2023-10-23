@@ -107,6 +107,7 @@ func dumpPolicyfilterState(fname string) {
 		logger.GetLogger().WithError(err).Fatal("Failed to open policyfilter map")
 		return
 	}
+	defer m.Close()
 
 	data, err := m.Dump()
 	if err != nil {
