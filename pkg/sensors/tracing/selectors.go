@@ -472,7 +472,7 @@ func populateStringPostfixFilterMap(
 	innerSpec := &ebpf.MapSpec{
 		Name:       innerName,
 		Type:       ebpf.LPMTrie,
-		KeySize:    4 + selectors.StringPostfixMaxLength, // NB: KernelLpmTrieStringPostfix consists of 32bit prefix and 128 byte data
+		KeySize:    4 + selectors.StringPostfixMaxLength, // NB: KernelLpmTrieStringPostfix consists of 32bit prefix and 256 byte data
 		ValueSize:  uint32(1),
 		MaxEntries: maxEntries,
 		Flags:      bpf.BPF_F_NO_PREALLOC,
