@@ -10,6 +10,8 @@ fi
 systemctl stop tetragon
 systemctl disable tetragon
 
+rm -f /etc/systemd/system/default.target.wants/tetragon.service
+
 rm -fr /usr/lib/systemd/system/tetragon.service
 # Cleanup systemd state
 systemctl daemon-reload
