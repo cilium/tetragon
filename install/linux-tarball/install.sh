@@ -11,6 +11,8 @@ cp -vf /usr/local/lib/tetragon/systemd/tetragon.service /usr/lib/systemd/system/
 install -d /etc/tetragon/tetragon.conf.d/
 install -d /etc/tetragon/tetragon.tp.d/
 
+cp -v -n -r /usr/local/lib/tetragon/tetragon.conf.d /etc/tetragon/
+
 systemctl daemon-reload
 systemctl enable tetragon
 systemctl start tetragon
