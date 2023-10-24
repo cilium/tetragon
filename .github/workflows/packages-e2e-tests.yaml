@@ -37,7 +37,11 @@ jobs:
         id: tag
         run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
 
+      # Logging into Docker Hub makes the job less flaky, but it relies on repo secrets so
+      # does not work for external contributors. Let's compromise and do this for internal
+      # PRs at least (for now). We can always improve the situation later.
       - name: Login to Docker Hub
+        if: ${{ github.event.pull_request.head.repo.full_name == 'cilium/tetragon' }}
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME_CI }}
