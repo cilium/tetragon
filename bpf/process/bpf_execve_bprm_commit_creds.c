@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Tetragon */
 
 #include "vmlinux.h"
@@ -8,7 +8,7 @@
 #include "common.h"
 #include "process.h"
 
-char _license[] __attribute__((section("license"), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 /*
  * Process execution is installing the new credentials and security attributes

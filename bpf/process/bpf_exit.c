@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Cilium */
 
 #include "vmlinux.h"
 #include "bpf_exit.h"
 #include "bpf_tracing.h"
 
-char _license[] __attribute__((section("license"), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 /*
  * Hooking on acct_process kernel function, which is called on the task's

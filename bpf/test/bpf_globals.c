@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Cilium */
 
 #include "vmlinux.h"
@@ -8,7 +8,7 @@
 #include "bpf_task.h"
 #include "globals.h"
 
-char _license[] __attribute__((section("license"), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 GLOBAL_U16 g_u16;
 GLOBAL_I16 g_i16;
