@@ -11,6 +11,7 @@ import (
 	pprofhttp "net/http/pprof"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/alignchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
@@ -71,6 +73,11 @@ import (
 var (
 	log = logger.GetLogger()
 )
+
+func checkStructAlignments() error {
+	path := path.Join(option.Config.HubbleLib, "bpf_alignchecker.o")
+	return alignchecker.CheckStructAlignments(path)
+}
 
 func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 	allowList, err := filters.ParseFilterList(viper.GetString(option.KeyExportAllowlist), viper.GetBool(option.KeyEnablePidSetFilter))
@@ -176,6 +183,10 @@ func tetragonExecute() error {
 
 	if viper.IsSet(option.KeyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(option.KeyNetnsDir)
+	}
+
+	if err := checkStructAlignments(); err != nil {
+		return fmt.Errorf("struct alignment checks failed: %w", err)
 	}
 
 	checkprocfs.Check()
