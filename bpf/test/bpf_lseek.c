@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Cilium */
 
 #include "vmlinux.h"
@@ -35,7 +35,7 @@ struct sys_enter_lseek_args {
 	__u64 whence;
 };
 
-char _license[] __attribute__((section("license"), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 __attribute__((section("tracepoint/sys_enter_lseek"), used)) int
 test_lseek(struct sys_enter_lseek_args *ctx)
