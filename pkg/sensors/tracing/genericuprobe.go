@@ -62,13 +62,15 @@ func init() {
 }
 
 func genericUprobeTableGet(id idtable.EntryID) (*genericUprobe, error) {
-	if entry, err := uprobeTable.GetEntry(id); err != nil {
+	entry, err := uprobeTable.GetEntry(id)
+	if err != nil {
 		return nil, fmt.Errorf("getting entry from uprobeTable failed with: %w", err)
-	} else if val, ok := entry.(*genericUprobe); !ok {
-		return nil, fmt.Errorf("getting entry from uprobeTable failed with: got invalid type: %T (%v)", entry, entry)
-	} else {
-		return val, nil
 	}
+	val, ok := entry.(*genericUprobe)
+	if !ok {
+		return nil, fmt.Errorf("getting entry from uprobeTable failed with: got invalid type: %T (%v)", entry, entry)
+	}
+	return val, nil
 }
 
 func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {

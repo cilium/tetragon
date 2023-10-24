@@ -155,13 +155,15 @@ var (
 )
 
 func genericKprobeTableGet(id idtable.EntryID) (*genericKprobe, error) {
-	if entry, err := genericKprobeTable.GetEntry(id); err != nil {
+	entry, err := genericKprobeTable.GetEntry(id)
+	if err != nil {
 		return nil, fmt.Errorf("getting entry from genericKprobeTable failed with: %w", err)
-	} else if val, ok := entry.(*genericKprobe); !ok {
-		return nil, fmt.Errorf("getting entry from genericKprobeTable failed with: got invalid type: %T (%v)", entry, entry)
-	} else {
-		return val, nil
 	}
+	val, ok := entry.(*genericKprobe)
+	if !ok {
+		return nil, fmt.Errorf("getting entry from genericKprobeTable failed with: got invalid type: %T (%v)", entry, entry)
+	}
+	return val, nil
 }
 
 var (

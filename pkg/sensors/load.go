@@ -326,13 +326,17 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 	} else {
 		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading BPF program")
 	}
-	if load.Type == "tracepoint" {
+
+	switch load.Type {
+	case "tracepoint":
 		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
-	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
+	case "raw_tracepoint", "raw_tp":
 		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
-	} else if load.Type == "cgrp_socket" {
+	case "cgrp_socket":
 		return cgroup.LoadCgroupProgram(bpfDir, mapDir, load, verbose)
-	} else if probe != nil {
+	}
+
+	if probe != nil {
 		// Registered probes need extra setup
 		return probe.LoadProbe(LoadProbeArgs{
 			BPFDir:  bpfDir,
@@ -341,9 +345,9 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 			Version: version,
 			Verbose: verbose,
 		})
-	} else {
-		return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
 	}
+
+	return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
 }
 
 func observerMinReqs() (bool, error) {
