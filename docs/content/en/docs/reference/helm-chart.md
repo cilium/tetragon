@@ -65,7 +65,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.commandOverride | list | `[]` |  |
 | tetragon.enableK8sAPI | bool | `true` |  |
 | tetragon.enableMsgHandlingLatency | bool | `false` |  |
-| tetragon.enablePolicyFilter | bool | `false` |  |
+| tetragon.enablePolicyFilter | bool | `true` |  |
 | tetragon.enablePolicyFilterDebug | bool | `false` |  |
 | tetragon.enableProcessCred | bool | `false` |  |
 | tetragon.enableProcessNs | bool | `false` |  |
