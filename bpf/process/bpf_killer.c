@@ -1,6 +1,6 @@
 #include "bpf_killer.h"
 
-char _license[] __attribute__((section("license"), used)) = "GPL";
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/killer"
