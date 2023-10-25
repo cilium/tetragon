@@ -33,10 +33,10 @@ Refer to the [official documentation of Tetragon](https://tetragon.cilium.io/doc
 
 To get started with Tetragon, take a look at the [getting started
 guides](https://tetragon.cilium.io/docs/getting-started/) to:
-- [Try Tetragon on Kubernetes](https://tetragon.cilium.io/docs/getting-started/kubernetes-quickstart-guide/)
-- [Try Tetragon on Linux](https://tetragon.cilium.io/docs/getting-started/try-tetragon-linux/)
-- [Deploy Tetragon](https://tetragon.cilium.io/docs/getting-started/deployment/)
-- [Install the Tetra CLI](https://tetragon.cilium.io/docs/getting-started/install-tetra-cli/)
+- [Try Tetragon on Kubernetes](https://tetragon.io/docs/getting-started/install-k8s/)
+- [Try Tetragon on Linux](https://tetragon.io/docs/getting-started/install-docker/)
+- [Deploy Tetragon](https://tetragon.io/docs/installation/)
+- [Install the Tetra CLI](https://tetragon.io/docs/installation/tetra-cli/)
 
 Tetragon is able to observe critical hooks in the kernel through its sensors
 and generates events enriched with Linux and Kubernetes metadata:
