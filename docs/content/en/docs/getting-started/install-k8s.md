@@ -52,7 +52,7 @@ parameters.
 
 ### Deploy demo application
 
-To explore Tetragon its helpful to have a sample workload. Here wu use the Cilium
+To explore Tetragon its helpful to have a sample workload. Here we use the Cilium
 HTTP application, but any workload would work equally well.
 
 To use our [demo
