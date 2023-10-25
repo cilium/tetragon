@@ -183,7 +183,14 @@ func tetragonExecute() error {
 	// Setup file system mounts
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
-	bpf.CheckOrMountCgroup2()
+	// We explicitly do not umount cgroup2MntPoint after exit, no harm
+	cgroup2MntPoint, err := bpf.CheckOrMountCgroup2()
+	if err != nil {
+		// Let's warn for now and continue
+		log.WithError(err).Warn("Failed to get a proper cgroup2 mount point")
+	} else {
+		log.WithField("cgroup2", cgroup2MntPoint).Info("Successfully acquired a cgroup2 mount point")
+	}
 
 	if option.Config.PprofAddr != "" {
 		go func() {
@@ -370,7 +377,7 @@ func tetragonExecute() error {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
-	_, err := cilium.InitCiliumState(ctx, option.Config.EnableCilium)
+	_, err = cilium.InitCiliumState(ctx, option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}

@@ -116,7 +116,7 @@ var (
 	mountOnce sync.Once
 )
 
-// mountFS mounts the BPFFS filesystem into the desired mapRoot directory.
+// mountFS mounts the filesystem into the desired mapRoot directory.
 func mountFS(root, kind string) error {
 	mapRootStat, err := os.Stat(root)
 	if err != nil {
@@ -206,10 +206,10 @@ func checkOrMountDebugFSDefaultLocations() error {
 	return nil
 }
 
-func checkOrMountCgroupDefaultLocation() error {
+func checkOrMountCgroupDefaultLocation() (string, error) {
 	infos, err := mountinfo.GetMountInfo()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Check whether /run/tetragon/cgroup2 has a mount.
@@ -218,13 +218,20 @@ func checkOrMountCgroupDefaultLocation() error {
 	// If /run/tetragon/cgroup2/ is not mounted at all, we should mount
 	// cgroup2 there.
 	if !mounted {
-		_ = os.Mkdir(cgroup2Root, os.ModeDir)
-		return mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2)
+		err = os.Mkdir(cgroup2Root, os.ModeDir)
+		if err != nil {
+			return "", err
+		}
+		err = mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2)
+		if err != nil {
+			return "", err
+		}
+		return cgroup2Root, nil
 	}
 	if !cgroupInstance {
-		return fmt.Errorf("instance exists with other type")
+		return "", fmt.Errorf("mountpoint '%s' exist but is not a cgroupv2", cgroup2Root)
 	}
-	return nil
+	return cgroup2Root, nil
 }
 
 // checkOrMountDefaultLocations tries to check or mount the BPF filesystem in
@@ -329,7 +336,7 @@ func CheckOrMountDebugFS() error {
 	return checkOrMountDebugFSDefaultLocations()
 }
 
-func CheckOrMountCgroup2() error {
+func CheckOrMountCgroup2() (string, error) {
 	return checkOrMountCgroupDefaultLocation()
 }
 
