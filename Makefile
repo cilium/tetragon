@@ -87,7 +87,7 @@ endif
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 
 .PHONY: all
-all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
+all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
 -include Makefile.docker
 -include Makefile.cli
@@ -115,6 +115,7 @@ help:
 	@echo '    Generated files:'
 	@echo '        codegen           - generate code based on .proto files'
 	@echo '        generate          - generate kubebuilder files'
+	@echo '        generate-flags    - generate Tetragon daemon flags for documentation'
 	@echo '    Linting and chores:'
 	@echo '        vendor            - tidy and vendor Go modules'
 	@echo '        clang-format      - run code formatter on BPF code'
@@ -160,7 +161,12 @@ tetragon-bpf-container:
 verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
-.PHONY: tetragon tetra tetragon-operator tetragon-bench
+.PHONY: generate-flags tetragon tetra tetragon-operator tetragon-bench
+generate-flags: tetragon
+	echo "\`\`\`" > docs/content/en/docs/reference/daemon-flags.md
+	echo "$$(./tetragon --help 2>&1)" >> docs/content/en/docs/reference/daemon-flags.md
+	echo "\`\`\`" >> docs/content/en/docs/reference/daemon-flags.md
+
 tetragon:
 	$(GO_BUILD) ./cmd/tetragon/
 
