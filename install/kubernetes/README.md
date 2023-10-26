@@ -1,6 +1,6 @@
 # tetragon
 
-![Version: 1.0.0-rc.2](https://img.shields.io/badge/Version-1.0.0--rc.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.0-rc.2](https://img.shields.io/badge/AppVersion-1.0.0--rc.2-informational?style=flat-square)
+![Version: 1.0.0-rc.3](https://img.shields.io/badge/Version-1.0.0--rc.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.0-rc.3](https://img.shields.io/badge/AppVersion-1.0.0--rc.3-informational?style=flat-square)
 
 Helm chart for Tetragon
 
@@ -72,7 +72,7 @@ Helm chart for Tetragon
 | tetragon.hostProcPath | string | `"/proc"` | Location of the host proc filesystem in the runtime environment. If the runtime runs in the host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself does not run on the host. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v1.0.0-rc.2"` |  |
+| tetragon.image.tag | string | `"v1.0.0-rc.3"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
@@ -83,7 +83,7 @@ Helm chart for Tetragon
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v1.0.0-rc.2"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v1.0.0-rc.3"}` | tetragon-operator image. |
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
 | tetragonOperator.skipCRDCreation | bool | `false` |  |
 | tolerations[0].operator | string | `"Exists"` |  |
