@@ -32,3 +32,14 @@ jobs:
             git status --porcelain
             echo "Please run 'make generate && make codegen' and submit your changes."; exit 1
           fi
+      - name: Check Tetragon daemon flags
+        run: |
+          make tetragon
+          make generate-flags
+          git status
+          git diff
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status --porcelain
+            echo "Please run 'make generate-flags' and submit your changes'"; exit 1
+          fi
