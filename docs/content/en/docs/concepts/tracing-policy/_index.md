@@ -16,7 +16,7 @@ and specifying actions. For more details, see
 {{< caution >}}
 `TracingPolicy` allows for powerful, yet low-level configuration and, as such,
 requires knowledge about the Linux kernel and containers to avoid unexpected
-issues such as TOCTU bugs.
+issues such as TOCTOU bugs.
 {{< /caution >}}
 
 For the complete custom resource definition (CRD) refer to the YAML file
