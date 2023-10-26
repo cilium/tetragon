@@ -331,7 +331,9 @@ func checkOrMountFS(bpfRoot string) error {
 func CheckOrMountFS(bpfRoot string) {
 	mountOnce.Do(func() {
 		if err := checkOrMountFS(bpfRoot); err != nil {
-			logger.GetLogger().WithError(err).Warn("Unable to mount BPF filesystem")
+			logger.GetLogger().WithError(err).Warn("Failed to get a proper bpffs mount point")
+		} else {
+			logger.GetLogger().WithField("bpffs", mapRoot).Info("Successfully acquired a bpffs mount point")
 		}
 	})
 }
