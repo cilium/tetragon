@@ -21,3 +21,14 @@ func TestCheckOrMountCgroup2(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, cgroup2)
 }
+
+func TestCheckOrMountFS(t *testing.T) {
+	err := checkOrMountFS("")
+	require.NoError(t, err)
+}
+
+func TestCheckOrMountDebugFS(t *testing.T) {
+	debugfs, err := checkOrMountDebugFSDefaultLocations()
+	require.NoError(t, err)
+	require.NotEmpty(t, debugfs)
+}
