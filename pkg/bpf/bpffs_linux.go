@@ -186,10 +186,10 @@ func checkOrMountCustomLocation(bpfRoot string) error {
 	return nil
 }
 
-func checkOrMountDebugFSDefaultLocations() error {
+func checkOrMountDebugFSDefaultLocations() (string, error) {
 	infos, err := mountinfo.GetMountInfo()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Check whether /sys/fs/bpf has a BPFFS mount.
@@ -198,12 +198,16 @@ func checkOrMountDebugFSDefaultLocations() error {
 	// If /sys/kernel/debug is not mounted at all, we should mount
 	// DebugFS there.
 	if !mounted {
-		return mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS)
+		err = mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS)
+		if err != nil {
+			return "", err
+		}
+		return debugFSRoot, nil
 	}
 	if !debugfsInstance {
-		return fmt.Errorf("instance exists with othe type")
+		return "", fmt.Errorf("mountpoint '%s' exist but is not debugfs", debugFSRoot)
 	}
-	return nil
+	return debugFSRoot, nil
 }
 
 func checkOrMountCgroupDefaultLocation() (string, error) {
@@ -332,7 +336,7 @@ func CheckOrMountFS(bpfRoot string) {
 	})
 }
 
-func CheckOrMountDebugFS() error {
+func CheckOrMountDebugFS() (string, error) {
 	return checkOrMountDebugFSDefaultLocations()
 }
 

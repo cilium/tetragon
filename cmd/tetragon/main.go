@@ -182,7 +182,18 @@ func tetragonExecute() error {
 
 	// Setup file system mounts
 	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
+	// Try to acquire a debugfs mount and we explicitly do not umount it
+	// at exit, the container runtime will clear this up in case.
+	debugFSMntPoint, err := bpf.CheckOrMountDebugFS()
+	if err != nil {
+		// Acquiring or mounting a debugfs mount usually should not fail.
+		// There are cases where users may provided an alternative btf file,
+		// for this case debugfs btf file is not really needed, but we need
+		// this mountpoint to help debug the environment.
+		log.WithError(err).Warn("Failed to get a proper debugfs mount point")
+	} else {
+		log.WithField("debugfs", debugFSMntPoint).Info("Successfully acquired a debugfs mount point")
+	}
 	// We explicitly do not umount cgroup2MntPoint after exit, no harm
 	cgroup2MntPoint, err := bpf.CheckOrMountCgroup2()
 	if err != nil {
