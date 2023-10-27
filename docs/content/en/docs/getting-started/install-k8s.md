@@ -26,10 +26,21 @@ gcloud container clusters get-credentials "${NAME}" --zone ${ZONE}
 {{% /tab %}}
 
 {{% tab Kind %}}
-Run the following command to create the Kubernetes cluster:
+
+Tetragon's correct operation depends on access to the host /proc filesystem. The following steps configure kind and Tetragon accordingly.
 
 ```shell-session
-kind create cluster
+cat <<EOF > kind-config.yaml
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /proc
+        containerPath: /procHost
+EOF
+kind create cluster --config kind-config.yaml
+EXTRA_HELM_FLAGS="--set teragon.hostProcPath=/procHost" # flags for helm install
 ```
 {{% /tab %}}
 
@@ -42,7 +53,7 @@ To install and deploy Tetragon, run the following commands:
 ```shell-session
 helm repo add cilium https://helm.cilium.io
 helm repo update
-helm install tetragon cilium/tetragon -n kube-system
+helm install tetragon ${EXTRA_HELM_FLAGS} cilium/tetragon -n kube-system
 kubectl rollout status -n kube-system ds/tetragon -w
 ```
 
