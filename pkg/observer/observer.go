@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
+	"github.com/cilium/tetragon/pkg/strutils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -165,18 +166,6 @@ func perfBufferSize(perCPUBuffer int) int {
 	return nPages * pageSize
 }
 
-func sizeWithSuffix(size int) string {
-	suffix := [4]string{"", "K", "M", "G"}
-
-	i := 0
-	for size > 1024 && i < 3 {
-		size = size / 1024
-		i++
-	}
-
-	return fmt.Sprintf("%d%s", size, suffix[i])
-}
-
 func (k *Observer) getRBSize(cpus int) int {
 	var size int
 
@@ -191,8 +180,8 @@ func (k *Observer) getRBSize(cpus int) int {
 	cpuSize := perfBufferSize(size)
 	totalSize := cpuSize * cpus
 
-	k.log.WithField("percpu", sizeWithSuffix(cpuSize)).
-		WithField("total", sizeWithSuffix(totalSize)).
+	k.log.WithField("percpu", strutils.SizeWithSuffix(cpuSize)).
+		WithField("total", strutils.SizeWithSuffix(totalSize)).
 		Info("Perf ring buffer size (bytes)")
 	return size
 }
@@ -202,7 +191,7 @@ func (k *Observer) getRBQueueSize() int {
 	if size == 0 {
 		size = 65535
 	}
-	k.log.WithField("size", sizeWithSuffix(size)).
+	k.log.WithField("size", strutils.SizeWithSuffix(size)).
 		Info("Perf ring buffer events queue size (events)")
 	return size
 }
