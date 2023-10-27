@@ -246,7 +246,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	// Allow to specify perf ring buffer size
 	flags.String(KeyRBSizeTotal, "0", "Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)")
-	flags.String(KeyRBSize, "0", "Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix)")
+	flags.String(KeyRBSize, "0", "Set perf ring buffer size for single cpu (default 1MiB, allows K/M/G suffix)")
 
 	// Provide option to remove existing pinned BPF programs and maps in Tetragon's
 	// observer dir on startup. Useful for doing upgrades/downgrades. Set to false to
