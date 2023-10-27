@@ -13,7 +13,6 @@
 #include "bpfattr.h"
 #include "perfevent.h"
 #include "bpfmap.h"
-#include "capabilities.h"
 #include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
@@ -498,11 +497,7 @@ copy_user_ns(char *args, unsigned long arg)
 	struct msg_user_namespace *u_ns_info =
 		(struct msg_user_namespace *)args;
 
-	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
-	probe_read(&u_ns_info->uid, sizeof(__u32), _(&ns->owner));
-	probe_read(&u_ns_info->gid, sizeof(__u32), _(&ns->group));
-	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
-
+	__get_current_userns(u_ns_info, ns);
 	return sizeof(struct msg_user_namespace);
 }
 
@@ -515,21 +510,11 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	struct msg_capabilities *caps = &info->caps;
 	struct msg_user_namespace *user_ns_info = &info->user_ns;
 
-	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
-	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
-	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
-	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
-	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
-	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
-	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
-	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
-	info->pad = 0;
-	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
-
-	__get_caps(caps, cred);
-
 	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
-	copy_user_ns((char *)user_ns_info, (unsigned long)ns);
+
+	__get_current_uids(info, cred);
+	__get_caps(caps, cred);
+	__get_current_userns(user_ns_info, ns);
 
 	return sizeof(struct msg_cred);
 }
@@ -538,12 +523,12 @@ static inline __attribute__((always_inline)) long
 copy_capability(char *args, unsigned long arg)
 {
 	int cap = (int)arg;
-	struct capability_info_type *info = (struct capability_info_type *)args;
+	struct msg_capability *info = (struct msg_capability *)args;
 
 	info->pad = 0;
 	info->cap = cap;
 
-	return sizeof(struct capability_info_type);
+	return sizeof(struct msg_capability);
 }
 
 static inline __attribute__((always_inline)) long
@@ -1411,7 +1396,7 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case user_namespace_type:
 		return sizeof(struct msg_user_namespace);
 	case capability_type:
-		return sizeof(struct capability_info_type);
+		return sizeof(struct msg_capability);
 	case load_module_type:
 		return sizeof(struct tg_kernel_module);
 	case kernel_module_type:

@@ -220,7 +220,7 @@ event_execve(struct sched_execve_args *ctx)
 
 	// At this time objective and subjective creds are same
 	get_current_subj_caps(&event->caps, task);
-	get_current_subj_creds_uids(&event->creds, task);
+	get_current_subj_creds(&event->creds, task);
 	get_namespaces(&event->ns, task);
 	__event_get_cgroup_info(task, event);
 
@@ -294,7 +294,7 @@ execve_send(struct sched_execve_args *ctx)
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_capabilities) +
-		sizeof(struct msg_cred_minimal) + sizeof(struct msg_ns) +
+		sizeof(struct msg_cred) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
 	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
 	return 0;
