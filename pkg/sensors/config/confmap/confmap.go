@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +35,7 @@ type TetragonConfValue struct {
 	TgCgrpLevel     uint32 `align:"tg_cgrp_level"`      // Tetragon cgroup level
 	TgCgrpId        uint64 `align:"tg_cgrpid"`          // Tetragon cgroup ID
 	CgrpFsMagic     uint64 `align:"cgrp_fs_magic"`      // Cgroupv1 or cgroupv2
+	ExecMaxArgs     uint32 `align:"exec_max_args"`      // Max size of stored arguments for exec events
 }
 
 var (
@@ -101,6 +103,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
 		NSPID:           uint32(nspid),
 		CgrpFsMagic:     cgroupFsMagic,
+		ExecMaxArgs:     uint32(option.Config.ExecMaxArgs),
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
@@ -117,6 +120,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
 		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
 		"NSPID":                         nspid,
+		"ExecMaxArgs":                   strutils.SizeWithSuffix(option.Config.ExecMaxArgs),
 	}).Info("Updated TetragonConf map successfully")
 
 	return nil

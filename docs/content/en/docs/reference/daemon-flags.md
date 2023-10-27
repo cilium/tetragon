@@ -22,6 +22,7 @@ Flags:
       --enable-process-cred                       Enable process_cred events
       --enable-process-ns                         Enable namespace information in process_exec and process_kprobe events
       --event-queue-size uint                     Set the size of the internal event queue. (default 10000)
+      --exec-max-args string                      (Max size of stored arguments for exec events (default 0 - store all, allows K/M/G suffix) (default "0")
       --export-aggregation-buffer-size uint       Aggregator channel buffer size (default 10000)
       --export-aggregation-window-size duration   JSON export aggregation time window (default 15s)
       --export-allowlist string                   JSON export allowlist

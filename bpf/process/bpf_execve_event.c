@@ -28,7 +28,7 @@ struct {
 } data_heap SEC(".maps");
 
 static inline __attribute__((always_inline)) __u32
-read_args(void *ctx, struct msg_execve_event *event)
+read_args(void *ctx, struct msg_execve_event *event, __u32 max)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_process *p = &event->process;
@@ -75,6 +75,8 @@ read_args(void *ctx, struct msg_execve_event *event)
 	 */
 	free_size = (char *)&event->process + BUFFER - args;
 	args_size = end_stack - start_stack;
+	if (max && args_size > max)
+		args_size = max;
 
 	if (args_size < BUFFER && args_size < free_size) {
 		size = args_size & 0x3ff /* BUFFER - 1 */;
@@ -173,12 +175,17 @@ event_execve(struct sched_execve_args *ctx)
 	char *filename = (char *)ctx + (ctx->filename & 0xFFFF);
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
+	struct tetragon_conf *config;
 	struct msg_process *p;
 	__u32 zero = 0;
 	__u64 pid;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
+		return 0;
+
+	config = map_lookup_elem(&tg_conf_map, &zero);
+	if (!config)
 		return 0;
 
 	pid = get_current_pid_tgid();
@@ -207,7 +214,7 @@ event_execve(struct sched_execve_args *ctx)
 	p->uid = get_current_uid_gid();
 
 	p->size += read_path(ctx, event, filename);
-	p->size += read_args(ctx, event);
+	p->size += read_args(ctx, event, config->exec_max_args);
 	p->size += read_cwd(ctx, p);
 
 	event->common.op = MSG_OP_EXECVE;
