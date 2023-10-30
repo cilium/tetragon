@@ -449,7 +449,7 @@ github.com/google/gopacket/layers
 github.com/google/gops/agent
 github.com/google/gops/internal
 github.com/google/gops/signal
-# github.com/google/uuid v1.3.1
+# github.com/google/uuid v1.4.0
 ## explicit
 github.com/google/uuid
 # github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0
