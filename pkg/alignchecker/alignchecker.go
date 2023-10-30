@@ -41,6 +41,9 @@ func CheckStructAlignments(pathToObj string) error {
 
 		// cgroup
 		"cgroup_tracking_value": {cgrouptrackmap.CgrpTrackingValue{}},
+
+		// metrics
+		"kernel_stats": {processapi.KernelStats{}},
 	}
 
 	return alignchecker.CheckStructAlignments(pathToObj, alignments, true)
