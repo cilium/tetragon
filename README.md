@@ -1,7 +1,7 @@
 <a href="https://tetragon.cilium.io">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/cilium/tetragon/releases/download/tetragon-cli/logo.png" width="400">
-    <img src="https://github.com/cilium/tetragon/releases/download/tetragon-cli/logo-dark.png" width="400">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/icons/logo.svg" width="400">
+    <img src="docs/assets/icons/logo-dark.svg" width="400">
   </picture>
 </a>
 
