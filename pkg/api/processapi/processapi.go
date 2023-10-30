@@ -206,3 +206,7 @@ type MsgCgroupEvent struct {
 	CgrpData      MsgCgroupData            `align:"cgrp_data"`      // Complementary cgroup data
 	Path          [CGROUP_PATH_LENGTH]byte `align:"path"`           // Full path of the cgroup on fs
 }
+
+type KernelStats struct {
+	SentFailed [256]uint64 `align:"sent_failed"`
+}

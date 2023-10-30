@@ -150,6 +150,6 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 		     : [total] "+r"(total)
 		     :);
 	e->common.size = total;
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
+	perf_event_output_metric(ctx, MSG_OP_GENERIC_KPROBE, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
 	return 0;
 }

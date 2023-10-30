@@ -69,8 +69,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		/* Last: set any encountered error when setting cgroup info */
 		msg.flags |= error_flags;
 
-		perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, &msg,
-				  size);
+		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map, BPF_F_CURRENT_CPU, &msg, size);
 	}
 	return 0;
 }
