@@ -59,6 +59,7 @@ var (
 	/* Internal statistics for debugging */
 	ExecveStats        = program.MapBuilder("execve_map_stats", Execve)
 	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", ExecveBprmCommit)
+	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	sensor = sensors.Sensor{
 		Name:  "__base__",
@@ -99,6 +100,7 @@ func GetDefaultMaps() []*program.Map {
 		NamesMap,
 		TCPMonMap,
 		TetragonConfMap,
+		StatsMap,
 	}
 	return maps
 

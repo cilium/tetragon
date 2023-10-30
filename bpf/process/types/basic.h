@@ -2183,7 +2183,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 }
 
 static inline __attribute__((always_inline)) long
-generic_output(void *ctx, struct bpf_map_def *heap)
+generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
 {
 	struct msg_generic_kprobe *e;
 	int zero = 0;
@@ -2226,7 +2226,7 @@ generic_output(void *ctx, struct bpf_map_def *heap)
 		     :
 		     : [total] "+r"(total)
 		     :);
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
+	perf_event_output_metric(ctx, op, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
 	return 1;
 }
 

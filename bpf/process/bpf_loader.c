@@ -55,8 +55,7 @@ struct {
 	__type(value, struct __perf_event_attr);
 } attr_heap SEC(".maps");
 
-#define VM_EXEC	      0x00000004
-#define MSG_OP_LOADER 26
+#define VM_EXEC 0x00000004
 
 #define ATTR_BIT_MMAP	 BIT_ULL(8)
 #define ATTR_BIT_MMAP2	 BIT_ULL(23)
@@ -134,6 +133,6 @@ loader_kprobe(struct pt_regs *ctx)
 	msg->common.op = MSG_OP_LOADER;
 	msg->common.flags = 0;
 
-	perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, total);
+	perf_event_output_metric(ctx, MSG_OP_LOADER, &tcpmon_map, BPF_F_CURRENT_CPU, msg, total);
 	return 0;
 }
