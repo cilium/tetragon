@@ -21,7 +21,7 @@ the following questions:
 First, verify that your k8s environment is set up and that all pods are up and running, and deploy the demo application:
 
 ```shell-session
-kubectl create -f https://raw.githubusercontent.com/cilium/cilium/v1.11/examples/minikube/http-sw-app.yaml
+kubectl create -f {{< demo-app-url >}}
 ```
 
 It might take several seconds until all pods are Running:
