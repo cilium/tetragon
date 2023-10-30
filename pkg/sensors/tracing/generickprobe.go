@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -39,7 +38,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -292,11 +290,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	maps = append(maps, callHeap)
 
-	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-	maps = append(maps, selNamesMap)
-
 	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
 	maps = append(maps, selMatchBinariesMap)
+
+	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
+	maps = append(maps, matchBinariesPaths)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	maps = append(maps, stackTraceMap)
@@ -913,11 +911,16 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	maps = append(maps, callHeap)
 
-	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-	maps = append(maps, selNamesMap)
-
 	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
 	maps = append(maps, selMatchBinariesMap)
+
+	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.MatchBinariesPathsMaxEntries())
+	}
+	maps = append(maps, matchBinariesPaths)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	maps = append(maps, stackTraceMap)
@@ -1001,16 +1004,6 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
-		writeBinaryMap(m, i, path)
-	}
-
 	return err
 }
 
@@ -1057,21 +1050,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for _, id := range ids {
-		if gk, err := genericKprobeTableGet(id); err == nil {
-			for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
-				writeBinaryMap(m, i, path)
-			}
-		}
-	}
-
-	return err
+	return nil
 }
 
 func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, verbose int) error {
