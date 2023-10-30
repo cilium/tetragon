@@ -4,10 +4,10 @@ linkTitle: "Overview"
 weight: 1
 icon: "overview"
 description: >
-  Discover Tetragon and its capabilities
+  Discover Cilium Tetragon and its capabilities
 ---
 
-Cilium's new Tetragon component enables powerful realtime, eBPF-based Security
+Cilium Tetragon component enables powerful realtime, eBPF-based Security
 Observability and Runtime Enforcement.
 
 Tetragon detects and is able to react to security-significant events, such as
@@ -82,4 +82,3 @@ a chance to complete the syscall and potentially run additional syscalls.
 
 - [Getting Started]({{< ref "docs/getting-started" >}}) Get started with Tetragon.
 - [Concepts]({{< ref "docs/concepts" >}}): Learn about Tetragon events.
-
