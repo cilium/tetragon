@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"path/filepath"
 	"sync"
 
 	"github.com/cilium/ebpf"
@@ -27,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 	"github.com/sirupsen/logrus"
@@ -461,8 +459,13 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, stringPostfixFilterMaps)
 
-		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), prog0)
-		maps = append(maps, selNamesMap)
+		matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), prog0)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			matchBinariesPaths.SetInnerMaxEntries(tp.selectors.MatchBinariesPathsMaxEntries())
+		}
+		maps = append(maps, matchBinariesPaths)
 
 		killerDataMap := program.MapBuilderPin("killer_data", "killer_data", prog0)
 		maps = append(maps, killerDataMap)
@@ -599,16 +602,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 			Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
-	}
-
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for i, path := range tp.selectors.GetNewBinaryMappings() {
-		writeBinaryMap(m, i, path)
 	}
 
 	return err

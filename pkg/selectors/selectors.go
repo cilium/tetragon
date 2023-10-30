@@ -6,26 +6,9 @@ package selectors
 import (
 	"encoding/binary"
 	"fmt"
-	"sync"
+
+	"github.com/cilium/tetragon/pkg/api/processapi"
 )
-
-// as we use a single names_map for all kprobes, so we have to use
-// a global variable to assign values to binary names
-var (
-	binMu  sync.Mutex
-	binIdx uint32 = 1
-	// contains all entries for the names_map
-	binVals = make(map[string]uint32)
-)
-
-type MatchBinariesMappings struct {
-	op          uint32
-	selNamesMap map[uint32]uint32 // these will be used for the sel_names_map
-}
-
-func (k *MatchBinariesMappings) GetBinSelNamesMap() map[uint32]uint32 {
-	return k.selNamesMap
-}
 
 type KernelLPMTrie4 struct {
 	prefixLen uint32
@@ -101,9 +84,8 @@ type KernelSelectorState struct {
 	// addr6Maps are used to populate IPv6 address LpmTrie maps for sock and skb operators
 	addr6Maps []map[KernelLPMTrie6]struct{}
 
-	newBinVals       map[uint32]string              // these should be added in the names_map
-	oldMatchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
-	matchBinaries    map[int]MatchBinariesSelectorOptions
+	matchBinaries      map[int]MatchBinariesSelectorOptions
+	matchBinariesPaths map[int][][processapi.BINARY_PATH_MAX_LEN]byte
 
 	listReader ValueReader
 
@@ -115,50 +97,11 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *K
 		maps = &KernelSelectorMaps{}
 	}
 	return &KernelSelectorState{
-		matchBinaries:    make(map[int]MatchBinariesSelectorOptions),
-		oldMatchBinaries: make(map[int]*MatchBinariesMappings),
-		newBinVals:       make(map[uint32]string),
-		listReader:       listReader,
-		maps:             maps,
+		matchBinaries:      make(map[int]MatchBinariesSelectorOptions),
+		matchBinariesPaths: make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
+		listReader:         listReader,
+		maps:               maps,
 	}
-}
-func (k *KernelSelectorState) SetBinaryOp(selIdx int, op uint32) {
-	// init a new entry (if needed)
-	if _, ok := k.oldMatchBinaries[selIdx]; !ok {
-		k.oldMatchBinaries[selIdx] = &MatchBinariesMappings{
-			selNamesMap: make(map[uint32]uint32),
-		}
-	}
-	k.oldMatchBinaries[selIdx].op = op
-}
-
-func (k *KernelSelectorState) GetBinaryOp(selIdx int) uint32 {
-	return k.oldMatchBinaries[selIdx].op
-}
-
-func (k *KernelSelectorState) AddBinaryName(selIdx int, binary string) {
-	binMu.Lock()
-	defer binMu.Unlock()
-	idx, ok := binVals[binary]
-	if ok {
-		k.newBinVals[idx] = binary
-		k.oldMatchBinaries[selIdx].selNamesMap[idx] = 1
-		return
-	}
-
-	idx = binIdx
-	binIdx++
-	binVals[binary] = idx                           // global map of all names_map entries
-	k.newBinVals[idx] = binary                      // new names_map entries that we should add
-	k.oldMatchBinaries[selIdx].selNamesMap[idx] = 1 // value in the per-selector names_map (we ignore the value)
-}
-
-func (k *KernelSelectorState) GetNewBinaryMappings() map[uint32]string {
-	return k.newBinVals
-}
-
-func (k *KernelSelectorState) GetBinSelNamesMap() map[int]*MatchBinariesMappings {
-	return k.oldMatchBinaries
 }
 
 func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelectorOptions {
@@ -167,6 +110,27 @@ func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelectorOption
 
 func (k *KernelSelectorState) AddMatchBinaries(i int, sel MatchBinariesSelectorOptions) {
 	k.matchBinaries[i] = sel
+}
+
+func (k KernelSelectorState) MatchBinariesPaths() map[int][][processapi.BINARY_PATH_MAX_LEN]byte {
+	return k.matchBinariesPaths
+}
+
+func (k *KernelSelectorState) WriteMatchBinariesPath(selectorID int, path string) {
+	var bytePath [processapi.BINARY_PATH_MAX_LEN]byte
+	copy(bytePath[:], path)
+	k.matchBinariesPaths[selectorID] = append(k.matchBinariesPaths[selectorID], bytePath)
+}
+
+// MatchBinariesPathsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) MatchBinariesPathsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.matchBinariesPaths {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {

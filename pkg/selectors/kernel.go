@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -1178,10 +1179,10 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	switch op {
 	case SelectorOpIn, SelectorOpNotIn:
 		for _, s := range b.Values {
-			if len(s) > 255 {
-				return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+			if len(s) > processapi.BINARY_PATH_MAX_LEN-1 {
+				return fmt.Errorf("matchBinary error: Binary names > %d chars do not supported", processapi.BINARY_PATH_MAX_LEN-1)
 			}
-			k.AddBinaryName(selIdx, s)
+			k.WriteMatchBinariesPath(selIdx, s)
 		}
 	default:
 		return fmt.Errorf("matchBinary error: Only \"In\" and \"NotIn\" operators are supported")
