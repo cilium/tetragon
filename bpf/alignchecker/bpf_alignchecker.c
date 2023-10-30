@@ -23,3 +23,4 @@ struct execve_map_value _execve_map_value;
 struct event_config _event_config;
 struct tetragon_conf _tetragon_conf;
 struct cgroup_tracking_value _cgroup_tracking_value;
+struct kernel_stats _kernel_stats;

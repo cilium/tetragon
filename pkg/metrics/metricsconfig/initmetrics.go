@@ -50,6 +50,7 @@ func InitAllMetrics(registry *prometheus.Registry) {
 		observer.NewBPFCollector(),
 		process.NewBPFCollector(),
 	))
+	registry.MustRegister(eventmetrics.NewBPFCollector())
 
 	// register common third-party collectors
 	registry.MustRegister(collectors.NewGoCollector())

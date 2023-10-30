@@ -535,4 +535,30 @@ execve_joined_info_map_get(__u64 tid)
 
 _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 	       "struct execve_map_value should have size multiple of 8 bytes");
+
+struct kernel_stats {
+	__u64 sent_failed[256];
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__type(key, __u32);
+	__type(value, struct kernel_stats);
+	__uint(max_entries, 1);
+} tg_stats_map SEC(".maps");
+
+static inline __attribute__((always_inline)) void perf_event_output_metric(void *ctx, u8 metric, void *map, u64 flags, void *data, u64 size)
+{
+	struct kernel_stats *valp;
+	__u32 zero = 0;
+	long err;
+
+	err = perf_event_output(ctx, map, flags, data, size);
+	if (err < 0) {
+		valp = map_lookup_elem(&tg_stats_map, &zero);
+		if (valp)
+			__sync_fetch_and_add(&valp->sent_failed[metric], 1);
+	}
+}
+
 #endif //_PROCESS__

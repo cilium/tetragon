@@ -222,5 +222,5 @@ generic_uprobe_actions(void *ctx)
 __attribute__((section("uprobe/12"), used)) int
 generic_uprobe_output(void *ctx)
 {
-	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap);
+	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_UPROBE);
 }
