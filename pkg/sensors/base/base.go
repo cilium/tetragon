@@ -50,9 +50,6 @@ var (
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
 
-	/* Policy maps populated from base programs */
-	NamesMap = program.MapBuilder("names_map", Execve)
-
 	/* Tetragon runtime configuration */
 	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve)
 
@@ -97,7 +94,6 @@ func GetDefaultMaps() []*program.Map {
 		ExecveStats,
 		ExecveJoinMapStats,
 		ExecveTailCallsMap,
-		NamesMap,
 		TCPMonMap,
 		TetragonConfMap,
 		StatsMap,

@@ -43,9 +43,7 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			},
 		}, {
 			Index: 0,
-			Name:  "sel_names_map",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
-				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
@@ -340,41 +338,9 @@ func populateStringFilterMap(
 	return nil
 }
 
-func populateBinariesMaps(
 	ks *selectors.KernelSelectorState,
 	pinPathPrefix string,
-	outerMap *ebpf.Map,
 ) error {
-	for innerID, sel := range ks.GetBinSelNamesMap() {
-		innerName := fmt.Sprintf("sel_names_map_%d", innerID)
-		innerSpec := &ebpf.MapSpec{
-			Name:       innerName,
-			Type:       ebpf.Hash,
-			KeySize:    4, // uint32
-			ValueSize:  4, // uint32
-			MaxEntries: 256,
-		}
-		innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
-			PinPath: sensors.PathJoin(pinPathPrefix, innerName),
-		})
-		if err != nil {
-			return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
-		}
-		defer innerMap.Close()
-
-		// add a special entry (key == UINT32_MAX) that has as a value the operator (In or NotIn)
-		if err := innerMap.Update(uint32(0xffffffff), ks.GetBinaryOp(innerID), ebpf.UpdateAny); err != nil {
-			return err
-		}
-
-		for idx, val := range sel.GetBinSelNamesMap() {
-			if err := innerMap.Update(idx, val, ebpf.UpdateAny); err != nil {
-				return err
-			}
-		}
-
-		if err := outerMap.Update(uint32(innerID), uint32(innerMap.FD()), 0); err != nil {
-			return fmt.Errorf("failed to insert %s: %w", innerName, err)
 		}
 	}
 	return nil

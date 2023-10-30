@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"path"
-	"path/filepath"
 	"sync/atomic"
 
 	"github.com/cilium/ebpf"
@@ -24,7 +23,6 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -128,13 +126,6 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		},
-		{
-			Index: 0,
-			Name:  "sel_names_map",
-			Load: func(outerMap *ebpf.Map, index uint32) error {
-				return populateBinariesMaps(uprobeEntry.selectors, uprobeEntry.pinPathPrefix, outerMap)
-			},
-		},
 	}
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
@@ -143,16 +134,6 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 	if err := program.LoadUprobeProgram(args.BPFDir, args.MapDir, args.Load, args.Verbose); err != nil {
 		return err
-	}
-
-	m, err := ebpf.LoadPinnedMap(filepath.Join(args.MapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for i, path := range uprobeEntry.selectors.GetNewBinaryMappings() {
-		writeBinaryMap(m, i, path)
 	}
 
 	logger.GetLogger().WithField("flags", flagsString(uprobeEntry.config.Flags)).
@@ -249,8 +230,7 @@ func createGenericUprobeSensor(
 		configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
 		tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-		maps = append(maps, configMap, tailCalls, filterMap, selNamesMap)
+		maps = append(maps, configMap, tailCalls, filterMap)
 	}
 
 	return &sensors.Sensor{

@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -39,7 +38,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -281,8 +279,6 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	maps = append(maps, callHeap)
 
-	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-	maps = append(maps, selNamesMap)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	maps = append(maps, stackTraceMap)
@@ -912,8 +908,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	out.maps = append(out.maps, callHeap)
 
-	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
-	out.maps = append(out.maps, selNamesMap)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	out.maps = append(out.maps, stackTraceMap)
@@ -982,16 +976,6 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
-		writeBinaryMap(m, i, path)
-	}
-
 	return err
 }
 
@@ -1038,21 +1022,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		return err
 	}
 
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for _, id := range ids {
-		if gk, err := genericKprobeTableGet(id); err == nil {
-			for i, path := range gk.loadArgs.selectors.GetNewBinaryMappings() {
-				writeBinaryMap(m, i, path)
-			}
-		}
-	}
-
-	return err
+	return nil
 }
 
 func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, verbose int) error {

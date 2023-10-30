@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"path/filepath"
 	"sync"
 
 	"github.com/cilium/ebpf"
@@ -27,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 	"github.com/sirupsen/logrus"
@@ -461,9 +459,6 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, stringPostfixFilterMaps)
 
-		selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), prog0)
-		maps = append(maps, selNamesMap)
-
 		killerDataMap := program.MapBuilderPin("killer_data", "killer_data", prog0)
 		maps = append(maps, killerDataMap)
 	}
@@ -596,16 +591,6 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 			Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
-	}
-
-	m, err := ebpf.LoadPinnedMap(filepath.Join(mapDir, base.NamesMap.Name), nil)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	for i, path := range tp.selectors.GetNewBinaryMappings() {
-		writeBinaryMap(m, i, path)
 	}
 
 	return err
