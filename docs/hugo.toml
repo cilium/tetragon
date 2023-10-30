@@ -114,6 +114,8 @@ url_latest_version = "https://example.com"
 github_repo = "https://github.com/cilium/tetragon"
 # An optional link to a related project repo. For example, the sibling repository where your product code lives.
 github_project_repo = "https://github.com/cilium/tetragon"
+# URL of the Star Wars demo app.
+demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.0-pre.1/examples/minikube/http-sw-app.yaml"
 
 # Specify a value here if your content directory is not in your repo's root directory
 github_subdir = "docs"

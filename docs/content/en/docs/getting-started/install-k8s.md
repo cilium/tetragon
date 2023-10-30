@@ -59,7 +59,7 @@ To use our [demo
 application](https://docs.cilium.io/en/v1.11/gettingstarted/http/#deploy-the-demo-application)
 
 ```shell-session
-kubectl create -f https://raw.githubusercontent.com/cilium/cilium/v1.11/examples/minikube/http-sw-app.yaml
+kubectl create -f {{< demo-app-url >}}
 ```
 
 Before going forward, verify that all pods are up and running - it might take
