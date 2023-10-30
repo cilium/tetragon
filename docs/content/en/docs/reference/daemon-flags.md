@@ -44,6 +44,7 @@ Flags:
       --kmods strings                             List of kernel modules to load symbols from
       --log-format string                         Set log format (default "text")
       --log-level string                          Set log level (default "info")
+      --metrics-label-filter string               Comma-separated list of enabled metric labels. (e.g. "namespace,workload,pod,binary") By default all labels are enabled.
       --metrics-server string                     Metrics server address (e.g. ':2112'). Disabled by default
       --netns-dir string                          Network namespace dir (default "/var/run/docker/netns/")
       --process-cache-size int                    Size of the process cache (default 65536)
