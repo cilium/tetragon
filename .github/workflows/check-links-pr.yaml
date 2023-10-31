@@ -3,6 +3,7 @@ name: Check docs links
 on:
   pull_request:
     paths:
+      - 'README.md'
       - 'docs/content/**.md'
       - '.github/workflows/check-links-pr.yaml'
 
@@ -41,7 +42,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
-          args: --base http://localhost:1313 --exclude cilium.herokuapp.com docs/content
+          args: --config .github/lychee.toml --base http://localhost:1313 docs/content README.md
           fail: true
           format: json
 

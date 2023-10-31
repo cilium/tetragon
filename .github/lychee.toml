@@ -1,0 +1,11 @@
+verbose = "info"
+
+exclude = [
+  # this application is down from time to time
+  'cilium.herokuapp.com', 
+  # the relative link in README is implicit,
+  # see https://github.blog/2013-01-31-relative-links-in-markup-files/
+  'docs/assets/icons/logo.*\.svg', 
+  # the virtualbox website sends 500 regularly
+  'virtualbox.org'
+]
