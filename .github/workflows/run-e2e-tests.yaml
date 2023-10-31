@@ -22,8 +22,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, buildjet-4vcpu-ubuntu-2204-arm ]
+        os: [ ubuntu-22.04, actuated-arm64-4cpu-16gb ]
     steps:
     - name: Checkout Code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
