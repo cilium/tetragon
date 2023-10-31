@@ -571,23 +571,16 @@ func createGenericKprobeSensor(
 		PostUnloadHook: func() error {
 			var errs error
 			for _, id := range ids {
-				entry, err := genericKprobeTable.GetEntry(id)
+				gk, err := genericKprobeTableGet(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
-
-				// close the eventual reference to the stack trace map
-				gk, ok := entry.(*genericKprobe)
-				if !ok {
-					errs = errors.Join(errs, fmt.Errorf("entry from genericKprobeTable with invalid type: %T (%v)", entry, entry))
-				} else {
-					if gk.stackTraceMapRef != nil {
-						err = gk.stackTraceMapRef.Close()
-						if err != nil {
-							errs = errors.Join(errs, fmt.Errorf("failed to close map: %v", gk.stackTraceMapRef))
-						}
-						gk.stackTraceMapRef = nil
+				if gk.stackTraceMapRef != nil {
+					err = gk.stackTraceMapRef.Close()
+					if err != nil {
+						errs = errors.Join(errs, fmt.Errorf("failed to close map: %v", gk.stackTraceMapRef))
 					}
+					gk.stackTraceMapRef = nil
 				}
 			}
 			return errs
