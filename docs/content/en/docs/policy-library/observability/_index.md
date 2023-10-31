@@ -30,64 +30,54 @@ description: >
 
 ## eBPF Subsystem Interactions {#ebpf}
 
-This policy adds monitoring of all BPF programs loaded and file operations over the
-BPFFS. The BPFFS is where map file descriptors live allowing programs access to the
-BPF user to kernel space.
+### Description
 
-To apply the policy use kubect apply,
+Audit BPF program loads and BPFFS interactions
 
-```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml
-```
+### Use Case
 
-Now we can do inspect the data to learn interesting things about the system. For example
-to find all loaded programs on the system,
+Understanding BPF programs loaded in a cluster and interactions between applications
+and programs can identify bugs and malicious or unexpected BPF activity.
 
-```shell-session
+### Policy
 
-```
+[bpf.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml)
 
-Or all programs writing to a BPF map,
+### Example jq Filter
 
 ```shell-session
+
 ```
 
-Similarly we might be concerned about all reads,
+### Example Output
 
 ```shell-session
 ```
-
-Continue to explore the data set to learn interesting things here.
 
 ## Kernel Module Audit Trail {#kernel-module}
 
-This policy adds monitoring of all BPF programs loaded and file operations over the
-BPFFS. The BPFFS is where map file descriptors live allowing programs access to the
-BPF user to kernel space.
+### Description
 
-To apply the policy use kubect apply,
+Audit loading of kernel modules
 
-```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml
-```
+### Use Case
 
-Now we can do inspect the data to learn interesting things about the system. For example
-to find all loaded programs on the system,
+Understanding exactly what kernel modules are running in the cluster is crucial to understand attack surface and any malicious actors loading unexpected modules.
 
-```shell-session
+### Policy
 
-```
+[module.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/module.yaml)
 
-Or all programs writing to a BPF map,
+### Example jq Filter
 
 ```shell-session
+
 ```
 
-Similarly we might be concerned about all reads,
+### Example Output
 
 ```shell-session
 ```
-
 
 ## Shared Library Loading {#library}
 
@@ -171,47 +161,35 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary | contai
 
 ## SSHd connection monitoring {#ssh-network}
 
-This policy adds monitoring of all network connections accepted by SSHd to Tetragon.
+### Description
 
-To apply the policy use kubect apply,
+Monitor sessions to SSHd 
 
-```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/acceptsshd.yaml
-```
+### Use Case
 
-To find all sessions over SSHd,
+It is best practice to audit remote connections into a shell server.
 
-```shell-session
+### Policy
 
-```
+[sshd.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/sshd.yaml)
+
+### Example jq Filter
+
+### Example Output
 
 ## Outbound connections {#egress-connections}
 
-This policy adds monitoring of all BPF programs loaded and file operations over the
-BPFFS. The BPFFS is where map file descriptors live allowing programs access to the
-BPF user to kernel space.
+### Description
 
-To apply the policy use kubect apply,
+Monitor all cluster egress connections
 
-```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml
-```
+### Use Case
 
-Now we can do inspect the data to learn interesting things about the system. For example
-to find all loaded programs on the system,
+Connections made outside a Kubernetes cluster can be audited to provide insights
+into any unexpected or malicious reverse shells.
 
-```shell-session
+### Policy
 
-```
+### Example jq Filter
 
-Or all programs writing to a BPF map,
-
-```shell-session
-```
-
-Similarly we might be concerned about all reads,
-
-```shell-session
-```
-
-Continue to explore the data set to learn interesting things here.
+### Example Output
