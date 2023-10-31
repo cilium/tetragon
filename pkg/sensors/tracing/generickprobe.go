@@ -207,9 +207,20 @@ func multiKprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_kprobe")
 }
 
-func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.EntryID) ([]*program.Program, []*program.Map) {
+func createMultiKprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
+
+	for _, id := range multiIDs {
+		gk, err := genericKprobeTableGet(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		if gk.loadArgs.retprobe {
+			multiRetIDs = append(multiRetIDs, id)
+		}
+	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
 	loadProgRetName := "bpf_multi_retkprobe_v53.o"
@@ -324,7 +335,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 	}
 
-	return progs, maps
+	return progs, maps, nil
 }
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
@@ -472,11 +483,9 @@ type addKprobeIn struct {
 }
 
 type addKprobeOut struct {
-	id          idtable.EntryID
-	multiIDs    []idtable.EntryID
-	multiRetIDs []idtable.EntryID
-	progs       []*program.Program
-	maps        []*program.Map
+	id    idtable.EntryID
+	progs []*program.Program
+	maps  []*program.Map
 }
 
 func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
@@ -502,7 +511,7 @@ func createGenericKprobeSensor(
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
-	var ids, multiIDs, multiRetIDs []idtable.EntryID
+	var ids []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
 
@@ -550,10 +559,7 @@ func createGenericKprobeSensor(
 			}
 			ids = append(ids, out.id)
 
-			if useMulti {
-				multiRetIDs = append(multiRetIDs, out.multiRetIDs...)
-				multiIDs = append(multiIDs, out.multiIDs...)
-			} else {
+			if !useMulti {
 				progs = append(progs, out.progs...)
 				maps = append(maps, out.maps...)
 			}
@@ -561,7 +567,10 @@ func createGenericKprobeSensor(
 	}
 
 	if useMulti {
-		progs, maps = createMultiKprobeSensor(in.sensorPath, multiIDs, multiRetIDs)
+		progs, maps, err = createMultiKprobeSensor(in.sensorPath, ids)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &sensors.Sensor{
@@ -797,10 +806,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 
 	if in.useMulti {
 		kprobeEntry.pinPathPrefix = multiKprobePinPath(in.sensorPath)
-		if setRetprobe {
-			out.multiRetIDs = append(out.multiRetIDs, kprobeEntry.tableId)
-		}
-		out.multiIDs = append(out.multiIDs, kprobeEntry.tableId)
 		logger.GetLogger().
 			WithField("return", setRetprobe).
 			WithField("function", kprobeEntry.funcName).
