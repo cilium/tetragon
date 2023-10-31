@@ -26,6 +26,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -5389,6 +5390,11 @@ spec:
 
 // Test module loading/unloading on Ubuntu
 func TestTraceKernelModule(t *testing.T) {
+	_, err := ftrace.ReadAvailFuncs("find_module_sections")
+	if err != nil {
+		t.Skip("Skipping test: could not find find_module_sections")
+	}
+
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
