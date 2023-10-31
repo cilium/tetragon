@@ -119,29 +119,24 @@ the base feature set of exec tracing can be useful.
 To find all executables from /tmp
 
 ```shell-session
-# kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("/tmp/")) | .process_exec.process |  "\(.binary) \(.pod.namespace) \(.pod.name)"'
-"/tmp/nc default xwing"
-"/tmp/nc default xwing"
-"/tmp/nc default xwing"
-"/tmp/nc default xwing"
-
+#  kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("/tmp/")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
+"2023-10-31T18:44:22.777962637Z default xwing /tmp/nc ebpf.io 1234"
 ```
 
 ## sudo Invocation Monitoring {#sudo}
 
-This policy adds sudo monitoring to Tetragon.
-
-To apply the policy use kubect apply,
-
-```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/sudo.yaml
-```
+No policy is required to monitor for execution of sudo. Execution tracing is
+consider core functionality.
 
 To find any sudo operatoins,
 
 ```shell-session
-
+$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("sudo")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
+"2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
 ```
+
+Here we caught a user running sudo in the host platform indicated by the empty pod info.
+
 
 ## SSHd connection monitoring {#ssh-network}
 
