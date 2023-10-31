@@ -5,6 +5,7 @@ package ftrace
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"regexp"
 	"slices"
@@ -63,5 +64,8 @@ func ReadAvailFuncs(pattern string) ([]string, error) {
 		final = append(final, line)
 	}
 
+	if len(final) == 0 {
+		return []string{}, fmt.Errorf("ftrace: '%s' not found", pattern)
+	}
 	return final, nil
 }
