@@ -796,15 +796,16 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 
 	if in.useMulti {
 		kprobeEntry.pinPathPrefix = multiKprobePinPath(in.sensorPath)
-		logger.GetLogger().
-			WithField("return", setRetprobe).
-			WithField("function", kprobeEntry.funcName).
-			WithField("override", kprobeEntry.hasOverride).
-			Infof("Added multi kprobe")
-		return kprobeEntry.tableId, nil
+	} else {
+		kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", kprobeEntry.tableId.ID))
 	}
 
-	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", kprobeEntry.tableId.ID))
+	logger.GetLogger().
+		WithField("return", setRetprobe).
+		WithField("function", kprobeEntry.funcName).
+		WithField("override", kprobeEntry.hasOverride).
+		Infof("Added kprobe")
+
 	return kprobeEntry.tableId, nil
 }
 
