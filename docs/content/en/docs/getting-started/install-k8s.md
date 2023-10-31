@@ -24,7 +24,32 @@ gcloud container clusters create "${NAME}" --zone ${ZONE} --num-nodes=1
 gcloud container clusters get-credentials "${NAME}" --zone ${ZONE}
 ```
 {{% /tab %}}
+{{% tab AKS %}}
 
+The following commands create a single node Kubernetes cluster using [Azure
+Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/). See
+[Azure Cloud CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+for instructions on how to install `az` and prepare your account.
+
+```shell-session
+export NAME="$(whoami)-$RANDOM"
+export AZURE_RESOURCE_GROUP="${NAME}-group"
+az group create --name "${AZURE_RESOURCE_GROUP}" -l westus2
+az aks create --resource-group "${AZURE_RESOURCE_GROUP}" --name "${NAME}"
+az aks get-credentials --resource-group "${AZURE_RESOURCE_GROUP}" --name "${NAME}"
+```
+{{% /tab %}}
+{{% tab EKS %}}
+
+The following commands create a Kubernetes cluster with `eksctl` using [Amazon Elastic
+Kubernetes Service](https://aws.amazon.com/eks/). See [eksctl installation](https://github.com/eksctl-io/eksctl#installation)
+for instructions on how to install `eksctl` and prepare your account.
+
+```shell-session
+export NAME="$(whoami)-$RANDOM"
+eksctl create cluster --name "${NAME}"
+```
+{{% /tab %}}
 {{% tab Kind %}}
 Run the following command to create the Kubernetes cluster:
 
