@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, buildjet-2vcpu-ubuntu-2204-arm ]
+        os: [ ubuntu-20.04, actuated-arm64-4cpu-8gb ]
     steps:
     - name: Checkout code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -29,7 +29,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install libelf-dev netcat-traditional libcap-dev gcc
+        sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc
 
         sudo sed -i '/secure_path/d' /etc/sudoers
         sudo sed -i '/env_reset/d' /etc/sudoers
@@ -40,6 +40,8 @@ jobs:
 
     - name: Install bpftool
       uses: mtardy/setup-bpftool@adeab4f9332cc28db56064a93911860d0775665b # v1.0.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Ensure BPF programs pass verifier
       run: |
