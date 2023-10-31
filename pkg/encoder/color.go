@@ -103,6 +103,29 @@ func processCaps(c *tetragon.Capabilities) string {
 	return capsString
 }
 
+func (c *Colorer) ProcessSuid(b *tetragon.BinaryProperties) string {
+	if b == nil {
+		return ""
+	}
+
+	privileges := ""
+	setuid := b.GetSetuid()
+	setgid := b.GetSetgid()
+	if setuid != nil {
+		privileges = fmt.Sprintf("SETUID=%d ", setuid.GetValue())
+	}
+
+	if setgid != nil {
+		privileges = fmt.Sprintf("%sSETGID=%d ", privileges, setgid.GetValue())
+	}
+
+	if len(privileges) == 0 {
+		return ""
+	}
+
+	return c.Magenta.Sprintf("🛑 %s", privileges)
+}
+
 func (c *Colorer) ProcessInfo(host string, process *tetragon.Process) (string, string) {
 	source := c.Green.Sprint(host)
 	if process.Pod != nil {

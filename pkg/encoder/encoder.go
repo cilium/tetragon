@@ -171,6 +171,10 @@ func CapTrailorPrinter(str string, caps string) string {
 	return fmt.Sprintf("%s %*s", str, padding, caps)
 }
 
+func ProcessExecPrinter(str string, privileges string) string {
+	return CapTrailorPrinter(str, privileges)
+}
+
 var (
 	CLONE_NEWCGROUP = 0x2000000
 	CLONE_NEWIPC    = 0x8000000
@@ -223,7 +227,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		event := p.Colorer.Blue.Sprintf("🚀 %-7s", "process")
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, exec.Process)
 		args := p.Colorer.Cyan.Sprint(exec.Process.Arguments)
-		return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), caps), nil
+		suid := p.Colorer.ProcessSuid(exec.Process.BinaryProperties)
+		return ProcessExecPrinter(fmt.Sprintf("%s %s %s", event, processInfo, args), fmt.Sprintf("%s%s", suid, caps)), nil
 	case *tetragon.GetEventsResponse_ProcessExit:
 		exit := response.GetProcessExit()
 		if exit.Process == nil {
