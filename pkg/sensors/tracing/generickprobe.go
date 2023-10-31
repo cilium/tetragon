@@ -482,10 +482,6 @@ type addKprobeIn struct {
 	customHandler eventhandler.Handler
 }
 
-type addKprobeOut struct {
-	id idtable.EntryID
-}
-
 func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
 	if strings.HasPrefix(symbol, "list:") {
 		name := symbol[len("list:"):]
@@ -551,11 +547,11 @@ func createGenericKprobeSensor(
 		kprobes[i].Syscall = syscall
 
 		for idx := range syms {
-			out, err := addKprobe(syms[idx], &kprobes[i], &in, selMaps)
+			id, err := addKprobe(syms[idx], &kprobes[i], &in, selMaps)
 			if err != nil {
 				return nil, err
 			}
-			ids = append(ids, out.id)
+			ids = append(ids, id)
 		}
 	}
 
@@ -606,24 +602,26 @@ func createGenericKprobeSensor(
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps *selectors.KernelSelectorMaps) (out *addKprobeOut, err error) {
+func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps *selectors.KernelSelectorMaps) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinters
 	var argReturnPrinters []argPrinters
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
 	var argsBTFSet [api.MaxArgsSupported]bool
 
-	out = &addKprobeOut{}
+	errFn := func(err error) (idtable.EntryID, error) {
+		return idtable.UninitializedEntryID, err
+	}
 
 	config := &api.EventConfig{}
 	config.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
 		if !kernels.EnableLargeProgs() {
-			return nil, fmt.Errorf("ReturnArgAction requires kernel >=5.3")
+			return errFn(fmt.Errorf("ReturnArgAction requires kernel >=5.3"))
 		}
 		config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
 		if config.ArgReturnAction == selectors.ActionTypeInvalid {
-			return nil, fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction)
+			return errFn(fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction))
 		}
 	}
 
@@ -631,12 +629,12 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 
 	if selectors.HasOverride(f) {
 		if isSecurityFunc && in.useMulti {
-			return nil, fmt.Errorf("Error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
-				funcName)
+			return errFn(fmt.Errorf("Error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
+				funcName))
 		}
 		if isSecurityFunc && !bpf.HasModifyReturn() {
-			return nil, fmt.Errorf("Error: can't override '%s' function without fmodret support",
-				funcName)
+			return errFn(fmt.Errorf("Error: can't override '%s' function without fmodret support",
+				funcName))
 		}
 	}
 
@@ -646,7 +644,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	for j, a := range f.Args {
 		argType := gt.GenericTypeFromString(a.Type)
 		if argType == gt.GenericInvalidType {
-			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
+			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
 		}
 		if a.MaxData {
 			if argType != gt.GenericCharBuffer {
@@ -658,15 +656,14 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		}
 		argMValue, err := getMetaValue(&a)
 		if err != nil {
-			return nil, err
+			return errFn(err)
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &f.Args[j]
 		}
 		if a.Index > 4 {
-			return nil,
-				fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
-					a.Type, int(a.Index))
+			return errFn(fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+				a.Type, int(a.Index)))
 		}
 		config.Arg[a.Index] = int32(argType)
 		config.ArgM[a.Index] = uint32(argMValue)
@@ -687,14 +684,14 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	// argReturnPrinters tell golang printer piece how to print the event.
 	if f.Return {
 		if f.ReturnArg == nil {
-			return nil, fmt.Errorf("ReturnArg not specified with Return=true")
+			return errFn(fmt.Errorf("ReturnArg not specified with Return=true"))
 		}
 		argType := gt.GenericTypeFromString(f.ReturnArg.Type)
 		if argType == gt.GenericInvalidType {
 			if f.ReturnArg.Type == "" {
-				return nil, fmt.Errorf("ReturnArg not specified with Return=true")
+				return errFn(fmt.Errorf("ReturnArg not specified with Return=true"))
 			}
-			return nil, fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type)
+			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
 		config.ArgReturn = int32(argType)
 		argsBTFSet[api.ReturnArgIndex] = true
@@ -735,14 +732,14 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 			// we allow integer values so far
 			for _, v := range returnArg.Values {
 				if _, err := strconv.Atoi(v); err != nil {
-					return nil, fmt.Errorf("ReturnArg value supports only integer values, got %s", v)
+					return errFn(fmt.Errorf("ReturnArg value supports only integer values, got %s", v))
 				}
 			}
 			// only single value for GT,LT operators
 			if isGTOperator(returnArg.Operator) || isLTOperator(returnArg.Operator) {
 				if len(returnArg.Values) > 1 {
-					return nil, fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
-						returnArg.Operator, len(returnArg.Values))
+					return errFn(fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
+						returnArg.Operator, len(returnArg.Values)))
 				}
 			}
 			userReturnFilters = append(userReturnFilters, returnArg)
@@ -786,16 +783,15 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	// Parse Filters into kernel filter logic
 	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, selMaps)
 	if err != nil {
-		return nil, err
+		return errFn(err)
 	}
 
 	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
 	if err != nil {
-		return nil, err
+		return errFn(err)
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	out.id = kprobeEntry.tableId
 	config.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	if in.useMulti {
@@ -805,11 +801,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 			WithField("function", kprobeEntry.funcName).
 			WithField("override", kprobeEntry.hasOverride).
 			Infof("Added multi kprobe")
-		return out, nil
+		return kprobeEntry.tableId, nil
 	}
 
 	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", kprobeEntry.tableId.ID))
-	return out, nil
+	return kprobeEntry.tableId, nil
 }
 
 func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
