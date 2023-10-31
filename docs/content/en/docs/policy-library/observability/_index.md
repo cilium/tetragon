@@ -11,18 +11,18 @@ description: >
 
 ### System Activity
 
-- [eBPF activity]({{< ref "#ebpf" >}})
-- [Kernel module audit trail]({{< ref "#kernel-module" >}})
-- [Library loading]({{< ref "#library" >}})
+- [eBPF System Activity]({{< ref "#ebpf" >}})
+- [Kernel Module Audit trail]({{< ref "#kernel-module" >}})
+- [Shared Library Loading]({{< ref "#library" >}})
 
 ### Security Sensitive Events
 
-- [Binary execution in /tmp]({{< ref "#tmp-execs" >}})
+- [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
 
 ### Networking
 
-- [Network activity of SSH daemon]({{< ref "#ssh" >}})
+- [Network Activity of SSH daemon]({{< ref "#ssh" >}})
 - [Outbound Connections]({{< ref "#egress-connections" >}})
 
 
@@ -89,59 +89,84 @@ Similarly we might be concerned about all reads,
 ```
 
 
-## Library version monitoring {#library}
+## Shared Library Loading {#library}
 
-This policy adds library monitoring to Tetragon.
+### Description
 
-To apply the policy use kubect apply,
+Monitor loading of libraries
+
+### Use Case
+
+Understanding the exact versions of shared libraries that binaries load and use is crucial to understand use of vulnerable or deprecated library versions or attacks such as shared library hijacking.
+
+### Policy
+
+[library.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml)
+
+
+### Example jq Filter
 
 ```shell-session
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml
+jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
 ```
 
-This will record library loads. To find all use of a specific library use
-the following, in this case checking libssl library.
+### Example Output
 
 ```shell-session
-$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_loader != null) | select(.process_loader.path | contains("ssl")) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
 "2023-10-31T19:42:33.065233159Z null /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
-```
-
-We can further restrict to only find versions before some number by adding
-a versoin check to find libbssl.so.2 or libssl.so.1 usage in the cluster.
-
-```shell-session
-$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_loader != null) | select(.process_loader.path | test(".*ssl.so.[2,1]")) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"'
-"2023-10-31T19:42:33.065233159Z null /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.2"
 ```
 
 ## Binary Execution in /tmp {#tmp-execs}
 
-This policy adds monitoring of any executions in the /tmp directory.
+### Description
 
-For this we can simply query the default execution data showing even
-the base feature set of exec tracing can be useful.
+Monitor execution of a binary in the /tmp directory.
 
-To find all executables from /tmp
+### Use Case
+
+Preventing execution of executables in `/tmp` is a common best-practice as several canned exploits rely on writing and then executing malicious binaries in the `/tmp` directory. A common best-practice to enforce this is to mount the `/tmp` filesystem with the `noexec` flag. This observability policy is used to monitor for violations of this best practice.
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is sufficient.
+
+### Example jq Filter
 
 ```shell-session
-#  kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("/tmp/")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
-"2023-10-31T18:44:22.777962637Z default xwing /tmp/nc ebpf.io 1234"
+jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("/tmp/")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
+```
+
+### Example Output
+
+```shell-session
+"2023-10-31T18:44:22.777962637Z default/xwing /tmp/nc ebpf.io 1234"
 ```
 
 ## sudo Invocation Monitoring {#sudo}
 
-No policy is required to monitor for execution of sudo. Execution tracing is
-consider core functionality.
+### Description
 
-To find any sudo operatoins,
+Monitor sudo invocations
+
+### Use Case
+
+sudo is used to run executables with particular privileges. Creating a audit log of sudo invocations is a common best-practice.
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is sufficient.
+
+### Example jq Filter
 
 ```shell-session
-$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("sudo")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
-"2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
+jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("sudo")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
 ```
 
-Here we caught a user running sudo in the host platform indicated by the empty pod info.
+### Example Output
+
+```shell-session
+"2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
+```
 
 
 ## SSHd connection monitoring {#ssh-network}
