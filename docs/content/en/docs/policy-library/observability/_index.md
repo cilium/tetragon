@@ -100,14 +100,20 @@ kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples
 ```
 
 This will record library loads. To find all use of a specific library use
-the following, in this case checking std C library.
+the following, in this case checking libssl library.
 
 ```shell-session
-
+$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_loader != null) | select(.process_loader.path | contains("ssl")) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
+"2023-10-31T19:42:33.065233159Z null /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
 ```
 
 We can further restrict to only find versions before some number by adding
-a versoin check.ontinue to explore the data set to learn interesting things here.
+a versoin check to find libbssl.so.2 or libssl.so.1 usage in the cluster.
+
+```shell-session
+$ kubectl logs -n kube-system ds/tetragon -c export-stdout | jq 'select(.process_loader != null) | select(.process_loader.path | test(".*ssl.so.[2,1]")) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"'
+"2023-10-31T19:42:33.065233159Z null /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.2"
+```
 
 ## Binary Execution in /tmp {#tmp-execs}
 
