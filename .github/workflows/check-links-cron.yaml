@@ -25,7 +25,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
-          args: --base https://tetragon.cilium.io docs/content README.md
+          args: --config .github/lychee.toml --base https://tetragon.io docs/content README.md
 
       # to avoid automated spam, try to find an existing open issue before opening a new one
       - name: Search for existing issue number
