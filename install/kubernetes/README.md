@@ -53,7 +53,7 @@ Helm chart for Tetragon
 | tetragon.enableProcessCred | bool | `false` |  |
 | tetragon.enableProcessNs | bool | `false` |  |
 | tetragon.enabled | bool | `true` |  |
-| tetragon.exportAllowList | string | `"{\"event_set\":[\"PROCESS_EXEC\", \"PROCESS_EXIT\", \"PROCESS_KPROBE\", \"PROCESS_UPROBE\"]}"` |  |
+| tetragon.exportAllowList | string | `"{\"event_set\":[\"PROCESS_EXEC\", \"PROCESS_EXIT\", \"PROCESS_KPROBE\", \"PROCESS_UPROBE\", \"PROCESS_TRACEPOINT\"]}"` |  |
 | tetragon.exportDenyList | string | `"{\"health_check\":true}\n{\"namespace\":[\"\", \"cilium\", \"kube-system\"]}"` |  |
 | tetragon.exportFileCompress | bool | `false` |  |
 | tetragon.exportFileMaxBackups | int | `5` |  |
