@@ -472,12 +472,11 @@ type addKprobeIn struct {
 }
 
 type addKprobeOut struct {
+	id          idtable.EntryID
 	multiIDs    []idtable.EntryID
 	multiRetIDs []idtable.EntryID
 	progs       []*program.Program
 	maps        []*program.Map
-	// identifier returned when the kprobe was added to the genericKprobeTable
-	tableEntryIndex int
 }
 
 func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
@@ -503,7 +502,7 @@ func createGenericKprobeSensor(
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
-	var multiIDs, multiRetIDs []idtable.EntryID
+	var ids, multiIDs, multiRetIDs []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
 
@@ -532,7 +531,6 @@ func createGenericKprobeSensor(
 		customHandler: customHandler,
 	}
 
-	addedKprobeIndices := []int{}
 	if useMulti {
 		selMaps = &selectors.KernelSelectorMaps{}
 	}
@@ -550,7 +548,7 @@ func createGenericKprobeSensor(
 			if err != nil {
 				return nil, err
 			}
-			addedKprobeIndices = append(addedKprobeIndices, out.tableEntryIndex)
+			ids = append(ids, out.id)
 
 			if useMulti {
 				multiRetIDs = append(multiRetIDs, out.multiRetIDs...)
@@ -572,8 +570,8 @@ func createGenericKprobeSensor(
 		Maps:  maps,
 		PostUnloadHook: func() error {
 			var errs error
-			for _, idx := range addedKprobeIndices {
-				entry, err := genericKprobeTable.GetEntry(idtable.EntryID{ID: idx})
+			for _, id := range ids {
+				entry, err := genericKprobeTable.GetEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
@@ -596,8 +594,8 @@ func createGenericKprobeSensor(
 		},
 		DestroyHook: func() error {
 			var errs error
-			for _, idx := range addedKprobeIndices {
-				_, err := genericKprobeTable.RemoveEntry(idtable.EntryID{ID: idx})
+			for _, id := range ids {
+				_, err := genericKprobeTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
@@ -801,9 +799,8 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	tidx := kprobeEntry.tableId.ID
-	out.tableEntryIndex = tidx
-	config.FuncId = uint32(tidx)
+	out.id = kprobeEntry.tableId
+	config.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	if in.useMulti {
 		kprobeEntry.pinPathPrefix = multiKprobePinPath(in.sensorPath)
@@ -819,7 +816,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		return out, nil
 	}
 
-	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", tidx))
+	kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", kprobeEntry.tableId.ID))
 	pinPath := kprobeEntry.pinPathPrefix
 	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
 
