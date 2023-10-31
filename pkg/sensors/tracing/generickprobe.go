@@ -480,6 +480,7 @@ type addKprobeIn struct {
 	policyName    string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
+	selMaps       *selectors.KernelSelectorMaps
 }
 
 func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
@@ -526,17 +527,19 @@ func createGenericKprobeSensor(
 			bpf.HasKprobeMulti()
 	}
 
+	if useMulti {
+		selMaps = &selectors.KernelSelectorMaps{}
+	}
+
 	in := addKprobeIn{
 		useMulti:      useMulti,
 		sensorPath:    name,
 		policyID:      policyID,
 		policyName:    policyName,
 		customHandler: customHandler,
+		selMaps:       selMaps,
 	}
 
-	if useMulti {
-		selMaps = &selectors.KernelSelectorMaps{}
-	}
 	for i := range kprobes {
 		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
 		if err != nil {
@@ -547,7 +550,7 @@ func createGenericKprobeSensor(
 		kprobes[i].Syscall = syscall
 
 		for idx := range syms {
-			id, err := addKprobe(syms[idx], &kprobes[i], &in, selMaps)
+			id, err := addKprobe(syms[idx], &kprobes[i], &in)
 			if err != nil {
 				return nil, err
 			}
@@ -602,7 +605,7 @@ func createGenericKprobeSensor(
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps *selectors.KernelSelectorMaps) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinters
 	var argReturnPrinters []argPrinters
 	var setRetprobe bool
@@ -781,7 +784,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, selMaps)
+	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
 	if err != nil {
 		return errFn(err)
 	}
