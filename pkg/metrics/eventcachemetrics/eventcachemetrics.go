@@ -27,12 +27,19 @@ var (
 		Help:        "The total number of Tetragon event cache accesses. For internal use only.",
 		ConstLabels: nil,
 	})
+	eventCacheErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_errors_total",
+		Help:        "The total of errors encountered while fetching process exec information from the cache.",
+		ConstLabels: nil,
+	}, []string{"error"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(processInfoErrors)
 	registry.MustRegister(podInfoErrors)
 	registry.MustRegister(EventCacheCount)
+	registry.MustRegister(eventCacheErrorsTotal)
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
@@ -43,4 +50,9 @@ func ProcessInfoError(eventType string) prometheus.Counter {
 // Get a new handle on an processInfoErrors metric for an eventType
 func PodInfoError(eventType string) prometheus.Counter {
 	return podInfoErrors.WithLabelValues(eventType)
+}
+
+// Get a new handle on an processInfoErrors metric for an eventType
+func EventCacheError(err string) prometheus.Counter {
+	return eventCacheErrorsTotal.WithLabelValues(err)
 }
