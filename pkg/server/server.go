@@ -164,14 +164,13 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			// Filter the GetEventsResponse fields
 			filters := filters.FieldFiltersFromGetEventsRequest(request)
 			filterEvent := event
-			if len(filters) > 0 && filterEvent.GetProcessExec() != nil { // this is an exec event and we have fieldFilters
-				// We need a copy of the exec event as modifing the original message
-				// can cause issues in the process cache (we keep a copy of that message there).
-				filterEvent = proto.Clone(event).(*tetragon.GetEventsResponse)
-			}
+
 			for _, filter := range filters {
-				// we need not to change res
-				// maybe only for exec events
+				// We need a copy of the exec or exit event as modifing the original message
+				// can cause issues in the process cache (we keep a copy of that message there).
+				if filter.NeedsCopy(filterEvent) && filterEvent == event {
+					filterEvent = proto.Clone(event).(*tetragon.GetEventsResponse)
+				}
 				filter.Filter(filterEvent)
 			}
 
