@@ -196,10 +196,35 @@ Monitor all cluster egress connections
 Connections made outside a Kubernetes cluster can be audited to provide insights
 into any unexpected or malicious reverse shells.
 
+### Environment Variables
+
+```shell-session
+PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
+```
+{{< tabpane lang=shell-session >}}
+
+{{< tab GKE >}}
+SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
+{{< /tab >}}
+
+{{< tab Kind >}}
+SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-plane | awk -F= '/--service-cluster-ip-range/ {print $2; }')
+{{< /tab >}}
+
+{{< /tabpane >}}
+
 ### Policy
 
 [egress.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/egress.yaml)
 
 ### Example jq Filter
 
+```shell-sessoin
+ jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_connect")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport) -> \(.process_kprobe.args[0].sock_arg.daddr):\(.process_kprobe.args[0].sock_arg.dport)"'
+```
+
 ### Example Output
+
+```shell-session
+"2023-11-01T05:25:14.837745007Z /usr/bin/curl http://ebpf.io 10.168.0.45:48272 -> 104.198.14.52:80"
+```
