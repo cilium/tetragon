@@ -46,12 +46,13 @@ and programs can identify bugs and malicious or unexpected BPF activity.
 ### Example jq Filter
 
 ```shell-session
-
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"
 ```
 
 ### Example Output
 
 ```shell-session
+"2023-11-01T02:56:54.926403604Z /usr/bin/bpftool prog list programType:BPF_PROG_TYPE_SOCKET_FILTER programInsn:2"
 ```
 
 ## Kernel Module Audit Trail {#kernel-module}
@@ -103,7 +104,7 @@ jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.na
 ### Example Output
 
 ```shell-session
-"2023-10-31T19:42:33.065233159Z null /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
+"2023-10-31T19:42:33.065233159Z default/xwing /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
 ```
 
 ## Binary Execution in /tmp {#tmp-execs}
