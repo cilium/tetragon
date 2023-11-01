@@ -5,6 +5,7 @@ package tracing
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/reader/kernel"
 	"golang.org/x/sys/unix"
 
@@ -304,6 +305,11 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		PolicyName:   event.PolicyName,
 	}
 
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessKprobe: nil Process.Pid").Inc()
+		return nil
+	}
+
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
@@ -411,6 +417,11 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		Args:       tetragonArgs,
 		PolicyName: msg.PolicyName,
 		Action:     kprobeAction(msg.Action),
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessTracepoint: nil Process.Pid").Inc()
+		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -532,6 +543,11 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
 
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessLoader: nil Process.Pid").Inc()
+		return nil
+	}
+
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
 		tetragonEvent := &ProcessLoaderNotify{}
@@ -637,6 +653,11 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Path:       event.Path,
 		Symbol:     event.Symbol,
 		PolicyName: event.PolicyName,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessUprobe: nil Process.Pid").Inc()
+		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
