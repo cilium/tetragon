@@ -67,7 +67,7 @@ Understanding exactly what kernel modules are running in the cluster is crucial 
 
 ### Policy
 
-[module.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/module.yaml)
+[modules.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/modules.yaml)
 
 ### Example jq Filter
 
