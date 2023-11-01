@@ -72,12 +72,13 @@ Understanding exactly what kernel modules are running in the cluster is crucial 
 ### Example jq Filter
 
 ```shell-session
-
+ jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
 ```
 
 ### Example Output
 
 ```shell-session
+"2023-11-01T04:11:38.390880528Z /sbin/iptables -A OUTPUT -m cgroup --cgroup 1 -j LOG module:ipt_LOG"
 ```
 
 ## Shared Library Loading {#library}
@@ -159,7 +160,6 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary | contai
 "2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
 ```
 
-
 ## SSHd connection monitoring {#ssh-network}
 
 ### Description
@@ -176,7 +176,14 @@ It is best practice to audit remote connections into a shell server.
 
 ### Example jq Filter
 
+```shell-session
+ jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_close")) |  "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.family) \(.process_kprobe.args[0].sock_arg.type)  \(.process_kprobe.args[0].sock_arg.protocol) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport)"'
+```
+
 ### Example Output
+```shell-session
+"2023-11-01T04:51:20.109146920Z /usr/sbin/sshd default/xwing AF_INET SOCK_STREAM IPPROTO_TCP 127.0.0.1:22"
+```
 
 ## Outbound connections {#egress-connections}
 
@@ -190,6 +197,8 @@ Connections made outside a Kubernetes cluster can be audited to provide insights
 into any unexpected or malicious reverse shells.
 
 ### Policy
+
+[egress.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/egress.yaml)
 
 ### Example jq Filter
 
