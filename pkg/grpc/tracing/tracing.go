@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/bpf"
@@ -224,6 +225,11 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Action:       kprobeAction(event.Action),
 	}
 
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessKprobe: nil Process.Pid").Inc()
+		return nil
+	}
+
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
@@ -318,6 +324,11 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		Subsys:  msg.Subsys,
 		Event:   msg.Event,
 		Args:    tetragonArgs,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessTracepoint: nil Process.Pid").Inc()
+		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
@@ -435,6 +446,11 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
 
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessLoader: nil Process.Pid").Inc()
+		return nil
+	}
+
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
 		tetragonEvent := &ProcessLoaderNotify{}
@@ -539,6 +555,11 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Parent:  tetragonParent,
 		Path:    event.Path,
 		Symbol:  event.Symbol,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessUprobe: nil Process.Pid").Inc()
+		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&

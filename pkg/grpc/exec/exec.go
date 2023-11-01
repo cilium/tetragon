@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
@@ -65,6 +66,11 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	tetragonEvent := &tetragon.ProcessExec{
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessExec: nil Process.Pid").Inc()
+		return nil
 	}
 
 	if useCache {
@@ -296,6 +302,12 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		Status:  code,
 		Time:    ktime.ToProto(event.Common.Ktime),
 	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError("GetProcessExit: nil Process.Pid").Inc()
+		return nil
+	}
+
 	ec := eventcache.Get()
 	if ec != nil &&
 		(ec.Needed(tetragonProcess) ||
