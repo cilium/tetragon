@@ -3,6 +3,9 @@ kind: TracingPolicy
 metadata:
   name: "accept"
 spec:
+  options:
+  - name: "disable-kprobe-multi"
+    value: "1"
   kprobes:
   - call: "sk_alloc"
     syscall: false
@@ -24,7 +27,7 @@ spec:
       matchBinaries:
       - operator: "In"
         values:
-        - "/usr/bin/sshd"
+        - "/usr/sbin/sshd"
         - "/usr/sbin/tcpserver"
   - call: "sk_free"
     syscall: false
@@ -37,14 +40,14 @@ spec:
         operator: "Family"
         values:
         - "AF_INET"
-      matchBinaries:
-      - operator: "In"
-        values:
-        - "/usr/bin/sshd"
-        - "/usr/sbin/tcpserver"
       matchActions:
       - action: UntrackSock
         argSock: 0
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/sbin/sshd"
+        - "/usr/sbin/tcpserver"
   - call: "tcp_set_state"
     syscall: false
     args:
@@ -66,7 +69,7 @@ spec:
       matchBinaries:
       - operator: "In"
         values:
-        - "/usr/bin/sshd"
+        - "/usr/sbin/sshd"
         - "/usr/sbin/tcpserver"
   - call: "tcp_close"
     syscall: false
@@ -87,5 +90,5 @@ spec:
     - matchBinaries:
       - operator: "In"
         values:
-        - "/usr/bin/sshd"
+        - "/usr/sbin/sshd"
         - "/usr/sbin/tcpserver"
