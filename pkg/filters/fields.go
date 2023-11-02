@@ -92,7 +92,7 @@ func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetra
 	var maybeNeedsCopy bool
 	if action == tetragon.FieldFilterAction_EXCLUDE {
 		for _, field := range fields {
-			if strings.HasPrefix(field, "process") {
+			if field == "process" || field == "process.pid" {
 				maybeNeedsCopy = true
 				break
 			}
@@ -101,6 +101,12 @@ func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetra
 		// For inclusion, it's the opposite situation from the above. If the process.pid
 		// field is NOT present, it will be trimmed. So assume we need a copy unless we
 		// see process.pid.
+		//
+		// Because of the way the inclusion field filters work, there's no way to
+		// guarantee that just because we see "process", we will also see "process.pid".
+		// For example, a user might do something like "process,process.binary" which
+		// would be a valid filter but would still exclude "process.pid". So we have to
+		// overapproximate here and only skip copying if we explicitly see process.pid.
 		maybeNeedsCopy = true
 		for _, field := range fields {
 			if field == "process.pid" {
