@@ -55,7 +55,8 @@ type procs struct {
 	pnspid               uint32
 	pflags               uint32
 	pktime               uint64
-	pargs                []byte
+	pcmdline             []byte
+	pexe                 []byte
 	size                 uint32
 	uids                 []uint32
 	gids                 []uint32
@@ -65,7 +66,8 @@ type procs struct {
 	auid                 uint32
 	flags                uint32
 	ktime                uint64
-	args                 []byte
+	cmdline              []byte
+	exe                  []byte
 	effective            uint64
 	inheritable          uint64
 	permitted            uint64
@@ -81,6 +83,15 @@ type procs struct {
 	user_ns              uint32
 }
 
+func (p procs) args() []byte {
+	// exe and cmdline are already in UTF8
+	return proc.PrependPath(string(p.exe), p.cmdline)
+}
+
+func (p procs) pargs() []byte {
+	return proc.PrependPath(string(p.pexe), p.pcmdline)
+}
+
 func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
@@ -89,7 +100,7 @@ func procKernel() procs {
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
-		pargs:       kernelArgs,
+		pexe:        kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		pid:         kernelPid,
 		tid:         kernelPid,
@@ -97,7 +108,7 @@ func procKernel() procs {
 		auid:        0,
 		flags:       api.EventProcFS,
 		ktime:       1,
-		args:        kernelArgs,
+		exe:         kernelArgs,
 		uids:        []uint32{0, 0, 0, 0},
 		gids:        []uint32{0, 0, 0, 0},
 		effective:   0,
@@ -130,7 +141,47 @@ func getCWD(pid uint32) (string, uint32) {
 func pushExecveEvents(p procs) {
 	var err error
 
-	args, filename := procsFilename(p.args)
+	/* If we can't fit this in the buffer lets trim some parts and
+	 * make it fit.
+	 */
+	raw_args := p.args()
+	raw_pargs := p.pargs()
+
+	if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
+		var deduct uint32
+		var need int32
+
+		need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
+		// First consume CWD space from parent because this speculative extra space
+		// next try to consume CWD space from child and finally start truncating args
+		// if necessary.
+		deduct = processapi.MSG_SIZEOF_CWD
+		p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
+		p.pflags = p.pflags | api.EventNoCWDSupport
+		p.psize -= deduct
+		need -= int32(deduct)
+		if need > 0 {
+			deduct = processapi.MSG_SIZEOF_CWD
+			p.size -= deduct
+			p.flags = p.flags & ^uint32(api.EventNeedsCWD)
+			p.flags = p.flags | api.EventNoCWDSupport
+			need -= int32(deduct)
+		}
+
+		for i := int32(0); i < need; i++ {
+			if len(raw_pargs) > len(raw_args) {
+				p.pflags |= api.EventTruncArgs
+				raw_pargs = raw_pargs[:len(raw_pargs)-1]
+				p.psize--
+			} else {
+				p.flags |= api.EventTruncArgs
+				raw_args = raw_args[:len(raw_args)-1]
+				p.size--
+			}
+		}
+	}
+
+	args, filename := procsFilename(raw_args)
 	cwd, flags := getCWD(p.pid)
 	if (flags & api.EventRootCWD) == 0 {
 		args = args + " " + cwd
@@ -420,24 +471,24 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 
 		execPath, err := os.Readlink(filepath.Join(procPath, d.Name(), "exe"))
-		if err == nil {
-			cmdline = proc.PrependPath(execPath, cmdline)
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("process", d.Name()).Warnf("reading process exe error")
 		}
 
 		if _ppid != 0 {
 			pexecPath, err = os.Readlink(filepath.Join(procPath, ppid, "exe"))
-			if err == nil {
-				pcmdline = proc.PrependPath(pexecPath, pcmdline)
+			if err != nil {
+				logger.GetLogger().WithError(err).WithField("process", ppid).Warnf("reading process exe error")
 			}
 		} else {
 			pexecPath = ""
 		}
 
-		pcmdsUTF := stringToUTF8(pcmdline)
-		cmdsUTF := stringToUTF8(cmdline)
-
 		p := procs{
-			ppid: uint32(_ppid), pnspid: pnspid, pargs: pcmdsUTF,
+			ppid:                 uint32(_ppid),
+			pnspid:               pnspid,
+			pexe:                 stringToUTF8([]byte(pexecPath)),
+			pcmdline:             stringToUTF8(pcmdline),
 			pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			pktime:               pktime,
 			uids:                 uids,
@@ -446,7 +497,8 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			pid:                  uint32(pid),
 			tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
 			nspid:                nspid,
-			args:                 cmdsUTF,
+			exe:                  stringToUTF8([]byte(execPath)),
+			cmdline:              stringToUTF8(cmdline),
 			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
 			ktime:                ktime,
 			permitted:            permitted,
@@ -464,44 +516,8 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			user_ns:              user_ns,
 		}
 
-		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args) + processapi.MSG_SIZEOF_CWD)
-		p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs) + processapi.MSG_SIZEOF_CWD)
-		/* If we can't fit this in the buffer lets trim some parts and
-		 * make it fit.
-		 */
-		if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
-			var deduct uint32
-			var need int32
-
-			need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
-			// First consume CWD space from parent because this speculative extra space
-			// next try to consume CWD space from child and finally start truncating args
-			// if necessary.
-			deduct = processapi.MSG_SIZEOF_CWD
-			p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
-			p.pflags = p.pflags | api.EventNoCWDSupport
-			p.psize -= deduct
-			need -= int32(deduct)
-			if need > 0 {
-				deduct = processapi.MSG_SIZEOF_CWD
-				p.size -= deduct
-				p.flags = p.flags & ^uint32(api.EventNeedsCWD)
-				p.flags = p.flags | api.EventNoCWDSupport
-				need -= int32(deduct)
-			}
-
-			for i := int32(0); i < need; i++ {
-				if len(p.pargs) > len(p.args) {
-					p.pflags |= api.EventTruncArgs
-					p.pargs = p.pargs[:len(p.pargs)-1]
-					p.psize--
-				} else {
-					p.flags |= api.EventTruncArgs
-					p.args = p.args[:len(p.args)-1]
-					p.size--
-				}
-			}
-		}
+		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)
+		p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs()) + processapi.MSG_SIZEOF_CWD)
 
 		processes = append(processes, p)
 	}
