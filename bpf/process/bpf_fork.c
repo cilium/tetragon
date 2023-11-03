@@ -21,7 +21,7 @@ __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
-	u32 tgid = 0, error_flags = 0;
+	u32 tgid = 0;
 
 	if (!task)
 		return 0;
@@ -65,9 +65,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 			.nspid = curr->nspid,
 			.flags = curr->flags,
 		};
-
-		/* Last: set any encountered error when setting cgroup info */
-		msg.flags |= error_flags;
 
 		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map, BPF_F_CURRENT_CPU, &msg, size);
 	}
