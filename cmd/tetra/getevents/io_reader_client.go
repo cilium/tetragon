@@ -16,7 +16,6 @@ import (
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // ioReaderClient implements tetragon.FineGuidanceSensors_GetEventsClient.
@@ -101,28 +100,23 @@ func (i *ioReaderClient) GetVersion(_ context.Context, _ *tetragon.GetVersionReq
 
 func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 	for i.scanner.Scan() {
-		var res tetragon.GetEventsResponse
+		res := &tetragon.GetEventsResponse{}
 		line := i.scanner.Bytes()
-		err := i.unmarshaller.Unmarshal(line, &res)
+		err := i.unmarshaller.Unmarshal(line, res)
 		if err != nil && i.debug {
 			fmt.Fprintf(os.Stderr, "DEBUG: failed unmarshal: %s: %s\n", line, err)
 			continue
 		}
-		if !hubbleFilters.Apply(i.allowlist, nil, &hubbleV1.Event{Event: &res}) {
+		if !hubbleFilters.Apply(i.allowlist, nil, &hubbleV1.Event{Event: res}) {
 			continue
 		}
-		filterEvent := &res
-		if len(i.fieldFilters) > 0 && filterEvent.GetProcessExec() != nil { // this is an exec event and we have fieldFilters
-			// We need a copy of the exec event as modifing the original message
-			// can cause issues in the process cache (we keep a copy of that message there).
-			filterEvent = proto.Clone(&res).(*tetragon.GetEventsResponse)
-		}
 		for _, filter := range i.fieldFilters {
-			// we need not to change res
-			// maybe only for exec events
-			filter.Filter(filterEvent)
+			res, err = filter.Filter(res)
+			if err != nil {
+				return nil, err
+			}
 		}
-		return filterEvent, nil
+		return res, nil
 	}
 	if err := i.scanner.Err(); err != nil {
 		return nil, err
