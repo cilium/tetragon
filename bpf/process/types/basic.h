@@ -1424,6 +1424,18 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 
 #define INDEX_MASK 0x3ff
 
+struct match_binaries_sel_opts {
+	__u32 op;
+};
+
+// This map is used by the matchBinaries selectors to retrieve their options
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, MAX_SELECTORS);
+	__type(key, __u32); /* selector id */
+	__type(value, struct match_binaries_sel_opts);
+} tg_mb_sel_opts SEC(".maps");
+
 /*
  * For matchBinaries we use two maps:
  * 1. names_map: global (for all sensors) keeps a mapping from names -> ids

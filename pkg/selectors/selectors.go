@@ -84,6 +84,10 @@ type KernelSelectorMaps struct {
 	stringPostfixMaps []map[KernelLPMTrieStringPostfix]struct{}
 }
 
+type MatchBinariesSelectorOptions struct {
+	Op uint32
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
@@ -97,8 +101,9 @@ type KernelSelectorState struct {
 	// addr6Maps are used to populate IPv6 address LpmTrie maps for sock and skb operators
 	addr6Maps []map[KernelLPMTrie6]struct{}
 
-	matchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
-	newBinVals    map[uint32]string              // these should be added in the names_map
+	newBinVals       map[uint32]string              // these should be added in the names_map
+	oldMatchBinaries map[int]*MatchBinariesMappings // matchBinaries mappings (one per selector)
+	matchBinaries    map[int]MatchBinariesSelectorOptions
 
 	listReader ValueReader
 
@@ -110,25 +115,25 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *K
 		maps = &KernelSelectorMaps{}
 	}
 	return &KernelSelectorState{
-		matchBinaries: make(map[int]*MatchBinariesMappings),
-		newBinVals:    make(map[uint32]string),
-		listReader:    listReader,
-		maps:          maps,
+		matchBinaries:    make(map[int]MatchBinariesSelectorOptions),
+		oldMatchBinaries: make(map[int]*MatchBinariesMappings),
+		newBinVals:       make(map[uint32]string),
+		listReader:       listReader,
+		maps:             maps,
 	}
 }
-
 func (k *KernelSelectorState) SetBinaryOp(selIdx int, op uint32) {
 	// init a new entry (if needed)
-	if _, ok := k.matchBinaries[selIdx]; !ok {
-		k.matchBinaries[selIdx] = &MatchBinariesMappings{
+	if _, ok := k.oldMatchBinaries[selIdx]; !ok {
+		k.oldMatchBinaries[selIdx] = &MatchBinariesMappings{
 			selNamesMap: make(map[uint32]uint32),
 		}
 	}
-	k.matchBinaries[selIdx].op = op
+	k.oldMatchBinaries[selIdx].op = op
 }
 
 func (k *KernelSelectorState) GetBinaryOp(selIdx int) uint32 {
-	return k.matchBinaries[selIdx].op
+	return k.oldMatchBinaries[selIdx].op
 }
 
 func (k *KernelSelectorState) AddBinaryName(selIdx int, binary string) {
@@ -137,15 +142,15 @@ func (k *KernelSelectorState) AddBinaryName(selIdx int, binary string) {
 	idx, ok := binVals[binary]
 	if ok {
 		k.newBinVals[idx] = binary
-		k.matchBinaries[selIdx].selNamesMap[idx] = 1
+		k.oldMatchBinaries[selIdx].selNamesMap[idx] = 1
 		return
 	}
 
 	idx = binIdx
 	binIdx++
-	binVals[binary] = idx                        // global map of all names_map entries
-	k.newBinVals[idx] = binary                   // new names_map entries that we should add
-	k.matchBinaries[selIdx].selNamesMap[idx] = 1 // value in the per-selector names_map (we ignore the value)
+	binVals[binary] = idx                           // global map of all names_map entries
+	k.newBinVals[idx] = binary                      // new names_map entries that we should add
+	k.oldMatchBinaries[selIdx].selNamesMap[idx] = 1 // value in the per-selector names_map (we ignore the value)
 }
 
 func (k *KernelSelectorState) GetNewBinaryMappings() map[uint32]string {
@@ -153,7 +158,15 @@ func (k *KernelSelectorState) GetNewBinaryMappings() map[uint32]string {
 }
 
 func (k *KernelSelectorState) GetBinSelNamesMap() map[int]*MatchBinariesMappings {
+	return k.oldMatchBinaries
+}
+
+func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelectorOptions {
 	return k.matchBinaries
+}
+
+func (k *KernelSelectorState) AddMatchBinaries(i int, sel MatchBinariesSelectorOptions) {
+	k.matchBinaries[i] = sel
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {
