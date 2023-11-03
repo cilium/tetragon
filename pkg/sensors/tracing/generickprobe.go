@@ -279,6 +279,8 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	maps = append(maps, callHeap)
 
+	selMatchBinariesMap := program.MapBuilderPin("sel_match_binaries_map", sensors.PathJoin(pinPath, "sel_match_binaries_map"), load)
+	maps = append(maps, selMatchBinariesMap)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	maps = append(maps, stackTraceMap)
@@ -908,6 +910,8 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
 	out.maps = append(out.maps, callHeap)
 
+	selMatchBinariesMap := program.MapBuilderPin("sel_match_binaries_map", sensors.PathJoin(pinPath, "sel_match_binaries_map"), load)
+	out.maps = append(out.maps, selMatchBinariesMap)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	out.maps = append(out.maps, stackTraceMap)

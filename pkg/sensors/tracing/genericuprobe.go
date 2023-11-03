@@ -230,7 +230,8 @@ func createGenericUprobeSensor(
 		configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
 		tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-		maps = append(maps, configMap, tailCalls, filterMap)
+		selMatchBinariesMap := program.MapBuilderPin("sel_match_binaries_map", sensors.PathJoin(pinPath, "sel_match_binaries_map"), load)
+		maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 	}
 
 	return &sensors.Sensor{

@@ -461,6 +461,9 @@ func createGenericTracepointSensor(
 
 		killerDataMap := program.MapBuilderPin("killer_data", "killer_data", prog0)
 		maps = append(maps, killerDataMap)
+
+		selMatchBinariesMap := program.MapBuilderPin("sel_match_binaries_map", sensors.PathJoin(pinPath, "sel_match_binaries_map"), prog0)
+		maps = append(maps, selMatchBinariesMap)
 	}
 
 	return &sensors.Sensor{

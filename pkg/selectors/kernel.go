@@ -1170,27 +1170,41 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	if op != SelectorOpIn && op != SelectorOpNotIn && op != SelectorOpPrefix {
-		return fmt.Errorf("matchBinary error: Only In, NotIn and Prefix operators are supported")
-	}
-	k.SetBinaryOp(selIdx, op)
+
+	// prepare the selector options
+	sel := MatchBinariesSelector{}
+	sel.Op = op
+
 	switch op {
 	case SelectorOpPrefix:
 		writePrefixBinaries(k, b.Values)
-	default:
+	case SelectorOpIn, SelectorOpNotIn:
+		maps := NewStringMaps()
 		for _, s := range b.Values {
 			if len(s) > 255 {
 				return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
 			}
-			k.AddBinaryName(selIdx, s)
+
+			err := maps.WriteValue(s, argTypePath)
+			if err != nil {
+				return fmt.Errorf("MatchBinaries value %v error: %w", s, err)
+			}
 		}
+		// write the map ids into the selector options
+		mapDetails := k.insertStringMaps(maps)
+		copy(sel.Mapidx[:], mapDetails[:])
+	default:
+		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\" and \"Prefix\" operators are supported")
 	}
+
+	k.AddMatchBinaries(selIdx, sel)
+
 	return nil
 }
 
 func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector, selIdx int) error {
 	if len(binarys) > 1 {
-		return fmt.Errorf("Only support single binary selector")
+		return fmt.Errorf("only support a single matchBinaries per selector")
 	}
 	for _, s := range binarys {
 		if err := ParseMatchBinary(k, &s, selIdx); err != nil {

@@ -66,6 +66,11 @@ type KernelSelectorMaps struct {
 	stringPostfixMaps []map[KernelLPMTrieStringPostfix]struct{}
 }
 
+type MatchBinariesSelector struct {
+	Op     uint32
+	Mapidx [StringMapsNumSubMaps]uint32
+}
+
 type KernelSelectorState struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
@@ -79,6 +84,7 @@ type KernelSelectorState struct {
 	// addr6Maps are used to populate IPv6 address LpmTrie maps for sock and skb operators
 	addr6Maps []map[KernelLPMTrie6]struct{}
 
+	matchBinaries map[int]MatchBinariesSelector
 
 	listReader ValueReader
 
@@ -90,13 +96,18 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *K
 		maps = &KernelSelectorMaps{}
 	}
 	return &KernelSelectorState{
-		listReader:       listReader,
-		maps:             maps,
+		matchBinaries: make(map[int]MatchBinariesSelector),
+		listReader:    listReader,
+		maps:          maps,
 	}
 }
 
+func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelector {
+	return k.matchBinaries
 }
 
+func (k *KernelSelectorState) AddMatchBinaries(i int, sel MatchBinariesSelector) {
+	k.matchBinaries[i] = sel
 }
 
 func (k *KernelSelectorState) Buffer() [4096]byte {
