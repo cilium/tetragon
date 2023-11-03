@@ -848,7 +848,7 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 
 static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
 {
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix);
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin);
 }
 
 static inline __attribute__((always_inline)) long
