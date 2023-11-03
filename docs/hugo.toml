@@ -1,5 +1,5 @@
 baseURL = "/"
-title = "Tetragon"
+title = "Tetragon - eBPF-based Security Observability and Runtime Enforcement"
 description = "eBPF-based Security Observability and Runtime Enforcement"
 
 # Language settings
@@ -45,7 +45,7 @@ anchor = "smart"
 
 [languages]
 [languages.en]
-title = "Tetragon"
+title = "Tetragon - eBPF-based Security Observability and Runtime Enforcement"
 description = "eBPF-based Security Observability and Runtime Enforcement"
 languageName ="English"
 # Weight used for sorting.
