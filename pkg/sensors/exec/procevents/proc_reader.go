@@ -243,8 +243,12 @@ func writeExecveMap(procs []procs) {
 		v.Namespaces.TimeChildInum = p.time_for_children_ns
 		v.Namespaces.CgroupInum = p.cgroup_ns
 		v.Namespaces.UserInum = p.user_ns
+		v.BinaryPath.PathLength = int64(copy(v.BinaryPath.Path[:], p.exe))
 
-		m.Put(k, v)
+		err := m.Put(k, v)
+		if err != nil {
+			logger.GetLogger().WithError(err).Fatal("Could not put value in execve_map")
+		}
 	}
 	// In order for kprobe events from kernel ctx to not abort we need the
 	// execve lookup to map to a valid entry. So to simplify the kernel side

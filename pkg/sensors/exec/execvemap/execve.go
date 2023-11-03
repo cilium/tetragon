@@ -20,4 +20,5 @@ type ExecveValue struct {
 	Pad          uint32                     `align:"pad"`
 	Namespaces   processapi.MsgNamespaces   `align:"ns"`
 	Capabilities processapi.MsgCapabilities `align:"caps"`
+	BinaryPath   processapi.BinaryPath      `align:"binary_path"`
 }

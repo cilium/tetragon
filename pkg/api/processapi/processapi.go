@@ -37,6 +37,8 @@ const (
 	// flags of MsgCommon
 	MSG_COMMON_FLAG_RETURN     = 0x1
 	MSG_COMMON_FLAG_STACKTRACE = 0x2
+
+	BINARY_PATH_MAX_LEN = 256
 )
 
 type MsgExec struct {
@@ -133,6 +135,11 @@ type MsgCapabilities struct {
 	Permitted   uint64
 	Effective   uint64
 	Inheritable uint64
+}
+
+type BinaryPath struct {
+	PathLength int64
+	Path       [BINARY_PATH_MAX_LEN]byte
 }
 
 type MsgNamespaces struct {
