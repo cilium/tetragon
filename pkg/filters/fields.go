@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/mennanov/fmutils"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -81,48 +82,15 @@ type FieldFilter struct {
 	fields         fmutils.NestedMask
 	action         tetragon.FieldFilterAction
 	invertEventSet bool
-	needsCopy      map[tetragon.EventType]struct{}
 }
 
 // NewFieldFilter constructs a new FieldFilter from a set of fields.
 func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetragon.FieldFilterAction, invertEventSet bool) *FieldFilter {
-	// We only need to copy exec and exit events when they are explicitly filtering out
-	// the PID. This is because we need the PID to not be nil when accessing the event
-	// later on from the eventcache. See additional comments below for details.
-	var maybeNeedsCopy bool
-	if action == tetragon.FieldFilterAction_EXCLUDE {
-		for _, field := range fields {
-			if strings.HasPrefix(field, "process") {
-				maybeNeedsCopy = true
-				break
-			}
-		}
-	} else if action == tetragon.FieldFilterAction_INCLUDE {
-		// For inclusion, it's the opposite situation from the above. If the process.pid
-		// field is NOT present, it will be trimmed. So assume we need a copy unless we
-		// see process.pid.
-		maybeNeedsCopy = true
-		for _, field := range fields {
-			if field == "process.pid" {
-				maybeNeedsCopy = false
-				break
-			}
-		}
-	}
-
-	needsCopy := make(map[tetragon.EventType]struct{})
-	if maybeNeedsCopy {
-		for _, t := range eventSet {
-			needsCopy[t] = struct{}{}
-		}
-	}
-
 	return &FieldFilter{
 		eventSet:       eventSet,
 		fields:         fmutils.NestedMaskFromPaths(fields),
 		action:         action,
 		invertEventSet: invertEventSet,
-		needsCopy:      needsCopy,
 	}
 }
 
@@ -167,15 +135,20 @@ func FieldFiltersFromGetEventsRequest(request *tetragon.GetEventsRequest) []*Fie
 	return filters
 }
 
-func (f *FieldFilter) NeedsCopy(ev *tetragon.GetEventsResponse) bool {
-	_, ok := f.needsCopy[ev.EventType()]
-	return ok
-}
-
 // Filter filters the fields in the GetEventsResponse, keeping fields specified in the
 // inclusion filter and discarding fields specified in the exclusion filter. Exclusion
 // takes precedence over inclusion and an empty filter set will keep all remaining fields.
-func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) error {
+func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+	// We need to deep copy the event here to avoid issues caused by filtering out
+	// information that is shared between events through the event cache (e.g. process
+	// info). This can cause segmentation faults and other nasty bugs. Avoid all that by
+	// doing a deep copy here before filtering.
+	//
+	// FIXME: We need to fix this so that it doesn't kill performance by doing a deep
+	// copy. This will require architectural changes to both the field filters and the
+	// event cache.
+	event = proto.Clone(event).(*tetragon.GetEventsResponse)
+
 	if len(f.eventSet) > 0 {
 		// skip filtering by default unless the event set is inverted, in which case we
 		// want to filter by default and skip only if we have a match
@@ -201,7 +174,7 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) error {
 		}
 
 		if skipFiltering {
-			return nil
+			return event, nil
 		}
 	}
 
@@ -221,8 +194,8 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) error {
 	})
 
 	if !rft.IsValid() {
-		return fmt.Errorf("invalid event after field filter")
+		return nil, fmt.Errorf("invalid event after field filter")
 	}
 
-	return nil
+	return event, nil
 }

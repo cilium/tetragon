@@ -22,7 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 type Listener interface {
@@ -165,21 +164,20 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 
 			// Filter the GetEventsResponse fields
 			filters := filters.FieldFiltersFromGetEventsRequest(request)
-			filterEvent := event
 
 			for _, filter := range filters {
-				// We need a copy of the exec or exit event as modifing the original message
-				// can cause issues in the process cache (we keep a copy of that message there).
-				if filter.NeedsCopy(filterEvent) && filterEvent == event {
-					filterEvent = proto.Clone(event).(*tetragon.GetEventsResponse)
+				ev, err := filter.Filter(event)
+				if err != nil {
+					logger.GetLogger().WithField("filter", filter).WithError(err).Warn("Failed to apply field filter")
+					continue
 				}
-				filter.Filter(filterEvent)
+				event = ev
 			}
 
 			if aggregator != nil {
 				// Send event to aggregator.
 				select {
-				case aggregator.GetEventChannel() <- filterEvent:
+				case aggregator.GetEventChannel() <- event:
 				default:
 					logger.GetLogger().
 						WithField("request", request).
@@ -187,7 +185,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				}
 			} else {
 				// No need to aggregate. Directly send out the response.
-				if err = server.Send(filterEvent); err != nil {
+				if err = server.Send(event); err != nil {
 					s.ctxCleanupWG.Done()
 					return err
 				}
