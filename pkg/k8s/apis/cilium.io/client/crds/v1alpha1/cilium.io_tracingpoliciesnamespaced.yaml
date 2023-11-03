@@ -350,6 +350,7 @@ spec:
                                   - In
                                   - NotIn
                                   - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -899,6 +900,7 @@ spec:
                                   - In
                                   - NotIn
                                   - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1273,6 +1275,7 @@ spec:
                                   - In
                                   - NotIn
                                   - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

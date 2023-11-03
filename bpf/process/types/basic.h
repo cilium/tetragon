@@ -1500,6 +1500,7 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 			match = do_filter_char_buf_equal(selector_options->mapidx, execve->binary_path.path, execve->binary_path.path_length);
 			break;
 		case op_filter_str_prefix:
+		case op_filter_str_notprefix:
 			match = match_binaries_prefix(selidx, execve);
 			break;
 		}

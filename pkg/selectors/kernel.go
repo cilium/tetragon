@@ -1176,7 +1176,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	sel.Op = op
 
 	switch op {
-	case SelectorOpPrefix:
+	case SelectorOpPrefix, SelectorOpNotPrefix:
 		writePrefixBinaries(k, b.Values)
 	case SelectorOpIn, SelectorOpNotIn:
 		maps := NewStringMaps()
@@ -1194,7 +1194,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		mapDetails := k.insertStringMaps(maps)
 		copy(sel.Mapidx[:], mapDetails[:])
 	default:
-		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\" and \"Prefix\" operators are supported")
+		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\" and \"NotPrefix\" operators are supported")
 	}
 
 	k.AddMatchBinaries(selIdx, sel)
