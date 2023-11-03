@@ -94,7 +94,7 @@ func TestEventFieldFilters(t *testing.T) {
 	// Construct the filter
 	filters := FieldFiltersFromGetEventsRequest(request)
 	for _, filter := range filters {
-		filter.Filter(ev)
+		ev, _ = filter.Filter(ev)
 	}
 
 	// These fields should all have been included and so should not be empty
@@ -125,12 +125,12 @@ func TestFieldFilterByEventType(t *testing.T) {
 	}
 
 	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXIT}, []string{"process.pid"}, false)
-	filter.Filter(ev)
+	ev, _ = filter.Filter(ev)
 
 	assert.NotEmpty(t, ev.GetProcessExec().Process.Pid)
 
 	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process.pid"}, false)
-	filter.Filter(ev)
+	ev, _ = filter.Filter(ev)
 
 	assert.Empty(t, ev.GetProcessExec().Process.Pid)
 }
@@ -225,7 +225,7 @@ func TestEmptyFieldFilter(t *testing.T) {
 	}
 
 	assert.True(t, proto.Equal(ev, expected), "events are equal before filter")
-	filter.Filter(ev)
+	ev, _ = filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
 }
 
@@ -250,7 +250,7 @@ func TestFieldFilterInvertedEventSet(t *testing.T) {
 
 	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process", "parent"}, true)
 	assert.True(t, proto.Equal(ev, expected), "events are equal before filter")
-	filter.Filter(ev)
+	ev, _ = filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
 
 	ev = &tetragon.GetEventsResponse{
@@ -270,7 +270,7 @@ func TestFieldFilterInvertedEventSet(t *testing.T) {
 
 	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_KPROBE}, []string{"process", "parent"}, true)
 	assert.False(t, proto.Equal(ev, expected), "events are not equal before filter")
-	filter.Filter(ev)
+	ev, _ = filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
 }
 
@@ -599,8 +599,9 @@ func TestSlimExecEventsFieldFilterExample(t *testing.T) {
 	}
 
 	for _, filter := range filters {
-		for _, ev := range evs {
-			filter.Filter(ev)
+		for i, ev := range evs {
+			ev, _ = filter.Filter(ev)
+			evs[i] = ev
 		}
 	}
 	for i := range evs {
