@@ -21,12 +21,22 @@ __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
+	struct msg_clone_event msg;
+	u64 msg_size = sizeof(struct msg_clone_event);
 	u32 tgid = 0;
 
 	if (!task)
 		return 0;
 
 	tgid = BPF_CORE_READ(task, tgid);
+
+	/* Do not try to create any msg or calling execve_map_get
+	 * (that will add a new process in the execve_map) if we
+	 * cannot find it's parent in the execve_map.
+	 */
+	parent = __event_find_parent(task);
+	if (!parent)
+		return 0;
 
 	curr = execve_map_get(tgid);
 	if (!curr)
@@ -38,35 +48,31 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	if (curr->key.ktime != 0)
 		return 0;
 
+	/* Setup the execve_map entry. */
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
-	parent = __event_find_parent(task);
-	if (parent) {
-		curr->key.pid = tgid;
-		curr->key.ktime = ktime_get_ns();
-		curr->nspid = get_task_pid_vnr();
-		curr->binary = parent->binary;
-		curr->pkey = parent->key;
+	curr->key.pid = tgid;
+	curr->key.ktime = ktime_get_ns();
+	curr->nspid = get_task_pid_vnr();
+	curr->binary = parent->binary;
+	curr->pkey = parent->key;
 
-		u64 size = sizeof(struct msg_clone_event);
-		struct msg_clone_event msg = {
-			.common.op = MSG_OP_CLONE,
-			.common.size = size,
-			.common.ktime = curr->key.ktime,
-			.parent = curr->pkey,
-			.tgid = curr->key.pid,
-			/**
-			 * Per thread tracking rules TID == PID :
-			 *  Since we generate one event per thread group, then when this task
-			 *  wakes up it will be the only one in the thread group, and it is
-			 *  the leader. Ensure to pass TID to user space.
-			 */
-			.tid = BPF_CORE_READ(task, pid),
-			.ktime = curr->key.ktime,
-			.nspid = curr->nspid,
-			.flags = curr->flags,
-		};
+	/* Setup the msg_clone_event and sent to the user. */
+	msg.common.op = MSG_OP_CLONE;
+	msg.common.size = msg_size;
+	msg.common.ktime = curr->key.ktime;
+	msg.parent = curr->pkey;
+	msg.tgid = curr->key.pid;
+	/* Per thread tracking rules TID == PID :
+	 *  Since we generate one event per thread group, then when this task
+	 *  wakes up it will be the only one in the thread group, and it is
+	 *  the leader. Ensure to pass TID to user space.
+	 */
+	msg.tid = BPF_CORE_READ(task, pid);
+	msg.ktime = curr->key.ktime;
+	msg.nspid = curr->nspid;
+	msg.flags = curr->flags;
 
-		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map, BPF_F_CURRENT_CPU, &msg, size);
-	}
+	perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map, BPF_F_CURRENT_CPU, &msg, msg_size);
+
 	return 0;
 }
