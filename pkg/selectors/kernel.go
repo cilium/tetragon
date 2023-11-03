@@ -702,21 +702,13 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 }
 
 func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error {
-	maps := k.createStringMaps()
+	maps := NewStringMaps()
 
-	for _, v := range values {
-		trimNulSuffix := ty == argTypeString
-		value, size, err := ArgStringSelectorValue(v, trimNulSuffix)
-		if err != nil {
-			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
-		}
-		for sizeIdx := 0; sizeIdx < StringMapsNumSubMaps; sizeIdx++ {
-			if size == StringMapsSizes[sizeIdx] {
-				maps[sizeIdx][value] = struct{}{}
-				break
-			}
-		}
+	err := maps.WriteValues(values, ty)
+	if err != nil {
+		return fmt.Errorf("MatchArgs values error: %w", err)
 	}
+
 	// write the map ids into the selector
 	mapDetails := k.insertStringMaps(maps)
 	for _, md := range mapDetails {

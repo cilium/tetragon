@@ -312,7 +312,7 @@ func (k *KernelSelectorState) insertAddr6Map(addr6map map[KernelLPMTrie6]struct{
 	return uint32(mapid)
 }
 
-func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
+func NewStringMaps() SelectorStringMaps {
 	return SelectorStringMaps{
 		{},
 		{},
@@ -321,6 +321,29 @@ func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
 		{},
 		{},
 	}
+}
+
+func (stringMaps *SelectorStringMaps) WriteValue(v string, ty uint32) error {
+	trimNulSuffix := ty == argTypeString
+	value, size, err := ArgStringSelectorValue(v, trimNulSuffix)
+	if err != nil {
+		return fmt.Errorf("string maps value %s invalid: %w", v, err)
+	}
+	for sizeIdx := 0; sizeIdx < StringMapsNumSubMaps; sizeIdx++ {
+		if size == StringMapsSizes[sizeIdx] {
+			stringMaps[sizeIdx][value] = struct{}{}
+			break
+		}
+	}
+	return nil
+}
+
+func (stringMaps *SelectorStringMaps) WriteValues(values []string, ty uint32) error {
+	var err error
+	for _, v := range values {
+		err = errors.Join(err, stringMaps.WriteValue(v, ty))
+	}
+	return err
 }
 
 // In BPF, the string "equal" operator uses six hash maps, each stored within a matching array.
