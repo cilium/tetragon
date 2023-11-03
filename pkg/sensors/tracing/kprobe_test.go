@@ -3625,44 +3625,14 @@ func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func TestKprobeMatchBinariesIn(t *testing.T) {
+func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchBinariesCrd("In", []string{"/usr/bin/cat"}))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	if err := exec.Command("/usr/bin/cat", "/etc/passwd").Run(); err != nil {
-		t.Fatalf("failed to run cat /etc/passwd: %s", err)
-	}
-
-	if err := exec.Command("/usr/bin/head", "/etc/passwd").Run(); err != nil {
-		t.Fatalf("failed to run head /etc/passwd: %s", err)
-	}
-
-	kpChecker := createBinariesChecker("/usr/bin/cat", "/etc/passwd")
-	checker := ec.NewUnorderedEventChecker(kpChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
-}
-
-func TestKprobeMatchBinariesNotIn(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	createCrdFile(t, getMatchBinariesCrd("NotIn", []string{"/usr/bin/tail"}))
+	createCrdFile(t, getMatchBinariesCrd(operator, values))
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3672,17 +3642,25 @@ func TestKprobeMatchBinariesNotIn(t *testing.T) {
 	readyWG.Wait()
 
 	if err := exec.Command("/usr/bin/tail", "/etc/passwd").Run(); err != nil {
-		t.Fatalf("failed to run cat /etc/passwd: %s", err)
+		t.Fatalf("failed to run tail /etc/passwd: %s", err)
 	}
 
 	if err := exec.Command("/usr/bin/head", "/etc/passwd").Run(); err != nil {
 		t.Fatalf("failed to run head /etc/passwd: %s", err)
 	}
 
-	kpChecker := createBinariesChecker("/usr/bin/head", "/etc/passwd")
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestKprobeMatchBinaries(t *testing.T) {
+	t.Run("In", func(t *testing.T) {
+		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotIn", func(t *testing.T) {
+		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+	})
 }
 
 func loadTestCrd() error {
