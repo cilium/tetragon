@@ -1177,22 +1177,31 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	if err != nil {
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
-	if op != SelectorOpIn && op != SelectorOpNotIn {
-		return fmt.Errorf("matchBinary error: Only In and NotIn operators are supported")
-	}
-	k.SetBinaryOp(selIdx, op)
-	for _, s := range b.Values {
-		if len(s) > 255 {
-			return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+
+	// prepare the selector options
+	sel := MatchBinariesSelectorOptions{}
+	sel.Op = op
+
+	switch op {
+	case SelectorOpIn, SelectorOpNotIn:
+		for _, s := range b.Values {
+			if len(s) > 255 {
+				return fmt.Errorf("matchBinary error: Binary names > 255 chars do not supported")
+			}
+			k.AddBinaryName(selIdx, s)
 		}
-		k.AddBinaryName(selIdx, s)
+	default:
+		return fmt.Errorf("matchBinary error: Only \"In\" and \"NotIn\" operators are supported")
 	}
+
+	k.AddMatchBinaries(selIdx, sel)
+
 	return nil
 }
 
 func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector, selIdx int) error {
 	if len(binarys) > 1 {
-		return fmt.Errorf("Only support single binary selector")
+		return fmt.Errorf("only support a single matchBinaries per selector")
 	}
 	for _, s := range binarys {
 		if err := ParseMatchBinary(k, &s, selIdx); err != nil {

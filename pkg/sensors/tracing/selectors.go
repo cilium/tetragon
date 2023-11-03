@@ -43,6 +43,12 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			},
 		}, {
 			Index: 0,
+			Name:  "tg_mb_sel_opts",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateMatchBinariesMaps(ks, outerMap)
+			},
+		}, {
+			Index: 0,
 			Name:  "sel_names_map",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
@@ -337,6 +343,18 @@ func populateStringFilterMap(
 		return fmt.Errorf("failed to insert %s: %w", innerName, err)
 	}
 
+	return nil
+}
+
+func populateMatchBinariesMaps(
+	ks *selectors.KernelSelectorState,
+	bpfMap *ebpf.Map,
+) error {
+	for selID, sel := range ks.MatchBinaries() {
+		if err := bpfMap.Update(uint32(selID), sel, ebpf.UpdateAny); err != nil {
+			return fmt.Errorf("failed to insert %v: %w", sel, err)
+		}
+	}
 	return nil
 }
 
