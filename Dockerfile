@@ -35,10 +35,10 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
 # Third builder (cross-)compile a stripped gops
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.3-alpine@sha256:96a8a701943e7eabd81ebd0963540ad660e29c3b2dc7fb9d7e06af34409e9ba6 as gops
 ARG TARGETARCH
-RUN apk add --no-cache binutils git \
- && git clone https://github.com/google/gops /go/src/github.com/google/gops \
- && cd /go/src/github.com/google/gops \
- && git checkout -b v0.3.22 v0.3.22 \
+RUN apk add --no-cache git \
+# renovate: datasource=github-releases depName=google/gops
+ && git clone --depth 1 --branch v0.3.22 https://github.com/google/gops /gops \
+ && cd /gops \
  && GOARCH=$TARGETARCH go build -ldflags="-s -w" .
 
 # This builder (cross-)compile a stripped static version of bpftool.
@@ -84,7 +84,7 @@ RUN mkdir /var/lib/tetragon/ && \
     apk add --no-cache --update bash
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
-COPY --from=gops /go/src/github.com/google/gops/gops /usr/bin/
+COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
 ENTRYPOINT ["/usr/bin/tetragon"]
 
