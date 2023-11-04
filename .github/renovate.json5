@@ -395,6 +395,15 @@
       "matchStrings": [
         "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+go (?<currentValue>.*)"
       ]
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Dockerfile$"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+&& git clone --depth 1 --branch (?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ]
     }
   ]
 }
