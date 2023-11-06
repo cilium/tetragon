@@ -12,16 +12,15 @@ package metrics
 
 import (
 	"context"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/cilium/api/v1/models"
-	"github.com/cilium/cilium/pkg/datapath/linux/probes"
 	"github.com/cilium/cilium/pkg/metrics/metric"
 	"github.com/cilium/cilium/pkg/promise"
+	"github.com/cilium/cilium/pkg/time"
 	"github.com/cilium/cilium/pkg/version"
 )
 
@@ -186,6 +185,8 @@ const (
 	// LabelMapName is the label for the BPF map name
 	LabelMapName = "map_name"
 
+	LabelMapGroup = "map_group"
+
 	// LabelVersion is the label for the version number
 	LabelVersion = "version"
 
@@ -253,11 +254,11 @@ var (
 
 	// NodeConnectivityStatus is the connectivity status between local node to
 	// other node intra or inter cluster.
-	NodeConnectivityStatus = NoOpGaugeVec
+	NodeConnectivityStatus = NoOpGaugeDeletableVec
 
 	// NodeConnectivityLatency is the connectivity latency between local node to
 	// other node intra or inter cluster.
-	NodeConnectivityLatency = NoOpGaugeVec
+	NodeConnectivityLatency = NoOpGaugeDeletableVec
 
 	// Endpoint
 
@@ -297,11 +298,6 @@ var (
 
 	// PolicyRevision is the current policy revision number for this agent
 	PolicyRevision = NoOpGauge
-
-	// PolicyImportErrorsTotal is a count of failed policy imports.
-	// This metric was deprecated in Cilium 1.14 and is to be removed in 1.15.
-	// It is replaced by PolicyChangeTotal metric.
-	PolicyImportErrorsTotal = NoOpCounter
 
 	// PolicyChangeTotal is a count of policy changes by outcome ("success" or
 	// "failure")
@@ -514,6 +510,9 @@ var (
 	// bpf map.
 	BPFMapOps = NoOpCounterVec
 
+	// BPFMapCapacity is the max capacity of bpf maps, labelled by map group classification.
+	BPFMapCapacity = NoOpGaugeVec
+
 	// TriggerPolicyUpdateTotal is the metric to count total number of
 	// policy update triggers
 	TriggerPolicyUpdateTotal = NoOpCounterVec
@@ -635,8 +634,8 @@ var (
 type LegacyMetrics struct {
 	BootstrapTimes                   metric.Vec[metric.Observer]
 	APIInteractions                  metric.Vec[metric.Observer]
-	NodeConnectivityStatus           metric.Vec[metric.Gauge]
-	NodeConnectivityLatency          metric.Vec[metric.Gauge]
+	NodeConnectivityStatus           metric.DeletableVec[metric.Gauge]
+	NodeConnectivityLatency          metric.DeletableVec[metric.Gauge]
 	Endpoint                         metric.GaugeFunc
 	EndpointMaxIfindex               metric.Gauge
 	EndpointRegenerationTotal        metric.Vec[metric.Counter]
@@ -647,7 +646,6 @@ type LegacyMetrics struct {
 	PolicyRegenerationCount          metric.Counter
 	PolicyRegenerationTimeStats      metric.Vec[metric.Observer]
 	PolicyRevision                   metric.Gauge
-	PolicyImportErrorsTotal          metric.Counter
 	PolicyChangeTotal                metric.Vec[metric.Counter]
 	PolicyEndpointStatus             metric.Vec[metric.Gauge]
 	PolicyImplementationDelay        metric.Vec[metric.Observer]
@@ -697,6 +695,7 @@ type LegacyMetrics struct {
 	IPCacheEventsTotal               metric.Vec[metric.Counter]
 	BPFSyscallDuration               metric.Vec[metric.Observer]
 	BPFMapOps                        metric.Vec[metric.Counter]
+	BPFMapCapacity                   metric.Vec[metric.Gauge]
 	TriggerPolicyUpdateTotal         metric.Vec[metric.Counter]
 	TriggerPolicyUpdateFolds         metric.Gauge
 	TriggerPolicyUpdateCallDuration  metric.Vec[metric.Observer]
@@ -787,13 +786,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Namespace:  Namespace,
 			Name:       "policy_max_revision",
 			Help:       "Highest policy revision number in the agent",
-		}),
-
-		PolicyImportErrorsTotal: metric.NewCounter(metric.CounterOpts{
-			ConfigName: Namespace + "_policy_import_errors_total",
-			Namespace:  Namespace,
-			Name:       "policy_import_errors_total",
-			Help:       "Number of times a policy import has failed",
 		}),
 
 		PolicyChangeTotal: metric.NewCounterVec(metric.CounterOpts{
@@ -1194,6 +1186,14 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:       "Total operations on map, tagged by map name",
 		}, []string{LabelMapName, LabelOperation, LabelOutcome}),
 
+		BPFMapCapacity: metric.NewGaugeVec(metric.GaugeOpts{
+			ConfigName: Namespace + "_" + SubsystemBPF + "_map_capacity",
+			Namespace:  Namespace,
+			Subsystem:  SubsystemBPF,
+			Name:       "map_capacity",
+			Help:       "Capacity of map, tagged by map group. All maps with a capacity of 65536 are grouped under 'default'",
+		}, []string{LabelMapGroup}),
+
 		TriggerPolicyUpdateTotal: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_" + SubsystemTriggers + "_policy_update_total",
 			Namespace:  Namespace,
@@ -1332,23 +1332,16 @@ func NewLegacyMetrics() *LegacyMetrics {
 
 	ifindexOpts := metric.GaugeOpts{
 		ConfigName: Namespace + "_endpoint_max_ifindex",
-		Disabled:   true,
+		Disabled:   !enableIfIndexMetric(),
 		Namespace:  Namespace,
 		Name:       "endpoint_max_ifindex",
 		Help:       "Maximum interface index observed for existing endpoints",
-	}
-	// On kernels which do not provide ifindex via the FIB, Cilium needs
-	// to store it in the CT map, with a field limit of max(uint16).
-	// The EndpointMaxIfindex metric can be used to determine if that
-	// limit is approaching. However, it should only be enabled by
-	// default if we observe that the FIB is not providing the ifindex.
-	if probes.HaveFibIfindex() != nil {
-		ifindexOpts.Disabled = false
 	}
 	lm.EndpointMaxIfindex = metric.NewGauge(ifindexOpts)
 
 	v := version.GetCiliumVersion()
 	lm.VersionMetric.WithLabelValues(v.Version, v.Revision, v.Arch)
+	lm.BPFMapCapacity.WithLabelValues("default").Set(DefaultMapCapacity)
 
 	BootstrapTimes = lm.BootstrapTimes
 	APIInteractions = lm.APIInteractions
@@ -1364,7 +1357,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 	PolicyRegenerationCount = lm.PolicyRegenerationCount
 	PolicyRegenerationTimeStats = lm.PolicyRegenerationTimeStats
 	PolicyRevision = lm.PolicyRevision
-	PolicyImportErrorsTotal = lm.PolicyImportErrorsTotal
 	PolicyChangeTotal = lm.PolicyChangeTotal
 	PolicyEndpointStatus = lm.PolicyEndpointStatus
 	PolicyImplementationDelay = lm.PolicyImplementationDelay
@@ -1414,6 +1406,7 @@ func NewLegacyMetrics() *LegacyMetrics {
 	IPCacheEventsTotal = lm.IPCacheEventsTotal
 	BPFSyscallDuration = lm.BPFSyscallDuration
 	BPFMapOps = lm.BPFMapOps
+	BPFMapCapacity = lm.BPFMapCapacity
 	TriggerPolicyUpdateTotal = lm.TriggerPolicyUpdateTotal
 	TriggerPolicyUpdateFolds = lm.TriggerPolicyUpdateFolds
 	TriggerPolicyUpdateCallDuration = lm.TriggerPolicyUpdateCallDuration
@@ -1593,4 +1586,17 @@ func BoolToFloat64(v bool) float64 {
 		return 1
 	}
 	return 0
+}
+
+// In general, most bpf maps are allocated to occupy a 16-bit key size.
+// To reduce the number of metrics that need to be emitted for map capacity,
+// we assume a default map size of 2^16 entries for all maps, which can be
+// assumed unless specified otherwise.
+const DefaultMapCapacity = 65536
+
+func UpdateMapCapacity(groupName string, capacity uint32) {
+	if capacity == 0 || capacity == DefaultMapCapacity {
+		return
+	}
+	BPFMapCapacity.WithLabelValues(groupName).Set(float64(capacity))
 }
