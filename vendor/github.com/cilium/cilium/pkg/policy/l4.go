@@ -552,7 +552,7 @@ func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures,
 		if cs.IsWildcard() {
 			keyToAdd.Identity = 0
 			if entryCb(keyToAdd, &entry) {
-				p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+				p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 
 				if port == 0 {
 					// Allow-all
@@ -582,18 +582,18 @@ func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures,
 		for _, id := range idents {
 			keyToAdd.Identity = id.Uint32()
 			if entryCb(keyToAdd, &entry) {
-				p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+				p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 				// If Cilium is in dual-stack mode then the "World" identity
 				// needs to be split into two identities to represent World
 				// IPv6 and IPv4 traffic distinctly from one another.
 				if id == identity.ReservedIdentityWorld && option.Config.IsDualStack() {
 					keyToAdd.Identity = identity.ReservedIdentityWorldIPv4.Uint32()
 					if entryCb(keyToAdd, &entry) {
-						p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+						p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 					}
 					keyToAdd.Identity = identity.ReservedIdentityWorldIPv6.Uint32()
 					if entryCb(keyToAdd, &entry) {
-						p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+						p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 					}
 				}
 			}
@@ -639,28 +639,28 @@ func (l4 *L4Filter) IdentitySelectionUpdated(selector CachedSelector, added, del
 	}
 }
 
-func (l4 *L4Filter) cacheIdentitySelector(sel api.EndpointSelector, selectorCache *SelectorCache) CachedSelector {
-	cs, added := selectorCache.AddIdentitySelector(l4, sel)
+func (l4 *L4Filter) cacheIdentitySelector(sel api.EndpointSelector, lbls labels.LabelArray, selectorCache *SelectorCache) CachedSelector {
+	cs, added := selectorCache.AddIdentitySelector(l4, lbls, sel)
 	if added {
 		l4.PerSelectorPolicies[cs] = nil // no per-selector policy (yet)
 	}
 	return cs
 }
 
-func (l4 *L4Filter) cacheIdentitySelectors(selectors api.EndpointSelectorSlice, selectorCache *SelectorCache) {
+func (l4 *L4Filter) cacheIdentitySelectors(selectors api.EndpointSelectorSlice, lbls labels.LabelArray, selectorCache *SelectorCache) {
 	for _, sel := range selectors {
-		l4.cacheIdentitySelector(sel, selectorCache)
+		l4.cacheIdentitySelector(sel, lbls, selectorCache)
 	}
 }
 
-func (l4 *L4Filter) cacheFQDNSelectors(selectors api.FQDNSelectorSlice, selectorCache *SelectorCache) {
+func (l4 *L4Filter) cacheFQDNSelectors(selectors api.FQDNSelectorSlice, lbls labels.LabelArray, selectorCache *SelectorCache) {
 	for _, fqdnSel := range selectors {
-		l4.cacheFQDNSelector(fqdnSel, selectorCache)
+		l4.cacheFQDNSelector(fqdnSel, lbls, selectorCache)
 	}
 }
 
-func (l4 *L4Filter) cacheFQDNSelector(sel api.FQDNSelector, selectorCache *SelectorCache) CachedSelector {
-	cs, added := selectorCache.AddFQDNSelector(l4, sel)
+func (l4 *L4Filter) cacheFQDNSelector(sel api.FQDNSelector, lbls labels.LabelArray, selectorCache *SelectorCache) CachedSelector {
+	cs, added := selectorCache.AddFQDNSelector(l4, lbls, sel)
 	if added {
 		l4.PerSelectorPolicies[cs] = nil // no per-selector policy (yet)
 	}
@@ -754,10 +754,10 @@ func createL4Filter(policyCtx PolicyContext, peerEndpoints api.EndpointSelectorS
 	}
 
 	if peerEndpoints.SelectsAllEndpoints() {
-		l4.wildcard = l4.cacheIdentitySelector(api.WildcardEndpointSelector, selectorCache)
+		l4.wildcard = l4.cacheIdentitySelector(api.WildcardEndpointSelector, ruleLabels, selectorCache)
 	} else {
-		l4.cacheIdentitySelectors(peerEndpoints, selectorCache)
-		l4.cacheFQDNSelectors(fqdns, selectorCache)
+		l4.cacheIdentitySelectors(peerEndpoints, ruleLabels, selectorCache)
+		l4.cacheFQDNSelectors(fqdns, ruleLabels, selectorCache)
 	}
 
 	var terminatingTLS *TLSContext
@@ -925,7 +925,7 @@ func createL4IngressFilter(policyCtx PolicyContext, fromEndpoints api.EndpointSe
 			if l7.IsRedirect() && cs.Selects(identity.ReservedIdentityHost) {
 				for _, name := range hostWildcardL7 {
 					selector := api.ReservedEndpointSelectors[name]
-					filter.cacheIdentitySelector(selector, policyCtx.GetSelectorCache())
+					filter.cacheIdentitySelector(selector, ruleLabels, policyCtx.GetSelectorCache())
 				}
 			}
 		}
@@ -1268,6 +1268,10 @@ func (l4 *L4Policy) AccumulateMapChanges(cs CachedSelector, adds, deletes []iden
 	l4.mutex.RUnlock()
 
 	for epPolicy := range users {
+		// Skip if endpoint has no policy maps
+		if !epPolicy.PolicyOwner.HasBPFPolicyMap() {
+			continue
+		}
 		// resolve named port
 		if port == 0 && l4Filter.PortName != "" {
 			port = epPolicy.PolicyOwner.GetNamedPort(direction == trafficdirection.Ingress, l4Filter.PortName, proto)

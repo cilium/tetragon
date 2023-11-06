@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/ip"
 	"github.com/cilium/cilium/pkg/labels"
-	"github.com/cilium/cilium/pkg/labels/cidr"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/metrics"
 	"github.com/cilium/cilium/pkg/option"
@@ -189,12 +188,28 @@ func (ipc *IPCache) releaseCIDRIdentities(ctx context.Context, prefixes []netip.
 
 	toDelete := make([]netip.Prefix, 0, len(prefixes))
 	for _, prefix := range prefixes {
-		lbls := cidr.GetCIDRLabels(prefix)
+		lbls := labels.GetCIDRLabels(prefix)
 		id := ipc.IdentityAllocator.LookupIdentity(ctx, lbls)
+		if id == nil && option.Config.PolicyCIDRMatchesNodes() {
+			// Hack for node-cidr feature.
+			// We need to look up, exactly, the labels created during AllocateCIDRs(). Which we don't actually
+			// know, since it might be a "normal" CIDR identity *or* a remote-node identity.
+			//
+			// So, if we don't find an identity for the CIDR label-set, and the node-cidr feature is enabled, then try
+			// again with the set of labels for nodes.
+			//
+			// This can go away when CIDR identity restoration transitions to the UpsertLabels() api.
+			lbls.MergeLabels(labels.LabelRemoteNode)
+			lbls = lbls.Remove(labels.LabelWorld)
+			lbls = lbls.Remove(labels.LabelWorldIPv4)
+			lbls = lbls.Remove(labels.LabelWorldIPv6)
+			id = ipc.IdentityAllocator.LookupIdentity(ctx, lbls)
+		}
 		if id == nil {
 			log.Errorf("Unable to find identity of previously used CIDR %s", prefix.String())
 			continue
 		}
+
 		released, err := ipc.IdentityAllocator.Release(ctx, id, false)
 		if err != nil {
 			log.WithFields(logrus.Fields{

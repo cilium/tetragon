@@ -120,7 +120,7 @@ golang.org/x/text/width
 # google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.59.0
