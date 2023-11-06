@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	k8sRuntime "k8s.io/apimachinery/pkg/runtime"
 	utilRuntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 var log = logging.DefaultLogger.WithField(logfields.LogSubsys, "k8s")
@@ -34,6 +34,16 @@ func init() {
 			log.Fatal("Panic in Kubernetes runtime handler")
 		},
 	)
+}
+
+type privateRunner struct {
+	cache.Controller
+	cacheMutationDetector cache.MutationDetector
+}
+
+func (p *privateRunner) Run(stopCh <-chan struct{}) {
+	go p.cacheMutationDetector.Run(stopCh)
+	p.Controller.Run(stopCh)
 }
 
 // NewInformer is a copy of k8s.io/client-go/tools/cache/NewInformer includes the default cache MutationDetector.
@@ -131,5 +141,8 @@ func NewInformerWithStore(
 			return nil
 		},
 	}
-	return cache.New(cfg)
+	return &privateRunner{
+		Controller:            cache.New(cfg),
+		cacheMutationDetector: cacheMutationDetector,
+	}
 }
