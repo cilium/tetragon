@@ -15,7 +15,7 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
-# github.com/bombsimon/logrusr/v4 v4.0.0
+# github.com/bombsimon/logrusr/v4 v4.1.0
 ## explicit; go 1.17
 github.com/bombsimon/logrusr/v4
 # github.com/cespare/xxhash/v2 v2.2.0
