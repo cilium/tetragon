@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/aggregator"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -163,7 +164,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			}
 
 			// Filter the GetEventsResponse fields
-			filters := filters.FieldFiltersFromGetEventsRequest(request)
+			filters := fieldfilters.FieldFiltersFromGetEventsRequest(request)
 
 			for _, filter := range filters {
 				ev, err := filter.Filter(event)
