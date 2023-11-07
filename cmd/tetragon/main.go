@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/exporter"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/fileutils"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
@@ -95,7 +96,7 @@ func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 func getFieldFilters() ([]*tetragon.FieldFilter, error) {
 	fieldFilters := viper.GetString(option.KeyFieldFilters)
 
-	filters, err := filters.ParseFieldFilterList(fieldFilters)
+	filters, err := fieldfilters.ParseFieldFilterList(fieldFilters)
 	if err != nil {
 		return nil, err
 	}
