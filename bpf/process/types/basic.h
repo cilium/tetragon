@@ -1436,73 +1436,67 @@ struct {
 	__type(value, struct match_binaries_sel_opts);
 } tg_mb_sel_opts SEC(".maps");
 
-/*
- * For matchBinaries we use two maps:
- * 1. names_map: global (for all sensors) keeps a mapping from names -> ids
- * 2. sel_names_map: per-sensor: keeps a mapping from selector_id -> id -> selector val
- *
- * For each selector we have a separate inner map. We choose the appropriate
- * inner map based on the selector ID.
- *
- * At exec time, we check names_map and set ->binary in execve_map equal to
- * the id stored in names_map. Assuming the binary name exists in the map,
- * otherwise binary is 0.
- *
- * When we check the selectors, use ->binary to index sel_names_map and decide
- * whether the selector matches or not.
- */
+#define MATCH_BINARIES_PATH_MAX_LENGTH 256
+
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
-	__uint(max_entries, MAX_SELECTORS);
-	__uint(key_size, sizeof(u32)); /* selector id */
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, MAX_SELECTORS); // only one matchBinaries per selector
+	__uint(key_size, sizeof(__u32));
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
-			__uint(max_entries, 256);
-			__type(key, __u32);
-			__type(value, __u32);
+			__uint(max_entries, 1);
+			__type(key, __u8[MATCH_BINARIES_PATH_MAX_LENGTH]);
+			__type(value, __u8);
 		});
-} sel_names_map SEC(".maps");
+} tg_mb_paths SEC(".maps");
 
-static inline __attribute__((always_inline)) int match_binaries(void *sel_names, __u32 selidx)
+static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 {
-	void *binaries_map;
-	struct execve_map_value *execve;
-	__u32 *op, max = 0xffffffff; // UINT32_MAX
-	__u32 ppid, bin_key, *bin_val;
-	bool walker = 0;
+	struct execve_map_value *current;
+	__u32 ppid;
+	bool walker, match = 0;
+	void *path_map;
+	__u8 *found_key;
 
-	// if binaries_map is NULL for the specific selidx, this
-	// means that the specific selector does not contain any
-	// matchBinaries actions. So we just proceed.
-	binaries_map = map_lookup_elem(sel_names, &selidx);
-	if (binaries_map) {
-		op = map_lookup_elem(binaries_map, &max);
-		if (op) {
-			execve = event_find_curr(&ppid, &walker);
-			if (!execve)
-				return 0;
+	struct match_binaries_sel_opts *selector_options;
 
-			bin_key = execve->binary;
-			bin_val = map_lookup_elem(binaries_map, &bin_key);
+	// retrieve the selector_options for the matchBinaries, if it's NULL it
+	// means there is not matchBinaries in this selector.
+	selector_options = map_lookup_elem(&tg_mb_sel_opts, &selidx);
+	if (selector_options) {
+		if (selector_options->op == op_filter_none)
+			return 1; // matchBinaries selector is empty <=> match
 
-			/*
-			 * The following things may happen:
-			 * binary is not part of names_map, execve_map->binary will be `0` and `bin_val` will always be `0`
-			 * binary is part of `names_map`:
-			 *  if binary is not part of this selector, bin_val will be`0`
-			 *  if binary is part of this selector: `bin_val will be `!0`
-			 */
-			if (*op == op_filter_in) {
-				if (!bin_val)
-					return 0;
-			} else if (*op == op_filter_notin) {
-				if (bin_val)
-					return 0;
-			}
+		current = event_find_curr(&ppid, &walker);
+		if (!current) {
+			// this should not happen, it means that the process was missed when
+			// scanning /proc for process that started before and after tetragon
+			return 0;
 		}
+		if (current->bin.path_length < 0) {
+			// something wrong happened when copying the filename to execve_map
+			return 0;
+		}
+
+		switch (selector_options->op) {
+		case op_filter_in:
+		case op_filter_notin:
+			path_map = map_lookup_elem(&tg_mb_paths, &selidx);
+			if (!path_map)
+				return 0;
+			found_key = map_lookup_elem(path_map, current->bin.path);
+			match = !!found_key;
+			break;
+		default:
+			// should not happen
+			return 0;
+		}
+
+		return is_not_operator(selector_options->op) ? !match : match;
 	}
 
+	// no matchBinaries selector <=> match
 	return 1;
 }
 
@@ -1511,7 +1505,7 @@ generic_process_filter_binary(struct event_config *config)
 {
 	/* single flag bit at the moment (FLAGS_EARLY_FILTER) */
 	if (config->flags & FLAGS_EARLY_FILTER)
-		return match_binaries(&sel_names_map, 0);
+		return match_binaries(0);
 	return 1;
 }
 
@@ -1545,7 +1539,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	// check for match binary actions
-	if (!early_binary_filter && !match_binaries(&sel_names_map, selidx))
+	if (!early_binary_filter && !match_binaries(selidx))
 		return 0;
 
 	/* Making binary selectors fixes size helps on some kernels */
