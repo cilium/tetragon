@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
@@ -23,7 +24,7 @@ import (
 type ioReaderClient struct {
 	scanner      *bufio.Scanner
 	allowlist    hubbleFilters.FilterFuncs
-	fieldFilters []*filters.FieldFilter
+	fieldFilters []*fieldfilters.FieldFilter
 	unmarshaller protojson.UnmarshalOptions
 	debug        bool
 	grpc.ClientStream
@@ -43,7 +44,7 @@ func (i *ioReaderClient) GetEvents(ctx context.Context, in *tetragon.GetEventsRe
 		return nil, err
 	}
 	i.allowlist = allowlist
-	i.fieldFilters = filters.FieldFiltersFromGetEventsRequest(in)
+	i.fieldFilters = fieldfilters.FieldFiltersFromGetEventsRequest(in)
 	if i.debug {
 		fmt.Fprintf(os.Stderr, "DEBUG: GetEvents request: %+v\n", in)
 	}
