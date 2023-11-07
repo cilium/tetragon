@@ -58,7 +58,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	curr->key.pid = tgid;
 	curr->key.ktime = ktime_get_ns();
 	curr->nspid = get_task_pid_vnr();
-	curr->binary = parent->binary;
+	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
 	curr->pkey = parent->key;
 
 	/* Setup the msg_clone_event and sent to the user. */

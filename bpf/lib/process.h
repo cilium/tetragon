@@ -289,7 +289,6 @@ struct msg_execve_event {
 	/* below fields are not part of the event, serve just as
 	 * heap for execve programs
 	 */
-	__u32 binary;
 }; // All fields aligned so no 'packed' attribute.
 
 #define BINARY_PATH_MAX_LEN 256
@@ -317,8 +316,6 @@ struct execve_map_value {
 	struct msg_execve_key pkey;
 	__u32 flags;
 	__u32 nspid;
-	__u32 binary;
-	__u32 pad;
 	struct msg_ns ns;
 	struct msg_capabilities caps;
 	struct binary bin;

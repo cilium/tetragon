@@ -131,28 +131,6 @@ read_cwd(void *ctx, struct msg_process *p)
 }
 
 static inline __attribute__((always_inline)) __u32
-binary_filter(void *ctx, struct msg_execve_event *event, void *filename)
-{
-	struct msg_process *p = &event->process;
-	struct execve_heap *heap;
-	uint32_t *value;
-	__u32 zero = 0;
-
-	// skip binaries check for long (> 255) filenames for now
-	if (p->flags & EVENT_DATA_FILENAME)
-		return 0;
-
-	heap = map_lookup_elem(&execve_heap, &zero);
-	if (!heap)
-		return 0;
-
-	memset(heap->pathname, 0, PATHNAME_SIZE);
-	probe_read_str(heap->pathname, PATHNAME_SIZE, filename);
-	value = map_lookup_elem(&names_map, heap->pathname);
-	return value ? *value : 0;
-}
-
-static inline __attribute__((always_inline)) __u32
 read_execve_shared_info(void *ctx, __u64 pid)
 {
 	__u32 secureexec = 0;
@@ -214,8 +192,6 @@ event_execve(struct sched_execve_args *ctx)
 	event->common.ktime = p->ktime;
 	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
 
-	event->binary = binary_filter(ctx, event, filename);
-
 	BPF_CORE_READ_INTO(&event->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
 	// At this time objective and subjective creds are same
@@ -274,7 +250,6 @@ execve_send(struct sched_execve_args *ctx)
 			event_set_clone(p);
 		}
 		curr->flags = 0;
-		curr->binary = event->binary;
 #ifdef __NS_CHANGES_FILTER
 		if (init_curr)
 			memcpy(&(curr->ns), &(event->ns),
@@ -287,6 +262,9 @@ execve_send(struct sched_execve_args *ctx)
 			curr->caps.inheritable = event->caps.inheritable;
 		}
 #endif
+		// buffer can be written at clone stage with parent's info, if previous
+		// path is longer than current, we can have leftovers at the end.
+		memset(&curr->bin, 0, sizeof(curr->bin));
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)
 		// which is okay because we need the 256 first bytes.

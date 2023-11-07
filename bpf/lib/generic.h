@@ -69,17 +69,4 @@ struct sched_execve_args {
 	int old_pid;
 };
 
-#ifndef ALIGNCHECKER
-struct names_map_key {
-	char path[256];
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 256); /* maximum number of binary names for all matchBinary selectors */
-	__type(key, struct names_map_key);
-	__type(value, __u32);
-} names_map SEC(".maps");
-
-#endif // ALIGNCHECKER
 #endif // _GENERIC__
