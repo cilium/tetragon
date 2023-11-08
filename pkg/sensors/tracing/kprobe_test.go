@@ -27,21 +27,30 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/ftrace"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
+	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3661,6 +3670,85 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	t.Run("NotIn", func(t *testing.T) {
 		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
+}
+
+// TestKprobeMatchBinariesPerfring checks that the matchBinaries with "In" do
+// correctly filter the events i.e. it checks that no other events appear.
+func TestKprobeMatchBinariesPerfring(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call: "fd_install",
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "In",
+									Values:   []string{"/usr/bin/tail"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
+	assert.NoError(t, err)
+
+	var tailPID, headPID int
+	ops := func() {
+		tailCmd := exec.Command("/usr/bin/tail", "/etc/passwd")
+		headCmd := exec.Command("/usr/bin/head", "/etc/passwd")
+
+		err := tailCmd.Start()
+		assert.NoError(t, err)
+		tailPID = tailCmd.Process.Pid
+		err = headCmd.Start()
+		assert.NoError(t, err)
+		headPID = headCmd.Process.Pid
+
+		err = tailCmd.Wait()
+		assert.NoError(t, err)
+		err = headCmd.Wait()
+		assert.NoError(t, err)
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	tailEventExist := false
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.ProcessKey.Pid) == tailPID {
+				tailEventExist = true
+				continue
+			}
+			if int(kprobe.ProcessKey.Pid) == headPID {
+				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
+				break
+			}
+		}
+	}
+	if !tailEventExist {
+		t.Error("kprobe event triggered by /usr/bin/tail should be present, unfiltered by the matchBinaries selector")
+	}
 }
 
 func loadTestCrd() error {
