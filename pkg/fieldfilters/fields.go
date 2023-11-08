@@ -61,19 +61,30 @@ func fixupSnakeCaseString(s string) string {
 // Fixes up a field filter's string representation so that protobuf can unmarshal it from
 // JSON.
 func fixupFieldFilterString(s string) string {
-	var dat map[string]interface{}
-	json.Unmarshal([]byte(s), &dat)
+	builder := &strings.Builder{}
+	dec := json.NewDecoder(strings.NewReader(s))
+	enc := json.NewEncoder(builder)
 
-	var fields string
-	var ok bool
-	fields, ok = dat["fields"].(string)
-	if !ok {
-		return s
+	for true {
+		var dat map[string]interface{}
+		err := dec.Decode(&dat)
+		if err != nil {
+			break
+		}
+
+		var fields string
+		var ok bool
+
+		fields, ok = dat["fields"].(string)
+		if !ok {
+			return s
+		}
+
+		dat["fields"] = fixupSnakeCaseString(fields)
+		enc.Encode(&dat)
 	}
-	dat["fields"] = fixupSnakeCaseString(fields)
 
-	b, _ := json.Marshal(&dat)
-	return string(b)
+	return builder.String()
 }
 
 // FieldFilter is a helper for filtering fields in events
