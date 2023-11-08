@@ -257,7 +257,7 @@ test-compile:
 			continue; \
 		fi; \
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
-	done | xargs -P $$(nproc) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
+	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
 
 .PHONY: check-copyright update-copyright
 check-copyright:
