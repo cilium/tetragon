@@ -3751,6 +3751,77 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 	}
 }
 
+// TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
+// events triggered by process started before Tetragon.
+func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// create a temporary file
+	file, err := os.CreateTemp("/tmp", fmt.Sprintf("tetragon.%s.", t.Name()))
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		file.Close()
+		os.Remove(file.Name())
+	})
+	// execute commands before Tetragon starts
+	tailCommand := exec.Command("/usr/bin/tail", "-f", file.Name())
+	err = tailCommand.Start()
+	assert.NoError(t, err)
+	defer tailCommand.Process.Kill()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_read",
+					Syscall: true,
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "In",
+									Values:   []string{"/usr/bin/tail"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
+	assert.NoError(t, err)
+
+	ops := func() {
+		file.WriteString("trigger!")
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "sys_read") {
+				return
+			}
+		}
+	}
+	t.Error("events triggered by process executed before Tetragon should not be ignored because of matchBinaries")
+}
+
 func loadTestCrd() error {
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
