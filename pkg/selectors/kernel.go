@@ -726,18 +726,31 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	return nil
 }
 
-func writePrefixStrings(k *KernelSelectorState, values []string) error {
+func writePrefix(k *KernelSelectorState, values []string, selector string) (uint32, error) {
 	mid, m := k.newStringPrefixMap()
 	for _, v := range values {
 		value, size := ArgSelectorValue(v)
 		if size > StringPrefixMaxLength {
-			return fmt.Errorf("MatchArgs value %s invalid: string is longer than %d characters", v, StringPrefixMaxLength)
+			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPrefixMaxLength)
 		}
 		val := KernelLPMTrieStringPrefix{prefixLen: size * 8} // prefix is in bits, but size is in bytes
 		copy(val.data[:], value)
 		m[val] = struct{}{}
 	}
+	return mid, nil
 	// write the map id into the selector
+
+}
+
+func writePrefixBinaries(k *KernelSelectorState, values []string) (uint32, error) {
+	return writePrefix(k, values, "MatchBinaries")
+}
+
+func writePrefixStrings(k *KernelSelectorState, values []string) error {
+	mid, err := writePrefix(k, values, "MatchArgs")
+	if err != nil {
+		return err
+	}
 	WriteSelectorUint32(&k.data, mid)
 	return nil
 }
@@ -1191,8 +1204,13 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 			}
 			k.WriteMatchBinariesPath(selIdx, s)
 		}
+	case SelectorOpPrefix, SelectorOpNotPrefix:
+		sel.MapID, err = writePrefixBinaries(k, b.Values)
+		if err != nil {
+			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
+		}
 	default:
-		return fmt.Errorf("matchBinary error: Only \"In\" and \"NotIn\" operators are supported")
+		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\" and \"NotPrefix\" operators are supported")
 	}
 
 	k.AddMatchBinaries(selIdx, sel)
