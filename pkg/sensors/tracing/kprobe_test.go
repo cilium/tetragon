@@ -3670,11 +3670,17 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	t.Run("NotIn", func(t *testing.T) {
 		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
+	t.Run("Prefix", func(t *testing.T) {
+		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotPrefix", func(t *testing.T) {
+		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+	})
 }
 
-// TestKprobeMatchBinariesPerfring checks that the matchBinaries with "In" do
-// correctly filter the events i.e. it checks that no other events appear.
-func TestKprobeMatchBinariesPerfring(t *testing.T) {
+// matchBinariesPerfringTest checks that the matchBinaries do correctly
+// filter the events i.e. it checks that no other events appear.
+func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -3700,8 +3706,8 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 						{
 							MatchBinaries: []v1alpha1.BinarySelector{
 								{
-									Operator: "In",
-									Values:   []string{"/usr/bin/tail"},
+									Operator: operator,
+									Values:   values,
 								},
 							},
 						},
@@ -3749,6 +3755,15 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 	if !tailEventExist {
 		t.Error("kprobe event triggered by /usr/bin/tail should be present, unfiltered by the matchBinaries selector")
 	}
+}
+
+func TestKprobeMatchBinariesPerfring(t *testing.T) {
+	t.Run("In", func(t *testing.T) {
+		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
+	})
+	t.Run("Prefix", func(t *testing.T) {
+		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
+	})
 }
 
 // TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
