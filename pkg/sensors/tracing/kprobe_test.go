@@ -3837,6 +3837,110 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	t.Error("events triggered by process executed before Tetragon should not be ignored because of matchBinaries")
 }
 
+// TestKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
+// matchBinaries works well with the prefix of matchArgs since its reusing some
+// of its machinery.
+func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_openat",
+					Syscall: true,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 1,
+							Type:  "string",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "Prefix",
+									Values:   []string{"/usr/bin/ta"},
+								},
+							},
+							MatchArgs: []v1alpha1.ArgSelector{
+								{
+									Index:    1,
+									Operator: "Prefix",
+									Values:   []string{"/etc/pass"}, // not just /etc because of /etc/ld.so.cache
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
+	assert.NoError(t, err)
+
+	var tailEtcPID, tailProcPID, headPID int
+	ops := func() {
+		tailEtcCmd := exec.Command("/usr/bin/tail", "/etc/passwd")
+		tailProcCmd := exec.Command("/usr/bin/tail", "/proc/uptime")
+		headCmd := exec.Command("/usr/bin/head", "/etc/passwd")
+
+		err := tailEtcCmd.Start()
+		assert.NoError(t, err)
+		tailEtcPID = tailEtcCmd.Process.Pid
+		err = tailProcCmd.Start()
+		assert.NoError(t, err)
+		tailProcPID = tailProcCmd.Process.Pid
+		err = headCmd.Start()
+		assert.NoError(t, err)
+		headPID = headCmd.Process.Pid
+
+		err = tailEtcCmd.Wait()
+		assert.NoError(t, err)
+		err = tailProcCmd.Wait()
+		assert.NoError(t, err)
+		err = headCmd.Wait()
+		assert.NoError(t, err)
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	tailEventExist := false
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.ProcessKey.Pid) == tailEtcPID {
+				tailEventExist = true
+				continue
+			}
+			if int(kprobe.ProcessKey.Pid) == tailProcPID {
+				t.Error("kprobe event triggered by \"/usr/bin/tail /proc/uptime\" should be filtered by the matchArgs selector")
+				break
+			}
+			if int(kprobe.ProcessKey.Pid) == headPID {
+				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
+				break
+			}
+		}
+	}
+	if !tailEventExist {
+		t.Error("kprobe event triggered by /usr/bin/tail should be present, unfiltered by the matchBinaries selector")
+	}
+}
+
 func loadTestCrd() error {
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
