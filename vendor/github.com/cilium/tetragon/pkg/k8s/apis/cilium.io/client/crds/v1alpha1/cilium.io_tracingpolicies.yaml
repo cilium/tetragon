@@ -349,6 +349,8 @@ spec:
                                   enum:
                                   - In
                                   - NotIn
+                                  - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -897,6 +899,8 @@ spec:
                                   enum:
                                   - In
                                   - NotIn
+                                  - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1270,6 +1274,8 @@ spec:
                                   enum:
                                   - In
                                   - NotIn
+                                  - Prefix
+                                  - NotPrefix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
