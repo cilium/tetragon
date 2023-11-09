@@ -1510,10 +1510,12 @@ struct {
 static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 {
 	struct execve_map_value *current;
+	struct string_prefix_lpm_trie prefix_key;
 	__u32 ppid;
 	bool walker, match = 0;
 	void *path_map;
 	__u8 *found_key;
+	long ret;
 
 	struct match_binaries_sel_opts *selector_options;
 
@@ -1542,13 +1544,26 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 			if (!path_map)
 				return 0;
 			found_key = map_lookup_elem(path_map, current->bin.path);
-			match = !!found_key;
+			break;
+		case op_filter_str_prefix:
+		case op_filter_str_notprefix:
+			path_map = map_lookup_elem(&string_prefix_maps, &selector_options->map_id);
+			if (!path_map)
+				return 0;
+			// prepare the key on the stack to perform lookup in the LPM_TRIE
+			memset(&prefix_key, 0, sizeof(prefix_key));
+			prefix_key.prefixlen = current->bin.path_length * 8; // prefixlen is in bits
+			ret = probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
+			if (ret < 0)
+				return 0;
+			found_key = map_lookup_elem(path_map, &prefix_key);
 			break;
 		default:
 			// should not happen
 			return 0;
 		}
 
+		match = !!found_key;
 		return is_not_operator(selector_options->op) ? !match : match;
 	}
 
