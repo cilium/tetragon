@@ -45,7 +45,9 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 	summary = newSummary(args)
 	summary.StartTime = time.Now()
 
-	EnableBpfStats()
+	disable := EnableBpfStats()
+	defer disable()
+
 	oldBpfStats := GetBpfStats()
 
 	var bench TraceBench
