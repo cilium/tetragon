@@ -213,17 +213,6 @@ func TestNamespaceValueStr(t *testing.T) {
 }
 
 func TestParseMatchArg(t *testing.T) {
-	sig := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 8, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-	}
-
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
 	k := NewKernelSelectorState(nil, nil)
 	d := &k.data
@@ -240,7 +229,7 @@ func TestParseMatchArg(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
 	}
-	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+	if err := ParseMatchArg(k, arg1, argTypeString); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e[0:d.off], arg1)
 	}
 
@@ -254,7 +243,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // value 1
 		0x02, 0x00, 0x00, 0x00, // value 2
 	}
-	if err := ParseMatchArg(k, arg2, sig); err != nil || bytes.Equal(expected2, d.e[nextArg:d.off]) == false {
+	if err := ParseMatchArg(k, arg2, argTypeInt); err != nil || bytes.Equal(expected2, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:d.off], arg2)
 	}
 
@@ -268,7 +257,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
 		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
 	}
-	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, d.e[nextArg:d.off]) == false {
+	if err := ParseMatchArg(k, arg3, argTypeSock); err != nil || bytes.Equal(expected3, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:d.off], arg3)
 	}
 
@@ -281,7 +270,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
 	}
-	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, d.e[nextArg:d.off]) == false {
+	if err := ParseMatchArg(k, arg4, argTypeSkb); err != nil || bytes.Equal(expected4, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:d.off], arg4)
 	}
 
@@ -294,7 +283,7 @@ func TestParseMatchArg(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		1, 0x00, 0x00, 0x00, // argfilter mapid = 1
 	}
-	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, d.e[nextArg:d.off]) == false {
+	if err := ParseMatchArg(k, arg5, argTypeSkb); err != nil || bytes.Equal(expected5, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:d.off], arg5)
 	}
 
@@ -308,11 +297,15 @@ func TestParseMatchArg(t *testing.T) {
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
 		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
 	}
-	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, d.e[nextArg:d.off]) == false {
+	if err := ParseMatchArg(k, arg6, argTypeSock); err != nil || bytes.Equal(expected6, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:d.off], arg6)
 	}
 
 	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
+		sig := []v1alpha1.KProbeArg{
+			v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+			v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		}
 		length := []byte{
 			88, 0x00, 0x00, 0x00,
 			24, 0x00, 0x00, 0x00,

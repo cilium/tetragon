@@ -769,7 +769,7 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 	return nil
 }
 
-func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, ty uint32) error {
 	WriteSelectorUint32(&k.data, arg.Index)
 
 	op, err := SelectorOp(arg.Operator)
@@ -778,10 +778,6 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	}
 	WriteSelectorUint32(&k.data, op)
 	moff := AdvanceSelectorLength(&k.data)
-	ty, err := argSelectorType(arg, sig)
-	if err != nil {
-		return fmt.Errorf("argSelector error: %w", err)
-	}
 	WriteSelectorUint32(&k.data, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
@@ -861,7 +857,11 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	}
 	for i, a := range args {
 		WriteSelectorOffsetUint32(&k.data, argOff[i], GetCurrentOffset(&k.data)-actionOffset)
-		if err := ParseMatchArg(k, &a, sig); err != nil {
+		ty, err := argSelectorType(&a, sig)
+		if err != nil {
+			return fmt.Errorf("argSelector error: %w", err)
+		}
+		if err := ParseMatchArg(k, &a, ty); err != nil {
 			return err
 		}
 	}
