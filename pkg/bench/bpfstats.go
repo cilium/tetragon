@@ -10,12 +10,25 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/cilium/ebpf"
+	"golang.org/x/sys/unix"
 )
 
-func EnableBpfStats() {
-	err := os.WriteFile("/proc/sys/kernel/bpf_stats_enabled", []byte("1"), 0666)
+func EnableBpfStats() func() error {
+	// 5.8 and upwards have a reentrancy safe API to enable stats.
+	stats, err := ebpf.EnableStats(unix.BPF_STATS_RUN_TIME)
+	if err == nil {
+		return stats.Close
+	}
+
+	err = os.WriteFile("/proc/sys/kernel/bpf_stats_enabled", []byte("1"), 0666)
 	if err != nil {
 		log.Fatalf("failed to enable bpf stats: %v", err)
+	}
+
+	return func() error {
+		return os.WriteFile("/proc/sys/kernel/bpf_stats_enabled", []byte("0"), 0666)
 	}
 }
 
