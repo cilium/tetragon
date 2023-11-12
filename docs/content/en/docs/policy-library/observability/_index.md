@@ -19,6 +19,7 @@ description: >
 
 - [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
+- [Setuid system calls]({{< ref "#setuid" >}})
 
 ### Networking
 
@@ -158,6 +159,39 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary | contai
 
 ```shell-session
 "2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
+```
+
+## Setuid System Calls {#setuid}
+
+### Description
+
+Monitor execution of the [setuid()](https://www.man7.org/linux/man-pages/man2/setuid.2.html) system calls family.
+
+### Use Case
+
+The [setuid()](https://www.man7.org/linux/man-pages/man2/setuid.2.html) and [setgid()](https://www.man7.org/linux/man-pages/man2/setgid.2.html)
+system calls family allow to change the effective user ID and group ID of the calling process.
+
+Detecting [setuid()](https://www.man7.org/linux/man-pages/man2/setuid.2.html) and [setgid()](https://www.man7.org/linux/man-pages/man2/setgid.2.html) calls that set the user ID or group ID to root is a common
+best-practice to identify when privileges are raised.
+
+### Policy
+
+The [privileges-setuid-root.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-setuid-root.yaml) is a catch all to the various interfaces of `setuid()` and `setgid()` to root.
+
+### Example jq Filter
+
+```shell-session
+jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-setuid-root")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.args)"'
+```
+
+### Example Output
+
+```shell-session
+"2023-11-12T22:17:40.754680857Z null null /usr/bin/sudo id __sys_setresgid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
+"2023-11-12T22:17:40.754730285Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
+"2023-11-12T22:17:40.758125709Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
+"2023-11-12T22:17:40.758747395Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
 ```
 
 ## SSHd connection monitoring {#ssh-network}
