@@ -40,6 +40,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -187,6 +188,14 @@ func tetragonExecute() error {
 
 	if err := checkStructAlignments(); err != nil {
 		return fmt.Errorf("struct alignment checks failed: %w", err)
+	}
+
+	// Initialize namespaces here. On errors fail, there is
+	// no point to continue if read/ptrace on /proc/1/ fails.
+	// Providing correct information can't be achieved anyway.
+	_, err := namespace.InitHostNamespace()
+	if err != nil {
+		log.WithField("procfs", option.Config.ProcFS).WithError(err).Fatalf("Failed to initialize host namespaces")
 	}
 
 	checkprocfs.Check()
@@ -381,7 +390,7 @@ func tetragonExecute() error {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
-	_, err := cilium.InitCiliumState(ctx, option.Config.EnableCilium)
+	_, err = cilium.InitCiliumState(ctx, option.Config.EnableCilium)
 	if err != nil {
 		return err
 	}
