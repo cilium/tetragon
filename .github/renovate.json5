@@ -57,13 +57,16 @@
   "vulnerabilityAlerts": {
     "enabled": true
   },
+  "osvVulnerabilityAlerts": true,
   "labels": [
     "release-blocker",
     "release-note/dependency"
   ],
+  // renovate will only automatically create PR on those days
   "schedule": [
-    "on monday"
+    "on monday and friday"
   ],
+  "prHourlyLimit": 2,
   // about packageRules: To enable grouping, you configure the groupName field
   // to something non-null.
   "packageRules": [
