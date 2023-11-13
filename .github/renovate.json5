@@ -305,6 +305,30 @@
     },
     // ignore deps section
     {
+      // Avoid updating patch releases of golang in go.mod
+      "enabled": false,
+      // could use "**/go.mod" but /docs has a go.mod
+      "matchFileNames": [
+        "go.mod",
+        "api/go.mod",
+        "pkg/k8s/go.mod",
+        "contrib/rthooks/tetragon-oci-hook/go.mod",
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      matchBaseBranches: [
+        "main",
+        "v1.0"
+      ]
+    },
+    {
       // do not allow any updates for major.minor for LVH, they will be done by maintainers
       "enabled": false,
       "matchPackageNames": [
