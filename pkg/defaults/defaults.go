@@ -42,6 +42,9 @@ const (
 
 	// Default secure export logs permissions
 	DefaultLogsPermission = "600"
+
+	// Pid file where to write tetragon main PID
+	DefaultPidFile = DefaultRunDir + "tetragon.pid"
 )
 
 var (

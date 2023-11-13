@@ -39,6 +39,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/pidfile"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -169,6 +170,21 @@ func tetragonExecute() error {
 	log.WithField("version", version.Version).Info("Starting tetragon")
 	log.WithField("config", viper.AllSettings()).Info("config settings")
 
+	// When an instance terminates or restarts it may cleanup bpf programs,
+	// having a check here to see if another instance is already running, can
+	// help debug errors.
+	pid, err := pidfile.Create()
+	if err != nil {
+		// Log error but do not fail
+		log.WithError(err).WithField("pid", pid).Warn("Tetragon pid file creation failed")
+	} else {
+		log.WithFields(logrus.Fields{
+			"pid":     pid,
+			"pidfile": defaults.DefaultPidFile,
+		}).Info("Tetragon pid file creation succeeded")
+	}
+	defer pidfile.Delete()
+
 	log.Info("BPF detected features: ", bpf.LogFeatures())
 
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
@@ -194,7 +210,7 @@ func tetragonExecute() error {
 	// Initialize namespaces here. On errors fail, there is
 	// no point to continue if read/ptrace on /proc/1/ fails.
 	// Providing correct information can't be achieved anyway.
-	_, err := namespace.InitHostNamespace()
+	_, err = namespace.InitHostNamespace()
 	if err != nil {
 		log.WithField("procfs", option.Config.ProcFS).WithError(err).Fatalf("Failed to initialize host namespaces")
 	}
