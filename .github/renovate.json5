@@ -51,7 +51,8 @@
   "separateMinorPatch": true,
   "pruneStaleBranches": true,
   "baseBranches": [
-    "main"
+    "main",
+    "v1.0",
   ],
   "vulnerabilityAlerts": {
     "enabled": true
@@ -269,6 +270,35 @@
         "pin",
         "pinDigest"
       ],
+    },
+    // stable branches section
+    {
+      // no updates into stable branches (apart from security ones)
+      "enabled": false,
+      "matchPackagePatterns": ["*"],
+      "matchBaseBranches": [
+        "v1.0",
+      ]
+    },
+    {
+      // update the base image for stable branches
+      "enabled": true,
+      "matchPackageNames": ["docker.io/library/alpine"],
+      "matchBaseBranches": [
+        "v1.0",
+      ]
+    },
+    {
+      // update go version until next minor for stable branches
+      "enabled": true,
+      "matchPackageNames": [
+        "docker.io/library/golang",
+        "go"
+      ],
+      "allowedVersions": "<1.22",
+      "matchBaseBranches": [
+        "v1.0"
+      ]
     },
     // ignore deps section
     {
