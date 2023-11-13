@@ -6,7 +6,7 @@ go 1.21.4
 require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/google/cel-go v0.18.1
+	github.com/google/cel-go v0.18.2
 	github.com/opencontainers/runc v1.1.10
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/sirupsen/logrus v1.9.3
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cilium/ebpf v0.7.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
