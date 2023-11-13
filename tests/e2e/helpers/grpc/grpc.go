@@ -23,14 +23,13 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 		return fmt.Errorf("failed to find tetragon grpc forwarded ports")
 	}
 
-	connCtx, connCancel := context.WithTimeout(ctx, 1*time.Second)
-	defer connCancel()
-
 	maxTries := 10
 	for podName, grpcPort := range tetraPorts {
 		addr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
 		// NB(kkourt): maybe it would make sense to cache the grpc connections in the
 		// context, but we keep things simple for now.
+		connCtx, connCancel := context.WithTimeout(ctx, 1*time.Second)
+		defer connCancel()
 		conn, err := grpc.DialContext(
 			connCtx, addr,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
