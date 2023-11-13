@@ -19,6 +19,7 @@ description: >
 
 - [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
+- [SUID Binary Execution]({{< ref "#suid" >}})
 - [Setuid system calls]({{< ref "#setuid" >}})
 
 ### Networking
@@ -159,6 +160,69 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary | contai
 
 ```shell-session
 "2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
+```
+
+## SUID Binary Execution {#suid}
+
+### Description
+
+Monitor execution of SUID "Set User ID" binaries.
+
+### Use Case
+
+The "Set User Identity" and "Set Group Identity" are permission flags. When set on a binary file, the binary will execute with the permissions
+of the owner or group associated with the executable file, rather than the user executing it. Usually it is used to run programs with elevated privileges to perform specific tasks.
+
+Detecting the execution of `setuid` and `setgid` binaries is a common
+best-practice as attackers may abuse such binaries, or even create them
+during an exploit for subsequent execution.
+
+### Requirement
+
+Run Tetragon with `enable-process-creds` setting set to enable visibility
+into [process_credentials]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) and [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}}).
+
+{{< tabpane lang=shell-session >}}
+
+{{< tab Kubernetes >}}
+kubectl edit cm -n kube-system tetragon-config
+# Change "enable-process-cred" from "false" to "true", then save and exit
+# Restart Tetragon daemonset
+kubectl rollout restart -n kube-system ds/tetragon
+{{< /tab >}}
+{{< tab docker >}}
+docker run --name tetragon --rm -d \
+  --pid=host --cgroupns=host --privileged \
+  -v /sys/kernel:/sys/kernel \
+  -v /var/log/tetragon:/var/log/tetragon \
+  quay.io/cilium/tetragon:{{< latest-version >}} \
+  /usr/bin/tetragon --enable-process-cred \
+  --export-filename /var/log/tetragon/tetragon.log
+{{< /tab >}}
+{{< tab systemd >}}
+# Write to the drop-in file /etc/tetragon/tetragon.conf.d/enable-process-cred  true
+# Run the following as a privileged user then restart tetragon service
+echo "true" > /etc/tetragon/tetragon.conf.d/enable-process-cred
+systemctl restart tetragon
+{{< /tab >}}
+{{< /tabpane >}}
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is sufficient.
+
+### Example jq Filter
+
+```shell-session
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.setuid != null or .process_exec.process.binary_properties.setgid != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid)"'
+```
+
+### Example Output
+
+```shell-session
+"2023-11-13T08:20:43.615672640Z null null /usr/bin/sudo id uid=1000 euid=0  gid=1000 egid=1000"
+"2023-11-13T08:20:45.591560940Z null null /usr/bin/wall hello uid=1000 euid=1000  gid=1000 egid=5"
+"2023-11-13T08:20:47.036760043Z null null /usr/bin/su - uid=1000 euid=0  gid=1000 egid=1000"
 ```
 
 ## Setuid System Calls {#setuid}
