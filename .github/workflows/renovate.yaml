@@ -1,14 +1,14 @@
 name: Renovate
 on:
-  # runnig twice a day, around 11:00am CEST and 11:00am PST
+  # running every two hours from 9h to 19h UTC on every working day
   schedule:
-    - cron: '0 9,18 * * *'
+    - cron: '0 9-19/2 * * 1-5'
   # allow to manually trigger this workflow
   workflow_dispatch:
     inputs:
       renovate_log_level_debug:
         type: boolean
-        default: false
+        default: true
   push:
     branches:
       - main
@@ -65,7 +65,8 @@ jobs:
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@3cef36a9aba515d8726b491905b3bc766832e221 # v39.0.5
         env:
-          LOG_LEVEL: ${{ github.event.inputs.renovate_log_level_debug == 'true' && 'DEBUG' || 'INFO' }}
+          # default to DEBUG log level, this is always useful
+          LOG_LEVEL: ${{ github.event.inputs.renovate_log_level_debug == 'false' && 'INFO' || 'DEBUG' }}
         with:
           configurationFile: .github/renovate.json5
           token: '${{ steps.get_token.outputs.app_token }}'
