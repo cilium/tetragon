@@ -67,8 +67,12 @@
     "on monday and friday"
   ],
   "prHourlyLimit": 2,
-  // about packageRules: To enable grouping, you configure the groupName field
-  // to something non-null.
+  // about packageRules:
+  // - to enable grouping, you configure the groupName field to something non-null.
+  // - order matters: Renovate evaluates all packageRules and does not stop
+  //   after the first match. Order your packageRules so the least important rules
+  //   are at the top, and the most important rules at the bottom. This way
+  //   important rules override settings from earlier rules if needed.
   "packageRules": [
     {
       "matchPackageNames": [
@@ -119,19 +123,6 @@
         "github-actions"
       ],
       "separateMinorPatch": false,
-    },
-    {
-      // postUpgradeTasks and postUpdateOptions for all Go updates
-      "matchManagers": ["gomod"],
-      "postUpdateOptions": [
-        // update source import paths on major updates
-        "gomodUpdateImportPaths",
-      ],
-      postUpgradeTasks: {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      }
     },
     {
       "groupName": "all go dependencies main",
@@ -205,28 +196,17 @@
       ],
     },
     {
-      "matchPackageNames": [
-        "docker.io/library/busybox"
+      // postUpgradeTasks and postUpdateOptions for all Go updates
+      "matchManagers": ["gomod"],
+      "postUpdateOptions": [
+        // update source import paths on major updates
+        "gomodUpdateImportPaths",
       ],
-      "matchFileNames": [
-        "Dockerfile"
-      ],
-    },
-    {
-      "groupName": "Go",
-      "matchDepNames": [
-        "go",
-        "docker.io/library/golang"
-      ],
-      // postUpgradeTasks is only for when the Go module directives are bumped
-      "postUpgradeTasks": {
-        // We need to trigger a golang install manually here because in some
-        // cases it might not be preinstalled, see:
-        // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^go \\K.+' go.mod)", "make vendor"],
+      postUpgradeTasks: {
+        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
-      },
+      }
     },
     {
       // Group golangci-lint updates to overrule grouping of version updates in
@@ -293,15 +273,33 @@
     },
     {
       // update go version until next minor for stable branches
-      "enabled": true,
       "matchPackageNames": [
-        "docker.io/library/golang",
-        "go"
+        "go",
+        "docker.io/library/golang"
       ],
       "allowedVersions": "<1.22",
       "matchBaseBranches": [
         "v1.0"
       ]
+    },
+    // Go version updates: this is for all branches but must be after stable
+    // branches disable setting on all packages
+    {
+      "groupName": "Go",
+      "enabled": true,
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+      // postUpgradeTasks is only for when the Go module directives are bumped
+      "postUpgradeTasks": {
+        // We need to trigger a golang install manually here because in some
+        // cases it might not be preinstalled, see:
+        // https://github.com/renovatebot/renovate/discussions/23485
+        "commands": ["install-tool golang $(grep -oP '^go \\K.+' go.mod)", "make vendor"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
     },
     // ignore deps section
     {
@@ -314,7 +312,7 @@
         "pkg/k8s/go.mod",
         "contrib/rthooks/tetragon-oci-hook/go.mod",
       ],
-      "matchDepNames": [
+      "matchPackageNames": [
         "go"
       ],
       "matchDatasources": [
