@@ -11,12 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/spf13/viper"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -25,7 +23,7 @@ type daemonInfo struct {
 	ServerAddr string `json:"server_address"`
 }
 
-func getActiveServAddr(fname string) (string, error) {
+func readActiveServerAddress(fname string) (string, error) {
 	f, err := os.Open(fname)
 	if err != nil {
 		return "", err
@@ -41,43 +39,28 @@ func getActiveServAddr(fname string) (string, error) {
 }
 
 func connect(ctx context.Context) (*grpc.ClientConn, string, error) {
-	connCtx, connCancel := context.WithTimeout(ctx, viper.GetDuration(KeyTimeout))
+	connCtx, connCancel := context.WithTimeout(ctx, Timeout)
 	defer connCancel()
 
-	var conn *grpc.ClientConn
-	var serverAddr string
-	var err error
-
-	// The client cli can run remotely so to support most cases transparently
-	// Check if the server address was set
-	//   - If yes: use it directly, users know better
-	//   - If no: then try the default tetragon-info.json file to find the best
-	//       address if possible (could be unix socket). This also covers the
-	//       case that default address is localhost so we are operating in localhost
-	//       context anyway.
-	//       If that address is set try it, if it fails for any reason then retry
-	//       last time with the server address.
-	if viper.IsSet(KeyServerAddress) == false {
-		// server-address was not set by user, try the tetragon-info.json file
-		serverAddr, err = getActiveServAddr(defaults.InitInfoFile)
-		if err == nil && serverAddr != "" {
-			conn, err = grpc.DialContext(connCtx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-		}
-		// Handle both errors
+	// resolve ServerAdress: if flag set by user, use it, otherwise try to read
+	// it from tetragon-info.json, if it doesn't exist, just use default value
+	if ServerAddress == "" {
+		var err error
+		ServerAddress, err = readActiveServerAddress(defaults.InitInfoFile)
+		// if address could not be found in tetragon-info.json file, use default
 		if err != nil {
+			ServerAddress = defaultServerAddress
+			logger.GetLogger().WithField("ServerAddress", ServerAddress).Debug("connect to server using default value")
+		} else {
 			logger.GetLogger().WithFields(logrus.Fields{
-				"InitInfoFile":   defaults.InitInfoFile,
-				"server-address": serverAddr,
-			}).WithError(err).Debugf("Failed to connect to server")
+				"InitInfoFile":  defaults.InitInfoFile,
+				"ServerAddress": ServerAddress,
+			}).Debug("connect to server using address in info file")
 		}
 	}
-	if conn == nil {
-		// Try the server-address prameter
-		serverAddr = viper.GetString(KeyServerAddress)
-		conn, err = grpc.DialContext(connCtx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	}
 
-	return conn, serverAddr, err
+	conn, err := grpc.DialContext(connCtx, ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	return conn, ServerAddress, err
 }
 
 func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
@@ -93,7 +76,7 @@ func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClie
 	for {
 		conn, serverAddr, err = connect(ctx)
 		if err != nil {
-			if attempts < viper.GetInt(KeyRetries) {
+			if attempts < Retries {
 				// Exponential backoff
 				attempts++
 				logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Error("Connection attempt failed, retrying...")
@@ -144,7 +127,7 @@ func NewConnectedClient() ConnectedClient {
 	for {
 		c.conn, serverAddr, err = connect(c.Ctx)
 		if err != nil {
-			if attempts < viper.GetInt(KeyRetries) {
+			if attempts < Retries {
 				// Exponential backoff
 				attempts++
 				logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Error("Connection attempt failed, retrying...")
