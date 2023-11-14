@@ -427,7 +427,7 @@
         "^Makefile\\.cli$"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s]*)"
+        "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s@]*)@?(?<currentDigest>sha256:[a-f0-9]+)?",
       ]
     },
     {
