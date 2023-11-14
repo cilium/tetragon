@@ -3,6 +3,8 @@
 
 package common
 
+import "time"
+
 const (
 	KeyColor         = "color"          // string
 	KeyDebug         = "debug"          // bool
@@ -11,4 +13,15 @@ const (
 	KeyServerAddress = "server-address" // string
 	KeyTimeout       = "timeout"        // duration
 	KeyRetries       = "retries"        // int
+)
+
+const (
+	defaultServerAddress = "localhost:54321"
+)
+
+var (
+	Debug         bool
+	ServerAddress string
+	Timeout       time.Duration
+	Retries       int
 )

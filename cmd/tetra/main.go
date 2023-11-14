@@ -10,7 +10,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -32,7 +31,7 @@ func New() *cobra.Command {
 			cmd.Help()
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if viper.GetBool(common.KeyDebug) {
+			if common.Debug {
 				logger.DefaultLogger.SetLevel(logrus.DebugLevel)
 			}
 		},
@@ -42,10 +41,9 @@ func New() *cobra.Command {
 
 	addCommands(rootCmd)
 	flags := rootCmd.PersistentFlags()
-	flags.BoolP(common.KeyDebug, "d", false, "Enable debug messages")
-	flags.String(common.KeyServerAddress, "localhost:54321", "gRPC server address")
-	flags.Duration(common.KeyTimeout, 10*time.Second, "Connection timeout")
-	flags.Int(common.KeyRetries, 0, "Connection retries with exponential backoff")
-	viper.BindPFlags(flags)
+	flags.BoolVarP(&common.Debug, common.KeyDebug, "d", false, "Enable debug messages")
+	flags.StringVar(&common.ServerAddress, common.KeyServerAddress, "", "gRPC server address")
+	flags.DurationVar(&common.Timeout, common.KeyTimeout, 10*time.Second, "Connection timeout")
+	flags.IntVar(&common.Retries, common.KeyRetries, 0, "Connection retries with exponential backoff")
 	return rootCmd
 }
