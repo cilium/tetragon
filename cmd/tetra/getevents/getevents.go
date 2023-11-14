@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -184,7 +183,7 @@ func New() *cobra.Command {
 			fi, _ := os.Stdin.Stat()
 			if fi.Mode()&os.ModeNamedPipe != 0 {
 				// read events from stdin
-				getEvents(context.Background(), newIOReaderClient(os.Stdin, viper.GetBool("debug")))
+				getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
 				return
 			}
 			// connect to server
