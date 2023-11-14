@@ -24,6 +24,10 @@ description: "Additional resources to learn about Tetragon"
 
 ### Blog posts
 
+[Tutorial: Setting Up a Cybersecurity Honeypot with Tetragon to Trigger Canary Tokens](https://isovalent.com/blog/post/tetragon-canary-tokens-tutorial/) - Dean Lewis, 2023
+
+[Can I use Tetragon without Cilium?](https://isovalent.com/blog/post/can-i-use-tetragon-without-cilium-yes/) - Dean Lewis, 2023
+
 [Detecting a Container Escape with Cilium and eBPF](https://isovalent.com/blog/post/2021-11-container-escape) - Natália Réka Ivánkó, 2021
 
 [Detecting and Blocking log4shell with Isovalent Cilium Enterprise](https://isovalent.com/blog/post/2021-12-log4shell) - Jed Salazar, 2021
