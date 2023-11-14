@@ -65,7 +65,7 @@ nodes:
         containerPath: /procHost
 EOF
 kind create cluster --config kind-config.yaml
-EXTRA_HELM_FLAGS="--set teragon.hostProcPath=/procHost" # flags for helm install
+EXTRA_HELM_FLAGS="--set tetragon.hostProcPath=/procHost" # flags for helm install
 ```
 {{% /tab %}}
 
