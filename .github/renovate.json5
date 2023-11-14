@@ -209,6 +209,22 @@
       }
     },
     {
+      "groupName": "Go",
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+      // postUpgradeTasks is only for when the Go module directives are bumped
+      "postUpgradeTasks": {
+        // We need to trigger a golang install manually here because in some
+        // cases it might not be preinstalled, see:
+        // https://github.com/renovatebot/renovate/discussions/23485
+        "commands": ["install-tool golang $(grep -oP '^go \\K.+' go.mod)", "make vendor"],
+        "fileFilters": ["**/**"],
+        "executionMode": "branch"
+      },
+    },
+    {
       // Group golangci-lint updates to overrule grouping of version updates in
       // the GHA files. Without this, golangci-lint updates are not in sync for
       // GHA files and other usages. This needs to be after the GHA grouping.
@@ -273,33 +289,15 @@
     },
     {
       // update go version until next minor for stable branches
-      "matchPackageNames": [
-        "go",
-        "docker.io/library/golang"
-      ],
-      "allowedVersions": "<1.22",
-      "matchBaseBranches": [
-        "v1.0"
-      ]
-    },
-    // Go version updates: this is for all branches but must be after stable
-    // branches disable setting on all packages
-    {
-      "groupName": "Go",
       "enabled": true,
       "matchPackageNames": [
         "go",
         "docker.io/library/golang"
       ],
-      // postUpgradeTasks is only for when the Go module directives are bumped
-      "postUpgradeTasks": {
-        // We need to trigger a golang install manually here because in some
-        // cases it might not be preinstalled, see:
-        // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^go \\K.+' go.mod)", "make vendor"],
-        "fileFilters": ["**/**"],
-        "executionMode": "branch"
-      },
+      "allowedVersions": "/^1\\.21\\.[0-9]+-?(alpine)?$/",
+      "matchBaseBranches": [
+        "v1.0"
+      ]
     },
     // ignore deps section
     {
