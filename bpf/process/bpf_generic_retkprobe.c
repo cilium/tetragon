@@ -30,6 +30,17 @@ struct {
 	__uint(value_size, sizeof(__u32));
 } retkprobe_calls SEC(".maps");
 
+struct filter_map_value {
+	unsigned char buf[FILTER_SIZE];
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, int);
+	__type(value, struct filter_map_value);
+} filter_map SEC(".maps");
+
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
