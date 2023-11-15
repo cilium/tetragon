@@ -1212,39 +1212,6 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 	return nil
 }
 
-func parseSelector(
-	k *KernelSelectorState,
-	selectors *v1alpha1.KProbeSelector,
-	selIdx int,
-	args []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table) error {
-	if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
-		return fmt.Errorf("parseMatchPids error: %w", err)
-	}
-	if err := ParseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
-		return fmt.Errorf("parseMatchNamespaces error: %w", err)
-	}
-	if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
-		return fmt.Errorf("parseMatchCapabilities error: %w", err)
-	}
-	if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
-		return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
-	}
-	if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
-		return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
-	}
-	if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
-		return fmt.Errorf("parseMatchBinaries error: %w", err)
-	}
-	if err := ParseMatchArgs(k, selectors.MatchArgs, args); err != nil {
-		return fmt.Errorf("parseMatchArgs  error: %w", err)
-	}
-	if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
-		return fmt.Errorf("parseMatchActions error: %w", err)
-	}
-	return nil
-}
-
 // The byte array storing the selector configuration has the following format
 // array := [N][S1_off][S2_off]...[SN_off][S1][S2][...][SN]
 //
@@ -1288,8 +1255,8 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 	return state.data.e, nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps,
+	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
 	state := NewKernelSelectorState(listReader, maps)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
@@ -1300,12 +1267,46 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 	for i, s := range selectors {
 		WriteSelectorLength(&state.data, soff[i])
 		loff := AdvanceSelectorLength(&state.data)
-		if err := parseSelector(state, &s, i, args, actionArgTable); err != nil {
+		if err := parseSelector(state, &s, i); err != nil {
 			return nil, err
 		}
 		WriteSelectorLength(&state.data, loff)
 	}
 	return state, nil
+}
+
+func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+
+	parse := func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
+			return fmt.Errorf("parseMatchPids error: %w", err)
+		}
+		if err := ParseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
+			return fmt.Errorf("parseMatchNamespaces error: %w", err)
+		}
+		if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
+			return fmt.Errorf("parseMatchCapabilities error: %w", err)
+		}
+		if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
+			return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
+		}
+		if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
+			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
+		}
+		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
+			return fmt.Errorf("parseMatchBinaries error: %w", err)
+		}
+		if err := ParseMatchArgs(k, selectors.MatchArgs, args); err != nil {
+			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+			return fmt.Errorf("parseMatchActions error: %w", err)
+		}
+		return nil
+	}
+
+	return createKernelSelectorState(selectors, listReader, maps, parse)
 }
 
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
