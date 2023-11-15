@@ -816,3 +816,43 @@ func TestInitKernelSelectors(t *testing.T) {
 		t.Errorf("InitKernelSelectors:\nexpected %v\nbytes    %v\n", expected, b[0:len(expected)])
 	}
 }
+
+func TestReturnSelector(t *testing.T) {
+	var actionArgTable idtable.Table
+
+	returnArg := v1alpha1.KProbeArg{Index: 0, Type: "int", SizeArgIndex: 0, ReturnCopy: false}
+
+	matchReturnArgs := []v1alpha1.ArgSelector{
+		{Index: 0, Operator: "Equal", Values: []string{"10", "20"}},
+	}
+
+	selectors := []v1alpha1.KProbeSelector{
+		{MatchReturnArgs: matchReturnArgs},
+	}
+
+	b, _ := InitKernelReturnSelectors(selectors, &returnArg, &actionArgTable)
+
+	expected := make([]byte, 4096)
+	expectedLen := 0
+	expU32Push := func(i int) {
+		binary.LittleEndian.PutUint32(expected[expectedLen:], uint32(i))
+		expectedLen += 4
+	}
+
+	// value               absolute offset    explanation
+	expU32Push(1)            // off: 0       number of selectors
+	expU32Push(4)            // off: 4       relative ofset of selector (4 + 4 = 8)
+	expU32Push(36)           // off: 8       selector: length
+	expU32Push(28)           // off: 12      selector: matchReturnArgs length
+	expU32Push(0)            // off: 16      selector: matchReturnArgs[0].Index
+	expU32Push(SelectorOpEQ) // off: 20      selector: matchReturnArgs[0].Operator
+	expU32Push(16)           // off: 24      selector: length (4 + 3*4) = 16
+	expU32Push(argTypeInt)   // off: 28      selector: matchReturnArgs[0].Type
+	expU32Push(10)           // off: 32      selector: matchReturnArgs[0].Values[0]
+	expU32Push(20)           // off: 36      selector: matchReturnArgs[0].Values[1]
+	expU32Push(4)            // off: 40      selector: MatchActions length
+
+	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
+		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
+	}
+}

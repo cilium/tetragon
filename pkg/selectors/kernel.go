@@ -1275,6 +1275,14 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 	return state.data.e, nil
 }
 
+func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
+	state, err := InitKernelReturnSelectorState(selectors, returnArg, actionArgTable, nil, nil)
+	if err != nil {
+		return [4096]byte{}, err
+	}
+	return state.data.e, nil
+}
+
 func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
 	state := NewKernelSelectorState(listReader, maps)
