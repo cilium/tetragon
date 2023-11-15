@@ -77,8 +77,12 @@ func kprobeCharBufErrorToString(e int32) string {
 	return "CharBufErrorUnknown"
 }
 
+type kprobeSelectors struct {
+	entry *selectors.KernelSelectorState
+}
+
 type kprobeLoadArgs struct {
-	selectors *selectors.KernelSelectorState
+	selectors kprobeSelectors
 	retprobe  bool
 	syscall   bool
 	config    *api.EventConfig
@@ -212,7 +216,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
+		maxEntries := kprobeEntry.loadArgs.selectors.entry.ValueMapsMaxEntries()
 		argFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	maps = append(maps, argFilterMaps)
@@ -221,7 +225,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.Addr4MapsMaxEntries()
+		maxEntries := kprobeEntry.loadArgs.selectors.entry.Addr4MapsMaxEntries()
 		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	maps = append(maps, addr4FilterMaps)
@@ -230,7 +234,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.Addr6MapsMaxEntries()
+		maxEntries := kprobeEntry.loadArgs.selectors.entry.Addr6MapsMaxEntries()
 		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	maps = append(maps, addr6FilterMaps)
@@ -242,7 +246,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := kprobeEntry.loadArgs.selectors.StringMapsMaxEntries(string_map_index)
+			maxEntries := kprobeEntry.loadArgs.selectors.entry.StringMapsMaxEntries(string_map_index)
 			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
 		}
 		maps = append(maps, stringFilterMap[string_map_index])
@@ -252,7 +256,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.StringPrefixMapsMaxEntries()
+		maxEntries := kprobeEntry.loadArgs.selectors.entry.StringPrefixMapsMaxEntries()
 		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	maps = append(maps, stringPrefixFilterMaps)
@@ -261,7 +265,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.StringPostfixMapsMaxEntries()
+		maxEntries := kprobeEntry.loadArgs.selectors.entry.StringPostfixMapsMaxEntries()
 		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
 	maps = append(maps, stringPostfixFilterMaps)
@@ -820,7 +824,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
+	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
 	if err != nil {
 		return errFn(err)
 	}
@@ -897,7 +901,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.MatchBinariesPathsMaxEntries())
+		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
 
@@ -966,7 +970,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 	}
 
 	if !load.RetProbe {
-		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix, 0)...)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors.entry, gk.pinPathPrefix, 0)...)
 	}
 
 	var configData bytes.Buffer
@@ -1001,7 +1005,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 		}
 
 		if !load.RetProbe {
-			load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors, gk.pinPathPrefix, uint32(index))...)
+			load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selectors.entry, gk.pinPathPrefix, uint32(index))...)
 		}
 
 		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
