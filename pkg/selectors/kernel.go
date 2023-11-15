@@ -1281,31 +1281,31 @@ func parseSelector(
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	kernelSelectors, err := InitKernelSelectorState(selectors, args, actionArgTable, nil, nil)
+	state, err := InitKernelSelectorState(selectors, args, actionArgTable, nil, nil)
 	if err != nil {
 		return [4096]byte{}, err
 	}
-	return kernelSelectors.data.e, nil
+	return state.data.e, nil
 }
 
 func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
-	kernelSelectors := NewKernelSelectorState(listReader, maps)
+	state := NewKernelSelectorState(listReader, maps)
 
-	WriteSelectorUint32(&kernelSelectors.data, uint32(len(selectors)))
+	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
 	for i := range selectors {
-		soff[i] = AdvanceSelectorLength(&kernelSelectors.data)
+		soff[i] = AdvanceSelectorLength(&state.data)
 	}
 	for i, s := range selectors {
-		WriteSelectorLength(&kernelSelectors.data, soff[i])
-		loff := AdvanceSelectorLength(&kernelSelectors.data)
-		if err := parseSelector(kernelSelectors, &s, i, args, actionArgTable); err != nil {
+		WriteSelectorLength(&state.data, soff[i])
+		loff := AdvanceSelectorLength(&state.data)
+		if err := parseSelector(state, &s, i, args, actionArgTable); err != nil {
 			return nil, err
 		}
-		WriteSelectorLength(&kernelSelectors.data, loff)
+		WriteSelectorLength(&state.data, loff)
 	}
-	return kernelSelectors, nil
+	return state, nil
 }
 
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
