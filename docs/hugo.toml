@@ -1,6 +1,6 @@
 baseURL = "/"
-title = "Tetragon"
-description = "eBPF-based Security Observability and Runtime Enforcement"
+title = "Tetragon - eBPF-based Security Observability and Runtime Enforcement"
+description = "Tetragon is a low overhead, flexible, and Kubernetes native security observability tool that applies policy and filtering directly in the kernel"
 
 # Language settings
 contentDir = "content/en"
@@ -45,8 +45,8 @@ anchor = "smart"
 
 [languages]
 [languages.en]
-title = "Tetragon"
-description = "eBPF-based Security Observability and Runtime Enforcement"
+title = "Tetragon - eBPF-based Security Observability and Runtime Enforcement"
+description = "Tetragon is a low overhead, flexible, and Kubernetes native security observability tool that applies policy and filtering directly in the kernel"
 languageName ="English"
 # Weight used for sorting.
 weight = 1
