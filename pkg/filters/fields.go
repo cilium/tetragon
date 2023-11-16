@@ -106,12 +106,10 @@ func NewExcludeFieldFilter(eventSet []tetragon.EventType, fields []string, inver
 
 // FieldFilterFromProto constructs a new FieldFilter from a Tetragon API field filter.
 func FieldFilterFromProto(filter *tetragon.FieldFilter) *FieldFilter {
-	var fields fmutils.NestedMask
+	var fields []string
 
 	if filter.Fields != nil {
-		fields = fmutils.NestedMaskFromPaths(filter.Fields.Paths)
-	} else {
-		fields = make(fmutils.NestedMask)
+		fields = filter.Fields.Paths
 	}
 
 	invert := false
@@ -119,12 +117,7 @@ func FieldFilterFromProto(filter *tetragon.FieldFilter) *FieldFilter {
 		invert = filter.InvertEventSet.Value
 	}
 
-	return &FieldFilter{
-		eventSet:       filter.EventSet,
-		fields:         fields,
-		action:         filter.Action,
-		invertEventSet: invert,
-	}
+	return NewFieldFilter(filter.EventSet, fields, filter.Action, invert)
 }
 
 // FieldFiltersFromGetEventsRequest returns a list of EventFieldFilter for
