@@ -14,7 +14,7 @@ func TestFixupSnakeCaseString(t *testing.T) {
 	s := "process.exec_id,process.binary,parent.exec_id,foo.bar_qux_baz,this_is_a_test"
 	expected := "process.execId,process.binary,parent.execId,foo.barQuxBaz,thisIsATest"
 
-	assert.Equal(t, expected, fixupSnakeCaseString(s))
+	assert.Equal(t, expected, fixupSnakeCaseString(s, false))
 }
 
 func TestParseFieldFilterList(t *testing.T) {

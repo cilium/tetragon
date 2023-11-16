@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -68,7 +69,7 @@ func TestEventFieldFilters(t *testing.T) {
 				EventSet: []tetragon.EventType{},
 				Fields: &fieldmaskpb.FieldMask{
 					Paths: []string{
-						"process",
+						"parent",
 						"process.pid",
 						"process.uid",
 						"process.pod",
@@ -92,9 +93,11 @@ func TestEventFieldFilters(t *testing.T) {
 	}
 
 	// Construct the filter
-	filters := FieldFiltersFromGetEventsRequest(request)
+	filters, err := FieldFiltersFromGetEventsRequest(request)
+	require.NoError(t, err)
 	for _, filter := range filters {
-		ev, _ = filter.Filter(ev)
+		ev, err = filter.Filter(ev)
+		assert.NoError(t, err)
 	}
 
 	// These fields should all have been included and so should not be empty
@@ -124,19 +127,22 @@ func TestFieldFilterByEventType(t *testing.T) {
 		},
 	}
 
-	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXIT}, []string{"process.pid"}, false)
+	filter, err := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXIT}, []string{"process.pid"}, false)
+	require.NoError(t, err)
 	ev, _ = filter.Filter(ev)
 
 	assert.NotEmpty(t, ev.GetProcessExec().Process.Pid)
 
-	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process.pid"}, false)
+	filter, err = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process.pid"}, false)
+	require.NoError(t, err)
 	ev, _ = filter.Filter(ev)
 
 	assert.Empty(t, ev.GetProcessExec().Process.Pid)
 }
 
 func TestEmptyFieldFilter(t *testing.T) {
-	filter := NewIncludeFieldFilter([]tetragon.EventType{}, []string{}, false)
+	filter, err := NewIncludeFieldFilter([]tetragon.EventType{}, []string{}, false)
+	require.NoError(t, err)
 
 	ev := &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -248,7 +254,8 @@ func TestFieldFilterInvertedEventSet(t *testing.T) {
 		},
 	}
 
-	filter := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process", "parent"}, true)
+	filter, err := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{"process", "parent"}, true)
+	require.NoError(t, err)
 	assert.True(t, proto.Equal(ev, expected), "events are equal before filter")
 	ev, _ = filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
@@ -268,7 +275,8 @@ func TestFieldFilterInvertedEventSet(t *testing.T) {
 		},
 	}
 
-	filter = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_KPROBE}, []string{"process", "parent"}, true)
+	filter, err = NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_KPROBE}, []string{"process", "parent"}, true)
+	require.NoError(t, err)
 	assert.False(t, proto.Equal(ev, expected), "events are not equal before filter")
 	ev, _ = filter.Filter(ev)
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
@@ -579,24 +587,26 @@ func TestSlimExecEventsFieldFilterExample(t *testing.T) {
 		},
 	}
 
-	filters := []*FieldFilter{
-		NewExcludeFieldFilter([]tetragon.EventType{}, []string{"parent"}, false),
-		NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{
-			"process.pid",
-			"process.uid",
-			"process.cwd",
-			"process.binary",
-			"process.arguments",
-			"process.flags",
-			"process.start_time",
-			"process.auid",
-			"process.pod",
-			"process.docker",
-			"process.refcnt",
-			"process.cap",
-			"process.ns",
-		}, true),
-	}
+	ff1, err := NewExcludeFieldFilter([]tetragon.EventType{}, []string{"parent"}, false)
+	require.NoError(t, err)
+	ff2, err := NewExcludeFieldFilter([]tetragon.EventType{tetragon.EventType_PROCESS_EXEC}, []string{
+		"process.pid",
+		"process.uid",
+		"process.cwd",
+		"process.binary",
+		"process.arguments",
+		"process.flags",
+		"process.start_time",
+		"process.auid",
+		"process.pod",
+		"process.docker",
+		"process.refcnt",
+		"process.cap",
+		"process.ns",
+	}, true)
+	require.NoError(t, err)
+
+	filters := []*FieldFilter{ff1, ff2}
 
 	for _, filter := range filters {
 		for i, ev := range evs {

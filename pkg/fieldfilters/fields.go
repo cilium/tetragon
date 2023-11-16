@@ -11,8 +11,7 @@ import (
 	"unicode"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/mennanov/fmutils"
-	"google.golang.org/protobuf/proto"
+	fieldmask_utils "github.com/mennanov/fieldmask-utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -41,13 +40,16 @@ func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
 	return results, nil
 }
 
-// Converts a string to snake case.
-func fixupSnakeCaseString(s string) string {
+// Converts a string to camel case.
+func fixupSnakeCaseString(s string, upper bool) string {
 	var builder strings.Builder
 
 	for i, r := range s {
 		if s[i] == '_' {
 			continue
+		}
+		if i == 0 && upper {
+			r = unicode.ToUpper(r)
 		}
 		if i != 0 && s[i-1] == '_' {
 			r = unicode.ToUpper(r)
@@ -80,7 +82,7 @@ func fixupFieldFilterString(s string) string {
 			return s
 		}
 
-		dat["fields"] = fixupSnakeCaseString(fields)
+		dat["fields"] = fixupSnakeCaseString(fields, false)
 		enc.Encode(&dat)
 	}
 
@@ -90,33 +92,48 @@ func fixupFieldFilterString(s string) string {
 // FieldFilter is a helper for filtering fields in events
 type FieldFilter struct {
 	eventSet       []tetragon.EventType
-	fields         fmutils.NestedMask
-	action         tetragon.FieldFilterAction
+	fields         fieldmask_utils.FieldFilter
 	invertEventSet bool
 }
 
 // NewFieldFilter constructs a new FieldFilter from a set of fields.
-func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetragon.FieldFilterAction, invertEventSet bool) *FieldFilter {
+func NewFieldFilter(eventSet []tetragon.EventType, fields []string, action tetragon.FieldFilterAction, invertEventSet bool) (*FieldFilter, error) {
+	var err error
+	var filter fieldmask_utils.FieldFilter
+	switch action {
+	case tetragon.FieldFilterAction_INCLUDE:
+		filter, err = fieldmask_utils.MaskFromPaths(fields, func(s string) string {
+			return fixupSnakeCaseString(s, true)
+		})
+	case tetragon.FieldFilterAction_EXCLUDE:
+		filter, err = fieldmask_utils.MaskInverseFromPaths(fields, func(s string) string {
+			return fixupSnakeCaseString(s, true)
+		})
+	default:
+		return nil, fmt.Errorf("invalid fieldfilter action: %v", action)
+	}
+	if err != nil {
+		return nil, err
+	}
 	return &FieldFilter{
 		eventSet:       eventSet,
-		fields:         fmutils.NestedMaskFromPaths(fields),
-		action:         action,
+		fields:         filter,
 		invertEventSet: invertEventSet,
-	}
+	}, nil
 }
 
 // NewIncludeFieldFilter constructs a new inclusion FieldFilter from a set of fields.
-func NewIncludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) *FieldFilter {
+func NewIncludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) (*FieldFilter, error) {
 	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_INCLUDE, invertEventSet)
 }
 
 // NewExcludeFieldFilter constructs a new exclusion FieldFilter from a set of fields.
-func NewExcludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) *FieldFilter {
+func NewExcludeFieldFilter(eventSet []tetragon.EventType, fields []string, invertEventSet bool) (*FieldFilter, error) {
 	return NewFieldFilter(eventSet, fields, tetragon.FieldFilterAction_EXCLUDE, invertEventSet)
 }
 
 // FieldFilterFromProto constructs a new FieldFilter from a Tetragon API field filter.
-func FieldFilterFromProto(filter *tetragon.FieldFilter) *FieldFilter {
+func FieldFilterFromProto(filter *tetragon.FieldFilter) (*FieldFilter, error) {
 	var fields []string
 
 	if filter.Fields != nil {
@@ -133,33 +150,31 @@ func FieldFilterFromProto(filter *tetragon.FieldFilter) *FieldFilter {
 
 // FieldFiltersFromGetEventsRequest returns a list of EventFieldFilter for
 // a GetEventsRequest.
-func FieldFiltersFromGetEventsRequest(request *tetragon.GetEventsRequest) []*FieldFilter {
+//
+// nolint:revive // revive complains about stutter
+func FieldFiltersFromGetEventsRequest(request *tetragon.GetEventsRequest) ([]*FieldFilter, error) {
 	var filters []*FieldFilter
 
 	for _, filter := range request.FieldFilters {
 		if filter == nil {
 			continue
 		}
-		filters = append(filters, FieldFilterFromProto(filter))
+
+		ff, err := FieldFilterFromProto(filter)
+		if err != nil {
+			return nil, err
+		}
+
+		filters = append(filters, ff)
 	}
 
-	return filters
+	return filters, nil
 }
 
 // Filter filters the fields in the GetEventsResponse, keeping fields specified in the
 // inclusion filter and discarding fields specified in the exclusion filter. Exclusion
 // takes precedence over inclusion and an empty filter set will keep all remaining fields.
 func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
-	// We need to deep copy the event here to avoid issues caused by filtering out
-	// information that is shared between events through the event cache (e.g. process
-	// info). This can cause segmentation faults and other nasty bugs. Avoid all that by
-	// doing a deep copy here before filtering.
-	//
-	// FIXME: We need to fix this so that it doesn't kill performance by doing a deep
-	// copy. This will require architectural changes to both the field filters and the
-	// event cache.
-	event = proto.Clone(event).(*tetragon.GetEventsResponse)
-
 	if len(f.eventSet) > 0 {
 		// skip filtering by default unless the event set is inverted, in which case we
 		// want to filter by default and skip only if we have a match
@@ -189,24 +204,22 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEv
 		}
 	}
 
-	rft := event.ProtoReflect()
-	rft.Range(func(eventDesc protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
-		if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
+	src := event.ProtoReflect()
+	dst := src.New()
+	var filterErr error
+	src.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if fd.ContainingOneof() == nil || !src.Has(fd) {
 			return true
 		}
-		event := rft.Mutable(eventDesc).Message().Interface()
-		switch f.action {
-		case tetragon.FieldFilterAction_INCLUDE:
-			f.fields.Filter(event)
-		default:
-			f.fields.Prune(event)
-		}
+		event := src.Get(fd).Message().Interface()
+		dstEvent := dst.Mutable(fd).Message().Interface()
+		filterErr = fieldmask_utils.StructToStruct(f.fields, event, dstEvent)
 		return true
 	})
 
-	if !rft.IsValid() {
+	if !src.IsValid() {
 		return nil, fmt.Errorf("invalid event after field filter")
 	}
 
-	return event, nil
+	return dst.Interface().(*tetragon.GetEventsResponse), filterErr
 }
