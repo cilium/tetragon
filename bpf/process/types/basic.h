@@ -1559,14 +1559,65 @@ generic_process_filter_binary(struct event_config *config)
 }
 
 static inline __attribute__((always_inline)) int
+filter_arg(struct selector_arg_filter *filter, struct msg_generic_kprobe *e, __u32 index)
+{
+	long argoff;
+	int pass = 1;
+	char *args;
+
+	asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
+		     :);
+	argoff = e->argsoff[index];
+	asm volatile("%[argoff] &= 0x7ff;\n" ::[argoff] "+r"(argoff)
+		     :);
+	args = &e->args[argoff];
+
+	switch (filter->type) {
+	case fd_ty:
+		/* Advance args past fd */
+		args += 4;
+	case file_ty:
+	case path_ty:
+		pass &= filter_file_buf(filter, (struct string_buf *)args);
+		break;
+	case string_type:
+		/* for strings, we just encode the length */
+		pass &= filter_char_buf(filter, args, 4);
+		break;
+	case char_buf:
+		/* for buffers, we just encode the expected length and the
+		 * length that was actually read (see: __copy_char_buf)
+		 */
+		pass &= filter_char_buf(filter, args, 8);
+		break;
+	case s64_ty:
+	case u64_ty:
+		pass &= filter_64ty(filter, args);
+		break;
+	case size_type:
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+		pass &= filter_32ty(filter, args);
+		break;
+	case skb_type:
+	case sock_type:
+		pass &= filter_inet(filter, args);
+	default:
+		break;
+	}
+
+	return pass;
+}
+
+static inline __attribute__((always_inline)) int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		    bool early_binary_filter)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
-	long seloff, argoff, argsoff, pass = 1, margsoff;
-	__u32 i = 0, index;
-	char *args;
+	long seloff, argsoff, pass = 1, margsoff;
+	__u32 i = 0;
 
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */
@@ -1612,51 +1663,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
 
-		index = filter->index;
-		if (index > 5)
+		if (filter->index > 5)
 			return 0;
 
-		asm volatile("%[index] &= 0x7;\n" ::[index] "+r"(index)
-			     :);
-		argoff = e->argsoff[index];
-		asm volatile("%[argoff] &= 0x7ff;\n" ::[argoff] "+r"(argoff)
-			     :);
-		args = &e->args[argoff];
-
-		switch (filter->type) {
-		case fd_ty:
-			/* Advance args past fd */
-			args += 4;
-		case file_ty:
-		case path_ty:
-			pass &= filter_file_buf(filter, (struct string_buf *)args);
-			break;
-		case string_type:
-			/* for strings, we just encode the length */
-			pass &= filter_char_buf(filter, args, 4);
-			break;
-		case char_buf:
-			/* for buffers, we just encode the expected length and the
-			 * length that was actually read (see: __copy_char_buf)
-			 */
-			pass &= filter_char_buf(filter, args, 8);
-			break;
-		case s64_ty:
-		case u64_ty:
-			pass &= filter_64ty(filter, args);
-			break;
-		case size_type:
-		case int_type:
-		case s32_ty:
-		case u32_ty:
-			pass &= filter_32ty(filter, args);
-			break;
-		case skb_type:
-		case sock_type:
-			pass &= filter_inet(filter, args);
-		default:
-			break;
-		}
+		pass &= filter_arg(filter, e, filter->index);
 	}
 	return pass ? seloff : 0;
 }
