@@ -2206,6 +2206,60 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 }
 
 static inline __attribute__((always_inline)) long
+filter_return_arg(void *ctx, struct bpf_map_def *heap,
+		  struct bpf_map_def *filter_map, struct bpf_map_def *tailcalls)
+{
+	struct selector_arg_filter *filter;
+	struct msg_generic_kprobe *e;
+	int pass = 1, zero = 0;
+	long seloff;
+	__u32 len;
+	__u8 *f;
+
+	e = map_lookup_elem(heap, &zero);
+	if (!e)
+		return 0;
+
+	/* No filters and no selectors so just accepts */
+	f = map_lookup_elem(filter_map, &e->idx);
+	if (!f)
+		return 1;
+
+	seloff = 4; /* start of the relative offsets */
+
+	// we support only one selector at the moment
+	// seloff += (selidx * 4); /* relative offset for this selector */
+
+	/* selector section offset by reading the relative offset in the array */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	// skip selector length
+	seloff += 4;
+
+	// check if there's return arg selector defined
+	len = *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
+	if (len > 4) {
+		// skip match return arg length
+		seloff += 4;
+
+		filter = (struct selector_arg_filter *)&f[seloff & INDEX_MASK];
+		pass = filter_arg(filter, e, 0);
+		if (!pass)
+			return filter_args_reject(e->func_id);
+	}
+
+	// If pass >1 then we need to consult the selector actions
+	// otherwise pass==1 indicates using default action.
+	if (pass > 1) {
+		e->pass = pass;
+		tail_call(ctx, tailcalls, 1);
+	}
+
+	tail_call(ctx, tailcalls, 2);
+	return 1;
+}
+
+static inline __attribute__((always_inline)) long
 generic_actions(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *filter,
 		struct bpf_map_def *tailcalls,
