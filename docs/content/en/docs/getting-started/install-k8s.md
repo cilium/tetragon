@@ -52,7 +52,15 @@ eksctl create cluster --name "${NAME}"
 {{% /tab %}}
 {{% tab Kind %}}
 
-Tetragon's correct operation depends on access to the host /proc filesystem. The following steps configure kind and Tetragon accordingly.
+```shell-session
+kind create cluster
+```
+{{% /tab %}}
+
+{{% tab "Kind (running on Linux)" %}}
+
+Tetragon's correct operation depends on access to the host /proc filesystem. The following steps
+configure kind and Tetragon accordingly when using a Linux system.
 
 ```shell-session
 cat <<EOF > kind-config.yaml
