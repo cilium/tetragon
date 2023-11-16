@@ -43,8 +43,12 @@ func (i *ioReaderClient) GetEvents(ctx context.Context, in *tetragon.GetEventsRe
 	if err != nil {
 		return nil, err
 	}
+	ffs, err := fieldfilters.FieldFiltersFromGetEventsRequest(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create field filters: %w", err)
+	}
 	i.allowlist = allowlist
-	i.fieldFilters = fieldfilters.FieldFiltersFromGetEventsRequest(in)
+	i.fieldFilters = ffs
 	if i.debug {
 		fmt.Fprintf(os.Stderr, "DEBUG: GetEvents request: %+v\n", in)
 	}
