@@ -216,7 +216,7 @@ generic_uprobe_actions(void *ctx)
 	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (void *)0);
+			       (void *)0, 12);
 }
 
 __attribute__((section("uprobe/12"), used)) int

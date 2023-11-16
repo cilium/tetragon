@@ -315,7 +315,7 @@ generic_tracepoint_actions(void *ctx)
 	return generic_actions(ctx, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&tp_calls,
-			       (void *)0);
+			       (void *)0, 12);
 }
 
 __attribute__((section("tracepoint/12"), used)) int

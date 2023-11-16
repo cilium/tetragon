@@ -2199,7 +2199,8 @@ static inline __attribute__((always_inline)) long
 generic_actions(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *filter,
 		struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks)
+		struct bpf_map_def *override_tasks,
+		int output_index)
 {
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
@@ -2233,7 +2234,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 
 	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
-		tail_call(ctx, tailcalls, 12);
+		tail_call(ctx, tailcalls, output_index);
 	return 1;
 }
 
