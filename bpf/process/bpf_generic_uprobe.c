@@ -145,7 +145,8 @@ generic_uprobe_filter_arg(void *ctx)
 	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&uprobe_calls,
-			       (struct bpf_map_def *)&config_map);
+			       (struct bpf_map_def *)&config_map,
+			       true);
 }
 
 __attribute__((section("uprobe/4"), used)) int

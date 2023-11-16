@@ -25,7 +25,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, 6);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } retkprobe_calls SEC(".maps");
@@ -160,11 +160,30 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->func_id = config->func_id;
 	e->common.size = size;
 
-	tail_call(ctx, &retkprobe_calls, 0);
+	tail_call(ctx, &retkprobe_calls, TAIL_CALL_ARGS);
 	return 1;
 }
 
-__attribute__((section("kprobe/0"), used)) int
+__attribute__((section("kprobe/3"), used)) int
+BPF_KRETPROBE(generic_retkprobe_filter_arg)
+{
+	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&retkprobe_calls,
+			       (struct bpf_map_def *)&config_map,
+			       false);
+}
+
+__attribute__((section("kprobe/4"), used)) int
+BPF_KRETPROBE(generic_retkprobe_actions)
+{
+	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
+			       (struct bpf_map_def *)&filter_map,
+			       (struct bpf_map_def *)&retkprobe_calls,
+			       NULL);
+}
+
+__attribute__((section("kprobe/5"), used)) int
 BPF_KRETPROBE(generic_retkprobe_output)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_KPROBE);
