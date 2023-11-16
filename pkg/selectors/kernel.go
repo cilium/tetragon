@@ -273,9 +273,9 @@ var selectorOpStringTable = map[uint32]string{
 
 func SelectorOp(op string) (uint32, error) {
 	switch op {
-	case "gt":
+	case "gt", "GT", "GreaterThan":
 		return SelectorOpGT, nil
-	case "lt":
+	case "lt", "LT", "LessThan":
 		return SelectorOpLT, nil
 	case "eq", "Equal":
 		return SelectorOpEQ, nil
