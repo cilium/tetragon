@@ -164,7 +164,10 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			}
 
 			// Filter the GetEventsResponse fields
-			filters := fieldfilters.FieldFiltersFromGetEventsRequest(request)
+			filters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
+			if err != nil {
+				return fmt.Errorf("failed to create field filters: %w", err)
+			}
 
 			for _, filter := range filters {
 				ev, err := filter.Filter(event)

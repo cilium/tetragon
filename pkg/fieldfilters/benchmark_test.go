@@ -126,10 +126,10 @@ func BenchmarkSerialize_FieldFilters(b *testing.B) {
 	gen := newRandomEventGenerator(b, Seed)
 	encoder := getEncoder()
 	evs := gen.GenerateN(b)
-	ff := NewExcludeFieldFilter([]tetragon.EventType{}, []string{}, false)
+	ff, err := NewExcludeFieldFilter([]tetragon.EventType{}, []string{}, false)
+	require.NoError(b, err)
 	b.StartTimer()
 
-	var err error
 	for i := 0; i < b.N; i++ {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
@@ -145,10 +145,10 @@ func BenchmarkSerialize_FieldFilters_NoProcessInfo(b *testing.B) {
 	gen := newRandomEventGenerator(b, Seed)
 	encoder := getEncoder()
 	evs := gen.GenerateN(b)
-	ff := NewExcludeFieldFilter([]tetragon.EventType{}, []string{"process", "parent"}, false)
+	ff, err := NewExcludeFieldFilter([]tetragon.EventType{}, []string{"process", "parent"}, false)
+	require.NoError(b, err)
 	b.StartTimer()
 
-	var err error
 	for i := 0; i < b.N; i++ {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
@@ -165,10 +165,10 @@ func BenchmarkSerialize_FieldFilters_NoProcesInfoKeepExecid(b *testing.B) {
 	gen := newRandomEventGenerator(b, Seed)
 	encoder := getEncoder()
 	evs := gen.GenerateN(b)
-	ff := NewExcludeFieldFilter([]tetragon.EventType{}, []string{"process.pid", "process.binary", "process.uid", "process.cwd", "process.arguments", "process.flags", "process.start_time", "process.auid", "process.pod", "process.docker", "process.refcnt", "process.cap", "process.ns", "process.tid", "process.process_credentials", "process.binary_properties", "parent.pid", "parent.binary", "parent.uid", "parent.cwd", "parent.arguments", "parent.flags", "parent.start_time", "parent.auid", "parent.pod", "parent.docker", "parent.refcnt", "parent.cap", "parent.ns", "parent.tid", "parent.parent_credentials", "parent.binary_properties"}, false)
+	ff, err := NewExcludeFieldFilter([]tetragon.EventType{}, []string{"process.pid", "process.binary", "process.uid", "process.cwd", "process.arguments", "process.flags", "process.start_time", "process.auid", "process.pod", "process.docker", "process.refcnt", "process.cap", "process.ns", "process.tid", "process.process_credentials", "process.binary_properties", "parent.pid", "parent.binary", "parent.uid", "parent.cwd", "parent.arguments", "parent.flags", "parent.start_time", "parent.auid", "parent.pod", "parent.docker", "parent.refcnt", "parent.cap", "parent.ns", "parent.tid", "parent.parent_credentials", "parent.binary_properties"}, false)
+	require.NoError(b, err)
 	b.StartTimer()
 
-	var err error
 	for i := 0; i < b.N; i++ {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
