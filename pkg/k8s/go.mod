@@ -8,10 +8,10 @@ require (
 	github.com/cilium/cilium v1.15.0-pre.2
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/sync v0.5.0
-	k8s.io/apiextensions-apiserver v0.28.3
-	k8s.io/apimachinery v0.28.3
-	k8s.io/client-go v0.28.3
-	k8s.io/code-generator v0.28.3
+	k8s.io/apiextensions-apiserver v0.28.4
+	k8s.io/apimachinery v0.28.4
+	k8s.io/client-go v0.28.4
+	k8s.io/code-generator v0.28.4
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -60,7 +60,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.28.3 // indirect
+	k8s.io/api v0.28.4 // indirect
 	k8s.io/gengo v0.0.0-20230306165830-ab3349d207d4 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect
