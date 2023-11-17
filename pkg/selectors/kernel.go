@@ -1349,6 +1349,22 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 	return createKernelSelectorState(selectors, listReader, maps, parse)
 }
 
+func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+
+	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
+			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable); err != nil {
+			return fmt.Errorf("parseMatchActions error: %w", err)
+		}
+		return nil
+	}
+
+	return createKernelSelectorState(selectors, listReader, maps, parse)
+}
+
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	for _, s := range spec.Selectors {
 		for _, action := range s.MatchActions {
