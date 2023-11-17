@@ -205,6 +205,70 @@ func multiKprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_kprobe")
 }
 
+func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprobe) []*program.Map {
+	var maps []*program.Map
+
+	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
+		argFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, argFilterMaps)
+
+	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
+	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.Addr4MapsMaxEntries()
+		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, addr4FilterMaps)
+
+	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
+	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.Addr6MapsMaxEntries()
+		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, addr6FilterMaps)
+
+	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
+	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
+		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
+			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
+		if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := kprobeEntry.loadArgs.selectors.StringMapsMaxEntries(string_map_index)
+			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
+		}
+		maps = append(maps, stringFilterMap[string_map_index])
+	}
+
+	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
+	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.StringPrefixMapsMaxEntries()
+		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, stringPrefixFilterMaps)
+
+	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
+	if kprobeEntry != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := kprobeEntry.loadArgs.selectors.StringPostfixMapsMaxEntries()
+		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, stringPostfixFilterMaps)
+
+	return maps
+}
+
 func createMultiKprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -250,39 +314,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	maps = append(maps, filterMap)
 
-	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
-	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-	// that we do not need to SetInnerMaxEntries() here.
-	maps = append(maps, argFilterMaps)
-
-	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
-	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-	// that we do not need to SetInnerMaxEntries() here.
-	maps = append(maps, addr4FilterMaps)
-
-	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
-	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-	// that we do not need to SetInnerMaxEntries() here.
-	maps = append(maps, addr6FilterMaps)
-
-	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
-	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
-		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
-			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
-		// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-		// that we do not need to SetInnerMaxEntries() here.
-		maps = append(maps, stringFilterMap[string_map_index])
-	}
-
-	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
-	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-	// that we do not need to SetInnerMaxEntries() here.
-	maps = append(maps, stringPrefixFilterMaps)
-
-	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
-	// NB: code depends on multi kprobe links which was merged in 5.17, so the expectation is
-	// that we do not need to SetInnerMaxEntries() here.
-	maps = append(maps, stringPostfixFilterMaps)
+	maps = append(maps, filterMaps(load, pinPath, nil)...)
 
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	maps = append(maps, retProbe)
@@ -847,63 +879,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	maps = append(maps, filterMap)
 
-	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.ValueMapsMaxEntries()
-		argFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, argFilterMaps)
-
-	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.Addr4MapsMaxEntries()
-		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, addr4FilterMaps)
-
-	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.Addr6MapsMaxEntries()
-		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, addr6FilterMaps)
-
-	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
-	for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
-		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
-			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := kprobeEntry.loadArgs.selectors.StringMapsMaxEntries(string_map_index)
-			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, stringFilterMap[string_map_index])
-	}
-
-	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.StringPrefixMapsMaxEntries()
-		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, stringPrefixFilterMaps)
-
-	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := kprobeEntry.loadArgs.selectors.StringPostfixMapsMaxEntries()
-		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, stringPostfixFilterMaps)
+	maps = append(maps, filterMaps(load, pinPath, kprobeEntry)...)
 
 	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
 	maps = append(maps, retProbe)
