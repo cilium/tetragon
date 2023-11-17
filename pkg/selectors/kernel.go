@@ -869,6 +869,26 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	return nil
 }
 
+func ParseMatchReturnArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, returnArg *v1alpha1.KProbeArg) error {
+	if len(args) > 1 {
+		return fmt.Errorf("ParseMatchReturnArgs: supports up to %d filters (%d provided)", 1, len(args))
+	}
+
+	loff := AdvanceSelectorLength(&k.data)
+
+	if len(args) == 1 {
+		if returnArg == nil {
+			return fmt.Errorf("ParseMatchReturnArgs: returnArg is not defined")
+		}
+		if err := ParseMatchArg(k, &args[0], kprobeArgType(returnArg.Type)); err != nil {
+			return err
+		}
+	}
+
+	WriteSelectorLength(&k.data, loff)
+	return nil
+}
+
 // User specifies rateLimit in seconds, minutes or hours, but we store it in milliseconds.
 func parseRateLimit(str string) (uint32, error) {
 	multiplier := uint32(0)
@@ -1301,6 +1321,22 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+			return fmt.Errorf("parseMatchActions error: %w", err)
+		}
+		return nil
+	}
+
+	return createKernelSelectorState(selectors, listReader, maps, parse)
+}
+
+func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+
+	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchReturnArgs(k, selector.MatchReturnArgs, returnArg); err != nil {
+			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchActions(k, selector.MatchActions, actionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
