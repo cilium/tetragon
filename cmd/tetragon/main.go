@@ -324,9 +324,6 @@ func tetragonExecute() error {
 	if err := obs.InitSensorManager(sensorMgWait); err != nil {
 		return err
 	}
-	defer func() {
-		observer.RemoveSensors(ctx)
-	}()
 
 	/* Remove any stale programs, otherwise feature set change can cause
 	 * old programs to linger resulting in undefined behavior. And because
@@ -472,6 +469,9 @@ func tetragonExecute() error {
 	close(sensorMgWait)
 	sensorMgWait = nil
 	observer.GetSensorManager().LogSensorsAndProbes(ctx)
+	defer func() {
+		observer.RemoveSensors(ctx)
+	}()
 
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
 	if err != nil {
