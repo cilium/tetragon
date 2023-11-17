@@ -1217,6 +1217,11 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap) 0
 #endif /* __LARGE_BPF_PROG */
 
+static inline __attribute__((always_inline)) bool is_signed_type(int type)
+{
+	return type == s32_ty || type == s64_ty || type == int_type;
+}
+
 // filter on values provided in the selector itself
 static inline __attribute__((always_inline)) long
 filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
@@ -1230,6 +1235,26 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 		bool res;
 
 		switch (filter->op) {
+#ifdef __LARGE_BPF_PROG
+		case op_filter_lt:
+			if (is_signed_type(filter->type)) {
+				if (*(s64 *)args < (u64)w)
+					return 1;
+			} else {
+				if (*(u64 *)args < w)
+					return 1;
+			}
+			break;
+		case op_filter_gt:
+			if (is_signed_type(filter->type)) {
+				if (*(s64 *)args > (s64)w)
+					return 1;
+			} else {
+				if (*(u64 *)args > w)
+					return 1;
+			}
+			break;
+#endif // __LARGE_BPF_PROG
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u64 *)args == w);
@@ -1280,6 +1305,8 @@ static inline __attribute__((always_inline)) long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
+	case op_filter_lt:
+	case op_filter_gt:
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
@@ -1304,6 +1331,26 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 		bool res;
 
 		switch (filter->op) {
+#ifdef __LARGE_BPF_PROG
+		case op_filter_lt:
+			if (is_signed_type(filter->type)) {
+				if (*(s32 *)args < (s32)w)
+					return 1;
+			} else {
+				if (*(u32 *)args < w)
+					return 1;
+			}
+			break;
+		case op_filter_gt:
+			if (is_signed_type(filter->type)) {
+				if (*(s32 *)args > (s32)w)
+					return 1;
+			} else {
+				if (*(u32 *)args > w)
+					return 1;
+			}
+			break;
+#endif // __LARGE_BPF_PROG
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u32 *)args == w);
@@ -1362,6 +1409,8 @@ static inline __attribute__((always_inline)) long
 filter_32ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
+	case op_filter_lt:
+	case op_filter_gt:
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
