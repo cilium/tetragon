@@ -1491,6 +1491,9 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 }
 
 func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support GT/LT matching")
+	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
@@ -1524,6 +1527,9 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support GT/LT matching")
+	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
@@ -1535,6 +1541,9 @@ func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support GT/LT matching")
+	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
@@ -1559,6 +1568,9 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support GT/LT matching")
+	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	path := dir + "/testfile"

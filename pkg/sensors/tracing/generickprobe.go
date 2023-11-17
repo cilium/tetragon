@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -107,11 +106,6 @@ type genericKprobe struct {
 	argSigPrinters    []argPrinters
 	argReturnPrinters []argPrinters
 	funcName          string
-
-	// userReturnFilters are filter specs implemented in userspace after
-	// receiving events on the return value. We currently use this for return
-	// arg filtering.
-	userReturnFilters []v1alpha1.ArgSelector
 
 	// for kprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
@@ -530,14 +524,6 @@ func flagsString(flags uint32) string {
 	return s
 }
 
-func isGTOperator(op string) bool {
-	return op == "GT" || op == "GreaterThan"
-}
-
-func isLTOperator(op string) bool {
-	return op == "LT" || op == "LessThan"
-}
-
 type addKprobeIn struct {
 	useMulti      bool
 	sensorPath    string
@@ -792,27 +778,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		}
 	}
 
-	// Copy over userspace return filters
-	var userReturnFilters []v1alpha1.ArgSelector
-	for _, s := range f.Selectors {
-		for _, returnArg := range s.MatchReturnArgs {
-			// we allow integer values so far
-			for _, v := range returnArg.Values {
-				if _, err := strconv.Atoi(v); err != nil {
-					return errFn(fmt.Errorf("ReturnArg value supports only integer values, got %s", v))
-				}
-			}
-			// only single value for GT,LT operators
-			if isGTOperator(returnArg.Operator) || isLTOperator(returnArg.Operator) {
-				if len(returnArg.Values) > 1 {
-					return errFn(fmt.Errorf("ReturnArg operater '%s' supports only single value, got %d",
-						returnArg.Operator, len(returnArg.Values)))
-				}
-			}
-			userReturnFilters = append(userReturnFilters, returnArg)
-		}
-	}
-
 	// Write attributes into BTF ptr for use with load
 	if !setRetprobe {
 		setRetprobe = f.Return
@@ -838,7 +803,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		},
 		argSigPrinters:    argSigPrinters,
 		argReturnPrinters: argReturnPrinters,
-		userReturnFilters: userReturnFilters,
 		funcName:          funcName,
 		pendingEvents:     nil,
 		tableId:           idtable.UninitializedEntryID,
@@ -1611,7 +1575,6 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 	// Cache return value on merge and run return filters below before
 	// passing up to notify hooks.
-	var retArg *api.MsgGenericKprobeArg
 
 	// there are two events for this probe (entry and return)
 	if gk.loadArgs.retprobe {
@@ -1622,7 +1585,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 		if prev, exists := gk.pendingEvents.Get(key); exists {
 			gk.pendingEvents.Remove(key)
-			unix, retArg = retprobeMerge(prev, curr)
+			unix = retprobeMerge(prev, curr)
 		} else {
 			gk.pendingEvents.Add(key, curr)
 			kprobemetrics.MergePushedInc()
@@ -1638,90 +1601,8 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	// a filter we wouldn't be able to cleanup initial event from entry.
 	// Alternatively, some actions have no kernel analog, such as pause
 	// pod.
-	if filterReturnArg(gk.userReturnFilters, retArg) {
-		return []observer.Event{}, err
-	}
 
 	return []observer.Event{unix}, err
-}
-
-func filterReturnArg(userReturnFilters []v1alpha1.ArgSelector, retArg *api.MsgGenericKprobeArg) bool {
-	// Short circuit, returnFilter indicates we should eat this event.
-	if retArg == nil {
-		return false
-	}
-
-	// If no filters are specified default to allow.
-	if len(userReturnFilters) == 0 {
-		return false
-	}
-
-	// Multiple selectors will be logical OR together.
-	for _, uFilter := range userReturnFilters {
-		// MatchPIDs only supported in kernel space because we have
-		// full support back to 4.14 kernels.
-
-		// MatchArgs handlers, uFilters only necessary for return
-		// arg filters at the moment. Also we simply assume its an
-		// int which is naive, but good enough someone should devote
-		// more time to make this amazing tech(tm).
-		switch uFilter.Operator {
-		case "Equal":
-			// If retarg Equals any value in the set {Values} accept event
-			for _, v := range uFilter.Values {
-				if vint, err := strconv.Atoi(v); err == nil {
-					switch compare := (*retArg).(type) {
-					case api.MsgGenericKprobeArgInt:
-						if vint == int(compare.Value) {
-							return false
-						}
-					}
-				}
-			}
-		case "NotEqual":
-			inSet := false
-			for _, v := range uFilter.Values {
-				if vint, err := strconv.Atoi(v); err == nil {
-					switch compare := (*retArg).(type) {
-					case api.MsgGenericKprobeArgInt:
-						if vint == int(compare.Value) {
-							inSet = true
-						}
-					}
-				}
-			}
-			// If retarg was not in set {Values} accept event
-			if !inSet {
-				return false
-			}
-		}
-		if isGTOperator(uFilter.Operator) {
-			for _, v := range uFilter.Values {
-				if vint, err := strconv.Atoi(v); err == nil {
-					switch compare := (*retArg).(type) {
-					case api.MsgGenericKprobeArgInt:
-						if vint < int(compare.Value) {
-							return false
-						}
-					}
-				}
-			}
-		}
-		if isLTOperator(uFilter.Operator) {
-			for _, v := range uFilter.Values {
-				if vint, err := strconv.Atoi(v); err == nil {
-					switch compare := (*retArg).(type) {
-					case api.MsgGenericKprobeArgInt:
-						if vint > int(compare.Value) {
-							return false
-						}
-					}
-				}
-			}
-		}
-	}
-	// We walked all selectors and no selectors matched, eat the event.
-	return true
 }
 
 func reportMergeError(curr pendingEvent, prev pendingEvent) {
@@ -1753,9 +1634,8 @@ func reportMergeError(curr pendingEvent, prev pendingEvent) {
 }
 
 // retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
-func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKprobeUnix, *api.MsgGenericKprobeArg) {
+func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKprobeUnix {
 	var retEv, enterEv *tracing.MsgGenericKprobeUnix
-	var ret *api.MsgGenericKprobeArg
 
 	if prev.returnEvent && !curr.returnEvent {
 		retEv = prev.ev
@@ -1765,7 +1645,7 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 		enterEv = prev.ev
 	} else {
 		reportMergeError(curr, prev)
-		return nil, nil
+		return nil
 	}
 
 	kprobemetrics.MergeOkTotalInc()
@@ -1776,10 +1656,9 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 			enterEv.Args[index] = retArg
 		} else {
 			enterEv.Args = append(enterEv.Args, retArg)
-			ret = &retArg
 		}
 	}
-	return enterEv, ret
+	return enterEv
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
