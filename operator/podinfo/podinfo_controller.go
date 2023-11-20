@@ -55,8 +55,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// Error fetching the pod info. Try again later.
 			return ctrl.Result{}, err
 		}
+		l.Info("get %s returned not found", req.NamespacedName)
 		// Pod info does not exist. Create it.
-		return ctrl.Result{}, r.Create(ctx, generatePodInfo(pod))
+		err = r.Create(ctx, generatePodInfo(pod))
+		l.Info("create %s returned %s", req.NamespacedName, err)
+		return ctrl.Result{}, err
 	}
 	if !equal(pod, podInfo) {
 		updatedPodInfo := generatePodInfo(pod)
