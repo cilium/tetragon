@@ -17,7 +17,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.14.1-0.20231113162313-11eadc05e9bf // indirect
+	golang.org/x/sys v0.14.1-0.20231118010836-13b15b780d90 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
