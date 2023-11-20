@@ -58,6 +58,9 @@ func TestKillerOverride(t *testing.T) {
 	if !bpf.HasOverrideHelper() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
 	configHook := `
@@ -117,6 +120,9 @@ spec:
 func TestKillerSignal(t *testing.T) {
 	if !bpf.HasOverrideHelper() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
+	}
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
