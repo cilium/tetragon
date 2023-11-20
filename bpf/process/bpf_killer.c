@@ -20,8 +20,10 @@ killer(void *ctx)
 
 	if (data->error)
 		override_return(ctx, data->error);
+#ifdef __LARGE_BPF_PROG
 	if (data->signal)
 		send_signal(data->signal);
+#endif
 
 	map_delete_elem(&killer_data, &id);
 	return 0;
