@@ -56,7 +56,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, err
 		}
 		// Pod info does not exist. Create it.
-		return ctrl.Result{}, r.Create(ctx, generatePodInfo(pod))
+		err = r.Create(ctx, generatePodInfo(pod))
+		if errors.IsAlreadyExists(err) {
+			// Sometimes Create fails with "AlreadyExists" error even though the
+			// previous call to Get returned "NotFound" because of a timing issue.
+			// Requeue without returning the error when this happens, otherwise
+			// the controller logs an error.
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, err
 	}
 	if !equal(pod, podInfo) {
 		updatedPodInfo := generatePodInfo(pod)
