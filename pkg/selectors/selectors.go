@@ -49,7 +49,7 @@ const (
 	stringMapsKeyIncSize   = 24
 	StringMapsNumSubMaps   = 6
 	MaxStringMapsSize      = 6*stringMapsKeyIncSize + 1
-	StringPrefixMaxLength  = 128
+	StringPrefixMaxLength  = 256
 	StringPostfixMaxLength = 128
 )
 
