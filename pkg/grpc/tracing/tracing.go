@@ -302,6 +302,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Args:         tetragonArgs,
 		Return:       tetragonReturnArg,
 		Action:       kprobeAction(event.Action),
+		ReturnAction: kprobeAction(event.ReturnAction),
 		StackTrace:   stackTrace,
 		PolicyName:   event.PolicyName,
 	}
@@ -470,6 +471,7 @@ type MsgGenericKprobeUnix struct {
 	Capabilities processapi.MsgCapabilities
 	Id           uint64
 	Action       uint64
+	ReturnAction uint64
 	Tid          uint32
 	FuncName     string
 	Args         []tracingapi.MsgGenericKprobeArg
