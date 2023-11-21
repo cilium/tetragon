@@ -143,16 +143,23 @@ machines, here is a list of popular open source projects that you can use:
 You can use these solutions to run a [recent Linux distribution](https://github.com/libbpf/libbpf#bpf-co-re-compile-once--run-everywhere)
 that ships with BTF debug information support.
 
-Please note that you cannot use Docker Desktop on macOS, because the Linux
-virtual machine provided by Docker lacks support for the BTF debug information.
+Please note that you need to use a recent Docker Desktop version on macOS (for example `24.0.6`
+with Kernel `6.4.16-linuxkit`), because the Linux
+virtual machine provided by older Docker Desktop versions lacked support for the BTF debug information.
 The BTF debug information file is needed for [CO-RE](https://nakryiko.com/posts/bpf-portability-and-co-re/)
-in order to load sensors of Tetragon. While it is technically possible to
-manually generate the BTF metadata, you will need the kernel debug symbols, and
-[Docker stopped pushing](https://hub.docker.com/r/linuxkit/kernel) the kernel
-images containing those debug symbols.
+in order to load sensors of Tetragon. Run the following commands to see if Tetragon can be used on your Docker Desktop version:
 
-Issues are open on the GitHub repository for [Docker Desktop on macOS](https://github.com/docker/for-mac/issues/6800)
-and [linuxkit](https://github.com/linuxkit/linuxkit/issues/3755), the project
-used to build the kernel used by Docker Desktop. If you would like Docker
-Desktop to support BTF, feel free to support those issues.
+```shell
+# The Kernel needs to be compiled with CONFIG_DEBUG_INFO_BTF and
+# CONFIG_DEBUG_INFO_BTF_MODULES support:
+$ docker run -it --rm --privileged --pid=host ubuntu \
+    nsenter -t 1 -m -u -n -i sh -c \
+    'cat /proc/config.gz | gunzip | grep CONFIG_DEBUG_INFO_BTF'
+CONFIG_DEBUG_INFO_BTF=y
+CONFIG_DEBUG_INFO_BTF_MODULES=y
 
+# "/sys/kernel/btf/vmlinux" should be present:
+$ docker run -it --rm --privileged --pid=host ubuntu \
+    nsenter -t 1 -m -u -n -i sh -c 'ls -la /sys/kernel/btf/vmlinux'
+-r--r--r--    1 root     root       4988627 Nov 21 20:33 /sys/kernel/btf/vmlinux
+```
