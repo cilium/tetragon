@@ -138,7 +138,7 @@ struct {
 	__uint(value_size, 512);
 } string_maps_ro_zero SEC(".maps");
 
-#define STRING_PREFIX_MAX_LENGTH 128
+#define STRING_PREFIX_MAX_LENGTH 256
 
 struct string_prefix_lpm_trie {
 	__u32 prefixlen;

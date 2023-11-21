@@ -412,7 +412,7 @@ func populateStringPrefixFilterMap(
 	innerSpec := &ebpf.MapSpec{
 		Name:       innerName,
 		Type:       ebpf.LPMTrie,
-		KeySize:    4 + selectors.StringPrefixMaxLength, // NB: KernelLpmTrieStringPrefix consists of 32bit prefix and 128 byte data
+		KeySize:    4 + selectors.StringPrefixMaxLength, // NB: KernelLpmTrieStringPrefix consists of 32bit prefix and 256 byte data
 		ValueSize:  uint32(1),
 		MaxEntries: maxEntries,
 		Flags:      bpf.BPF_F_NO_PREALLOC,
