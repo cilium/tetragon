@@ -792,6 +792,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the kprobe matched. |
 | stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | Kernel stack trace to the call. |
 | policy_name | [string](#string) |  | Name of the Tracing Policy that created that kprobe. |
+| return_action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the return kprobe executed. |
 
 
 

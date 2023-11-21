@@ -425,6 +425,8 @@ message ProcessKprobe {
     repeated StackTraceEntry stack_trace = 7;
     // Name of the Tracing Policy that created that kprobe.
     string policy_name = 8;
+    // Action performed when the return kprobe executed.
+    KprobeAction return_action = 9;
 }
 
 message ProcessTracepoint {
