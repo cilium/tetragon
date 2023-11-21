@@ -518,6 +518,73 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyKiller
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                stackTrace:
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
                               ANDed.
@@ -1069,6 +1136,73 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyKiller
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                stackTrace:
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
                               ANDed.
@@ -1442,6 +1576,73 @@ spec:
                               required:
                               - operator
                               - values
+                              type: object
+                            type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyKiller
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                stackTrace:
+                                  description: Enable stack trace export. Only valid
+                                    with the post action.
+                                  type: boolean
+                              required:
+                              - action
                               type: object
                             type: array
                           matchReturnArgs:

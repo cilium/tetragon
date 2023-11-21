@@ -104,6 +104,9 @@ type KProbeSelector struct {
 	// A list of argument filters. MatchArgs are ANDed.
 	MatchReturnArgs []ArgSelector `json:"matchReturnArgs,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of actions to execute when MatchReturnArgs selector matches
+	MatchReturnActions []ActionSelector `json:"matchReturnActions,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of binary exec name filters.
 	MatchBinaries []BinarySelector `json:"matchBinaries,omitempty"`
 	// +kubebuilder:validation:Optional
