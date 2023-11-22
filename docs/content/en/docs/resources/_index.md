@@ -9,6 +9,8 @@ description: "Additional resources to learn about Tetragon"
 
 | Title | Authors | Conference | Date |
 | ----- | ------- | ---------- | ---- |
+| [Past, Present, Future of Tetragon- First Production Use Cases, Lessons Learnt, Where Are We Heading? ](https://youtu.be/2BIe4VmSYyQ)                        | John Fastabend & Natália Réka Ivánkó | KubeCon EU                                        | 2023 |
+| [eBPF and Kubernetes — Better Together! Observability and Security with Tetragon](https://youtu.be/oU7dPKoVfm4)                                              | Anna Kapuścińska & James Laverack    | Kubernetes Community Days UK                      | 2023 |
 | [The Next Log4jshell?! Preparing for CVEs with eBPF!](https://youtu.be/u8HKg5pENj4)                                                                          | John Fastabend & Natália Réka Ivánkó | KubeCon EU                                        | 2023 |
 | [Tutorial: Getting Familiar with Security Observability Using eBPF & Cilium Tetragon](https://youtu.be/kTGU-Nc2Db0)                                          | Duffie Cooley & Raphaël Pinson       | KubeCon EU                                        | 2023 |
 | [Securing the Superpowers: Who Loaded That eBPF Program?](https://www.youtube.com/watch?v=UBVTJ0LeXxc)                                                       | John Fastabend & Natália Réka Ivánkó | CloudNative SecurityCon NA                        | 2023 |
@@ -23,6 +25,8 @@ description: "Additional resources to learn about Tetragon"
 [Security Observability with eBPF](https://isovalent.com/ebpf-security/) - Jed Salazar & Natália Réka Ivánkó, OReilly, 2022
 
 ### Blog posts
+
+[Tetragon 1.0: Kubernetes Security Observability & Runtime Enforcement with eBPF](https://isovalent.com/blog/post/tetragon-release-10/) - Thomas Graf, 2023
 
 [Tutorial: Setting Up a Cybersecurity Honeypot with Tetragon to Trigger Canary Tokens](https://isovalent.com/blog/post/tetragon-canary-tokens-tutorial/) - Dean Lewis, 2023
 
