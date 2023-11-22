@@ -183,7 +183,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;
-	msg->sel.pass = 0;
+	msg->sel.pass = false;
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&msg->ns, task);

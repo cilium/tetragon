@@ -23,7 +23,7 @@
 
 struct msg_selector_data {
 	__u64 curr;
-	__u64 pass;
+	bool pass;
 	bool active[MAX_CONFIGURED_SELECTORS];
 #ifdef __NS_CHANGES_FILTER
 	__u64 match_ns;
