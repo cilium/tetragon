@@ -89,7 +89,7 @@ generic_uprobe_start_process_filter(void *ctx)
 	if (!generic_process_filter_binary(config))
 		return 0;
 	/* Tail call into filters. */
-	tail_call(ctx, &uprobe_calls, 5);
+	tail_call(ctx, &uprobe_calls, 2);
 	return 0;
 }
 
@@ -100,7 +100,7 @@ generic_uprobe_event(struct pt_regs *ctx)
 }
 
 __attribute__((section("uprobe/0"), used)) int
-generic_uprobe_process_event0(void *ctx)
+generic_uprobe_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(
 		ctx, (struct bpf_map_def *)&process_call_heap,
@@ -109,42 +109,15 @@ generic_uprobe_process_event0(void *ctx)
 }
 
 __attribute__((section("uprobe/1"), used)) int
-generic_uprobe_process_event1(void *ctx)
+generic_uprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx, 1,
+	return generic_process_event(ctx,
 				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
 				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("uprobe/2"), used)) int
-generic_uprobe_process_event2(void *ctx)
-{
-	return generic_process_event(ctx, 2,
-				     (struct bpf_map_def *)&process_call_heap,
-				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("uprobe/3"), used)) int
-generic_uprobe_process_event3(void *ctx)
-{
-	return generic_process_event(ctx, 3,
-				     (struct bpf_map_def *)&process_call_heap,
-				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("uprobe/4"), used)) int
-generic_uprobe_process_event4(void *ctx)
-{
-	return generic_process_event(ctx, 4,
-				     (struct bpf_map_def *)&process_call_heap,
-				     (struct bpf_map_def *)&uprobe_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("uprobe/5"), used)) int
 generic_uprobe_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
@@ -157,7 +130,7 @@ generic_uprobe_process_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &uprobe_calls, 5);
+		tail_call(ctx, &uprobe_calls, 2);
 	else if (ret == PFILTER_ACCEPT)
 		tail_call(ctx, &uprobe_calls, 0);
 	/* If filter does not accept drop it. Ideally we would
@@ -166,7 +139,7 @@ generic_uprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("uprobe/6"), used)) int
+__attribute__((section("uprobe/3"), used)) int
 generic_uprobe_filter_arg(void *ctx)
 {
 	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
@@ -175,7 +148,7 @@ generic_uprobe_filter_arg(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("uprobe/7"), used)) int
+__attribute__((section("uprobe/4"), used)) int
 generic_uprobe_actions(void *ctx)
 {
 	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
@@ -184,7 +157,7 @@ generic_uprobe_actions(void *ctx)
 			       (void *)0);
 }
 
-__attribute__((section("uprobe/8"), used)) int
+__attribute__((section("uprobe/5"), used)) int
 generic_uprobe_output(void *ctx)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_UPROBE);
