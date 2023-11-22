@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
+
 package test
 
 // Test sensor that uses an lseek hook that generates TEST events when BogusFd
