@@ -66,7 +66,7 @@ generic_uprobe_start_process_filter(void *ctx)
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;
 	/* Initialize accept field to reject */
-	msg->sel.pass = 0;
+	msg->sel.pass = false;
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&msg->ns, task);
