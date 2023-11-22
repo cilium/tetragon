@@ -12,26 +12,26 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-type kprobeOptions struct {
+type specOptions struct {
 	DisableKprobeMulti bool
 }
 
 type opt struct {
-	set func(val string, options *kprobeOptions) error
+	set func(val string, options *specOptions) error
 }
 
 // Allowed kprobe options
 var opts = map[string]opt{
 	option.KeyDisableKprobeMulti: opt{
-		set: func(str string, options *kprobeOptions) (err error) {
+		set: func(str string, options *specOptions) (err error) {
 			options.DisableKprobeMulti, err = strconv.ParseBool(str)
 			return err
 		},
 	},
 }
 
-func getKprobeOptions(specs []v1alpha1.OptionSpec) (*kprobeOptions, error) {
-	options := &kprobeOptions{}
+func getSpecOptions(specs []v1alpha1.OptionSpec) (*specOptions, error) {
+	options := &specOptions{}
 
 	for _, spec := range specs {
 		opt, ok := opts[spec.Name]

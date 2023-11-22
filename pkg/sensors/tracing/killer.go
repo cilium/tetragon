@@ -48,7 +48,7 @@ func (k killerSensor) PolicyHandler(
 	}
 	if len(spec.Killers) > 0 {
 		name := fmt.Sprintf("killer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return createKillerSensor(spec.Killers, spec.Lists, name)
+		return createKillerSensor(spec.Killers, spec.Lists, spec.Options, name)
 	}
 
 	return nil, nil
@@ -96,6 +96,7 @@ func unloadKiller() error {
 func createKillerSensor(
 	killers []v1alpha1.KillerSpec,
 	lists []v1alpha1.ListSpec,
+	opts []v1alpha1.OptionSpec,
 	name string,
 ) (*sensors.Sensor, error) {
 
@@ -140,8 +141,16 @@ func createKillerSensor(
 	var load *program.Program
 	var progs []*program.Program
 	var maps []*program.Map
+	var useMulti bool
 
-	useMulti := !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+	specOpts, err := getSpecOptions(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spec options: %s", err)
+	}
+
+	if !specOpts.DisableKprobeMulti {
+		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+	}
 
 	attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
 	prog := sensors.PathJoin(name, "killer_kprobe")
