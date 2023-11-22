@@ -420,34 +420,30 @@ func TestLoadTracepointSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		0: tus.SensorProg{Name: "generic_tracepoint_event", Type: ebpf.TracePoint},
 		1: tus.SensorProg{Name: "generic_tracepoint_arg", Type: ebpf.TracePoint},
-		2: tus.SensorProg{Name: "generic_tracepoint_event0", Type: ebpf.TracePoint},
-		3: tus.SensorProg{Name: "generic_tracepoint_event1", Type: ebpf.TracePoint},
-		4: tus.SensorProg{Name: "generic_tracepoint_event2", Type: ebpf.TracePoint},
-		5: tus.SensorProg{Name: "generic_tracepoint_event3", Type: ebpf.TracePoint},
-		6: tus.SensorProg{Name: "generic_tracepoint_event4", Type: ebpf.TracePoint},
-		7: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
-		8: tus.SensorProg{Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
-		9: tus.SensorProg{Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
+		2: tus.SensorProg{Name: "generic_tracepoint_process_event", Type: ebpf.TracePoint},
+		3: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
+		4: tus.SensorProg{Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
+		5: tus.SensorProg{Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all programs
-		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
+		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// all but generic_tracepoint_output
-		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}},
+		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}},
 
 		// only generic_tracepoint_event*
-		tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 3, 4, 5, 6}},
+		tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2}},
 
 		// all but generic_tracepoint_event,generic_tracepoint_filter
-		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 3, 4, 5, 6}},
+		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2}},
 
 		// generic_tracepoint_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{9}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{5}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 		// generic_tracepoint_event
 		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
@@ -455,10 +451,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 7, 8, 9}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3, 4, 5}})
 	} else {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 7}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3}})
 	}
 
 	readHook := `

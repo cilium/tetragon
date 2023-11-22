@@ -196,51 +196,19 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	tail_call(ctx, &tp_calls, 5);
+	tail_call(ctx, &tp_calls, 2);
 	return 0;
 }
 
-__attribute__((section("tracepoint/0"), used)) int
-generic_tracepoint_event0(void *ctx)
-{
-	return generic_process_event(ctx, 0, (struct bpf_map_def *)&tp_heap,
-				     (struct bpf_map_def *)&tp_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
 __attribute__((section("tracepoint/1"), used)) int
-generic_tracepoint_event1(void *ctx)
+generic_tracepoint_process_event(void *ctx)
 {
-	return generic_process_event(ctx, 1, (struct bpf_map_def *)&tp_heap,
+	return generic_process_event(ctx, (struct bpf_map_def *)&tp_heap,
 				     (struct bpf_map_def *)&tp_calls,
 				     (struct bpf_map_def *)&config_map, 0);
 }
 
 __attribute__((section("tracepoint/2"), used)) int
-generic_tracepoint_event2(void *ctx)
-{
-	return generic_process_event(ctx, 2, (struct bpf_map_def *)&tp_heap,
-				     (struct bpf_map_def *)&tp_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("tracepoint/3"), used)) int
-generic_tracepoint_event3(void *ctx)
-{
-	return generic_process_event(ctx, 3, (struct bpf_map_def *)&tp_heap,
-				     (struct bpf_map_def *)&tp_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("tracepoint/4"), used)) int
-generic_tracepoint_event4(void *ctx)
-{
-	return generic_process_event(ctx, 4, (struct bpf_map_def *)&tp_heap,
-				     (struct bpf_map_def *)&tp_calls,
-				     (struct bpf_map_def *)&config_map, 0);
-}
-
-__attribute__((section("tracepoint/5"), used)) int
 generic_tracepoint_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
@@ -253,9 +221,9 @@ generic_tracepoint_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &tp_calls, 5);
+		tail_call(ctx, &tp_calls, 2);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &tp_calls, 0);
+		tail_call(ctx, &tp_calls, 1);
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
@@ -265,7 +233,7 @@ generic_tracepoint_filter(void *ctx)
 // Filter tailcalls: tracepoint/6...tracepoint/10
 // see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
 
-__attribute__((section("tracepoint/6"), used)) int
+__attribute__((section("tracepoint/3"), used)) int
 generic_tracepoint_arg(void *ctx)
 {
 	return filter_read_arg(ctx, (struct bpf_map_def *)&tp_heap,
@@ -274,7 +242,7 @@ generic_tracepoint_arg(void *ctx)
 			       (struct bpf_map_def *)&config_map);
 }
 
-__attribute__((section("tracepoint/7"), used)) int
+__attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
 	return generic_actions(ctx, (struct bpf_map_def *)&tp_heap,
@@ -283,7 +251,7 @@ generic_tracepoint_actions(void *ctx)
 			       (void *)0);
 }
 
-__attribute__((section("tracepoint/8"), used)) int
+__attribute__((section("tracepoint/5"), used)) int
 generic_tracepoint_output(void *ctx)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&tp_heap, MSG_OP_GENERIC_TRACEPOINT);

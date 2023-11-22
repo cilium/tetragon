@@ -29,37 +29,34 @@ func TestLoadUprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// uprobe
 		0: tus.SensorProg{Name: "generic_uprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_uprobe_process_event0", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_uprobe_process_event1", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_uprobe_process_event2", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_uprobe_process_event3", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_uprobe_process_event4", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
-		7: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
-		8: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
-		9: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
+		1: tus.SensorProg{Name: "generic_uprobe_setup_event", Type: ebpf.Kprobe},
+		2: tus.SensorProg{Name: "generic_uprobe_process_event", Type: ebpf.Kprobe},
+		3: tus.SensorProg{Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
+		4: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
+		5: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
+		6: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all uprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
+		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
 
 		// all but generic_uprobe_output
-		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}},
+		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8}},
+		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
 		// generic_uprobe_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{9}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6}},
 	}
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 3, 4, 5, 6}})
 	} else {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 3, 4}})
 	}
 
 	nopHook := `

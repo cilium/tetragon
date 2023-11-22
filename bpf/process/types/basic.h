@@ -215,7 +215,7 @@ static inline __attribute__((always_inline)) int return_error(int *s, int err)
 }
 
 static inline __attribute__((always_inline)) char *
-args_off(struct msg_generic_kprobe *e, long off)
+args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
 	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off)
 		     :);
@@ -2182,7 +2182,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
 			e->filter_tailcall_index = index;
-			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL);
+			tail_call(ctx, tailcalls, 3);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
@@ -2192,10 +2192,10 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
 		e->pass = pass;
-		tail_call(ctx, tailcalls, 7);
+		tail_call(ctx, tailcalls, 4);
 	}
 
-	tail_call(ctx, tailcalls, 8);
+	tail_call(ctx, tailcalls, 5);
 	return 1;
 }
 
@@ -2237,7 +2237,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 
 	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
-		tail_call(ctx, tailcalls, 8);
+		tail_call(ctx, tailcalls, 5);
 	return 1;
 }
 
@@ -2318,10 +2318,11 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	if (orig_off >= 16383 - min_size) {
 		return 0;
 	}
+	orig_off &= 16383;
 	args = args_off(e, orig_off);
 
 	/* Cache args offset for filter use later */
-	e->argsoff[index] = orig_off;
+	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
 
 	switch (type) {
 	case iov_iter_type:

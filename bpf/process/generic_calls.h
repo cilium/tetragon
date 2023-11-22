@@ -5,18 +5,19 @@
 #define __GENERIC_CALLS_H__
 
 #include "bpf_tracing.h"
+#include "types/basic.h"
 
 #define MAX_TOTAL 9000
 
 static inline __attribute__((always_inline)) int
-generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
+generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
 		      struct bpf_map_def *data_heap)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
+	int index, zero = 0;
 	unsigned long a;
-	int zero = 0;
 	long ty, total;
 
 	e = map_lookup_elem(heap_map, &zero);
@@ -26,6 +27,11 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
+
+	index = e->filter_tailcall_index;
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
 
 	a = (&e->a0)[index];
 	total = e->common.size;
@@ -53,11 +59,14 @@ generic_process_event(void *ctx, int index, struct bpf_map_def *heap_map,
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4)
-		tail_call(ctx, tailcals, index + 1);
+	if (index < 4) {
+		e->filter_tailcall_index = index + 1;
+		tail_call(ctx, tailcals, 1);
+	}
 
 	/* Last argument, go send.. */
-	tail_call(ctx, tailcals, 6);
+	e->filter_tailcall_index = 0;
+	tail_call(ctx, tailcals, 3);
 	return 0;
 }
 
@@ -146,7 +155,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
-	return generic_process_event(ctx, 0, heap_map, tailcals, config_map, data_heap);
+	return generic_process_event(ctx, heap_map, tailcals, config_map, data_heap);
 }
 
 #endif /* __GENERIC_CALLS_H__ */
