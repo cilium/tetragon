@@ -180,6 +180,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->common.op = MSG_OP_GENERIC_TRACEPOINT;
 	msg->sel.curr = 0;
+	msg->filter_tailcall_index = 0;
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;
@@ -265,51 +266,15 @@ generic_tracepoint_filter(void *ctx)
 // see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
 
 __attribute__((section("tracepoint/6"), used)) int
-generic_tracepoint_arg1(void *ctx)
+generic_tracepoint_arg(void *ctx)
 {
-	return filter_read_arg(ctx, 0, (struct bpf_map_def *)&tp_heap,
+	return filter_read_arg(ctx, (struct bpf_map_def *)&tp_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("tracepoint/7"), used)) int
-generic_tracepoint_arg2(void *ctx)
-{
-	return filter_read_arg(ctx, 1, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (struct bpf_map_def *)&config_map);
-}
-
-__attribute__((section("tracepoint/8"), used)) int
-generic_tracepoint_arg3(void *ctx)
-{
-	return filter_read_arg(ctx, 2, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (struct bpf_map_def *)&config_map);
-}
-
-__attribute__((section("tracepoint/9"), used)) int
-generic_tracepoint_arg4(void *ctx)
-{
-	return filter_read_arg(ctx, 3, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (struct bpf_map_def *)&config_map);
-}
-
-__attribute__((section("tracepoint/10"), used)) int
-generic_tracepoint_arg5(void *ctx)
-{
-	return filter_read_arg(ctx, 4, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (struct bpf_map_def *)&config_map);
-}
-
-__attribute__((section("tracepoint/11"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
 	return generic_actions(ctx, (struct bpf_map_def *)&tp_heap,
@@ -318,7 +283,7 @@ generic_tracepoint_actions(void *ctx)
 			       (void *)0);
 }
 
-__attribute__((section("tracepoint/12"), used)) int
+__attribute__((section("tracepoint/8"), used)) int
 generic_tracepoint_output(void *ctx)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&tp_heap, MSG_OP_GENERIC_TRACEPOINT);

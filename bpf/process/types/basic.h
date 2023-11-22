@@ -188,6 +188,7 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define MIN_FILTER_TAILCALL 6
 #define MAX_FILTER_TAILCALL 10
 #define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
+#define MAX_SELECTORS_MASK  7
 
 static inline __attribute__((always_inline)) long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
@@ -2161,13 +2162,13 @@ do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *acti
 }
 
 static inline __attribute__((always_inline)) long
-filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
+filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
 		struct bpf_map_def *config_map)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int pass, zero = 0;
+	int index, pass, zero = 0;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
@@ -2175,11 +2176,14 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	config = map_lookup_elem(config_map, &e->idx);
 	if (!config)
 		return 0;
-	pass = filter_args(e, index, filter, config->flags & FLAGS_EARLY_FILTER);
+	index = e->filter_tailcall_index;
+	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter, config->flags & FLAGS_EARLY_FILTER);
 	if (!pass) {
 		index++;
-		if (index <= MAX_SELECTORS && e->sel.active[index])
-			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL + index);
+		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
+			e->filter_tailcall_index = index;
+			tail_call(ctx, tailcalls, MIN_FILTER_TAILCALL);
+		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
 	}
@@ -2188,10 +2192,10 @@ filter_read_arg(void *ctx, int index, struct bpf_map_def *heap,
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
 		e->pass = pass;
-		tail_call(ctx, tailcalls, 11);
+		tail_call(ctx, tailcalls, 7);
 	}
 
-	tail_call(ctx, tailcalls, 12);
+	tail_call(ctx, tailcalls, 8);
 	return 1;
 }
 
@@ -2233,7 +2237,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 
 	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
-		tail_call(ctx, tailcalls, 12);
+		tail_call(ctx, tailcalls, 8);
 	return 1;
 }
 

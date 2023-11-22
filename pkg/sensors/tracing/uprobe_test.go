@@ -25,45 +25,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUprobeLoad(t *testing.T) {
+func TestLoadUprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// uprobe
-		0:  tus.SensorProg{Name: "generic_uprobe_event", Type: ebpf.Kprobe},
-		1:  tus.SensorProg{Name: "generic_uprobe_process_event0", Type: ebpf.Kprobe},
-		2:  tus.SensorProg{Name: "generic_uprobe_process_event1", Type: ebpf.Kprobe},
-		3:  tus.SensorProg{Name: "generic_uprobe_process_event2", Type: ebpf.Kprobe},
-		4:  tus.SensorProg{Name: "generic_uprobe_process_event3", Type: ebpf.Kprobe},
-		5:  tus.SensorProg{Name: "generic_uprobe_process_event4", Type: ebpf.Kprobe},
-		6:  tus.SensorProg{Name: "generic_uprobe_filter_arg1", Type: ebpf.Kprobe},
-		7:  tus.SensorProg{Name: "generic_uprobe_filter_arg2", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_uprobe_filter_arg3", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_uprobe_filter_arg4", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_uprobe_filter_arg5", Type: ebpf.Kprobe},
-		11: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
-		12: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
-		13: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
+		0: tus.SensorProg{Name: "generic_uprobe_event", Type: ebpf.Kprobe},
+		1: tus.SensorProg{Name: "generic_uprobe_process_event0", Type: ebpf.Kprobe},
+		2: tus.SensorProg{Name: "generic_uprobe_process_event1", Type: ebpf.Kprobe},
+		3: tus.SensorProg{Name: "generic_uprobe_process_event2", Type: ebpf.Kprobe},
+		4: tus.SensorProg{Name: "generic_uprobe_process_event3", Type: ebpf.Kprobe},
+		5: tus.SensorProg{Name: "generic_uprobe_process_event4", Type: ebpf.Kprobe},
+		6: tus.SensorProg{Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
+		7: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
+		8: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
+		9: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all uprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
 
 		// all but generic_uprobe_output
-		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
+		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}},
 
 		// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8, 9, 10, 11, 12}},
+		tus.SensorMap{Name: "filter_map", Progs: []uint{6, 7, 8}},
 
 		// generic_uprobe_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{13}},
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{9}},
 	}
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11, 12, 13}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9}})
 	} else {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7, 8, 9, 10, 11}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 6, 7}})
 	}
 
 	nopHook := `
