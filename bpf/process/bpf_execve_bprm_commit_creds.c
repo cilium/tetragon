@@ -19,6 +19,9 @@ char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
  * current task part of the execve call.
  * For such case this hook must be when we are committing the new credentials
  * to the task being executed.
+ * For such the hook must run after:
+ *   bprm_creds_from_file()
+ *   |__cap_bprm_creds_from_file() capability LSM where the bprm is properly set.
  *
  * It reads the linux_bprm->per_clear flags that are the personality flags to clear
  * when we are executing a privilged program. Normally we should check the
@@ -46,8 +49,8 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	struct execve_map_value *curr;
 	struct execve_heap *heap;
 	struct task_struct *task;
-	__u32 pid, euid, uid, egid, gid, sec = 0, zero = 0;
-	__u64 tid;
+	__u32 pid, ruid, euid, uid, egid, gid, sec = 0, zero = 0;
+	__u64 tid, permitted, new_permitted, new_ambient = 0;
 
 	sec = BPF_CORE_READ(bprm, per_clear);
 	/* If no flags to clear then this is not a privileged execution */
@@ -76,11 +79,59 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	gid = BPF_CORE_READ(task, cred, gid.val);
 
 	/* Is setuid? */
-	if (euid != uid)
+	if (euid != uid) {
 		heap->info.secureexec |= EXEC_SETUID;
+		/* If euid is being changed to root? */
+		ruid = BPF_CORE_READ(bprm, cred, uid.val);
+		if (!__is_uid_global_root(ruid) && __is_uid_global_root(euid))
+			/* If we executed from a non root and became global effective root
+			 * then set the EXEC_FS_SETUID to indicate that there was a privilege
+			 * elevation through binary suid root.
+			 * Now it is possible that the root 0 does not have capabilities
+			 * meaning it is running with SECURE_NOROOT Sec bit set, but we still
+			 * handle it as privileged change since running with uid root allows
+			 * to access files, ptrace root binaries, etc. From Tetragon euid==0
+			 * is still raising privileges.
+			 *
+			 * Note: there is the case of a uid being in a user namespace
+			 *    and it is mapped to uid 0 root inside that namespace that we do
+			 *    not detect now, since we do not do user ids translation into
+			 *    user namespaces. For such case we may not report if the binary
+			 *    gained privileges through setuid. To be fixed in the future.
+			 */
+			heap->info.secureexec |= EXEC_SETUID_ROOT;
+	}
 	/* Is setgid? */
 	if (egid != gid)
 		heap->info.secureexec |= EXEC_SETGID;
+
+	/* Ensure that ambient capabilities are not set since they clash with:
+	 *   setuid/setgid on the binary.
+	 *   file capabilities on the binary.
+	 *
+	 * This is an extra guard. Since if the new ambient capabilities are set then
+	 * there is no way the binary could provide extra capabilities, they cancel
+	 * each other.
+	 */
+	BPF_CORE_READ_INTO(&new_ambient, bprm, cred, cap_ambient);
+	if (new_ambient)
+		return;
+
+	/* Did we gain new capabilities through suid setuid or file capabilities execve?
+	 *
+	 * To determin if we gained new capabilities we compare the current permitted
+	 *  set with the new set. This can happen if:
+	 *   (1) The setuid of binary is the _mapped_ root id in current or parent owning namespace.
+	 *       This is already handled above in the setuid code path.
+	 *   (2) The file capabilities are set on the binary. If the setuid bit is not set
+	 *       then the gained capabilities are from file capabilities execution.
+	 */
+	BPF_CORE_READ_INTO(&permitted, task, cred, cap_permitted);
+	BPF_CORE_READ_INTO(&new_permitted, bprm, cred, cap_permitted);
+	if (__cap_gained(new_permitted, permitted) && euid == uid) {
+		/* If the setuid bit is not set then this is probably a file cap execution. */
+		heap->info.secureexec |= EXEC_FILE_CAPS;
+	}
 
 	/* Do we cache the entry? */
 	if (heap->info.secureexec != 0)

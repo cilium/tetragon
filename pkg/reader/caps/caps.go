@@ -480,3 +480,25 @@ func GetSecureBitsTypes(secBit uint32) []tetragon.SecureBitsType {
 
 	return bits
 }
+
+func GetPrivilegesChangedReasons(reasons uint32) []tetragon.ProcessPrivilegesChanged {
+	if reasons == 0 {
+		return nil
+	}
+
+	var bits []tetragon.ProcessPrivilegesChanged
+
+	if reasons&uint32(processapi.ExecveFileCaps) != 0 {
+		bits = append(bits, tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_CAP)
+	}
+
+	if reasons&uint32(processapi.ExecveSetuidRoot) != 0 {
+		bits = append(bits, tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_SETUID)
+	}
+
+	if len(bits) > 0 {
+		return bits
+	}
+
+	return nil
+}
