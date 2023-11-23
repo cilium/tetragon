@@ -155,10 +155,6 @@ struct msg_execve_key {
 	__u64 ktime;
 }; // All fields aligned so no 'packed' attribute.
 
-/* Execution and cred related flags shared with userspace */
-#define EXEC_SETUID 0x01 /* This is a set-user-id execution */
-#define EXEC_SETGID 0x02 /* This is a set-group-id execution */
-
 /* This is the struct stored in bpf map to share info between
  * different execve hooks.
  */
