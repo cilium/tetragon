@@ -17,6 +17,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -134,9 +136,15 @@ func (r *Runner) Init() *Runner {
 	}
 	r.hasCalledInit = true
 
+	config := textlogger.NewConfig(
+		textlogger.Verbosity(4), // Matches Kubernetes "debug" level.
+		textlogger.Output(os.Stdout),
+	)
+	log.SetLogger(textlogger.NewLogger(config))
+
 	cfg, err := envconf.NewFromFlags()
 	if err != nil {
-		klog.Fatalf("Failed to configure test environment: %w", err)
+		klog.Fatalf("Failed to configure test environment")
 	}
 	klog.Info("IMPORTANT: Tetragon e2e tests require parallel tests enabled. User preferences will be ignored.")
 	cfg = cfg.WithParallelTestEnabled()
