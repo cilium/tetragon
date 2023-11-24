@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-and-push:
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -155,7 +155,7 @@ jobs:
   image-digests:
     if: ${{ github.repository == 'cilium/tetragon' }}
     name: Display Digests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-and-push
     steps:
       - name: Downloading Image Digests
@@ -222,7 +222,7 @@ jobs:
     name: Create Release
     if: github.repository == 'cilium/tetragon'
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
