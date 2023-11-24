@@ -18,7 +18,7 @@ jobs:
         os: [ ubuntu-20.04, buildjet-2vcpu-ubuntu-2204-arm ]
     steps:
     - name: Checkout code
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -39,7 +39,7 @@ jobs:
         echo `clang --version`
 
     - name: Install bpftool
-      uses: mtardy/setup-bpftool@d21fc59a00cfc7e7de8b83a6f8f2060f0e54e2b8 # v1.0.2
+      uses: mtardy/setup-bpftool@adeab4f9332cc28db56064a93911860d0775665b # v1.0.3
 
     - name: Ensure BPF programs pass verifier
       run: |
