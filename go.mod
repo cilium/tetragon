@@ -7,7 +7,7 @@ require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.15.0-pre.2
 	github.com/cilium/ebpf v0.12.3
-	github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c
+	github.com/cilium/little-vm-helper v0.0.13-0.20231124102148-96de861060a7
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
