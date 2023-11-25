@@ -196,7 +196,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-	tail_call(ctx, &tp_calls, 2);
+	tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
 	return 0;
 }
 
@@ -221,17 +221,14 @@ generic_tracepoint_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &tp_calls, 2);
+		tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &tp_calls, 1);
+		tail_call(ctx, &tp_calls, TAIL_CALL_PROCESS);
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
 	return PFILTER_REJECT;
 }
-
-// Filter tailcalls: tracepoint/6...tracepoint/10
-// see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
 
 __attribute__((section("tracepoint/3"), used)) int
 generic_tracepoint_arg(void *ctx)

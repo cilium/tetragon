@@ -61,12 +61,12 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	/* Continue to process other arguments. */
 	if (index < 4) {
 		e->filter_tailcall_index = index + 1;
-		tail_call(ctx, tailcals, 1);
+		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
 
 	/* Last argument, go send.. */
 	e->filter_tailcall_index = 0;
-	tail_call(ctx, tailcals, 3);
+	tail_call(ctx, tailcals, TAIL_CALL_ARGS);
 	return 0;
 }
 

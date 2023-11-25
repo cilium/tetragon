@@ -95,6 +95,14 @@ enum {
 	FGS_SIGKILL = 9,
 };
 
+enum {
+	TAIL_CALL_PROCESS = 1,
+	TAIL_CALL_FILTER = 2,
+	TAIL_CALL_ARGS = 3,
+	TAIL_CALL_ACTIONS = 4,
+	TAIL_CALL_SEND = 5,
+};
+
 struct selector_action {
 	__u32 actionlen;
 	__u32 act[];
@@ -183,12 +191,9 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define get_index(ctx) 0
 #endif
 
-// Filter tailcalls are {kprobe,tracepoint}/{6,7,8,9,10}
-// We do one tail-call per selector, so we can have up to 5 selectors.
-#define MIN_FILTER_TAILCALL 6
-#define MAX_FILTER_TAILCALL 10
-#define MAX_SELECTORS	    (MAX_FILTER_TAILCALL - MIN_FILTER_TAILCALL + 1)
-#define MAX_SELECTORS_MASK  7
+// We do one tail-call per selector, we can have up to 5 selectors.
+#define MAX_SELECTORS	   5
+#define MAX_SELECTORS_MASK 7
 
 static inline __attribute__((always_inline)) long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
@@ -2182,7 +2187,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
 			e->filter_tailcall_index = index;
-			tail_call(ctx, tailcalls, 3);
+			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
@@ -2192,10 +2197,10 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
 		e->pass = pass;
-		tail_call(ctx, tailcalls, 4);
+		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
 	}
 
-	tail_call(ctx, tailcalls, 5);
+	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 1;
 }
 
@@ -2237,7 +2242,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 
 	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
-		tail_call(ctx, tailcalls, 5);
+		tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 1;
 }
 

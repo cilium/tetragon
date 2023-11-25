@@ -89,7 +89,7 @@ generic_uprobe_start_process_filter(void *ctx)
 	if (!generic_process_filter_binary(config))
 		return 0;
 	/* Tail call into filters. */
-	tail_call(ctx, &uprobe_calls, 2);
+	tail_call(ctx, &uprobe_calls, TAIL_CALL_FILTER);
 	return 0;
 }
 
@@ -130,7 +130,7 @@ generic_uprobe_process_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &uprobe_calls, 2);
+		tail_call(ctx, &uprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
 		tail_call(ctx, &uprobe_calls, 0);
 	/* If filter does not accept drop it. Ideally we would

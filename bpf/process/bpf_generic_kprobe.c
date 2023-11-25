@@ -113,7 +113,7 @@ generic_kprobe_start_process_filter(void *ctx)
 #endif
 
 	/* Tail call into filters. */
-	tail_call(ctx, &kprobe_calls, 2);
+	tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
 	return 0;
 }
 
@@ -187,7 +187,7 @@ generic_kprobe_process_filter(void *ctx)
 	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
 				     &msg->caps, &filter_map, msg->idx);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &kprobe_calls, 2);
+		tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
 		tail_call(ctx, &kprobe_calls, 0);
 	/* If filter does not accept drop it. Ideally we would
@@ -195,9 +195,6 @@ generic_kprobe_process_filter(void *ctx)
 	 */
 	return PFILTER_REJECT;
 }
-
-// Filter tailcalls: kprobe/6...kprobe/10
-// see also: MIN_FILTER_TAILCALL, MAX_FILTER_TAILCALL
 
 __attribute__((section("kprobe/3"), used)) int
 generic_kprobe_filter_arg(void *ctx)
