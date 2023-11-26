@@ -73,7 +73,7 @@ Helm chart for Tetragon
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator | object | `{"affinity":{},"annotations":{},"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.0"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}]}` | Tetragon Operator settings |
+| tetragonOperator | object | `{"affinity":{},"annotations":{},"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.0"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","prometheus":{"address":"","enabled":true,"port":2113},"resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}]}` | Tetragon Operator settings |
 | tetragonOperator.annotations | object | `{}` | Annotations for the Tetragon Operator Deployment. |
 | tetragonOperator.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment. |
 | tetragonOperator.extraPodLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment Pods. |
@@ -84,6 +84,9 @@ Helm chart for Tetragon
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
 | tetragonOperator.podSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | securityContext for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.priorityClassName | string | `""` | priorityClassName for the Tetragon Operator Deployment Pods. |
+| tetragonOperator.prometheus | object | `{"address":"","enabled":true,"port":2113}` | Enables the Tetragon Operator metrics. |
+| tetragonOperator.prometheus.address | string | `""` | The address at which to expose Tetragon Operator metrics. Set it to "" to expose on all available interfaces. |
+| tetragonOperator.prometheus.port | int | `2113` | The port at which to expose metrics. |
 | tetragonOperator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | resources for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |

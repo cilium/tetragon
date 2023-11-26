@@ -36,6 +36,9 @@ spec:
         args:
           - serve
           - --config-dir=/etc/tetragon/operator.conf.d/
+        {{- if .Values.tetragonOperator.prometheus.enabled }}
+          - --metrics-bind-address={{ .Values.tetragonOperator.prometheus.address }}:{{ .Values.tetragonOperator.prometheus.port }}
+        {{- end }}
         image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
         imagePullPolicy: {{ .Values.tetragonOperator.image.pullPolicy }}
         volumeMounts:
@@ -48,6 +51,12 @@ spec:
         {{- with .Values.tetragonOperator.podSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.tetragonOperator.prometheus.enabled }}
+        ports:
+          - name: metrics
+            containerPort: {{ .Values.tetragonOperator.prometheus.port }}
+            protocol: TCP
         {{- end }}
         livenessProbe:
           httpGet:
