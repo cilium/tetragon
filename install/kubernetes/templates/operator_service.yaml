@@ -1,0 +1,19 @@
+{{- if .Values.tetragonOperator.prometheus.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-operator-metrics
+  labels: 
+    {{- include "tetragon-operator.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: metrics
+      port: {{ .Values.tetragonOperator.prometheus.port }}
+      targetPort: {{ .Values.tetragonOperator.prometheus.port }}
+      protocol: TCP
+  selector:
+    {{- include "tetragon-operator.selectorLabels" . | nindent 4 }}
+  type: ClusterIP
+{{- end }}
