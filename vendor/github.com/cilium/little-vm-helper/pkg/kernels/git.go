@@ -5,13 +5,13 @@ package kernels
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -116,7 +116,7 @@ func gitRemoveWorkdir(ctx context.Context, log logrus.FieldLogger, arg *gitRemov
 		arg.workDir,
 	}
 	if err := logcmd.RunAndLogCommandContext(ctx, log, GitBinary, worktreeRemoveArgs...); err != nil {
-		multierror.Append(res, fmt.Errorf("did not remove worktree: %w", err))
+		res = errors.Join(res, fmt.Errorf("did not remove worktree: %w", err))
 	}
 
 	remoteRemoveArgs := []string{
@@ -125,7 +125,7 @@ func gitRemoveWorkdir(ctx context.Context, log logrus.FieldLogger, arg *gitRemov
 		arg.remoteName,
 	}
 	if err := logcmd.RunAndLogCommandContext(ctx, log, GitBinary, remoteRemoveArgs...); err != nil {
-		multierror.Append(res, fmt.Errorf("did not remove remote: %w", err))
+		res = errors.Join(res, fmt.Errorf("did not remove remote: %w", err))
 	}
 
 	branchRemoveArgs := []string{
@@ -134,7 +134,7 @@ func gitRemoveWorkdir(ctx context.Context, log logrus.FieldLogger, arg *gitRemov
 		arg.localBranch,
 	}
 	if err := logcmd.RunAndLogCommandContext(ctx, log, GitBinary, branchRemoveArgs...); err != nil {
-		multierror.Append(res, fmt.Errorf("did not remove local branch: %w", err))
+		res = errors.Join(res, fmt.Errorf("did not remove local branch: %w", err))
 	}
 
 	return res

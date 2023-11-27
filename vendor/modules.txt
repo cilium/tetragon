@@ -204,8 +204,8 @@ github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.13-0.20231124102148-96de861060a7
-## explicit; go 1.18
+# github.com/cilium/little-vm-helper v0.0.13-0.20231127061242-de55dde17c31
+## explicit; go 1.20
 github.com/cilium/little-vm-helper/pkg/images
 github.com/cilium/little-vm-helper/pkg/kernels
 github.com/cilium/little-vm-helper/pkg/logcmd
@@ -463,9 +463,6 @@ github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
 # github.com/hashicorp/consul/api v1.25.1
 ## explicit; go 1.19
 github.com/hashicorp/consul/api
-# github.com/hashicorp/errwrap v1.1.0
-## explicit
-github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
@@ -475,9 +472,6 @@ github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.3.1
 ## explicit
 github.com/hashicorp/go-immutable-radix
-# github.com/hashicorp/go-multierror v1.1.1
-## explicit; go 1.13
-github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-rootcerts v1.0.2
 ## explicit; go 1.12
 github.com/hashicorp/go-rootcerts
