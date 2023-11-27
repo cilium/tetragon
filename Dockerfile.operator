@@ -21,7 +21,7 @@ ARG TETRAGON_VERSION
 
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN --mount=type=bind,readwrite,target=/go/src/github.com/cilium/tetragon --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
-    make GOARCH=${TARGETARCH} VERSION=${TETRAGON_VERSION} tetragon-operator-image \
+    make GOARCH=${TARGETARCH} VERSION=${TETRAGON_VERSION} tetragon-operator \
     && mkdir -p /out/${TARGETOS}/${TARGETARCH}/usr/bin && mv tetragon-operator /out/${TARGETOS}/${TARGETARCH}/usr/bin
 
 # BUILDPLATFORM is an automatic platform ARG enabled by Docker BuildKit.
