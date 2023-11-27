@@ -187,10 +187,6 @@ alignchecker:
 ksyms:
 	$(GO) build ./cmd/ksyms/
 
-.PHONY: tetragon-operator-image
-tetragon-operator-image:
-	$(GO_BUILD) -o tetragon-operator ./operator
-
 .PHONY: install
 install:
 	groupadd -f hubble
