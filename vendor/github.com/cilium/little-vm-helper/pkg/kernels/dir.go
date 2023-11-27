@@ -6,6 +6,7 @@ package kernels
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 	"runtime"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -109,8 +109,9 @@ func kcfonfigValidate(opts []ConfigOption) error {
 		optMap[opt] = mapVal
 
 		if mapVal.enabled != optEnabled {
-			err := fmt.Errorf("value %s misconfigured: expected: %t but seems to be %t based on '%s'", opt, mapVal.enabled, optEnabled, txt)
-			ret = multierror.Append(ret, err)
+			ret = errors.Join(ret,
+				fmt.Errorf("value %s misconfigured: expected: %t but seems to be %t based on '%s'",
+					opt, mapVal.enabled, optEnabled, txt))
 		}
 
 	}
@@ -121,8 +122,7 @@ func kcfonfigValidate(opts []ConfigOption) error {
 
 	for i, v := range optMap {
 		if v.enabled && !v.checked {
-			err := fmt.Errorf("value %s enabled but not found", i)
-			ret = multierror.Append(ret, err)
+			ret = errors.Join(ret, fmt.Errorf("value %s enabled but not found", i))
 		}
 	}
 
