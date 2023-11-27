@@ -187,11 +187,7 @@ alignchecker:
 ksyms:
 	$(GO) build ./cmd/ksyms/
 
-.PHONY: tetragon-image tetragon-operator-image
-tetragon-image:
-	$(GO_BUILD) ./cmd/tetragon/
-	$(GO_BUILD) ./cmd/tetra/
-
+.PHONY: tetragon-operator-image
 tetragon-operator-image:
 	$(GO_BUILD) -o tetragon-operator ./operator
 
