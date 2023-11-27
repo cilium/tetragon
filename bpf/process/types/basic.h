@@ -801,8 +801,11 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
+// Define a mask for the maximum path length on Linux.
+#define PATH_MASK (4096 - 1)
+
 static inline __attribute__((always_inline)) void
-copy_reverse(__u8 *dest, uint len, __u8 *src)
+copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 {
 	uint i;
 
@@ -821,8 +824,8 @@ copy_reverse(__u8 *dest, uint len, __u8 *src)
 	// Alternative (prettier) fixes resulted in a confused verifier
 	// unfortunately.
 	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
-		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len - 1 - i) & STRING_POSTFIX_MAX_MASK];
-		if (len == (i + 1))
+		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len + offset - 1 - i) & PATH_MASK];
+		if (len + offset == (i + 1))
 			return;
 	}
 }
@@ -833,21 +836,22 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	void *addrmap;
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_postfix_lpm_trie *arg;
+	uint orig_len = arg_len;
 	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
-	if (!addrmap)
+	if (!addrmap || !arg_len)
 		return 0;
 
-	if (arg_len > STRING_POSTFIX_MAX_LENGTH || !arg_len)
-		return 0;
+	if (arg_len >= STRING_POSTFIX_MAX_MATCH_LENGTH)
+		arg_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
 
 	arg = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
 	if (!arg)
 		return 0;
 
 	arg->prefixlen = arg_len * 8; // prefix is in bits
-	copy_reverse(arg->data, arg_len, (__u8 *)arg_str);
+	copy_reverse(arg->data, arg_len, (__u8 *)arg_str, orig_len - arg_len);
 
 	__u8 *pass = map_lookup_elem(addrmap, arg);
 
