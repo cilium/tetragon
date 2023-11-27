@@ -775,17 +775,25 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
-	if (!addrmap)
+	if (!addrmap || !arg_len)
 		return 0;
 
-	if (arg_len > STRING_PREFIX_MAX_LENGTH || !arg_len)
-		return 0;
+	// If the string to check is longer than the prefix map allows, then only check the longest
+	// substring that the map allows.
+	if (arg_len >= STRING_PREFIX_MAX_LENGTH)
+		arg_len = STRING_PREFIX_MAX_LENGTH - 1;
 
 	arg = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_prefix_maps_heap, &zero);
 	if (!arg)
 		return 0;
 
 	arg->prefixlen = arg_len * 8; // prefix is in bits
+
+	// Force the verifier to recheck the arg_len after register spilling on 4.19.
+	asm volatile("%[arg_len] &= %[mask] ;\n"
+		     : [arg_len] "+r"(arg_len)
+		     : [mask] "i"(STRING_PREFIX_MAX_LENGTH - 1));
+
 	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
 
 	__u8 *pass = map_lookup_elem(addrmap, arg);
