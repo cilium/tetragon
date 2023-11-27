@@ -219,6 +219,16 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct module *":
 			return true
 		}
+	case "sock":
+		switch kernelTy {
+		case "struct sock *":
+			return true
+		}
+	case "skb":
+		switch kernelTy {
+		case "struct sk_buff *":
+			return true
+		}
 	}
 
 	return false
