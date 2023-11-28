@@ -59,7 +59,7 @@ func TestFork(t *testing.T) {
 		t.Fatalf("failed to parse child1 PID")
 	}
 	if fti.child2Pid == 0 {
-		t.Fatalf("failed to parse child1 PID")
+		t.Fatalf("failed to parse child2 PID")
 	}
 
 	binCheck := ec.NewProcessChecker().
@@ -81,7 +81,7 @@ type forkTesterInfo struct {
 var (
 	child1Re = regexp.MustCompile(`child 1 \(pid:(\d+)\) exits`)
 	// NB: ppid must be 1, to ensure that child 2 is orphan and has been inherited by init
-	child2Re = regexp.MustCompile(`child 2 \(pid:(\d+), ppid:1\) connecting to 8.8.8.8:53`)
+	child2Re = regexp.MustCompile(`child 2 \(pid:(\d+), ppid:1\) starts`)
 )
 
 func (fti *forkTesterInfo) ParseLine(l string) error {
@@ -105,7 +105,7 @@ const sampleForkTesterOutput = `
 parent: (pid:118413, ppid:118401) starts
 child 1 (pid:118414) exits
 parent: (pid:118413, ppid:118401) starts
-child 2 (pid:118415, ppid:1) connecting to 8.8.8.8:53
+child 2 (pid:118415, ppid:1) starts
 child 2 done
 parent: (pid:118413, ppid:118401) starts
 parent: (pid:118413) child (118414) exited with: 0
