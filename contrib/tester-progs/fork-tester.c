@@ -13,29 +13,10 @@
 // NB: global pipe for child 2 to notify parent that it has finished.
 int Pipe[2];
 
-// connect to 8.8.8.8:53 (and then close the socket)
 void client_run()
 {
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd == -1) {
-		perror("socket");
-		exit(1);
-	}
-
-	printf("child 2 (pid:%d, ppid:%d) connecting to 8.8.8.8:53\n", getpid(), getppid());
-	long ip8888 =  8 | (8<<8) | (8<<16) | (8<<24);
-	struct sockaddr_in srv_addr = {
-		.sin_family = AF_INET,
-		.sin_addr = {.s_addr = htonl(ip8888)},
-		.sin_port = htons(53)
-	};
-	if (connect(fd, (struct sockaddr *)&srv_addr, sizeof(srv_addr)) == -1) {
-		perror("connect");
-		exit(1);
-	}
-	close(fd);
+	// just print a message
+	printf("child 2 (pid:%d, ppid:%d) starts\n", getpid(), getppid());
 	printf("child 2 done\n");
 	return;
 }
