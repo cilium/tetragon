@@ -1205,6 +1205,9 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 			k.WriteMatchBinariesPath(selIdx, s)
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
+		if !kernels.EnableLargeProgs() {
+			return fmt.Errorf("matchBinary error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)")
+		}
 		sel.MapID, err = writePrefixBinaries(k, b.Values)
 		if err != nil {
 			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
