@@ -3663,6 +3663,8 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 	assert.NoError(t, err)
 }
 
+const skipMatchBinariesPrefix = "kernels without large progs do not support matchBinaries Prefix/NotPrefix"
+
 func TestKprobeMatchBinaries(t *testing.T) {
 	t.Run("In", func(t *testing.T) {
 		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
@@ -3671,9 +3673,15 @@ func TestKprobeMatchBinaries(t *testing.T) {
 		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
 	t.Run("Prefix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinariesPrefix)
+		}
 		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinariesPrefix)
+		}
 		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
 }
@@ -3762,6 +3770,9 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
 	})
 	t.Run("Prefix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinariesPrefix)
+		}
 		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
 	})
 }
@@ -3841,6 +3852,10 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 // matchBinaries works well with the prefix of matchArgs since its reusing some
 // of its machinery.
 func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip(skipMatchBinariesPrefix)
+	}
+
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
