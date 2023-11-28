@@ -1040,6 +1040,25 @@ func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
+func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
+	firstDir := dir + "/testfoo"
+	longDir := firstDir + "/1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890" +
+		"1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890" +
+		"123456789012345678901234567890123456789012345678901234567890"
+	if err := os.Mkdir(firstDir, 0755); err != nil {
+		t.Logf("Mkdir %s failed: %s\n", firstDir, err)
+		t.Skip()
+	}
+	if err := os.Mkdir(longDir, 0755); err != nil {
+		t.Logf("Mkdir %s failed: %s\n", longDir, err)
+		t.Skip()
+	}
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
+}
+
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
@@ -1225,6 +1244,50 @@ func TestKprobeObjectPostfixOpen(t *testing.T) {
 
 func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
 	testKprobeObjectPostfixOpen(t, true)
+}
+
+func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "` + testKprobeObjectPostfixOpenFileName(false) + `"
+`
+
+	longDir := dir + "/1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890" +
+		"1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890" +
+		"123456789012345678901234567890123456789012345678901234567890"
+	if err := os.Mkdir(longDir, 0755); err != nil {
+		t.Logf("Mkdir %s failed: %s\n", longDir, err)
+		t.Skip()
+	}
+
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
 }
 
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
