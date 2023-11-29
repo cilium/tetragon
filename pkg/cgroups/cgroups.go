@@ -238,7 +238,7 @@ func parseCgroupSubSysIds(filePath string) error {
 	}).Debugf("Cgroup available controllers")
 
 	// Could not find 'memory', 'pids' nor 'cpuset' controllers, are they compiled in?
-	if fixed == false {
+	if !fixed {
 		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", filePath)
 		logger.GetLogger().WithFields(logrus.Fields{
 			"cgroup.fs": cgroupFSPath,
@@ -278,7 +278,7 @@ func setDeploymentMode(cgroupPath string) error {
 		return nil
 	}
 
-	if option.Config.EnableK8s == true {
+	if option.Config.EnableK8s {
 		deploymentMode = DEPLOY_K8S
 		return nil
 	}
@@ -354,7 +354,7 @@ func GetCgrpControllerName() string {
 func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 	for _, controller := range CgroupControllers {
 		// First lets go again over list of active controllers
-		if controller.Active == false {
+		if !controller.Active {
 			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.Name)
 			continue
 		}

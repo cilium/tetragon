@@ -134,11 +134,7 @@ func FmtSprintf(g *protogen.GeneratedFile, fmt_ string, args ...string) string {
 
 // EventFieldCheck returns true if the event has the field
 func EventFieldCheck(msg *protogen.Message, field string) bool {
-	if msg.Desc.Fields().ByName(protoreflect.Name(field)) != nil {
-		return true
-	}
-
-	return false
+	return msg.Desc.Fields().ByName(protoreflect.Name(field)) != nil
 }
 
 // IsProcessEvent returns true if the message is an Tetragon event that has a process field

@@ -67,9 +67,7 @@ func loadSingleKillerSensor(bpfDir, mapDir string, load *program.Program, verbos
 func loadMultiKillerSensor(bpfDir, mapDir string, load *program.Program, verbose int) error {
 	data := &program.MultiKprobeAttachData{}
 
-	for idx := range syscallsSyms {
-		data.Symbols = append(data.Symbols, syscallsSyms[idx])
-	}
+	data.Symbols = append(data.Symbols, syscallsSyms...)
 
 	load.SetAttachData(data)
 

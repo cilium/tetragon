@@ -346,7 +346,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		var pexecPath string
 		var pnspid uint32
 
-		if d.IsDir() == false {
+		if !d.IsDir() {
 			continue
 		}
 
@@ -436,7 +436,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 		time_ns := uint32(0)
 		time_for_children_ns := uint32(0)
-		if namespace.TimeNsSupport == true {
+		if namespace.TimeNsSupport {
 			time_ns, err = namespace.GetPidNsInode(uint32(pid), "time")
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Reading time namespace failed")

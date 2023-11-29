@@ -446,7 +446,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 			if !f.Syscall {
 				for idx := range calls {
-					if strings.HasPrefix(calls[idx], "security_") == false {
+					if !strings.HasPrefix(calls[idx], "security_") {
 						return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
 					}
 				}
@@ -756,7 +756,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 	// Mark remaining arguments as 'nops' the kernel side will skip
 	// copying 'nop' args.
 	for j, a := range argsBTFSet {
-		if a == false {
+		if !a {
 			if j != api.ReturnArgIndex {
 				config.Arg[j] = gt.GenericNopType
 				config.ArgM[j] = 0

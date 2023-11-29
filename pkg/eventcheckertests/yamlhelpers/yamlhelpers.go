@@ -42,17 +42,11 @@ func AssertUnmarshalRoundTrip(t *testing.T, b []byte, o interface{}) bool {
 // AssertUnmarshal unmarshals an object and makes sure that it unmarshals
 func AssertUnmarshal(t *testing.T, b []byte, o interface{}) bool {
 	err := yaml.Unmarshal(b, o)
-	if !assert.NoError(t, err, "`%v` should unmarshal", o) {
-		return false
-	}
-	return true
+	return assert.NoError(t, err, "`%v` should unmarshal", o)
 }
 
 // AssertMarshal unmarshals an object and makes sure that it unmarshals
 func AssertMarshal(t *testing.T, b []byte, o interface{}) bool {
 	_, err := yaml.Marshal(o)
-	if !assert.NoError(t, err, "`%s` should marshal", string(b)) {
-		return false
-	}
-	return true
+	return assert.NoError(t, err, "`%s` should marshal", string(b))
 }

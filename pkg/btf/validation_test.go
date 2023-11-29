@@ -5,7 +5,6 @@ package btf
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -55,7 +54,7 @@ func TestSpecs(t *testing.T) {
 	// NB: for now we check against a single BTF file.
 	btfFname := filepath.Join(testdataPath, "btf", "vmlinux-5.4.104+")
 	if _, err := os.Stat(btfFname); err != nil {
-		t.Skip(fmt.Sprintf("%s not found", btfFname))
+		t.Skipf("%s not found", btfFname)
 	}
 	btf, err := btf.LoadSpec(btfFname)
 	if err != nil {

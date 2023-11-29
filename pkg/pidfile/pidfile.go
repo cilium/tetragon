@@ -57,9 +57,7 @@ func Create() (uint64, error) {
 		return pid, ErrPidIsStillAlive
 	}
 
-	if err != nil &&
-		errors.Is(err, ErrPidFileAccess) == false &&
-		errors.Is(err, ErrPidIsNotAlive) == false {
+	if err != nil && !errors.Is(err, ErrPidFileAccess) && !errors.Is(err, ErrPidIsNotAlive) {
 		return 0, err
 	}
 
