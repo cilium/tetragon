@@ -14,11 +14,17 @@ Common labels
 {{- define "tetragon.labels" -}}
 helm.sh/chart: {{ include "tetragon.chart" . }}
 {{ include "tetragon.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 {{- define "tetragon-operator.labels" -}}
 helm.sh/chart: {{ include "tetragon-operator.chart" . }}
 {{ include "tetragon-operator.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
