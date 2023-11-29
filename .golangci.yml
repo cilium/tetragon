@@ -18,6 +18,7 @@ linters:
     - revive
     - staticcheck
     - unused
+    - gosimple
 
 linters-settings:
   goheader:

@@ -107,7 +107,7 @@ type And struct {
 
 func (op *And) FilterFn(t vtuple.VTuple) bool {
 	for _, f := range op.fs {
-		if f.FilterFn(t) == false {
+		if !f.FilterFn(t) {
 			return false
 		}
 	} // NB: for 0 filters, AND returns true
@@ -124,7 +124,7 @@ type Or struct {
 
 func (op *Or) FilterFn(t vtuple.VTuple) bool {
 	for _, f := range op.fs {
-		if f.FilterFn(t) == true {
+		if f.FilterFn(t) {
 			return true
 		}
 	}

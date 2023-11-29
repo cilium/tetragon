@@ -4,7 +4,6 @@
 package policyfilter
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -14,7 +13,7 @@ import (
 func TestState(t *testing.T) {
 	s, err := New()
 	if err != nil {
-		t.Skip(fmt.Sprintf("failed to inialize policy filter state: %s", err))
+		t.Skipf("failed to inialize policy filter state: %s", err)
 	}
 	defer s.Close()
 

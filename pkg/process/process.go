@@ -183,7 +183,7 @@ func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process,
 
 	// Take a copy of the process, add the necessary fields to the
 	// final ProcessExec event
-	if update == true {
+	if update {
 		process = pi.GetProcessCopy()
 		process.BinaryProperties = prop
 	}

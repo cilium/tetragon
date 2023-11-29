@@ -72,7 +72,6 @@ func (t *Table) AddEntry(entry Entry) {
 	idx := t.findEmpty()
 	t.arr[idx] = entry
 	entry.SetID(EntryID{idx})
-	return
 }
 
 func (t *Table) getValidEntryIndex(id EntryID) (int, error) {

@@ -61,7 +61,7 @@ func GetMyPidG() uint32 {
 	if procfs := os.Getenv("TETRAGON_PROCFS"); procfs != "" {
 		procFS, _ := os.ReadDir(procfs)
 		for _, d := range procFS {
-			if d.IsDir() == false {
+			if !d.IsDir() {
 				continue
 			}
 			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
@@ -228,7 +228,7 @@ func initHostNamespace() (*tetragon.Namespaces, error) {
 	for _, n := range listNamespaces {
 		ino, err := GetPidNsInode(1, n)
 		if err != nil {
-			if (n == "time" || n == "time_for_children") && TimeNsSupport == false {
+			if (n == "time" || n == "time_for_children") && !TimeNsSupport {
 				// Explicitly initialize host time namespace to zero which indicates
 				// kernel does not support it.
 				knownNamespaces[n] = &tetragon.Namespace{Inum: 0, IsHost: false}

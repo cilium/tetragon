@@ -138,9 +138,7 @@ func (lr *listReader) Read(name string) ([]uint32, error) {
 
 	for idx := range list.Values {
 		sc := arch.CutSyscallPrefix(list.Values[idx])
-		if strings.HasPrefix(sc, "sys_") {
-			sc = sc[len("sys_"):]
-		}
+		sc = strings.TrimPrefix(sc, "sys_")
 		id := syscallinfo.GetSyscallID(sc)
 		if id == -1 {
 			return []uint32{}, fmt.Errorf("failed list '%s' cannot translate syscall '%s'", name, sc)
