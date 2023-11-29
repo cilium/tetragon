@@ -7,3 +7,4 @@ package syscallinfo
 
 // Define syscalNames variable so that we can compile tetra CLI for windows.
 var syscallNames = map[int]string{}
+var syscallNames32 = map[int]string{}
