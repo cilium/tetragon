@@ -34,6 +34,9 @@ spec:
       {{- else }}
         {{- include "tetragon.labels" . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

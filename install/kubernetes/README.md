@@ -36,6 +36,7 @@ Helm chart for Tetragon
 | imagePullSecrets | list | `[]` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` |  |
+| podLabels | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | selectorLabelsOverride | object | `{}` |  |

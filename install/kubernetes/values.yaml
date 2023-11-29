@@ -16,6 +16,7 @@ extraConfigmapMounts: []
 daemonSetAnnotations: {}
 extraVolumes: []
 updateStrategy: {}
+podLabels: {}
 daemonSetLabelsOverride: {}
 selectorLabelsOverride: {}
 podLabelsOverride: {}
