@@ -4,6 +4,7 @@
     {{- toYaml .Values.tetragon.securityContext | nindent 4 }}
   image: "{{ if .Values.tetragon.image.override }}{{ .Values.tetragon.image.override }}{{ else }}{{ .Values.tetragon.image.repository }}:{{ .Values.tetragon.image.tag | default .Chart.AppVersion }}{{ end }}"
   imagePullPolicy: {{ .Values.imagePullPolicy }}
+  terminationMessagePolicy: FallbackToLogsOnError
 {{- with .Values.tetragon.commandOverride }}
   command:
   {{- toYaml . | nindent 2 }}
