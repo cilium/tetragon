@@ -18,6 +18,7 @@ rules:
   - apiGroups:
       - cilium.io
     resources:
+      - podinfo
       - tracingpolicies
       - tracingpoliciesnamespaced
     verbs:
