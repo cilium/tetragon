@@ -53,6 +53,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | imagePullSecrets | list | `[]` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` |  |
+| podLabels | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | selectorLabelsOverride | object | `{}` |  |
