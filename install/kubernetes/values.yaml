@@ -35,7 +35,7 @@ serviceLabelsOverride: {}
 #
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: Default
-# exportDirectory specifies directory to put Hubble and FGS JSON export files.
+# exportDirectory specifies directory to put Tetragon JSON export files.
 exportDirectory: "/var/run/cilium/tetragon"
 # exportFileRotationInterval specifies file creation interval for hubble-export-s3.
 exportFileCreationInterval: "120s"
@@ -61,12 +61,12 @@ tetragon:
   extraVolumeMounts: []
   securityContext:
     privileged: true
-  # Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed
-  # processes.
+  # Tetragon puts processes in an LRU cache. The cache is used to find ancestors
+  # for subsequently exec'ed processes.
   processCacheSize: 65536
   # JSON export filename. Set it to an empty string to disable JSON export altogether.
   exportFilename: tetragon.log
-  # JSON export file permissions as a string
+  # JSON export file permissions as a string. Set it to "600" to restrict access to owner.
   exportFilePerm: "600"
   # Size in megabytes at which to rotate JSON export files.
   exportFileMaxSizeMB: 10
@@ -132,7 +132,7 @@ tetragon:
     # The possible values are "namespace", "workload", "pod" and "binary".
     metricsLabelFilter: "namespace,workload,pod,binary"
     serviceMonitor:
-      # -- Whether to create a 'ServiceMonitor' resource targeting the 'tetragon' pods.
+      # -- Whether to create a 'ServiceMonitor' resource targeting the tetragon pods.
       enabled: false
       # -- The set of labels to place on the 'ServiceMonitor' resource.
       labelsOverride: {}
@@ -148,11 +148,11 @@ tetragon:
     address: "localhost"
     # -- The port at which to expose gops.
     port: 8118
-  # Enable policy filter. This is required for K8s namespace filtering and pod label filters.
+  # -- Enable policy filter. This is required for K8s namespace and pod-label filtering.
   enablePolicyFilter: True
-  # Enable policy filter debug messages.
+  # -- Enable policy filter debug messages.
   enablePolicyFilterDebug: false
-  # Enable latency monitoring in message handling
+  # -- Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
   # -- Location of the host proc filesystem in the runtime environment. If the runtime runs in the
   # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
