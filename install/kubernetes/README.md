@@ -39,6 +39,7 @@ Helm chart for Tetragon
 | podLabels | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
+| priorityClassName | string | `""` |  |
 | selectorLabelsOverride | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |

@@ -56,6 +56,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | podLabels | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
+| priorityClassName | string | `""` |  |
 | selectorLabelsOverride | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |

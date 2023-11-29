@@ -1,5 +1,6 @@
 enabled: true
 imagePullPolicy: IfNotPresent
+priorityClassName: ""
 imagePullSecrets: []
 serviceAccount:
   create: true
