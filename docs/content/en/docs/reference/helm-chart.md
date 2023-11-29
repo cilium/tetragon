@@ -66,9 +66,9 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.btf | string | `""` |  |
 | tetragon.commandOverride | list | `[]` |  |
 | tetragon.enableK8sAPI | bool | `true` |  |
-| tetragon.enableMsgHandlingLatency | bool | `false` |  |
-| tetragon.enablePolicyFilter | bool | `true` |  |
-| tetragon.enablePolicyFilterDebug | bool | `false` |  |
+| tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |
+| tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
+| tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |
 | tetragon.enableProcessCred | bool | `false` |  |
 | tetragon.enableProcessNs | bool | `false` |  |
 | tetragon.enabled | bool | `true` |  |
@@ -97,7 +97,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
 | tetragon.prometheus.metricsLabelFilter | string | `"namespace,workload,pod,binary"` | The labels to include with supporting metrics. The possible values are "namespace", "workload", "pod" and "binary". |
 | tetragon.prometheus.port | int | `2112` | The port at which to expose metrics. |
-| tetragon.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the 'tetragon' pods. |
+| tetragon.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the tetragon pods. |
 | tetragon.prometheus.serviceMonitor.labelsOverride | object | `{}` | The set of labels to place on the 'ServiceMonitor' resource. |
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.resources | object | `{}` |  |
