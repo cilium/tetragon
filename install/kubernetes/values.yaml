@@ -164,8 +164,6 @@ tetragonOperator:
     override: ~
     repository: quay.io/cilium/tetragon-operator
     tag: v1.0.0
-    # tetragon-operator image-digest
-    suffix: ""
     pullPolicy: IfNotPresent
   # Skip CRD creation.
   skipCRDCreation: false
