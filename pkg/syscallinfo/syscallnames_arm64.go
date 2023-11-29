@@ -317,3 +317,5 @@ var syscallNames = map[int]string{
 	// unix.SYS_FUTEX_WAITV:             "sys_futex_waitv",
 	// unix.SYS_SET_MEMPOLICY_HOME_NODE: "sys_set_mempolicy_home_node",
 }
+
+var syscallNames32 = map[int]string{}
