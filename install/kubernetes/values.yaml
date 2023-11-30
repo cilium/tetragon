@@ -1,7 +1,10 @@
+# -- Global settings
 enabled: true
-imagePullPolicy: IfNotPresent
-priorityClassName: ""
 imagePullSecrets: []
+
+# -- Tetragon agent settings
+priorityClassName: ""
+imagePullPolicy: IfNotPresent
 serviceAccount:
   create: true
   annotations: {}
@@ -158,6 +161,8 @@ tetragon:
   # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
   # does not run on the host.
   hostProcPath: "/proc"
+
+# -- Tetragon Operator settings
 tetragonOperator:
   # -- tetragon-operator service account.
   serviceAccount:
@@ -176,6 +181,8 @@ tetragonOperator:
     # -- Enables the PodInfo CRD and the controller that reconciles PodInfo
     # custom resources.
     enabled: false
+
+# -- Tetragon event settings
 export:
   # "stdout". "" to disable.
   mode: "stdout"
