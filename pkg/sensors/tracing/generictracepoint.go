@@ -673,7 +673,7 @@ func handleMsgGenericTracepoint(
 		}
 
 		switch out.genericTypeId {
-		case gt.GenericU64Type:
+		case gt.GenericU64Type, gt.GenericSyscall64:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {

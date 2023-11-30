@@ -61,6 +61,8 @@ enum {
 	load_module_type = 26,
 	kernel_module_type = 27,
 
+	syscall64_type = 28,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -122,6 +124,8 @@ struct selector_arg_filters {
 } __attribute__((packed));
 
 #define FLAGS_EARLY_FILTER BIT(0)
+
+#define IS_32BIT 0x80000000
 
 struct event_config {
 	__u32 func_id;
@@ -1298,7 +1302,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
 static inline __attribute__((always_inline)) long
-filter_64ty_map(struct selector_arg_filter *filter, char *args)
+filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	void *argmap;
 	__u32 map_idx = filter->value;
@@ -1308,6 +1312,10 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 		return 0;
 
 	__u64 arg = *((__u64 *)args);
+
+	if (set32bit)
+		arg |= IS_32BIT;
+
 	__u8 *pass = map_lookup_elem(argmap, &arg);
 
 	switch (filter->op) {
@@ -1320,7 +1328,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 }
 
 static inline __attribute__((always_inline)) long
-filter_64ty(struct selector_arg_filter *filter, char *args)
+filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	switch (filter->op) {
 	case op_filter_lt:
@@ -1331,7 +1339,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 		return filter_64ty_selector_val(filter, args);
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_64ty_map(filter, args);
+		return filter_64ty_map(filter, args, set32bit);
 	}
 
 	return 0;
@@ -1640,6 +1648,8 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	for (i = 0; i < 5; i++)
 #endif
 	{
+		bool set32bit = false;
+
 		argsoff = filters->argoff[i];
 		asm volatile("%[argsoff] &= 0x3ff;\n" ::[argsoff] "+r"(argsoff)
 			     :);
@@ -1679,9 +1689,11 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			 */
 			pass &= filter_char_buf(filter, args, 8);
 			break;
+		case syscall64_type:
+			set32bit = e->sel.is32BitSyscall;
 		case s64_ty:
 		case u64_ty:
-			pass &= filter_64ty(filter, args);
+			pass &= filter_64ty(filter, args, set32bit);
 			break;
 		case size_type:
 		case int_type:
@@ -2427,6 +2439,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case string_type:
 		size = copy_strings(args, arg);
 		break;
+	case syscall64_type:
 	case size_type:
 	case s64_ty:
 	case u64_ty:

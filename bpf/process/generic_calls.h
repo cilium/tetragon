@@ -6,6 +6,7 @@
 
 #include "bpf_tracing.h"
 #include "types/basic.h"
+#include "vmlinux.h"
 
 #define MAX_TOTAL 9000
 
@@ -70,6 +71,29 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	return 0;
 }
 
+#define TS_COMPAT 0x0002
+
+#ifdef __TARGET_ARCH_x86
+static inline __attribute__((always_inline)) void
+generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
+{
+	struct thread_info *info;
+	__u32 status;
+
+	switch (op) {
+	case MSG_OP_GENERIC_TRACEPOINT:
+	case MSG_OP_GENERIC_KPROBE:
+		info = (struct thread_info *)get_current_task();
+		probe_read(&status, sizeof(status), _(&info->status));
+		e->sel.is32BitSyscall = status & TS_COMPAT;
+	default:
+		break;
+	}
+}
+#else
+#define generic_setup_32bit_syscall(e, op)
+#endif
+
 static inline __attribute__((always_inline)) void
 generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *config)
 {
@@ -93,6 +117,9 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	 *  At kprobes, tracpoints etc we report the calling thread ID to user space.
 	 */
 	e->tid = (__u32)get_current_pid_tgid();
+
+	/* Get 32-bit syscall emulation bit value. */
+	generic_setup_32bit_syscall(e, op);
 }
 
 static inline __attribute__((always_inline)) int

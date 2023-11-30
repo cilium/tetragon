@@ -62,6 +62,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 								      int type)
 {
 	switch (type) {
+	case syscall64_type:
 	case nop_s64_ty:
 	case nop_u64_ty:
 	case s64_ty:
