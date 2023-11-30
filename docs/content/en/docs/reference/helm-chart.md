@@ -29,20 +29,8 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | daemonSetAnnotations | object | `{}` |  |
 | daemonSetLabelsOverride | object | `{}` |  |
 | dnsPolicy | string | `"Default"` |  |
-| enabled | bool | `true` |  |
-| export.filenames[0] | string | `"tetragon.log"` |  |
-| export.mode | string | `"stdout"` |  |
-| export.resources | object | `{}` |  |
-| export.securityContext | object | `{}` |  |
-| export.stdout.argsOverride | list | `[]` |  |
-| export.stdout.commandOverride | list | `[]` |  |
-| export.stdout.enabledArgs | bool | `true` |  |
-| export.stdout.enabledCommand | bool | `true` |  |
-| export.stdout.extraEnv | list | `[]` |  |
-| export.stdout.extraVolumeMounts | list | `[]` |  |
-| export.stdout.image.override | string | `nil` |  |
-| export.stdout.image.repository | string | `"quay.io/cilium/hubble-export-stdout"` |  |
-| export.stdout.image.tag | string | `"v1.0.3"` |  |
+| enabled | bool | `true` | Global settings |
+| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.3"}}}` | Tetragon event settings |
 | exportDirectory | string | `"/var/run/cilium/tetragon"` |  |
 | exportFileCreationInterval | string | `"120s"` |  |
 | extraConfigmapMounts | list | `[]` |  |
@@ -56,7 +44,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | podLabels | object | `{}` |  |
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
-| priorityClassName | string | `""` |  |
+| priorityClassName | string | `""` | Tetragon agent settings |
 | selectorLabelsOverride | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |
@@ -102,9 +90,21 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
+| tetragonOperator | object | `{"affinity":{},"annotations":{},"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.0"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}]}` | Tetragon Operator settings |
+| tetragonOperator.annotations | object | `{}` | Annotations for the Tetragon Operator Deployment. |
+| tetragonOperator.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment. |
+| tetragonOperator.extraPodLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment Pods. |
+| tetragonOperator.extraVolumes | list | `[]` | Extra volumes for the Tetragon Operator Deployment. |
 | tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.0"}` | tetragon-operator image. |
+| tetragonOperator.nodeSelector | object | `{}` | Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules. |
+| tetragonOperator.podAnnotations | object | `{}` | Annotations for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
-| tetragonOperator.skipCRDCreation | bool | `false` |  |
+| tetragonOperator.podSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | securityContext for the Tetragon Operator Deployment Pod container. |
+| tetragonOperator.priorityClassName | string | `""` | priorityClassName for the Tetragon Operator Deployment Pods. |
+| tetragonOperator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | resources for the Tetragon Operator Deployment Pod container. |
+| tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
+| tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
+| tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
 
