@@ -121,6 +121,7 @@ spec:
                             - cred
                             - load_info
                             - module
+                            - syscall64
                             type: string
                         required:
                         - index
@@ -202,6 +203,7 @@ spec:
                           - cred
                           - load_info
                           - module
+                          - syscall64
                           type: string
                       required:
                       - index
@@ -752,6 +754,7 @@ spec:
                             - cred
                             - load_info
                             - module
+                            - syscall64
                             type: string
                         required:
                         - index
