@@ -52,6 +52,10 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "tetragon-operator.serviceAccount" . }}
       terminationGracePeriodSeconds: 10
       volumes:

@@ -169,6 +169,7 @@ tetragonOperator:
     create: true
     annotations: {}
     name: ""
+
   # -- tetragon-operator image.
   image:
     override: ~
