@@ -52,6 +52,9 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+      {{- with .Values.tetragonOperator.priorityClassName }}
+      priorityClassName: "{{ . }}"
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

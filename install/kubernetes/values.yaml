@@ -164,6 +164,8 @@ tetragon:
 
 # -- Tetragon Operator settings
 tetragonOperator:
+  # -- priorityClassName for the Tetragon Operator Deployment Pods.
+  priorityClassName: ""
   # -- tetragon-operator service account.
   serviceAccount:
     create: true
