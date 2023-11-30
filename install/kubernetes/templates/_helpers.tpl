@@ -47,3 +47,22 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "container.tetragon.name" -}}
 {{- print "tetragon" -}}
 {{- end }}
+
+{{/*
+ServiceAccounts
+*/}}
+{{- define "tetragon.serviceAccount" -}}
+{{- if .Values.serviceAccount.name -}}
+{{- printf "%s" .Values.serviceAccount.name -}}
+{{- else -}}
+{{- printf "%s" .Release.Name -}}
+{{- end -}}
+{{- end }}
+
+{{- define "tetragon-operator.serviceAccount" -}}
+{{- if .Values.tetragonOperator.serviceAccount.name -}}
+{{- printf  "%s" .Values.tetragonOperator.serviceAccount.name -}}
+{{- else -}}
+{{- printf  "%s-operator-service-account" .Release.Name -}}
+{{- end -}}
+{{- end }}

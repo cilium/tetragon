@@ -52,7 +52,7 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-      serviceAccountName: {{ .Release.Name }}-operator-service-account
+      serviceAccountName: {{ include "tetragon-operator.serviceAccount" . }}
       terminationGracePeriodSeconds: 10
       volumes:
         - name: tetragon-operator-config
