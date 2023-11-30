@@ -168,9 +168,10 @@ tetragonOperator:
   annotations: {}
   # -- Annotations for the Tetragon Operator Deployment Pods.
   podAnnotations: {}
-  annotations: {}
-  # -- Annotations for the Tetragon Operator Deployment Pods
-  podAnnotations: {}
+  # -- Extra labels to be added on the Tetragon Operator Deployment.
+  extraLabels: {}
+  # -- Extra labels to be added on the Tetragon Operator Deployment Pods.
+  extraPodLabels: {}
   # -- priorityClassName for the Tetragon Operator Deployment Pods.
   priorityClassName: ""
   # -- tetragon-operator service account.

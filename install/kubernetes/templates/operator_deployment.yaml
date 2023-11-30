@@ -7,6 +7,9 @@ metadata:
   {{- end }}
   labels: 
     {{- include "tetragon-operator.labels" . | nindent 4 }}
+    {{- with .Values.tetragonOperator.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   name: {{ .Release.Name }}-operator
   namespace: {{ .Release.Namespace }}
 spec:
@@ -22,6 +25,9 @@ spec:
       {{- end }}
       labels: 
         {{- include "tetragon-operator.labels" . | nindent 8 }}
+        {{- with .Values.tetragonOperator.extraPodLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-operator
