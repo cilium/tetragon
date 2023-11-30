@@ -208,6 +208,9 @@ tetragonOperator:
     repository: quay.io/cilium/tetragon-operator
     tag: v1.0.0
     pullPolicy: IfNotPresent
+  # -- Extra volumes for the Tetragon Operator Deployment.
+  extraVolumes: []
+  extraVolumeMounts: []
   # Skip CRD creation.
   skipCRDCreation: false
   podInfo:

@@ -42,6 +42,9 @@ spec:
           - mountPath: /etc/tetragon/operator.conf.d/
             name: tetragon-operator-config
             readOnly: true
+          {{- with .Values.tetragonOperator.extraVolumeMounts }}
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
         {{- with .Values.tetragonOperator.podSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
@@ -91,6 +94,9 @@ spec:
         - name: tetragon-operator-config
           configMap:
             name: {{ .Release.Name }}-operator-config
+      {{- with .Values.tetragonOperator.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 {{- with .Values.tetragonOperator.strategy }}
   strategy:
     {{- toYaml . | nindent 4 }}
