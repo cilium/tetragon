@@ -187,6 +187,8 @@ tetragonOperator:
     requests:
       cpu: 10m
       memory: 64Mi
+  # -- resources for the Tetragon Operator Deployment update strategy
+  strategy: {}
   # -- tetragon-operator image.
   image:
     override: ~

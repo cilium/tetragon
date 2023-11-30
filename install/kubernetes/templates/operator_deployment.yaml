@@ -65,4 +65,7 @@ spec:
         - name: tetragon-operator-config
           configMap:
             name: {{ .Release.Name }}-operator-config
-
+{{- with .Values.tetragonOperator.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
