@@ -37,6 +37,8 @@ const (
 	GenericLoadModule   = 26
 	GenericKernelModule = 27
 
+	GenericSyscall64 = 28
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -97,6 +99,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericLoadModule
 	case "module":
 		return GenericKernelModule
+	case "syscall64":
+		return GenericSyscall64
 	default:
 		return GenericInvalidType
 	}
