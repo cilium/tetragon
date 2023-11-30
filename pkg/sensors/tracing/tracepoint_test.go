@@ -809,7 +809,7 @@ spec:
     event: "sys_enter"
     args:
     - index: 4
-      type: "uint64"
+      type: "syscall64"
     - index: 5
       type: "uint64"
     selectors:

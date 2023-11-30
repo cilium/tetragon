@@ -9,6 +9,7 @@ spec:
     values:
     - "sys_dup"
     - "sys_dup2"
+    - "__ia32_sys_dup"
   killers:
   - syscalls:
     - "list:dups"
@@ -17,7 +18,7 @@ spec:
     event: "sys_enter"
     args:
     - index: 4
-      type: "uint64"
+      type: "syscall64"
     selectors:
     - matchArgs:
       - index: 0
