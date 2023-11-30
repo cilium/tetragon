@@ -93,10 +93,6 @@ spec:
         hostPath:
           path: {{ .Values.tetragon.hostProcPath }}
           type: Directory
-{{- if not .Values.tetragon.btf }}
-      - emptyDir: {}
-        name: metadata-files
-{{- end }}
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}

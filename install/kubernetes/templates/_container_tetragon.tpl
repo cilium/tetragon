@@ -26,10 +26,6 @@
     {{- with .Values.tetragon.extraVolumeMounts }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
-    {{- if not .Values.tetragon.btf }}
-    - mountPath: /var/lib/tetragon/metadata
-      name: metadata-files
-    {{- end }}
     - mountPath: /etc/tetragon/tetragon.conf.d/
       name: tetragon-config
       readOnly: true
