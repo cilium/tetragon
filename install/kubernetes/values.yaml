@@ -171,7 +171,14 @@ tetragonOperator:
     create: true
     annotations: {}
     name: ""
-
+  # -- securityContext for the Tetragon Operator Deployment Pods.
+  securityContext: {}
+  # -- securityContext for the Tetragon Operator Deployment Pod container.
+  podSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - "ALL"
   # -- tetragon-operator image.
   image:
     override: ~
