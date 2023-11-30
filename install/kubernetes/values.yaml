@@ -159,6 +159,11 @@ tetragon:
   # does not run on the host.
   hostProcPath: "/proc"
 tetragonOperator:
+  # -- tetragon-operator service account.
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
   # -- tetragon-operator image.
   image:
     override: ~
