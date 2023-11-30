@@ -189,6 +189,11 @@ tetragonOperator:
       memory: 64Mi
   # -- resources for the Tetragon Operator Deployment update strategy
   strategy: {}
+  # -- Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules.
+  nodeSelector: {}
+  tolerations:
+    - operator: Exists
+  affinity: {}
   # -- tetragon-operator image.
   image:
     override: ~
