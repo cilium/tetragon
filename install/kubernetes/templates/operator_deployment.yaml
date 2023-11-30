@@ -1,6 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  {{- with .Values.tetragonOperator.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels: 
     {{- include "tetragon-operator.labels" . | nindent 4 }}
   name: {{ .Release.Name }}-operator
@@ -12,6 +16,10 @@ spec:
   replicas: 1
   template:
     metadata:
+      {{- with .Values.tetragonOperator.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels: 
         {{- include "tetragon-operator.labels" . | nindent 8 }}
     spec:
