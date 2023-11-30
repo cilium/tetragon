@@ -79,7 +79,7 @@ spec:
     event: "sys_enter"
     args:
     - index: 4
-      type: "uint64"
+      type: "syscall64"
     selectors:
     - matchArgs:
       - index: 0
@@ -139,7 +139,7 @@ spec:
     event: "sys_enter"
     args:
     - index: 4
-      type: "uint64"
+      type: "syscall64"
     selectors:
     - matchArgs:
       - index: 0
@@ -204,7 +204,7 @@ spec:
     event: "sys_enter"
     args:
     - index: 4
-      type: "uint64"
+      type: "syscall64"
     selectors:
     - matchArgs:
       - index: 0
