@@ -44,13 +44,10 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
+        {{- with .Values.tetragonOperator.resources }}
         resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
+          {{- toYaml . | trim | nindent 10 }}
+        {{- end }}
       {{- with .Values.tetragonOperator.securityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

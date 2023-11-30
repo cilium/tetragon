@@ -179,6 +179,14 @@ tetragonOperator:
     capabilities:
       drop:
         - "ALL"
+  # -- resources for the Tetragon Operator Deployment Pod container.
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
   # -- tetragon-operator image.
   image:
     override: ~
