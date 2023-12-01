@@ -11,6 +11,7 @@ GREEN="\033[32m"
 NOCOLOR="\033[0m"
 TETRAGONDIR=/var/lib/tetragon
 DEBUG=0
+KERNEL=$(uname -r | cut -d. -f1,2) # retrieves major.minor, e.g. 5.19
 
 usage() {
 	echo "usage: verify.sh [-d] [TETRAGONDIR]"
@@ -42,28 +43,33 @@ STATUS=0
 for obj in "$TETRAGONDIR"/*.o; do
 	B=$(basename "$obj")
 
-    # Alignchecker is not a bpf program, so ignore it
+	# Alignchecker is not a bpf program, so ignore it
 	if [[ "$B" == bpf_alignchecker* ]]; then
 		continue
 	fi
 
-    # Globals is just for testing, so ignore it
+	# Globals is just for testing, so ignore it
 	if [[ "$B" == bpf_globals* ]]; then
 		continue
 	fi
 
-    # Generic tracepoint needs more complex userspace logic to load, so ignore it
+	# Generic tracepoint needs more complex userspace logic to load, so ignore it
 	if [[ "$B" == bpf_generic_tracepoint* ]]; then
 		continue
 	fi
 
-    # Multi kprobe support is still not widely around, skip the object
+	# Multi kprobe support is still not widely around, skip the object
 	if [[ "$B" == bpf_multi_* ]]; then
 		continue
 	fi
 
-    # skip v6.0 objects check, because it is still not widely around
-	if [[ "$B" == *61.o ]]; then
+	# Skip v6.1 objects check for kernel < 6.1
+	if [[ "$B" == *61.o && $(echo "$KERNEL < 6.1" | bc) == 1 ]]; then
+		continue
+	fi
+
+	# Skip bpf_loader for kernel < 5.19
+	if [[ "$B" == bpf_loader* && $(echo "$KERNEL < 5.19" | bc) == 1 ]]; then
 		continue
 	fi
 
