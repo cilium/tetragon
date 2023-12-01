@@ -1,0 +1,33 @@
+// TODO(mtardy) make that fix upstream
+.td-content {
+    .highlight pre {
+        border-radius: inherit;
+    }
+}
+
+// reduce from theme 2rem
+.td-content {
+  .highlight {
+    margin: 1.5rem 0;
+  }
+}
+
+// add border to codeblock inside of complex tab pane
+.tab-content {
+  .tab-pane {
+    .highlight {
+      margin-top: 1rem;
+    }
+    .highlight pre {
+      border: solid 1px rgba(0, 0, 0, 0.176);
+      border-radius: 6px;
+    }
+
+    .highlight:only-child {
+      margin-top: 0;
+    }
+    .highlight:only-child pre {
+      border: none;
+    }
+  }
+}
