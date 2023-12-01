@@ -1,3 +1,5 @@
+{{ if (and (not .Params.hide_feedback) (.Site.Params.ui.feedback.enable)) -}}
+{{ with .Site.Params.ui.feedback -}}
 <style>
   .feedback--answer {
     display: inline-block;
@@ -14,10 +16,10 @@
   }
 </style>
 <div class="d-print-none">
-<h2 class="feedback--title">Feedback</h2>
-<p class="feedback--question">Was this page helpful?</p>
-<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
-<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<h2 class="feedback--title">{{- i18n "feedback_title" -}}</h2>
+<p class="feedback--question">{{- i18n "feedback_question" -}}</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">{{- i18n "feedback_positive" -}}</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">{{- i18n "feedback_negative" -}}</button>
 <p class="feedback--response feedback--response-yes">
   {{ .yes | safeHTML }}
 </p>
@@ -35,21 +37,18 @@
     noButton.disabled = true;
   };
   const sendFeedback = (value) => {
-    if (typeof ga !== 'function') return;
-    const args = {
-      command: 'send',
-      hitType: 'event',
-      category: 'Helpful',
-      action: 'click',
-      label: window.location.pathname,
-      value: value
-    };
-    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+    if (typeof gtag !== 'function') return;
+    gtag('event', 'page_helpful', {
+      'event_category': 'Helpful',
+      'event_label': window.location.pathname,
+      'value': value
+    });
   };
   yesButton.addEventListener('click', () => {
     yesResponse.classList.add('feedback--response__visible');
     disableButtons();
-    sendFeedback(1);
+    {{ $maxValue := .max_value | default 100 -}}
+    sendFeedback({{ $maxValue }});
   });
   noButton.addEventListener('click', () => {
     noResponse.classList.add('feedback--response__visible');
@@ -57,3 +56,6 @@
     sendFeedback(0);
   });
 </script>
+{{ end -}}
+<br />
+{{ end -}}

@@ -5,7 +5,7 @@
 {{ $gh_subdir := ($.Param "github_subdir") -}}
 {{ $gh_project_repo := ($.Param "github_project_repo") -}}
 {{ $gh_branch := (default "main" ($.Param "github_branch")) -}}
-<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<div class="td-page-meta ms-2 pb-1 pt-2 mb-0">
 {{ if $gh_url -}}
   {{ warnf "Warning: use of `github_url` is deprecated. For details see https://www.docsy.dev/docs/adding-content/repository-links/#github_url-optional" -}}
   <a href="{{ $gh_url }}" target="_blank"><i class="fa-solid fa-pen-to-square fa-fw"></i> {{ T "post_edit_this" }}</a>
@@ -35,7 +35,7 @@
   {{ $issuesURL := printf "%s/issues/new?title=%s" $gh_repo (safeURL $.Title ) -}}
   {{ $newPageStub := resources.Get "stubs/new-page-template.md" -}}
   {{ $newPageQS := querify "value" $newPageStub.Content "filename" "change-me.md" | safeURL -}}
-  {{ $newPageURL := printf "%s/new/%s?%s"  $gh_repo $gh_repo_path $newPageQS -}}
+  {{ $newPageURL := printf "%s/new/%s?%s"  $gh_repo (path.Dir $gh_repo_path) $newPageQS -}}
 
   <a href="{{ $viewURL }}" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa-solid fa-file-lines fa-fw"></i> {{ T "post_view_this" }}</a>
   <a href="{{ $editURL }}" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa-solid fa-pen-to-square fa-fw"></i> {{ T "post_edit_this" }}</a>
@@ -48,7 +48,7 @@
 
 {{ end -}}
 {{ with .CurrentSection.AlternativeOutputFormats.Get "print" -}}
-  <a id="print" href="{{ .Permalink | safeURL }}"><i class="fa-solid fa-print fa-fw"></i> {{ T "print_entire_section" }}</a>
+  <a id="print" href="{{ .RelPermalink | safeURL }}"><i class="fa-solid fa-print fa-fw"></i> {{ T "print_entire_section" }}</a>
 {{ end }}
 </div>
 {{ end -}}

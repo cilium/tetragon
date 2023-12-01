@@ -46,7 +46,7 @@ other = "提交文档问题"
 [post_create_project_issue]
 other = "提交项目问题"
 [post_posts_in]
-other = "张贴在"
+other = "撰写于"
 [post_reading_time]
 other = "分钟阅读"
 [post_less_than_a_minute_read]

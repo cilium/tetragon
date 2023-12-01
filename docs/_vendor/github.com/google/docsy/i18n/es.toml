@@ -7,7 +7,7 @@ other = "Previo"
 other = "Siguiente"
 
 [ui_read_more]
-other = "Contiuar leyendo"
+other = "Continuar leyendo"
 
 [ui_search]
 other = "Buscar"

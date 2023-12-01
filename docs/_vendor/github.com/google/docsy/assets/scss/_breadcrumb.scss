@@ -1,7 +1,9 @@
 // Breadcrumb
 
 .td-breadcrumbs {
-  @media print {display: none !important; }
+  @media print {
+    display: none !important;
+  }
 
   .breadcrumb {
     background: inherit;
