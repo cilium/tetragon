@@ -113,8 +113,10 @@ github_project_repo = "https://github.com/cilium/tetragon"
 # Specify a value here if your content directory is not in your repo's root directory
 github_subdir = "docs"
 
-# Enable Algolia DocSearch
-algolia_docsearch = false
+[params.search.algolia]
+appId = "UI18HE156K"
+apiKey = "77f164b3638095772b770596db900fea"
+indexName = "tetragon"
 
 # User interface configuration
 [params.ui]
