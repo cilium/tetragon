@@ -76,7 +76,7 @@ RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/b
 
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
-FROM docker.io/library/alpine:3.18.4@sha256:eece025e432126ce23f223450a0326fbebde39cdf496a85d8c016293fc851978 as base-build
+FROM docker.io/library/alpine:3.18.5@sha256:34871e7290500828b39e22294660bee86d966bc0017544e848dd9a255cdf59e0 as base-build
 RUN apk add iproute2
 RUN mkdir /var/lib/tetragon/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
