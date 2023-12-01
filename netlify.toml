@@ -22,4 +22,4 @@ command = "npm ci && hugo"
 ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 [build.environment]
-HUGO_VERSION = "0.111.3"
+HUGO_VERSION = "0.120.4"
