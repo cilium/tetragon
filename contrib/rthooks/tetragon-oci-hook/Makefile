@@ -3,8 +3,15 @@
 
 GO ?= go
 
+all: tetragon-oci-hook
+
+tetragon-oci-hook: FORCE
+	$(GO) build -o $@ ./cmd/hook
+
 .PHONY: vendor
 vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+
+FORCE:
