@@ -7,12 +7,12 @@ require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.15.0-pre.2
 	github.com/cilium/ebpf v0.12.3
-	github.com/cilium/little-vm-helper v0.0.13-0.20231127061242-de55dde17c31
+	github.com/cilium/little-vm-helper v0.0.13
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.9
+	github.com/containerd/containerd v1.7.10
 	github.com/fatih/color v1.16.0
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/gogo/protobuf v1.3.2

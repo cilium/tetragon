@@ -121,8 +121,8 @@ github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2 h1:aUhT8ib6cKposeTys
 github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2/go.mod h1:AyKxZ17L5Q7fk2doxT3yjMYGlrJdq5/jvR2xN5KMbxA=
 github.com/cilium/ebpf v0.12.3 h1:8ht6F9MquybnY97at+VDZb3eQQr8ev79RueWeVaEcG4=
 github.com/cilium/ebpf v0.12.3/go.mod h1:TctK1ivibvI3znr66ljgi4hqOT8EYQjz1KWBfb1UVgM=
-github.com/cilium/little-vm-helper v0.0.13-0.20231127061242-de55dde17c31 h1:tCXbiuZZTCsZ8G8JKhzk6oiDTcjSRFLzWgijts/rIeo=
-github.com/cilium/little-vm-helper v0.0.13-0.20231127061242-de55dde17c31/go.mod h1:mtoEi6aNRMWCkyyP6y+K7+/KUUgQWtWZ4a7L69Fg3WU=
+github.com/cilium/little-vm-helper v0.0.13 h1:pRyaz3Rg+S6u23z7EDOrTtBRRleZ1md2D/BTMbz3d30=
+github.com/cilium/little-vm-helper v0.0.13/go.mod h1:mtoEi6aNRMWCkyyP6y+K7+/KUUgQWtWZ4a7L69Fg3WU=
 github.com/cilium/lumberjack/v2 v2.3.0 h1:IhVJMvPpqDYmQzC0KDhAoy7KlaRsyOsZnT97Nsa3u0o=
 github.com/cilium/lumberjack/v2 v2.3.0/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
 github.com/cilium/proxy v0.0.0-20231018073547-ab187719b71b h1:NYdQn/qPPkqHNSRMKWnSwhQuy2/rJn8pAl656iMdKtw=
@@ -146,8 +146,8 @@ github.com/cncf/xds/go v0.0.0-20230607035331-e9ce68804cb4/go.mod h1:eXthEFrGJvWH
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/containerd/cgroups v1.1.0 h1:v8rEWFl6EoqHB+swVNjVoCJE8o3jX7e8nqBGPLaDFBM=
 github.com/containerd/cgroups v1.1.0/go.mod h1:6ppBcbh/NOOUU+dMKrykgaBnK9lCIBxHqJDGwsa1mIw=
-github.com/containerd/containerd v1.7.9 h1:KOhK01szQbM80YfW1H6RZKh85PHGqY/9OcEZ35Je8sc=
-github.com/containerd/containerd v1.7.9/go.mod h1:0/W44LWEYfSHoxBtsHIiNU/duEkgpMokemafHVCpq9Y=
+github.com/containerd/containerd v1.7.10 h1:2nfZyT8BV0C3iKu/SsGxKVAf9dp5W7l9nA8JmWmDGuo=
+github.com/containerd/containerd v1.7.10/go.mod h1:0/W44LWEYfSHoxBtsHIiNU/duEkgpMokemafHVCpq9Y=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
 github.com/containerd/ttrpc v1.2.2 h1:9vqZr0pxwOF5koz6N0N3kJ0zDHokrcPxIR/ZR2YFtOs=
