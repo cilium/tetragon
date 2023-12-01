@@ -1,6 +1,6 @@
 ---
 title: "Policy Library"
-weight: 3
+weight: 5
 description: >
   Library of Tetragon Policies
 ---

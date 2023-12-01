@@ -1,7 +1,6 @@
 ---
 title: "Privileged execution"
 weight: 3
-icon: "overview"
 description: "Monitor process capabilities and kernel namespace access"
 ---
 

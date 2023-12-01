@@ -1,5 +1,5 @@
 ---
 title: "Installation"
-weight: 2
+weight: 3
 description: "Tetragon installation and deployment configuration options"
 ---

@@ -1,7 +1,6 @@
 ---
 title: "Linux process credentials"
 weight: 4
-icon: "overview"
 description: "Monitor Linux process credentials"
 ---
 

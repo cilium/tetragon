@@ -1,7 +1,6 @@
 ---
 title: "Debugging Tetragon"
 weight: 1
-icon: "overview"
 description: "Diagnosing Tetragon problems"
 ---
 

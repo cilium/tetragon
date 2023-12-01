@@ -1,7 +1,6 @@
 ---
 title: "FAQ"
-weight: 8
-icon: "faq"
+weight: 10
 description: "List of frequently asked questions"
 ---
 

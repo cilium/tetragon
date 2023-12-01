@@ -1,6 +1,5 @@
 ---
 title: "Options"
-icon: "overview"
 weight: 3
 description: "Pass options to hook"
 ---

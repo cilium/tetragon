@@ -1,7 +1,6 @@
 ---
 title: "Deploy with a package"
 linkTitle: "Package"
-icon: "tutorials"
 weight: 3
 description: "Install and manage Tetragon via released packages."
 ---

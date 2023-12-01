@@ -1,7 +1,6 @@
 ---
 title: "Security Profiles"
 weight: 6
-icon: "overview"
 description: "Observe and record security events"
 ---
 

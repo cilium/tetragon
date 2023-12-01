@@ -1,7 +1,6 @@
 ---
 title: "Host System Changes"
 weight: 5
-icon: "overview"
 description: "Monitor Host System changes"
 ---
 

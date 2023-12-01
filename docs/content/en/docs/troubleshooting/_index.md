@@ -1,7 +1,6 @@
 ---
 title: "Troubleshooting"
-weight: 8
-icon: "faq"
+weight: 11
 description: Troubleshooting Tetragon
 ---
 

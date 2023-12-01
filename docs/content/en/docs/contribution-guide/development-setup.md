@@ -1,7 +1,6 @@
 ---
 title: "Development setup"
 weight: 1
-icon: "overview"
 description: "This will help you getting started with your development setup to build Tetragon"
 ---
 
