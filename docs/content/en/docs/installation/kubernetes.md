@@ -17,7 +17,7 @@ command.
 
 {{< note >}}
 You can find the chart and its documentation with all available values for
-configuration in [install/kubernetes](https://github.com/cilium/tetragon/tree/main/install/kubernetes)
+configuration in [install/kubernetes/tetragon](https://github.com/cilium/tetragon/tree/main/install/kubernetes/tetragon)
 in the Tetragon repository. You can use any of the values and override them
 with `--set KEY1=VALUE1,KEY2=VALUE2`.
 {{< /note >}}

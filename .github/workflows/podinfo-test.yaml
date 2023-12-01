@@ -56,7 +56,7 @@ jobs:
 
     - name: Run go tests
       run: |
-        helm upgrade --install tetragon ./install/kubernetes -n kube-system \
+        helm upgrade --install tetragon ./install/kubernetes/tetragon -n kube-system \
           --set tetragonOperator.podInfo.enabled=true \
           --set tetragonOperator.image.override=${{ steps.vars.outputs.operatorImage }}
         kubectl rollout status -n kube-system deployment/tetragon-operator

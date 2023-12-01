@@ -14,7 +14,7 @@ version=$1
 # Drop the leading "v" for Helm chart version.
 semver="${version:1}"
 
-yq -i ".version = \"$semver\"" install/kubernetes/Chart.yaml
-yq -i ".appVersion = \"$semver\"" install/kubernetes/Chart.yaml
-yq -i ".tetragon.image.tag = \"$version\"" install/kubernetes/values.yaml
-yq -i ".tetragonOperator.image.tag = \"$version\"" install/kubernetes/values.yaml
+yq -i ".version = \"$semver\"" install/kubernetes/tetragon/Chart.yaml
+yq -i ".appVersion = \"$semver\"" install/kubernetes/tetragon/Chart.yaml
+yq -i ".tetragon.image.tag = \"$version\"" install/kubernetes/tetragon/values.yaml
+yq -i ".tetragonOperator.image.tag = \"$version\"" install/kubernetes/tetragon/values.yaml

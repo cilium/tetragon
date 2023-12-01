@@ -88,7 +88,7 @@ fi
 if [ -n "$VALUES" ]; then
     helm_opts+=("--values" "$VALUES")
 fi
-helm_opts+=("tetragon" "./install/kubernetes")
+helm_opts+=("tetragon" "./install/kubernetes/tetragon")
 
 if [ "$IS_KIND" == 1 ]; then
 	# NB: configured in kind-config.yaml

@@ -35,12 +35,12 @@ description: "This reference is generated from the Tetragon Helm chart values."
 ---
 
 {{< comment >}}
-This page was generated with github.io/cilium/tetragon/install/kubernetes/export-doc.sh,
+This page was generated with github.io/cilium/tetragon/install/kubernetes/tetragon/export-doc.sh,
 please do not edit directly.
 {{< /comment >}}
 
 The Tetragon Helm chart source is available under 
-[github.io/cilium/tetragon/install/kubernetes](https://github.com/cilium/tetragon/tree/main/install/kubernetes)
+[github.io/cilium/tetragon/install/kubernetes/tetragon](https://github.com/cilium/tetragon/tree/main/install/kubernetes/tetragon)
 and is distributed from the Cilium helm charts repository [helm.cilium.io](https://helm.cilium.io).
 
 To deploy Tetragon using this Helm chart you can run the following commands:

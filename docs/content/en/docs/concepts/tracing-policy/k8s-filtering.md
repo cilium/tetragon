@@ -64,7 +64,7 @@ helm install --namespace kube-system \
 	--set tetragon.image.override=cilium/tetragon:latest  \
 	--set tetragon.enablePolicyFilter="true" \
 	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
-	tetragon ./install/kubernetes
+	tetragon ./install/kubernetes/tetragon
 ```
 
 Once the tetragon pod is up and running, we can get its name.
