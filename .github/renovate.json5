@@ -13,7 +13,7 @@
     "^make codegen$", 
     "^make generate$", 
     "^make vendor$",
-    "^install/kubernetes/test.sh$",
+    "^install/kubernetes/tetragon/test.sh$",
     "^go mod vendor$",
     "^install-tool golang \\$\\(grep -oP '\\^go \\\\K\\.\\+' go\\.mod\\)$"
   ],
@@ -37,7 +37,7 @@
     "contrib/rthooks/tetragon-oci-hook/go.mod",
     "contrib/rthooks/tetragon-oci-hook/go.sum",
     "Dockerfile*",
-    "install/kubernetes/values.yaml",
+    "install/kubernetes/tetragon/values.yaml",
     "Makefile.cli",
     "Makefile",
   ],
@@ -236,11 +236,11 @@
     {
       "groupName": "Helm chart",
       "matchFileNames": [
-        "install/kubernetes/values.yaml",
+        "install/kubernetes/tetragon/values.yaml",
       ],
       // lint and generate files for helm chart
       "postUpgradeTasks": {
-        "commands": ["install/kubernetes/test.sh"],
+        "commands": ["install/kubernetes/tetragon/test.sh"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       }
