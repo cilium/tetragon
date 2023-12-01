@@ -15,7 +15,7 @@ enableRobotsTXT = true
 enableGitInfo = true
 
 # Comment out to enable taxonomies in Docsy
-disableKinds = ["taxonomy", "taxonomyTerm"]
+disableKinds = ["taxonomy"]
 
 # Configure how URLs look like per section.
 [permalinks]
