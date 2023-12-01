@@ -1,0 +1,9 @@
+.td-content {
+  img {
+    max-width: 80%;
+
+    @media screen and (max-width: 991.98px) {
+      max-width: 100%;
+    }
+  }
+}

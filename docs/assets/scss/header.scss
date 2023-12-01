@@ -1,0 +1,89 @@
+.td-navbar {
+  height: 64px;
+  padding: 20px;
+  background-color: #fff;
+  border-bottom: 1px solid #E5E7E7;
+
+  @media screen and (max-width: 991.98px) {
+    .td-navbar-nav-scroll {
+      height: auto;
+    }
+    .navbar-nav {
+      padding-bottom: 0;
+      overflow: hidden;
+    }
+  }
+
+  @media screen and (max-width: 767px) {
+    height: auto;
+
+    .td-navbar-nav-scroll {
+      width: 100%;
+      height: auto;
+
+      .navbar-nav {
+        width: 100%;
+        display:flex;
+        justify-content: space-evenly;
+
+        // only display "documentation" and "Github" links
+        .nav-item {
+          display: none;
+        }
+        .nav-item:first-child {
+          display: block;
+        }
+        .nav-item:last-child {
+          display: block;
+        }
+      }
+    }
+  }
+
+  .navbar-brand svg {
+    height: 48px;
+
+    @media screen and (max-width: 767px) {
+      height: 72px;
+    }
+  }
+
+  .navbar-brand__name {
+    display: none;
+  }
+}
+
+.navbar-dark {
+  .navbar-nav {
+    .nav-item:last-of-type {
+      .nav-link {
+        margin-left: 22px;
+        @media screen and (max-width: 991.98px) {
+          margin-left: 0;
+        }
+        padding: 12px 16px;
+        font-weight: 800;
+        border: 1px solid #253737;
+        border-radius: 30px;
+      }
+    }
+
+    .nav-link {
+      padding: 12px 12px;
+      color: #253737;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 100%;
+
+      &:hover,
+      &:focus {
+        color: #5C6D70;
+        border-color: #5C6D70;
+      }
+    }
+  }
+
+  .td-search {
+    display: none;
+  }
+}

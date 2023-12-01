@@ -1,0 +1,10 @@
+.td-content {
+  details {
+    max-width: 80%;
+    margin-bottom: 1rem;
+
+    @media screen and (max-width: 991.98px) {
+      max-width: 100%;
+    }
+  }
+}

@@ -1,0 +1,24 @@
+.td-sidebar-toc {
+
+  .td-page-meta {
+    padding-top: 25px !important;
+
+    a {
+      color: #253737;
+      transition: color 0.2s;
+
+      &:hover,
+      &:focus {
+        color: #5C6D70;
+      }
+    }
+  }
+
+  .td-toc {
+    margin-left: 8px;
+
+    p {
+      margin: 0.5rem 0;
+    }
+  }
+}
