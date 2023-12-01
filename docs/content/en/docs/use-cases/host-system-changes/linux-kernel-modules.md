@@ -25,12 +25,12 @@ After deploying Tetragon, use the [monitor-kernel-modules](https://raw.githubuse
 to trace kernel module operations.
 
 Apply the [monitor-kernel-modules](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml) tracing policy:
-```shell-session
+```shell
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml
 ```
 
 Then start monitoring for events with `tetra` CLI:
-```shell-session
+```shell
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents
 ```
 
@@ -181,7 +181,7 @@ After deploying Tetragon, use the [monitor-signed-kernel-modules](https://raw.gi
 to identify if kernel modules are signed or not.
 
 Apply the [monitor-signed-kernel-modules](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-signed-kernel-modules.yaml) tracing policy:
-```shell-session
+```shell
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-signed-kernel-modules.yaml
 ```
 
@@ -194,18 +194,18 @@ This was tested on an Ubuntu host.
 {{< /note >}}
 
 
-```shell-session
+```shell
 kubectl create namespace demo-app
 kubectl apply -n demo-app -f https://raw.githubusercontent.com/cilium/tetragon/main/testdata/specs/testpod.yaml
 ```
 
 Start monitoring for events with `tetra` CLI:
-```shell-session
+```shell
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents
 ```
 
 In another terminal, kubectl exec into the `test-pod` and run the following commands to create an `xfs` filesystem:
-```shell-session
+```shell
 kubectl exec -it -n demo-app test-pod -- /bin/sh
 apk update
 dd if=/dev/zero of=loop.xfs bs=1 count=0 seek=32M
@@ -218,7 +218,7 @@ losetup -a | grep xfs
 ```
 
 Now the xfs filesystem should be mounted at `/mnt/xfs.volume`. To unmount it and release the loop device run:
-```shell-session
+```shell
 umount /mnt/xfs.volume/
 ```
 
@@ -558,6 +558,6 @@ Monitoring module load operations allows to detect such cases
 
 To disable the [monitor-kernel-modules](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml) run:
 
-```shell-session
+```shell
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml
 ```

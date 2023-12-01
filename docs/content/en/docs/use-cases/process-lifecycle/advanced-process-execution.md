@@ -30,7 +30,7 @@ kubectl create -f {{< demo-app-url >}}
 
 It might take several seconds for some pods until they satisfy all the dependencies:
 
-```shell-session
+```shell
 kubectl get pods -A
 ```
 The output should be similar to:

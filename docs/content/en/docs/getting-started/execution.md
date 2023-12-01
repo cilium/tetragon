@@ -16,7 +16,7 @@ can then observe all executions in the system.
 
 The following command can be used to observe exec events.
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
@@ -29,7 +29,7 @@ This will print a compact form of the exec logs. For an example we do the follow
 with the demo application.
 
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 {{< /tab >}}

@@ -14,7 +14,7 @@ chosen and should work in most environments.
 
 The first way is to observe the raw json output from the stdout container log:
 
-```shell-session
+```shell
 kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f
 ```
 
@@ -127,20 +127,20 @@ allows filtering by process, pod, and other fields. To install tetra see the
 [Tetra Installation Guide]({{< ref "/docs/installation/tetra-cli" >}})
 
 To start printing events run:
-```shell-session
+```shell
 kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact
 ```
 
 The `tetra` CLI is also available inside `tetragon` container.
 
-```shell-session
+```shell
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact
 ```
 
 This was used in the quick start and generates a pretty printing of the events, To further
 filter by a specific binary and/or pod do the following,
 
-```shell-session
+```shell
 kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --processes curl --pod xwing
 ```
 
@@ -159,12 +159,12 @@ can be configured  with the `--server-address` option. This can be
 set from helm with the `tetragon.grpc.address` flag or disabled completely if
 needed with `tetragon.grpc.enabled`.
 
-```shell-session
+```shell
 helm install tetragon cilium/tetragon -n kube-system --set tetragon.grpc.enabled=true --set tetragon.grpc.address=localhost:54321
 ```
 
 An example gRPC endpoint is the Tetra CLI when its not piped JSON output directly,
 
-```shell-session
+```shell
  kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact
 ```

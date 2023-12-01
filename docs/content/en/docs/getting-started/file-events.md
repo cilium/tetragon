@@ -20,7 +20,7 @@ To apply the policy Kubernetes uses a CRD that can be applied with kubectl.
 Uses the same YAML configuration as Kuberenetes, but loaded through a file
 on disk.
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 
 {{< tab Kubernetes >}}
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
@@ -38,7 +38,7 @@ docker run --name tetragon-container --rm --pull always \
 
 With the file applied we can attach tetra to observe events again:
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
@@ -49,7 +49,7 @@ docker exec tetragon-container tetra getevents -o compact
 
 Then reading a sensitive file:
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
 {{< /tab >}}
@@ -70,7 +70,7 @@ This will generate a read event (Docker events will omit Kubernetes metadata),
 Attempts to write in sensitive directories will similar create an event. For
 example attempting to write in `/etc`.
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti xwing -- bash -c 'echo foo >> /etc/bar'
 {{< /tab >}}

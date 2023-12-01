@@ -13,14 +13,14 @@ outside the Kubernetes pod CIDR and service CIDR.
 First we must find the pod CIDR and service CIDR in use. The pod
 IP CIDR can be found relatively easily in many cases.
 
-```shell-session
+```shell
 export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
 
 The services CIDR can then be fetched depending on environment. We
 require environment variables ZONE and NAME from install steps.
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 
 {{< tab GKE >}}
 export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
@@ -35,21 +35,21 @@ export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-con
 First we apply a policy that includes the `podCIDR` and `serviceIP` list as
 filters to avoid filter out cluster local traffic. To apply the policy:
 
-```shell-session
+```shell
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster.yaml
 envsubst < network_egress_cluster.yaml | kubectl apply -f -
 ```
 
 With the file applied we can attach tetra to observe events again:
 
-```shell-session
+```shell
  kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing --processes curl
 ```
 
 Then execute a curl command in the xwing pod to curl one of our favorite
 sites.
 
-```shell-session
+```shell
  kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 ```
 
@@ -65,7 +65,7 @@ We can confirm in-kernel BPF filters are not producing events for in cluster
 traffic by issuing a curl to one of our services and noting there is no connect
 event.
 
-```shell-session
+```shell
 kubectl exec -ti xwing -- bash -c 'curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing'
 ```
 
@@ -91,19 +91,19 @@ by default will filter all local IPs `127.0.0.1` from the event log. So we can
 demo that here.
 
 Set env variables to local loopback IP.
-```shell-session
+```shell
 export PODCIDR="127.0.0.1/32"
 export SERVICECIDR="127.0.0.1/32"
 ```
 
 To create the policy,
-```shell-session
+```shell
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster.yaml
 envsubst < network_egress_cluster.yaml > network_egress_cluster_subst.yaml
 ```
 
 Start Tetragon with the new policy:
-```shell-session
+```shell
 docker stop tetragon-container
 docker run --name tetragon-container --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
@@ -113,13 +113,13 @@ docker run --name tetragon-container --rm --pull always \
 ```
 
 Attach to the tetragon output
-```shell-session
+```shell
 docker exec tetragon-container tetra getevents -o compact
 ```
 
 Now remote TCP connections will be logged and local IPs filters. Executing a curl
 to generate a remote TCP connect.
-```shell-session
+```shell
 curl https://ebpf.io/applications/#tetragon
 ```
 

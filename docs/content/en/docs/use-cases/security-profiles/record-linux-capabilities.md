@@ -20,13 +20,13 @@ the following questions:
 
 First, verify that your k8s environment is set up and that all pods are up and running, and deploy the demo application:
 
-```shell-session
+```shell
 kubectl create -f {{< demo-app-url >}}
 ```
 
 It might take several seconds until all pods are Running:
 
-```shell-session
+```shell
 kubectl get pods -A
 ```
 
@@ -51,23 +51,23 @@ To reduce events, the [creds-capability-usage](https://raw.githubusercontent.com
 {{< /note >}}
 
 Apply the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) policy:
-```shell-session
+```shell
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
 ```
 
 Start monitoring for events with `tetra` cli, but match only events of `xwing` pod:
-```shell-session
+```shell
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents --namespaces default --pods xwing
 ```
 
 In another terminal, kubectl exec into the xwing pod:
-```shell-session
+```shell
 kubectl exec -it xwing -- /bin/bash
 ```
 
 As an example execute [dmesg](https://man7.org/linux/man-pages/man1/dmesg.1.html) to print the kernel ring buffer. This requires the special capability `CAP_SYSLOG`:
 
-```shell-session
+```shell
 dmesg
 ```
 
@@ -232,6 +232,6 @@ In addition to the Kubernetes Identity and process metadata from exec events, [P
 
 To disable the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) run:
 
-```shell-session
+```shell
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
 ```
