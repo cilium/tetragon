@@ -1,6 +1,5 @@
 ---
 title: "Events"
-icon: "overview"
 weight: 1
 description: "Documentation for Tetragon Events"
 ---

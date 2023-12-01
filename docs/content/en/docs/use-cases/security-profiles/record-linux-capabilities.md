@@ -1,7 +1,6 @@
 ---
 title: "Record Linux Capabilities Usage"
 weight: 2
-icon: "overview"
 description: "Record a capability profile of pods and containers"
 ---
 

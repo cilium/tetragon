@@ -1,6 +1,5 @@
 ---
 title: "Example"
-icon: "tutorials"
 weight: 1
 description: "Learn the basics of Tracing Policy via an example"
 ---

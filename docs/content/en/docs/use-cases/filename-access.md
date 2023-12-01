@@ -1,7 +1,6 @@
 ---
 title: "Filename access"
 weight: 2
-icon: "overview"
 description: "Monitor filename access using kprobe hooks"
 ---
 

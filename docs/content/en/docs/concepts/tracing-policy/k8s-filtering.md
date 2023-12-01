@@ -1,6 +1,5 @@
 ---
 title: "K8s namespace and pod label filtering"
-icon: "overview"
 weight: 4
 description: "Tetragon in-kernel filtering based on Kubernetes namespaces and pod label filters"
 ---

@@ -1,7 +1,6 @@
 ---
 title: "Making changes"
 weight: 2
-icon: "reference"
 description: "Learn how to make your first changes to the project"
 ---
 

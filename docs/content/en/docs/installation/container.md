@@ -1,7 +1,6 @@
 ---
 title: "Deploy as a container"
 linkTitle: "Container"
-icon: "tutorials"
 weight: 2
 description: "Install and manage Tetragon as a container without a Kubernetes cluster"
 ---

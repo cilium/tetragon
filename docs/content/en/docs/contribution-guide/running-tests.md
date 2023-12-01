@@ -1,7 +1,6 @@
 ---
 title: "Running tests"
 weight: 3
-icon: "observability"
 manualLink: "https://github.com/cilium/tetragon/tree/main/tests/vmtests"
 manualLinkTarget: "_blank"
 description: "Learn how to run the tests of the project"

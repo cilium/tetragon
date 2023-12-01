@@ -1,7 +1,6 @@
 ---
 title: "Monitor Linux Kernel Modules"
 weight: 1
-icon: "overview"
 description: "Monitor Linux Kernel Modules operations"
 ---
 

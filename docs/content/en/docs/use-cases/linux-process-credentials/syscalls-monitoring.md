@@ -1,7 +1,6 @@
 ---
 title: "Monitor Process Credentials changes at the System Call layer"
 weight: 1
-icon: "overview"
 description: "Monitor system calls that change Process Credentials"
 ---
 

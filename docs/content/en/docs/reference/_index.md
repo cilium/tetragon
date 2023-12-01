@@ -1,8 +1,6 @@
 ---
 title: "Reference"
-linkTitle: "Reference"
-weight: 7
-icon: "reference"
+weight: 9
 description: >
   Low level reference documentation for Tetragon
 ---

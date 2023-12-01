@@ -1,7 +1,6 @@
 ---
 title: "Use Cases"
-icon: "resources"
-weight: 4
+weight: 6
 description: >
   This section presents various use cases on process, files, network and
   security monitoring and enforcement.

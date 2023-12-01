@@ -1,6 +1,5 @@
 ---
 title: "Hook points"
-icon: "features"
 weight: 2
 description: "Hook points for Tracing Policies and arguments description"
 ---

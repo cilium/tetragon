@@ -1,6 +1,5 @@
 ---
 title: "Selectors"
-icon: "overview"
 weight: 3
 description: "Perform in-kernel BPF filtering and actions on events"
 ---

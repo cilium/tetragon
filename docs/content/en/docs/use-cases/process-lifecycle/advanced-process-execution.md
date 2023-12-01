@@ -1,7 +1,6 @@
 ---
 title: "Advanced Process execution"
 weight: 2
-icon: "overview"
 description: "Advanced Process Execution monitoring using Tracing Policies"
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: "Deploy on Kubernetes"
 linkTitle: "Kubernetes"
-icon: "tutorials"
 weight: 1
 description: "Deploy and manage Tetragon on Kubernetes"
 ---
