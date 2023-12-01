@@ -21,7 +21,7 @@ and how to run Tetragon on a Mac computer in [this section of the FAQ page](/doc
 The easiest way to start experimenting with Tetragon is to run it via Docker
 using the released container images.
 
-```shell-session
+```shell
 docker run --name tetragon-container --rm --pull always \
     --pid=host --cgroupns=host --privileged             \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \

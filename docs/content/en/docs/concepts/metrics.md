@@ -18,7 +18,7 @@ service named `tetragon` that exposes metrics on the specified port.
 
 Check if the `tetragon` service exists:
 
-```shell-session
+```shell
 kubectl get services tetragon -n kube-system
 ```
 
@@ -38,7 +38,7 @@ with the default Helm values.
 
 To forward the metrics port locally, use `kubectl port forward`:
 
-```shell-session
+```shell
 kubectl -n kube-system port-forward service/tetragon 2112:2112
 ```
 
@@ -59,7 +59,7 @@ generally recommended.
 
 Run `sudo tetragon --metrics-server localhost:2112` to set metrics address to `localhost:2112` and export metrics.
 
-```shell-session
+```shell
 sudo tetragon --metrics-server localhost:2112
 ```
 
@@ -87,7 +87,7 @@ Kubernetes installation or by setting metrics address in case of Package
 installation, the metrics can be fetched using
 `curl` on `localhost:2112/metrics`:
 
-```shell-session
+```shell
 curl localhost:2112/metrics
 ```
 

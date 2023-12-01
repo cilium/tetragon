@@ -112,13 +112,13 @@ Learn more about the various selectors in the dedicated
 ## Policy effect
 
 First, let's create the `/tmp/tetragon` file with some content:
-```shell-session
+```shell
 echo eBPF! > /tmp/tetragon
 ```
 
 You can save the policy in an `example.yaml` file, compile Tetragon locally, and start Tetragon:
 
-```shell-session
+```shell
 sudo ./tetragon --bpf-lib bpf/objs --tracing-policy example.yaml
 ```
 
@@ -133,12 +133,12 @@ remove the BPF programs.
 {{< /note >}}
 
 Once the Tetragon starts, you can monitor events using `tetra`, the tetragon CLI:
-```shell-session
+```shell
 ./tetra tetra getevents -o compact
 ```
 
 Reading the `/tmp/tetragon` file with `cat`:
-```shell-session
+```shell
 cat /tmp/tetragon
 ```
 

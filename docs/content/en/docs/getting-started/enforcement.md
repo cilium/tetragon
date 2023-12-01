@@ -41,13 +41,13 @@ getting started guide.
 
 Ensure we have the proper Pod CIDRs
 
-```shell-session
+```shell
 export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
 
  and Service CIDRs configured.
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab GKE >}}
 export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
 {{< /tab >}}
@@ -59,20 +59,20 @@ export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-con
 
 Then we can apply the egress cluster enforcement policy
 
-```shell-session
+```shell
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster_enforce.yaml
 envsubst < network_egress_cluster_enforce.yaml | kubectl apply -n default -f -
 ```
 
 With the enforcement policy applied we can attach tetra to observe events again:
 
-```shell-session
+```shell
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 ```
 
 And once again execute a curl command in the xwing:
 
-```shell-session
+```shell
 kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 ```
 
@@ -83,7 +83,7 @@ command terminated with exit code 137
 
 Connect inside the cluster will work as expected,
 
-```shell-session
+```shell
 kubectl exec -ti xwing -- bash -c 'curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing'
 ```
 
@@ -110,7 +110,7 @@ to sigkill the application and return an error on the op.
 
 To apply the policy:
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 
 {{< tab Kubernetes >}}
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
@@ -129,7 +129,7 @@ docker run --name tetragon-container --rm --pull always \
 
 With the file applied we can attach tetra to observe events again,
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
@@ -140,7 +140,7 @@ docker exec tetragon-container tetra getevents -o compact
 
 Then reading a sensitive file,
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}
 kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
 {{< /tab >}}
@@ -150,7 +150,7 @@ cat /etc/shadow
 {{< /tabpane >}}
 
 The command will fail with an error code because this is one of our sensitive files,
-```shell-session
+```shell
 kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
 ```
 

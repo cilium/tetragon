@@ -47,13 +47,13 @@ and programs can identify bugs and malicious or unexpected BPF activity.
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-11-01T02:56:54.926403604Z /usr/bin/bpftool prog list programType:BPF_PROG_TYPE_SOCKET_FILTER programInsn:2"
 ```
 
@@ -73,13 +73,13 @@ Understanding exactly what kernel modules are running in the cluster is crucial 
 
 ### Example jq Filter
 
-```shell-session
+```shell
  jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-11-01T04:11:38.390880528Z /sbin/iptables -A OUTPUT -m cgroup --cgroup 1 -j LOG module:ipt_LOG"
 ```
 
@@ -100,13 +100,13 @@ Understanding the exact versions of shared libraries that binaries load and use 
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-10-31T19:42:33.065233159Z default/xwing /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
 ```
 
@@ -126,13 +126,13 @@ No policy needs to be loaded, standard process execution observability is suffic
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("/tmp/")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-10-31T18:44:22.777962637Z default/xwing /tmp/nc ebpf.io 1234"
 ```
 
@@ -152,13 +152,13 @@ No policy needs to be loaded, standard process execution observability is suffic
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_exec != null) | select(.process_exec.process.binary | contains("sudo")) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.binary) \(.process_exec.process.arguments)"'
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
 ```
 
@@ -182,7 +182,7 @@ during an exploit for subsequent execution.
 Run Tetragon with `enable-process-creds` setting set to enable visibility
 into [process_credentials]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) and [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}}).
 
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 
 {{< tab Kubernetes >}}
 kubectl edit cm -n kube-system tetragon-config
@@ -213,13 +213,13 @@ No policy needs to be loaded, standard process execution observability is suffic
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.setuid != null or .process_exec.process.binary_properties.setgid != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid)"'
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-11-13T08:20:43.615672640Z null null /usr/bin/sudo id uid=1000 euid=0  gid=1000 egid=1000"
 "2023-11-13T08:20:45.591560940Z null null /usr/bin/wall hello uid=1000 euid=1000  gid=1000 egid=5"
 "2023-11-13T08:20:47.036760043Z null null /usr/bin/su - uid=1000 euid=0  gid=1000 egid=1000"
@@ -245,13 +245,13 @@ The [privileges-setuid-root.yaml](https://raw.githubusercontent.com/cilium/tetra
 
 ### Example jq Filter
 
-```shell-session
+```shell
 jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-setuid-root")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.args)"'
 ```
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-11-12T22:17:40.754680857Z null null /usr/bin/sudo id __sys_setresgid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
 "2023-11-12T22:17:40.754730285Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
 "2023-11-12T22:17:40.758125709Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
@@ -274,12 +274,12 @@ It is best practice to audit remote connections into a shell server.
 
 ### Example jq Filter
 
-```shell-session
+```shell
  jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_close")) |  "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.family) \(.process_kprobe.args[0].sock_arg.type)  \(.process_kprobe.args[0].sock_arg.protocol) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport)"'
 ```
 
 ### Example Output
-```shell-session
+```shell
 "2023-11-01T04:51:20.109146920Z /usr/sbin/sshd default/xwing AF_INET SOCK_STREAM IPPROTO_TCP 127.0.0.1:22"
 ```
 
@@ -296,10 +296,10 @@ into any unexpected or malicious reverse shells.
 
 ### Environment Variables
 
-```shell-session
+```shell
 PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
-{{< tabpane lang=shell-session >}}
+{{< tabpane lang=shell >}}
 
 {{< tab GKE >}}
 SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
@@ -323,6 +323,6 @@ SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-pl
 
 ### Example Output
 
-```shell-session
+```shell
 "2023-11-01T05:25:14.837745007Z /usr/bin/curl http://ebpf.io 10.168.0.45:48272 -> 104.198.14.52:80"
 ```

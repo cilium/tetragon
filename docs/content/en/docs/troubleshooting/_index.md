@@ -13,7 +13,7 @@ Before you report a problem, make sure to retrieve the necessary information fro
 
 You collect information in a Kubernetes cluster using the Cilium CLI:
 
-```shell-session
+```shell
 cilium-cli sysdump
 ```
 
@@ -23,7 +23,7 @@ More details can be found in the [Cilium docs](https://docs.cilium.io/en/stable/
 
 If you are not running Kubernetes, it is also possible to run the bug collection tool manually with the scope of a single node using:
 
-```shell-session
+```shell
 tetra bugtool
 ```
 

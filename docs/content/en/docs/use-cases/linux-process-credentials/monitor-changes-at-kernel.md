@@ -36,13 +36,13 @@ The main advantages of monitoring at the kernel layer compared to the [system ca
 
 First, verify that your k8s environment is all setup and that all pods are up and running, and  deploy the Demo Application:
 
-```shell-session
+```shell
 kubectl create -f {{< demo-app-url >}}
 ```
 
 It might take several seconds until all pods are Running:
 
-```shell-session
+```shell
 kubectl get pods -A
 NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE
 default              deathstar-54bb8475cc-6c6lc                   1/1     Running   0          2m54s
@@ -58,18 +58,18 @@ We use the [process-creds-installed](https://raw.githubusercontent.com/cilium/te
 
 So let's apply the [process-creds-installed](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) Tracing Policy.
 
-```shell-session
+```shell
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
 ```
 
 Then we start monitoring for events with `tetra` cli:
-```shell-session
+```shell
 kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents
 ```
 
 In another terminal, inside a pod and as a non root user we will execute a setuid binary (suid):
 
-```shell-session
+```shell
 /tmp/su -
 ```
 
@@ -220,6 +220,6 @@ Here we can clearly see that the suid binary is being executed by a user ID `11`
 
 To disable the [process-creds-installed Tracing Policy](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) run:
 
-```shell-session
+```shell
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
 ```

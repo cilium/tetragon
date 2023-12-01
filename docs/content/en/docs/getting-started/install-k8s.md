@@ -17,7 +17,7 @@ Kubernetes Engine](https://cloud.google.com/kubernetes-engine). See
 [Installing Google Cloud SDK](https://cloud.google.com/sdk/install) for
 instructions on how to install `gcloud` and prepare your account.
 
-```shell-session
+```shell
 export NAME="$(whoami)-$RANDOM"
 export ZONE="us-west2-a"
 gcloud container clusters create "${NAME}" --zone ${ZONE} --num-nodes=1
@@ -31,7 +31,7 @@ Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/). See
 [Azure Cloud CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 for instructions on how to install `az` and prepare your account.
 
-```shell-session
+```shell
 export NAME="$(whoami)-$RANDOM"
 export AZURE_RESOURCE_GROUP="${NAME}-group"
 az group create --name "${AZURE_RESOURCE_GROUP}" -l westus2
@@ -45,14 +45,14 @@ The following commands create a Kubernetes cluster with `eksctl` using [Amazon E
 Kubernetes Service](https://aws.amazon.com/eks/). See [eksctl installation](https://github.com/eksctl-io/eksctl#installation)
 for instructions on how to install `eksctl` and prepare your account.
 
-```shell-session
+```shell
 export NAME="$(whoami)-$RANDOM"
 eksctl create cluster --name "${NAME}"
 ```
 {{% /tab %}}
 {{% tab Kind %}}
 
-```shell-session
+```shell
 kind create cluster
 ```
 {{% /tab %}}
@@ -62,7 +62,7 @@ kind create cluster
 Tetragon's correct operation depends on access to the host /proc filesystem. The following steps
 configure kind and Tetragon accordingly when using a Linux system.
 
-```shell-session
+```shell
 cat <<EOF > kind-config.yaml
 apiVersion: kind.x-k8s.io/v1alpha4
 kind: Cluster
@@ -83,7 +83,7 @@ EXTRA_HELM_FLAGS="--set tetragon.hostProcPath=/procHost" # flags for helm instal
 
 To install and deploy Tetragon, run the following commands:
 
-```shell-session
+```shell
 helm repo add cilium https://helm.cilium.io
 helm repo update
 helm install tetragon ${EXTRA_HELM_FLAGS} cilium/tetragon -n kube-system
@@ -102,14 +102,14 @@ HTTP application, but any workload would work equally well.
 To use our [demo
 application](https://docs.cilium.io/en/v1.11/gettingstarted/http/#deploy-the-demo-application)
 
-```shell-session
+```shell
 kubectl create -f {{< demo-app-url >}}
 ```
 
 Before going forward, verify that all pods are up and running - it might take
 several seconds for some pods until they satisfy all the dependencies:
 
-```shell-session
+```shell
 kubectl get pods
 ```
 

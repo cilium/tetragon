@@ -39,9 +39,7 @@ weight = 1
       unsafe = true
   [markup.highlight]
     # See a complete list of available styles at https://xyproto.github.io/splash/docs/all.html
-    style = "github"
-    # Uncomment if you want your chosen highlight style used for code blocks without a specified language
-    # guessSyntax = "true"
+    style = "monokailight"
 
 [[menu.main]]
     name = "Documentation"
