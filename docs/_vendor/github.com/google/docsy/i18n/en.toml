@@ -27,7 +27,6 @@ other = "All Rights Reserved"
 [footer_privacy_policy]
 other = "Privacy Policy"
 
-
 # Post (blog, articles etc.)
 [post_byline_by]
 other = "By"
@@ -79,3 +78,13 @@ other = "If you want to get more involved by contributing to {{ .Site.Title }}, 
 other = "You can find out how to contribute to {{ .Site.Title }} in our"
 [community_guideline]
 other = "Contribution Guidelines"
+
+# Feedback
+[feedback_title]
+other = "Feedback"
+[feedback_question]
+other = "Was this page helpful?"
+[feedback_positive]
+other = "Yes"
+[feedback_negative]
+other = "No"

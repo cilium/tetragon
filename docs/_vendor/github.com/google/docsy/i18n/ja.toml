@@ -35,6 +35,8 @@ other = "作成"
 other = "最終更新"
 [post_edit_this]
 other = "ページの編集"
+[post_view_this]
+other = "ページのソースコードを見る"
 [post_create_child_page]
 other = "子ページを作成"
 [post_create_issue]

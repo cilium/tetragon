@@ -1,8 +1,11 @@
 {{- /* Make sure that we are enclosed within a tabpane shortcode block */ -}}
+
 {{ with $.Parent -}}
-{{ if ne $.Parent.Name "tabpane" -}}
-    {{ errorf "shortcode 'tab' must be used within a 'tabpane' block" -}}
+  {{ if ne $.Parent.Name "tabpane" -}}
+    {{ errorf "Found shortcode %q enclosed inside a %q block, must be enclosed inside a %q block. Error position: %s" $.Name $.Parent.Name "tabpane" $.Position  -}}
   {{ end -}}
+{{ else -}}
+  {{ errorf "shortcode %q must be enclosed inside a %q block, but no parent block was found. Error position: %s" $.Name "tabpane" $.Position  -}}
 {{ end -}}
 
 {{ $header := "Tab" -}}
@@ -10,40 +13,40 @@
   {{ $header = (.Get 0) -}}
 {{ else -}}
   {{/* Prefill header if not given as named or unnamed parameter */ -}}
-  {{ $header = default (printf "Tab %v" ( add $.Ordinal 1)) (.Get "header") -}}
+  {{ $header = .Get "header" | default (printf "Tab %v" .Ordinal) -}}
 {{ end -}}
 
 {{/* store all tab info in dict tab */ -}}
 {{ $tab := dict "header" $header -}}
 {{ with $.Get "lang" -}}
-  {{ $tab = merge $tab (dict "language" ($.Get "lang")) -}}
+  {{ $tab = merge $tab (dict "language" .) -}}
 {{ end -}}
 {{ with $.Get "highlight" -}}
-  {{ $tab = merge $tab (dict "highlight" ($.Get "highlight")) -}}
+  {{ $tab = merge $tab (dict "highlight" .) -}}
 {{ end -}}
 {{ with $.Get "text" -}}
   {{ if ne ( printf "%T" . ) "bool" -}}
-  {{ errorf "shortcode tab: parameter 'text' must be either true or false" -}}
+    {{ errorf "Shortcode %q: boolean value expected for parameter %q, but got %s. Error position: %s" $.Name "text" (printf "%T" .) $.Position  -}}
   {{ end -}}
-  {{ $tab = merge $tab (dict "text" ($.Get "text")) -}}
+  {{ $tab = merge $tab (dict "text" .) -}}
 {{ end -}}
 {{ with $.Get "right" -}}
   {{ if ne ( printf "%T" . ) "bool" -}}
-  {{ errorf "shortcode tab: parameter 'right' must be either true or false" -}}
+    {{ errorf "Shortcode %q: boolean value expected for parameter %q, but got %s. Error position: %s" $.Name "right" (printf "%T" .) $.Position  -}}
   {{ end -}}
-  {{ $tab = merge $tab (dict "rightpush" ($.Get "right")) -}}
+  {{ $tab = merge $tab (dict "rightpush" .) -}}
 {{ end -}}
 {{ with $.Get "disabled" -}}
   {{ if ne ( printf "%T" . ) "bool" -}}
-  {{ errorf "shortcode tab: parameter 'disabled' must be either true or false" -}}
+    {{ errorf "Shortcode %q: boolean value expected for parameter %q, but got %s. Error position: %s" $.Name "disabled" (printf "%T" .) $.Position  -}}
   {{ end -}}
-  {{ $tab = merge $tab (dict "disabled" ($.Get "disabled")) -}}
+  {{ $tab = merge $tab (dict "disabled" .) -}}
 {{ end -}}
 
 {{ with $.Inner -}}
   {{/* Trim any leading and trailing newlines from .Inner, this avoids
        spurious lines during syntax highlighting */ -}}
-  {{ $tab = merge $tab (dict "content" $.Inner) -}}
+  {{ $tab = merge $tab (dict "content" .) -}}
 {{ end -}}
 
 {{/* add dict tab to parent's scratchpad */ -}}

@@ -79,3 +79,13 @@ other = "Wenn Du aktiv beteiligen und einen Beitrag zu {{ .Site.Title }} leisten
 other = "Wie Du selbst zu {{ .Site.Title }} beitragen kannst, kannst Du nachlesen in unseren"
 [community_guideline]
 other = "Richtlinien für Beiträge"
+
+# Feedback
+[feedback_title]
+other = "Rückmeldung"
+[feedback_question]
+other = "War diese Seite hilfreich?"
+[feedback_positive]
+other = "Ja"
+[feedback_negative]
+other = "Nein"

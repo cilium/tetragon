@@ -20,10 +20,10 @@
   {{ $isActive :=  eq .p1 .p2 }}
   <li class="breadcrumb-item{{ if $isActive }} active{{ end }}"
       {{- if $isActive }} aria-current="page"{{ end }}>
-    <a href="{{ .p1.Permalink }}"
-      {{- if $isActive }} aria-disabled="true" class="btn-link disabled"{{ end -}}
-    >
-      {{- .p1.LinkTitle -}}
-    </a>
+    {{ if $isActive -}}
+      {{ .p1.LinkTitle -}}
+    {{ else -}}
+      <a href="{{ .p1.RelPermalink }}">{{ .p1.LinkTitle }}</a>
+    {{- end -}}
   </li>
 {{- end -}}

@@ -7,14 +7,14 @@ other = "上一頁"
 other = "下一頁"
 
 [ui_read_more]
-other = "更多"
+other = "閱讀全文"
 
 [ui_search]
-other = "站內搜索…"
+other = "站內搜尋…"
 
 # Used in sentences such as "Posted in News"
 [ui_in]
-other = "在"
+other = "於"
 
 # Used in sentences such as "All Tags"
 [ui_all]
@@ -30,7 +30,7 @@ other = "隱私政策"
 
 # Post (blog, articles etc.)
 [post_byline_by]
-other = "藉由"
+other = "作者："
 [post_created]
 other = "創建"
 [post_last_mod]
@@ -46,21 +46,21 @@ other = "創建文檔議題"
 [post_create_project_issue]
 other = "創建項目議題"
 [post_posts_in]
-other = "張貼在"
+other = "張貼於"
 [post_reading_time]
-other = "分鐘閱讀"
+other = " 分鐘左右可讀完"
 [post_less_than_a_minute_read]
-other = "少於1分鐘"
+other = "1 分鐘內可讀完"
 
 # Print support
 [print_printable_section]
-other = "這是本節的多頁可打印視圖。"
+other = "這是本節的多頁可列印視圖。"
 [print_click_to_print]
-other = "點擊此處打印"
+other = "點擊此處列印"
 [print_show_regular]
 other = "返回此頁面的常規視圖"
 [print_entire_section]
-other = "打印整個章節"
+other = "列印整個章節"
 
 # Community
 [community_join]
