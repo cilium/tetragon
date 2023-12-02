@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of Cilium
+# Copyright Authors of Tetragon
+
+export TETRAGON_VERSION:=v1.0.0
+
+export RELEASE_REGISTRY ?= quay.io
+export RELEASE_ORG ?= cilium
+
+export TETRAGON_REPO:=${RELEASE_REGISTRY}/${RELEASE_ORG}/tetragon
+export TETRAGON_OPERATOR_REPO:=${RELEASE_REGISTRY}/${RELEASE_ORG}/tetragon-operator
+
+export EXPORT_STDOUT_REPO:=quay.io/cilium/hubble-export-stdout
+export EXPORT_STDOUT_VERSION:=v1.0.3
