@@ -7,11 +7,14 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+TETRAGON_CHART="$SCRIPT_DIR/tetragon"
+
 TMP_FILE=$(mktemp)
 trap "rm $TMP_FILE" EXIT
 
 # use the generated proto documentation as source
-cp README.md $TMP_FILE
+cp "$TETRAGON_CHART/README.md" $TMP_FILE
 
 # cleanup the generated documentation for the website
 # remove the title
@@ -51,4 +54,3 @@ helm install tetragon cilium/tetragon -n kube-system
 ```
 
 To use [the values available](#values), with `helm install` or `helm upgrade`, use `--set key=value`.' | cat - $TMP_FILE > $1
-
