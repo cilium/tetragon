@@ -18,9 +18,7 @@ assignees: ''
 
       git checkout -b pr/prepare-$RELEASE
       ./contrib/update-helm-chart.sh $RELEASE
-      pushd install/kubernetes/tetragon
-      ./test.sh
-      popd
+      ./install/kubernetes/test.sh
       git add install/kubernetes/tetragon/
       # update hugo version
       sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/hugo.toml
