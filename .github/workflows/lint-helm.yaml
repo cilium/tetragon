@@ -5,16 +5,20 @@ on:
       - main
       - v*
     paths:
-    - 'install/kubernetes/tetragon/**'
+    - 'install/kubernetes/**'
   pull_request:
     paths:
-    - 'install/kubernetes/tetragon/**'
+    - 'install/kubernetes/**'
 
 jobs:
   generated-files:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Validate Helm values
+        run: |
+          make -C install/kubernetes
+          test -z "$(git status --porcelain)" || (echo "please run 'make -C install/kubernetes' and submit your changes"; exit 1)
       - name: Run install/kubernetes/test.sh
         run: |
           install/kubernetes/test.sh
