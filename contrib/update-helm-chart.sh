@@ -16,5 +16,5 @@ semver="${version:1}"
 
 yq -i ".version = \"$semver\"" install/kubernetes/tetragon/Chart.yaml
 yq -i ".appVersion = \"$semver\"" install/kubernetes/tetragon/Chart.yaml
-yq -i ".tetragon.image.tag = \"$version\"" install/kubernetes/tetragon/values.yaml
-yq -i ".tetragonOperator.image.tag = \"$version\"" install/kubernetes/tetragon/values.yaml
+sed -i "s/^export TETRAGON_VERSION:=.*/export TETRAGON_VERSION:=$version/" install/kubernetes/Makefile.values
+make -C install/kubernetes
