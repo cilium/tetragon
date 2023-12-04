@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"golang.org/x/sys/unix"
@@ -137,8 +138,7 @@ func EnableLargeProgs() bool {
 	if option.Config.ForceLargeProgs {
 		return true
 	}
-	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	return (int64(kernelVer) >= KernelStringToNumeric("5.3.0"))
+	return bpf.HasProgramLargeSize() && bpf.HasSignalHelper()
 }
 
 func IsKernelVersionLessThan(version string) bool {
