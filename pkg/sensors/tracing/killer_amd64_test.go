@@ -76,7 +76,7 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, "", checker, checkerFunc)
 }
 
 func TestKillerSignal32(t *testing.T) {
@@ -136,5 +136,77 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, "", checker, checkerFunc)
+}
+
+func TestKillerOverrideBothBits(t *testing.T) {
+	if !bpf.HasOverrideHelper() {
+		t.Skip("skipping killer test, bpf_override_return helper not available")
+	}
+
+	test32 := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
+	test64 := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kill-syscalls"
+spec:
+  lists:
+  - name: "mine"
+    type: "syscalls"
+    values:
+    - "sys_prctl"
+    - "__ia32_sys_prctl"
+  killers:
+  - syscalls:
+    - "list:mine"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:mine"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "` + test32 + `"
+        - "` + test64 + `"
+      matchActions:
+      - action: "NotifyKiller"
+        argError: -17 # EEXIST
+`
+
+	tpChecker32 := ec.NewProcessTracepointChecker("").
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+
+	tpChecker64 := ec.NewProcessTracepointChecker("").
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+
+	checker := ec.NewUnorderedEventChecker(tpChecker32, tpChecker64)
+
+	checkerFunc := func(err error, rc int) {
+		if rc != int(syscall.EEXIST) {
+			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
+		}
+	}
+
+	testKiller(t, configHook, test64, test32, checker, checkerFunc)
 }
