@@ -1,0 +1,18 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "stack-traces-example"
+spec:
+  kprobes:
+    - call: kfree_skb_reason
+      syscall: false
+      args:
+        - index: 0
+          type: skb
+        - index: 1
+          type: int
+          label: "reason"
+      selectors:
+        - matchActions:
+          - action: Post
+            stackTrace: true
