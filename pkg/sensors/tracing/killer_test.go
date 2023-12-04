@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func test_killer(t *testing.T, configHook string, test string,
+func testKiller(t *testing.T, configHook string, test string,
 	checker *eventchecker.UnorderedEventChecker,
 	checkerFunc func(err error, rc int)) {
 
@@ -114,7 +114,7 @@ spec:
 		}
 	}
 
-	test_killer(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, checker, checkerFunc)
 }
 
 func TestKillerSignal(t *testing.T) {
@@ -177,7 +177,7 @@ spec:
 		}
 	}
 
-	test_killer(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, checker, checkerFunc)
 }
 
 func TestKillerMulti(t *testing.T) {
