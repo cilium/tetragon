@@ -1,10 +1,10 @@
-{{- if and .Values.tetragon.enabled .Values.tetragon.prometheus.enabled .Values.tetragon.prometheus.serviceMonitor.enabled -}}
+{{- if and .Values.tetragonOperator.enabled .Values.tetragonOperator.prometheus.enabled .Values.tetragonOperator.prometheus.serviceMonitor.enabled -}}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    {{- with .Values.tetragon.prometheus.serviceMonitor.labelsOverride}}
+    {{- with .Values.tetragonOperator.prometheus.serviceMonitor.labelsOverride}}
     {{- toYaml . | nindent 4 }}
     {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
@@ -14,7 +14,7 @@ metadata:
 spec:
   endpoints:
     - honorLabels: true
-      interval: {{ .Values.tetragon.prometheus.serviceMonitor.scrapeInterval }}
+      interval: {{ .Values.tetragonOperator.prometheus.serviceMonitor.scrapeInterval }}
       path: /metrics
       port: metrics
       relabelings:
