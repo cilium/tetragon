@@ -23,11 +23,12 @@ type Feature struct {
 }
 
 var (
-	overrideHelper Feature
-	signalHelper   Feature
-	kprobeMulti    Feature
-	buildid        Feature
-	modifyReturn   Feature
+	overrideHelper   Feature
+	signalHelper     Feature
+	kprobeMulti      Feature
+	buildid          Feature
+	modifyReturn     Feature
+	largeProgramSize Feature
 )
 
 func detectOverrideHelper() bool {
@@ -173,7 +174,35 @@ func HasModifyReturn() bool {
 	return modifyReturn.detected
 }
 
+func detectLargeProgramSize() bool {
+	insns := asm.Instructions{}
+
+	for i := 0; i < 4096; i++ {
+		insns = append(insns, asm.Mov.Imm(asm.R0, 1))
+	}
+	insns = append(insns, asm.Return())
+
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Type:         ebpf.Kprobe,
+		Instructions: insns,
+		AttachType:   ebpf.AttachModifyReturn,
+		License:      "MIT",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+	return true
+}
+
+func HasProgramLargeSize() bool {
+	largeProgramSize.init.Do(func() {
+		largeProgramSize.detected = detectLargeProgramSize()
+	})
+	return largeProgramSize.detected
+}
+
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t, signal: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn(), HasSignalHelper())
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t, signal: %t, large: %t",
+		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn(), HasSignalHelper(), HasProgramLargeSize())
 }
