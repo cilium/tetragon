@@ -18,6 +18,7 @@ A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
 - [`matchNamespaceChanges`](#namespace-changes-filter): filter on Linux namespaces changes.
 - [`matchCapabilityChanges`](#capability-changes-filter): filter on Linux capabilities changes.
 - [`matchActions`](#actions-filter): apply an action on selector matching.
+- [`matchReturnActions`](#return-actions-filter): apply an action on return selector matching.
 
 ## Arguments filter
 
@@ -1455,3 +1456,9 @@ exist.
 - Max MatchArg Values per MatchArgs 1 (limiting initial implementation can bump
   to 16 or so)
 
+
+## Return Actions filter
+
+Return actions filters are a list of actions that execute when an return selector
+matches. They are defined under `matchReturnActions` and currently support all
+the [Actions filter](#actions-filter) `action` types.
