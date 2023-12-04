@@ -30,7 +30,7 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo apt install libelf-dev netcat-traditional libcap-dev gcc
+        sudo apt install libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386
         echo `which clang`
         echo `which llc`
         echo `clang --version`

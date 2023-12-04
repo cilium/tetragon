@@ -18,7 +18,8 @@ PROGS = sigkill-tester \
 	threads-tester \
 	bench-reader \
 	threads-exit \
-	killer-tester
+	killer-tester \
+	killer-tester-32
 
 all: $(PROGS)
 
@@ -60,6 +61,9 @@ uprobe-test-1: uprobe-test.c libuprobe.so
 
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
+
+killer-tester-32: killer-tester.c
+	$(GCC) -Wall -m32 $< -o $@
 
 lseek-pipe: FORCE
 	go build -o lseek-pipe ./go/lseek-pipe

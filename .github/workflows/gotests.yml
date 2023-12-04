@@ -27,6 +27,12 @@ jobs:
       with:
         go-version-file: 'go/src/github.com/cilium/tetragon/go.mod'
 
+    - name: Install dependencies x86
+      with:
+        platforms: linux/amd64
+      run: |
+        sudo apt-get -y install libc6-dev-i386
+
     - name: Install dependencies
       run: |
         sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc
