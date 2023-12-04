@@ -42,7 +42,7 @@ spec:
       serviceAccountName: {{ .Release.Name }}
       {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml . | nindent 6 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
 {{- if eq .Values.export.mode "stdout" }}
@@ -61,7 +61,7 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 6 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
       dnsPolicy: {{ .Values.dnsPolicy }}
