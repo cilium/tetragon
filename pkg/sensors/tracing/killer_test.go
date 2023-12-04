@@ -23,7 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testKiller(t *testing.T, configHook string, test string,
+func testKiller(t *testing.T, configHook string,
+	test string, test2 string,
 	checker *eventchecker.UnorderedEventChecker,
 	checkerFunc func(err error, rc int)) {
 
@@ -49,6 +50,13 @@ func testKiller(t *testing.T, configHook string, test string,
 	err = cmd.Run()
 
 	checkerFunc(err, cmd.ProcessState.ExitCode())
+
+	if test2 != "" {
+		cmd := exec.Command(test2)
+		err = cmd.Run()
+
+		checkerFunc(err, cmd.ProcessState.ExitCode())
+	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
@@ -111,7 +119,7 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, "", checker, checkerFunc)
 }
 
 func TestKillerSignal(t *testing.T) {
@@ -171,7 +179,7 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, checker, checkerFunc)
+	testKiller(t, configHook, test, "", checker, checkerFunc)
 }
 
 func TestKillerMulti(t *testing.T) {
