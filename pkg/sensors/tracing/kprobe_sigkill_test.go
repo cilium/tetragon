@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -25,11 +26,7 @@ import (
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
 
-func TestKprobeSigkill(t *testing.T) {
-	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("sigkill requires at least 5.3.0 version")
-	}
-
+func testSigkill(t *testing.T, makeSpecFile func(pid string) string, checker *eventchecker.UnorderedEventChecker) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -53,19 +50,6 @@ func TestKprobeSigkill(t *testing.T) {
 			t.Fatal(err)
 		}
 		return pidStr
-	}
-
-	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
-	makeSpecFile := func(pid string) string {
-		data := map[string]string{
-			"MatchedPID":   pid,
-			"NamespacePID": "false",
-		}
-		specName, err := testutils.GetSpecFromTemplate("sigkill.yaml.tmpl", data)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return specName
 	}
 
 	if err := testCmd.Start(); err != nil {
@@ -94,6 +78,28 @@ func TestKprobeSigkill(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeSigkill(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("sigkill requires at least 5.3.0 version")
+	}
+
+	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
+	makeSpecFile := func(pid string) string {
+		data := map[string]string{
+			"MatchedPID":   pid,
+			"NamespacePID": "false",
+		}
+		specName, err := testutils.GetSpecFromTemplate("sigkill.yaml.tmpl", data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return specName
+	}
+
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -104,8 +110,7 @@ func TestKprobeSigkill(t *testing.T) {
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	testSigkill(t, makeSpecFile, checker)
 }
 
 func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
