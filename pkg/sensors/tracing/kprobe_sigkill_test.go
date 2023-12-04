@@ -113,6 +113,39 @@ func TestKprobeSigkill(t *testing.T) {
 	testSigkill(t, makeSpecFile, checker)
 }
 
+func TestReturnKprobeSigkill(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("sigkill requires at least 5.3.0 version")
+	}
+
+	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
+	makeSpecFile := func(pid string) string {
+		data := map[string]string{
+			"MatchedPID":   pid,
+			"NamespacePID": "false",
+		}
+		specName, err := testutils.GetSpecFromTemplate("sigkill_return.yaml.tmpl", data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return specName
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+			)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-9)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
+		WithReturnAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	testSigkill(t, makeSpecFile, checker)
+}
+
 func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("sigkill requires at least 5.3.0 version")

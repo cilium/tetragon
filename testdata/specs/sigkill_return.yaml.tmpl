@@ -1,0 +1,34 @@
+# test for the sigkill action
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sigkilltest"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    return: true
+    args:
+    - index: 2
+      type: int
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchPIDs:
+      - operator: In
+        values:
+        - {{.MatchedPID}}
+        isNamespacePID: {{.NamespacePID}}
+      matchArgs:
+      - index: 2
+        operator: Equal
+        values:
+        - 5555 # magic value, see also sigkill-tester
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "-9" # -EBADF
+      matchReturnActions:
+      - action: Sigkill
