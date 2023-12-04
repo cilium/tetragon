@@ -3,7 +3,20 @@
 
 GO ?= go
 
-all: tetragon-oci-hook
+all: tetragon-oci-hook tetragon-oci-hook-setup
+
+images: setup-image setup-image-debug
+
+.PHONY: setup-image
+setup-image:
+	docker build . -f dockerfiles/setup -t quay.io/isovalent/tetragon-oci-hook-setup:latest
+
+.PHONY: setup-image-debug
+setup-image-debug:
+	docker build . -f dockerfiles/setup --build-arg BASE_IMAGE=ubuntu -t quay.io/isovalent/tetragon-oci-hook-setup:debug-latest
+
+tetragon-oci-hook-setup: FORCE
+	$(GO) build -o $@ ./cmd/setup
 
 tetragon-oci-hook: FORCE
 	$(GO) build -o $@ ./cmd/hook
