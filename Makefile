@@ -85,6 +85,7 @@ ifdef EXTRA_GO_BUILD_FLAGS
 endif
 
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
+GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/rthooks/tetragon-oci-hook build $(GO_BUILD_FLAGS)
 
 .PHONY: all
 all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
@@ -178,6 +179,12 @@ tetragon-bench:
 
 tetragon-operator:
 	$(GO_BUILD) -o $@ ./operator
+
+tetragon-oci-hook:
+	$(GO_BUILD_HOOK) -o $@ ./cmd/hook
+
+tetragon-oci-hook-setup:
+	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
 
 .PHONY: alignchecker
 alignchecker:
