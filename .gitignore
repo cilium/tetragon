@@ -5,6 +5,8 @@ lib/*
 /tetragon-bench
 /tetragon-operator
 /tetra
+/tetragon-oci-hook
+/tetragon-oci-hook-setup
 /parsertest
 /checkerpc
 observer.test
