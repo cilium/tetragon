@@ -51,6 +51,7 @@
       mountPath: {{ .mountPath }}
       readOnly: {{ .readOnly }}
 {{- end }}
+    {{- include "tetragon.volumemounts.extra" . | nindent 4 }}
   env:
     - name: NODE_NAME
       valueFrom:
