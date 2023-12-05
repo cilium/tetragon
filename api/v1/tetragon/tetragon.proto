@@ -43,14 +43,10 @@ message Pod {
     string namespace = 1;
     // Name of the Pod.
     string name = 2;
-    // Cilium identity labels of the Pod.
-    // This field is deprecated. Use pod_labels instead.
-    repeated string labels = 3 [deprecated = true];
     // Container of the Pod from which the process that triggered the event
     // originates.
     Container container = 4;
-    // Contains all the labels of the pod. Note that the labels field contains
-    // Cilium identity labels, which is a subset of pod labels.
+    // Contains all the labels of the pod.
     map<string, string> pod_labels = 5;
     // Kubernetes workload of the Pod.
     string workload = 6;
