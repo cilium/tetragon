@@ -13,7 +13,7 @@ The Tetragon Helm chart source is available under
 and is distributed from the Cilium helm charts repository [helm.cilium.io](https://helm.cilium.io).
 
 To deploy Tetragon using this Helm chart you can run the following commands:
-```shell-session
+```shell
 helm repo add cilium https://helm.cilium.io
 helm repo update
 helm install tetragon cilium/tetragon -n kube-system
