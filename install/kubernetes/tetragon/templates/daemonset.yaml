@@ -54,6 +54,7 @@ spec:
 {{- if .Values.tetragon.ociHookSetup.enabled }}
       {{- include "container.tetragon-oci-hook-setup" . | nindent 6 -}}
 {{- end }}
+      {{- include "initcontainers.extra" . | nindent 6 }}
       containers:
 {{- if eq .Values.export.mode "stdout" }}
       {{- include "container.export.stdout" . | nindent 6 -}}
@@ -116,6 +117,7 @@ spec:
         hostPath:
           path: {{ .mountPath }}
 {{- end }}
+      {{- include "volumes.extra" . | nindent 6 }}
 {{- with .Values.updateStrategy }}
   updateStrategy:
     {{- toYaml . | nindent 4 }}
