@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tetragon-oci-hook-uninstall
+  namespace: kube-system
+  labels:
+    k8s-app: tetragon-oci-hook-setup-test
+spec:
+  selector:
+    matchLabels:
+      name: tetragon-oci-hook-setup
+  template:
+    metadata:
+      labels:
+        name: tetragon-oci-hook-setup
+    spec:
+      initContainers:
+      - name: setup
+        securityContext:
+          privileged: true
+        image: localhost/cilium/tetragon:latest
+        imagePullPolicy: IfNotPresent
+        command: 
+          - "tetragon-oci-hook-setup"
+          - "uninstall"
+          - "--interface=oci-hooks"
+          - "--local-install-dir=/hostInstall"
+          - "--oci-hooks.local-dir=/hostHooks"
+        volumeMounts:
+        - name: hooks-path
+          mountPath: /hostHooks
+        - name: opt-path
+          mountPath: /hostInstall
+      containers:
+      - name: sleep
+        image: busybox:1.28
+        command: ['sh', '-c', 'sleep 365d']
+        volumeMounts:
+        - name: opt-path
+          mountPath: /hostInstall
+      volumes:
+      - name: hooks-path
+        hostPath:
+          path: /usr/share/containers/oci/hooks.d/
+          type: DirectoryOrCreate
+      - name: opt-path
+        hostPath:
+          path: /opt/tetragon
+          type: DirectoryOrCreate
