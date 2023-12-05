@@ -25,7 +25,7 @@ type ValueMap struct {
 }
 
 type ValueReader interface {
-	Read(value string) ([]uint32, error)
+	Read(value string, ty uint32) ([]uint32, error)
 }
 
 const (

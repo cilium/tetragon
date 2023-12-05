@@ -520,7 +520,7 @@ func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueM
 	if k.listReader == nil {
 		return fmt.Errorf("failed list values loading is not supported")
 	}
-	values, err := k.listReader.Read(v)
+	values, err := k.listReader.Read(v, ty)
 	if err != nil {
 		return err
 	}

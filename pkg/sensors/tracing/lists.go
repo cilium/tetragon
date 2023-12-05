@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/ftrace"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
@@ -30,6 +31,8 @@ const (
 	ListTypeSyscalls          = 1
 	ListTypeGeneratedSyscalls = 2
 	ListTypeGeneratedFtrace   = 3
+
+	Is32Bit = 0x80000000
 )
 
 var listTypeTable = map[string]uint32{
@@ -60,6 +63,10 @@ func validateList(list *v1alpha1.ListSpec) (err error) {
 	// Add prefix to syscalls list
 	if listTypeFromString(list.Type) == ListTypeSyscalls {
 		for idx := range list.Values {
+			// keep symbols with '__' prefix
+			if strings.HasPrefix(list.Values[idx], "__") {
+				continue
+			}
 			symbol, err := arch.AddSyscallPrefix(list.Values[idx])
 			if err != nil {
 				return err
@@ -117,7 +124,7 @@ type listReader struct {
 	lists []v1alpha1.ListSpec
 }
 
-func (lr *listReader) Read(name string) ([]uint32, error) {
+func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
 	list := func() *v1alpha1.ListSpec {
 		for idx := range lr.lists {
 			if lr.lists[idx].Name == name {
@@ -133,15 +140,30 @@ func (lr *listReader) Read(name string) ([]uint32, error) {
 	if !isSyscallListType(list.Type) {
 		return []uint32{}, fmt.Errorf("Error list '%s' is not syscall type", name)
 	}
+	if ty != gt.GenericSyscall64 {
+		return []uint32{}, fmt.Errorf("Error list '%s' argument type is not syscall64", name)
+	}
 
-	var res []uint32
+	var (
+		res []uint32
+		id  int
+	)
 
 	for idx := range list.Values {
-		sc, _ := arch.CutSyscallPrefix(list.Values[idx])
+		sc, is32 := arch.CutSyscallPrefix(list.Values[idx])
 		sc = strings.TrimPrefix(sc, "sys_")
-		id := syscallinfo.GetSyscallID(sc)
+
+		if is32 {
+			id = syscallinfo.GetSyscallID32(sc)
+		} else {
+			id = syscallinfo.GetSyscallID(sc)
+		}
+
 		if id == -1 {
 			return []uint32{}, fmt.Errorf("failed list '%s' cannot translate syscall '%s'", name, sc)
+		}
+		if is32 {
+			id |= Is32Bit
 		}
 		res = append(res, uint32(id))
 	}
