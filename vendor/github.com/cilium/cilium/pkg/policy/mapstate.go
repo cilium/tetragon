@@ -8,6 +8,7 @@ import (
 	"net"
 	"slices"
 	"strconv"
+	"testing"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
@@ -52,7 +53,6 @@ type MapState interface {
 	Get(Key) (MapStateEntry, bool)
 	Insert(Key, MapStateEntry)
 	Delete(Key)
-	InsertIfNotExists(Key, MapStateEntry) bool
 	// ForEach allows iteration over the MapStateEntries. It returns true iff
 	// the iteration was not stopped early by the callback.
 	ForEach(func(Key, MapStateEntry) (cont bool)) (complete bool)
@@ -66,6 +66,7 @@ type MapState interface {
 	AddVisibilityKeys(PolicyOwner, uint16, *VisibilityMetadata, ChangeState)
 	Len() int
 	Equals(MapState) bool
+	Diff(t *testing.T, expected MapState) string
 
 	allowAllIdentities(ingress, egress bool)
 	determineAllowLocalhostIngress()
@@ -351,6 +352,30 @@ func (msA *mapState) Equals(msB MapState) bool {
 	})
 }
 
+// Diff returns the string of differences between 'obtained' and 'expected' prefixed with
+// '+ ' or '- ' for obtaining something unexpected, or not obtaining the expected, respectively.
+// For use in debugging.
+func (obtained *mapState) Diff(_ *testing.T, expected MapState) (res string) {
+	expected.ForEach(func(kE Key, vE MapStateEntry) bool {
+		if vO, ok := obtained.Get(kE); ok {
+			if !(&vO).DatapathEqual(&vE) {
+				res += "- " + kE.String() + ": " + vE.String() + "\n"
+				res += "+ " + kE.String() + ": " + vO.String() + "\n"
+			}
+		} else {
+			res += "- " + kE.String() + ": " + vE.String() + "\n"
+		}
+		return true
+	})
+	obtained.ForEach(func(kE Key, vE MapStateEntry) bool {
+		if vO, ok := expected.Get(kE); !ok {
+			res += "+ " + kE.String() + ": " + vO.String() + "\n"
+		}
+		return true
+	})
+	return res
+}
+
 // AddDependent adds 'key' to the set of dependent keys.
 func (ms *mapState) AddDependent(owner Key, dependent Key, changes ChangeState) {
 	if e, exists := ms.allows[owner]; exists {
@@ -364,7 +389,7 @@ func (ms *mapState) AddDependent(owner Key, dependent Key, changes ChangeState) 
 func (ms *mapState) addDependentOnEntry(owner Key, e MapStateEntry, dependent Key, changes ChangeState) {
 	if _, exists := e.dependents[dependent]; !exists {
 		if changes.Old != nil {
-			changes.Old.Insert(owner, e)
+			changes.Old[owner] = e
 		}
 		e.AddDependent(dependent)
 		if e.IsDeny {
@@ -380,9 +405,9 @@ func (ms *mapState) addDependentOnEntry(owner Key, e MapStateEntry, dependent Ke
 // RemoveDependent removes 'key' from the list of dependent keys.
 // This is called when a dependent entry is being deleted.
 // If 'old' is not nil, then old value is added there before any modifications.
-func (ms *mapState) RemoveDependent(owner Key, dependent Key, old MapState) {
+func (ms *mapState) RemoveDependent(owner Key, dependent Key, changes ChangeState) {
 	if e, exists := ms.allows[owner]; exists {
-		old.InsertIfNotExists(owner, e)
+		changes.insertOldIfNotExists(owner, e)
 		e.RemoveDependent(dependent)
 		delete(ms.denies, owner)
 		ms.allows[owner] = e
@@ -390,7 +415,7 @@ func (ms *mapState) RemoveDependent(owner Key, dependent Key, old MapState) {
 	}
 
 	if e, exists := ms.denies[owner]; exists {
-		old.InsertIfNotExists(owner, e)
+		changes.insertOldIfNotExists(owner, e)
 		e.RemoveDependent(dependent)
 		delete(ms.allows, owner)
 		ms.denies[owner] = e
@@ -541,7 +566,7 @@ func (ms *mapState) addKeyWithChanges(key Key, entry MapStateEntry, changes Chan
 
 		// Save old value before any changes, if desired
 		if changes.Old != nil {
-			changes.Old.InsertIfNotExists(key, oldEntry)
+			changes.insertOldIfNotExists(key, oldEntry)
 		}
 
 		oldEntry.Merge(&entry)
@@ -570,18 +595,14 @@ func (ms *mapState) addKeyWithChanges(key Key, entry MapStateEntry, changes Chan
 func (ms *mapState) deleteKeyWithChanges(key Key, owner MapStateOwner, changes ChangeState) {
 	if entry, exists := ms.Get(key); exists {
 		// Save old value before any changes, if desired
-		if changes.Old == nil {
-			changes.Old = newMapState(nil)
-		}
-		oldAdded := changes.Old.InsertIfNotExists(key, entry)
-
+		oldAdded := changes.insertOldIfNotExists(key, entry)
 		if owner != nil {
 			// remove the contribution of the given selector only
 			if _, exists = entry.owners[owner]; exists {
 				// Remove the contribution of this selector from the entry
 				delete(entry.owners, owner)
 				if ownerKey, ok := owner.(Key); ok {
-					ms.RemoveDependent(ownerKey, key, changes.Old)
+					ms.RemoveDependent(ownerKey, key, changes)
 				}
 				// key is not deleted if other owners still need it
 				if len(entry.owners) > 0 {
@@ -590,7 +611,7 @@ func (ms *mapState) deleteKeyWithChanges(key Key, owner MapStateOwner, changes C
 			} else {
 				// 'owner' was not found, do not change anything
 				if oldAdded {
-					changes.Old.Delete(key)
+					delete(changes.Old, key)
 				}
 				return
 			}
@@ -603,7 +624,7 @@ func (ms *mapState) deleteKeyWithChanges(key Key, owner MapStateOwner, changes C
 			for owner := range entry.owners {
 				if owner != nil {
 					if ownerKey, ok := owner.(Key); ok {
-						ms.RemoveDependent(ownerKey, key, changes.Old)
+						ms.RemoveDependent(ownerKey, key, changes)
 					}
 				}
 			}
@@ -709,10 +730,9 @@ func (ms *mapState) RevertChanges(changes ChangeState) {
 		delete(ms.denies, k)
 	}
 	// 'old' contains all the original values of both modified and deleted entries
-	changes.Old.ForEach(func(k Key, v MapStateEntry) bool {
+	for k, v := range changes.Old {
 		ms.Insert(k, v)
-		return true
-	})
+	}
 }
 
 // denyPreferredInsertWithChanges contains the most important business logic for policy insertions. It inserts
@@ -1052,22 +1072,22 @@ var visibilityDerivedFromLabels = labels.LabelArray{
 
 var visibilityDerivedFrom = labels.LabelArrayList{visibilityDerivedFromLabels}
 
-// InsertIfNotExists only inserts `key=value` if `key` does not exist in keys already
+// insertIfNotExists only inserts `key=value` if `key` does not exist in keys already
 // returns 'true' if 'key=entry' was added to 'keys'
-func (ms *mapState) InsertIfNotExists(key Key, entry MapStateEntry) bool {
-	isDeny := entry.IsDeny
-	if ms != nil && (isDeny && ms.denies != nil || !isDeny && ms.allows != nil) {
-		m := ms.allows
-		if isDeny {
-			m = ms.denies
-		}
-		if _, exists := m[key]; !exists {
+func (changes *ChangeState) insertOldIfNotExists(key Key, entry MapStateEntry) bool {
+	if changes == nil || changes.Old == nil {
+		return false
+	}
+	if _, exists := changes.Old[key]; !exists {
+		// Only insert the old entry if the entry was not first added on this round of
+		// changes.
+		if _, added := changes.Adds[key]; !added {
 			// new containers to keep this entry separate from the one that may remain in 'keys'
 			entry.DerivedFromRules = slices.Clone(entry.DerivedFromRules)
 			entry.owners = maps.Clone(entry.owners)
 			entry.dependents = maps.Clone(entry.dependents)
 
-			m[key] = entry
+			changes.Old[key] = entry
 			return true
 		}
 	}
@@ -1390,37 +1410,7 @@ type MapChange struct {
 //
 // The caller is responsible for making sure the same identity is not
 // present in both 'adds' and 'deletes'.
-func (mc *MapChanges) AccumulateMapChanges(cs CachedSelector, adds, deletes []identity.NumericIdentity,
-	port uint16, proto uint8, direction trafficdirection.TrafficDirection,
-	redirect, isDeny bool, hasAuth HasAuthType, authType AuthType, derivedFrom labels.LabelArrayList) {
-	key := Key{
-		// The actual identity is set in the loops below
-		Identity: 0,
-		// NOTE: Port is in host byte-order!
-		DestPort:         port,
-		Nexthdr:          proto,
-		TrafficDirection: direction.Uint8(),
-	}
-
-	value := NewMapStateEntry(cs, derivedFrom, redirect, isDeny, hasAuth, authType)
-
-	if option.Config.Debug {
-		authString := "default"
-		if hasAuth {
-			authString = authType.String()
-		}
-		log.WithFields(logrus.Fields{
-			logfields.EndpointSelector: cs,
-			logfields.AddedPolicyID:    adds,
-			logfields.DeletedPolicyID:  deletes,
-			logfields.Port:             port,
-			logfields.Protocol:         proto,
-			logfields.TrafficDirection: direction,
-			logfields.IsRedirect:       redirect,
-			logfields.AuthType:         authString,
-		}).Debug("AccumulateMapChanges")
-	}
-
+func (mc *MapChanges) AccumulateMapChanges(cs CachedSelector, adds, deletes []identity.NumericIdentity, key Key, value MapStateEntry) {
 	mc.mutex.Lock()
 	for _, id := range adds {
 		key.Identity = id.Uint32()
