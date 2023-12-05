@@ -161,6 +161,21 @@ tetragon:
   # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
   # does not run on the host.
   hostProcPath: "/proc"
+  # -- Configure tetragon's init container for setting up tetragon-oci-hook on the host
+  ociHookSetup:
+    # -- enable  init container to setup tetragon-oci-hook
+    enabled: false
+    # -- interface specifices how the hook is  configured. There is only one avaialble value for now:
+    # "oci-hooks" (https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md).
+    interface: "oci-hooks"
+    installDir: "/opt/tetragon"
+    # -- Security context for oci-hook-setup init container
+    securityContext:
+       privileged: true
+    # -- Extra volume mounts to add to the oci-hook-setup init container
+    extraVolumeMounts: []
+    # -- resources for the the oci-hook-setup init container
+    resources: {}
 
 # -- Tetragon Operator settings
 tetragonOperator:

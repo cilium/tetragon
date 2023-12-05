@@ -66,3 +66,11 @@ ServiceAccounts
 {{- printf  "%s-operator-service-account" .Release.Name -}}
 {{- end -}}
 {{- end }}
+
+{{- define "container.tetragonOCIHookSetup.installPath" -}}
+{{- print "/hostInstall" -}}
+{{- end }}
+
+{{- define "container.tetragonOCIHookSetup.hooksPath" -}}
+{{- print "/hostHooks" -}}
+{{- end }}
