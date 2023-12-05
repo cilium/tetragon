@@ -1881,7 +1881,6 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 type PodChecker struct {
 	Namespace    *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
 	Name         *stringmatcher.StringMatcher           `json:"name,omitempty"`
-	Labels       map[string]stringmatcher.StringMatcher `json:"labels,omitempty"`
 	Container    *ContainerChecker                      `json:"container,omitempty"`
 	PodLabels    map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
 	Workload     *stringmatcher.StringMatcher           `json:"workload,omitempty"`
@@ -1913,44 +1912,6 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 		if checker.Name != nil {
 			if err := checker.Name.Match(event.Name); err != nil {
 				return fmt.Errorf("Name check failed: %w", err)
-			}
-		}
-		{
-			values := make(map[string]string)
-			for _, s := range event.Labels {
-				// Split out key,value pair
-				kv := strings.SplitN(s, "=", 2)
-				if len(kv) != 2 {
-					// If we wanted to match an invalid label, error out
-					if _, ok := checker.Labels[s]; ok {
-						return fmt.Errorf("PodChecker: Label %s is in an invalid format (want key=value)", s)
-					}
-					continue
-				}
-				values[kv[0]] = kv[1]
-			}
-			var unmatched []string
-			matched := make(map[string]struct{})
-			for key, value := range values {
-				if len(checker.Labels) > 0 {
-					// Attempt to grab the matcher for this key
-					if matcher, ok := checker.Labels[key]; ok {
-						if err := matcher.Match(value); err != nil {
-							return fmt.Errorf("Labels[%s] (%s=%s) check failed: %w", key, key, value, err)
-						}
-						matched[key] = struct{}{}
-					}
-				}
-			}
-
-			// See if we have any unmatched values that we wanted to match
-			if len(matched) != len(checker.Labels) {
-				for k := range checker.Labels {
-					if _, ok := matched[k]; !ok {
-						unmatched = append(unmatched, k)
-					}
-				}
-				return fmt.Errorf("Labels unmatched: %v", unmatched)
 			}
 		}
 		if checker.Container != nil {
@@ -2013,12 +1974,6 @@ func (checker *PodChecker) WithName(check *stringmatcher.StringMatcher) *PodChec
 	return checker
 }
 
-// WithLabels adds a Labels check to the PodChecker
-func (checker *PodChecker) WithLabels(check map[string]stringmatcher.StringMatcher) *PodChecker {
-	checker.Labels = check
-	return checker
-}
-
 // WithContainer adds a Container check to the PodChecker
 func (checker *PodChecker) WithContainer(check *ContainerChecker) *PodChecker {
 	checker.Container = check
@@ -2050,7 +2005,6 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	}
 	checker.Namespace = stringmatcher.Full(event.Namespace)
 	checker.Name = stringmatcher.Full(event.Name)
-	// TODO from labels
 	if event.Container != nil {
 		checker.Container = NewContainerChecker().FromContainer(event.Container)
 	}

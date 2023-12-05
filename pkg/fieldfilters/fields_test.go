@@ -30,12 +30,6 @@ func TestEventFieldFilters(t *testing.T) {
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "foobar",
-						Labels: []string{
-							"foo",
-							"bar",
-							"qux",
-							"baz",
-						},
 						Container: &tetragon.Container{
 							Id:   "testificate",
 							Name: "testificate",
@@ -157,12 +151,6 @@ func TestEmptyFieldFilter(t *testing.T) {
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "foobar",
-						Labels: []string{
-							"foo",
-							"bar",
-							"qux",
-							"baz",
-						},
 						Container: &tetragon.Container{
 							Id:   "testificate",
 							Name: "testificate",
@@ -200,12 +188,6 @@ func TestEmptyFieldFilter(t *testing.T) {
 					Pod: &tetragon.Pod{
 						Namespace: "kube-system",
 						Name:      "foobar",
-						Labels: []string{
-							"foo",
-							"bar",
-							"qux",
-							"baz",
-						},
 						Container: &tetragon.Container{
 							Id:   "testificate",
 							Name: "testificate",

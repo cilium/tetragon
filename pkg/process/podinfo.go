@@ -5,7 +5,6 @@ package process
 
 import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
@@ -56,13 +55,6 @@ func getPodInfo(
 		startTime = timestamppb.New(container.State.Running.StartedAt.Time)
 	}
 
-	ciliumState := cilium.GetCiliumState()
-	endpoint, ok := ciliumState.GetEndpointsHandler().GetEndpointByPodName(pod.Namespace, pod.Name)
-	var labels []string
-	if ok {
-		labels = endpoint.Labels
-	}
-
 	// This is the PID inside the container. Don't set it if zero.
 	var containerPID *wrapperspb.UInt32Value
 	if nspid > 0 {
@@ -77,7 +69,6 @@ func getPodInfo(
 		Workload:     workloadObject.Name,
 		WorkloadKind: workloadType.Kind,
 		Name:         pod.Name,
-		Labels:       labels,
 		PodLabels:    pod.Labels,
 		Container: &tetragon.Container{
 			Id:   container.ContainerID,

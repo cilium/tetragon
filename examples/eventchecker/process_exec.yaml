@@ -35,8 +35,6 @@ spec:
           name:
             operator: prefix
             value: curl
-          labels:
-            app: curl
           container:
             name: curl
             image:
@@ -66,8 +64,6 @@ spec:
           name:
             operator: prefix
             value: curl
-          labels:
-            app: curl
           container:
             name: curl
             image:
