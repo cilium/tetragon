@@ -259,7 +259,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			return "", ErrMissingProcessInfo
 		}
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, kprobe.Process)
-		switch arch.CutSyscallPrefix(kprobe.FunctionName) {
+		sc, _ := arch.CutSyscallPrefix(kprobe.FunctionName)
+		switch sc {
 		case "sys_write":
 			event := p.Colorer.Blue.Sprintf("📝 %-7s", "write")
 			file := ""
