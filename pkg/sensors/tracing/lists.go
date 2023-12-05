@@ -137,7 +137,7 @@ func (lr *listReader) Read(name string) ([]uint32, error) {
 	var res []uint32
 
 	for idx := range list.Values {
-		sc := arch.CutSyscallPrefix(list.Values[idx])
+		sc, _ := arch.CutSyscallPrefix(list.Values[idx])
 		sc = strings.TrimPrefix(sc, "sys_")
 		id := syscallinfo.GetSyscallID(sc)
 		if id == -1 {

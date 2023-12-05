@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var supportedArchPrefix = map[string]string{"amd64": "__x64_", "arm64": "__arm64_"}
+var supportedArchPrefix = map[string]string{"amd64": "__x64_", "arm64": "__arm64_", "i386": "__ia32_"}
 
 func addSyscallPrefix(symbol string, arch string) (string, error) {
 	for prefix_arch, prefix := range supportedArchPrefix {
@@ -59,11 +59,15 @@ func AddSyscallPrefixTestHelper(t *testing.T, symbol string) string {
 }
 
 // CutSyscallPrefix removes a potential arch specific prefix from the symbol
-func CutSyscallPrefix(symbol string) string {
-	for _, prefix := range supportedArchPrefix {
+// and returns true in second return argument if the prefix is 32 bits
+func CutSyscallPrefix(symbol string) (string, bool) {
+	is32BitArch := func(arch string) bool {
+		return arch == "i386"
+	}
+	for arch, prefix := range supportedArchPrefix {
 		if strings.HasPrefix(symbol, prefix) {
-			return symbol[len(prefix):]
+			return symbol[len(prefix):], is32BitArch(arch)
 		}
 	}
-	return symbol
+	return symbol, false
 }
