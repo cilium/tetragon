@@ -18,7 +18,8 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
-          go-version-file: 'go.mod'
+          # renovate: datasource=golang-version depName=go
+          go-version: '1.21.1'
       - name: Go version
         run: go version
       - name: Validate that generated files are up to date.
