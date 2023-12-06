@@ -415,7 +415,11 @@
         "^\\.github/workflows/[^/]+\\.ya?ml$"
       ],
       "matchStrings": [
-        // this regex is used to match:
+        // this regex is used to match both:
+        //
+        // # renovate: datasource=golang-version depName=go
+        // go: '1.21.4'
+        //
         // # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
         // - 'bpf-next-20230912.113936'
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.+ ['\"]?(?<currentValue>[^'\"\\s]*)"
