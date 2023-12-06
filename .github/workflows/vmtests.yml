@@ -18,15 +18,16 @@ jobs:
       group: ${{ github.ref }}-vmtest-build
       cancel-in-progress: true
     steps:
+    - name: Install Go
+      uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.21.1'
+
     - name: Checkout code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         path: go/src/github.com/cilium/tetragon/
-
-    - name: Install Go
-      uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
-      with:
-        go-version-file: 'go/src/github.com/cilium/tetragon/go.mod'
 
     - name: Install build dependencies
       run: |
