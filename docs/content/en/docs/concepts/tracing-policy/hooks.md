@@ -406,6 +406,24 @@ spec:
     - "sys_close"
 ```
 
+Syscalls specified with `sys_` prefix are translated to their 64 bit equivalent function names.
+
+It's possible to specify 32 bit syscall by using its full function name that
+includes specific architecture native prefix (like `__ia32_` for `x86`):
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "__ia32_sys_dup"
+    name: "another"
+    - "sys_open"
+    - "sys_close"
+```
+
 Specific list can be referenced in kprobe's `call` field with `"list:NAME"` value.
 
 ```yaml
@@ -519,4 +537,28 @@ spec:
       - operator: "In"
         values:
         - "/usr/bin/kill"
+```
+
+Note that if syscall list is used in selector with InMap operator, the argument type needs to be `syscall64`, like.
+
+```yaml
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "__ia32_sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:dups"
 ```
