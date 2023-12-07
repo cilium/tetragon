@@ -96,18 +96,16 @@ parameters.
 
 ### Deploy demo application
 
-To explore Tetragon its helpful to have a sample workload. Here we use the Cilium
-HTTP application, but any workload would work equally well.
-
-To use our [demo
-application](https://docs.cilium.io/en/v1.11/gettingstarted/http/#deploy-the-demo-application)
+To explore Tetragon it is helpful to have a sample workload. Here we use Cilium's
+[demo application](https://docs.cilium.io/en/stable/gettingstarted/demo/),
+but any workload would work equally well:
 
 ```shell
 kubectl create -f {{< demo-app-url >}}
 ```
 
 Before going forward, verify that all pods are up and running - it might take
-several seconds for some pods until they satisfy all the dependencies:
+several seconds for some pods to satisfy all the dependencies:
 
 ```shell
 kubectl get pods
