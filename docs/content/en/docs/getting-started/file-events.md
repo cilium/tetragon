@@ -67,8 +67,8 @@ This will generate a read event (Docker events will omit Kubernetes metadata),
 💥 exit    default/xwing /bin/cat /etc/shadow 0
 ```
 
-Attempts to write in sensitive directories will similar create an event. For
-example attempting to write in `/etc`.
+Attempts to write in sensitive directories will similarly create write events.
+For example, attempting to write in `/etc`.
 
 {{< tabpane lang=shell >}}
 {{< tab Kubernetes >}}

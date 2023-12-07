@@ -113,6 +113,9 @@ github_project_repo = "https://github.com/cilium/tetragon"
 # Specify a value here if your content directory is not in your repo's root directory
 github_subdir = "docs"
 
+# URL of the Star Wars demo app.
+demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.0-pre.1/examples/minikube/http-sw-app.yaml"
+
 [params.search.algolia]
 appId = "UI18HE156K"
 apiKey = "77f164b3638095772b770596db900fea"
@@ -167,9 +170,6 @@ sidebar_search_disable = false
 # Used in the "version-banner" partial to display a version number for the
 # current doc set.
 version = "v1.0.0"
-
-# URL of the Star Wars demo app.
-demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.0-pre.1/examples/minikube/http-sw-app.yaml"
 
 #######################################
 # hugo module configuration

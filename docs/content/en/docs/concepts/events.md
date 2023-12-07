@@ -110,8 +110,8 @@ section. All events in Tetragon contain a `process_exec` block to identify the p
 event. For execution events this is the primary block. For [Tracing Policy]({{< ref "/docs/concepts/tracing-policy" >}}) events the
 hook that generated the event will attach further data to this. The `process_exec` event provides
 a cluster wide unique id the `process_exec.exec_id` for this process along with the metadata expected
-in a Kubernetes cluster  `process_exec.process.pod`. The binary and args being executed are part of 
-the event here `process_exec.process.binary` and `process_exec.process.args`. Finarlly a `node_name`
+in a Kubernetes cluster  `process_exec.process.pod`. The binary and args being executed are part of
+the event here `process_exec.process.binary` and `process_exec.process.args`. Finally, a `node_name`
 and `time` provide the location and time for the event and will be present in all event types.
 
 A default deployment writes the JSON log to `/var/run/cilium/tetragon/tetragon.log` where it can
