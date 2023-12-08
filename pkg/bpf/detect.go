@@ -42,12 +42,10 @@ func detectOverrideHelper() bool {
 		},
 		License: "GPL",
 	})
-	prog.Close()
-
 	if err != nil {
-		overrideHelper.detected = false
 		return false
 	}
+	prog.Close()
 	return true
 }
 
@@ -69,12 +67,10 @@ func detectSignalHelper() bool {
 		},
 		License: "GPL",
 	})
-	prog.Close()
-
 	if err != nil {
-		signalHelper.detected = false
 		return false
 	}
+	prog.Close()
 	return true
 }
 
@@ -191,7 +187,7 @@ func detectLargeProgramSize() bool {
 	if err != nil {
 		return false
 	}
-	defer prog.Close()
+	prog.Close()
 	return true
 }
 
