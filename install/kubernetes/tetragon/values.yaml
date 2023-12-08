@@ -268,4 +268,4 @@ export:
     image:
       override: ~
       repository: quay.io/cilium/hubble-export-stdout
-      tag: v1.0.3
+      tag: v1.0.4
