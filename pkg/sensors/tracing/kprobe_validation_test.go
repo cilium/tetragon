@@ -6,6 +6,7 @@ package tracing
 import (
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
@@ -249,4 +250,66 @@ spec:
 
 	err := checkCrd(t, crd)
 	assert.Error(t, err)
+}
+
+func TestKprobeLTOp(t *testing.T) {
+
+	// missing returnArg while having return: true
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "missing-returnarg"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    args:
+    - index: 0
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "LT"
+        values:
+        - 0
+`
+
+	err := checkCrd(t, crd)
+	if kernels.EnableLargeProgs() {
+		assert.NoError(t, err)
+	} else {
+		assert.Error(t, err)
+	}
+}
+
+func TestKprobeGTOp(t *testing.T) {
+
+	// missing returnArg while having return: true
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "missing-returnarg"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    args:
+    - index: 0
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "GT"
+        values:
+        - 0
+`
+
+	err := checkCrd(t, crd)
+	if kernels.EnableLargeProgs() {
+		assert.NoError(t, err)
+	} else {
+		assert.Error(t, err)
+	}
 }
