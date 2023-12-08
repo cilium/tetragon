@@ -30,7 +30,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | daemonSetLabelsOverride | object | `{}` |  |
 | dnsPolicy | string | `"Default"` |  |
 | enabled | bool | `true` | Global settings |
-| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.3"}}}` | Tetragon event settings |
+| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.4"}}}` | Tetragon event settings |
 | exportDirectory | string | `"/var/run/cilium/tetragon"` |  |
 | exportFileCreationInterval | string | `"120s"` |  |
 | extraConfigmapMounts | list | `[]` |  |
