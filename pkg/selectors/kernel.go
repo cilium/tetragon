@@ -782,10 +782,24 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 	return nil
 }
 
+func checkOp(op uint32) error {
+	switch op {
+	case SelectorOpGT, SelectorOpLT:
+		if !kernels.EnableLargeProgs() {
+			return fmt.Errorf("GT/LT operators are only supported in kernels >= 5.3")
+		}
+	}
+	return nil
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(&k.data, arg.Index)
 
 	op, err := SelectorOp(arg.Operator)
+	if err != nil {
+		return fmt.Errorf("matcharg error: %w", err)
+	}
+	err = checkOp(op)
 	if err != nil {
 		return fmt.Errorf("matcharg error: %w", err)
 	}
