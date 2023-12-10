@@ -278,6 +278,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		kernelSymbols, err := ksyms.KernelSymbols()
 		if err != nil {
 			logger.GetLogger().WithError(err).Warn("stacktrace: failed to read kernel symbols")
+			continue
 		}
 		fnOffset, err := kernelSymbols.GetFnOffset(addr)
 		if err != nil {
