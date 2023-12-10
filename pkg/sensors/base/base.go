@@ -4,7 +4,12 @@
 package base
 
 import (
+	"log"
+	"sync"
+
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -64,6 +69,26 @@ var (
 	sensorInit sync.Once
 )
 
+func setupExitProgram() {
+	ks, err := ksyms.KernelSymbols()
+	if err == nil {
+		has_acct_process := ks.IsAvailable("acct_process")
+		has_disassociate_ctty := ks.IsAvailable("disassociate_ctty")
+
+		/* Preffer acct_process over disassociate_ctty */
+		if has_acct_process {
+			Exit.Attach = "acct_process"
+			Exit.Label = "kprobe/acct_process"
+		} else if has_disassociate_ctty {
+			Exit.Attach = "disassociate_ctty"
+			Exit.Label = "kprobe/disassociate_ctty"
+		} else {
+			log.Fatal("Failed to detect exit probe symbol.")
+		}
+	}
+	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
+}
+
 func GetExecveMap() *program.Map {
 	return ExecveMap
 }
@@ -104,6 +129,7 @@ func GetDefaultMaps() []*program.Map {
 // GetInitialSensor returns the base sensor
 func GetInitialSensor() *sensors.Sensor {
 	sensorInit.Do(func() {
+		setupExitProgram()
 		sensor.Progs = GetDefaultPrograms()
 		sensor.Maps = GetDefaultMaps()
 	})

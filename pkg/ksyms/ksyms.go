@@ -193,3 +193,12 @@ func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
 		Offset:  addr - sym.addr,
 	}, nil
 }
+
+func (k *Ksyms) IsAvailable(name string) bool {
+	for _, sym := range k.table {
+		if sym.name == name {
+			return true
+		}
+	}
+	return false
+}
