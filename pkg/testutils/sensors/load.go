@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf"
@@ -11,10 +12,18 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+type ProgMatch = int
+
+const (
+	ProgMatchFull    ProgMatch = iota // ==
+	ProgMatchPartial                  // strings.Contains()
+)
+
 type SensorProg struct {
 	Name  string
 	Type  ebpf.ProgramType
 	NotIn bool
+	Match ProgMatch
 }
 
 type SensorMap struct {
@@ -43,13 +52,20 @@ type prog struct {
 	mark bool
 }
 
-func findProgram(cache []*prog, name string, typ ebpf.ProgramType) *prog {
+func findProgram(cache []*prog, name string, typ ebpf.ProgramType, match ProgMatch) *prog {
 	for _, c := range cache {
 		if c.prog.Type != typ {
 			continue
 		}
-		if c.name == name {
-			return c
+		switch match {
+		case ProgMatchPartial:
+			if strings.Contains(c.name, name) {
+				return c
+			}
+		case ProgMatchFull:
+			if c.name == name {
+				return c
+			}
 		}
 	}
 	return nil
@@ -162,7 +178,7 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 
 	// check that we loaded expected programs
 	for _, tp := range sensorProgs {
-		c := findProgram(cache, tp.Name, tp.Type)
+		c := findProgram(cache, tp.Name, tp.Type, tp.Match)
 		if c == nil {
 			t.Fatalf("could not find program %v in sensor", tp.Name)
 		}
@@ -198,7 +214,7 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		for _, idx := range tm.Progs {
 			tp := sensorProgs[idx]
 
-			c := findProgram(cache, tp.Name, tp.Type)
+			c := findProgram(cache, tp.Name, tp.Type, tp.Match)
 			if c == nil {
 				t.Fatalf("could not find program %v in sensor\n", tp.Name)
 			}
