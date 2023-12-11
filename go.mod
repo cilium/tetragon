@@ -12,7 +12,7 @@ require (
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.10
+	github.com/containerd/containerd v1.7.11
 	github.com/fatih/color v1.16.0
 	github.com/go-openapi/strfmt v0.21.9
 	github.com/gogo/protobuf v1.3.2
@@ -34,7 +34,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.18.0
+	github.com/spf13/viper v1.18.1
 	github.com/sryoya/protorand v0.0.0-20230821135621-5e0808bbd3d8
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20231127184239-0ced8385386a
