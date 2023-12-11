@@ -59,10 +59,9 @@ var (
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	sensor = sensors.Sensor{
-		Name:  "__base__",
-		Progs: GetDefaultPrograms(),
-		Maps:  GetDefaultMaps(),
+		Name: "__base__",
 	}
+	sensorInit sync.Once
 )
 
 func GetExecveMap() *program.Map {
@@ -104,6 +103,10 @@ func GetDefaultMaps() []*program.Map {
 
 // GetInitialSensor returns the base sensor
 func GetInitialSensor() *sensors.Sensor {
+	sensorInit.Do(func() {
+		sensor.Progs = GetDefaultPrograms()
+		sensor.Maps = GetDefaultMaps()
+	})
 	return &sensor
 }
 
