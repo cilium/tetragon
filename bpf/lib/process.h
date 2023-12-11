@@ -266,6 +266,19 @@ struct msg_k8s {
 	char docker_id[DOCKER_ID_LENGTH];
 }; // All fields aligned so no 'packed' attribute.
 
+#define BINARY_PATH_MAX_LEN 256
+
+struct heap_exe {
+	// because of verifier limitations, this has to be 2 * 256 bytes while 256
+	// should be theoretically sufficient, and actually is, in unit tests.
+	char buf[BINARY_PATH_MAX_LEN * 2];
+	// offset points to the start of the path in the above buffer. Use offset to
+	// read the path in the buffer since it's written from the end.
+	char *off;
+	__u32 len;
+	__u32 error;
+}; // All fields aligned so no 'packed' attribute.
+
 struct msg_execve_event {
 	struct msg_common common;
 	struct msg_k8s kube;
@@ -285,9 +298,10 @@ struct msg_execve_event {
 	/* below fields are not part of the event, serve just as
 	 * heap for execve programs
 	 */
+#ifdef __LARGE_BPF_PROG
+	struct heap_exe exe;
+#endif
 }; // All fields aligned so no 'packed' attribute.
-
-#define BINARY_PATH_MAX_LEN 256
 
 // This structure stores the binary path that was recorded on execve.
 // Technically PATH_MAX is 4096 but we limit the length we store since we have
