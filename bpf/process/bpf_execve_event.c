@@ -144,6 +144,21 @@ read_execve_shared_info(void *ctx, __u64 pid)
 	return secureexec;
 }
 
+static inline __attribute__((always_inline)) __u32
+read_exe(struct task_struct *task, struct heap_exe *exe)
+{
+	struct file *file = BPF_CORE_READ(task, mm, exe_file);
+	struct path *path = __builtin_preserve_access_index(&file->f_path);
+
+	exe->len = BINARY_PATH_MAX_LEN;
+	exe->off = (char *)&exe->buf;
+	exe->off = __d_path_local(path, exe->off, (int *)&exe->len, (int *)&exe->error);
+	if (exe->len > 0)
+		exe->len = BINARY_PATH_MAX_LEN - exe->len;
+
+	return exe->len;
+}
+
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
@@ -183,6 +198,11 @@ event_execve(struct sched_execve_args *ctx)
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	p->uid = get_current_uid_gid();
+
+	// Reading the absolute path of the process exe for matchBinaries.
+	// Historically we used the filename, a potentially relative path (maybe to
+	// a symlink) coming from the execve tracepoint.
+	read_exe(task, &event->exe);
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);

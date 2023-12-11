@@ -10,6 +10,9 @@
 
 /* __d_path_local flags */
 // #define UNRESOLVED_MOUNT_POINTS	   0x01 // (deprecated)
+// this error is returned by __d_path_local in the following cases:
+// - the path walk did not conclude (too many dentry)
+// - the path was too long to fit in the buffer
 #define UNRESOLVED_PATH_COMPONENTS 0x02
 
 #ifdef __LARGE_BPF_PROG
