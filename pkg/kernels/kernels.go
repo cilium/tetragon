@@ -49,6 +49,11 @@ func KernelStringToNumeric(ver string) int64 {
 	if err != nil {
 		patch = 0
 	}
+	// Similar to https://elixir.bootlin.com/linux/v6.2.16/source/tools/lib/bpf/bpf_helpers.h#L74
+	// we have to check that patch is <= 255. Otherwise make that 255.
+	if patch > 255 {
+		patch = 255
+	}
 
 	return ((major << 16) + (minor << 8) + patch)
 }
