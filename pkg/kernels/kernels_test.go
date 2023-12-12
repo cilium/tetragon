@@ -34,6 +34,10 @@ func TestKernelStringToNumeric(t *testing.T) {
 	assert.Less(t, v1, v2)
 	assert.Less(t, v2, v3)
 	assert.Less(t, v1, v3)
+
+	v1 = KernelStringToNumeric("5.4.263")
+	v2 = KernelStringToNumeric("5.5.0")
+	assert.Less(t, v1, v2)
 }
 
 func TestGetKernelVersion(t *testing.T) {
