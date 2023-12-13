@@ -23,6 +23,9 @@ func TestKillerOverride32(t *testing.T) {
 	if !bpf.HasOverrideHelper() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	configHook := `
@@ -83,6 +86,9 @@ func TestKillerSignal32(t *testing.T) {
 	if !bpf.HasOverrideHelper() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	configHook := `
@@ -142,6 +148,9 @@ spec:
 func TestKillerOverrideBothBits(t *testing.T) {
 	if !bpf.HasOverrideHelper() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
+	}
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
 
 	test32 := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
