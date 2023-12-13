@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
@@ -878,10 +879,17 @@ func TestExecProcessCredentials(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
+	oldGid := syscall.Getgid()
 	gid := uint32(1879048193)
 	if err := syscall.Setegid(int(gid)); err != nil {
 		t.Fatalf("setegid(%d) error: %s", gid, err)
 	}
+	t.Cleanup(func() {
+		// Restores all gids since we retain capabilities
+		if err = syscall.Setgid(oldGid); err != nil {
+			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
+		}
+	})
 
 	if err := exec.Command(testNop).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
@@ -910,13 +918,79 @@ func TestExecProcessCredentials(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
-
-	if err = syscall.Setgid(0); err != nil {
-		t.Fatalf("Failed to restore gid to 0 :  %s\n", err)
-	}
 }
 
-func TestExecProcessCredentialsSuid(t *testing.T) {
+// Test ensures that running as fully privileged root and executing a setuid or
+// setgid to root does not generate a binary_properties setuid field nor privs_changed fields.
+func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
+	// We should be able to create suid on local mount point
+	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
+	if err := testutils.CopyFile(testSuid, testBin, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
+		t.Fatalf("Failed to copy binary: %s", err)
+	}
+	t.Cleanup(func() {
+		err := os.Remove(testSuid)
+		if err != nil {
+			t.Logf("Error failed to cleanup '%s'", testSuid)
+		}
+	})
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	noCredsChange := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(0).WithEgid(0).WithSgid(0).WithFsgid((0))
+	procExecNoPrivsChanged := ec.NewProcessChecker().
+		WithBinary(sm.Full(testBin)).WithProcessCredentials(noCredsChange).WithBinaryProperties(nil)
+	execNoPrivsChangedChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecNoPrivsChanged)
+	if err := exec.Command(testBin).Run(); err != nil {
+		t.Fatalf("Failed to execute '%s' binary: %s\n", testBin, err)
+	}
+	/* Executing a setuid and setgid to root but we are already running as root
+	 * so no privilege change should be detected, same filters as above apply.
+	 */
+	if err := os.Chown(testSuid, 0, 0); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
+	}
+	if err := os.Chmod(testSuid, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
+	}
+	procExecSetuidRootNoPrivsChanged := ec.NewProcessChecker().
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(noCredsChange).WithBinaryProperties(nil)
+	execSetuidRootNoPrivsChangedChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetuidRootNoPrivsChanged)
+	if err := exec.Command(testSuid).Run(); err != nil {
+		t.Fatalf("Failed to execute '%s' binary: %s\n", testSuid, err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(execNoPrivsChangedChecker, execSetuidRootNoPrivsChangedChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+// Test running with different combinations of setgid bit set
+//  1. setgid() systemcall to arbitrary gid value then exec binary to
+//     assert credentials did not change.
+//  2. executes a set-group-ID to root binary asserting that we detect
+//     the setgid bit set + the privileges changed due to the setgid bit
+//     being set to root group.
+//  3. executes a set-group-ID to non root, it is set to arbitrary value
+//     to assert that binary execution detects the setgid bit but we do
+//     not report as a privilege changed execution as the target group
+//     is not root.
+func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -935,33 +1009,63 @@ func TestExecProcessCredentialsSuid(t *testing.T) {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	oldGid := syscall.Getgid()
+	/* Executing a setgid to root with current gid as normal not root */
+	gid := 1879048188
+	if err := syscall.Setgid(gid); err != nil {
+		t.Fatalf("setgid(%d) error: %s", gid, err)
+	}
 	t.Cleanup(func() {
+		// Restore old gid
+		if err = syscall.Setgid(oldGid); err != nil {
+			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
+		}
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
 	})
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+	noGidCredsChanged := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(uint32(gid)).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
+	procExecNoGidCredsChangedChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testBin)).WithProcessCredentials(noGidCredsChanged).WithBinaryProperties(nil)
+	execNoGidsCredsChangedChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecNoGidCredsChangedChecker)
 	if err := exec.Command(testBin).Run(); err != nil {
 		t.Fatalf("Failed to execute '%s' binary: %s\n", testBin, err)
 	}
 
-	gid := 1879048188
-	if err := syscall.Setgid(gid); err != nil {
-		t.Fatalf("setegid(%d) error: %s", gid, err)
+	if err := os.Chown(testSuid, 0, 0); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
 	}
-
-	if err := exec.Command(testBin).Run(); err != nil {
-		t.Fatalf("Failed to execute '%s' binary: %s\n", testBin, err)
+	if err := os.Chmod(testSuid, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
+		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
 	}
+	/* Setgid to 0 */
+	privsChangedRaiseSetgid := ec.NewProcessPrivilegesChangedListMatcher().WithOperator(lc.Ordered).
+		WithValues(ec.NewProcessPrivilegesChangedChecker(tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_SETGID))
+	bpSetgidRoot := ec.NewBinaryPropertiesChecker().
+		WithSetgid(0).WithPrivilegesChanged(privsChangedRaiseSetgid)
+	setgidRootCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
+		WithGid(uint32(gid)).WithEgid(0).WithSgid(0).WithFsgid(0)
+	procExecSetgidRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidRootCreds).WithBinaryProperties(bpSetgidRoot)
+	execSetgidRootChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetgidRootChecker)
+	procExitSetgidRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidRootCreds).WithBinaryProperties(nil)
+	exitSetgidRootChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitSetgidRootChecker)
 
 	if err := exec.Command(testSuid).Run(); err != nil {
 		t.Fatalf("Failed to execute '%s' suid binary: %s\n", testSuid, err)
 	}
 
+	/* Setuid to gid and Setgid to gid both are not root */
+	/* First restore gid to root */
 	if err := syscall.Setgid(0); err != nil {
 		t.Fatalf("setegid(%d) error: %s", gid, err)
 	}
@@ -974,64 +1078,23 @@ func TestExecProcessCredentialsSuid(t *testing.T) {
 		t.Fatalf("Chown() on '%s' binary error: %s\n", testSuid, err)
 	}
 
+	bpSetgidNoRoot := ec.NewBinaryPropertiesChecker().
+		WithSetuid(uint32(gid)).WithSetgid(uint32(gid)).WithPrivilegesChanged(nil)
+	setgidNonRootCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
+		WithGid(0).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
+	procExecSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidNonRootCreds).WithBinaryProperties(bpSetgidNoRoot)
+	execSetgidNoRootChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetgidNoRootChecker)
+	procExitSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidNonRootCreds).WithBinaryProperties(nil)
+	exitSetgidNoRootChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitSetgidNoRootChecker)
+
 	if err := exec.Command(testSuid).Run(); err != nil {
 		t.Fatalf("Failed to execute secound round suid '%s' binary: %s\n", testSuid, err)
 	}
 
-	/* Setgid to 0 */
-	binaryProperties1 := ec.NewBinaryPropertiesChecker().
-		WithSetgid(0)
-
-	/* Setuid and Setgid to gid */
-	binaryProperties2 := ec.NewBinaryPropertiesChecker().
-		WithSetuid(uint32(gid)).WithSetgid(uint32(gid))
-
-	normalCreds := ec.NewProcessCredentialsChecker().
-		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
-		WithGid(0).WithEgid(0).WithSgid(0).WithFsgid((0))
-
-	gidCreds := ec.NewProcessCredentialsChecker().
-		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
-		WithGid(uint32(gid)).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
-
-	suidCreds1 := ec.NewProcessCredentialsChecker().
-		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
-		WithGid(uint32(gid)).WithEgid(0).WithSgid(0).WithFsgid(0)
-
-	suidCreds2 := ec.NewProcessCredentialsChecker().
-		WithUid(0).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
-		WithGid(0).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
-
-	procExecNormalChecker := ec.NewProcessChecker().
-		WithBinary(sm.Full(testBin)).WithProcessCredentials(normalCreds).WithBinaryProperties(nil)
-	procExecGidChecker := ec.NewProcessChecker().WithUid(uint32(0)).
-		WithBinary(sm.Full(testBin)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil)
-	procExecSuidChecker := ec.NewProcessChecker().WithUid(uint32(0)).
-		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(binaryProperties1)
-	procExecSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
-		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(binaryProperties2)
-
-	procExitSuid1Checker := ec.NewProcessChecker().WithUid(uint32(0)).
-		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(nil)
-
-	procExitSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
-		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(nil)
-
-	execNormalChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecNormalChecker)
-	execGidChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecGidChecker)
-	execSuidChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSuidChecker)
-	execSuid2Checker := ec.NewProcessExecChecker("exec").WithProcess(procExecSuid2Checker)
-	exitSuid1Checker := ec.NewProcessExitChecker("exit").WithProcess(procExitSuid1Checker)
-	exitSuid2Checker := ec.NewProcessExitChecker("exit").WithProcess(procExitSuid2Checker)
-
-	if err = syscall.Setuid(0); err != nil {
-		t.Fatalf("Failed to restore uid to 0 :  %s\n", err)
-	}
-	if err = syscall.Setgid(0); err != nil {
-		t.Fatalf("Failed to restore gid to 0 :  %s\n", err)
-	}
-
-	checker := ec.NewUnorderedEventChecker(execNormalChecker, execGidChecker, execSuidChecker, execSuid2Checker, exitSuid1Checker, exitSuid2Checker)
+	checker := ec.NewUnorderedEventChecker(execNoGidsCredsChangedChecker, execSetgidRootChecker, exitSetgidRootChecker, execSetgidNoRootChecker, exitSetgidNoRootChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
