@@ -235,6 +235,32 @@ func TestEmptyFieldFilter(t *testing.T) {
 	assert.True(t, proto.Equal(ev, expected), "events are equal after filter")
 }
 
+func TestEmptyFieldFilterTopLevelInformation(t *testing.T) {
+	ev := &tetragon.GetEventsResponse{
+		NodeName: "foobarqux",
+		AggregationInfo: &tetragon.AggregationInfo{
+			Count: 1000,
+		},
+		Time: &timestamppb.Timestamp{
+			Seconds: 1000,
+			Nanos:   1000,
+		},
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{},
+				Parent:  &tetragon.Process{},
+			},
+		},
+	}
+
+	filter, err := NewExcludeFieldFilter(nil, nil, false)
+	require.NoError(t, err)
+	ev, _ = filter.Filter(ev)
+	assert.NotEmpty(t, ev.NodeName, "node name must not be empty")
+	assert.NotEmpty(t, ev.Time, "timestamp must not be empty")
+	assert.NotEmpty(t, ev.AggregationInfo, "aggregation info must not be empty")
+}
+
 func TestFieldFilterInvertedEventSet(t *testing.T) {
 	ev := &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
