@@ -44,6 +44,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
 )
 
 func TestMain(m *testing.M) {
@@ -1195,6 +1196,70 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execSetuidNoRootChecker, exitSetuidNoRootChecker, execSetuidRootChecker, exitSetuidRootChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+// Detect execution of binaries with file capability sets
+func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+
+	// The drop-privileges is a helper binary that drops privileges so we do not
+	// drop it inside this test which will break the test framework.
+	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
+	testPing, err := exec.LookPath("ping")
+	if err != nil {
+		t.Skipf("Skipping test could not find 'ping' binary: %v", err)
+	}
+
+	xattrs := make([]byte, 0)
+	ret, err := unix.Getxattr(testPing, "security.capability", xattrs)
+	if err != nil {
+		t.Skipf("Skipping test could 'security.capability' xattr of binary '%s' error: %v", testPing, err)
+	}
+	if ret == 0 {
+		t.Skipf("Skipping test 'security.capability' xattr is not set on binary '%s'", testPing)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	gid := 1879048188
+	privsChangedRaiseFscaps := ec.NewProcessPrivilegesChangedListMatcher().WithOperator(lc.Ordered).
+		WithValues(ec.NewProcessPrivilegesChangedChecker(tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_CAP))
+	bp := ec.NewBinaryPropertiesChecker().WithPrivilegesChanged(privsChangedRaiseFscaps)
+	noRootCreds := ec.NewProcessCredentialsChecker().
+		WithUid(uint32(gid)).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
+		WithGid(uint32(gid)).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
+	procExecFsCapsChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
+		WithBinary(sm.Full(testPing)).WithProcessCredentials(noRootCreds).WithBinaryProperties(bp)
+	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecFsCapsChecker)
+	procExitFsCapsChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
+		WithBinary(sm.Full(testPing)).WithProcessCredentials(noRootCreds).WithBinaryProperties(nil)
+	exitChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitFsCapsChecker)
+
+	// We use the testDrop to drop uid so we don't break the test framework by
+	// changing the uid here. The testDrop binary will execute ping binary as we are sure
+	// its path allows to exec into directory but also execute the ping binary.
+	// The result is based on the ping binary being detected as a privilege_changed execution.
+	testCmd := exec.CommandContext(ctx, testDrop, testPing, "-V")
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
