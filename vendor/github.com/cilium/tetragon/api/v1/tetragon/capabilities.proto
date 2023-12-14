@@ -339,4 +339,11 @@ enum ProcessPrivilegesChanged {
 	// any capability. Please check section: `The securebits flags: establishing a capabilities-only environment`
 	// of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html
 	PRIVILEGES_RAISED_EXEC_FILE_SETUID = 2;
+
+	// A privilege elevation happened due to the execution of a binary with set-group-ID to root.
+	// When a process with nonzero GIDs executes a binary with a set-group-ID to root, the kernel switches
+	// the effective group ID to 0 (root) which is a privilege elevation operation since it grants access to
+	// resources owned by the root group.
+	// The effective group ID is listed inside the `process_credentials` part of the `process` object.
+	PRIVILEGES_RAISED_EXEC_FILE_SETGID = 3;
 }
