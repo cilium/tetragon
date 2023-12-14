@@ -209,15 +209,23 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEv
 	dst := src.New()
 	var filterErrs []error
 	src.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-		if fd.ContainingOneof() == nil || !src.Has(fd) {
+		if !src.Has(fd) {
 			return true
 		}
-		event := src.Get(fd).Message().Interface()
-		dstEvent := dst.Mutable(fd).Message().Interface()
-		err := fieldmask_utils.StructToStruct(f.fields, event, dstEvent)
-		if err != nil {
-			filterErrs = append(filterErrs, err)
+
+		if fd.ContainingOneof() != nil && fd.ContainingOneof().Name() == "event" {
+			event := src.Get(fd).Message().Interface()
+			dstEvent := dst.Mutable(fd).Message().Interface()
+			err := fieldmask_utils.StructToStruct(f.fields, event, dstEvent)
+			if err != nil {
+				filterErrs = append(filterErrs, err)
+			}
+			return true
 		}
+
+		// Preserve all information that is not in the Event field
+		dst.Set(fd, v)
+
 		return true
 	})
 
