@@ -158,6 +158,10 @@ tetragon-bpf-container:
 	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) $(MAKE) -C /tetragon/bpf -j$(JOBS) $(__BPF_DEBUG_FLAGS)
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
+.PHONY: bpf-test
+bpf-test:
+	$(MAKE) -C ./bpf run-test
+
 .PHONY: verify
 verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
