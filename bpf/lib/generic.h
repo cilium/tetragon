@@ -51,7 +51,8 @@ struct msg_generic_kprobe {
 	long argsoff[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
-	__u32 filter_tailcall_index; // recursion index for filter_read_arg/generic_process_event
+	__u32 tailcall_index_process; // recursion index for generic_process_event
+	__u32 tailcall_index_selector; // recursion index for filter_read_arg
 	int pass;
 };
 
