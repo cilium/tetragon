@@ -559,10 +559,6 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 		config.ArgM[i] = uint32(0)
 	}
 
-	if selectors.HasEarlyBinaryFilter(tp.Spec.Selectors) {
-		config.Flags |= flagsEarlyFilter
-	}
-
 	return config, nil
 }
 
@@ -598,8 +594,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	load.MapLoad = append(load.MapLoad, cfg)
 
 	if err := program.LoadTracepointProgram(bpfDir, mapDir, load, verbose); err == nil {
-		logger.GetLogger().WithField("flags", flagsString(config.Flags)).
-			Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
 	}

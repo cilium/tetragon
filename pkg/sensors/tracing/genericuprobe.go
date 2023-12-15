@@ -136,8 +136,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		return err
 	}
 
-	logger.GetLogger().WithField("flags", flagsString(uprobeEntry.config.Flags)).
-		Infof("Loaded generic uprobe program: %s -> %s [%s]", args.Load.Name, uprobeEntry.path, uprobeEntry.symbol)
+	logger.GetLogger().Infof("Loaded generic uprobe program: %s -> %s [%s]", args.Load.Name, uprobeEntry.path, uprobeEntry.symbol)
 	return nil
 }
 
@@ -203,10 +202,6 @@ func createGenericUprobeSensor(
 
 		uprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("%d", id))
 		config.FuncId = uint32(id)
-
-		if selectors.HasEarlyBinaryFilter(spec.Selectors) {
-			config.Flags |= flagsEarlyFilter
-		}
 
 		pinPath := uprobeEntry.pinPathPrefix
 		pinProg := sensors.PathJoin(pinPath, "prog")

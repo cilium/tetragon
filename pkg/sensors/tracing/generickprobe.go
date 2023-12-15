@@ -511,19 +511,6 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 	return nil
 }
 
-const (
-	flagsEarlyFilter = 1 << 0
-)
-
-func flagsString(flags uint32) string {
-	s := "none"
-
-	if flags&flagsEarlyFilter != 0 {
-		s = "early_filter"
-	}
-	return s
-}
-
 type addKprobeIn struct {
 	useMulti      bool
 	sensorPath    string
@@ -789,10 +776,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		config.Syscall = 0
 	}
 
-	if selectors.HasEarlyBinaryFilter(f.Selectors) {
-		config.Flags |= flagsEarlyFilter
-	}
-
 	// create a new entry on the table, and pass its id to BPF-side
 	// so that we can do the matching at event-generation time
 	kprobeEntry := genericKprobe{
@@ -943,8 +926,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		}
 	}
 
-	logger.GetLogger().WithField("flags", flagsString(kprobeEntry.loadArgs.config.Flags)).
-		WithField("override", kprobeEntry.hasOverride).
+	logger.GetLogger().WithField("override", kprobeEntry.hasOverride).
 		Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	return progs, maps
 }
