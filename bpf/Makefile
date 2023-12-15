@@ -1,21 +1,7 @@
 .PHONY: all clean
 .SUFFIXES:
 
-SHELL=/bin/bash # needed for the *.{o,ll,i,s} pattern in the clean target
-
-CLANG  ?= clang
-LLC    ?= llc
-
-# Build the BPF programs for the detected architecture, default to x86, and
-# allow easy overriding by using ?= for cross-compilation
-UNAME_M := $(shell uname -m)
-ifeq ($(UNAME_M),x86_64)
-	BPF_TARGET_ARCH ?= x86
-endif
-ifeq ($(UNAME_M),aarch64)
-	BPF_TARGET_ARCH ?= arm64
-endif
-BPF_TARGET_ARCH ?= x86
+include ./Makefile.defs
 
 ALIGNCHECKERDIR = alignchecker/
 PROCESSDIR := process/
@@ -39,25 +25,6 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o bpf_globals.o
-
-IDIR = ./include/
-LIBBPF = ./libbpf/
-LDIR = ./lib
-DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
-
-FLAGS := -I. \
-	 -Wall -Werror \
-	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
-	 -O2
-
-DEBUG ?= 0
-ifeq ($(DEBUG),1)
-	__DEBUG_FLAGS = -DTETRAGON_BPF_DEBUG
-endif
-
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
-LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
-LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
 
 OBJSDIR       := objs/
 DEPSDIR       := deps/
@@ -157,10 +124,16 @@ $(DEPSDIR)%.d: $(CGROUPDIR)%.c
 objs/%.o: objs/%.ll
 	$(LLC) $(LLC_FLAGS) -filetype=obj $< -o $@
 
-# include dependencies
-ifneq ($(MAKECMDGOALS),clean)
+# include dependencies, see https://lists.gnu.org/archive/html/make-w32/2004-03/msg00062.html
+ifeq (,$(filter $(MAKECMDGOALS),clean run-test))
 -include $(DEPS)
 endif
+
+# the 'test' target is already taken
+run-test:
+	$(MAKE) -C tests test
+
+SUBDIRS=tests
 
 clean:
 	@$(ECHO_CLEAN)
