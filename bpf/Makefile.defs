@@ -1,0 +1,36 @@
+SHELL=/bin/bash # needed for the *.{o,ll,i,s} pattern in the clean target
+
+CLANG  ?= clang
+LLC    ?= llc
+
+# Build the BPF programs for the detected architecture, default to x86, and
+# allow easy overriding by using ?= for cross-compilation
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+	BPF_TARGET_ARCH ?= x86
+endif
+ifeq ($(UNAME_M),aarch64)
+	BPF_TARGET_ARCH ?= arm64
+endif
+BPF_TARGET_ARCH ?= x86
+
+ROOT_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+IDIR = $(ROOT_DIR)include/
+LIBBPF = $(ROOT_DIR)libbpf/
+LDIR = $(ROOT_DIR)lib
+DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+
+FLAGS := -I$(ROOT_DIR) \
+	 -Wall -Werror \
+	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
+	 -O2
+
+DEBUG ?= 0
+ifeq ($(DEBUG),1)
+	__DEBUG_FLAGS = -DTETRAGON_BPF_DEBUG
+endif
+
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
+LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
+LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
