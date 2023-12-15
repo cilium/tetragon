@@ -1708,7 +1708,7 @@ static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
+filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	    bool is_entry)
 {
 	__u8 *f;
@@ -1727,11 +1727,11 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
 	 * events early. Now we need to ensure that active pid sselectors
 	 * have their arg filters run.
 	 */
-	if (index > SELECTORS_ACTIVE)
+	if (selidx > SELECTORS_ACTIVE)
 		return filter_args_reject(e->func_id);
 
-	if (e->sel.active[index]) {
-		int pass = selector_arg_offset(f, e, index, is_entry);
+	if (e->sel.active[selidx]) {
+		int pass = selector_arg_offset(f, e, selidx, is_entry);
 		if (pass)
 			return pass;
 	}
@@ -2205,17 +2205,17 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *config_map, bool is_entry)
 {
 	struct msg_generic_kprobe *e;
-	int index, pass, zero = 0;
+	int selidx, pass, zero = 0;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	index = e->tailcall_index_selector;
-	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter, is_entry);
+	selidx = e->tailcall_index_selector;
+	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
-		index++;
-		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
-			e->tailcall_index_selector = index;
+		selidx++;
+		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
+			e->tailcall_index_selector = selidx;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
