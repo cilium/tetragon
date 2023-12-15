@@ -443,7 +443,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{5}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 2}},
 
 		// generic_tracepoint_event
 		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
@@ -451,10 +451,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3, 4, 5}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3, 4, 5}})
 	} else {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
 	}
 
 	readHook := `

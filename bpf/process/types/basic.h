@@ -123,8 +123,6 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
-#define FLAGS_EARLY_FILTER BIT(0)
-
 #define IS_32BIT 0x80000000
 
 struct event_config {
@@ -1596,17 +1594,8 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 }
 
 static inline __attribute__((always_inline)) int
-generic_process_filter_binary(struct event_config *config)
-{
-	/* single flag bit at the moment (FLAGS_EARLY_FILTER) */
-	if (config->flags & FLAGS_EARLY_FILTER)
-		return match_binaries(0);
-	return 1;
-}
-
-static inline __attribute__((always_inline)) int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
-		    bool early_binary_filter, bool is_entry)
+		    bool is_entry)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
@@ -1635,10 +1624,6 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-
-		// check for match binary actions
-		if (!early_binary_filter && !match_binaries(selidx))
-			return 0;
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -1724,7 +1709,7 @@ static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 
 static inline __attribute__((always_inline)) int
 filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
-	    bool early_binary_filter, bool is_entry)
+	    bool is_entry)
 {
 	__u8 *f;
 
@@ -1746,7 +1731,7 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[index]) {
-		int pass = selector_arg_offset(f, e, index, early_binary_filter, is_entry);
+		int pass = selector_arg_offset(f, e, index, is_entry);
 		if (pass)
 			return pass;
 	}
@@ -2220,18 +2205,13 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *config_map, bool is_entry)
 {
 	struct msg_generic_kprobe *e;
-	struct event_config *config;
 	int index, pass, zero = 0;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
 	index = e->filter_tailcall_index;
-	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter,
-			   config->flags & FLAGS_EARLY_FILTER, is_entry);
+	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {

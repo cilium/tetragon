@@ -86,8 +86,6 @@ generic_uprobe_start_process_filter(void *ctx)
 	msg->idx = 0;
 	msg->func_id = config->func_id;
 	msg->retprobe_id = 0;
-	if (!generic_process_filter_binary(config))
-		return 0;
 	/* Tail call into filters. */
 	tail_call(ctx, &uprobe_calls, TAIL_CALL_FILTER);
 	return 0;
