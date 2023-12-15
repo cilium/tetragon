@@ -97,7 +97,8 @@ generic_kprobe_start_process_filter(void *ctx)
 		msg->sel.active[i] = 0;
 	/* Initialize accept field to reject */
 	msg->sel.pass = false;
-	msg->filter_tailcall_index = 0;
+	msg->tailcall_index_process = 0;
+	msg->tailcall_index_selector = 0;
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&(msg->ns), task);

@@ -29,7 +29,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	if (!config)
 		return 0;
 
-	index = e->filter_tailcall_index;
+	index = e->tailcall_index_process;
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
@@ -61,12 +61,12 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	e->common.size = total;
 	/* Continue to process other arguments. */
 	if (index < 4) {
-		e->filter_tailcall_index = index + 1;
+		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
 
 	/* Last argument, go send.. */
-	e->filter_tailcall_index = 0;
+	e->tailcall_index_process = 0;
 	tail_call(ctx, tailcals, TAIL_CALL_ARGS);
 	return 0;
 }

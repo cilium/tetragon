@@ -2210,12 +2210,12 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	index = e->filter_tailcall_index;
+	index = e->tailcall_index_selector;
 	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
 		index++;
 		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
-			e->filter_tailcall_index = index;
+			e->tailcall_index_selector = index;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
