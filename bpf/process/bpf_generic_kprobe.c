@@ -86,8 +86,6 @@ generic_kprobe_start_process_filter(void *ctx)
 	config = map_lookup_elem(&config_map, &msg->idx);
 	if (!config)
 		return 0;
-	if (!generic_process_filter_binary(config))
-		return 0;
 	if (!policy_filter_check(config->policy_id))
 		return 0;
 	msg->func_id = config->func_id;
