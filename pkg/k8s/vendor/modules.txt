@@ -1,7 +1,7 @@
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
-# github.com/cilium/cilium v1.15.0-pre.3
+# github.com/cilium/cilium v1.15.0-rc.0
 ## explicit; go 1.21.0
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1
@@ -131,7 +131,7 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/oauth2 v0.13.0
+# golang.org/x/oauth2 v0.15.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal

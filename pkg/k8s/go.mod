@@ -5,7 +5,7 @@ go 1.21.0
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cilium/cilium v1.15.0-pre.3
+	github.com/cilium/cilium v1.15.0-rc.0
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/sync v0.5.0
 	k8s.io/apiextensions-apiserver v0.29.0-rc.2
@@ -48,7 +48,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/oauth2 v0.13.0 // indirect
+	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
