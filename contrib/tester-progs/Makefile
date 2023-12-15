@@ -18,8 +18,13 @@ PROGS = sigkill-tester \
 	threads-tester \
 	bench-reader \
 	threads-exit \
-	killer-tester \
-	killer-tester-32
+	killer-tester
+
+# For now killer-tester is compiled to 32-bit only on x86_64 as we want
+# to test 32-bit binaries and system calls compatibility layer.
+ifeq ($(shell uname -m),x86_64)
+	PROGS += killer-tester-32
+endif
 
 all: $(PROGS)
 
@@ -62,6 +67,7 @@ uprobe-test-1: uprobe-test.c libuprobe.so
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
 
+# -m32 is an x86_64 flag.
 killer-tester-32: killer-tester.c
 	$(GCC) -Wall -m32 $< -o $@
 
