@@ -11,8 +11,14 @@
 
 #define ENAMETOOLONG 36 /* File name too long */
 
+#define MAX_BUF_LEN 256
+
 struct buffer_heap_map_value {
-	unsigned char buf[PATH_MAP_SIZE];
+	// Buffer is twice the needed size because of the verifier. In prepend_name
+	// unit tests, the verifier figures out that 255 is enough and that the
+	// buffer_offset will not overflow, but in the real use-case it looks like
+	// it's forgetting about that.
+	unsigned char buf[MAX_BUF_LEN * 2];
 };
 
 struct {
@@ -108,42 +114,49 @@ d_unlinked(struct dentry *dentry)
 }
 
 static inline __attribute__((always_inline)) int
-prepend_name(char *bf, char **buffer, int *buflen, const char *name, u32 dlen)
+prepend_name(char *buf, char **bufptr, int *buflen, const char *name, u32 namelen)
 {
-	char slash = '/';
-	u64 buffer_offset = (u64)(*buffer) - (u64)bf;
+	// contains 1 if the buffer is large enough to contain the whole name and a slash prefix
+	bool write_slash = 1;
 
-	// Change dlen (the dentry name length) to fit in the buffer.
-	// We prefer to store the part of it that fits rather that discard it.
-	if (dlen + 1 /* for the slash */ >= *buflen)
-		dlen = *buflen - 1 /* for the slash */ -
-		       1 /* in order to avoid the case to do *buflen == 0 */;
+	u64 buffer_offset = (u64)(*bufptr) - (u64)buf;
 
-	*buflen -= (dlen + 1);
-	// This will not happen as in the previous if-clause ensures that *buflen will be > 0
-	// Needed to make the verifier happy in older kernels.
-	if (*buflen <= 0)
+	// Change name and namelen to fit in the buffer.
+	// We prefer to store the part of it that fits rather than discard it.
+	if (namelen >= *buflen) {
+		name += namelen - *buflen;
+		namelen = *buflen;
+		write_slash = 0;
+	}
+
+	*buflen -= (namelen + write_slash);
+
+	// This will not happen as buffer_offset cannot be above 256 and namelen is
+	// bound to 255. Needed to make the verifier happy in older kernels.
+	if (namelen + write_slash > buffer_offset)
 		return -ENAMETOOLONG;
 
-	buffer_offset -= (dlen + 1);
+	buffer_offset -= (namelen + write_slash);
 
 	// This will never happen. buffer_offset is the diff of the initial buffer pointer
 	// with the current buffer pointer. This will be at max 256 bytes (similar to the initial
 	// size).
 	// Needed to bound that for probe_read call.
-	if (buffer_offset > PATH_MAP_SIZE - 256)
+	if (buffer_offset >= MAX_BUF_LEN)
 		return -ENAMETOOLONG;
 
-	probe_read(bf + buffer_offset, sizeof(char), &slash);
-	// This ensures that dlen is < 256, which is aligned with kernel's max dentry name length
+	if (write_slash)
+		buf[buffer_offset] = '/';
+
+	// This ensures that namelen is < 256, which is aligned with kernel's max dentry name length
 	// that is 255 (https://elixir.bootlin.com/linux/v5.10/source/include/uapi/linux/limits.h#L12).
 	// Needed to bound that for probe_read call.
-	asm volatile("%[dlen] &= 0xff;\n" ::[dlen] "+r"(dlen)
+	asm volatile("%[namelen] &= 0xff;\n" ::[namelen] "+r"(namelen)
 		     :);
-	probe_read(bf + buffer_offset + 1, dlen * sizeof(char), name);
+	probe_read(buf + buffer_offset + write_slash, namelen * sizeof(char), name);
 
-	*buffer = bf + buffer_offset;
-	return 0;
+	*bufptr = buf + buffer_offset;
+	return write_slash ? 0 : -ENAMETOOLONG;
 }
 
 /*
@@ -357,10 +370,10 @@ d_path_local(const struct path *path, int *buflen, int *error)
 	if (!buffer)
 		return 0;
 
-	*buflen = 256;
+	*buflen = MAX_BUF_LEN;
 	buffer = __d_path_local(path, buffer, buflen, error);
 	if (*buflen > 0)
-		*buflen = 256 - *buflen;
+		*buflen = MAX_BUF_LEN - *buflen;
 
 	return buffer;
 }
