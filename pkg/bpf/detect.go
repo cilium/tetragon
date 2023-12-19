@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
+	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
 	"golang.org/x/sys/unix"
 )
@@ -23,7 +24,6 @@ type Feature struct {
 }
 
 var (
-	overrideHelper   Feature
 	signalHelper     Feature
 	kprobeMulti      Feature
 	buildid          Feature
@@ -31,29 +31,8 @@ var (
 	largeProgramSize Feature
 )
 
-func detectOverrideHelper() bool {
-	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
-		Type: ebpf.Kprobe,
-		Instructions: asm.Instructions{
-			asm.LoadImm(asm.R2, 2, asm.DWord),
-			asm.Instruction{OpCode: asm.OpCode(asm.JumpClass).SetJumpOp(asm.Call), Constant: 58},
-			asm.LoadImm(asm.R0, 0, asm.DWord),
-			asm.Return(),
-		},
-		License: "GPL",
-	})
-	if err != nil {
-		return false
-	}
-	prog.Close()
-	return true
-}
-
 func HasOverrideHelper() bool {
-	overrideHelper.init.Do(func() {
-		overrideHelper.detected = detectOverrideHelper()
-	})
-	return overrideHelper.detected
+	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnOverrideReturn) == nil
 }
 
 func detectSignalHelper() bool {
