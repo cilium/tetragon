@@ -1,0 +1,32 @@
+name: BPF Unit Tests
+on:
+  pull_request:
+    paths:
+      - 'bpf/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'bpf/**'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04, actuated-arm64-4cpu-8gb ]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Install Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.21.5'
+
+    - name: Install LLVM
+      run: sudo apt-get -y install clang llvm
+
+    - name: Run BPF unit test
+      run: make bpf-test BPFGOTESTFLAGS="-v"
