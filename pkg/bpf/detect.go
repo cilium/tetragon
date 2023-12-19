@@ -24,10 +24,9 @@ type Feature struct {
 }
 
 var (
-	kprobeMulti      Feature
-	buildid          Feature
-	modifyReturn     Feature
-	largeProgramSize Feature
+	kprobeMulti  Feature
+	buildid      Feature
+	modifyReturn Feature
 )
 
 func HasOverrideHelper() bool {
@@ -127,32 +126,8 @@ func HasModifyReturn() bool {
 	return modifyReturn.detected
 }
 
-func detectLargeProgramSize() bool {
-	insns := asm.Instructions{}
-
-	for i := 0; i < 4096; i++ {
-		insns = append(insns, asm.Mov.Imm(asm.R0, 1))
-	}
-	insns = append(insns, asm.Return())
-
-	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
-		Type:         ebpf.Kprobe,
-		Instructions: insns,
-		AttachType:   ebpf.AttachModifyReturn,
-		License:      "MIT",
-	})
-	if err != nil {
-		return false
-	}
-	prog.Close()
-	return true
-}
-
 func HasProgramLargeSize() bool {
-	largeProgramSize.init.Do(func() {
-		largeProgramSize.detected = detectLargeProgramSize()
-	})
-	return largeProgramSize.detected
+	return features.HaveLargeInstructions() == nil
 }
 
 func LogFeatures() string {
