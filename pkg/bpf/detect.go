@@ -7,6 +7,7 @@
 package bpf
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -27,6 +28,7 @@ type Feature struct {
 
 var (
 	kprobeMulti         Feature
+	uprobeMulti         Feature
 	buildid             Feature
 	modifyReturn        Feature
 	modifyReturnSyscall Feature
@@ -68,6 +70,47 @@ func HasKprobeMulti() bool {
 		kprobeMulti.detected = detectKprobeMulti()
 	})
 	return kprobeMulti.detected
+}
+
+func detectUprobeMulti() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_upm_link",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachType: ebpf.AttachTraceUprobeMulti,
+		License:    "MIT",
+	})
+	if errors.Is(err, unix.E2BIG) {
+		// Kernel doesn't support AttachType field.
+		return false
+	}
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+
+	ex, err := link.OpenExecutable("/proc/self/exe")
+	if err != nil {
+		return false
+	}
+
+	// need cilium/ebp fix, can't pass just addresses without symbol
+	um, err := ex.UprobeMulti(nil, prog, &link.UprobeMultiOptions{Addresses: []uint64{1}})
+	if err != nil {
+		return false
+	}
+	um.Close()
+	return true
+}
+
+func HasUprobeMulti() bool {
+	uprobeMulti.init.Do(func() {
+		uprobeMulti.detected = detectUprobeMulti()
+	})
+	return uprobeMulti.detected
 }
 
 func detectBuildId() bool {
@@ -177,6 +220,7 @@ func HasProgramLargeSize() bool {
 }
 
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize())
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t",
+		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
+		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize())
 }
