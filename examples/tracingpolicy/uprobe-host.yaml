@@ -5,4 +5,5 @@ metadata:
 spec:
   uprobes:
   - path: "/procRoot/1/root/usr/bin/bash"
-    symbol: "_start"
+    symbols:
+    - "_start"
