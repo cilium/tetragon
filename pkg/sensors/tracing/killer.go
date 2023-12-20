@@ -80,10 +80,18 @@ func loadMultiKillerSensor(bpfDir, mapDir string, load *program.Program, verbose
 }
 
 func (k *killerSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+	if args.Load.Label == "kprobe.multi/killer" {
+		return loadMultiKillerSensor(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+	}
 	if args.Load.Label == "kprobe/killer" {
 		return loadSingleKillerSensor(args.BPFDir, args.MapDir, args.Load, args.Verbose)
 	}
-	return loadMultiKillerSensor(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+
+	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
+		return program.LoadFmodRetProgram(args.BPFDir, args.MapDir, args.Load, "fmodret_killer", args.Verbose)
+	}
+
+	return fmt.Errorf("killer loader: unknown label: %s", args.Load.Label)
 }
 
 func unloadKiller() error {
@@ -152,29 +160,38 @@ func createKillerSensor(
 		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 	}
 
-	attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
 	prog := sensors.PathJoin(name, "killer_kprobe")
-
-	if useMulti {
+	if bpf.HasOverrideHelper() {
+		attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
+		label := "kprobe/killer"
+		prog := "bpf_killer.o"
+		if useMulti {
+			label = "kprobe.multi/killer"
+			prog = "bpf_multi_killer.o"
+		}
 		load = program.Builder(
-			path.Join(option.Config.HubbleLib, "bpf_multi_killer.o"),
+			path.Join(option.Config.HubbleLib, prog),
 			attach,
-			"kprobe.multi/killer",
+			label,
 			prog,
 			"killer")
-
+		progs = append(progs, load)
+	} else if bpf.HasModifyReturn() {
+		// for fmod_ret, we need one program per syscall
+		for _, syscallSym := range syscallsSyms {
+			load = program.Builder(
+				path.Join(option.Config.HubbleLib, "bpf_fmodret_killer.o"),
+				syscallSym,
+				"fmod_ret/security_task_prctl",
+				prog,
+				"killer")
+			progs = append(progs, load)
+		}
 	} else {
-		load = program.Builder(
-			path.Join(option.Config.HubbleLib, "bpf_killer.o"),
-			attach,
-			"kprobe/killer",
-			prog,
-			"killer")
+		return nil, fmt.Errorf("no override helper or override support: cannot load killer")
 	}
 
 	killerDataMap := program.MapBuilderPin("killer_data", "killer_data", load)
-
-	progs = append(progs, load)
 	maps = append(maps, killerDataMap)
 
 	return &sensors.Sensor{

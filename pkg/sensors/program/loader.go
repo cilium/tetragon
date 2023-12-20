@@ -528,6 +528,42 @@ func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) e
 	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
 }
 
+func LoadFmodRetProgram(bpfDir, mapDir string, load *Program, progName string, verbose int) error {
+	opts := &loadOpts{
+		attach: func(
+			coll *ebpf.Collection,
+			collSpec *ebpf.CollectionSpec,
+			prog *ebpf.Program,
+			spec *ebpf.ProgramSpec,
+		) (unloader.Unloader, error) {
+			linkFn := func() (link.Link, error) {
+				return link.AttachTracing(link.TracingOptions{
+					Program: prog,
+				})
+			}
+			lnk, err := linkFn()
+			if err != nil {
+				return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+			}
+			return &unloader.RelinkUnloader{
+				UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+				IsLinked:   true,
+				Link:       lnk,
+				RelinkFn:   linkFn,
+			}, nil
+		},
+		open: func(coll *ebpf.CollectionSpec) error {
+			progSpec, ok := coll.Programs[progName]
+			if !ok {
+				return fmt.Errorf("progName %s not in collecition spec programs: %+v", progName, coll.Programs)
+			}
+			progSpec.AttachTo = load.Attach
+			return nil
+		},
+	}
+	return loadProgram(bpfDir, []string{mapDir}, load, opts, verbose)
+}
+
 func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: TracingAttach(),

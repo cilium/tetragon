@@ -63,7 +63,7 @@ func testKiller(t *testing.T, configHook string,
 }
 
 func TestKillerOverride(t *testing.T) {
-	if !bpf.HasOverrideHelper() {
+	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
 	if !bpf.HasSignalHelper() {
