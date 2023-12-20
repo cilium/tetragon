@@ -12,4 +12,5 @@ type TetragonConf struct {
 	TgCgrpLevel     uint32 `align:"tg_cgrp_level"`      // Tetragon cgroup level
 	TgCgrpId        uint64 `align:"tg_cgrpid"`          // Tetragon cgroup ID
 	CgrpFsMagic     uint64 `align:"cgrp_fs_magic"`      // Cgroupv1 or cgroupv2
+	ExecMaxArgs     uint32 `align:"exec_max_args"`      // Max size of stored arguments for exec events
 }

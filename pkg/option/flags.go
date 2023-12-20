@@ -89,6 +89,8 @@ const (
 	KeyEnablePodInfo = "enable-pod-info"
 
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
+
+	KeyExecMaxArgs = "exec-max-args"
 )
 
 func ReadAndSetFlags() error {
@@ -118,6 +120,9 @@ func ReadAndSetFlags() error {
 	}
 	if Config.RBQueueSize, err = strutils.ParseSize(viper.GetString(KeyRBQueueSize)); err != nil {
 		return fmt.Errorf("failed to parse rb-queue-size value: %s", err)
+	}
+	if Config.ExecMaxArgs, err = strutils.ParseSize(viper.GetString(KeyExecMaxArgs)); err != nil {
+		return fmt.Errorf("failed to parse rb-size value: %s", err)
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
@@ -271,4 +276,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+
+	flags.String(KeyExecMaxArgs, "0", "(Max size of stored arguments for exec events (default 0 - store all, allows K/M/G suffix)")
 }

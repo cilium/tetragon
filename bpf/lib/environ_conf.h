@@ -25,7 +25,8 @@ struct tetragon_conf {
 	__u32 tg_cgrp_level; /* Tetragon cgroup level */
 	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */
 	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
-}; // All fields aligned so no 'packed' attribute.
+	__u32 exec_max_args; /* Max size of stored arguments for exec events. */
+} __attribute__((packed));
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
