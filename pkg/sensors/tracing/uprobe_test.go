@@ -67,7 +67,8 @@ metadata:
 spec:
   uprobes:
   - path: "/bin/bash"
-    symbol: "main"
+    symbols:
+    - "main"
 `
 
 	var sens []*sensors.Sensor
@@ -98,7 +99,8 @@ metadata:
 spec:
   uprobes:
   - path: "` + testNop + `"
-    symbol: "main"
+    symbols:
+    - "main"
 `
 
 	nopConfigHook := []byte(nopHook)
@@ -148,7 +150,8 @@ metadata:
 spec:
   uprobes:
   - path: "` + path + `"
-    symbol: "uprobe_test_func"
+    symbols:
+    - "uprobe_test_func"
     selectors:
     - matchPIDs:
       - operator: In
@@ -209,7 +212,8 @@ metadata:
 spec:
   uprobes:
   - path: "` + libUprobe + `"
-    symbol: "uprobe_test_lib"
+    symbols:
+    - "uprobe_test_lib"
     selectors:
     - matchBinaries:
       - operator: "In"
@@ -280,8 +284,9 @@ metadata:
 spec:
   uprobes:
   - path: "` + testBin + `"
-    symbol: "do_uprobe"
     message: "Uprobe test"
+    symbols:
+    - "do_uprobe"
     selectors:
     - matchBinaries:
       - operator: "In"

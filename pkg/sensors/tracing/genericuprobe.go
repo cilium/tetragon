@@ -176,10 +176,7 @@ func createGenericUprobeSensor(
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 
-	for i := range uprobes {
-		spec := &uprobes[i]
-		config := &api.EventConfig{}
-
+	for _, spec := range uprobes {
 		var args []v1alpha1.KProbeArg
 
 		if err := isValidUprobeSelectors(spec.Selectors); err != nil {
@@ -199,46 +196,50 @@ func createGenericUprobeSensor(
 			logger.GetLogger().WithField("policy-name", policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 		}
 
-		uprobeEntry := &genericUprobe{
-			tableId:    idtable.UninitializedEntryID,
-			config:     config,
-			path:       spec.Path,
-			symbol:     spec.Symbol,
-			selectors:  uprobeSelectorState,
-			policyName: policyName,
-			message:    msgField,
+		for _, sym := range spec.Symbols {
+			config := &api.EventConfig{}
+
+			uprobeEntry := &genericUprobe{
+				tableId:    idtable.UninitializedEntryID,
+				config:     config,
+				path:       spec.Path,
+				symbol:     sym,
+				selectors:  uprobeSelectorState,
+				policyName: policyName,
+				message:    msgField,
+			}
+
+			uprobeTable.AddEntry(uprobeEntry)
+			id := uprobeEntry.tableId.ID
+
+			uprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("%d", id))
+			config.FuncId = uint32(id)
+
+			pinPath := uprobeEntry.pinPathPrefix
+			pinProg := sensors.PathJoin(pinPath, "prog")
+
+			attachData := &program.UprobeAttachData{
+				Path:   spec.Path,
+				Symbol: sym,
+			}
+
+			load := program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgName),
+				"",
+				"uprobe/generic_uprobe",
+				pinProg,
+				"generic_uprobe").
+				SetAttachData(attachData).
+				SetLoaderData(uprobeEntry)
+
+			progs = append(progs, load)
+
+			configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+			tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
+			filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+			selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+			maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 		}
-
-		uprobeTable.AddEntry(uprobeEntry)
-		id := uprobeEntry.tableId.ID
-
-		uprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("%d", id))
-		config.FuncId = uint32(id)
-
-		pinPath := uprobeEntry.pinPathPrefix
-		pinProg := sensors.PathJoin(pinPath, "prog")
-
-		attachData := &program.UprobeAttachData{
-			Path:   spec.Path,
-			Symbol: spec.Symbol,
-		}
-
-		load := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgName),
-			"",
-			"uprobe/generic_uprobe",
-			pinProg,
-			"generic_uprobe").
-			SetAttachData(attachData).
-			SetLoaderData(uprobeEntry)
-
-		progs = append(progs, load)
-
-		configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-		tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-		selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-		maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 	}
 
 	return &sensors.Sensor{

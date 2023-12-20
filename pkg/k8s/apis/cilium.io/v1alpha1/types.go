@@ -253,8 +253,8 @@ type TracepointSpec struct {
 type UProbeSpec struct {
 	// Name of the traced binary
 	Path string `json:"path"`
-	// Name of the traced symbol
-	Symbol string `json:"symbol"`
+	// List of the traced symbols
+	Symbols []string `json:"symbols"`
 	// +kubebuilder:validation:Optional
 	// A short message of 256 characters max that will be included
 	// in the event output to inform users what is going on.

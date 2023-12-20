@@ -1781,12 +1781,14 @@ spec:
                             type: array
                         type: object
                       type: array
-                    symbol:
-                      description: Name of the traced symbol
-                      type: string
+                    symbols:
+                      description: List of the traced symbols
+                      items:
+                        type: string
+                      type: array
                   required:
                   - path
-                  - symbol
+                  - symbols
                   type: object
                 type: array
             type: object

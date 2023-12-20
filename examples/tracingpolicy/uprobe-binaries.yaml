@@ -5,7 +5,8 @@ metadata:
 spec:
   uprobes:
   - path: "/lib64/libc.so.6"
-    symbol: "malloc"
+    symbols:
+    - "malloc"
     selectors:
     - matchBinaries:
       - operator: "In"
