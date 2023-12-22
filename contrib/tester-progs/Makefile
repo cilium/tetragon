@@ -18,7 +18,8 @@ PROGS = sigkill-tester \
 	threads-tester \
 	bench-reader \
 	threads-exit \
-	killer-tester
+	killer-tester \
+	drop-privileges
 
 # For now killer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
@@ -50,6 +51,9 @@ sigkill-unprivileged-user-ns-tester: sigkill-unprivileged-user-ns-tester.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 nop: nop.c
+	$(GCC) -Wall $< -o $@ -lpthread
+
+drop-privileges: drop-privileges.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
 exit-leader: exit-leader.c
