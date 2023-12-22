@@ -8,6 +8,8 @@ import (
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsMountFS(t *testing.T) {
@@ -108,4 +110,11 @@ func mountFS(root, kind string) error {
 		return fmt.Errorf("failed to mount %s %s: %s", root, kind, err)
 	}
 	return nil
+}
+
+func TestGetMountInfo(t *testing.T) {
+	infos, err := GetMountInfo()
+	require.NoError(t, err)
+	require.NotNil(t, infos)
+	require.NotEqual(t, 0, len(infos))
 }

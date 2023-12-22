@@ -112,7 +112,16 @@ func GetMountInfo() ([]*MountInfo, error) {
 	}
 	defer fMounts.Close()
 
-	return parseMountInfoFile(fMounts)
+	results, err := parseMountInfoFile(fMounts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("current mountinfo list is empty")
+	}
+
+	return results, nil
 }
 
 func isMountFS(mountInfos []*MountInfo, mntType string, mapRoot string) (bool, bool) {
