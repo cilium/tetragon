@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	perCPUBufferBytes = 65535
+	perCPUBufferBytes = 1048576
 )
 
 var (
@@ -185,7 +185,7 @@ func (k *Observer) getRBSize(cpus int) int {
 	} else if option.Config.RBSize != 0 {
 		size = option.Config.RBSize
 	} else {
-		size = option.Config.RBSizeTotal / int(cpus)
+		size = option.Config.RBSizeTotal / cpus
 	}
 
 	cpuSize := perfBufferSize(size)
