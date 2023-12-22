@@ -52,6 +52,10 @@ type ProcessInternal struct {
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt uint32
+
+	// cache id values for process/parent
+	cacheId       CacheId
+	parentCacheId CacheId
 }
 
 var (
@@ -64,6 +68,10 @@ var (
 var (
 	ErrProcessInfoMissing = errors.New("failed process info missing")
 )
+
+func GetProcessCacheId(pid uint32, ktime uint64) CacheId {
+	return CacheId{pid, ktime, nodeName}
+}
 
 func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	var err error
@@ -90,6 +98,14 @@ func FreeCache() {
 	procCache = nil
 }
 
+func (pi *ProcessInternal) GetProcessCacheId() CacheId {
+	return pi.cacheId
+}
+
+func (pi *ProcessInternal) GetParentCacheId() CacheId {
+	return pi.parentCacheId
+}
+
 // GetProcessCopy() duplicates tetragon.Process and returns it
 func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	if pi.process == nil {
@@ -114,6 +130,7 @@ func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 		apiBinaryProp: pi.apiBinaryProp,
 		namespaces:    pi.namespaces,
 		refcnt:        1, // Explicitly initialize refcnt to 1
+		parentCacheId: pi.cacheId,
 	}
 }
 
@@ -349,6 +366,8 @@ func initProcessInternalExec(
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
 		refcnt:        1,
+		cacheId:       GetProcessCacheId(process.PID, process.Ktime),
+		parentCacheId: GetProcessCacheId(parent.Pid, parent.Ktime),
 	}
 }
 
@@ -367,6 +386,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		return nil, err
 	}
 
+	pi.cacheId = GetProcessCacheId(event.PID, event.Ktime)
 	pi.process.ParentExecId = parentExecId
 	pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 	pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
@@ -414,14 +434,14 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	var parent, process *ProcessInternal
 	var err error
 
-	processID := GetProcessID(pid, ktime)
+	cacheId := GetProcessCacheId(pid, ktime)
 
-	if process, err = procCache.get(processID); err != nil {
-		logger.GetLogger().WithField("id in event", processID).WithField("pid", pid).WithField("ktime", ktime).Debug("process not found in cache")
+	if process, err = procCache.get(cacheId); err != nil {
+		logger.GetLogger().WithField("id in event", cacheId).WithField("pid", pid).WithField("ktime", ktime).Debug("process not found in cache")
 		return nil, nil
 	}
 
-	if parent, err = procCache.get(process.process.ParentExecId); err != nil {
+	if parent, err = procCache.get(process.parentCacheId); err != nil {
 		logger.GetLogger().WithField("id in event", process.process.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
 		return process, nil
 	}
@@ -439,14 +459,15 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc = initProcessInternalExec(event, event.CleanupProcess)
 	}
 
-	procCache.add(proc)
+	procCache.add(proc.cacheId, proc)
 	return proc
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
-	parent, err := Get(parentExecId)
+	parentCacheId := GetProcessCacheId(event.Parent.Pid, event.Parent.Ktime)
+	parent, err := Get(parentCacheId)
 	if err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":           "Clone",
@@ -462,12 +483,12 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 	}
 
 	parent.RefInc()
-	procCache.add(proc)
+	procCache.add(proc.cacheId, proc)
 	return nil
 }
 
-func Get(execId string) (*ProcessInternal, error) {
-	return procCache.get(execId)
+func Get(cacheId CacheId) (*ProcessInternal, error) {
+	return procCache.get(cacheId)
 }
 
 // GetK8s returns K8sResourceWatcher. You must call InitCache before calling this function to ensure

@@ -30,17 +30,18 @@ func TestProcessCache(t *testing.T) {
 			},
 		},
 	}
-	cache.add(&proc)
+	cacheId := GetProcessCacheId(1234, 4321)
+	cache.add(cacheId, &proc)
 	assert.Equal(t, cache.len(), 1)
 
-	result, err := cache.get(proc.process.ExecId)
+	result, err := cache.get(cacheId)
 	assert.NoError(t, err)
 	assert.Equal(t, proc.process.ExecId, result.process.ExecId)
 	assert.Equal(t, proc.capabilities, result.capabilities)
 
 	// remove the entry from cache.
-	assert.True(t, cache.remove(proc.process))
+	assert.True(t, cache.remove(cacheId))
 	assert.Equal(t, cache.len(), 0)
-	_, err = cache.get(proc.process.ExecId)
+	_, err = cache.get(cacheId)
 	assert.Error(t, err)
 }

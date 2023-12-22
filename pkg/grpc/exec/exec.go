@@ -54,7 +54,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
-	parent, err := process.Get(parentId)
+	parent, err := process.Get(proc.GetParentCacheId())
 	if err == nil {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
@@ -210,8 +210,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	// Check we have a parent with exception for pid 1, note we do this last because we want
 	// to ensure the podInfo and process are set before returning any errors.
 	if proc.Pid.Value > 1 && parent == nil {
-		parentId := proc.ParentExecId
-		parent, err := process.Get(parentId)
+		parent, err := process.Get(internal.GetParentCacheId())
 		if parent == nil {
 			return err
 		}
