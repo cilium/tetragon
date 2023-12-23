@@ -4,6 +4,8 @@
 package generate
 
 import (
+	"debug/elf"
+	"errors"
 	"log"
 	"os"
 
@@ -124,6 +126,57 @@ func New() *cobra.Command {
 	ftraceFlags := ftraceList.Flags()
 	ftraceFlags.StringVarP(&ftraceRegex, "regex", "r", "", "Use regex to limit the generated symbols")
 
+	var uprobesBinary string
+	uprobes := &cobra.Command{
+		Use:   "uprobes",
+		Short: "all binary symbols",
+		Run: func(cmd *cobra.Command, _ []string) {
+			if uprobesBinary == "" {
+				log.Fatalf("binary is not specified, please use --binary option")
+			}
+
+			file, err := elf.Open(uprobesBinary)
+			if err != nil {
+				log.Fatalf("failed to open '%s': %v", uprobesBinary, err)
+			}
+
+			syms, err := file.Symbols()
+			if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
+				log.Fatalf("failed to get symtab for open '%s': %v", uprobesBinary, err)
+			}
+
+			dynsyms, err := file.DynamicSymbols()
+			if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
+				log.Fatalf("failed to get dynsym for open '%s': %v", uprobesBinary, err)
+			}
+
+			syms = append(syms, dynsyms...)
+
+			tp := generate.NewTracingPolicy("uprobes")
+			uprobe := generate.AddUprobe(tp)
+
+			for _, sym := range syms {
+				if elf.ST_TYPE(sym.Info) != elf.STT_FUNC {
+					continue
+				}
+				if sym.Value == 0 {
+					continue
+				}
+				uprobe.Symbols = append(uprobe.Symbols, sym.Name)
+			}
+
+			uprobe.Path = uprobesBinary
+			b, err := yaml.Marshal(tp)
+			if err != nil {
+				log.Fatal(err)
+			}
+			os.Stdout.Write(b)
+		},
+	}
+
+	uprobesFlags := uprobes.Flags()
+	uprobesFlags.StringVarP(&uprobesBinary, "binary", "b", "", "Binary path")
+
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "generate tracing policies",
@@ -131,6 +184,6 @@ func New() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 	pflags.StringVarP(&matchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
 
-	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList)
+	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes)
 	return cmd
 }
