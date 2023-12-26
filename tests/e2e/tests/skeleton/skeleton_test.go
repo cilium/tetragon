@@ -113,6 +113,14 @@ func TestSkeletonBasic(t *testing.T) {
 				t.Fail()
 			}
 			return ctx
+		}).
+		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString(namespace, curlPod, true)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to spawn workload")
+				t.Fail()
+			}
+			return ctx
 		}).Feature()
 
 	// We run our features using testenv.Test() or testenv.TestInParallel(). These take
