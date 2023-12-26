@@ -41,7 +41,7 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 		client := tetragon.NewFineGuidanceSensorsClient(conn)
 
 		for i := 0; i < maxTries; i++ {
-			err = waitForTracingPolicy(ctx, policyName, client)
+			err = ensureTracingPolicy(ctx, policyName, client)
 			if err == nil {
 				break
 			}
@@ -57,7 +57,7 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 	return nil
 }
 
-func waitForTracingPolicy(ctx context.Context, policyName string, client tetragon.FineGuidanceSensorsClient) error {
+func ensureTracingPolicy(ctx context.Context, policyName string, client tetragon.FineGuidanceSensorsClient) error {
 	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
 	if err != nil {
 		return err
