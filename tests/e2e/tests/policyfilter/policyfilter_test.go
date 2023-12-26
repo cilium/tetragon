@@ -118,6 +118,14 @@ func TestNamespacedPolicy(t *testing.T) {
 			}
 			return ctx
 		}).
+		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString(policyNamespace, namespacedPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to uninstall policy")
+				t.Fail()
+			}
+			return ctx
+		}).
 		Feature()
 
 	runner.TestInParallel(t, runWorkload, runEventChecker)
@@ -238,6 +246,14 @@ func TestPodLabelFilters(t *testing.T) {
 					t.Fail()
 				}
 
+			}
+			return ctx
+		}).
+		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString(podlblNamespace, podlblPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to uninstall policy")
+				t.Fail()
 			}
 			return ctx
 		}).
