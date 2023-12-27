@@ -2375,7 +2375,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	}
 
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
-	return 1;
+	return 0;
 }
 
 static inline __attribute__((always_inline)) long
@@ -2417,7 +2417,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 	postit = do_actions(ctx, e, actions, override_tasks);
 	if (postit)
 		tail_call(ctx, tailcalls, TAIL_CALL_SEND);
-	return 1;
+	return 0;
 }
 
 static inline __attribute__((always_inline)) long
@@ -2468,7 +2468,7 @@ generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
 		     : [total] "+r"(total)
 		     :);
 	perf_event_output_metric(ctx, op, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
-	return 1;
+	return 0;
 }
 
 /**
