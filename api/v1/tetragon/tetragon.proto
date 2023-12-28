@@ -427,6 +427,8 @@ message ProcessKprobe {
     string policy_name = 8;
     // Action performed when the return kprobe executed.
     KprobeAction return_action = 9;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 10;
 }
 
 message ProcessTracepoint {
@@ -445,6 +447,8 @@ message ProcessTracepoint {
     string policy_name = 7;
     // Action performed when the tracepoint matched.
     KprobeAction action = 8;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 9;
 }
 
 message ProcessUprobe {
@@ -454,6 +458,8 @@ message ProcessUprobe {
     string symbol = 4;
     // Name of the policy that created that uprobe.
     string policy_name = 5;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 6;
 }
 
 message KernelModule {
