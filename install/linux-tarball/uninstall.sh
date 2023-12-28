@@ -19,3 +19,4 @@ systemctl daemon-reload
 rm -fr /usr/local/bin/tetragon
 rm -fr /usr/local/bin/tetra
 rm -fr /usr/local/lib/tetragon/
+rm -fr /usr/lib/tetragon/
