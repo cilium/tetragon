@@ -131,6 +131,11 @@ spec:
                     call:
                       description: Name of the function to apply the kprobe spec to.
                       type: string
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
                     return:
                       default: false
                       description: Indicates whether to collect return value of the
@@ -831,6 +836,11 @@ spec:
                     event:
                       description: Tracepoint event
                       type: string
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
                         Selectors are ORed.
@@ -1270,6 +1280,11 @@ spec:
                 description: A list of uprobe specs.
                 items:
                   properties:
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
                     path:
                       description: Name of the traced binary
                       type: string
