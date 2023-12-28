@@ -112,19 +112,11 @@ make tarball
 
 ### Running Tetragon in kind
 
-The scripts in contrib/localdev will help you run Tetragon locally in a kind
-cluster. First, ensure that docker, kind, kubectl, and helm are installed on
-your system. Then, run the following commands:
+This command will setup tetragon, kind cluster and install tetragon in it. Ensure docker, kind, kubectl, and helm are installed.
 
 ```shell
-# Build Tetragon agent and operator images
-make LOCAL_CLANG=0 image image-operator
-
-# Bootstrap the cluster
-contrib/localdev/bootstrap-kind-cluster.sh
-
-# Install Tetragon
-contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
+# Setup tetragon on kind
+make kind-setup
 ```
 
 Verify that Tetragon is installed by running:
@@ -145,20 +137,6 @@ make
 If you are getting an error, you can try to run `sudo launchctl load
 /Library/LaunchDaemons/org.virtualbox.startup.plist` (from [a Stackoverflow
 answer](https://stackoverflow.com/questions/18149546/macos-vagrant-up-failed-dev-vboxnetctl-no-such-file-or-directory)).
-
-### Local Development in Minikube
-
-You can also run the tetragon agent directly (instead of in a pod). Here we
-describe how this can be done in minikube:
-
-```shell
-minikube start --driver=kvm2
-minikube mount $HOME:$HOME # so that we can use .kube/config
-./tetragon-operator --kube-config ~/.kube/config
-make STATIC=1 tetragon
-minikube ssh --  'sudo mkdir -p /var/run/cilium/tetragon'
-minikube ssh sudo "sh -c 'NODE_NAME=minikube /home/kkourt/src/tetragon/tetragon --bpf-lib /home/kkourt/src/tetragon/bpf/objs --server-address unix:///var/run/cilium/tetragon/tetragon.sock --enable-k8s-api --k8s-kubeconfig-path /home/kkourt/.kube/config'"
-```
 
 ### What's next
 
