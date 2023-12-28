@@ -427,6 +427,8 @@ message ProcessKprobe {
     string policy_name = 8;
     // Action performed when the return kprobe executed.
     KprobeAction return_action = 9;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 10;
 }
 
 message ProcessTracepoint {
