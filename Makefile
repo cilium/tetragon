@@ -306,6 +306,9 @@ image-clang:
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: images
+images: image image-operator
+
 .PHONY: tarball tarball-release tarball-clean
 # Share same build environment as docker image
 tarball: tarball-clean image
@@ -403,3 +406,14 @@ version:
 .PHONY: docs
 docs:
 	$(MAKE) -C docs
+
+.PHONY: kind
+kind:
+	./contrib/localdev/bootstrap-kind-cluster.sh
+
+.PHONY: kind-install-tetragon 
+kind-install-tetragon:
+	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
+
+.PHONY: kind-setup
+kind-setup: images kind kind-install-tetragon
