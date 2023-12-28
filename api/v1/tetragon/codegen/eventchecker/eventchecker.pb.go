@@ -706,6 +706,7 @@ type ProcessKprobeChecker struct {
 	StackTrace   *StackTraceEntryListMatcher  `json:"stackTrace,omitempty"`
 	PolicyName   *stringmatcher.StringMatcher `json:"policyName,omitempty"`
 	ReturnAction *KprobeActionChecker         `json:"returnAction,omitempty"`
+	Message      *stringmatcher.StringMatcher `json:"message,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -792,6 +793,11 @@ func (checker *ProcessKprobeChecker) Check(event *tetragon.ProcessKprobe) error 
 				return fmt.Errorf("ReturnAction check failed: %w", err)
 			}
 		}
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -856,6 +862,12 @@ func (checker *ProcessKprobeChecker) WithReturnAction(check tetragon.KprobeActio
 	return checker
 }
 
+// WithMessage adds a Message check to the ProcessKprobeChecker
+func (checker *ProcessKprobeChecker) WithMessage(check *stringmatcher.StringMatcher) *ProcessKprobeChecker {
+	checker.Message = check
+	return checker
+}
+
 //FromProcessKprobe populates the ProcessKprobeChecker using data from a ProcessKprobe event
 func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKprobe) *ProcessKprobeChecker {
 	if event == nil {
@@ -900,6 +912,7 @@ func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKp
 	}
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)
 	checker.ReturnAction = NewKprobeActionChecker(event.ReturnAction)
+	checker.Message = stringmatcher.Full(event.Message)
 	return checker
 }
 
@@ -1113,6 +1126,7 @@ type ProcessTracepointChecker struct {
 	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
 	Action      *KprobeActionChecker         `json:"action,omitempty"`
+	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1189,6 +1203,11 @@ func (checker *ProcessTracepointChecker) Check(event *tetragon.ProcessTracepoint
 				return fmt.Errorf("Action check failed: %w", err)
 			}
 		}
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1240,6 +1259,12 @@ func (checker *ProcessTracepointChecker) WithAction(check tetragon.KprobeAction)
 	return checker
 }
 
+// WithMessage adds a Message check to the ProcessTracepointChecker
+func (checker *ProcessTracepointChecker) WithMessage(check *stringmatcher.StringMatcher) *ProcessTracepointChecker {
+	checker.Message = check
+	return checker
+}
+
 //FromProcessTracepoint populates the ProcessTracepointChecker using data from a ProcessTracepoint event
 func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.ProcessTracepoint) *ProcessTracepointChecker {
 	if event == nil {
@@ -1268,6 +1293,7 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 	}
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)
 	checker.Action = NewKprobeActionChecker(event.Action)
+	checker.Message = stringmatcher.Full(event.Message)
 	return checker
 }
 
@@ -1279,6 +1305,7 @@ type ProcessUprobeChecker struct {
 	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
 	Symbol      *stringmatcher.StringMatcher `json:"symbol,omitempty"`
 	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1345,6 +1372,11 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("PolicyName check failed: %w", err)
 			}
 		}
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1383,6 +1415,12 @@ func (checker *ProcessUprobeChecker) WithPolicyName(check *stringmatcher.StringM
 	return checker
 }
 
+// WithMessage adds a Message check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithMessage(check *stringmatcher.StringMatcher) *ProcessUprobeChecker {
+	checker.Message = check
+	return checker
+}
+
 //FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
 func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
 	if event == nil {
@@ -1397,6 +1435,7 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Symbol = stringmatcher.Full(event.Symbol)
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)
+	checker.Message = stringmatcher.Full(event.Message)
 	return checker
 }
 

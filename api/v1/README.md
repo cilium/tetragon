@@ -793,6 +793,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | Kernel stack trace to the call. |
 | policy_name | [string](#string) |  | Name of the Tracing Policy that created that kprobe. |
 | return_action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the return kprobe executed. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 
 
@@ -831,6 +832,7 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed tracepoint. TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
 | policy_name | [string](#string) |  | Name of the policy that created that tracepoint. |
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the tracepoint matched. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 
 
@@ -850,6 +852,7 @@ loader sensor event triggered for loaded binary/library
 | path | [string](#string) |  |  |
 | symbol | [string](#string) |  |  |
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 
 
