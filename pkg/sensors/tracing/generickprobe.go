@@ -123,6 +123,9 @@ type genericKprobe struct {
 	// policyName is the name of the policy that this tracepoint belongs to
 	policyName string
 
+	// message field of the Tracing Policy
+	message string
+
 	// is there override defined for the kprobe
 	hasOverride bool
 
@@ -811,6 +814,14 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		customHandler:     in.customHandler,
 	}
 
+	if f.Message != "" {
+		msgLen := len(f.Message)
+		if msgLen > 128 {
+			msgLen = 128
+		}
+		kprobeEntry.message = fmt.Sprintf("%s", f.Message[:msgLen])
+	}
+
 	// Parse Filters into kernel filter logic
 	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
 	if err != nil {
@@ -1222,6 +1233,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	unix.Namespaces = m.Namespaces
 	unix.Capabilities = m.Capabilities
 	unix.PolicyName = gk.policyName
+	unix.Message = gk.message
 
 	returnEvent := m.Common.Flags&processapi.MSG_COMMON_FLAG_RETURN != 0
 
