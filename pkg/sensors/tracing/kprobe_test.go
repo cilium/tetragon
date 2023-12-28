@@ -6047,3 +6047,25 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+// This stability of `write_enabled_file_bool` hook.
+func TestKprobeSysfsEnableStability(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes-interface-stability"
+spec:
+  kprobes:
+  - call: "write_enabled_file_bool"
+    syscall: false
+`
+	createCrdFile(t, hookFull)
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+}
