@@ -185,6 +185,15 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | signature_ok | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | If true the module signature was verified successfully. Depends on kernels compiled with CONFIG_MODULE_SIG option, for details please read: https://www.kernel.org/doc/Documentation/admin-guide/module-signing.rst |
 | tainted | [TaintedBitsType](#tetragon-TaintedBitsType) | repeated | The module tainted flags that will be applied on the kernel. For further details please read: https://docs.kernel.org/admin-guide/tainted-kernels.html |
 
+<a name="tetragon-KernelProbe"></a>
+
+### KernelProbe
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| symbol | [string](#string) |  | If set then the Kernel symbol name where the kprobe point is registered. |
+| offset | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then the offset into the symbol where the kprobe is registered. |
+
 <a name="tetragon-KprobeArgument"></a>
 
 ### KprobeArgument

@@ -468,6 +468,13 @@ message KernelModule {
 	repeated TaintedBitsType tainted = 3;
 }
 
+message KernelProbe {
+	// If set then the Kernel symbol name where the kprobe point is registered.
+	string symbol = 1;
+	// If set then the offset into the symbol where the kprobe is registered.
+	google.protobuf.UInt32Value offset = 2;
+}
+
 message Test {
 	uint64 arg0 = 1;
 	uint64 arg1 = 2;
