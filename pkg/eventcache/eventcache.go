@@ -9,7 +9,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/ktime"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -70,7 +69,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
 	} else {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheParentInfoFailed)
+		eventcachemetrics.EventCacheRetries(eventcachemetrics.ParentInfo).Inc()
 		err = ErrFailedToGetParentInfo
 	}
 
@@ -86,7 +85,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		process.UpdateEventProcessTid(proc, tid)
 		ev.SetProcess(proc)
 	} else {
-		errormetrics.ErrorTotalInc(errormetrics.EventCacheProcessInfoFailed)
+		eventcachemetrics.EventCacheRetries(eventcachemetrics.ProcessInfo).Inc()
 		err = ErrFailedToGetProcessInfo
 	}
 
@@ -103,7 +102,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		errormetrics.ErrorTotalInc(errormetrics.EventCachePodInfoRetryFailed)
+		eventcachemetrics.EventCacheRetries(eventcachemetrics.PodInfo).Inc()
 		return ErrFailedToGetPodInfo
 	}
 
@@ -141,7 +140,9 @@ func (ec *Cache) handleEvents() {
 				tmp = append(tmp, event)
 				continue
 			}
-			if errors.Is(err, ErrFailedToGetProcessInfo) {
+			if errors.Is(err, ErrFailedToGetParentInfo) {
+				eventcachemetrics.ParentInfoError(notify.EventTypeString(event.event)).Inc()
+			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
 				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				eventcachemetrics.PodInfoError(notify.EventTypeString(event.event)).Inc()

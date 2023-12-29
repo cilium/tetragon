@@ -23,12 +23,6 @@ var (
 	ProcessCacheMissOnRemove ErrorType = "process_cache_miss_on_remove"
 	// Tid and Pid mismatch that could affect BPF and user space caching logic
 	ProcessPidTidMismatch ErrorType = "process_pid_tid_mismatch"
-	// Event cache podInfo retries failed.
-	EventCachePodInfoRetryFailed ErrorType = "event_cache_podinfo_retry_failed"
-	// Event cache failed to set process information for an event.
-	EventCacheProcessInfoFailed ErrorType = "event_cache_process_info_failed"
-	// Event cache failed to set parent information for an event.
-	EventCacheParentInfoFailed ErrorType = "event_cache_parent_info_failed"
 	// An event is missing process info.
 	EventMissingProcessInfo ErrorType = "event_missing_process_info"
 	// An error occurred in an event handler.
