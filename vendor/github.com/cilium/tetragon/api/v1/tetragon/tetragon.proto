@@ -372,6 +372,7 @@ message KprobeArgument {
 	ProcessCredentials process_credentials_arg = 19;
 	UserNamespace user_ns_arg = 20;
 	KernelModule module_arg = 21;
+	KernelProbe kprobe_arg = 22;
     }
     string label = 18;
 }

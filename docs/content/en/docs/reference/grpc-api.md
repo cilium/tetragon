@@ -220,6 +220,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
 | module_arg | [KernelModule](#tetragon-KernelModule) |  |  |
+| kprobe_arg | [KernelProbe](#tetragon-KernelProbe) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
