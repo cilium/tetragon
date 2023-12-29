@@ -1580,6 +1580,23 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			}
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericKProbe:
+			var output api.MsgGenericKprobeType
+			var arg api.MsgGenericKprobeArgType
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kprobe type error")
+			} else if output.Symbol[0] != 0x00 {
+				i := bytes.IndexByte(output.Symbol[:api.KSYM_NAME_LEN], 0)
+				if i == -1 {
+					i = api.KSYM_NAME_LEN
+				}
+				arg.Symbol = string(output.Symbol[:i])
+				arg.Offset = output.Offset
+			}
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 		}

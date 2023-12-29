@@ -229,6 +229,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct sk_buff *":
 			return true
 		}
+	case "kprobe":
+		switch kernelTy {
+		case "struct kprobe *":
+			return true
+		}
 	}
 
 	return false

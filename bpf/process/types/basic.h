@@ -15,6 +15,7 @@
 #include "bpfmap.h"
 #include "capabilities.h"
 #include "module.h"
+#include "kprobes.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
 #include "../string_maps.h"
@@ -62,6 +63,8 @@ enum {
 	kernel_module_type = 27,
 
 	syscall64_type = 28,
+
+	kprobe_type = 29,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -600,6 +603,22 @@ copy_kernel_module(char *args, unsigned long arg)
 	 */
 
 	return sizeof(struct tg_kernel_module);
+}
+
+static inline __attribute__((always_inline)) long
+copy_kprobe(char *args, unsigned long arg)
+{
+	const struct kprobe *p = (struct kprobe *)arg;
+	struct msg_kprobe *info = (struct msg_kprobe *)args;
+
+	memset(info, 0, sizeof(struct msg_kprobe));
+
+	if (probe_read_str(&info->symbol, KSYM_NAME_LEN - 1, p->symbol_name) < 0)
+		return 0;
+
+	BPF_CORE_READ_INTO(&info->offset, p, offset);
+
+	return sizeof(struct msg_kprobe);
 }
 
 #define ARGM_INDEX_MASK	 0xf
@@ -1491,6 +1510,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_kernel_module);
 	case kernel_module_type:
 		return sizeof(struct tg_kernel_module);
+	case kprobe_type:
+		return sizeof(struct msg_kprobe);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2507,6 +2528,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 	case kernel_module_type: {
 		size = copy_kernel_module(args, arg);
+		break;
+	}
+	case kprobe_type: {
+		size = copy_kprobe(args, arg);
 		break;
 	}
 	default:
