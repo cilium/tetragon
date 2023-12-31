@@ -191,8 +191,9 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| symbol | [string](#string) |  | If set then the Kernel symbol name where the kprobe point is registered. |
+| address | [uint64](#uint64) |  | If set then the address of the symbole where the kprobe is registered. |
 | offset | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then the offset into the symbol where the kprobe is registered. |
+| symbol | [string](#string) |  | If set then the Kernel symbol name where the kprobe point is registered. |
 
 <a name="tetragon-KprobeArgument"></a>
 

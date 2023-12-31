@@ -470,10 +470,12 @@ message KernelModule {
 }
 
 message KernelProbe {
-	// If set then the Kernel symbol name where the kprobe point is registered.
-	string symbol = 1;
+    // If set then the address of the symbole where the kprobe is registered.
+    uint64 address = 1;
 	// If set then the offset into the symbol where the kprobe is registered.
 	google.protobuf.UInt32Value offset = 2;
+	// If set then the Kernel symbol name where the kprobe point is registered.
+	string symbol = 3;
 }
 
 message Test {

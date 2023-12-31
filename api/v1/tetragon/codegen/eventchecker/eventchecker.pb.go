@@ -5280,8 +5280,9 @@ nextCheck:
 
 // KernelProbeChecker implements a checker struct to check a KernelProbe field
 type KernelProbeChecker struct {
-	Symbol *stringmatcher.StringMatcher `json:"symbol,omitempty"`
-	Offset *uint32                      `json:"offset,omitempty"`
+	Address *uint64                      `json:"address,omitempty"`
+	Offset  *uint32                      `json:"offset,omitempty"`
+	Symbol  *stringmatcher.StringMatcher `json:"symbol,omitempty"`
 }
 
 // NewKernelProbeChecker creates a new KernelProbeChecker
@@ -5301,9 +5302,9 @@ func (checker *KernelProbeChecker) Check(event *tetragon.KernelProbe) error {
 	}
 
 	fieldChecks := func() error {
-		if checker.Symbol != nil {
-			if err := checker.Symbol.Match(event.Symbol); err != nil {
-				return fmt.Errorf("Symbol check failed: %w", err)
+		if checker.Address != nil {
+			if *checker.Address != event.Address {
+				return fmt.Errorf("Address has value %d which does not match expected value %d", event.Address, *checker.Address)
 			}
 		}
 		if checker.Offset != nil {
@@ -5314,6 +5315,11 @@ func (checker *KernelProbeChecker) Check(event *tetragon.KernelProbe) error {
 				return fmt.Errorf("Offset has value %v which does not match expected value %v", event.Offset.Value, *checker.Offset)
 			}
 		}
+		if checker.Symbol != nil {
+			if err := checker.Symbol.Match(event.Symbol); err != nil {
+				return fmt.Errorf("Symbol check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -5322,9 +5328,9 @@ func (checker *KernelProbeChecker) Check(event *tetragon.KernelProbe) error {
 	return nil
 }
 
-// WithSymbol adds a Symbol check to the KernelProbeChecker
-func (checker *KernelProbeChecker) WithSymbol(check *stringmatcher.StringMatcher) *KernelProbeChecker {
-	checker.Symbol = check
+// WithAddress adds a Address check to the KernelProbeChecker
+func (checker *KernelProbeChecker) WithAddress(check uint64) *KernelProbeChecker {
+	checker.Address = &check
 	return checker
 }
 
@@ -5334,16 +5340,26 @@ func (checker *KernelProbeChecker) WithOffset(check uint32) *KernelProbeChecker 
 	return checker
 }
 
+// WithSymbol adds a Symbol check to the KernelProbeChecker
+func (checker *KernelProbeChecker) WithSymbol(check *stringmatcher.StringMatcher) *KernelProbeChecker {
+	checker.Symbol = check
+	return checker
+}
+
 //FromKernelProbe populates the KernelProbeChecker using data from a KernelProbe field
 func (checker *KernelProbeChecker) FromKernelProbe(event *tetragon.KernelProbe) *KernelProbeChecker {
 	if event == nil {
 		return checker
 	}
-	checker.Symbol = stringmatcher.Full(event.Symbol)
+	{
+		val := event.Address
+		checker.Address = &val
+	}
 	if event.Offset != nil {
 		val := event.Offset.Value
 		checker.Offset = &val
 	}
+	checker.Symbol = stringmatcher.Full(event.Symbol)
 	return checker
 }
 
