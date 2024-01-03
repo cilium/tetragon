@@ -290,6 +290,14 @@ execve_send(struct sched_execve_args *ctx)
 		// buffer can be written at clone stage with parent's info, if previous
 		// path is longer than current, we can have leftovers at the end.
 		memset(&curr->bin, 0, sizeof(curr->bin));
+#ifdef __LARGE_BPF_PROG
+		// read from proc exe stored at execve time
+		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
+			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.off);
+			if (curr->bin.path_length == 0)
+				curr->bin.path_length = event->exe.len;
+		}
+#else
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)
 		// which is okay because we need the 256 first bytes.
@@ -298,6 +306,7 @@ execve_send(struct sched_execve_args *ctx)
 			// don't include the NULL byte in the length
 			curr->bin.path_length--;
 		}
+#endif
 	}
 
 	event->common.flags = 0;
