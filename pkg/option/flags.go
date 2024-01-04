@@ -89,6 +89,8 @@ const (
 	KeyEnablePodInfo = "enable-pod-info"
 
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
+
+	KeyGenerateDocs = "generate-docs"
 )
 
 func ReadAndSetFlags() error {
@@ -271,4 +273,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+
+	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
 }

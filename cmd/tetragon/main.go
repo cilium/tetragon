@@ -64,6 +64,7 @@ import (
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -749,6 +750,13 @@ func execute() error {
 		Use:   "tetragon",
 		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
 		Run: func(cmd *cobra.Command, args []string) {
+			if viper.GetBool(option.KeyGenerateDocs) {
+				if err := doc.GenYaml(cmd, os.Stdout); err != nil {
+					log.WithError(err).Fatal("Failed to generate docs")
+				}
+				return
+			}
+
 			if err := option.ReadAndSetFlags(); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
 			}
