@@ -26,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/node"
-	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"google.golang.org/protobuf/proto"
@@ -270,14 +269,13 @@ func initProcessInternalExec(
 	execID := GetExecID(&process)
 	protoPod := GetPodInfo(containerID, process.Filename, args, process.NSPID)
 	apiCaps := caps.GetMsgCapabilities(event.Capabilities)
-	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
 	apiNs, err := namespace.GetMsgNamespaces(event.Namespaces)
 	if err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":            "Execve",
 			"event.process.pid":     process.PID,
 			"event.process.tid":     process.TID,
-			"event.process.binary":  binary,
+			"event.process.binary":  process.Filename,
 			"event.process.exec_id": execID,
 			"event.parent.exec_id":  parentExecID,
 		}).Warn("ExecveEvent: parsing namespaces failed")
@@ -319,7 +317,7 @@ func initProcessInternalExec(
 			"event.name":            "Execve",
 			"event.process.pid":     process.PID,
 			"event.process.tid":     process.TID,
-			"event.process.binary":  binary,
+			"event.process.binary":  process.Filename,
 			"event.process.exec_id": execID,
 			"event.parent.exec_id":  parentExecID,
 		}).Warn("ExecveEvent: process PID and TID mismatch")
@@ -333,7 +331,7 @@ func initProcessInternalExec(
 			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
 			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
 			Cwd:          cwd,
-			Binary:       binary,
+			Binary:       process.Filename,
 			Arguments:    args,
 			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
 			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),

@@ -163,7 +163,6 @@ __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	char *filename = (char *)ctx + (ctx->filename & 0xFFFF);
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
@@ -204,7 +203,10 @@ event_execve(struct sched_execve_args *ctx)
 	// a symlink) coming from the execve tracepoint.
 	read_exe(task, &event->exe);
 
-	p->size += read_path(ctx, event, filename);
+	// Previously, we used the filename for read_path, potentially later
+	// combined with cwd in user space. Now we reuse exe, that is absolute and
+	// not a potential symlink.
+	p->size += read_path(ctx, event, event->exe.off);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
 
