@@ -1,0 +1,175 @@
+name: tetragon
+synopsis: |
+    Tetragon - eBPF-based Security Observability and Runtime Enforcement
+usage: tetragon [flags]
+options:
+    - name: bpf-lib
+      default_value: /var/lib/tetragon/
+      usage: Location of Tetragon libs (btf and bpf files)
+    - name: btf
+      usage: Location of btf
+    - name: config-dir
+      usage: Configuration directory that contains a file for each option
+    - name: cpuprofile
+      usage: Store CPU profile into provided file
+    - name: data-cache-size
+      default_value: "1024"
+      usage: Size of the data events cache
+    - name: debug
+      shorthand: d
+      default_value: "false"
+      usage: Enable debug messages. Equivalent to '--log-level=debug'
+    - name: disable-kprobe-multi
+      default_value: "false"
+      usage: Allow to disable kprobe multi interface
+    - name: enable-export-aggregation
+      default_value: "false"
+      usage: Enable JSON export aggregation
+    - name: enable-k8s-api
+      default_value: "false"
+      usage: |
+        Access Kubernetes API to associate Tetragon events with Kubernetes pods
+    - name: enable-msg-handling-latency
+      default_value: "false"
+      usage: Enable metrics for message handling latency
+    - name: enable-pid-set-filter
+      default_value: "false"
+      usage: |
+        Enable pidSet export filters. Not recommended for production use
+    - name: enable-pod-info
+      default_value: "false"
+      usage: Enable PodInfo custom resource
+    - name: enable-policy-filter
+      default_value: "false"
+      usage: Enable policy filter code (beta)
+    - name: enable-policy-filter-debug
+      default_value: "false"
+      usage: Enable policy filter debug messages
+    - name: enable-process-ancestors
+      default_value: "true"
+      usage: Include ancestors in process exec events
+    - name: enable-process-cred
+      default_value: "false"
+      usage: Enable process_cred events
+    - name: enable-process-ns
+      default_value: "false"
+      usage: |
+        Enable namespace information in process_exec and process_kprobe events
+    - name: event-queue-size
+      default_value: "10000"
+      usage: Set the size of the internal event queue.
+    - name: export-aggregation-buffer-size
+      default_value: "10000"
+      usage: Aggregator channel buffer size
+    - name: export-aggregation-window-size
+      default_value: 15s
+      usage: JSON export aggregation time window
+    - name: export-allowlist
+      usage: JSON export allowlist
+    - name: export-denylist
+      usage: JSON export denylist
+    - name: export-file-compress
+      default_value: "false"
+      usage: Compress rotated JSON export files
+    - name: export-file-max-backups
+      default_value: "5"
+      usage: Number of rotated JSON export files to retain
+    - name: export-file-max-size-mb
+      default_value: "10"
+      usage: Size in MB for rotating JSON export files
+    - name: export-file-perm
+      default_value: "600"
+      usage: Access permissions on JSON export files
+    - name: export-file-rotation-interval
+      default_value: 0s
+      usage: |
+        Interval at which to rotate JSON export files in addition to rotating them by size
+    - name: export-filename
+      usage: Filename for JSON export. Disabled by default
+    - name: export-rate-limit
+      default_value: "-1"
+      usage: |
+        Rate limit (per minute) for event export. Set to -1 to disable
+    - name: expose-kernel-addresses
+      default_value: "false"
+      usage: Expose real kernel addresses in events stack traces
+    - name: field-filters
+      usage: Field filters for event exports
+    - name: force-large-progs
+      default_value: "false"
+      usage: |
+        Force loading large programs, even in kernels with < 5.3 versions
+    - name: force-small-progs
+      default_value: "false"
+      usage: |
+        Force loading small programs, even in kernels with >= 5.3 versions
+    - name: generate-docs
+      default_value: "false"
+      usage: Generate documentation in YAML format to stdout
+    - name: gops-address
+      usage: |
+        gops server address (e.g. 'localhost:8118'). Disabled by default
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for tetragon
+    - name: k8s-kubeconfig-path
+      usage: Absolute path of the kubernetes kubeconfig file
+    - name: kernel
+      usage: Kernel version
+    - name: kmods
+      default_value: '[]'
+      usage: List of kernel modules to load symbols from
+    - name: log-format
+      default_value: text
+      usage: Set log format
+    - name: log-level
+      default_value: info
+      usage: Set log level
+    - name: memprofile
+      usage: Store MEM profile into provided file
+    - name: metrics-label-filter
+      usage: |
+        Comma-separated list of enabled metric labels. (e.g. "namespace,workload,pod,binary") By default all labels are enabled.
+    - name: metrics-server
+      usage: Metrics server address (e.g. ':2112'). Disabled by default
+    - name: netns-dir
+      default_value: /var/run/docker/netns/
+      usage: Network namespace dir
+    - name: pprof-addr
+      usage: Profile via pprof http
+    - name: process-cache-size
+      default_value: "65536"
+      usage: Size of the process cache
+    - name: procfs
+      default_value: /proc/
+      usage: Location of procfs to consume existing PIDs
+    - name: rb-queue-size
+      default_value: "65535"
+      usage: |
+        Set size of channel between ring buffer and sensor go routines (default 65k, allows K/M/G suffix)
+    - name: rb-size
+      default_value: "0"
+      usage: |
+        Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix)
+    - name: rb-size-total
+      default_value: "0"
+      usage: |
+        Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)
+    - name: release-pinned-bpf
+      default_value: "true"
+      usage: |
+        Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable
+    - name: server-address
+      default_value: localhost:54321
+      usage: |
+        gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'
+    - name: tracing-policy
+      usage: Tracing policy file to load at startup
+    - name: tracing-policy-dir
+      default_value: /etc/tetragon/tetragon.tp.d
+      usage: Directory from where to load Tracing Policies
+    - name: verbose
+      default_value: "0"
+      usage: |
+        set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump

@@ -1,6 +1,7 @@
 ---
 title: "Helm chart"
 description: "This reference is generated from the Tetragon Helm chart values."
+weight: 2
 ---
 
 {{< comment >}}

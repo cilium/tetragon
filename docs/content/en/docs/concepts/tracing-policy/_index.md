@@ -31,7 +31,7 @@ startup using flags.
 - You can use `tetra` gRPC CLI to add and remove a `TracingPolicy`.
 - You can use the `--tracing-policy` and `--tracing-policy-dir` flags to statically add policies at
   startup time, see more in the [daemon configuration page]({{< ref
-  "/docs/reference/tetragon-configuration#configure-tracing-policies-location" >}}).
+  "/docs/reference/daemon-configuration#configure-tracing-policies-location" >}}).
 
 
 Hence, even though Tracing Policies are structured as a Kubernetes CR, they can also be used in

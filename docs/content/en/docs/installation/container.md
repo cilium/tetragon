@@ -55,7 +55,7 @@ There are multiple ways to set configuration options:
         /usr/bin/tetragon --export-filename /var/log/tetragon/tetragon.log
     ```
 
-    For a complete list of CLI arguments, please check [Tetragon daemon configuration](/docs/reference/tetragon-configuration).
+    For a complete list of CLI arguments, please check [Tetragon daemon configuration]({{< ref "/docs/reference/daemon-configuration" >}}).
 
 
 2. Environment variables
@@ -70,11 +70,11 @@ There are multiple ways to set configuration options:
 
     Every controlling setting can be set using environment variables. Prefix it with the key word `TETRAGON_` then upper case the controlling setting. As an example to set where to export JSON events: `--export-filename` will be `TETRAGON_EXPORT_FILENAME`.
 
-    For a complete list of all controlling settings, please check [tetragon daemon configuration](/docs/reference/tetragon-configuration).
+    For a complete list of all controlling settings, please check [tetragon daemon configuration]({{< ref "/docs/reference/daemon-configuration" >}}).
 
 3. Configuration files mounted as volumes
 
-    On the host machine set the configuration drop-ins inside `/etc/tetragon/tetragon.conf.d/` directory according to the [configuration examples](/docs/reference/tetragon-configuration/#configuration-examples), then mount it as volume:
+    On the host machine set the configuration drop-ins inside `/etc/tetragon/tetragon.conf.d/` directory according to the [configuration examples]({{< ref "/docs/reference/daemon-configuration#configuration-examples" >}}), then mount it as volume:
 
     ```shell
     docker run --name tetragon --rm -d \
@@ -86,5 +86,5 @@ There are multiple ways to set configuration options:
 
     This will map the `/etc/tetragon/tetragon.conf.d/` drop-in directory from the host into the container.
 
-See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) reference for further details.
+See [Tetragon daemon configuration]({{< ref "/docs/reference/daemon-configuration" >}}) reference for further details.
 

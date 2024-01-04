@@ -35,7 +35,6 @@ jobs:
           fi
       - name: Check Tetragon daemon flags
         run: |
-          make tetragon
           make generate-flags
           git status
           git diff
