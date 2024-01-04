@@ -15,13 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - name: Run install/kubernetes/test.sh
+      - name: Run install/kubernetes
         run: |
-          install/kubernetes/test.sh
+          make -C install/kubernetes
       - name: Validate generated files
         run: |
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
             git status --porcelain
-            echo "Please run 'install/kubernetes/test.sh' and submit your changes."; exit 1
+            echo "Please run 'make -C install/kubernetes' and submit your changes."; exit 1
           fi

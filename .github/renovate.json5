@@ -13,7 +13,7 @@
     "^make codegen$", 
     "^make generate$", 
     "^make vendor$",
-    "^install/kubernetes/test.sh$",
+    "^make -C install/kubernetes$",
     "^go mod vendor$",
     "^install-tool golang \\$\\(grep -oP '\\^go \\\\K\\.\\+' go\\.mod\\)$"
   ],
@@ -240,7 +240,7 @@
       ],
       // lint and generate files for helm chart
       "postUpgradeTasks": {
-        "commands": ["install/kubernetes/test.sh"],
+        "commands": ["make -C install/kubernetes"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       }
