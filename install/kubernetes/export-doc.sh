@@ -35,6 +35,7 @@ sed -i '/^[[:space:]]*$/N;/^[[:space:]]*\n[[:space:]]*$/D' $TMP_FILE
 echo '---
 title: "Helm chart"
 description: "This reference is generated from the Tetragon Helm chart values."
+weight: 2
 ---
 
 {{< comment >}}

@@ -71,7 +71,7 @@ can change the configuration by adding drop-ins inside
 command line flags. To restore default settings, remove any added configuration
 inside `/etc/tetragon/tetragon.conf.d/`.
 
-See [Tetragon daemon configuration](/docs/reference/tetragon-configuration) for further details.
+See [Tetragon daemon configuration]({{< ref "/docs/reference/daemon-configuration" >}}) for further details.
 
 ## Upgrade
 
@@ -146,7 +146,7 @@ To access the gRPC API with `tetra` client, set `--server-address` to point to t
    sudo tetra --server-address unix:///var/run/tetragon/tetragon.sock getevents
    ```
 
-See [restrict gRPC API access](/docs/reference/tetragon-configuration/#restrict-grpc-api-access) for further details.
+See [restrict gRPC API access]({{< ref "/docs/reference/daemon-configuration#restrict-grpc-api-access" >}}) for further details.
 
 ### Tetragon Events
 

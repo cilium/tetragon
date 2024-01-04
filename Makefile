@@ -168,9 +168,7 @@ verify: tetragon-bpf
 
 .PHONY: generate-flags tetragon tetra tetragon-operator tetragon-bench
 generate-flags: tetragon
-	echo "\`\`\`" > docs/content/en/docs/reference/daemon-flags.md
-	echo "$$(./tetragon --help 2>&1)" >> docs/content/en/docs/reference/daemon-flags.md
-	echo "\`\`\`" >> docs/content/en/docs/reference/daemon-flags.md
+	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
 
 tetragon:
 	$(GO_BUILD) ./cmd/tetragon/

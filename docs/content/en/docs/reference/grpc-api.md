@@ -3,6 +3,7 @@ title: "gRPC API"
 description: >
   This reference is generated from the protocol buffer specification and
   documents the gRPC API of Tetragon.
+weight: 3
 ---
 
 {{< comment >}}

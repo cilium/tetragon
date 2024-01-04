@@ -1,18 +1,21 @@
 ---
-title: "Tetragon Daemon Configuration"
-linkTitle: "Tetragon Daemon Configuration"
-description: "Configure Tetragon daemon"
+title: "Daemon Configuration"
+description: "Explore Tetragon options and configuration mechanisms."
+weight: 1
 ---
 
 Tetragon default controlling settings are set during compilation, so configuration
 is only needed when it is necessary to deviate from those defaults. This
 document lists those controlling settings and how they can be set
-as a CLI arguments or as configuration options from [YAML](https://yaml.org) files.
+as a CLI arguments or as configuration options from YAML files.
 
-## Tetragon Controlling Settings
+## Options
 
-Tetragon CLI arguments:
-{{< readfile "/docs/reference/daemon-flags.md" >}}
+The following table list all Tetragon daemon available options and is
+automatically generated using the tetragon binary `--generate-docs` flag. The
+same information can also be retrieved using `--help`.
+
+{{< tetragon-options >}}
 
 ## Configuration precedence
 

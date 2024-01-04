@@ -1,0 +1,27 @@
+{{ with .Site.Data.tetragon_flags }}
+<table>
+  <thead>
+    <tr>
+      <th>Flag</th>
+      <th>Usage</th>
+      <th>Default Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .options }}
+    <tr>
+      <td><code>--{{ .name }}</code></td>
+      <td>{{ .usage }}</td>
+      {{ if .default_value }}
+	<td><code>{{ .default_value }}</code></td>
+      {{ else }}
+	<td></td>
+      {{ end }}
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ else }}
+  <p>Error: table template failed, check build logs.</p> 
+  {{ warnf "Data file \"tetragon_flags\" seems to be missing. It is needed to display Tetragon options." }}
+{{ end }}
