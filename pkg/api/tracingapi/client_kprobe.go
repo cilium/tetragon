@@ -404,6 +404,7 @@ func (m MsgGenericKprobeArgPerfEvent) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeType struct {
+	Addr   uint64
 	Offset uint32
 	Pad    uint32
 	Symbol [KSYM_NAME_LEN]byte
@@ -411,6 +412,7 @@ type MsgGenericKprobeType struct {
 
 type MsgGenericKprobeArgType struct {
 	Index  uint64
+	Addr   uint64
 	Offset uint32
 	Symbol string
 	Label  string

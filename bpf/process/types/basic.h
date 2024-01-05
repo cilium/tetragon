@@ -608,15 +608,16 @@ copy_kernel_module(char *args, unsigned long arg)
 static inline __attribute__((always_inline)) long
 copy_kprobe(char *args, unsigned long arg)
 {
+	const char *symbol;
 	const struct kprobe *p = (struct kprobe *)arg;
 	struct msg_kprobe *info = (struct msg_kprobe *)args;
 
 	memset(info, 0, sizeof(struct msg_kprobe));
 
-	if (probe_read_str(&info->symbol, KSYM_NAME_LEN - 1, p->symbol_name) < 0)
-		return 0;
-
+	BPF_CORE_READ_INTO(&info->addr, p, addr);
 	BPF_CORE_READ_INTO(&info->offset, p, offset);
+	BPF_CORE_READ_INTO(&symbol, p, symbol_name);
+	probe_read_str(&info->symbol, KSYM_NAME_LEN - 1, symbol);
 
 	return sizeof(struct msg_kprobe);
 }

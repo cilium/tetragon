@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -1587,12 +1588,26 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			err := binary.Read(r, binary.LittleEndian, &output)
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("kprobe type error")
-			} else if output.Symbol[0] != 0x00 {
-				i := bytes.IndexByte(output.Symbol[:api.KSYM_NAME_LEN], 0)
-				if i == -1 {
-					i = api.KSYM_NAME_LEN
+			} else if output.Addr != 0 {
+				if output.Symbol[0] != 0x00 {
+					i := bytes.IndexByte(output.Symbol[:api.KSYM_NAME_LEN], 0)
+					if i == -1 {
+						i = api.KSYM_NAME_LEN
+					}
+					arg.Symbol = string(output.Symbol[:i])
+				} else {
+					kernelSymbols, err := ksyms.KernelSymbols()
+					if err != nil {
+						logger.GetLogger().WithError(err).Warn("kprobe_arg: failed to read kernel symbols")
+					} else {
+						symOff, err := kernelSymbols.GetFnOffset(output.Addr)
+						if err != nil {
+							logger.GetLogger().Warn("kprobe_arg: failed to retrieve symbol and offset")
+						} else {
+							arg.Symbol = symOff.SymName
+						}
+					}
 				}
-				arg.Symbol = string(output.Symbol[:i])
 				arg.Offset = output.Offset
 			}
 			arg.Label = a.label
