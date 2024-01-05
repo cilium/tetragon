@@ -33,6 +33,9 @@ type KProbeSpec struct {
 	// Indicates whether the traced function is a syscall.
 	Syscall bool `json:"syscall"`
 	// +kubebuilder:validation:Optional
+	// A short message to inform users what is going on.
+	Message string `json:"message"`
+	// +kubebuilder:validation:Optional
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -51,7 +54,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Enum=auto;int;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;
+	// +kubebuilder:validation:Enum=auto;int;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;kprobe;
 	// +kubebuilder:default=auto
 	// Argument type.
 	Type string `json:"type"`
@@ -227,6 +230,9 @@ type TracepointSpec struct {
 	// Tracepoint event
 	Event string `json:"event"`
 	// +kubebuilder:validation:Optional
+	// A short message to inform users what is going on.
+	Message string `json:"message"`
+	// +kubebuilder:validation:Optional
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -239,6 +245,9 @@ type UProbeSpec struct {
 	Path string `json:"path"`
 	// Name of the traced symbol
 	Symbol string `json:"symbol"`
+	// +kubebuilder:validation:Optional
+	// A short message to inform users what is going on.
+	Message string `json:"message"`
 	// +kubebuilder:validation:Optional
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`

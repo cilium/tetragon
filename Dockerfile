@@ -71,6 +71,7 @@ RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/b
 FROM docker.io/library/alpine:3.19.0@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48 as base-build
 RUN apk add iproute2
 RUN mkdir /var/lib/tetragon/ && \
+    mkdir -p /usr/lib/tetragon/tetragon.tp.d/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
     mkdir -p /etc/tetragon/tetragon.tp.d/ && \
     apk add --no-cache --update bash
@@ -80,6 +81,7 @@ COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/rthooks/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook/tetragon-oci-hook-setup /usr/bin/
 COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/install/tetragon.tp.d/ /usr/lib/tetragon/tetragon.tp.d/
 ENTRYPOINT ["/usr/bin/tetragon"]
 
 # This target only builds with the `--target release` option and reduces the

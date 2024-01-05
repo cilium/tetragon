@@ -13,6 +13,10 @@ install -d /etc/tetragon/tetragon.tp.d/
 
 cp -v -n -r /usr/local/lib/tetragon/tetragon.conf.d /etc/tetragon/
 
+# Default Tracing Policies
+install -d /usr/lib/tetragon/
+cp -v -r /usr/local/lib/tetragon/tetragon.tp.d /usr/lib/tetragon/
+
 systemctl daemon-reload
 systemctl enable tetragon
 systemctl start tetragon

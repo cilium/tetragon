@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -122,6 +123,9 @@ type genericKprobe struct {
 
 	// policyName is the name of the policy that this tracepoint belongs to
 	policyName string
+
+	// message field of the Tracing Policy
+	message string
 
 	// is there override defined for the kprobe
 	hasOverride bool
@@ -811,6 +815,14 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		customHandler:     in.customHandler,
 	}
 
+	if f.Message != "" {
+		msgLen := len(f.Message)
+		if msgLen > 128 {
+			msgLen = 128
+		}
+		kprobeEntry.message = fmt.Sprintf("%s", f.Message[:msgLen])
+	}
+
 	// Parse Filters into kernel filter logic
 	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
 	if err != nil {
@@ -1222,6 +1234,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	unix.Namespaces = m.Namespaces
 	unix.Capabilities = m.Capabilities
 	unix.PolicyName = gk.policyName
+	unix.Message = gk.message
 
 	returnEvent := m.Common.Flags&processapi.MSG_COMMON_FLAG_RETURN != 0
 
@@ -1565,6 +1578,37 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 				}
 				arg.Name = string(output.Name[:i])
 				arg.Taints = output.Taints
+			}
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericKProbe:
+			var output api.MsgGenericKprobeType
+			var arg api.MsgGenericKprobeArgType
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kprobe type error")
+			} else if output.Addr != 0 {
+				if output.Symbol[0] != 0x00 {
+					i := bytes.IndexByte(output.Symbol[:api.KSYM_NAME_LEN], 0)
+					if i == -1 {
+						i = api.KSYM_NAME_LEN
+					}
+					arg.Symbol = string(output.Symbol[:i])
+				} else {
+					kernelSymbols, err := ksyms.KernelSymbols()
+					if err != nil {
+						logger.GetLogger().WithError(err).Warn("kprobe_arg: failed to read kernel symbols")
+					} else {
+						symOff, err := kernelSymbols.GetFnOffset(output.Addr)
+						if err != nil {
+							logger.GetLogger().Warn("kprobe_arg: failed to retrieve symbol and offset")
+						} else {
+							arg.Symbol = symOff.SymName
+						}
+					}
+				}
+				arg.Offset = output.Offset
 			}
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)

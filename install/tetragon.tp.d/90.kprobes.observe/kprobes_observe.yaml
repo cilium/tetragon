@@ -1,0 +1,35 @@
+# This tracing policy monitors kprobes operations.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes-observe"
+  annotations:
+    description: "Observe Kprobes operations"
+spec:
+  kprobes:
+  - call: "arm_kprobe"
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Enable a kprobe (kernel probe)"
+  - call: "arch_disarm_kprobe"
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Disable a kprobe (kernel probe)"
+  - call: "disarm_kprobe_ftrace"
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Disable a kprobe (kernel probe)"
+  # Kprobes /sys/kernel/debug/kprobes/enabled is set by default,
+  # any update is suspicious since it could lead to disable kprobes.
+  - call: "write_enabled_file_bool"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    message: "Possible kprobe host modification that can lead to security evasion"

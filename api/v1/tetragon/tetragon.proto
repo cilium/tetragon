@@ -372,6 +372,7 @@ message KprobeArgument {
 	ProcessCredentials process_credentials_arg = 19;
 	UserNamespace user_ns_arg = 20;
 	KernelModule module_arg = 21;
+	KernelProbe kprobe_arg = 22;
     }
     string label = 18;
 }
@@ -427,6 +428,8 @@ message ProcessKprobe {
     string policy_name = 8;
     // Action performed when the return kprobe executed.
     KprobeAction return_action = 9;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 10;
 }
 
 message ProcessTracepoint {
@@ -464,6 +467,15 @@ message KernelModule {
 	google.protobuf.BoolValue signature_ok = 2;
 	// The module tainted flags that will be applied on the kernel. For further details please read: https://docs.kernel.org/admin-guide/tainted-kernels.html
 	repeated TaintedBitsType tainted = 3;
+}
+
+message KernelProbe {
+    // If set then the address of the symbole where the kprobe is registered.
+    uint64 address = 1;
+	// If set then the offset into the symbol where the kprobe is registered.
+	google.protobuf.UInt32Value offset = 2;
+	// If set then the Kernel symbol name where the kprobe point is registered.
+	string symbol = 3;
 }
 
 message Test {

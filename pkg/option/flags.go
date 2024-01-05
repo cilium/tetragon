@@ -215,7 +215,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
 
-	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
+	flags.String(KeyTracingPolicyDir, defaults.DefaultAdminTpDir, "User directory from where to load Tracing Policies")
 
 	// Options for debugging/development, not visible to users
 	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")

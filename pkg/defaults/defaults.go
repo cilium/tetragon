@@ -37,8 +37,11 @@ const (
 	// Used by both client cli to guess unix socket address and by bugtool
 	InitInfoFile = DefaultRunDir + "tetragon-info.json"
 
-	// Default directory from where to load tracing policies.
-	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
+	// Default Administrator's directory from where to load tracing policies.
+	DefaultAdminTpDir = "/etc/tetragon/tetragon.tp.d"
+
+	// Default shipped directory from where to load tracing policies.
+	DefaultTpDir = "/usr/lib/tetragon/tetragon.tp.d"
 
 	// Default secure export logs permissions
 	DefaultLogsPermission = "600"

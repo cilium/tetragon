@@ -474,6 +474,11 @@ func tetragonExecute() error {
 		observer.RemoveSensors(ctx)
 	}()
 
+	err = loadTpFromDir(ctx, defaults.DefaultTpDir)
+	if err != nil {
+		return err
+	}
+
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
 	if err != nil {
 		return err
@@ -499,11 +504,11 @@ func loadTpFromDir(ctx context.Context, dir string) error {
 	tpMaxDepth := 1
 	tpFS := os.DirFS(dir)
 
-	if dir == defaults.DefaultTpDir {
-		// If the default directory does not exist then do not fail
+	if dir == defaults.DefaultAdminTpDir || dir == defaults.DefaultTpDir {
+		// If the default directories do not exist then do not fail
 		// Probably tetragon not fully installed, developers testing, etc
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
+			log.WithField("directory", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
 			return nil
 		}
 	}

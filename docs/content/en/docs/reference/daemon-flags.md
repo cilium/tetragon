@@ -55,6 +55,6 @@ Flags:
       --release-pinned-bpf                        Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable (default true)
       --server-address string                     gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock' (default "localhost:54321")
       --tracing-policy string                     Tracing policy file to load at startup
-      --tracing-policy-dir string                 Directory from where to load Tracing Policies (default "/etc/tetragon/tetragon.tp.d")
+      --tracing-policy-dir string                 User directory from where to load Tracing Policies (default "/etc/tetragon/tetragon.tp.d")
       --verbose int                               set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump
 ```

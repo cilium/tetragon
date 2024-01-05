@@ -18,6 +18,7 @@
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
     - [KernelModule](#tetragon-KernelModule)
+    - [KernelProbe](#tetragon-KernelProbe)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
     - [KprobeBpfMap](#tetragon-KprobeBpfMap)
@@ -365,6 +366,23 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
+<a name="tetragon-KernelProbe"></a>
+
+### KernelProbe
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address | [uint64](#uint64) |  | If set then the address of the symbole where the kprobe is registered. |
+| offset | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then the offset into the symbol where the kprobe is registered. |
+| symbol | [string](#string) |  | If set then the Kernel symbol name where the kprobe point is registered. |
+
+
+
+
+
+
 <a name="tetragon-KprobeArgument"></a>
 
 ### KprobeArgument
@@ -393,6 +411,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
 | module_arg | [KernelModule](#tetragon-KernelModule) |  |  |
+| kprobe_arg | [KernelProbe](#tetragon-KernelProbe) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -793,6 +812,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | Kernel stack trace to the call. |
 | policy_name | [string](#string) |  | Name of the Tracing Policy that created that kprobe. |
 | return_action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the return kprobe executed. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 
 
