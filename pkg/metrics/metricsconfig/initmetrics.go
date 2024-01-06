@@ -61,6 +61,7 @@ func initAllHealthMetrics(registry *prometheus.Registry) {
 	// register custom collectors
 	registry.MustRegister(observer.NewBPFCollector())
 	registry.MustRegister(eventmetrics.NewBPFCollector())
+	registry.MustRegister(kprobemetrics.NewBPFCollector())
 }
 
 func InitHealthMetricsForDocs(registry *prometheus.Registry) {
@@ -72,6 +73,7 @@ func InitHealthMetricsForDocs(registry *prometheus.Registry) {
 	// register custom zero collectors
 	registry.MustRegister(observer.NewBPFZeroCollector())
 	registry.MustRegister(eventmetrics.NewBPFZeroCollector())
+	registry.MustRegister(kprobemetrics.NewBPFZeroCollector())
 }
 
 func initResourcesMetrics(registry *prometheus.Registry) {

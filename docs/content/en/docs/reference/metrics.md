@@ -181,6 +181,24 @@ The total number of Tetragon events per type that are failed to sent from the ke
 | ----- | ------ |
 | `msg_op` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
 
+### `tetragon_missed_link_probes_total`
+
+The total number of Tetragon probe missed by link.
+
+| label | values |
+| ----- | ------ |
+| `attach` | `attach` |
+| `policy` | `policy` |
+
+### `tetragon_missed_prog_probes_total`
+
+The total number of Tetragon probe missed by program.
+
+| label | values |
+| ----- | ------ |
+| `attach` | `attach` |
+| `policy` | `policy` |
+
 ### `tetragon_msg_op_total`
 
 The total number of times we encounter a given message opcode. For internal use only.
