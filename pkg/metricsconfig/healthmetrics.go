@@ -36,7 +36,7 @@ var (
 
 func GetHealthGroup() metrics.Group {
 	healthMetricsOnce.Do(func() {
-		healthMetrics = metrics.NewMetricsGroup(true)
+		healthMetrics = metrics.NewMetricsGroup(false)
 	})
 	return healthMetrics
 }
@@ -102,4 +102,6 @@ func registerHealthMetrics(group metrics.Group) {
 	group.MustRegister(policystatemetrics.NewPolicyStateCollector())
 	// gRPC metrics
 	group.MustRegister(grpcmetrics.NewServerMetrics())
+	// missed metris
+	group.MustRegister(kprobemetrics.NewBPFCollector())
 }
