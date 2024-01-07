@@ -114,6 +114,11 @@ func (s *Sensor) Load(bpfDir string) error {
 		p.LoadState.RefInc()
 		l.WithField("prog", p.Name).WithField("label", p.Label).Debugf("BPF prog was loaded")
 	}
+	if s.PostLoadHook != nil {
+		if err := s.PostLoadHook(); err != nil {
+			logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Post load hook failed")
+		}
+	}
 	l.WithField("sensor", s.Name).Infof("Loaded BPF maps and events for sensor successfully")
 	s.Loaded = true
 	return nil
