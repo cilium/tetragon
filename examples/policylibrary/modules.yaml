@@ -3,12 +3,12 @@ apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "monitor-kernel-modules"
-  #annotations:
-    #description: "Monitor kernel modules operations"
+  annotations:
+    description: "Monitor kernel modules operations"
 spec:
   kprobes:
   - call: "security_kernel_module_request"
-    # Automatic module loading detection
+    message: "Kernel module requested and is being loaded automatically"
     syscall: false
     return: true
     args:
@@ -18,6 +18,7 @@ spec:
       index: 0
       type: "int"
   - call: "security_kernel_read_file"
+    message: "Kernel module is being loaded"
     # Explicit module loading using file descriptor finit_module() to print module full path
     syscall: false
     return: true
