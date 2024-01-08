@@ -6,7 +6,7 @@ go 1.21.0
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.15.0-rc.0
-	github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c
+	github.com/cilium/ebpf v0.12.4-0.20240108110743-394be60ec8d5
 	github.com/cilium/little-vm-helper v0.0.13
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
