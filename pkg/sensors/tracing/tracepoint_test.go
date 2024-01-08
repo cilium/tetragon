@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -610,6 +611,7 @@ spec:
   tracepoints:
   - subsystem: "syscalls"
     event: "sys_enter_lseek"
+    message: "System call lseek tracepoint test"
     # args: add both the syscall id, and the array with the arguments
     args:
     # fd argument
@@ -673,6 +675,7 @@ spec:
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(smatcher.Full("syscalls")).
 		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithMessage(sm.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -688,6 +691,7 @@ spec:
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(smatcher.Full("syscalls")).
 		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithMessage(sm.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(

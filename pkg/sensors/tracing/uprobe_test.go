@@ -281,6 +281,7 @@ spec:
   uprobes:
   - path: "` + testBin + `"
     symbol: "do_uprobe"
+    message: "Uprobe test"
     selectors:
     - matchBinaries:
       - operator: "In"
@@ -340,6 +341,7 @@ spec:
 		WithTid(cti.Child1Tid)
 
 	child1UpChecker := ec.NewProcessUprobeChecker("").
+		WithMessage(sm.Full("Uprobe test")).
 		WithSymbol(sm.Full("do_uprobe")).
 		WithProcess(child1Checker).WithParent(parentCheck)
 
@@ -349,6 +351,7 @@ spec:
 		WithTid(cti.Thread1Tid)
 
 	thread1UpChecker := ec.NewProcessUprobeChecker("").
+		WithMessage(sm.Full("Uprobe test")).
 		WithSymbol(sm.Full("do_uprobe")).
 		WithProcess(thread1Checker).WithParent(parentCheck)
 
