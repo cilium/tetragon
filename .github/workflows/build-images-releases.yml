@@ -98,7 +98,7 @@ jobs:
         shell: bash
         env:
           # renovate: datasource=github-releases depName=kubernetes-sigs/bom
-          BOM_VERSION: v0.5.1
+          BOM_VERSION: f0ff48f9a202abfddf656056bbeeb8efe29920ab
         run: |
           go install sigs.k8s.io/bom/cmd/bom@${{ env.BOM_VERSION }}
 
