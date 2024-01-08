@@ -158,9 +158,58 @@ spec:
 ```
 ## Uprobes
 
-{{% pageinfo %}}
-This hook point method lacks documentation, see [issue #878](https://github.com/cilium/tetragon/issues/878).
-{{% /pageinfo %}}
+Uprobes are similar to kprobes, but they allow you to dynamically hook into any
+user-space function and execute BPF code. Uprobes are also tied to the binary
+version of the user-space program, so they may not be portable across different
+versions or architectures.
+
+To use uprobes, you need to specify the path to the executable or library file,
+and the symbol of the function you want to probe. You can use tools like
+`objdump`, `nm`, or `readelf` to find the symbol of a function in a binary
+file. For example, to find the readline symbol in `/bin/bash` using `nm`, you
+can run:
+
+```bash
+nm -D /bin/bash | grep readline
+```
+
+The output should look similar to this, with a few lines redacted:
+```
+[...]
+000000000009f2b0 T pcomp_set_readline_variables
+0000000000097e40 T posix_readline_initialize
+00000000000d5690 T readline
+00000000000d52f0 T readline_internal_char
+00000000000d42d0 T readline_internal_setup
+[...]
+```
+You can see in the `nm` output: first the symbol value, then the symbol type,
+for the `readline` symbol `T` meaning that this symbol is in the text (code)
+section of the binary, and finally the symbol name. This confirms that the
+`readline` symbol is present in the `/bin/bash` binary and might be a function
+name that we can hook with a uprobe.
+
+You can define multiple uprobes in the same policy, or in different policies.
+You can also combine uprobes with kprobes and tracepoints to get a
+comprehensive view of the system behavior.
+
+Here is an example of a policy that defines an uprobe for the readline
+function in the bash executable, and applies it to all processes that use the
+bash binary:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "example-uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbol: "readline"
+```
+
+This example shows how to use uprobes to hook into the readline function
+running in all the bash shells.
 
 ## Arguments
 
