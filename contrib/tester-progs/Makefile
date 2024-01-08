@@ -68,8 +68,9 @@ uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
 
 # -m32 is an x86_64 flag.
+# NB(kkourt) we compile this as static to avoid the need for ia32 libs in VMs
 killer-tester-32: killer-tester.c
-	$(GCC) -Wall -m32 $< -o $@
+	$(GCC) -Wall -m32 -static $< -o $@
 
 lseek-pipe: FORCE
 	go build -o lseek-pipe ./go/lseek-pipe
