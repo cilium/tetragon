@@ -6,12 +6,15 @@ package observer
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 // bpfCollector implements prometheus.Collector. It collects metrics directly from BPF maps.
@@ -27,19 +30,33 @@ func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
+	statsSuffix := "_stats"
 	for _, m := range sensors.AllMaps {
 		name := m.Name
 		pin := filepath.Join(option.Config.MapDir, name)
-		pinStats := pin + "_stats"
+		// Skip map names that end up with _stats.
+		// This will result in _stats_stats suffixes that we don't care about
+		if strings.HasSuffix(pin, statsSuffix) {
+			continue
+		}
+		pinStats := pin + statsSuffix
 
 		mapLinkStats, err := ebpf.LoadPinnedMap(pinStats, nil)
 		if err != nil {
-			return
+			// If we fail to open the map with _stats suffix
+			// continue to the next map.
+			continue
 		}
 		defer mapLinkStats.Close()
 		mapLink, err := ebpf.LoadPinnedMap(pin, nil)
 		if err != nil {
-			return
+			// We have already opened the map with _stats suffix
+			// so we don't expect that to fail.
+			logger.GetLogger().WithFields(logrus.Fields{
+				"MapName":      pin,
+				"StatsMapName": pinStats,
+			}).Warn("Failed to open the corresponding map for an existing stats map.")
+			continue
 		}
 		defer mapLink.Close()
 
