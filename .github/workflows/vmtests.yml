@@ -119,6 +119,7 @@ jobs:
                 --kernel ${kimage} \
                 --kernel-ver  ${{ matrix.kernel }} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
+                --enable-detailed-results \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
     - name: test kernel ${{ matrix.kernel }} with btf file
@@ -134,6 +135,7 @@ jobs:
                 --kernel-ver  ${{ matrix.kernel }} \
                 --btf-file ${btf} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
+                --enable-detailed-results \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
     - name: Chmod test results on failure or cancelation
