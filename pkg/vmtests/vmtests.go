@@ -122,7 +122,7 @@ func Run(cnf *Conf) error {
 		if testFile[0] != '/' {
 			testFile = filepath.Join(cnf.TetragonDir, testFile)
 		}
-		tests, err = LoadTestsFromFile(testFile)
+		tests, err = LoadTestsFromFile(testDir, testFile)
 		if err != nil {
 			return err
 		}
