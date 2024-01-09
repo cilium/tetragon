@@ -27,6 +27,8 @@ type RunConf struct {
 	disableUnifiedCgroups bool
 	portForwards          runner.PortForwards
 	testerConf            vmtests.Conf
+	detailedResults       bool
+	keepAllLogs           bool
 
 	filesystems []QemuFS
 }

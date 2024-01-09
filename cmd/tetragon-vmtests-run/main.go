@@ -35,6 +35,12 @@ func main() {
 				return fmt.Errorf("error parseing ports: %w", err)
 			}
 
+			// Keep all logs if user asked for it, or if user asked for detailed results
+			// since we need the log files to generate them.
+			if rcnf.keepAllLogs || rcnf.detailedResults {
+				rcnf.testerConf.KeepAllLogs = true
+			}
+
 			// Hardcoded (for now):
 			// mount cwd as cwd in the VM (this helps with contrib/test-progs paths)
 			// set output to be <cwd>/tester-tetragon.out.
@@ -150,10 +156,11 @@ func main() {
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
-	cmd.Flags().BoolVar(&rcnf.testerConf.KeepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
+	cmd.Flags().BoolVar(&rcnf.keepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
 	cmd.Flags().BoolVar(&rcnf.disableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierarchy=0.")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
+	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
