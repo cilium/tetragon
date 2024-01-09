@@ -12,12 +12,46 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
+type OverrideMethod int
+
+const (
+	keyOverrideMethod = "override-method"
+	valFmodRet        = "fmod-ret"
+	valOverrideReturn = "override-return"
+)
+
+const (
+	OverrideMethodDefault OverrideMethod = iota
+	OverrideMethodReturn
+	OverrideMethodFmodRet
+	OverrideMethodInvalid
+)
+
+func overrideMethodParse(s string) OverrideMethod {
+	switch s {
+	case valFmodRet:
+		return OverrideMethodFmodRet
+	case valOverrideReturn:
+		return OverrideMethodReturn
+	default:
+		return OverrideMethodInvalid
+	}
+}
+
 type specOptions struct {
 	DisableKprobeMulti bool
+	OverrideMethod     OverrideMethod
 }
 
 type opt struct {
 	set func(val string, options *specOptions) error
+}
+
+func newDefaultSpecOptions() *specOptions {
+	return &specOptions{
+		DisableKprobeMulti: false,
+		OverrideMethod:     OverrideMethodDefault,
+	}
 }
 
 // Allowed kprobe options
@@ -28,11 +62,20 @@ var opts = map[string]opt{
 			return err
 		},
 	},
+	keyOverrideMethod: opt{
+		set: func(str string, options *specOptions) (err error) {
+			m := overrideMethodParse(str)
+			if m == OverrideMethodInvalid {
+				return fmt.Errorf("invalid override method: '%s'", str)
+			}
+			options.OverrideMethod = m
+			return nil
+		},
+	},
 }
 
 func getSpecOptions(specs []v1alpha1.OptionSpec) (*specOptions, error) {
-	options := &specOptions{}
-
+	options := newDefaultSpecOptions()
 	for _, spec := range specs {
 		opt, ok := opts[spec.Name]
 		if ok {
@@ -42,6 +85,5 @@ func getSpecOptions(specs []v1alpha1.OptionSpec) (*specOptions, error) {
 			logger.GetLogger().Infof("Set option %s = %s", spec.Name, spec.Value)
 		}
 	}
-
 	return options, nil
 }

@@ -94,6 +94,32 @@ func (k *killerSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return fmt.Errorf("killer loader: unknown label: %s", args.Load.Label)
 }
 
+// select proper override method based on configuration and spec options
+func selectOverrideMethod(specOpts *specOptions) (OverrideMethod, error) {
+	overrideMethod := specOpts.OverrideMethod
+	switch overrideMethod {
+	case OverrideMethodDefault:
+		// by default, first try OverrideReturn and if this does not work try fmod_ret
+		if bpf.HasOverrideHelper() {
+			overrideMethod = OverrideMethodReturn
+		} else if bpf.HasModifyReturn() {
+			overrideMethod = OverrideMethodFmodRet
+		} else {
+			return OverrideMethodInvalid, fmt.Errorf("no override helper or mod_ret support: cannot load killer")
+		}
+	case OverrideMethodReturn:
+		if !bpf.HasOverrideHelper() {
+			return OverrideMethodInvalid, fmt.Errorf("option override return set, but it is not supported")
+		}
+	case OverrideMethodFmodRet:
+		if !bpf.HasModifyReturn() {
+			return OverrideMethodInvalid, fmt.Errorf("option fmod_ret set, but it is not supported")
+		}
+	}
+
+	return overrideMethod, nil
+}
+
 func unloadKiller() error {
 	configured = false
 	syscallsSyms = []string{}
@@ -149,50 +175,54 @@ func createKillerSensor(
 	var load *program.Program
 	var progs []*program.Program
 	var maps []*program.Map
-	var useMulti bool
-
 	specOpts, err := getSpecOptions(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get spec options: %s", err)
-	}
-
-	if !specOpts.DisableKprobeMulti {
-		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 	}
 
 	if !bpf.HasSignalHelper() {
 		return nil, fmt.Errorf("killer sensor requires signal helper which is not available")
 	}
 
-	prog := sensors.PathJoin(name, "killer_kprobe")
-	if bpf.HasOverrideHelper() {
-		attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
+	// select proper override method based on configuration and spec options
+	overrideMethod, err := selectOverrideMethod(specOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	pinPath := sensors.PathJoin(name, "killer_kprobe")
+	switch overrideMethod {
+	case OverrideMethodReturn:
+		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+		logger.GetLogger().Infof("killer: using override return (multi-kprobe: %t)", useMulti)
 		label := "kprobe/killer"
 		prog := "bpf_killer.o"
 		if useMulti {
 			label = "kprobe.multi/killer"
 			prog = "bpf_multi_killer.o"
 		}
+		attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
 		load = program.Builder(
 			path.Join(option.Config.HubbleLib, prog),
 			attach,
 			label,
-			prog,
+			pinPath,
 			"killer")
 		progs = append(progs, load)
-	} else if bpf.HasModifyReturn() {
+	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
+		logger.GetLogger().Infof("killer: using fmod_ret")
 		for _, syscallSym := range syscallsSyms {
 			load = program.Builder(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_killer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
-				prog,
+				pinPath,
 				"killer")
 			progs = append(progs, load)
 		}
-	} else {
-		return nil, fmt.Errorf("no override helper or override support: cannot load killer")
+	default:
+		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
 	killerDataMap := program.MapBuilderPin("killer_data", "killer_data", load)
