@@ -125,6 +125,11 @@ func main() {
 				return errors.New("failed")
 			}
 
+			if results.nrSkipedTests == results.nrTests {
+				fmt.Printf("All %d tests were skipped 🤔 (took: %s, skipped:%d)\n", results.nrTests, dur, results.nrSkipedTests)
+				return nil
+			}
+
 			fmt.Printf("All %d tests succeeded! 🎉🚢🍕 (took: %s, skipped:%d)\n", results.nrTests, dur, results.nrSkipedTests)
 			return nil
 		},
