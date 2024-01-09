@@ -160,6 +160,10 @@ func createKillerSensor(
 		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 	}
 
+	if !bpf.HasSignalHelper() {
+		return nil, fmt.Errorf("killer sensor requires signal helper which is not available")
+	}
+
 	prog := sensors.PathJoin(name, "killer_kprobe")
 	if bpf.HasOverrideHelper() {
 		attach := fmt.Sprintf("%d syscalls: %s", len(syscallsSyms), syscallsSyms)
