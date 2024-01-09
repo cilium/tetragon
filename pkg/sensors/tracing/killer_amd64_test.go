@@ -20,48 +20,19 @@ import (
 )
 
 func TestKillerOverride32(t *testing.T) {
-	if !bpf.HasOverrideHelper() {
-		t.Skip("skipping killer test, bpf_override_return helper not available")
+	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
+		t.Skip("skipping killer test, neither bpf_override_return nor fmod_ret is available")
 	}
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
-	configHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "kill-syscalls"
-spec:
-  lists:
-  - name: "mine"
-    type: "syscalls"
-    values:
-    - "__ia32_sys_prctl"
-  killers:
-  - syscalls:
-    - "list:mine"
-  tracepoints:
-  - subsystem: "raw_syscalls"
-    event: "sys_enter"
-    args:
-    - index: 4
-      type: "syscall64"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "InMap"
-        values:
-        - "list:mine"
-      matchBinaries:
-      - operator: "In"
-        values:
-        - "` + test + `"
-      matchActions:
-      - action: "NotifyKiller"
-        argError: -17 # EEXIST
-`
+	yaml := NewKillerSpecBuilder("killer-override").
+		WithSyscallList("__ia32_sys_prctl").
+		WithMatchBinaries(test).
+		WithOverrideValue(-17). // EEXIST
+		MustYAML()
 
 	tpChecker := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -79,11 +50,11 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, "", checker, checkerFunc)
+	testKiller(t, yaml, test, "", checker, checkerFunc)
 }
 
 func TestKillerSignal32(t *testing.T) {
-	if !bpf.HasOverrideHelper() {
+	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
 	if !bpf.HasSignalHelper() {
@@ -91,40 +62,12 @@ func TestKillerSignal32(t *testing.T) {
 	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
-	configHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "kill-syscalls"
-spec:
-  lists:
-  - name: "mine"
-    type: "syscalls"
-    values:
-    - "__ia32_sys_prctl"
-  killers:
-  - syscalls:
-    - "list:mine"
-  tracepoints:
-  - subsystem: "raw_syscalls"
-    event: "sys_enter"
-    args:
-    - index: 4
-      type: "syscall64"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "InMap"
-        values:
-        - "list:mine"
-      matchBinaries:
-      - operator: "In"
-        values:
-        - "` + test + `"
-      matchActions:
-      - action: "NotifyKiller"
-        argSig: 9 # SIGKILL
-`
+	yaml := NewKillerSpecBuilder("killer-signal").
+		WithSyscallList("__ia32_sys_prctl").
+		WithMatchBinaries(test).
+		WithOverrideValue(-17). // EEXIST
+		WithKill(9).            // SigKill
+		MustYAML()
 
 	tpChecker := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -142,11 +85,11 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test, "", checker, checkerFunc)
+	testKiller(t, yaml, test, "", checker, checkerFunc)
 }
 
 func TestKillerOverrideBothBits(t *testing.T) {
-	if !bpf.HasOverrideHelper() {
+	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
 		t.Skip("skipping killer test, bpf_override_return helper not available")
 	}
 	if !bpf.HasSignalHelper() {
@@ -156,42 +99,11 @@ func TestKillerOverrideBothBits(t *testing.T) {
 	test32 := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	test64 := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
 
-	configHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "kill-syscalls"
-spec:
-  lists:
-  - name: "mine"
-    type: "syscalls"
-    values:
-    - "sys_prctl"
-    - "__ia32_sys_prctl"
-  killers:
-  - syscalls:
-    - "list:mine"
-  tracepoints:
-  - subsystem: "raw_syscalls"
-    event: "sys_enter"
-    args:
-    - index: 4
-      type: "syscall64"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "InMap"
-        values:
-        - "list:mine"
-      matchBinaries:
-      - operator: "In"
-        values:
-        - "` + test32 + `"
-        - "` + test64 + `"
-      matchActions:
-      - action: "NotifyKiller"
-        argError: -17 # EEXIST
-`
+	yaml := NewKillerSpecBuilder("killer-override").
+		WithSyscallList("__ia32_sys_prctl", "sys_prctl").
+		WithMatchBinaries(test32, test64).
+		WithOverrideValue(-17). // EEXIST
+		MustYAML()
 
 	tpChecker32 := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -217,5 +129,5 @@ spec:
 		}
 	}
 
-	testKiller(t, configHook, test64, test32, checker, checkerFunc)
+	testKiller(t, yaml, test64, test32, checker, checkerFunc)
 }
