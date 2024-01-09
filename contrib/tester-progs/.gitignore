@@ -17,3 +17,4 @@ threads-tester
 bench-reader
 threads-exit
 killer-tester
+killer-tester-32
