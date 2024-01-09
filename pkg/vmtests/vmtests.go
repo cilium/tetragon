@@ -160,8 +160,10 @@ func Run(cnf *Conf) error {
 		prog := filepath.Join(testDir, name)
 		progArgs := []string{"-test.v"}
 		if test.Test != "" {
-			t := test.Test
-			name = fmt.Sprintf("%s.%s", name, t)
+			name = fmt.Sprintf("%s.%s", name, test.Test)
+			// It is possible that a test is a substring of another. Use a strict
+			// pattern so that we execute only the specified test.
+			t := fmt.Sprintf("^%s$", test.Test)
 			progArgs = append(progArgs, "-test.run", t)
 		}
 
