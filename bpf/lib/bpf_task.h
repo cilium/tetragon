@@ -158,12 +158,13 @@ static inline __attribute__((always_inline)) struct execve_map_value *
 event_find_curr(__u32 *ppid, bool *walked)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	__u32 pid = get_current_pid_tgid() >> 32;
 	struct execve_map_value *value = 0;
 	int i;
+	__u32 pid;
 
 #pragma unroll
 	for (i = 0; i < 4; i++) {
+		probe_read(&pid, sizeof(pid), _(&task->tgid));
 		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			break;
@@ -172,7 +173,6 @@ event_find_curr(__u32 *ppid, bool *walked)
 		probe_read(&task, sizeof(task), _(&task->real_parent));
 		if (!task)
 			break;
-		probe_read(&pid, sizeof(pid), _(&task->tgid));
 	}
 	*ppid = pid;
 	return value;
