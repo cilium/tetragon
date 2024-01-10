@@ -83,7 +83,8 @@ type config struct {
 
 	KMods []string
 
-	EnablePodInfo bool
+	EnablePodInfo          bool
+	EnableTracingPolicyCRD bool
 
 	ExposeKernelAddresses bool
 }

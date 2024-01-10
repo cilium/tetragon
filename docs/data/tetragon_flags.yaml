@@ -55,6 +55,10 @@ options:
       default_value: "false"
       usage: |
         Enable namespace information in process_exec and process_kprobe events
+    - name: enable-tracing-policy-crd
+      default_value: "true"
+      usage: |
+        Enable TracingPolicy and TracingPolicyNamespaced custom resources
     - name: event-queue-size
       default_value: "10000"
       usage: Set the size of the internal event queue.
