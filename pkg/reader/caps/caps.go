@@ -496,6 +496,10 @@ func GetPrivilegesChangedReasons(reasons uint32) []tetragon.ProcessPrivilegesCha
 		bits = append(bits, tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_SETUID)
 	}
 
+	if reasons&uint32(processapi.ExecveSetgidRoot) != 0 {
+		bits = append(bits, tetragon.ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_SETGID)
+	}
+
 	if len(bits) > 0 {
 		return bits
 	}

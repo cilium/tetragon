@@ -102,8 +102,16 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 			heap->info.secureexec |= EXEC_SETUID_ROOT;
 	}
 	/* Is setgid? */
-	if (egid != gid)
+	if (egid != gid) {
 		heap->info.secureexec |= EXEC_SETGID;
+		/* Is egid is being changed to real root? */
+		gid = BPF_CORE_READ(bprm, cred, gid.val);
+		if (!__is_uid_global_root(gid) && __is_uid_global_root(egid))
+			/* If we executed a setgid to root binary then this is a
+			 * privilege elevation since it can now access root files, etc
+			 */
+			heap->info.secureexec |= EXEC_SETGID_ROOT;
+	}
 
 	/* Ensure that ambient capabilities are not set since they clash with:
 	 *   setuid/setgid on the binary.
@@ -117,7 +125,7 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	if (new_ambient)
 		return;
 
-	/* Did we gain new capabilities through suid setuid or file capabilities execve?
+	/* Did we gain new capabilities through execve?
 	 *
 	 * To determin if we gained new capabilities we compare the current permitted
 	 *  set with the new set. This can happen if:
