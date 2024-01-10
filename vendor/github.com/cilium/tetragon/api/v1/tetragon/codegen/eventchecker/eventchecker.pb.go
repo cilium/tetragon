@@ -2982,8 +2982,9 @@ nextCheck:
 
 // BinaryPropertiesChecker implements a checker struct to check a BinaryProperties field
 type BinaryPropertiesChecker struct {
-	Setuid *uint32 `json:"setuid,omitempty"`
-	Setgid *uint32 `json:"setgid,omitempty"`
+	Setuid            *uint32                              `json:"setuid,omitempty"`
+	Setgid            *uint32                              `json:"setgid,omitempty"`
+	PrivilegesChanged *ProcessPrivilegesChangedListMatcher `json:"privilegesChanged,omitempty"`
 }
 
 // NewBinaryPropertiesChecker creates a new BinaryPropertiesChecker
@@ -3019,6 +3020,11 @@ func (checker *BinaryPropertiesChecker) Check(event *tetragon.BinaryProperties) 
 				return fmt.Errorf("Setgid has value %v which does not match expected value %v", event.Setgid.Value, *checker.Setgid)
 			}
 		}
+		if checker.PrivilegesChanged != nil {
+			if err := checker.PrivilegesChanged.Check(event.PrivilegesChanged); err != nil {
+				return fmt.Errorf("PrivilegesChanged check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3039,6 +3045,12 @@ func (checker *BinaryPropertiesChecker) WithSetgid(check uint32) *BinaryProperti
 	return checker
 }
 
+// WithPrivilegesChanged adds a PrivilegesChanged check to the BinaryPropertiesChecker
+func (checker *BinaryPropertiesChecker) WithPrivilegesChanged(check *ProcessPrivilegesChangedListMatcher) *BinaryPropertiesChecker {
+	checker.PrivilegesChanged = check
+	return checker
+}
+
 //FromBinaryProperties populates the BinaryPropertiesChecker using data from a BinaryProperties field
 func (checker *BinaryPropertiesChecker) FromBinaryProperties(event *tetragon.BinaryProperties) *BinaryPropertiesChecker {
 	if event == nil {
@@ -3052,7 +3064,118 @@ func (checker *BinaryPropertiesChecker) FromBinaryProperties(event *tetragon.Bin
 		val := event.Setgid.Value
 		checker.Setgid = &val
 	}
+	{
+		var checks []*ProcessPrivilegesChangedChecker
+		for _, check := range event.PrivilegesChanged {
+			var convertedCheck *ProcessPrivilegesChangedChecker
+			convertedCheck = NewProcessPrivilegesChangedChecker(check)
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessPrivilegesChangedListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.PrivilegesChanged = lm
+	}
 	return checker
+}
+
+// ProcessPrivilegesChangedListMatcher checks a list of tetragon.ProcessPrivilegesChanged fields
+type ProcessPrivilegesChangedListMatcher struct {
+	Operator listmatcher.Operator               `json:"operator"`
+	Values   []*ProcessPrivilegesChangedChecker `json:"values"`
+}
+
+// NewProcessPrivilegesChangedListMatcher creates a new ProcessPrivilegesChangedListMatcher. The checker defaults to a subset checker unless otherwise specified using WithOperator()
+func NewProcessPrivilegesChangedListMatcher() *ProcessPrivilegesChangedListMatcher {
+	return &ProcessPrivilegesChangedListMatcher{
+		Operator: listmatcher.Subset,
+	}
+}
+
+// WithOperator sets the match kind for the ProcessPrivilegesChangedListMatcher
+func (checker *ProcessPrivilegesChangedListMatcher) WithOperator(operator listmatcher.Operator) *ProcessPrivilegesChangedListMatcher {
+	checker.Operator = operator
+	return checker
+}
+
+// WithValues sets the checkers that the ProcessPrivilegesChangedListMatcher should use
+func (checker *ProcessPrivilegesChangedListMatcher) WithValues(values ...*ProcessPrivilegesChangedChecker) *ProcessPrivilegesChangedListMatcher {
+	checker.Values = values
+	return checker
+}
+
+// Check checks a list of tetragon.ProcessPrivilegesChanged fields
+func (checker *ProcessPrivilegesChangedListMatcher) Check(values []tetragon.ProcessPrivilegesChanged) error {
+	switch checker.Operator {
+	case listmatcher.Ordered:
+		return checker.orderedCheck(values)
+	case listmatcher.Unordered:
+		return checker.unorderedCheck(values)
+	case listmatcher.Subset:
+		return checker.subsetCheck(values)
+	default:
+		return fmt.Errorf("Unhandled ListMatcher operator %s", checker.Operator)
+	}
+}
+
+// orderedCheck checks a list of ordered tetragon.ProcessPrivilegesChanged fields
+func (checker *ProcessPrivilegesChangedListMatcher) orderedCheck(values []tetragon.ProcessPrivilegesChanged) error {
+	innerCheck := func(check *ProcessPrivilegesChangedChecker, value tetragon.ProcessPrivilegesChanged) error {
+		if err := check.Check(&value); err != nil {
+			return fmt.Errorf("PrivilegesChanged check failed: %w", err)
+		}
+		return nil
+	}
+
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("ProcessPrivilegesChangedListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	for i, check := range checker.Values {
+		value := values[i]
+		if err := innerCheck(check, value); err != nil {
+			return fmt.Errorf("ProcessPrivilegesChangedListMatcher: Check failed on element %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// unorderedCheck checks a list of unordered tetragon.ProcessPrivilegesChanged fields
+func (checker *ProcessPrivilegesChangedListMatcher) unorderedCheck(values []tetragon.ProcessPrivilegesChanged) error {
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("ProcessPrivilegesChangedListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	return checker.subsetCheck(values)
+}
+
+// subsetCheck checks a subset of tetragon.ProcessPrivilegesChanged fields
+func (checker *ProcessPrivilegesChangedListMatcher) subsetCheck(values []tetragon.ProcessPrivilegesChanged) error {
+	innerCheck := func(check *ProcessPrivilegesChangedChecker, value tetragon.ProcessPrivilegesChanged) error {
+		if err := check.Check(&value); err != nil {
+			return fmt.Errorf("PrivilegesChanged check failed: %w", err)
+		}
+		return nil
+	}
+
+	numDesired := len(checker.Values)
+	numMatched := 0
+
+nextCheck:
+	for _, check := range checker.Values {
+		for _, value := range values {
+			if err := innerCheck(check, value); err == nil {
+				numMatched += 1
+				continue nextCheck
+			}
+		}
+	}
+
+	if numMatched < numDesired {
+		return fmt.Errorf("ProcessPrivilegesChangedListMatcher: Check failed, only matched %d elements but wanted %d", numMatched, numDesired)
+	}
+
+	return nil
 }
 
 // ProcessChecker implements a checker struct to check a Process field
@@ -5463,6 +5586,58 @@ func (enum *SecureBitsTypeChecker) Check(val *tetragon.SecureBitsType) error {
 	}
 	if *enum != SecureBitsTypeChecker(*val) {
 		return fmt.Errorf("SecureBitsTypeChecker: SecureBitsType has value %s which does not match expected value %s", (*val), tetragon.SecureBitsType(*enum))
+	}
+	return nil
+}
+
+// ProcessPrivilegesChangedChecker checks a tetragon.ProcessPrivilegesChanged
+type ProcessPrivilegesChangedChecker tetragon.ProcessPrivilegesChanged
+
+// MarshalJSON implements json.Marshaler interface
+func (enum ProcessPrivilegesChangedChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.ProcessPrivilegesChanged_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "PRIVILEGES_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown ProcessPrivilegesChanged %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *ProcessPrivilegesChangedChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.ProcessPrivilegesChanged_value[str]; ok {
+		*enum = ProcessPrivilegesChangedChecker(n)
+	} else if n, ok := tetragon.ProcessPrivilegesChanged_value["PRIVILEGES_"+str]; ok {
+		*enum = ProcessPrivilegesChangedChecker(n)
+	} else {
+		return fmt.Errorf("Unknown ProcessPrivilegesChanged %s", str)
+	}
+
+	return nil
+}
+
+// NewProcessPrivilegesChangedChecker creates a new ProcessPrivilegesChangedChecker
+func NewProcessPrivilegesChangedChecker(val tetragon.ProcessPrivilegesChanged) *ProcessPrivilegesChangedChecker {
+	enum := ProcessPrivilegesChangedChecker(val)
+	return &enum
+}
+
+// Check checks a ProcessPrivilegesChanged against the checker
+func (enum *ProcessPrivilegesChangedChecker) Check(val *tetragon.ProcessPrivilegesChanged) error {
+	if val == nil {
+		return fmt.Errorf("ProcessPrivilegesChangedChecker: ProcessPrivilegesChanged is nil and does not match expected value %s", tetragon.ProcessPrivilegesChanged(*enum))
+	}
+	if *enum != ProcessPrivilegesChangedChecker(*val) {
+		return fmt.Errorf("ProcessPrivilegesChangedChecker: ProcessPrivilegesChanged has value %s which does not match expected value %s", (*val), tetragon.ProcessPrivilegesChanged(*enum))
 	}
 	return nil
 }

@@ -306,3 +306,14 @@ enum SecureBitsType {
 	/* Make bit-6 SecBitNoCapAmbientRaise immutable */
 	SecBitNoCapAmbientRaiseLocked = 128;
 }
+
+// Reasons of why the process privileges changed.
+enum ProcessPrivsChanged {
+	PRIVS_UNSET = 0;
+
+	// A privilege elevation happened due to the execution of a binary with file capabilities set.
+	PRIVS_RAISED_EXEC_FILE_CAP = 1;
+
+	// A privilege elevation happened due to the execution of a binary with setuid to root.
+	PRIVS_RAISED_EXEC_FILE_SETUID = 2;
+}

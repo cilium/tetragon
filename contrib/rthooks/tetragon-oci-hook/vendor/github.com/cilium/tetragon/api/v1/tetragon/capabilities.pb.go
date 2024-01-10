@@ -373,6 +373,58 @@ func (SecureBitsType) EnumDescriptor() ([]byte, []int) {
 	return file_tetragon_capabilities_proto_rawDescGZIP(), []int{1}
 }
 
+// Reasons of why the process privileges changed.
+type ProcessPrivsChanged int32
+
+const (
+	ProcessPrivsChanged_PRIVS_UNSET ProcessPrivsChanged = 0
+	// A privilege elevation happened due to the execution of a binary with file capabilities set.
+	ProcessPrivsChanged_PRIVS_RAISED_EXEC_FILE_CAP ProcessPrivsChanged = 1
+	// A privilege elevation happened due to the execution of a binary with setuid to root.
+	ProcessPrivsChanged_PRIVS_RAISED_EXEC_FILE_SETUID ProcessPrivsChanged = 2
+)
+
+// Enum value maps for ProcessPrivsChanged.
+var (
+	ProcessPrivsChanged_name = map[int32]string{
+		0: "PRIVS_UNSET",
+		1: "PRIVS_RAISED_EXEC_FILE_CAP",
+		2: "PRIVS_RAISED_EXEC_FILE_SETUID",
+	}
+	ProcessPrivsChanged_value = map[string]int32{
+		"PRIVS_UNSET":                   0,
+		"PRIVS_RAISED_EXEC_FILE_CAP":    1,
+		"PRIVS_RAISED_EXEC_FILE_SETUID": 2,
+	}
+)
+
+func (x ProcessPrivsChanged) Enum() *ProcessPrivsChanged {
+	p := new(ProcessPrivsChanged)
+	*p = x
+	return p
+}
+
+func (x ProcessPrivsChanged) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProcessPrivsChanged) Descriptor() protoreflect.EnumDescriptor {
+	return file_tetragon_capabilities_proto_enumTypes[2].Descriptor()
+}
+
+func (ProcessPrivsChanged) Type() protoreflect.EnumType {
+	return &file_tetragon_capabilities_proto_enumTypes[2]
+}
+
+func (x ProcessPrivsChanged) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProcessPrivsChanged.Descriptor instead.
+func (ProcessPrivsChanged) EnumDescriptor() ([]byte, []int) {
+	return file_tetragon_capabilities_proto_rawDescGZIP(), []int{2}
+}
+
 var File_tetragon_capabilities_proto protoreflect.FileDescriptor
 
 var file_tetragon_capabilities_proto_rawDesc = []byte{
@@ -444,7 +496,14 @@ var file_tetragon_capabilities_proto_rawDesc = []byte{
 	0x61, 0x70, 0x41, 0x6d, 0x62, 0x69, 0x65, 0x6e, 0x74, 0x52, 0x61, 0x69, 0x73, 0x65, 0x10, 0x40,
 	0x12, 0x22, 0x0a, 0x1d, 0x53, 0x65, 0x63, 0x42, 0x69, 0x74, 0x4e, 0x6f, 0x43, 0x61, 0x70, 0x41,
 	0x6d, 0x62, 0x69, 0x65, 0x6e, 0x74, 0x52, 0x61, 0x69, 0x73, 0x65, 0x4c, 0x6f, 0x63, 0x6b, 0x65,
-	0x64, 0x10, 0x80, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x64, 0x10, 0x80, 0x01, 0x2a, 0x69, 0x0a, 0x13, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73, 0x50,
+	0x72, 0x69, 0x76, 0x73, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x64, 0x12, 0x0f, 0x0a, 0x0b, 0x50,
+	0x52, 0x49, 0x56, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x45, 0x54, 0x10, 0x00, 0x12, 0x1e, 0x0a, 0x1a,
+	0x50, 0x52, 0x49, 0x56, 0x53, 0x5f, 0x52, 0x41, 0x49, 0x53, 0x45, 0x44, 0x5f, 0x45, 0x58, 0x45,
+	0x43, 0x5f, 0x46, 0x49, 0x4c, 0x45, 0x5f, 0x43, 0x41, 0x50, 0x10, 0x01, 0x12, 0x21, 0x0a, 0x1d,
+	0x50, 0x52, 0x49, 0x56, 0x53, 0x5f, 0x52, 0x41, 0x49, 0x53, 0x45, 0x44, 0x5f, 0x45, 0x58, 0x45,
+	0x43, 0x5f, 0x46, 0x49, 0x4c, 0x45, 0x5f, 0x53, 0x45, 0x54, 0x55, 0x49, 0x44, 0x10, 0x02, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -459,10 +518,11 @@ func file_tetragon_capabilities_proto_rawDescGZIP() []byte {
 	return file_tetragon_capabilities_proto_rawDescData
 }
 
-var file_tetragon_capabilities_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_tetragon_capabilities_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_tetragon_capabilities_proto_goTypes = []interface{}{
-	(CapabilitiesType)(0), // 0: tetragon.CapabilitiesType
-	(SecureBitsType)(0),   // 1: tetragon.SecureBitsType
+	(CapabilitiesType)(0),    // 0: tetragon.CapabilitiesType
+	(SecureBitsType)(0),      // 1: tetragon.SecureBitsType
+	(ProcessPrivsChanged)(0), // 2: tetragon.ProcessPrivsChanged
 }
 var file_tetragon_capabilities_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -482,7 +542,7 @@ func file_tetragon_capabilities_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tetragon_capabilities_proto_rawDesc,
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

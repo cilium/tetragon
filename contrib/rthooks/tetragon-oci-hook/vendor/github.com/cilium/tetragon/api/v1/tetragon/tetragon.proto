@@ -141,6 +141,10 @@ message BinaryProperties {
 	google.protobuf.UInt32Value setuid = 1;
 	// If set then this is the set group ID used for execution
 	google.protobuf.UInt32Value setgid = 2;
+	// The reasons why this binary execution changed privileges and raised both the permitted and effective capabilities.
+    // Usually this happens when the process executes a binary with setuid root bit set or file capabilities.
+    // The final ganted capabilities are listed in the capabilities field of the process execution.
+	repeated ProcessPrivsChanged privs_changed = 3;
 }
 
 message Process {
