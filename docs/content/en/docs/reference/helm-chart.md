@@ -9,7 +9,7 @@ This page was generated with github.io/cilium/tetragon/install/kubernetes/tetrag
 please do not edit directly.
 {{< /comment >}}
 
-The Tetragon Helm chart source is available under 
+The Tetragon Helm chart source is available under
 [github.io/cilium/tetragon/install/kubernetes/tetragon](https://github.com/cilium/tetragon/tree/main/install/kubernetes/tetragon)
 and is distributed from the Cilium helm charts repository [helm.cilium.io](https://helm.cilium.io).
 
@@ -121,4 +121,3 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
-
