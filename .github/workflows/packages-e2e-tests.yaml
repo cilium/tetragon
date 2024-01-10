@@ -7,7 +7,7 @@ on:
     - 'docs/**'
 
 jobs:
-  standalone-tests:
+  standalone-tarball-builds:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,9 +17,13 @@ jobs:
           - os: ubuntu-22.04
             arch: amd64
             match_arch: x86-64
-          - os: buildjet-2vcpu-ubuntu-2204-arm
+            cross_compile: no
+            upload_path: upload/
+          - os: ubuntu-22.04
             arch: arm64
             match_arch: arm64
+            cross_compile: yes
+            upload_path: upload-cross-compile/
 
     steps:
       # https://github.com/docker/setup-buildx-action
@@ -28,28 +32,72 @@ jobs:
 
       - name: Checkout Source Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-          submodules: true
 
       - name: Getting version tag
         id: tag
         run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
 
-      # Logging into Docker Hub makes the job less flaky, but it relies on repo secrets so
-      # does not work for external contributors. Let's compromise and do this for internal
-      # PRs at least (for now). We can always improve the situation later.
-      - name: Login to Docker Hub
-        if: ${{ github.event.pull_request.head.repo.full_name == 'cilium/tetragon' }}
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME_CI }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD_CI }}
-
       - name: Generate Tetragon Tarball
+        if: ${{ matrix.cross_compile == 'no' }}
         id: tetragon-tarball
-        run: make tarball
+        run: |
+          make tarball
+          mkdir ${{ matrix.upload_path }}
+          mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz ./${{ matrix.upload_path }}
+
+      - name: Generate Cross Compiled Tetragon Tarball
+        if: ${{ matrix.cross_compile == 'yes' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu qemu-user-static binfmt-support
+          sudo update-binfmts --display
+          make TARGET_ARCH=${{ matrix.arch }} tarball
+          mkdir ${{ matrix.upload_path }}
+          mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz ./${{ matrix.upload_path }}
+
+      # Cache tarball releases for later
+      - name: Save tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz Tarball
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}
+          path: ${{ matrix.upload_path }}
+          retention-days: 1
+
+  standalone-tarball-tests:
+    needs: [standalone-tarball-builds]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: amd64
+            match_arch: x86-64
+            cross_compile: no
+            upload_path: upload/
+          - os: actuated-arm64-4cpu-8gb
+            arch: arm64
+            match_arch: arm64
+            cross_compile: yes
+            upload_path: upload-cross-compile/
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Getting version tag
+        id: tag
+        run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
+
+      - name: Retrieve tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}
+          path: ${{ matrix.upload_path }}
+
+      - name: Move tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz to build
+        run: |
+          mkdir -p ./build/${{ matrix.arch }}/
+          mv ${{ matrix.upload_path }} ./build/${{ matrix.arch }}/linux-tarball
 
       - name: Copy bpf.yaml tracing policy to /etc/tetragon/tetragon.tp.d/
         run: |
@@ -81,10 +129,10 @@ jobs:
       - name: Test Tetragon
         run: |
           sudo tetra status
-          sudo grep "tetra" /var/log/tetragon/tetragon.log
           sudo tetra tracingpolicy list | grep bpf -
           sudo tetra bugtool
           test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
+          sudo grep "tetra" /var/log/tetragon/tetragon.log
 
       - name: Uninstall Tetragon Tarball
         run: |
