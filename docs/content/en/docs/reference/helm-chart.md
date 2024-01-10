@@ -97,7 +97,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator | object | `{"affinity":{},"annotations":{},"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.2"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","prometheus":{"address":"","enabled":true,"port":2113,"serviceMonitor":{"enabled":false,"labelsOverride":{},"scrapeInterval":"10s"}},"resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}]}` | Tetragon Operator settings |
+| tetragonOperator | object | `{"affinity":{},"annotations":{},"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.2"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","prometheus":{"address":"","enabled":true,"port":2113,"serviceMonitor":{"enabled":false,"labelsOverride":{},"scrapeInterval":"10s"}},"resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}],"tracingPolicy":{"enabled":true}}` | Tetragon Operator settings |
 | tetragonOperator.annotations | object | `{}` | Annotations for the Tetragon Operator Deployment. |
 | tetragonOperator.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment. |
 | tetragonOperator.extraPodLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment Pods. |
@@ -119,5 +119,6 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
 | tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
+| tetragonOperator.tracingPolicy.enabled | bool | `true` | Enables the TracingPolicy and TracingPolicyNamespaced CRD creation. |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
