@@ -63,19 +63,17 @@ func testKiller(t *testing.T, configHook string,
 }
 
 func TestKillerOverride(t *testing.T) {
-	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, bpf_override_return helper not available")
-	}
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
-	yaml := NewKillerSpecBuilder("killer-override").
-		WithSyscallList("sys_prctl").
-		WithMatchBinaries(test).
-		WithOverrideValue(-17). // EEXIST
-		MustYAML()
+	builder := func() *KillerSpecBuilder {
+		return NewKillerSpecBuilder("killer-override").
+			WithSyscallList("sys_prctl").
+			WithMatchBinaries(test).
+			WithOverrideValue(-17) // EEXIST
+	}
 
 	tpChecker := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -93,7 +91,31 @@ func TestKillerOverride(t *testing.T) {
 		}
 	}
 
-	testKiller(t, yaml, test, "", checker, checkerFunc)
+	t.Run("override_helper", func(t *testing.T) {
+		if !bpf.HasOverrideHelper() {
+			t.Skip("override_helper not supported")
+		}
+
+		t.Run("multi kprobe", func(t *testing.T) {
+			if !bpf.HasKprobeMulti() {
+				t.Skip("no multi-kprobe support")
+			}
+			yaml := builder().WithOverrideReturn().WithMultiKprobe().MustYAML()
+			testKiller(t, yaml, test, "", checker, checkerFunc)
+		})
+
+		t.Run("kprobe (no multi)", func(t *testing.T) {
+			yaml := builder().WithOverrideReturn().WithoutMultiKprobe().MustYAML()
+			testKiller(t, yaml, test, "", checker, checkerFunc)
+		})
+	})
+	t.Run("fmod_ret", func(t *testing.T) {
+		if !bpf.HasModifyReturn() {
+			t.Skip("fmod_ret not supported")
+		}
+		yaml := builder().WithFmodRet().MustYAML()
+		testKiller(t, yaml, test, "", checker, checkerFunc)
+	})
 }
 
 func TestKillerSignal(t *testing.T) {
@@ -105,12 +127,6 @@ func TestKillerSignal(t *testing.T) {
 	}
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
-	yaml := NewKillerSpecBuilder("killer-signal").
-		WithSyscallList("sys_prctl").
-		WithMatchBinaries(test).
-		WithOverrideValue(-17). // EEXIST
-		WithKill(9).            // SigKill
-		MustYAML()
 
 	tpChecker := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -128,7 +144,31 @@ func TestKillerSignal(t *testing.T) {
 		}
 	}
 
-	testKiller(t, yaml, test, "", checker, checkerFunc)
+	builder := func() *KillerSpecBuilder {
+		return NewKillerSpecBuilder("killer-signal").
+			WithSyscallList("sys_prctl").
+			WithMatchBinaries(test).
+			WithOverrideValue(-17). // EEXIST
+			WithKill(9)             // SigKill
+	}
+
+	t.Run("multi kprobe", func(t *testing.T) {
+		if !bpf.HasKprobeMulti() {
+			t.Skip("no multi-kprobe support")
+		}
+		if !bpf.HasOverrideHelper() {
+			t.Skip("no override helper, so cannot use multi kprobes")
+		}
+
+		yaml := builder().WithMultiKprobe().MustYAML()
+		testKiller(t, yaml, test, "", checker, checkerFunc)
+	})
+
+	t.Run("kprobe (no multi)", func(t *testing.T) {
+		yaml := builder().WithoutMultiKprobe().MustYAML()
+		testKiller(t, yaml, test, "", checker, checkerFunc)
+	})
+
 }
 
 func TestKillerMultiNotSupported(t *testing.T) {
