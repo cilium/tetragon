@@ -132,7 +132,31 @@ jobs:
           sudo tetra tracingpolicy list | grep bpf -
           sudo tetra bugtool
           test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
+          sudo tetra tracingpolicy add examples/tracingpolicy/tcp-connect.yaml
+          sudo tetra tracingpolicy list | grep connect -
           sudo grep "tetra" /var/log/tetragon/tetragon.log
+
+      - name: Setup Tetragon with a different tracing-policy-dir
+        run: |
+          sudo systemctl stop tetragon
+          sudo mkdir -p /opt/tetragon.tp.d/
+          sudo cp examples/tracingpolicy/bpf.yaml /opt/tetragon.tp.d/bpf.yaml
+          echo "/opt/tetragon.tp.d/" | sudo tee /etc/tetragon/tetragon.conf.d/tracing-policy-dir
+          sudo systemctl start tetragon
+
+      - name: Test Tetragon with a different tracing-policy-dir
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2
+        with:
+          timeout_seconds: 30
+          max_attempts: 5
+          retry_wait_seconds: 5
+          retry_on: error
+          command: |
+            sudo systemctl is-active tetragon
+            sudo tetra status
+            sudo grep "tetra" /var/log/tetragon/tetragon.log
+            sudo tetra tracingpolicy list | grep bpf -
+            sudo tetra bugtool
 
       - name: Uninstall Tetragon Tarball
         run: |
