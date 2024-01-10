@@ -74,6 +74,7 @@ struct msg_cred_minimal {
 #define EXEC_SETGID	 0x02 /* This is a set-group-id execution */
 #define EXEC_FILE_CAPS	 0x04 /* This binary execution gained new capabilities through file capabilities execution */
 #define EXEC_SETUID_ROOT 0x08 /* This binary execution gained new privileges through setuid to root execution */
+#define EXEC_SETGID_ROOT 0x10 /* This binary execution gained new privileges through setgid to root execution */
 
 /*
  * Check if "a" is a subset of "set".

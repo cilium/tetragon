@@ -37,6 +37,7 @@ const (
 	/* Execve flags received from BPF */
 	ExecveFileCaps   = 0x04 // This binary execution gained new capabilities through file capabilities execution
 	ExecveSetuidRoot = 0x08 // This binary execution gained new capabilities through setuid root execution
+	ExecveSetgidRoot = 0x10 // This binary execution gained new capabilities through setgid root execution
 
 	// flags of MsgCommon
 	MSG_COMMON_FLAG_RETURN     = 0x1
