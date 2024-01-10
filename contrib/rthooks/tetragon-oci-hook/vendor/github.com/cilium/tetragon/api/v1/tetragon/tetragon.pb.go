@@ -1027,6 +1027,10 @@ type BinaryProperties struct {
 	Setuid *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=setuid,proto3" json:"setuid,omitempty"`
 	// If set then this is the set group ID used for execution
 	Setgid *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=setgid,proto3" json:"setgid,omitempty"`
+	// The reasons why this binary execution changed privileges and raised both the permitted and effective capabilities.
+	// Usually this happens when the process executes a binary with setuid root bit set or file capabilities.
+	// The final ganted capabilities are listed in the capabilities field of the process execution.
+	PrivsChanged []ProcessPrivsChanged `protobuf:"varint,3,rep,packed,name=privs_changed,json=privsChanged,proto3,enum=tetragon.ProcessPrivsChanged" json:"privs_changed,omitempty"`
 }
 
 func (x *BinaryProperties) Reset() {
@@ -1071,6 +1075,13 @@ func (x *BinaryProperties) GetSetuid() *wrapperspb.UInt32Value {
 func (x *BinaryProperties) GetSetgid() *wrapperspb.UInt32Value {
 	if x != nil {
 		return x.Setgid
+	}
+	return nil
+}
+
+func (x *BinaryProperties) GetPrivsChanged() []ProcessPrivsChanged {
+	if x != nil {
+		return x.PrivsChanged
 	}
 	return nil
 }
@@ -4230,7 +4241,8 @@ var file_tetragon_tetragon_proto_goTypes = []interface{}{
 	(CapabilitiesType)(0),           // 45: tetragon.CapabilitiesType
 	(*wrapperspb.Int32Value)(nil),   // 46: google.protobuf.Int32Value
 	(SecureBitsType)(0),             // 47: tetragon.SecureBitsType
-	(*wrapperspb.BoolValue)(nil),    // 48: google.protobuf.BoolValue
+	(ProcessPrivsChanged)(0),        // 48: tetragon.ProcessPrivsChanged
+	(*wrapperspb.BoolValue)(nil),    // 49: google.protobuf.BoolValue
 }
 var file_tetragon_tetragon_proto_depIdxs = []int32{
 	4,  // 0: tetragon.Container.image:type_name -> tetragon.Image

@@ -373,6 +373,81 @@ func (SecureBitsType) EnumDescriptor() ([]byte, []int) {
 	return file_tetragon_capabilities_proto_rawDescGZIP(), []int{1}
 }
 
+// Reasons of why the process privileges changed.
+type ProcessPrivilegesChanged int32
+
+const (
+	ProcessPrivilegesChanged_PRIVILEGES_CHANGED_UNSET ProcessPrivilegesChanged = 0
+	// A privilege elevation happened due to the execution of a binary with file capability sets.
+	// The kernel supports associating capability sets with an executable file using `setcap` command.
+	// The file capability sets are stored in an extended attribute (see https://man7.org/linux/man-pages/man7/xattr.7.html)
+	// named `security.capability`. The file capability sets, in conjunction with the capability sets
+	// of the process, determine the process capabilities and privileges after the `execve` system call.
+	// For further reference, please check sections `File capability extended attribute versioning` and
+	// `Namespaced file capabilities` of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html.
+	// The new granted capabilities can be listed inside the `process` object.
+	ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_CAP ProcessPrivilegesChanged = 1
+	// A privilege elevation happened due to the execution of a binary with set-user-ID to root.
+	// When a process with nonzero UIDs executes a binary with a set-user-ID to root also
+	// known as suid-root executable, then the kernel switches the effective user ID to 0 (root) which
+	// is a privilege elevation operation since it grants access to resources owned by the root user.
+	// The effective user ID is listed inside the `process_credentials` part of the `process` object.
+	// For further reading, section `Capabilities and execution of programs by root` of https://man7.org/linux/man-pages/man7/capabilities.7.html.
+	// Afterward the kernel recalculates the capability sets of the process and grants all capabilities
+	// in the permitted and effective capability sets, except those masked out by the capability bounding set.
+	// If the binary also have file capability sets then these bits are honored and the process gains just
+	// the capabilities granted by the file capability sets (i.e., not all capabilities, as it would occur
+	// when executing a set-user-ID to root binary that does not have any associated file capabilities). This
+	// is described in section `Set-user-ID-root programs that have file capabilities` of https://man7.org/linux/man-pages/man7/capabilities.7.html.
+	// The new granted capabilities can be listed inside the `process` object.
+	// There is one exception for the special treatments of set-user-ID to root execution receiving all
+	// capabilities, if the `SecBitNoRoot` bit of the Secure bits is set, then the kernel does not grant
+	// any capability. Please check section: `The securebits flags: establishing a capabilities-only environment`
+	// of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html
+	ProcessPrivilegesChanged_PRIVILEGES_RAISED_EXEC_FILE_SETUID ProcessPrivilegesChanged = 2
+)
+
+// Enum value maps for ProcessPrivilegesChanged.
+var (
+	ProcessPrivilegesChanged_name = map[int32]string{
+		0: "PRIVILEGES_CHANGED_UNSET",
+		1: "PRIVILEGES_RAISED_EXEC_FILE_CAP",
+		2: "PRIVILEGES_RAISED_EXEC_FILE_SETUID",
+	}
+	ProcessPrivilegesChanged_value = map[string]int32{
+		"PRIVILEGES_CHANGED_UNSET":           0,
+		"PRIVILEGES_RAISED_EXEC_FILE_CAP":    1,
+		"PRIVILEGES_RAISED_EXEC_FILE_SETUID": 2,
+	}
+)
+
+func (x ProcessPrivilegesChanged) Enum() *ProcessPrivilegesChanged {
+	p := new(ProcessPrivilegesChanged)
+	*p = x
+	return p
+}
+
+func (x ProcessPrivilegesChanged) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProcessPrivilegesChanged) Descriptor() protoreflect.EnumDescriptor {
+	return file_tetragon_capabilities_proto_enumTypes[2].Descriptor()
+}
+
+func (ProcessPrivilegesChanged) Type() protoreflect.EnumType {
+	return &file_tetragon_capabilities_proto_enumTypes[2]
+}
+
+func (x ProcessPrivilegesChanged) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProcessPrivilegesChanged.Descriptor instead.
+func (ProcessPrivilegesChanged) EnumDescriptor() ([]byte, []int) {
+	return file_tetragon_capabilities_proto_rawDescGZIP(), []int{2}
+}
+
 var File_tetragon_capabilities_proto protoreflect.FileDescriptor
 
 var file_tetragon_capabilities_proto_rawDesc = []byte{
@@ -444,7 +519,16 @@ var file_tetragon_capabilities_proto_rawDesc = []byte{
 	0x61, 0x70, 0x41, 0x6d, 0x62, 0x69, 0x65, 0x6e, 0x74, 0x52, 0x61, 0x69, 0x73, 0x65, 0x10, 0x40,
 	0x12, 0x22, 0x0a, 0x1d, 0x53, 0x65, 0x63, 0x42, 0x69, 0x74, 0x4e, 0x6f, 0x43, 0x61, 0x70, 0x41,
 	0x6d, 0x62, 0x69, 0x65, 0x6e, 0x74, 0x52, 0x61, 0x69, 0x73, 0x65, 0x4c, 0x6f, 0x63, 0x6b, 0x65,
-	0x64, 0x10, 0x80, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x64, 0x10, 0x80, 0x01, 0x2a, 0x85, 0x01, 0x0a, 0x18, 0x50, 0x72, 0x6f, 0x63, 0x65, 0x73, 0x73,
+	0x50, 0x72, 0x69, 0x76, 0x69, 0x6c, 0x65, 0x67, 0x65, 0x73, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
+	0x64, 0x12, 0x1c, 0x0a, 0x18, 0x50, 0x52, 0x49, 0x56, 0x49, 0x4c, 0x45, 0x47, 0x45, 0x53, 0x5f,
+	0x43, 0x48, 0x41, 0x4e, 0x47, 0x45, 0x44, 0x5f, 0x55, 0x4e, 0x53, 0x45, 0x54, 0x10, 0x00, 0x12,
+	0x23, 0x0a, 0x1f, 0x50, 0x52, 0x49, 0x56, 0x49, 0x4c, 0x45, 0x47, 0x45, 0x53, 0x5f, 0x52, 0x41,
+	0x49, 0x53, 0x45, 0x44, 0x5f, 0x45, 0x58, 0x45, 0x43, 0x5f, 0x46, 0x49, 0x4c, 0x45, 0x5f, 0x43,
+	0x41, 0x50, 0x10, 0x01, 0x12, 0x26, 0x0a, 0x22, 0x50, 0x52, 0x49, 0x56, 0x49, 0x4c, 0x45, 0x47,
+	0x45, 0x53, 0x5f, 0x52, 0x41, 0x49, 0x53, 0x45, 0x44, 0x5f, 0x45, 0x58, 0x45, 0x43, 0x5f, 0x46,
+	0x49, 0x4c, 0x45, 0x5f, 0x53, 0x45, 0x54, 0x55, 0x49, 0x44, 0x10, 0x02, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -459,10 +543,11 @@ func file_tetragon_capabilities_proto_rawDescGZIP() []byte {
 	return file_tetragon_capabilities_proto_rawDescData
 }
 
-var file_tetragon_capabilities_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_tetragon_capabilities_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_tetragon_capabilities_proto_goTypes = []interface{}{
-	(CapabilitiesType)(0), // 0: tetragon.CapabilitiesType
-	(SecureBitsType)(0),   // 1: tetragon.SecureBitsType
+	(CapabilitiesType)(0),         // 0: tetragon.CapabilitiesType
+	(SecureBitsType)(0),           // 1: tetragon.SecureBitsType
+	(ProcessPrivilegesChanged)(0), // 2: tetragon.ProcessPrivilegesChanged
 }
 var file_tetragon_capabilities_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -482,7 +567,7 @@ func file_tetragon_capabilities_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tetragon_capabilities_proto_rawDesc,
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

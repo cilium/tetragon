@@ -66,6 +66,17 @@ version 1 of this API is defined in
 | CAP_BPF | 39 | CAP_BPF allows the following BPF operations: - Creating all types of BPF maps - Advanced verifier features - Indirect variable access - Bounded loops - BPF to BPF function calls - Scalar precision tracking - Larger complexity limits - Dead code elimination - And potentially other features - Loading BPF Type Format (BTF) data - Retrieve xlated and JITed code of BPF programs - Use bpf_spin_lock() helper CAP_PERFMON relaxes the verifier checks further: - BPF progs can use of pointer-to-integer conversions - speculation attack hardening measures are bypassed - bpf_probe_read to read arbitrary kernel memory is allowed - bpf_trace_printk to print kernel memory is allowed CAP_SYS_ADMIN is required to use bpf_probe_write_user. CAP_SYS_ADMIN is required to iterate system wide loaded programs, maps, links, BTFs and convert their IDs to file descriptors. CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and CAP_BPF are required to load networking programs. |
 | CAP_CHECKPOINT_RESTORE | 40 | Allow writing to ns_last_pid |
 
+<a name="tetragon-ProcessPrivilegesChanged"></a>
+
+### ProcessPrivilegesChanged
+Reasons of why the process privileges changed.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| PRIVILEGES_CHANGED_UNSET | 0 |  |
+| PRIVILEGES_RAISED_EXEC_FILE_CAP | 1 | A privilege elevation happened due to the execution of a binary with file capability sets. The kernel supports associating capability sets with an executable file using `setcap` command. The file capability sets are stored in an extended attribute (see https://man7.org/linux/man-pages/man7/xattr.7.html) named `security.capability`. The file capability sets, in conjunction with the capability sets of the process, determine the process capabilities and privileges after the `execve` system call. For further reference, please check sections `File capability extended attribute versioning` and `Namespaced file capabilities` of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html. The new granted capabilities can be listed inside the `process` object. |
+| PRIVILEGES_RAISED_EXEC_FILE_SETUID | 2 | A privilege elevation happened due to the execution of a binary with set-user-ID to root. When a process with nonzero UIDs executes a binary with a set-user-ID to root also known as suid-root executable, then the kernel switches the effective user ID to 0 (root) which is a privilege elevation operation since it grants access to resources owned by the root user. The effective user ID is listed inside the `process_credentials` part of the `process` object. For further reading, section `Capabilities and execution of programs by root` of https://man7.org/linux/man-pages/man7/capabilities.7.html. Afterward the kernel recalculates the capability sets of the process and grants all capabilities in the permitted and effective capability sets, except those masked out by the capability bounding set. If the binary also have file capability sets then these bits are honored and the process gains just the capabilities granted by the file capability sets (i.e., not all capabilities, as it would occur when executing a set-user-ID to root binary that does not have any associated file capabilities). This is described in section `Set-user-ID-root programs that have file capabilities` of https://man7.org/linux/man-pages/man7/capabilities.7.html. The new granted capabilities can be listed inside the `process` object. There is one exception for the special treatments of set-user-ID to root execution receiving all capabilities, if the `SecBitNoRoot` bit of the Secure bits is set, then the kernel does not grant any capability. Please check section: `The securebits flags: establishing a capabilities-only environment` of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html |
+
 <a name="tetragon-SecureBitsType"></a>
 
 ### SecureBitsType
@@ -94,6 +105,7 @@ version 1 of this API is defined in
 | ----- | ---- | ----- | ----------- |
 | setuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set user ID used for execution |
 | setgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set group ID used for execution |
+| privileges_changed | [ProcessPrivilegesChanged](#tetragon-ProcessPrivilegesChanged) | repeated | The reasons why this binary execution changed privileges. Usually this happens when the process executes a binary with the set-user-ID to root or file capability sets. The final granted privileges can be listed inside the `process_credentials` or capabilities fields part of of the `process` object. |
 
 <a name="tetragon-Capabilities"></a>
 
