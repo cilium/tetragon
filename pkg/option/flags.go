@@ -86,7 +86,8 @@ const (
 
 	KeyKmods = "kmods"
 
-	KeyEnablePodInfo = "enable-pod-info"
+	KeyEnablePodInfo          = "enable-pod-info"
+	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
 
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 
@@ -165,6 +166,7 @@ func ReadAndSetFlags() error {
 	Config.KMods = viper.GetStringSlice(KeyKmods)
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
+	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
@@ -271,6 +273,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyRBQueueSize, "65535", "Set size of channel between ring buffer and sensor go routines (default 65k, allows K/M/G suffix)")
 
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
+	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 
