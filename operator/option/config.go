@@ -26,6 +26,10 @@ const (
 	// SkipPodInfoCRD specifies whether the tetragonPod CustomResourceDefinition will be
 	// disabled
 	SkipPodInfoCRD = "skip-pod-info-crd"
+
+	// SkipTracingPolicyCRD specifies whether the tracing-policies CustomResourceDefinition will be
+	// disabled
+	SkipTracingPolicyCRD = "skip-tracing-policy-crd"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -42,6 +46,10 @@ type OperatorConfig struct {
 
 	// SkipPodInfoCRD disables creation of the TetragonPod CustomResourceDefinition only.
 	SkipPodInfoCRD bool
+
+	// SkipTracingPolicyCRD disables creation of the TracingPolicy and
+	// TracingPolicyNamespaced CustomResourceDefinition only.
+	SkipTracingPolicyCRD bool
 }
 
 // Config represents the operator configuration.
@@ -53,4 +61,5 @@ func ConfigPopulate() {
 	Config.KubeCfgPath = viper.GetString(KubeCfgPath)
 	Config.ConfigDir = viper.GetString(ConfigDir)
 	Config.SkipPodInfoCRD = viper.GetBool(SkipPodInfoCRD)
+	Config.SkipTracingPolicyCRD = viper.GetBool(SkipTracingPolicyCRD)
 }

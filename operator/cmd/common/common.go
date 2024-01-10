@@ -21,6 +21,7 @@ func AddCommonFlags(cmd *cobra.Command) {
 	flags.String(operatorOption.KubeCfgPath, "", "Kubeconfig filepath to connect to k8s")
 	flags.String(operatorOption.ConfigDir, "", "Directory in which tetragon-operator-config configmap is mounted")
 	flags.Bool(operatorOption.SkipPodInfoCRD, false, "When true, PodInfo Custom Resource Definition (CRD) will not be created")
+	flags.Bool(operatorOption.SkipTracingPolicyCRD, false, "When true, TracingPolicy and TracingPolicyNamespaced Custom Resource Definition (CRD) will not be created")
 }
 
 func Initialize(cmd *cobra.Command) {

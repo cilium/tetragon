@@ -58,7 +58,12 @@ func RegisterCRDs() {
 
 	crds := []crdutils.CRD{}
 	for _, crd := range client.AllCRDs {
-		if option.Config.SkipPodInfoCRD && crd.CRDName == client.PodInfoCRD.CRDName {
+		switch {
+		case option.Config.SkipPodInfoCRD && crd.CRDName == client.PodInfoCRD.CRDName:
+			continue
+		case option.Config.SkipTracingPolicyCRD && crd.CRDName == client.TracingPolicyCRD.CRDName:
+			continue
+		case option.Config.SkipTracingPolicyCRD && crd.CRDName == client.TracingPolicyNamespacedCRD.CRDName:
 			continue
 		}
 		crds = append(crds, crd)

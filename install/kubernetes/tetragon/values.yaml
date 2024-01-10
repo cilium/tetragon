@@ -232,6 +232,9 @@ tetragonOperator:
     # -- Enables the PodInfo CRD and the controller that reconciles PodInfo
     # custom resources.
     enabled: false
+  tracingPolicy:
+    # -- Enables the TracingPolicy and TracingPolicyNamespaced CRD creation.
+    enabled: true
   # -- Enables the Tetragon Operator metrics.
   prometheus:
     enabled: true

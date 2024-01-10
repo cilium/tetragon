@@ -56,4 +56,5 @@ data:
   enable-msg-handling-latency: "true"
 {{- end }}
   enable-pod-info: {{ .Values.tetragonOperator.podInfo.enabled | quote }}
+  enable-tracing-policy-crd: {{ .Values.tetragonOperator.tracingPolicy.enabled | quote }}
   {{- include "configmap.extra" . | nindent 2 }}
