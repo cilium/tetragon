@@ -90,6 +90,11 @@ func ProcessIdent(g *protogen.GeneratedFile) string {
 	return GoIdent(g, importPath, "Process")
 }
 
+func ProcessKprobeIdent(g *protogen.GeneratedFile) string {
+	importPath := filepath.Join("github.com/cilium/tetragon/api/v1/tetragon")
+	return GoIdent(g, importPath, "ProcessKprobe")
+}
+
 func ListMatcherIdent(g *protogen.GeneratedFile, name string) string {
 	importPath := filepath.Join("github.com/cilium/tetragon/pkg/matchers/listmatcher")
 	return GoIdent(g, importPath, name)
