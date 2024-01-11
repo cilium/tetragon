@@ -53,6 +53,7 @@ type Opts struct {
 	Timestamps    bool
 	TTYEncode     string
 	StackTraces   bool
+	PolicyNames   []string
 }
 
 var Options Opts
@@ -97,6 +98,10 @@ var GetFilter = func() *tetragon.Filter {
 			filter.EventSet = append(filter.EventSet, eventType)
 		}
 	}
+	if len(Options.PolicyNames) > 0 {
+		filter.PolicyNames = Options.PolicyNames
+	}
+
 	return &filter
 }
 
@@ -214,5 +219,6 @@ func New() *cobra.Command {
 	flags.BoolVar(&Options.Timestamps, "timestamps", false, "Include timestamps in compact output")
 	flags.StringVarP(&Options.TTYEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
 	flags.BoolVar(&Options.StackTraces, "stack-traces", true, "Include stack traces in compact output")
+	flags.StringSliceVar(&Options.PolicyNames, "policy-names", nil, "Get events by tracing policy names")
 	return &cmd
 }
