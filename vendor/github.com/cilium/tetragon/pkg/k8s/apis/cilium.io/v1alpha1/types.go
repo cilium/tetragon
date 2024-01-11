@@ -221,6 +221,14 @@ type ActionSelector struct {
 	// or hours ('h' suffix). Only valid with the post action.
 	RateLimit string `json:"rateLimit"`
 	// +kubebuilder:validation:Optional
+	// The scope of the provided rate limit argument. Can be "thread" (default),
+	// "process" (all threads for the same process), or "global". If "thread" is
+	// selected then rate limiting applies per thread; if "process" is selected
+	// then rate limiting applies per process; if "global" is selected then rate
+	// limiting applies regardless of which process or thread caused the action.
+	// Only valid with the post action and with a rateLimit specified.
+	RateLimitScope string `json:"rateLimitScope"`
+	// +kubebuilder:validation:Optional
 	// Enable stack trace export. Only valid with the post action.
 	StackTrace bool `json:"stackTrace"`
 }

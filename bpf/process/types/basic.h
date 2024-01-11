@@ -1865,9 +1865,13 @@ do_action_signal(int signal)
  */
 #define KEY_BYTES_PER_ARG 40
 
+/* Rate limit scope. */
+#define ACTION_RATE_LIMIT_SCOPE_THREAD	0
+#define ACTION_RATE_LIMIT_SCOPE_PROCESS 1
+#define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
+
 struct ratelimit_key {
 	__u64 func_id;
-	__u64 retprobe_id;
 	__u64 action;
 	__u64 tid;
 	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
@@ -1904,7 +1908,7 @@ struct {
 
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) bool
-rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
+rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
 	__u64 curr_time = ktime_get_ns();
 	__u64 *last_repeat_entry;
@@ -1926,9 +1930,20 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 	ro_heap = map_lookup_elem(&ratelimit_ro_heap, &zero);
 
 	key->func_id = e->func_id;
-	key->retprobe_id = e->retprobe_id;
 	key->action = e->action;
-	key->tid = e->tid;
+	switch (ratelimit_scope) {
+	case ACTION_RATE_LIMIT_SCOPE_THREAD:
+		key->tid = e->tid;
+		break;
+	case ACTION_RATE_LIMIT_SCOPE_PROCESS:
+		key->tid = e->current.pid;
+		break;
+	case ACTION_RATE_LIMIT_SCOPE_GLOBAL:
+		key->tid = 0;
+		break;
+	default:
+		return false;
+	}
 
 	// Clean the heap
 	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
@@ -2093,8 +2108,9 @@ do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 		break;
 	case ACTION_POST: {
 		__u64 ratelimit_interval __maybe_unused = actions->act[++i];
+		__u64 ratelimit_scope __maybe_unused = actions->act[++i];
 #ifdef __LARGE_BPF_PROG
-		if (rate_limit(ratelimit_interval, e))
+		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
 		__u32 stack_trace = actions->act[++i];
