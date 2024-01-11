@@ -477,6 +477,7 @@ func TestParseMatchAction(t *testing.T) {
 	expected1 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
+		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 	}
 	if err := ParseMatchAction(k, act1, &actionArgTable); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
@@ -488,9 +489,10 @@ func TestParseMatchAction(t *testing.T) {
 	expected2 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
+		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 	}
-	length := []byte{28, 0x00, 0x00, 0x00}
+	length := []byte{36, 0x00, 0x00, 0x00}
 	expected := append(length, expected1[:]...)
 	expected = append(expected, expected2[:]...)
 
@@ -593,11 +595,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0xf8, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0xfc, 0x00, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x2c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x30, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -682,14 +684,14 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	expected_last_large := []byte{
 		// arg header
-		88, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		88, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
 		64, 0x00, 0x00, 0x00, // arg[1] offset
 		0x00, 0x00, 0x00, 0x00, // arg[2] offset
 		0x00, 0x00, 0x00, 0x00, // arg[3] offset
 		0x00, 0x00, 0x00, 0x00, // arg[4] offset
 
-		//arg1 size = 26
+		//arg1 size = 40
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		32, 0x00, 0x00, 0x00, // length == 32
@@ -710,9 +712,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // value 2
 
 		// actions header
-		28, 0x00, 0x00, 0x00, // size = (3 * sizeof(uint32) * number of actions) + args
+		32, 0x00, 0x00, 0x00, // size = (4 * sizeof(uint32) * number of actions) + args
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
+		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
@@ -721,14 +724,14 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	expected_last_small := []byte{
 		// arg header
-		64, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 4
+		64, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 32
 		24, 0x00, 0x00, 0x00, // arg[0] offset
 		0x00, 0x00, 0x00, 0x00, // arg[1] offset
 		0x00, 0x00, 0x00, 0x00, // arg[2] offset
 		0x00, 0x00, 0x00, 0x00, // arg[3] offset
 		0x00, 0x00, 0x00, 0x00, // arg[4] offset
 
-		//arg1 size = 26
+		//arg1 size = 40
 		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		32, 0x00, 0x00, 0x00, // length == 32
@@ -741,9 +744,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
 
 		// actions header
-		28, 0x00, 0x00, 0x00, // size = (3 * sizeof(uint32) * number of actions) + args + 4
+		32, 0x00, 0x00, 0x00, // size = (4 * sizeof(uint32) * number of actions) + args + 4
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
+		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
@@ -925,16 +929,17 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 
 	expU32Push(1)  // off: 0       number of selectors
 	expU32Push(4)  // off: 4       relative ofset of selector (4 + 4 = 8)
-	expU32Push(56) // off: 8       selector: length
+	expU32Push(60) // off: 8       selector: length
 	expU32Push(24) // off: 12      selector: matchReturnArgs length
 	expU32Push(0)  // off: 16      selector: matchReturnArgs arg offset[0]
 	expU32Push(0)  // off: 20      selector: matchReturnArgs arg offset[1]
 	expU32Push(0)  // off: 24      selector: matchReturnArgs arg offset[2]
 	expU32Push(0)  // off: 28      selector: matchReturnArgs arg offset[3]
 	expU32Push(0)  // off: 32      selector: matchReturnArgs arg offset[4]
-	expU32Push(28) // off: 36      selector: matchReturnActions length
+	expU32Push(32) // off: 36      selector: matchReturnActions length
 	expU32Push(0)  // off: 40      selector: selectors.ActionTypePost
 	expU32Push(0)  // off: 44      selector: rateLimit
+	expU32Push(0)  // off: 44      selector: rateLimitScope
 	expU32Push(0)  // off: 48      selector: stackTrace
 	expU32Push(1)  // off: 52      selector: selectors.ActionTypeFollowFd
 	expU32Push(7)  // off: 56      selector: action.ArgFd

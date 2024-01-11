@@ -68,6 +68,18 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeNotifyKiller: "notifykiller",
 }
 
+const (
+	ActionRateLimitScopeThread = iota
+	ActionRateLimitScopeProcess
+	ActionRateLimitScopeGlobal
+)
+
+var actionRateLimitScope = map[string]uint32{
+	"thread":  ActionRateLimitScopeThread,
+	"process": ActionRateLimitScopeProcess,
+	"global":  ActionRateLimitScopeGlobal,
+}
+
 // Action argument table entry (for URL and FQDN arguments)
 type ActionArgEntry struct {
 	arg     string
@@ -902,7 +914,7 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 }
 
 // User specifies rateLimit in seconds, minutes or hours, but we store it in milliseconds.
-func parseRateLimit(str string) (uint32, error) {
+func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 	multiplier := uint32(0)
 	switch str[len(str)-1] {
 	case 's', 'S':
@@ -916,7 +928,7 @@ func parseRateLimit(str string) (uint32, error) {
 	var err error
 	if multiplier != 0 {
 		if len(str) == 1 {
-			return 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
+			return 0, 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
 		}
 		rateLimit, err = strconv.ParseUint(str[:len(str)-1], 10, 32)
 	} else {
@@ -924,13 +936,22 @@ func parseRateLimit(str string) (uint32, error) {
 		multiplier = 1
 	}
 	if err != nil {
-		return 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
+		return 0, 0, fmt.Errorf("parseRateLimit: rateLimit value %s is invalid", str)
 	}
+	scope := uint32(ActionRateLimitScopeThread)
+	if scopeStr != "" {
+		var ok bool
+		scope, ok = actionRateLimitScope[scopeStr]
+		if !ok {
+			return 0, 0, fmt.Errorf("parseRateLimit: rateLimitScope value %s is invalid", scopeStr)
+		}
+	}
+
 	rateLimit = rateLimit * uint64(multiplier) * 1000
 	if rateLimit > 0xffffffff {
 		rateLimit = 0xffffffff
 	}
-	return uint32(rateLimit), nil
+	return uint32(rateLimit), scope, nil
 }
 
 func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
@@ -941,12 +962,13 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	WriteSelectorUint32(&k.data, act)
 
 	rateLimit := uint32(0)
+	rateLimitScope := uint32(0)
 	if action.RateLimit != "" {
 		if act != ActionTypePost {
 			return fmt.Errorf("rate limiting can only applied to post action (was applied to '%s')", action.Action)
 		}
 		var err error
-		rateLimit, err = parseRateLimit(action.RateLimit)
+		rateLimit, rateLimitScope, err = parseRateLimit(action.RateLimit, action.RateLimitScope)
 		if err != nil {
 			return err
 		}
@@ -979,6 +1001,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, action.ArgSock)
 	case ActionTypePost:
 		WriteSelectorUint32(&k.data, rateLimit)
+		WriteSelectorUint32(&k.data, rateLimitScope)
 		stackTrace := uint32(0)
 		if action.StackTrace {
 			stackTrace = 1

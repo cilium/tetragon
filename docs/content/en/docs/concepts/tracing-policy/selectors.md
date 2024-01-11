@@ -825,6 +825,11 @@ matchActions:
   rateLimit: 5m
 ```
 
+By default, the rate limiting is applied per thread, meaning that only repeated
+actions by the same thread will be rate limited. This can be expanded to all
+threads for a process by specifying a rateLimitScope with value "process"; or
+can be expanded to all processes by specifying the same with the value "global".
+
 #### Stack traces
 
 `Post` takes the `stackTrace` parameter, when turned to `true` (by default to
