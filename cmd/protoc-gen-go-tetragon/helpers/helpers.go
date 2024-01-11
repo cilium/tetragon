@@ -110,6 +110,22 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 	return nil
 }
 
+func generateResponseGetProcessKprobe(g *protogen.GeneratedFile) error {
+	processKprobe := common.ProcessKprobeIdent(g)
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+
+	g.P(`// ResponseGetProcessKprobe returns a GetEventsResponse's process if it exists
+    func ResponseGetProcessKprobe(response *` + tetragonGER + `) *` + processKprobe + ` {
+        if response == nil {
+            return nil
+        }
+
+		return response.GetProcessKprobe()
+	 }`)
+
+	return nil
+}
+
 func generateResponseGetParent(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
@@ -182,6 +198,10 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 	}
 
 	if err := generateResponseInnerGetProcess(g, files); err != nil {
+		return err
+	}
+
+	if err := generateResponseGetProcessKprobe(g); err != nil {
 		return err
 	}
 

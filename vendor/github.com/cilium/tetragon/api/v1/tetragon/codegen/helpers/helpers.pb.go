@@ -77,6 +77,15 @@ func ResponseInnerGetProcess(event tetragon.IsGetEventsResponse_Event) *tetragon
 	return nil
 }
 
+// ResponseGetProcessKprobe returns a GetEventsResponse's process if it exists
+func ResponseGetProcessKprobe(response *tetragon.GetEventsResponse) *tetragon.ProcessKprobe {
+	if response == nil {
+		return nil
+	}
+
+	return response.GetProcessKprobe()
+}
+
 // ResponseGetParent returns a GetEventsResponse's parent process if it exists
 func ResponseGetParent(response *tetragon.GetEventsResponse) *tetragon.Process {
 	if response == nil {

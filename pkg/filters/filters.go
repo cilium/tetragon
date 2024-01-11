@@ -92,6 +92,7 @@ var Filters = []OnBuildFilter{
 	&ArgumentsRegexFilter{},
 	&LabelsFilter{},
 	&PodRegexFilter{},
+	&PolicyNamesFilter{},
 }
 
 func GetProcess(event *v1.Event) *tetragon.Process {
@@ -114,4 +115,15 @@ func GetParent(event *v1.Event) *tetragon.Process {
 		return nil
 	}
 	return helpers.ResponseGetParent(response)
+}
+
+func GetPolicyName(event *v1.Event) string {
+	if event == nil {
+		return ""
+	}
+	response, ok := event.Event.(*tetragon.GetEventsResponse)
+	if !ok {
+		return ""
+	}
+	return helpers.ResponseGetProcessKprobe(response).GetPolicyName()
 }
