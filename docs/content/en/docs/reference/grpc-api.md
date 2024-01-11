@@ -739,7 +739,7 @@ GetEventsResponse event oneof.
 <a name="tetragon-FieldFilterAction"></a>
 
 ### FieldFilterAction
-Determins the behaviour of a field filter
+Determines the behavior of a field filter
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |

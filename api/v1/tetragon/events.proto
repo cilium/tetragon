@@ -53,7 +53,7 @@ message Filter {
     repeated string labels = 9;
 }
 
-// Determins the behaviour of a field filter
+// Determines the behavior of a field filter
 enum FieldFilterAction {
     INCLUDE = 0;
     EXCLUDE = 1;

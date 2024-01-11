@@ -98,7 +98,7 @@ func (EventType) EnumDescriptor() ([]byte, []int) {
 	return file_tetragon_events_proto_rawDescGZIP(), []int{0}
 }
 
-// Determins the behaviour of a field filter
+// Determines the behavior of a field filter
 type FieldFilterAction int32
 
 const (
