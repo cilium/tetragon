@@ -142,15 +142,7 @@ func AssignMetadataToInstructions(
 
 // MarshalExtInfos encodes function and line info embedded in insns into kernel
 // wire format.
-//
-// Returns ErrNotSupported if the kernel doesn't support BTF-associated programs.
-func MarshalExtInfos(insns asm.Instructions) (_ *Handle, funcInfos, lineInfos []byte, _ error) {
-	// Bail out early if the kernel doesn't support Func(Proto). If this is the
-	// case, func_info will also be unsupported.
-	if err := haveProgBTF(); err != nil {
-		return nil, nil, nil, err
-	}
-
+func MarshalExtInfos(insns asm.Instructions, b *Builder) (funcInfos, lineInfos []byte, _ error) {
 	iter := insns.Iterate()
 	for iter.Next() {
 		_, ok := iter.Ins.Source().(*Line)
@@ -160,10 +152,9 @@ func MarshalExtInfos(insns asm.Instructions) (_ *Handle, funcInfos, lineInfos []
 		}
 	}
 
-	return nil, nil, nil, nil
+	return nil, nil, nil
 
 marshal:
-	var b Builder
 	var fiBuf, liBuf bytes.Buffer
 	for {
 		if fn := FuncMetadata(iter.Ins); fn != nil {
@@ -171,8 +162,8 @@ marshal:
 				fn:     fn,
 				offset: iter.Offset,
 			}
-			if err := fi.marshal(&fiBuf, &b); err != nil {
-				return nil, nil, nil, fmt.Errorf("write func info: %w", err)
+			if err := fi.marshal(&fiBuf, b); err != nil {
+				return nil, nil, fmt.Errorf("write func info: %w", err)
 			}
 		}
 
@@ -181,8 +172,8 @@ marshal:
 				line:   line,
 				offset: iter.Offset,
 			}
-			if err := li.marshal(&liBuf, &b); err != nil {
-				return nil, nil, nil, fmt.Errorf("write line info: %w", err)
+			if err := li.marshal(&liBuf, b); err != nil {
+				return nil, nil, fmt.Errorf("write line info: %w", err)
 			}
 		}
 
@@ -191,8 +182,7 @@ marshal:
 		}
 	}
 
-	handle, err := NewHandle(&b)
-	return handle, fiBuf.Bytes(), liBuf.Bytes(), err
+	return fiBuf.Bytes(), liBuf.Bytes(), nil
 }
 
 // btfExtHeader is found at the start of the .BTF.ext section.
@@ -556,21 +546,21 @@ func LoadLineInfos(reader io.Reader, bo binary.ByteOrder, recordNum uint32, spec
 	return newLineInfos(lis, spec.strings)
 }
 
-func newLineInfo(li bpfLineInfo, strings *stringTable) (*lineInfo, error) {
+func newLineInfo(li bpfLineInfo, strings *stringTable) (lineInfo, error) {
 	line, err := strings.Lookup(li.LineOff)
 	if err != nil {
-		return nil, fmt.Errorf("lookup of line: %w", err)
+		return lineInfo{}, fmt.Errorf("lookup of line: %w", err)
 	}
 
 	fileName, err := strings.Lookup(li.FileNameOff)
 	if err != nil {
-		return nil, fmt.Errorf("lookup of filename: %w", err)
+		return lineInfo{}, fmt.Errorf("lookup of filename: %w", err)
 	}
 
 	lineNumber := li.LineCol >> bpfLineShift
 	lineColumn := li.LineCol & bpfColumnMax
 
-	return &lineInfo{
+	return lineInfo{
 		&Line{
 			fileName,
 			line,
@@ -590,7 +580,7 @@ func newLineInfos(blis []bpfLineInfo, strings *stringTable) (LineInfos, error) {
 		if err != nil {
 			return LineInfos{}, fmt.Errorf("offset %d: %w", bli.InsnOff, err)
 		}
-		lis.infos = append(lis.infos, *li)
+		lis.infos = append(lis.infos, li)
 	}
 	sort.Slice(lis.infos, func(i, j int) bool {
 		return lis.infos[i].offset <= lis.infos[j].offset
@@ -666,7 +656,6 @@ func parseLineInfos(r io.Reader, bo binary.ByteOrder, strings *stringTable) (map
 // These records appear after a btf_ext_info_sec header in the line_info
 // sub-section of .BTF.ext.
 func parseLineInfoRecords(r io.Reader, bo binary.ByteOrder, recordSize uint32, recordNum uint32, offsetInBytes bool) ([]bpfLineInfo, error) {
-	var out []bpfLineInfo
 	var li bpfLineInfo
 
 	if exp, got := uint32(binary.Size(li)), recordSize; exp != got {
@@ -674,6 +663,7 @@ func parseLineInfoRecords(r io.Reader, bo binary.ByteOrder, recordSize uint32, r
 		return nil, fmt.Errorf("expected LineInfo record size %d, but BTF blob contains %d", exp, got)
 	}
 
+	out := make([]bpfLineInfo, 0, recordNum)
 	for i := uint32(0); i < recordNum; i++ {
 		if err := binary.Read(r, bo, &li); err != nil {
 			return nil, fmt.Errorf("can't read line info: %v", err)

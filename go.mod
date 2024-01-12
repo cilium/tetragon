@@ -6,7 +6,7 @@ go 1.21.4
 require (
 	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/cilium/cilium v1.15.0-pre.1
-	github.com/cilium/ebpf v0.12.2
+	github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c
 	github.com/cilium/little-vm-helper v0.0.13-0.20230929123958-5fec6024949c
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
@@ -41,7 +41,7 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.4.0
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.15.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
