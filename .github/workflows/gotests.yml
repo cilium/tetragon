@@ -30,11 +30,13 @@ jobs:
 
     - name: Install dependencies x86
       run: |
+        sudo apt-get update
         sudo apt-get -y install libc6-dev-i386
       if: ${{ matrix.os == 'ubuntu-20.04' }}
 
     - name: Install dependencies
       run: |
+        sudo apt-get update
         sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc
 
         sudo sed -i '/secure_path/d' /etc/sudoers
