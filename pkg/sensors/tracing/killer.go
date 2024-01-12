@@ -20,6 +20,10 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+const (
+	killerDataMapName = "killer_data"
+)
+
 type killerHandler struct {
 	configured   bool
 	syscallsSyms []string
@@ -233,7 +237,7 @@ func (kh *killerHandler) createKillerSensor(
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	killerDataMap := program.MapBuilderPin("killer_data", "killer_data", load)
+	killerDataMap := program.MapBuilderPin(killerDataMapName, killerDataMapName, load)
 	maps = append(maps, killerDataMap)
 
 	return &sensors.Sensor{
