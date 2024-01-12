@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.21.5'
+          go-version: '1.21.6'
           # using golangci-lint cache instead
           cache: false
 
@@ -48,7 +48,7 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.21.5'
+          go-version: '1.21.6'
 
       - name: Check gofmt formatting
         run: |
@@ -78,7 +78,7 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.21.5'
+          go-version: '1.21.6'
 
       - name: Check module vendoring
         run: |
