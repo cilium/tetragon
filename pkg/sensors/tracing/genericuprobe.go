@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -47,6 +48,8 @@ type genericUprobe struct {
 	policyName string
 	// message field of the Tracing Policy
 	message string
+	// argument data printers
+	argPrinters []argPrinter
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -96,6 +99,16 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Symbol = uprobeEntry.symbol
 	unix.PolicyName = uprobeEntry.policyName
 	unix.Message = uprobeEntry.message
+
+	// Get argument objects for specific printers/types
+	for _, a := range uprobeEntry.argPrinters {
+		arg := getArg(r, a)
+		// nop or unknown type (already logged)
+		if arg == nil {
+			continue
+		}
+		unix.Args = append(unix.Args, arg)
+	}
 
 	return []observer.Event{unix}, err
 }
@@ -196,17 +209,59 @@ func createGenericUprobeSensor(
 			logger.GetLogger().WithField("policy-name", policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 		}
 
+		var (
+			argTypes [api.EventConfigMaxArgs]int32
+			argMeta  [api.EventConfigMaxArgs]uint32
+			argSet   [api.EventConfigMaxArgs]bool
+
+			argPrinters []argPrinter
+		)
+
+		// Parse Arguments
+		for i, a := range spec.Args {
+			argType := gt.GenericTypeFromString(a.Type)
+			if argType == gt.GenericInvalidType {
+				return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
+			}
+			argMValue, err := getMetaValue(&a)
+			if err != nil {
+				return nil, err
+			}
+			if a.Index > 4 {
+				return nil, fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+					a.Type, int(a.Index))
+			}
+			argTypes[a.Index] = int32(argType)
+			argMeta[a.Index] = uint32(argMValue)
+			argSet[a.Index] = true
+
+			argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
+		}
+
+		// Mark remaining arguments as 'nops' the kernel side will skip
+		// copying 'nop' args.
+		for i, a := range argSet {
+			if !a {
+				argTypes[i] = gt.GenericNopType
+				argMeta[i] = 0
+			}
+		}
+
 		for _, sym := range spec.Symbols {
-			config := &api.EventConfig{}
+			config := &api.EventConfig{
+				Arg:  argTypes,
+				ArgM: argMeta,
+			}
 
 			uprobeEntry := &genericUprobe{
-				tableId:    idtable.UninitializedEntryID,
-				config:     config,
-				path:       spec.Path,
-				symbol:     sym,
-				selectors:  uprobeSelectorState,
-				policyName: policyName,
-				message:    msgField,
+				tableId:     idtable.UninitializedEntryID,
+				config:      config,
+				path:        spec.Path,
+				symbol:      sym,
+				selectors:   uprobeSelectorState,
+				policyName:  policyName,
+				message:     msgField,
+				argPrinters: argPrinters,
 			}
 
 			uprobeTable.AddEntry(uprobeEntry)
