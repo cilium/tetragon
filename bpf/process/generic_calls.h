@@ -174,11 +174,11 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 
 #ifdef GENERIC_UPROBE
 	/* no arguments for uprobes for now */
-	e->a0 = 0;
-	e->a1 = 0;
-	e->a2 = 0;
-	e->a3 = 0;
-	e->a4 = 0;
+	e->a0 = PT_REGS_PARM1_CORE(ctx);
+	e->a1 = PT_REGS_PARM2_CORE(ctx);
+	e->a2 = PT_REGS_PARM3_CORE(ctx);
+	e->a3 = PT_REGS_PARM4_CORE(ctx);
+	e->a4 = PT_REGS_PARM5_CORE(ctx);
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 

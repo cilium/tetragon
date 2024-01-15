@@ -622,6 +622,7 @@ type MsgGenericUprobeUnix struct {
 	Symbol     string
 	PolicyName string
 	Message    string
+	Args       []tracingapi.MsgGenericKprobeArg
 }
 
 func (msg *MsgGenericUprobeUnix) Notify() bool {
@@ -645,6 +646,7 @@ func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev not
 
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	var tetragonParent, tetragonProcess *tetragon.Process
+	var tetragonArgs []*tetragon.KprobeArgument
 
 	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if proc == nil {
@@ -664,6 +666,10 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
+	for _, arg := range event.Args {
+		tetragonArgs = append(tetragonArgs, getKprobeArgument(arg))
+	}
+
 	tetragonEvent := &tetragon.ProcessUprobe{
 		Process:    tetragonProcess,
 		Parent:     tetragonParent,
@@ -671,6 +677,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Symbol:     event.Symbol,
 		PolicyName: event.PolicyName,
 		Message:    event.Message,
+		Args:       tetragonArgs,
 	}
 
 	if tetragonProcess.Pid == nil {
