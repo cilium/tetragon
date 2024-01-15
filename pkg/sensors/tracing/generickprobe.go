@@ -88,7 +88,7 @@ type kprobeLoadArgs struct {
 	config    *api.EventConfig
 }
 
-type argPrinters struct {
+type argPrinter struct {
 	ty      int
 	index   int
 	maxData bool
@@ -103,8 +103,8 @@ type pendingEventKey struct {
 // internal genericKprobe info
 type genericKprobe struct {
 	loadArgs          kprobeLoadArgs
-	argSigPrinters    []argPrinters
-	argReturnPrinters []argPrinters
+	argSigPrinters    []argPrinter
+	argReturnPrinters []argPrinter
 	funcName          string
 
 	// for kprobes that have a retprobe, we maintain the enter events in
@@ -645,8 +645,8 @@ func createGenericKprobeSensor(
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
 func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
-	var argSigPrinters []argPrinters
-	var argReturnPrinters []argPrinters
+	var argSigPrinters []argPrinter
+	var argReturnPrinters []argPrinter
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
 	var argsBTFSet [api.MaxArgsSupported]bool
@@ -718,7 +718,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		config.ArgM[a.Index] = uint32(argMValue)
 
 		argsBTFSet[a.Index] = true
-		argP := argPrinters{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 	}
 
@@ -744,7 +744,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		}
 		config.ArgReturn = int32(argType)
 		argsBTFSet[api.ReturnArgIndex] = true
-		argP := argPrinters{index: api.ReturnArgIndex, ty: argType}
+		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
 		config.ArgReturn = int32(0)
@@ -757,7 +757,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
 		config.ArgReturnCopy = int32(argType)
 
-		argP := argPrinters{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
+		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
 		config.ArgReturnCopy = int32(0)
@@ -1219,7 +1219,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	returnEvent := m.Common.Flags&processapi.MSG_COMMON_FLAG_RETURN != 0
 
 	var ktimeEnter uint64
-	var printers []argPrinters
+	var printers []argPrinter
 	if returnEvent {
 		// if this a return event, also read the ktime of the enter event
 		err := binary.Read(r, binary.LittleEndian, &ktimeEnter)
