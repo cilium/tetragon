@@ -525,6 +525,7 @@ loader sensor event triggered for loaded binary/library
 | symbol | [string](#string) |  |  |
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
 
 <a name="tetragon-RuntimeHookRequest"></a>
 
