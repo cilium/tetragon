@@ -53,7 +53,7 @@ requirements have been met:
    Note: Make sure to include a blank line in between commit title and commit description.
 
 5. All commits are signed off. See the section [Developer’s Certificate of
-   Origin](/docs/contribution-guide/developer-certificate-of-origin/).
+   Origin]({{< ref "/docs/contribution-guide/developer-certificate-of-origin" >}}).
 
-6. All important steps in [Making changes](/docs/contribution-guide/making-changes/) have been followed.
+6. All important steps in [Making changes]({{< ref "/docs/contribution-guide/making-changes" >}}) have been followed.
 
