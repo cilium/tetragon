@@ -115,7 +115,7 @@ func selectOverrideMethod(specOpts *specOptions) (OverrideMethod, error) {
 		// by default, first try OverrideReturn and if this does not work try fmod_ret
 		if bpf.HasOverrideHelper() {
 			overrideMethod = OverrideMethodReturn
-		} else if bpf.HasModifyReturn() {
+		} else if bpf.HasModifyReturnSyscall() {
 			overrideMethod = OverrideMethodFmodRet
 		} else {
 			return OverrideMethodInvalid, fmt.Errorf("no override helper or mod_ret support: cannot load killer")
@@ -125,7 +125,7 @@ func selectOverrideMethod(specOpts *specOptions) (OverrideMethod, error) {
 			return OverrideMethodInvalid, fmt.Errorf("option override return set, but it is not supported")
 		}
 	case OverrideMethodFmodRet:
-		if !bpf.HasModifyReturn() {
+		if !bpf.HasModifyReturnSyscall() {
 			return OverrideMethodInvalid, fmt.Errorf("option fmod_ret set, but it is not supported")
 		}
 	}
