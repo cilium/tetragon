@@ -689,6 +689,11 @@ func (in *UProbeSpec) DeepCopyInto(out *UProbeSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
+		*out = make([]KProbeArg, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
