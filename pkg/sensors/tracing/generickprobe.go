@@ -88,13 +88,6 @@ type kprobeLoadArgs struct {
 	config    *api.EventConfig
 }
 
-type argPrinter struct {
-	ty      int
-	index   int
-	maxData bool
-	label   string
-}
-
 type pendingEventKey struct {
 	eventId    uint64
 	ktimeEnter uint64
@@ -169,39 +162,6 @@ func genericKprobeTableGet(id idtable.EntryID) (*genericKprobe, error) {
 var (
 	MaxFilterIntArgs = 8
 )
-
-const (
-	argReturnCopyBit = 1 << 4
-	argMaxDataBit    = 1 << 5
-)
-
-func argReturnCopy(meta int) bool {
-	return meta&argReturnCopyBit != 0
-}
-
-// meta value format:
-// bits
-//
-//	0-3 : SizeArgIndex
-//	  4 : ReturnCopy
-//	  5 : MaxData
-func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
-	var meta int
-
-	if arg.SizeArgIndex > 0 {
-		if arg.SizeArgIndex > 15 {
-			return 0, fmt.Errorf("invalid SizeArgIndex value (>15): %v", arg.SizeArgIndex)
-		}
-		meta = int(arg.SizeArgIndex)
-	}
-	if arg.ReturnCopy {
-		meta = meta | argReturnCopyBit
-	}
-	if arg.MaxData {
-		meta = meta | argMaxDataBit
-	}
-	return meta, nil
-}
 
 func multiKprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_kprobe")
