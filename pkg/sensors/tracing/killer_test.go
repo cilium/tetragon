@@ -24,6 +24,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func testKillerCheckSkip(t *testing.T) {
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
+	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturnSyscall() {
+		t.Skip("skipping test, neither bpf_override_return nor fmod_ret for syscalls is available")
+	}
+}
+
 func testKiller(t *testing.T, configHook string,
 	test string, test2 string,
 	checker *eventchecker.UnorderedEventChecker,
@@ -64,9 +73,7 @@ func testKiller(t *testing.T, configHook string,
 }
 
 func TestKillerOverride(t *testing.T) {
-	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
-	}
+	testKillerCheckSkip(t)
 
 	test := testutils.RepoRootPath("contrib/tester-progs/getcpu")
 	builder := func() *KillerSpecBuilder {
@@ -120,12 +127,7 @@ func TestKillerOverride(t *testing.T) {
 }
 
 func TestKillerSignal(t *testing.T) {
-	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, neither bpf_override_return nor fmod_ret is available")
-	}
-	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
-	}
+	testKillerCheckSkip(t)
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
 

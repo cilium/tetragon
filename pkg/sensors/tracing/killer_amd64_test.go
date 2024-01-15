@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/syscallinfo/i386"
 	"github.com/cilium/tetragon/pkg/testutils"
 
@@ -20,12 +19,7 @@ import (
 )
 
 func TestKillerOverride32(t *testing.T) {
-	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, neither bpf_override_return nor fmod_ret is available")
-	}
-	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
-	}
+	testKillerCheckSkip(t)
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	yaml := NewKillerSpecBuilder("killer-override").
@@ -54,12 +48,7 @@ func TestKillerOverride32(t *testing.T) {
 }
 
 func TestKillerSignal32(t *testing.T) {
-	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, bpf_override_return helper not available")
-	}
-	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
-	}
+	testKillerCheckSkip(t)
 
 	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	yaml := NewKillerSpecBuilder("killer-signal").
@@ -89,12 +78,7 @@ func TestKillerSignal32(t *testing.T) {
 }
 
 func TestKillerOverrideBothBits(t *testing.T) {
-	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, bpf_override_return helper not available")
-	}
-	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
-	}
+	testKillerCheckSkip(t)
 
 	test32 := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
 	test64 := testutils.RepoRootPath("contrib/tester-progs/killer-tester")

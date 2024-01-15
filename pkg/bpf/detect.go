@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/logger"
 	"golang.org/x/sys/unix"
 )
 
@@ -24,9 +26,10 @@ type Feature struct {
 }
 
 var (
-	kprobeMulti  Feature
-	buildid      Feature
-	modifyReturn Feature
+	kprobeMulti         Feature
+	buildid             Feature
+	modifyReturn        Feature
+	modifyReturnSyscall Feature
 )
 
 func HasOverrideHelper() bool {
@@ -119,6 +122,40 @@ func detectModifyReturn() bool {
 	return true
 }
 
+func detectModifyReturnSyscall() bool {
+	sysGetcpu, err := arch.AddSyscallPrefix("sys_getcpu")
+	if err != nil {
+		return false
+	}
+	logger.GetLogger().Infof("probing detectModifyReturnSyscall using %s", sysGetcpu)
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_sys_fmod_ret",
+		Type: ebpf.Tracing,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachType: ebpf.AttachModifyReturn,
+		AttachTo:   sysGetcpu,
+		License:    "MIT",
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).Info("detectModifyReturnSyscall: failed to load")
+		return false
+	}
+	defer prog.Close()
+
+	link, err := link.AttachTracing(link.TracingOptions{
+		Program: prog,
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).Info("detectModifyReturnSyscall, failed to attach")
+		return false
+	}
+	link.Close()
+	return true
+}
+
 func HasModifyReturn() bool {
 	modifyReturn.init.Do(func() {
 		modifyReturn.detected = detectModifyReturn()
@@ -126,11 +163,18 @@ func HasModifyReturn() bool {
 	return modifyReturn.detected
 }
 
+func HasModifyReturnSyscall() bool {
+	modifyReturnSyscall.init.Do(func() {
+		modifyReturnSyscall.detected = detectModifyReturnSyscall()
+	})
+	return modifyReturnSyscall.detected
+}
+
 func HasProgramLargeSize() bool {
 	return features.HaveLargeInstructions() == nil
 }
 
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t, signal: %t, large: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn(), HasSignalHelper(), HasProgramLargeSize())
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t",
+		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize())
 }
