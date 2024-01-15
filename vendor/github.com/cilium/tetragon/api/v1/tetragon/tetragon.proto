@@ -464,6 +464,8 @@ message ProcessUprobe {
     string policy_name = 5;
     // Short message of the Tracing Policy to inform users what is going on.
     string message = 6;
+    // Arguments definition of the observed uprobe.
+    repeated KprobeArgument args = 7;
 }
 
 message KernelModule {
