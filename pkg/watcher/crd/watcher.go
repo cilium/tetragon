@@ -125,10 +125,12 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 		}
 	}
 
+	var err error
 	switch oldTp := oldObj.(type) {
 	case *v1alpha1.TracingPolicy:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicy)
 		if !ok {
+			err = fmt.Errorf("type mismatch")
 			break
 		}
 		// FIXME: add proper DeepEquals. The resource might have different
@@ -147,6 +149,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	case *v1alpha1.TracingPolicyNamespaced:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicyNamespaced)
 		if !ok {
+			err = fmt.Errorf("type mismatch")
 			break
 		}
 		// FIXME: add proper DeepEquals. The resource might have different
@@ -163,12 +166,14 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 		update(oldTp, newTp)
 	}
 
-	log.WithFields(logrus.Fields{
-		"old-obj":      oldObj,
-		"old-obj-type": fmt.Sprintf("%T", oldObj),
-		"new-obj":      newObj,
-		"new-obj-type": fmt.Sprintf("%T", newObj),
-	}).Warn("updateTracingPolicy: type mismatch")
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"old-obj":      oldObj,
+			"old-obj-type": fmt.Sprintf("%T", oldObj),
+			"new-obj":      newObj,
+			"new-obj-type": fmt.Sprintf("%T", newObj),
+		}).Warnf("updateTracingPolicy: %s", err.Error())
+	}
 }
 
 func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
