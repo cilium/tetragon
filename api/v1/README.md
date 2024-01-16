@@ -77,6 +77,8 @@
 - [tetragon/sensors.proto](#tetragon_sensors-proto)
     - [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest)
     - [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse)
+    - [DebugCmdRequest](#tetragon-DebugCmdRequest)
+    - [DebugCmdResponse](#tetragon-DebugCmdResponse)
     - [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest)
     - [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse)
     - [DisableSensorRequest](#tetragon-DisableSensorRequest)
@@ -1365,6 +1367,32 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-DebugCmdRequest"></a>
+
+### DebugCmdRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| cmd | [int32](#int32) |  |  |
+| skipZeroRefCnt | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="tetragon-DebugCmdResponse"></a>
+
+### DebugCmdResponse
+
+
+
+
+
+
+
 <a name="tetragon-DeleteTracingPolicyRequest"></a>
 
 ### DeleteTracingPolicyRequest
@@ -1686,6 +1714,7 @@ Determines the behavior of a field filter
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
+| DebugCmd | [DebugCmdRequest](#tetragon-DebugCmdRequest) | [DebugCmdResponse](#tetragon-DebugCmdResponse) |  |
 
  
 

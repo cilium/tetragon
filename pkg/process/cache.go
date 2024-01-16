@@ -5,13 +5,18 @@ package process
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -111,14 +116,24 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 	pc.deleteChan <- process
 }
 
-func (pc *Cache) refDec(p *ProcessInternal) {
+func (pc *Cache) refDec(p *ProcessInternal, reason string) {
+	if val, ok := p.refcntOps[reason]; ok {
+		p.refcntOps[reason] = val + 1
+	} else {
+		p.refcntOps[reason] = 1
+	}
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
 }
 
-func (pc *Cache) refInc(p *ProcessInternal) {
+func (pc *Cache) refInc(p *ProcessInternal, reason string) {
+	if val, ok := p.refcntOps[reason]; ok {
+		p.refcntOps[reason] = val + 1
+	} else {
+		p.refcntOps[reason] = 1
+	}
 	atomic.AddUint32(&p.refcnt, 1)
 }
 
@@ -176,4 +191,64 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 
 func (pc *Cache) len() int {
 	return pc.cache.Len()
+}
+
+func (pc *Cache) Dump(skipZeroRefCnt bool) {
+	fmt.Printf("\n\n")
+	pl := pc.cache.Values()
+	processLRUSet := make(map[uint32]bool)
+	for _, v := range pl {
+		processLRUSet[v.process.Pid.Value] = true
+	}
+	processLRULen := len(pl)
+
+	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, base.ExecveMap.Name)
+	m, err := ebpf.LoadPinnedMap(mapFname, &ebpf.LoadPinOptions{
+		ReadOnly: true,
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).Fatal("failed to open execve map")
+		return
+	}
+	defer m.Close()
+
+	data := make(map[execvemap.ExecveKey]execvemap.ExecveValue)
+	iter := m.Iterate()
+
+	var key execvemap.ExecveKey
+	var val execvemap.ExecveValue
+	for iter.Next(&key, &val) {
+		data[key] = val
+	}
+
+	if err := iter.Err(); err != nil {
+		logger.GetLogger().WithError(err).Fatal("error iterating execve map")
+	}
+
+	execveMapSet := make(map[uint32]bool)
+	for k := range data {
+		execveMapSet[k.Pid] = true
+	}
+	execveMapLen := len(data)
+
+	fmt.Printf("************ items in processLRU (%d) but not in execve_map (%d) ************\n", processLRULen, execveMapLen)
+	for _, v := range pl {
+		exists := execveMapSet[v.process.Pid.Value]
+		if !exists {
+			if skipZeroRefCnt && v.refcnt == 0 {
+				continue
+			}
+			fmt.Println(v.process.Pid.GetValue(), "|", v.process.Binary, v.process.Arguments, "|", v.process.Flags, "|", v.refcnt, v.color, v.refcntOps)
+		}
+	}
+
+	fmt.Printf("************ items in execve_map (%d) but not in processLRU (%d) *************\n", execveMapLen, processLRULen)
+	for k := range data {
+		exists := processLRUSet[k.Pid]
+		if !exists {
+			fmt.Println(k.Pid)
+		}
+	}
+	fmt.Println("******************************************************************************")
+	fmt.Printf("\n\n")
 }

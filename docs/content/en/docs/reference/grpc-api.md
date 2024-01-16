@@ -828,6 +828,19 @@ Determines the behavior of a field filter
 
 ### AddTracingPolicyResponse
 
+<a name="tetragon-DebugCmdRequest"></a>
+
+### DebugCmdRequest
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| cmd | [int32](#int32) |  |  |
+| skipZeroRefCnt | [bool](#bool) |  |  |
+
+<a name="tetragon-DebugCmdResponse"></a>
+
+### DebugCmdResponse
+
 <a name="tetragon-DeleteTracingPolicyRequest"></a>
 
 ### DeleteTracingPolicyRequest
@@ -997,6 +1010,7 @@ Determines the behavior of a field filter
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
+| DebugCmd | [DebugCmdRequest](#tetragon-DebugCmdRequest) | [DebugCmdResponse](#tetragon-DebugCmdResponse) |  |
 
 ## Scalar Value Types
 
