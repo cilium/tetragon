@@ -1526,6 +1526,16 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			arg.Value = output.Value
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericLinuxBinprmType:
+			var arg api.MsgGenericKprobeArgLinuxBinprm
+
+			arg.Index = uint64(a.index)
+			arg.Value, err = parseString(r)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("linux_binprm type error")
+			}
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
 		case gt.GenericLoadModule:
 			var output api.MsgGenericLoadModule
 			var arg api.MsgGenericKprobeArgLoadModule
