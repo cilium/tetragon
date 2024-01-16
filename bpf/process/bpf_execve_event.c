@@ -201,14 +201,6 @@ event_execve(struct sched_execve_args *ctx)
 	p->auid = get_auid();
 	p->uid = get_current_uid_gid();
 
-	// Reading the absolute path of the process exe for matchBinaries.
-	// Historically we used the filename, a potentially relative path (maybe to
-	// a symlink) coming from the execve tracepoint. For kernels not supporting
-	// large BPF prog, we still use the filename.
-#ifdef __LARGE_BPF_PROG
-	read_exe(task, &event->exe);
-#endif
-
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
@@ -252,6 +244,14 @@ execve_send(struct sched_execve_args *ctx)
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
+
+#ifdef __LARGE_BPF_PROG
+	// Reading the absolute path of the process exe for matchBinaries.
+	// Historically we used the filename, a potentially relative path (maybe to
+	// a symlink) coming from the execve tracepoint. For kernels not supporting
+	// large BPF prog, we still use the filename.
+	read_exe((struct task_struct *)get_current_task(), &event->exe);
+#endif
 
 	p = &event->process;
 
