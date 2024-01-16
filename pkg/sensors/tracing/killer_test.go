@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
 )
 
 func testKiller(t *testing.T, configHook string,
@@ -67,10 +68,10 @@ func TestKillerOverride(t *testing.T) {
 		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
 
-	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+	test := testutils.RepoRootPath("contrib/tester-progs/getcpu")
 	builder := func() *KillerSpecBuilder {
 		return NewKillerSpecBuilder("killer-override").
-			WithSyscallList("sys_prctl").
+			WithSyscallList("sys_getcpu").
 			WithMatchBinaries(test).
 			WithOverrideValue(-17) // EEXIST
 	}
@@ -79,7 +80,7 @@ func TestKillerOverride(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSizeArg(unix.SYS_GETCPU),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
 
