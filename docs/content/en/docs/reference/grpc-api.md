@@ -225,6 +225,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
 | module_arg | [KernelModule](#tetragon-KernelModule) |  |  |
+| linux_binprm_arg | [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -277,6 +278,14 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+
+<a name="tetragon-KprobeLinuxBinprm"></a>
+
+### KprobeLinuxBinprm
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) |  |  |
 
 <a name="tetragon-KprobePath"></a>
 

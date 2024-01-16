@@ -39,6 +39,8 @@ const (
 
 	GenericSyscall64 = 28
 
+	GenericLinuxBinprmType = 29
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -101,6 +103,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericKernelModule
 	case "syscall64":
 		return GenericSyscall64
+	case "linux_binprm":
+		return GenericLinuxBinprmType
 	default:
 		return GenericInvalidType
 	}

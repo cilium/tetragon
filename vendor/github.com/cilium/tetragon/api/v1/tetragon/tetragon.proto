@@ -321,6 +321,10 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeLinuxBinprm {
+    string path = 1;
+}
+
 message KprobeCapability {
 	google.protobuf.Int32Value value = 1;
 	string name = 2;
@@ -376,6 +380,7 @@ message KprobeArgument {
 	ProcessCredentials process_credentials_arg = 19;
 	UserNamespace user_ns_arg = 20;
 	KernelModule module_arg = 21;
+	KprobeLinuxBinprm linux_binprm_arg = 22;
     }
     string label = 18;
 }
