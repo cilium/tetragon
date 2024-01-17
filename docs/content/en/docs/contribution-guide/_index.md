@@ -9,12 +9,35 @@ Welcome to Tetragon :) !
 
 We're happy you're interested in contributing to the Tetragon project.
 
+## All contributions are welcome
+
+While this document focuses on the technical details of how to submit patches
+to the Tetragon project, we want to value all kinds of contributions.
+
+For example, actions that can greatly improve Tetragon and contribute to its
+success could be:
+- Write a blog post about Tetragon or one of its use cases, we will be happy to
+  add a reference to it in [resources]({{< ref "/docs/resources" >}}).
+- Talk about Tetragon during conferences or meetups, similarly, as a blog post,
+  video recordings can be added to [resources]({{< ref "/docs/resources" >}}).
+- Share your usage of Tetragon on social platforms, and add yourself to the
+  [user list of the Cilium project](https://github.com/cilium/cilium/blob/main/USERS.md)
+  as a Tetragon user.
+- Raise an issue on the repository about a bug, enhancement, or something else.
+  See [open a new issue](https://github.com/cilium/tetragon/issues/new/choose).
+- Review a patch on the repository, this might look intimidading but some
+  simple pull requests would benefit from a fresh pair of eyes. See [open pull
+  requests](https://github.com/cilium/tetragon/pulls).
+- Submit a patch to the Tetragon project, for code and documentation
+  contribution. See the [next section](#guide-for-code-and-docs-contribution)
+  for a how-to guide.
+
+## Guide for code and docs contribution
+
 This section of the Tetragon documentation will help you make sure you
 have an environment capable of testing changes to the Tetragon source code,
 and that you understand the workflow of getting these changes reviewed and
 merged upstream.
-
-## Clone and provision an environment
 
 1. Make sure you have a [GitHub account](https://github.com/join).
 
