@@ -56,7 +56,7 @@ jobs:
         tar cz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
 
     - name: upload build
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 # v4.1.0
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar
@@ -99,7 +99,7 @@ jobs:
         sudo chmod go+rX -R /boot/
 
     - name: download build data
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
       with:
          name: tetragon-build
 
@@ -146,7 +146,7 @@ jobs:
 
     - name: Upload test results on failure or cancelation
       if: failure() || cancelled()
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 # v4.1.0
       with:
         name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
@@ -158,7 +158,7 @@ jobs:
     if: success()
     steps:
       # delete the built binaries from the artifacts in case of overall success
-      - uses: geekyeggo/delete-artifact@54ab544f12cdb7b71613a16a2b5a37a9ade990af # v2.0.0
+      - uses: geekyeggo/delete-artifact@65041433121f7239077fa20be14c0690f70569de # v4.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: tetragon-build
