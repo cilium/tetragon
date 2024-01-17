@@ -1,6 +1,6 @@
 ---
 title: "Developer's certificate of origin"
-weight: 5
+weight: 6
 description: "Learn about the \"sign-off\" procedure"
 ---
 
