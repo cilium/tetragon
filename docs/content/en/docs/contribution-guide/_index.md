@@ -12,7 +12,7 @@ We're happy you're interested in contributing to the Tetragon project.
 ## All contributions are welcome
 
 While this document focuses on the technical details of how to submit patches
-to the Tetragon project, we want to value all kinds of contributions.
+to the Tetragon project, we value all kinds of contributions.
 
 For example, actions that can greatly improve Tetragon and contribute to its
 success could be:
@@ -69,7 +69,8 @@ merged upstream.
 7. Follow the steps in [making changes]({{< ref "/docs/contribution-guide/making-changes" >}})
    to start contributing.
 
-8. Learn how to [run the tests]({{< ref "/docs/contribution-guide/running-tests" >}}).
+8. Learn how to [run the tests]({{< ref "/docs/contribution-guide/running-tests" >}})
+   or how to [preview and contribute to the docs]({{< ref "/docs/contribution-guide/documentation" >}}).
 
 9. Learn how to [submit a pull request]({{< ref "/docs/contribution-guide/submitting-a-pull-request" >}})
    to the project.
