@@ -1263,3 +1263,103 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestExecInodeNotDeleted(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	strId := "tetragon-test-memfd"
+	if err := exec.Command("/bin/true", strId).Run(); err != nil {
+		t.Fatalf("command failed: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker("exec").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix("/bin/true")).
+				WithArguments(sm.Full(strId)).
+				WithBinaryProperties(nil)),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestExecDeletedBinaryMemfd(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	// Get an anonymous shm
+	strId := "tetragon-test-memfd"
+	fd, err := unix.MemfdCreate(strId, 0)
+	if err != nil {
+		t.Fatalf("MemfdCreate() error: %s", err)
+	}
+
+	execPath := fmt.Sprintf("/proc/self/fd/%d", fd)
+	file := os.NewFile(uintptr(fd), execPath)
+	defer file.Close()
+
+	binPath := "/bin/true"
+	binData, err := os.ReadFile(binPath)
+	if err != nil {
+		t.Fatalf("Error ReadFile() on %s: %s", binPath, err)
+	}
+
+	var stat syscall.Stat_t
+	if err := syscall.Stat(execPath, &stat); err != nil {
+		t.Fatalf("Error stat() file %s: %v", execPath, err)
+	}
+
+	// Write /bin/true in memory
+	_, err = file.Write(binData)
+	if err != nil {
+		t.Fatalf("Error write() to memfd file: %v", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// Execute from memory
+	if err := exec.Command(execPath, strId).Run(); err != nil {
+		t.Fatalf("command failed: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker("exec").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix(execPath)).
+				WithArguments(sm.Full(strId)).
+				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
+					WithFile(ec.NewFilePropertiesChecker().
+						WithInode(ec.NewInodeChecker().
+							WithLinks(0).
+							WithNumber(stat.Ino),
+						),
+					),
+				),
+			),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
