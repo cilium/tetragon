@@ -2394,7 +2394,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		// fallthrough to file_ty
 	case linux_binprm_type: {
                 struct linux_binprm *bprm = (struct linux_binprm *)arg;
-                arg = (unsigned long)(&bprm->file);
+                arg = (unsigned long)_(&bprm->file);
 
                 // fallthrough to file_ty
         }
