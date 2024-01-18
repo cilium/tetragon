@@ -1363,3 +1363,76 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestExecDeletedBinary(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	testDir := t.TempDir()
+	// Copy /bin/true
+	truePath := "/bin/true"
+	testTruePath := fmt.Sprintf("%s/true", testDir)
+	if err := testutils.CopyFile(testTruePath, truePath, 0755); err != nil {
+		t.Fatalf("Failed to copy binary: %s", err)
+	}
+	t.Cleanup(func() {
+		// clean up on errors
+		os.Remove(testTruePath)
+	})
+
+	file, err := os.OpenFile(testTruePath, os.O_RDONLY, 0755)
+	if err != nil {
+		t.Fatalf("Failed to open binary '%s': %s", testTruePath, err)
+	}
+
+	defer file.Close()
+
+	// Drop inode reference
+	os.Remove(testTruePath)
+
+	// Let's just use plain old /proc method
+	// Should be same as glibc fexecve() =>
+	//      execveat(fd, "", argv, envp, AT_EMPTY_PATH);
+	execPath := fmt.Sprintf("/proc/self/fd/%d", file.Fd())
+
+	var stat syscall.Stat_t
+	if err := syscall.Stat(execPath, &stat); err != nil {
+		t.Fatalf("Error stat() file %s: %v", execPath, err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// Execute from fd
+	strId := "tetragon-test-execfd-deleted-inode"
+	if err := exec.Command(execPath, strId).Run(); err != nil {
+		t.Fatalf("command failed: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker("exec").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix(execPath)).
+				WithArguments(sm.Full(strId)).
+				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
+					WithFile(ec.NewFilePropertiesChecker().
+						WithInode(ec.NewInodeChecker().
+							WithLinks(0).
+							WithNumber(stat.Ino),
+						),
+					),
+				),
+			),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
