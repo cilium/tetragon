@@ -107,6 +107,8 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 	proc.Ktime = exec.Ktime
 	proc.AUID = exec.AUID
 	proc.SecureExec = exec.SecureExec
+	proc.Nlink = exec.Nlink
+	proc.Ino = exec.Ino
 
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
 	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {

@@ -49,13 +49,9 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	struct execve_map_value *curr;
 	struct execve_heap *heap;
 	struct task_struct *task;
+	struct file *file;
 	__u32 pid, ruid, euid, uid, egid, gid, sec = 0, zero = 0;
 	__u64 tid, permitted, new_permitted, new_ambient = 0;
-
-	sec = BPF_CORE_READ(bprm, per_clear);
-	/* If no flags to clear then this is not a privileged execution */
-	if (!sec)
-		return;
 
 	tid = get_current_pid_tgid();
 	pid = (tid >> 32);
@@ -69,6 +65,20 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 		return;
 
 	memset(&heap->info, 0, sizeof(struct execve_info));
+
+	/* Read binary file information */
+	if (BPF_CORE_READ_INTO(&file, bprm, file) != 0)
+		return;
+
+	if (BPF_CORE_READ_INTO(&heap->info.i_nlink, file, f_inode, __i_nlink) != 0)
+		return;
+
+	if (BPF_CORE_READ_INTO(&heap->info.i_ino, file, f_inode, i_ino) != 0)
+		return;
+
+	/* If no flags to clear then this is not a privileged execution */
+	if (BPF_CORE_READ_INTO(&sec, bprm, per_clear) != 0 || sec == 0)
+		goto out;
 
 	/* Check if this is a setuid or setgid */
 	euid = BPF_CORE_READ(bprm, cred, euid.val);
@@ -123,7 +133,7 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	 */
 	BPF_CORE_READ_INTO(&new_ambient, bprm, cred, cap_ambient);
 	if (new_ambient)
-		return;
+		goto out;
 
 	/* Did we gain new capabilities through execve?
 	 *
@@ -141,7 +151,11 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 		heap->info.secureexec |= EXEC_FILE_CAPS;
 	}
 
-	/* Do we cache the entry? */
-	if (heap->info.secureexec != 0)
+out:
+	/* We cache the entry if:
+	 * 1. Privileged execution so secureexec will be set.
+	 * 2. Execution of an unlinked binary
+	 */
+	if (heap->info.secureexec != 0 || (heap->info.i_nlink == 0 && heap->info.i_ino != 0))
 		execve_joined_info_map_set(tid, &heap->info);
 }
