@@ -159,6 +159,7 @@ func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
 //     a. if it is a setuid execution
 //     b. if it is a setgid execution
 //     c. if it is a filesystem capability execution
+//     d. Execution of an unlinked binary (shm, memfd, or deleted binaries)
 //
 //     a b and c are subject to the --enable-process-creds flag
 func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process, bool) {
@@ -181,6 +182,11 @@ func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process,
 		}
 		if pi.apiBinaryProp.PrivilegesChanged != nil {
 			prop.PrivilegesChanged = pi.apiBinaryProp.PrivilegesChanged
+			update = true
+		}
+		// Annotate execution of unlinked binaries
+		if pi.apiBinaryProp.File != nil && pi.apiBinaryProp.File.Inode != nil {
+			prop.File = pi.apiBinaryProp.File
 			update = true
 		}
 	}
@@ -304,6 +310,7 @@ func initProcessInternalExec(
 		// Initialize with InvalidUid
 		Setuid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
 		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
+		File:   nil,
 	}
 
 	if (process.SecureExec & tetragonAPI.ExecveSetuid) != 0 {
@@ -314,6 +321,15 @@ func initProcessInternalExec(
 	}
 
 	apiBinaryProp.PrivilegesChanged = caps.GetPrivilegesChangedReasons(process.SecureExec)
+	if process.Ino != 0 && process.Nlink == 0 {
+		inode := &tetragon.Inode{
+			Number: process.Ino,
+			Links:  &wrapperspb.UInt32Value{Value: process.Nlink},
+		}
+		apiBinaryProp.File = &tetragon.FileProperties{
+			Inode: inode,
+		}
+	}
 
 	// Per thread tracking rules PID == TID
 	//
