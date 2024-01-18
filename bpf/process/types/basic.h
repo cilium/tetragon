@@ -7,7 +7,7 @@
 #include "operations.h"
 #include "bpf_task.h"
 #include "bpf_cred.h"
-#include "bpf_linux_binprm.h"
+#include "linux_binprm.h"
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
