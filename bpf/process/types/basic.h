@@ -2383,12 +2383,6 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case iov_iter_type:
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
 		break;
-	case linux_binprm_type: {
-		struct linux_binprm *bprm = (struct linux_binprm *)arg;
-		arg = (unsigned long)(&bprm->file);
-
-		// fallthrough to file_ty
-	}
 	case kiocb_type: {
 		struct kiocb *kiocb = (struct kiocb *)arg;
 		struct file *file;
@@ -2398,6 +2392,12 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		arg = (unsigned long)file;
 	}
 		// fallthrough to file_ty
+	case linux_binprm_type: {
+                struct linux_binprm *bprm = (struct linux_binprm *)arg;
+                arg = (unsigned long)(&bprm->file);
+
+                // fallthrough to file_ty
+        }
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);
