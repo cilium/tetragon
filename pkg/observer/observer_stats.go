@@ -31,8 +31,20 @@ func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
 	statsSuffix := "_stats"
+	// Depending on the sensors that are loaded and the dependencies between them,
+	// sensors.AllMaps may have the same map name multiple times. This can cause in
+	// errors like:
+	// collected metric "XXX" {...} was collected before with the same name and label values
+	// To avoid that we keep a map and we process each map only once.
+	processedMaps := make(map[string]bool)
 	for _, m := range sensors.AllMaps {
 		name := m.Name
+		if ok := processedMaps[name]; ok {
+			// We have already got the stats of this map
+			// so let's move to the next one.
+			continue
+		}
+		processedMaps[name] = true
 		pin := filepath.Join(option.Config.MapDir, name)
 		// Skip map names that end up with _stats.
 		// This will result in _stats_stats suffixes that we don't care about
