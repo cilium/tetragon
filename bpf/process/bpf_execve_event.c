@@ -130,18 +130,23 @@ read_cwd(void *ctx, struct msg_process *p)
 	return getcwd(p, p->size, p->pid);
 }
 
-static inline __attribute__((always_inline)) __u32
-read_execve_shared_info(void *ctx, __u64 pid)
+static inline __attribute__((always_inline)) void
+read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 {
-	__u32 secureexec = 0;
 	struct execve_info *info;
 
 	info = execve_joined_info_map_get(pid);
-	if (info) {
-		secureexec = info->secureexec;
-		execve_joined_info_map_clear(pid);
+	if (!info) {
+		p->secureexec = 0;
+		p->i_ino = 0;
+		p->i_nlink = 0;
+		return;
 	}
-	return secureexec;
+
+	p->secureexec = info->secureexec;
+	p->i_ino = info->i_ino;
+	p->i_nlink = info->i_nlink;
+	execve_joined_info_map_clear(pid);
 }
 
 #ifdef __LARGE_BPF_PROG
@@ -194,12 +199,12 @@ event_execve(struct sched_execve_args *ctx)
 	 */
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
-	p->secureexec = read_execve_shared_info(ctx, pid);
 	p->nspid = get_task_pid_vnr();
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	p->uid = get_current_uid_gid();
+	read_execve_shared_info(ctx, p, pid);
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);

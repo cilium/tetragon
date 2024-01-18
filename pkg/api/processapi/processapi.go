@@ -20,7 +20,7 @@ const (
 	CGROUP_PATH_LENGTH = 4096
 
 	MSG_SIZEOF_MAXARG = 100
-	MSG_SIZEOF_EXECVE = 40
+	MSG_SIZEOF_EXECVE = 56
 	MSG_SIZEOF_CWD    = 256
 	MSG_SIZEOF_ARGS   = 1024
 	MSG_SIZEOF_BUFFER = MSG_SIZEOF_ARGS +
@@ -55,6 +55,9 @@ type MsgExec struct {
 	UID        uint32
 	AUID       uint32
 	Flags      uint32
+	Nlink      uint32
+	Pad        uint32
+	Ino        uint64
 	Ktime      uint64
 }
 
@@ -177,6 +180,8 @@ type MsgProcess struct {
 	UID        uint32
 	AUID       uint32
 	Flags      uint32
+	Nlink      uint32
+	Ino        uint64
 	Ktime      uint64
 	Filename   string
 	Args       string
