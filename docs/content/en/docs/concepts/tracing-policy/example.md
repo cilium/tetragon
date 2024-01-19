@@ -108,6 +108,23 @@ should send a SIGKILL signal to the process that initiated the event.
 Learn more about the various selectors in the dedicated
 [selectors page]({{< ref "/docs/concepts/tracing-policy/selectors" >}}).
 
+## Message
+
+The `message` field is an optional short message that will be included in
+the generated event to inform users what is happening.
+
+```yaml
+spec:
+  kprobes:
+  - call: "fd_install"
+    message: "Installing a file descriptor"
+```
+
+## Tags
+
+Tags are optional fields of a Tracing Policy that are used to categorize generated
+events. Further reference here: [Tags documentation]({{< ref "/docs/concepts/tracing-policy/tags" >}}).
+
 ## Policy effect
 
 First, let's create the `/tmp/tetragon` file with some content:
