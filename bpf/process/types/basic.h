@@ -2084,7 +2084,7 @@ struct {
 	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
 } stack_trace_map SEC(".maps");
 
-#ifdef GENERIC_TRACEPOINT
+#if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
 static inline __attribute__((always_inline)) void
 do_action_notify_killer(int error, int signal)
 {
