@@ -48,7 +48,10 @@ func ReadAvailFuncs(pattern string) ([]string, error) {
 	var r *regexp.Regexp
 
 	if pattern != "" {
-		r, _ = regexp.Compile(pattern)
+		r, err = regexp.Compile(pattern)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	final := []string{}
