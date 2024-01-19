@@ -14,9 +14,12 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -182,4 +185,230 @@ func TestKillerMultiNotSupported(t *testing.T) {
 		MustYAML()
 	err := checkCrd(t, yaml)
 	assert.Error(t, err)
+}
+
+func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile,
+		tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
+
+	cmd := exec.Command(testBin, tempFile)
+	err = cmd.Run()
+	assert.Error(t, err)
+
+	t.Logf("Running: %s %v\n", cmd.String(), err)
+
+	kpCheckerPwrite := ec.NewProcessKprobeChecker("").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(testBin))).
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_pwrite64"))).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile))),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpCheckerPwrite)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+
+	// check the pwrite syscall did not write anything
+	fileInfo, err := os.Stat(tempFile)
+	if assert.NoError(t, err) {
+		assert.NotEqual(t, 0, fileInfo.Size())
+	}
+}
+
+// Testing the ability to kill the process before it executes the syscall,
+// in this case direct pwrite syscall.
+// Standard Sigkill action kills executed from sys_pwrite probe kills the
+// process, but only after the pwrite syscall is executed.
+// Now we can mitigate that by attaching killer to security_file_permission
+// function and override its return value to prevent the pwrite syscall
+// execution.
+//
+// The testing spec below:
+// - attaches probe to pwrite
+// - attaches killer to security_file_permission
+// - executes SigKill action for attempted pwrite to specific file
+// - executes NotifyKiller action to instruct killer to override the
+//   security_file_permission return value with -1
+// - tests that no data got written to the monitored file
+
+func TestKillerSecuritySigKill(t *testing.T) {
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
+
+	if !bpf.HasModifyReturn() {
+		t.Skip("skipping killer test, fmod_ret is not available")
+	}
+
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support matchArgs for more than one arguments")
+	}
+
+	tempFile := t.TempDir() + "/test"
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syswritefollowfdpsswd"
+spec:
+  options:
+    - name: "override-method"
+      value: "fmod-ret"
+  killers:
+  - calls:
+    - "security_file_permission"
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
+      - action: FollowFD
+        argFd: 0
+        argName: 1
+  - call: "sys_close"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: UnfollowFD
+        argFd: 0
+        argName: 0
+  - call: "sys_pwrite64"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
+      - action: Sigkill
+      - action: "NotifyKiller"
+        argError: -1
+`
+
+	testSecurity(t, tracingPolicy, tempFile)
+}
+
+// Testing the ability to kill the process before it executes the syscall,
+// in similar way as in TestKillerSecuritySigKill test.
+// The only difference is we use the NotifyKiller to send the signal instead
+// of using SigKill action.
+//
+// The testing spec below:
+// - attaches probe to pwrite
+// - attaches killer to security_file_permission
+// - executes NotifyKiller to instruct killer to send sigkill to current process
+//   and override the security_file_permission return value with -1
+// - tests that no data got written to the monitored file
+
+func TestKillerSecurityNotifyKiller(t *testing.T) {
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
+
+	if !bpf.HasModifyReturn() {
+		t.Skip("skipping killer test, fmod_ret is not available")
+	}
+
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support matchArgs for more than one arguments")
+	}
+
+	tempFile := t.TempDir() + "/test"
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syswritefollowfdpsswd"
+spec:
+  options:
+    - name: "override-method"
+      value: "fmod-ret"
+  killers:
+  - calls:
+    - "security_file_permission"
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
+      - action: FollowFD
+        argFd: 0
+        argName: 1
+  - call: "sys_close"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: UnfollowFD
+        argFd: 0
+        argName: 0
+  - call: "sys_pwrite64"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
+      - action: "NotifyKiller"
+        argError: -1
+        argSig: 9
+`
+
+	testSecurity(t, tracingPolicy, tempFile)
 }
