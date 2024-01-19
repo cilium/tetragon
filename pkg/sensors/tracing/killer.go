@@ -108,7 +108,7 @@ func (kh *killerHandler) LoadProbe(args sensors.LoadProbeArgs) error {
 }
 
 // select proper override method based on configuration and spec options
-func selectOverrideMethod(specOpts *specOptions) (OverrideMethod, error) {
+func selectOverrideMethod(specOpts *specOptions, hasSyscall bool) (OverrideMethod, error) {
 	overrideMethod := specOpts.OverrideMethod
 	switch overrideMethod {
 	case OverrideMethodDefault:
@@ -125,7 +125,7 @@ func selectOverrideMethod(specOpts *specOptions) (OverrideMethod, error) {
 			return OverrideMethodInvalid, fmt.Errorf("option override return set, but it is not supported")
 		}
 	case OverrideMethodFmodRet:
-		if !bpf.HasModifyReturnSyscall() {
+		if !bpf.HasModifyReturn() || (hasSyscall && !bpf.HasModifyReturnSyscall()) {
 			return OverrideMethodInvalid, fmt.Errorf("option fmod_ret set, but it is not supported")
 		}
 	}
@@ -157,6 +157,8 @@ func (kh *killerHandler) createKillerSensor(
 	kh.configured = true
 
 	killer := killers[0]
+
+	var hasSyscall bool
 
 	// get all the syscalls
 	for idx := range killer.Calls {
@@ -195,6 +197,8 @@ func (kh *killerHandler) createKillerSensor(
 			}
 			kh.syscallsSyms[idx] = sym
 		}
+
+		hasSyscall = hasSyscall || isSyscall || isPrefix
 	}
 
 	// register killer sensor
@@ -211,7 +215,7 @@ func (kh *killerHandler) createKillerSensor(
 	}
 
 	// select proper override method based on configuration and spec options
-	overrideMethod, err := selectOverrideMethod(specOpts)
+	overrideMethod, err := selectOverrideMethod(specOpts, hasSyscall)
 	if err != nil {
 		return nil, err
 	}
