@@ -52,7 +52,6 @@ message Filter {
     // host process events).
     repeated string labels = 9;
     // Filter events by tracing policy names
-    // https://tetragon.io/docs/concepts/tracing-policy/
     repeated string policy_names = 10;
 }
 
