@@ -18,7 +18,7 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../../api
 ## explicit; go 1.21.0
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containers/common v0.57.1
+# github.com/containers/common v0.57.2
 ## explicit; go 1.18
 github.com/containers/common/pkg/hooks/1.0.0
 # github.com/coreos/go-systemd/v22 v22.5.0
@@ -112,7 +112,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/sys v0.15.0
+# golang.org/x/sys v0.16.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -182,8 +182,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.31.0
-## explicit; go 1.11
+# google.golang.org/protobuf v1.32.0
+## explicit; go 1.17
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

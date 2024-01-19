@@ -172,7 +172,6 @@ type Filter struct {
 	// host process events).
 	Labels []string `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty"`
 	// Filter events by tracing policy names
-	// https://tetragon.io/docs/concepts/tracing-policy/
 	PolicyNames []string `protobuf:"bytes,10,rep,name=policy_names,json=policyNames,proto3" json:"policy_names,omitempty"`
 }
 
