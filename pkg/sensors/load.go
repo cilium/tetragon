@@ -322,9 +322,15 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 	version = kernels.FixKernelVersion(version)
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
-		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading registered BPF probe")
+		logger.GetLogger().WithField("Program", load.Name).
+			WithField("Type", load.Type).
+			WithField("Attach", load.Attach).
+			Info("Loading registered BPF probe")
 	} else {
-		logger.GetLogger().WithField("Program", load.Name).WithField("Type", load.Type).Info("Loading BPF program")
+		logger.GetLogger().WithField("Program", load.Name).
+			WithField("Type", load.Type).
+			WithField("Attach", load.Attach).
+			Info("Loading BPF program")
 	}
 
 	switch load.Type {
