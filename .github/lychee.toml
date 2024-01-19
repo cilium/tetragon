@@ -7,5 +7,7 @@ exclude = [
   # see https://github.blog/2013-01-31-relative-links-in-markup-files/
   'docs/assets/icons/logo.*\.svg', 
   # the virtualbox website sends 500 regularly
-  'virtualbox.org'
+  'virtualbox.org',
+  # this is for the documentation contributor guide
+  '^http://localhost:1313/docs$'
 ]
