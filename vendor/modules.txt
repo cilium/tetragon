@@ -22,7 +22,7 @@ github.com/bombsimon/logrusr/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.15.0-rc.0
+# github.com/cilium/cilium v1.15.0-rc.1
 ## explicit; go 1.21.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -196,8 +196,8 @@ github.com/cilium/cilium/pkg/u8proto
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
 github.com/cilium/cilium/pkg/wireguard/types
-# github.com/cilium/dns v1.1.51-0.20230303133941-d3bcb3008ed2
-## explicit; go 1.14
+# github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3
+## explicit; go 1.18
 github.com/cilium/dns
 # github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c
 ## explicit; go 1.20
