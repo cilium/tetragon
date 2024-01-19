@@ -71,3 +71,12 @@ func CutSyscallPrefix(symbol string) (string, bool) {
 	}
 	return symbol, false
 }
+
+func HasSyscallPrefix(symbol string) bool {
+	for _, prefix := range supportedArchPrefix {
+		if strings.HasPrefix(symbol, prefix) {
+			return true
+		}
+	}
+	return false
+}

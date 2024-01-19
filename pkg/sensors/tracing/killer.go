@@ -169,18 +169,32 @@ func (kh *killerHandler) createKillerSensor(
 				return nil, fmt.Errorf("Error list '%s' not found", listName)
 			}
 
-			if !isSyscallListType(list.Type) {
-				return nil, fmt.Errorf("Error list '%s' is not syscall type", listName)
-			}
 			kh.syscallsSyms = append(kh.syscallsSyms, list.Values...)
 			continue
 		}
 
-		pfxSym, err := arch.AddSyscallPrefix(sym)
-		if err != nil {
-			return nil, err
+		kh.syscallsSyms = append(kh.syscallsSyms, sym)
+	}
+
+	var err error
+
+	// fix syscalls
+	for idx, sym := range kh.syscallsSyms {
+		isPrefix := arch.HasSyscallPrefix(sym)
+		isSyscall := strings.HasPrefix(sym, "sys_")
+		isSecurity := strings.HasPrefix(sym, "security_")
+
+		if !isSyscall && !isSecurity && !isPrefix {
+			return nil, fmt.Errorf("killer sensor requires either syscall or security_ functions")
 		}
-		kh.syscallsSyms = append(kh.syscallsSyms, pfxSym)
+
+		if isSyscall {
+			sym, err = arch.AddSyscallPrefix(sym)
+			if err != nil {
+				return nil, err
+			}
+			kh.syscallsSyms[idx] = sym
+		}
 	}
 
 	// register killer sensor
