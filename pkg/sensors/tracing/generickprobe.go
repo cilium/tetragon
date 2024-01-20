@@ -1501,6 +1501,58 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			arg.Value = output
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericU16Type:
+			var output uint32
+			var arg api.MsgGenericKprobeArgUInt
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("UInt type error")
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Value = uint32(uint16(output))
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericU8Type:
+			var output uint32
+			var arg api.MsgGenericKprobeArgUInt
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("UInt type error")
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Value = uint32(uint8(output))
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericS16Type:
+			var output uint32
+			var arg api.MsgGenericKprobeArgInt
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Int type error")
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Value = int32(int16(output))
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericS8Type:
+			var output uint32
+			var arg api.MsgGenericKprobeArgInt
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Int type error")
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Value = int32(int8(output))
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
 		case gt.GenericUserNamespace:
 			var output api.MsgGenericUserNamespace
 			var arg api.MsgGenericKprobeArgUserNamespace

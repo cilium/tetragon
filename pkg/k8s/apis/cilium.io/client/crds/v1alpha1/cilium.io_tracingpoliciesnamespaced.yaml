@@ -96,6 +96,10 @@ spec:
                             enum:
                             - auto
                             - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
                             - uint32
                             - int32
                             - uint64
@@ -183,6 +187,10 @@ spec:
                           enum:
                           - auto
                           - int
+                          - int8
+                          - uint8
+                          - int16
+                          - uint16
                           - uint32
                           - int32
                           - uint64
@@ -823,6 +831,10 @@ spec:
                             enum:
                             - auto
                             - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
                             - uint32
                             - int32
                             - uint64

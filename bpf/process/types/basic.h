@@ -63,6 +63,11 @@ enum {
 
 	syscall64_type = 28,
 
+	s16_ty = 29,
+	u16_ty = 30,
+	s8_ty = 31,
+	u8_ty = 32,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -2451,6 +2456,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case int_type:
 	case s32_ty:
 	case u32_ty:
+	case s16_ty:
+	case u16_ty:
+	case s8_ty:
+	case u8_ty:
 		probe_read(args, sizeof(__u32), &arg);
 		size = sizeof(__u32);
 		break;
