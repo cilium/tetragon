@@ -1,5 +1,4 @@
 {{- if and .Values.tetragonOperator.enabled .Values.tetragonOperator.prometheus.enabled .Values.tetragonOperator.prometheus.serviceMonitor.enabled -}}
----
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:

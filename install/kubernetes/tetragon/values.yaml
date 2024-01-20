@@ -179,6 +179,8 @@ tetragon:
 
 # -- Tetragon Operator settings
 tetragonOperator:
+  # -- Enables the Tetragon Operator.
+  enabled: true
   # -- Annotations for the Tetragon Operator Deployment.
   annotations: {}
   # -- Annotations for the Tetragon Operator Deployment Pods.

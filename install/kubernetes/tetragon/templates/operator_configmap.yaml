@@ -1,3 +1,4 @@
+{{- if .Values.tetragonOperator.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,3 +10,4 @@ data:
   skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}
   skip-pod-info-crd: {{ not .Values.tetragonOperator.podInfo.enabled | quote }}
   skip-tracing-policy-crd: {{ not .Values.tetragonOperator.tracingPolicy.enabled | quote }}
+{{- end }}
