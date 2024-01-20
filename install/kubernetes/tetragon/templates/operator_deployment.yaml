@@ -1,3 +1,4 @@
+{{- if .Values.tetragonOperator.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -109,4 +110,5 @@ spec:
 {{- with .Values.tetragonOperator.strategy }}
   strategy:
     {{- toYaml . | nindent 4 }}
+{{- end }}
 {{- end }}

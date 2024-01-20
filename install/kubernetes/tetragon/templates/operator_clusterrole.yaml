@@ -1,4 +1,4 @@
-{{- if .Values.serviceAccount.create }}
+{{- if and .Values.tetragonOperator.enabled .Values.serviceAccount.create }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
