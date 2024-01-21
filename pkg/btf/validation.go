@@ -126,8 +126,13 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 func getKernelType(arg btf.Type) string {
 	suffix := ""
 	ptr, ok := arg.(*btf.Pointer)
+
 	if ok {
 		arg = ptr.Target
+		_, ok = arg.(*btf.Void)
+		if ok {
+			return "void *"
+		}
 		suffix = suffix + " *"
 	}
 	num, ok := arg.(*btf.Int)
@@ -144,14 +149,39 @@ func getKernelType(arg btf.Type) string {
 
 func typesCompatible(specTy string, kernelTy string) bool {
 	switch specTy {
+	case "uint64":
+		switch kernelTy {
+		case "u64", "void *":
+			return true
+		}
+	case "int64":
+		switch kernelTy {
+		case "s64":
+			return true
+		}
+	case "int16":
+		switch kernelTy {
+		case "s16", "short int":
+			return true
+		}
+	case "uint16":
+		switch kernelTy {
+		case "u16", "short unsigned int":
+			return true
+		}
+	case "uint8":
+		switch kernelTy {
+		case "u8", "unsigned char":
+			return true
+		}
 	case "size_t":
 		switch kernelTy {
 		case "size_t":
 			return true
 		}
-	case "char_buf", "string":
+	case "char_buf", "string", "int8":
 		switch kernelTy {
-		case "const char *", "char *":
+		case "const char *", "char *", "char":
 			return true
 		}
 	case "char_iovec":
