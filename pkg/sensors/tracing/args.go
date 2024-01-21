@@ -387,6 +387,58 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		}
 		arg.Label = a.label
 		return arg
+	case gt.GenericU16Type:
+		var output uint32
+		var arg api.MsgGenericKprobeArgUInt
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("UInt type error")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = uint32(uint16(output))
+		arg.Label = a.label
+		return arg
+	case gt.GenericU8Type:
+		var output uint32
+		var arg api.MsgGenericKprobeArgUInt
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("UInt type error")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = uint32(uint8(output))
+		arg.Label = a.label
+		return arg
+	case gt.GenericS16Type:
+		var output uint32
+		var arg api.MsgGenericKprobeArgInt
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Int type error")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = int32(int16(output))
+		arg.Label = a.label
+		return arg
+	case gt.GenericS8Type:
+		var output uint32
+		var arg api.MsgGenericKprobeArgInt
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Int type error")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = int32(int8(output))
+		arg.Label = a.label
+		return arg
 	default:
 		logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 	}
