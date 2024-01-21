@@ -67,6 +67,180 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 	}
 }
 
+func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgument {
+	a := &tetragon.KprobeArgument{}
+	switch e := arg.(type) {
+	case api.MsgGenericKprobeArgInt:
+		a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgUInt:
+		a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgSize:
+		a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgString:
+		a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgSock:
+		sockArg := &tetragon.KprobeSock{
+			Cookie:   e.Sockaddr,
+			Family:   network.InetFamily(e.Family),
+			State:    network.TcpState(e.State),
+			Type:     network.InetType(e.Type),
+			Protocol: network.InetProtocol(e.Protocol),
+			Mark:     e.Mark,
+			Priority: e.Priority,
+			Saddr:    e.Saddr,
+			Daddr:    e.Daddr,
+			Sport:    e.Sport,
+			Dport:    e.Dport,
+		}
+		a.Arg = &tetragon.KprobeArgument_SockArg{SockArg: sockArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgSkb:
+		skbArg := &tetragon.KprobeSkb{
+			Hash:        e.Hash,
+			Len:         e.Len,
+			Priority:    e.Priority,
+			Mark:        e.Mark,
+			Saddr:       e.Saddr,
+			Daddr:       e.Daddr,
+			Sport:       e.Sport,
+			Dport:       e.Dport,
+			Proto:       e.Proto,
+			Protocol:    network.InetProtocol(uint16(e.Proto)),
+			SecPathLen:  e.SecPathLen,
+			SecPathOlen: e.SecPathOLen,
+			Family:      network.InetFamily(e.Family),
+		}
+		a.Arg = &tetragon.KprobeArgument_SkbArg{SkbArg: skbArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgCred:
+		credArg := &tetragon.ProcessCredentials{
+			Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
+			Gid:        &wrapperspb.UInt32Value{Value: e.Gid},
+			Euid:       &wrapperspb.UInt32Value{Value: e.Euid},
+			Egid:       &wrapperspb.UInt32Value{Value: e.Egid},
+			Suid:       &wrapperspb.UInt32Value{Value: e.Suid},
+			Sgid:       &wrapperspb.UInt32Value{Value: e.Sgid},
+			Fsuid:      &wrapperspb.UInt32Value{Value: e.FSuid},
+			Fsgid:      &wrapperspb.UInt32Value{Value: e.FSgid},
+			Securebits: caps.GetSecureBitsTypes(e.SecureBits),
+		}
+		credArg.Caps = &tetragon.Capabilities{
+			Permitted:   caps.GetCapabilitiesTypes(e.Cap.Permitted),
+			Effective:   caps.GetCapabilitiesTypes(e.Cap.Effective),
+			Inheritable: caps.GetCapabilitiesTypes(e.Cap.Inheritable),
+		}
+		credArg.UserNs = &tetragon.UserNamespace{
+			Level: &wrapperspb.Int32Value{Value: e.UserNs.Level},
+			Uid:   &wrapperspb.UInt32Value{Value: e.UserNs.Uid},
+			Gid:   &wrapperspb.UInt32Value{Value: e.UserNs.Gid},
+			Ns: &tetragon.Namespace{
+				Inum: e.UserNs.NsInum,
+			},
+		}
+		if e.UserNs.Level == 0 {
+			credArg.UserNs.Ns.IsHost = true
+		}
+		a.Arg = &tetragon.KprobeArgument_ProcessCredentialsArg{ProcessCredentialsArg: credArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgBytes:
+		if e.OrigSize > uint64(len(e.Value)) {
+			a.Arg = &tetragon.KprobeArgument_TruncatedBytesArg{
+				TruncatedBytesArg: &tetragon.KprobeTruncatedBytes{
+					OrigSize: e.OrigSize,
+					BytesArg: e.Value,
+				},
+			}
+		} else {
+			a.Arg = &tetragon.KprobeArgument_BytesArg{BytesArg: e.Value}
+		}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgFile:
+		fileArg := &tetragon.KprobeFile{
+			Path:  e.Value,
+			Flags: path.FilePathFlagsToStr(e.Flags),
+		}
+		a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgPath:
+		pathArg := &tetragon.KprobePath{
+			Path:  e.Value,
+			Flags: path.FilePathFlagsToStr(e.Flags),
+		}
+		a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgBpfAttr:
+		bpfAttrArg := &tetragon.KprobeBpfAttr{
+			ProgType: bpf.GetProgType(e.ProgType),
+			InsnCnt:  e.InsnCnt,
+			ProgName: e.ProgName,
+		}
+		a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgPerfEvent:
+		perfEventArg := &tetragon.KprobePerfEvent{
+			KprobeFunc:  e.KprobeFunc,
+			Type:        bpf.GetPerfEventType(e.Type),
+			Config:      e.Config,
+			ProbeOffset: e.ProbeOffset,
+		}
+		a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgBpfMap:
+		bpfMapArg := &tetragon.KprobeBpfMap{
+			MapType:    bpf.GetBpfMapType(e.MapType),
+			KeySize:    e.KeySize,
+			ValueSize:  e.ValueSize,
+			MaxEntries: e.MaxEntries,
+			MapName:    e.MapName,
+		}
+		a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgUserNamespace:
+		nsArg := &tetragon.UserNamespace{
+			Level: &wrapperspb.Int32Value{Value: e.Level},
+			Uid:   &wrapperspb.UInt32Value{Value: e.Uid},
+			Gid:   &wrapperspb.UInt32Value{Value: e.Gid},
+			Ns: &tetragon.Namespace{
+				Inum: e.NsInum,
+			},
+		}
+		if e.Level == 0 {
+			nsArg.Ns.IsHost = true
+		}
+		a.Arg = &tetragon.KprobeArgument_UserNsArg{UserNsArg: nsArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgCapability:
+		cArg := &tetragon.KprobeCapability{
+			Value: &wrapperspb.Int32Value{Value: e.Value},
+		}
+		cArg.Name, _ = caps.GetCapability(e.Value)
+		a.Arg = &tetragon.KprobeArgument_CapabilityArg{CapabilityArg: cArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgLoadModule:
+		mArg := &tetragon.KernelModule{
+			Name:        e.Name,
+			SignatureOk: &wrapperspb.BoolValue{Value: e.SigOk != 0},
+			Tainted:     kernel.GetTaintedBitsTypes(e.Taints),
+		}
+		a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgKernelModule:
+		mArg := &tetragon.KernelModule{
+			Name:    e.Name,
+			Tainted: kernel.GetTaintedBitsTypes(e.Taints),
+		}
+		a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
+		a.Label = e.Label
+	default:
+		logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
+	}
+	return a
+}
+
 func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	var tetragonParent, tetragonProcess *tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
@@ -89,176 +263,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	for _, arg := range event.Args {
-		a := &tetragon.KprobeArgument{}
-		switch e := arg.(type) {
-		case api.MsgGenericKprobeArgInt:
-			a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgUInt:
-			a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgSize:
-			a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgString:
-			a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgSock:
-			sockArg := &tetragon.KprobeSock{
-				Cookie:   e.Sockaddr,
-				Family:   network.InetFamily(e.Family),
-				State:    network.TcpState(e.State),
-				Type:     network.InetType(e.Type),
-				Protocol: network.InetProtocol(e.Protocol),
-				Mark:     e.Mark,
-				Priority: e.Priority,
-				Saddr:    e.Saddr,
-				Daddr:    e.Daddr,
-				Sport:    e.Sport,
-				Dport:    e.Dport,
-			}
-			a.Arg = &tetragon.KprobeArgument_SockArg{SockArg: sockArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgSkb:
-			skbArg := &tetragon.KprobeSkb{
-				Hash:        e.Hash,
-				Len:         e.Len,
-				Priority:    e.Priority,
-				Mark:        e.Mark,
-				Saddr:       e.Saddr,
-				Daddr:       e.Daddr,
-				Sport:       e.Sport,
-				Dport:       e.Dport,
-				Proto:       e.Proto,
-				Protocol:    network.InetProtocol(uint16(e.Proto)),
-				SecPathLen:  e.SecPathLen,
-				SecPathOlen: e.SecPathOLen,
-				Family:      network.InetFamily(e.Family),
-			}
-			a.Arg = &tetragon.KprobeArgument_SkbArg{SkbArg: skbArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgCred:
-			credArg := &tetragon.ProcessCredentials{
-				Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
-				Gid:        &wrapperspb.UInt32Value{Value: e.Gid},
-				Euid:       &wrapperspb.UInt32Value{Value: e.Euid},
-				Egid:       &wrapperspb.UInt32Value{Value: e.Egid},
-				Suid:       &wrapperspb.UInt32Value{Value: e.Suid},
-				Sgid:       &wrapperspb.UInt32Value{Value: e.Sgid},
-				Fsuid:      &wrapperspb.UInt32Value{Value: e.FSuid},
-				Fsgid:      &wrapperspb.UInt32Value{Value: e.FSgid},
-				Securebits: caps.GetSecureBitsTypes(e.SecureBits),
-			}
-			credArg.Caps = &tetragon.Capabilities{
-				Permitted:   caps.GetCapabilitiesTypes(e.Cap.Permitted),
-				Effective:   caps.GetCapabilitiesTypes(e.Cap.Effective),
-				Inheritable: caps.GetCapabilitiesTypes(e.Cap.Inheritable),
-			}
-			credArg.UserNs = &tetragon.UserNamespace{
-				Level: &wrapperspb.Int32Value{Value: e.UserNs.Level},
-				Uid:   &wrapperspb.UInt32Value{Value: e.UserNs.Uid},
-				Gid:   &wrapperspb.UInt32Value{Value: e.UserNs.Gid},
-				Ns: &tetragon.Namespace{
-					Inum: e.UserNs.NsInum,
-				},
-			}
-			if e.UserNs.Level == 0 {
-				credArg.UserNs.Ns.IsHost = true
-			}
-			a.Arg = &tetragon.KprobeArgument_ProcessCredentialsArg{ProcessCredentialsArg: credArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgBytes:
-			if e.OrigSize > uint64(len(e.Value)) {
-				a.Arg = &tetragon.KprobeArgument_TruncatedBytesArg{
-					TruncatedBytesArg: &tetragon.KprobeTruncatedBytes{
-						OrigSize: e.OrigSize,
-						BytesArg: e.Value,
-					},
-				}
-			} else {
-				a.Arg = &tetragon.KprobeArgument_BytesArg{BytesArg: e.Value}
-			}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgFile:
-			fileArg := &tetragon.KprobeFile{
-				Path:  e.Value,
-				Flags: path.FilePathFlagsToStr(e.Flags),
-			}
-			a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgPath:
-			pathArg := &tetragon.KprobePath{
-				Path:  e.Value,
-				Flags: path.FilePathFlagsToStr(e.Flags),
-			}
-			a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgBpfAttr:
-			bpfAttrArg := &tetragon.KprobeBpfAttr{
-				ProgType: bpf.GetProgType(e.ProgType),
-				InsnCnt:  e.InsnCnt,
-				ProgName: e.ProgName,
-			}
-			a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgPerfEvent:
-			perfEventArg := &tetragon.KprobePerfEvent{
-				KprobeFunc:  e.KprobeFunc,
-				Type:        bpf.GetPerfEventType(e.Type),
-				Config:      e.Config,
-				ProbeOffset: e.ProbeOffset,
-			}
-			a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgBpfMap:
-			bpfMapArg := &tetragon.KprobeBpfMap{
-				MapType:    bpf.GetBpfMapType(e.MapType),
-				KeySize:    e.KeySize,
-				ValueSize:  e.ValueSize,
-				MaxEntries: e.MaxEntries,
-				MapName:    e.MapName,
-			}
-			a.Arg = &tetragon.KprobeArgument_BpfMapArg{BpfMapArg: bpfMapArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgUserNamespace:
-			nsArg := &tetragon.UserNamespace{
-				Level: &wrapperspb.Int32Value{Value: e.Level},
-				Uid:   &wrapperspb.UInt32Value{Value: e.Uid},
-				Gid:   &wrapperspb.UInt32Value{Value: e.Gid},
-				Ns: &tetragon.Namespace{
-					Inum: e.NsInum,
-				},
-			}
-			if e.Level == 0 {
-				nsArg.Ns.IsHost = true
-			}
-			a.Arg = &tetragon.KprobeArgument_UserNsArg{UserNsArg: nsArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgCapability:
-			cArg := &tetragon.KprobeCapability{
-				Value: &wrapperspb.Int32Value{Value: e.Value},
-			}
-			cArg.Name, _ = caps.GetCapability(e.Value)
-			a.Arg = &tetragon.KprobeArgument_CapabilityArg{CapabilityArg: cArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgLoadModule:
-			mArg := &tetragon.KernelModule{
-				Name:        e.Name,
-				SignatureOk: &wrapperspb.BoolValue{Value: e.SigOk != 0},
-				Tainted:     kernel.GetTaintedBitsTypes(e.Taints),
-			}
-			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
-			a.Label = e.Label
-		case api.MsgGenericKprobeArgKernelModule:
-			mArg := &tetragon.KernelModule{
-				Name:    e.Name,
-				Tainted: kernel.GetTaintedBitsTypes(e.Taints),
-			}
-			a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
-			a.Label = e.Label
-		default:
-			logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
-		}
+		a := getKprobeArgument(arg)
 		if arg.IsReturnArg() {
 			tetragonReturnArg = a
 		} else {
