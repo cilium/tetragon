@@ -39,6 +39,11 @@ const (
 
 	GenericSyscall64 = 28
 
+	GenericS16Type = 29
+	GenericU16Type = 30
+	GenericS8Type  = 31
+	GenericU8Type  = 32
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -101,6 +106,14 @@ func GenericTypeFromString(arg string) int {
 		return GenericKernelModule
 	case "syscall64":
 		return GenericSyscall64
+	case "sint16", "int16":
+		return GenericS16Type
+	case "uint16":
+		return GenericU16Type
+	case "sint8", "int8":
+		return GenericS8Type
+	case "uint8":
+		return GenericU8Type
 	default:
 		return GenericInvalidType
 	}
