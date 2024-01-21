@@ -205,7 +205,8 @@ metadata:
 spec:
   uprobes:
   - path: "/bin/bash"
-    symbol: "readline"
+    symbols:
+    - "readline"
 ```
 
 This example shows how to use uprobes to hook into the readline function
