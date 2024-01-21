@@ -79,6 +79,9 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 	case api.MsgGenericKprobeArgSize:
 		a.Arg = &tetragon.KprobeArgument_SizeArg{SizeArg: e.Value}
 		a.Label = e.Label
+	case api.MsgGenericKprobeArgLong:
+		a.Arg = &tetragon.KprobeArgument_LongArg{LongArg: e.Value}
+		a.Label = e.Label
 	case api.MsgGenericKprobeArgString:
 		a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
 		a.Label = e.Label

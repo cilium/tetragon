@@ -240,6 +240,19 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		arg.Sockaddr = sock.Sockaddr
 		arg.Label = a.label
 		return arg
+	case gt.GenericS64Type:
+		var output int64
+		var arg api.MsgGenericKprobeArgLong
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Size type err")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = output
+		arg.Label = a.label
+		return arg
 	case gt.GenericSizeType, gt.GenericU64Type:
 		var output uint64
 		var arg api.MsgGenericKprobeArgSize
