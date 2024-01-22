@@ -2393,15 +2393,15 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 		// fallthrough to file_ty
 	case linux_binprm_type: {
-        struct linux_binprm *bprm = (struct linux_binprm *)arg;
+		struct linux_binprm *bprm = (struct linux_binprm *)arg;
 		struct file *file;
 
-        arg = (unsigned long)_(&bprm->file);
+		arg = (unsigned long)_(&bprm->file);
 		probe_read(&file, sizeof(file), (const void *)arg);
 		arg = (unsigned long)file;
 
-        // fallthrough to file_ty
-    }
+		// fallthrough to file_ty
+	}
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);
