@@ -142,6 +142,7 @@ jobs:
           sudo mkdir -p /opt/tetragon.tp.d/
           sudo cp examples/tracingpolicy/bpf.yaml /opt/tetragon.tp.d/bpf.yaml
           echo "/opt/tetragon.tp.d/" | sudo tee /etc/tetragon/tetragon.conf.d/tracing-policy-dir
+          echo "localhost:8118" | sudo tee /etc/tetragon/tetragon.conf.d/gops-address
           sudo systemctl start tetragon
 
       - name: Test Tetragon with a different tracing-policy-dir
@@ -156,7 +157,7 @@ jobs:
             sudo tetra status
             sudo grep "tetra" /var/log/tetragon/tetragon.log
             sudo tetra tracingpolicy list | grep bpf -
-            sudo tetra bugtool
+            sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof-heap" -
 
       - name: Uninstall Tetragon Tarball
         run: |
