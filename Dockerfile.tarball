@@ -21,6 +21,7 @@ COPY --from=tetragon-release /usr/bin/tetra /usr/local/bin/
 
 # Helper binaries
 COPY --from=tetragon-release /usr/bin/bpftool /usr/local/lib/tetragon/
+COPY --from=tetragon-release /usr/bin/gops /usr/local/lib/tetragon/
 
 # BPF files
 COPY --from=tetragon-release /var/lib/tetragon /usr/local/lib/tetragon/bpf
