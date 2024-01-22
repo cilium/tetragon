@@ -5741,6 +5741,97 @@ spec:
 	}
 }
 
+func TestLinuxBinprmExtractPath(t *testing.T) {
+	myPid := uint32(observertesthelper.GetMyPid())
+
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	bprmTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "bprm-extract-path",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			Options: []v1alpha1.OptionSpec{
+				{
+					Name:  "disable-kprobe-multi",
+					Value: "1",
+				},
+			},
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "security_bprm_check",
+					Syscall: false,
+					Return:  false,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 1,
+							Type:  "linux_binprm",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchPIDs: []v1alpha1.PIDSelector{
+								{
+									Operator:       "In",
+									FollowForks:    true,
+									IsNamespacePID: true,
+									Values:         []uint32{myPid},
+								},
+							},
+							MatchArgs: []v1alpha1.ArgSelector{
+								{
+									Operator: "In",
+									Index:    1,
+									Values:   []string{"/usr/bin/tail"},
+								},
+							},
+							MatchActions: []v1alpha1.ActionSelector{
+								{
+									Action:   "Override",
+									ArgError: -1, // denied
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
+	assert.NoError(t, err)
+
+	tailCommand := exec.Command("/usr/bin/tail", "-f", "/etc/passwd")
+
+	ops := func() {
+		err = tailCommand.Start()
+		assert.NoError(t, err)
+		defer tailCommand.Process.Kill()
+	}
+
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "security_bprm_check") {
+				return
+			}
+		}
+	}
+	t.Error("bprm error")
+}
+
 // Test module loading/unloading on Ubuntu
 func TestTraceKernelModule(t *testing.T) {
 	_, err := ftrace.ReadAvailFuncs("find_module_sections")
