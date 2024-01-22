@@ -125,7 +125,7 @@ func WithLib(lib string) TestOption {
 func testDone(tb testing.TB, obs *observer.Observer) {
 	if tb.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
-		if err := bugtool.Bugtool(bugtoolFname, ""); err == nil {
+		if err := bugtool.Bugtool(bugtoolFname, "", ""); err == nil {
 			logger.GetLogger().WithField("test", tb.Name()).
 				WithField("file", bugtoolFname).Info("Dumped bugtool info")
 		} else {
