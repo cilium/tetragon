@@ -117,7 +117,7 @@ host PID is equal to either `pid1` or `pid2` or `pid3`:
 ```yaml
 - matchPIDs:
   - operator: "In"
-    followforks: true
+    followForks: true
     values:
     - "pid1"
     - "pid2"
@@ -137,7 +137,7 @@ created by `kubectl exec` are not children of PID 1.
 ```yaml
 - matchPIDs:
   - operator: NotIn
-    followforks: false
+    followForks: false
     isNamespacePID: true
     values:
     - 1
