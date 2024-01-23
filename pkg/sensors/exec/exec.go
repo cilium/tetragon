@@ -27,34 +27,13 @@ import (
 
 func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
-
-	unix.Common = m.Common
-	unix.Parent = m.Parent
-	unix.Capabilities = m.Capabilities
-	unix.Creds = m.Creds
-
-	unix.Namespaces.UtsInum = m.Namespaces.UtsInum
-	unix.Namespaces.IpcInum = m.Namespaces.IpcInum
-	unix.Namespaces.MntInum = m.Namespaces.MntInum
-	unix.Namespaces.PidInum = m.Namespaces.PidInum
-	unix.Namespaces.PidChildInum = m.Namespaces.PidChildInum
-	unix.Namespaces.NetInum = m.Namespaces.NetInum
-	unix.Namespaces.TimeInum = m.Namespaces.TimeInum
-	unix.Namespaces.TimeChildInum = m.Namespaces.TimeChildInum
-	unix.Namespaces.CgroupInum = m.Namespaces.CgroupInum
-	unix.Namespaces.UserInum = m.Namespaces.UserInum
-
-	unix.CleanupProcess = m.CleanupProcess
-
+	unix.Unix = &processapi.MsgExecveEventUnix{}
+	unix.Unix.Msg = m
 	return unix
 }
 
 func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename string) processapi.MsgK8sUnix {
-	kube := processapi.MsgK8sUnix{
-		NetNS:  m.Kube.NetNS,
-		Cid:    m.Kube.Cid,
-		Cgrpid: m.Kube.Cgrpid,
-	}
+	kube := processapi.MsgK8sUnix{}
 
 	// The first byte is set to zero if there is no docker ID for this event.
 	if m.Kube.Docker[0] != 0x00 {
@@ -64,7 +43,7 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 		if docker != "" {
 			kube.Docker = docker
 			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
+				"cgroup.id":       m.Kube.Cgrpid,
 				"cgroup.name":     cgroup,
 				"docker":          kube.Docker,
 				"process.exec_id": exec_id,
@@ -72,7 +51,7 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 			}).Trace("process_exec: container ID set successfully")
 		} else {
 			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.id":       kube.Cgrpid,
+				"cgroup.id":       m.Kube.Cgrpid,
 				"cgroup.name":     cgroup,
 				"process.exec_id": exec_id,
 				"process.binary":  filename,
@@ -80,7 +59,7 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 		}
 	} else {
 		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.id":       kube.Cgrpid,
+			"cgroup.id":       m.Kube.Cgrpid,
 			"process.exec_id": exec_id,
 			"process.binary":  filename,
 		}).Trace("process_exec: no container ID due to cgroup name being empty, ignoring.")
@@ -201,11 +180,11 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, err
 	}
 	msgUnix := msgToExecveUnix(&m)
-	msgUnix.Process, empty, err = execParse(r)
+	msgUnix.Unix.Process, empty, err = execParse(r)
 	if err != nil && empty {
-		msgUnix.Process = nopMsgProcess()
+		msgUnix.Unix.Process = nopMsgProcess()
 	}
-	msgUnix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Process), msgUnix.Process.Filename)
+	msgUnix.Unix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
 }
 

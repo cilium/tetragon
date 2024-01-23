@@ -35,12 +35,12 @@ const (
 )
 
 func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
-	if msg.CleanupProcess.Ktime == 0 {
+	if msg.Unix.Msg.CleanupProcess.Ktime == 0 {
 		return nil
 	}
 	return &MsgProcessCleanupEventUnix{
-		PID:   msg.CleanupProcess.Pid,
-		Ktime: msg.CleanupProcess.Ktime,
+		PID:   msg.Unix.Msg.CleanupProcess.Pid,
+		Ktime: msg.Unix.Msg.CleanupProcess.Ktime,
 	}
 }
 
@@ -48,7 +48,7 @@ func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
 func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessExec {
 	var tetragonParent *tetragon.Process
 
-	proc := process.AddExecEvent(&event.MsgExecveEventUnix)
+	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
 
 	parentId := tetragonProcess.ParentExecId
@@ -77,7 +77,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	if useCache {
 		if ec := eventcache.Get(); ec != nil &&
 			(ec.Needed(tetragonEvent.Process) || (tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonEvent.Parent))) {
-			ec.Add(proc, tetragonEvent, event.Common.Ktime, event.Process.Ktime, event)
+			ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
 			return nil
 		}
 	}
@@ -171,7 +171,7 @@ func (msg *MsgCgroupEventUnix) Cast(o interface{}) notify.Message {
 }
 
 type MsgExecveEventUnix struct {
-	processapi.MsgExecveEventUnix
+	Unix *processapi.MsgExecveEventUnix
 }
 
 func (msg *MsgExecveEventUnix) Notify() bool {
@@ -191,7 +191,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	containerId := proc.Docker
 	filename := proc.Binary
 	args := proc.Arguments
-	nspid := msg.Process.NSPID
+	nspid := msg.Unix.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
 		podInfo = process.GetPodInfo(containerId, filename, args, nspid)
@@ -247,13 +247,13 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 
 func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
-	switch msg.Common.Op {
+	switch msg.Unix.Msg.Common.Op {
 	case ops.MSG_OP_EXECVE:
 		if e := GetProcessExec(msg, true); e != nil {
 			res = &tetragon.GetEventsResponse{
 				Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
 				NodeName: nodeName,
-				Time:     ktime.ToProto(msg.Common.Ktime),
+				Time:     ktime.ToProto(msg.Unix.Msg.Common.Ktime),
 			}
 		}
 	default:
@@ -264,7 +264,7 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 func (msg *MsgExecveEventUnix) Cast(o interface{}) notify.Message {
 	t := o.(processapi.MsgExecveEventUnix)
-	return &MsgExecveEventUnix{MsgExecveEventUnix: t}
+	return &MsgExecveEventUnix{Unix: &t}
 }
 
 // finalize() is called to finalize Process of the event ExecveEvent

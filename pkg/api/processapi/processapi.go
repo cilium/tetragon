@@ -84,9 +84,6 @@ type MsgK8s struct {
 }
 
 type MsgK8sUnix struct {
-	NetNS  uint32
-	Cid    uint32
-	Cgrpid uint64
 	Docker string
 }
 
@@ -115,15 +112,9 @@ type MsgExecveEvent struct {
 }
 
 type MsgExecveEventUnix struct {
-	Common         MsgCommon
-	Kube           MsgK8sUnix
-	Parent         MsgExecveKey
-	ParentFlags    uint64
-	Capabilities   MsgCapabilities
-	Creds          MsgGenericCredMinimal
-	Namespaces     MsgNamespaces
-	CleanupProcess MsgExecveKey
-	Process        MsgProcess
+	Msg     *MsgExecveEvent
+	Kube    MsgK8sUnix
+	Process MsgProcess
 }
 
 type MsgCloneEvent struct {

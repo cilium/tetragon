@@ -84,25 +84,29 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	// Create a parent event to hand events off of and convince execCache that parents are known. In order for this to
 	// work we set the Pid == 1 here so that system believes this is the root of the tree.
 	rootEv := tetragonAPI.MsgExecveEventUnix{
-		Common: tetragonAPI.MsgCommon{
-			Op:     5,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   326,
-			Ktime:  0,
+		Msg: &tetragonAPI.MsgExecveEvent{
+			Common: tetragonAPI.MsgCommon{
+				Op:     5,
+				Flags:  0,
+				Pad_v2: [2]uint8{0, 0},
+				Size:   326,
+				Ktime:  0,
+			},
+			Kube: tetragonAPI.MsgK8s{
+				NetNS:  0,
+				Cid:    0,
+				Cgrpid: 0,
+			},
+			Parent: tetragonAPI.MsgExecveKey{
+				Pid:   0,
+				Pad:   0,
+				Ktime: 0,
+			},
+			ParentFlags: 0,
 		},
 		Kube: tetragonAPI.MsgK8sUnix{
-			NetNS:  0,
-			Cid:    0,
-			Cgrpid: 0,
 			Docker: "",
 		},
-		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   0,
-			Pad:   0,
-			Ktime: 0,
-		},
-		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
 			Size:       78,
 			PID:        1,
@@ -121,25 +125,29 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	execRootMsg = execRootMsg.Cast(rootEv).(EXEC)
 
 	parentEv := tetragonAPI.MsgExecveEventUnix{
-		Common: tetragonAPI.MsgCommon{
-			Op:     5,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   326,
-			Ktime:  21034975106173,
+		Msg: &tetragonAPI.MsgExecveEvent{
+			Common: tetragonAPI.MsgCommon{
+				Op:     5,
+				Flags:  0,
+				Pad_v2: [2]uint8{0, 0},
+				Size:   326,
+				Ktime:  21034975106173,
+			},
+			Kube: tetragonAPI.MsgK8s{
+				NetNS:  4026531992,
+				Cid:    0,
+				Cgrpid: 0,
+			},
+			Parent: tetragonAPI.MsgExecveKey{
+				Pid:   1,
+				Pad:   0,
+				Ktime: 0,
+			},
+			ParentFlags: 0,
 		},
 		Kube: tetragonAPI.MsgK8sUnix{
-			NetNS:  4026531992,
-			Cid:    0,
-			Cgrpid: 0,
 			Docker: Docker,
 		},
-		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   1,
-			Pad:   0,
-			Ktime: 0,
-		},
-		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
 			Size:       78,
 			PID:        ParentPid,
@@ -158,25 +166,29 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	execParentMsg = execParentMsg.Cast(parentEv).(EXEC)
 
 	execEv := tetragonAPI.MsgExecveEventUnix{
-		Common: tetragonAPI.MsgCommon{
-			Op:     5,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   326,
-			Ktime:  21034975106173,
+		Msg: &tetragonAPI.MsgExecveEvent{
+			Common: tetragonAPI.MsgCommon{
+				Op:     5,
+				Flags:  0,
+				Pad_v2: [2]uint8{0, 0},
+				Size:   326,
+				Ktime:  21034975106173,
+			},
+			Kube: tetragonAPI.MsgK8s{
+				NetNS:  4026531992,
+				Cid:    0,
+				Cgrpid: 0,
+			},
+			Parent: tetragonAPI.MsgExecveKey{
+				Pid:   ParentPid,
+				Pad:   0,
+				Ktime: ParentKtime,
+			},
+			ParentFlags: 0,
 		},
 		Kube: tetragonAPI.MsgK8sUnix{
-			NetNS:  4026531992,
-			Cid:    0,
-			Cgrpid: 0,
 			Docker: Docker,
 		},
-		Parent: tetragonAPI.MsgExecveKey{
-			Pid:   ParentPid,
-			Pad:   0,
-			Ktime: ParentKtime,
-		},
-		ParentFlags: 0,
 		Process: tetragonAPI.MsgProcess{
 			Size:     78,
 			PID:      Pid,
