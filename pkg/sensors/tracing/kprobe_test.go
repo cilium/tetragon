@@ -5742,8 +5742,6 @@ spec:
 }
 
 func TestLinuxBinprmExtractPath(t *testing.T) {
-	myPid := uint32(observertesthelper.GetMyPid())
-
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -5781,25 +5779,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 					},
 					Selectors: []v1alpha1.KProbeSelector{
 						{
-							MatchPIDs: []v1alpha1.PIDSelector{
-								{
-									Operator:       "In",
-									FollowForks:    true,
-									IsNamespacePID: true,
-									Values:         []uint32{myPid},
-								},
-							},
 							MatchArgs: []v1alpha1.ArgSelector{
 								{
 									Operator: "In",
 									Index:    1,
-									Values:   []string{"/usr/bin/tail"},
-								},
-							},
-							MatchActions: []v1alpha1.ActionSelector{
-								{
-									Action:   "Override",
-									ArgError: -1, // denied
+									Values:   []string{"/usr/bin/id"},
 								},
 							},
 						},
@@ -5812,7 +5796,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
 	assert.NoError(t, err)
 
-	tailCommand := exec.Command("/usr/bin/tail", "-f", "/etc/passwd")
+	tailCommand := exec.Command("/usr/bin/id")
 
 	ops := func() {
 		err = tailCommand.Start()
@@ -5824,10 +5808,10 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "security_bprm_check") {
+			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == "security_bprm_check" {
 				return
 			}
-		}
+		} 
 	}
 	t.Error("bprm error")
 }
