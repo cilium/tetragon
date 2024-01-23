@@ -5811,7 +5811,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == "security_bprm_check" {
 				return
 			}
-		} 
+		}
 	}
 	t.Error("bprm error")
 }
