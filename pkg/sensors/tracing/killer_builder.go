@@ -124,7 +124,7 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 			Validated: false,
 		})
 		killers = append(killers, v1alpha1.KillerSpec{
-			Syscalls: []string{listName},
+			Calls: []string{listName},
 		})
 	}
 

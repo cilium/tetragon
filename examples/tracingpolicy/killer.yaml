@@ -11,7 +11,7 @@ spec:
     - "sys_dup2"
     - "__ia32_sys_dup"
   killers:
-  - syscalls:
+  - calls:
     - "list:dups"
   tracepoints:
   - subsystem: "raw_syscalls"
