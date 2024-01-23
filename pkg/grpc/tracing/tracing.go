@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
@@ -511,10 +510,9 @@ func (msg *MsgGenericKprobeUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 }
 
 type MsgProcessLoaderUnix struct {
-	ProcessKey processapi.MsgExecveKey
-	Path       string
-	Ktime      uint64
-	Buildid    []byte
+	Msg     *tracingapi.MsgLoader
+	Path    string
+	Buildid []byte
 }
 
 type ProcessLoaderNotify struct {
@@ -531,11 +529,11 @@ func (event *ProcessLoaderNotify) SetParent(*tetragon.Process) {
 func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 	var tetragonProcess *tetragon.Process
 
-	process, _ := process.GetParentProcessInternal(msg.ProcessKey.Pid, msg.ProcessKey.Ktime)
+	process, _ := process.GetParentProcessInternal(msg.Msg.ProcessKey.Pid, msg.Msg.ProcessKey.Ktime)
 	if process == nil {
 		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(msg.ProcessKey.Ktime),
+			Pid:       &wrapperspb.UInt32Value{Value: msg.Msg.ProcessKey.Pid},
+			StartTime: ktime.ToProto(msg.Msg.ProcessKey.Ktime),
 		}
 	} else {
 		tetragonProcess = process.UnsafeGetProcess()
@@ -552,7 +550,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonEvent.Process = tetragonProcess
 		tetragonEvent.Path = msg.Path
 		tetragonEvent.Buildid = msg.Buildid
-		ec.Add(nil, tetragonEvent, msg.Ktime, msg.ProcessKey.Ktime, msg)
+		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 
@@ -570,7 +568,7 @@ func (msg *MsgProcessLoaderUnix) Notify() bool {
 }
 
 func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.ProcessKey.Pid, nil, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.Pid, nil, timestamp)
 }
 
 func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
