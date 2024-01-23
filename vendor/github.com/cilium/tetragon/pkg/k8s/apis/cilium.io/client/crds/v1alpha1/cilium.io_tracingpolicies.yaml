@@ -38,13 +38,13 @@ spec:
                 description: A killer spec.
                 items:
                   properties:
-                    syscalls:
-                      description: syscalls where killer is executed in
+                    calls:
+                      description: Calls where killer is executed in
                       items:
                         type: string
                       type: array
                   required:
-                  - syscalls
+                  - calls
                   type: object
                 type: array
               kprobes:

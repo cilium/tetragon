@@ -1015,7 +1015,7 @@ the `killer` program and attach it to specified syscalls.
 ```yaml
 spec:
   killers:
-  - syscalls:
+  - calls:
     - "list:dups"
 ```
 
@@ -1047,7 +1047,7 @@ spec:
     - "sys_dup"
     - "sys_dup2"
   killers:
-  - syscalls:
+  - calls:
     - "list:dups"
   tracepoints:
   - subsystem: "raw_syscalls"

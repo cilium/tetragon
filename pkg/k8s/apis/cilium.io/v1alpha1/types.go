@@ -355,6 +355,6 @@ type PodInfoList struct {
 }
 
 type KillerSpec struct {
-	// syscalls where killer is executed in
-	Syscalls []string `json:"syscalls"`
+	// Calls where killer is executed in
+	Calls []string `json:"calls"`
 }

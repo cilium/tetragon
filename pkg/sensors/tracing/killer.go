@@ -159,8 +159,8 @@ func (kh *killerHandler) createKillerSensor(
 	killer := killers[0]
 
 	// get all the syscalls
-	for idx := range killer.Syscalls {
-		sym := killer.Syscalls[idx]
+	for idx := range killer.Calls {
+		sym := killer.Calls[idx]
 		if strings.HasPrefix(sym, "list:") {
 			listName := sym[len("list:"):]
 
