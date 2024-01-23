@@ -633,7 +633,7 @@ func TestExecPerfring(t *testing.T) {
 	events := perfring.RunTestEvents(t, ctx, ops)
 	for _, ev := range events {
 		if exec, ok := ev.(*grpcexec.MsgExecveEventUnix); ok {
-			if exec.Process.Filename == "/bin/true" {
+			if exec.Unix.Process.Filename == "/bin/true" {
 				return
 			}
 		}

@@ -236,8 +236,8 @@ func TestNamespacedPolicies(t *testing.T) {
 						return &x
 					}
 				} else if execEvent, ok := x.(*grpcexec.MsgExecveEventUnix); ok {
-					if strings.HasSuffix(execEvent.Process.Filename, "lseek-pipe") {
-						t.Logf("exec:%s %s, cgroupid:%d flags:%v", execEvent.Process.Filename, execEvent.Process.Args, execEvent.Kube.Cgrpid, execEvent.Process.Flags)
+					if strings.HasSuffix(execEvent.Unix.Process.Filename, "lseek-pipe") {
+						t.Logf("exec:%s %s, cgroupid:%d flags:%v", execEvent.Unix.Process.Filename, execEvent.Unix.Process.Args, execEvent.Unix.Msg.Kube.Cgrpid, execEvent.Unix.Process.Flags)
 					}
 				}
 				return nil

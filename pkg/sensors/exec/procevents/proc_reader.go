@@ -187,53 +187,55 @@ func pushExecveEvents(p procs) {
 	}
 
 	m := exec.MsgExecveEventUnix{}
-	m.Common.Op = ops.MSG_OP_EXECVE
-	m.Common.Size = processapi.MsgUnixSize + p.psize + p.size
+	m.Unix = &processapi.MsgExecveEventUnix{}
+	m.Unix.Msg = &processapi.MsgExecveEvent{}
+	m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
+	m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
 
-	m.Kube.NetNS = 0
-	m.Kube.Cid = 0
-	m.Kube.Cgrpid = 0
+	m.Unix.Msg.Kube.NetNS = 0
+	m.Unix.Msg.Kube.Cid = 0
+	m.Unix.Msg.Kube.Cgrpid = 0
 	if p.pid > 0 {
-		m.Kube.Docker, err = procsDockerId(p.pid)
+		m.Unix.Kube.Docker, err = procsDockerId(p.pid)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
 		}
 	}
 
-	m.Parent.Pid = p.ppid
-	m.Parent.Ktime = p.pktime
+	m.Unix.Msg.Parent.Pid = p.ppid
+	m.Unix.Msg.Parent.Ktime = p.pktime
 
-	m.Capabilities.Permitted = p.permitted
-	m.Capabilities.Effective = p.effective
-	m.Capabilities.Inheritable = p.inheritable
+	m.Unix.Msg.Capabilities.Permitted = p.permitted
+	m.Unix.Msg.Capabilities.Effective = p.effective
+	m.Unix.Msg.Capabilities.Inheritable = p.inheritable
 
-	m.Namespaces.UtsInum = p.uts_ns
-	m.Namespaces.IpcInum = p.ipc_ns
-	m.Namespaces.MntInum = p.mnt_ns
-	m.Namespaces.PidInum = p.pid_ns
-	m.Namespaces.PidChildInum = p.pid_for_children_ns
-	m.Namespaces.NetInum = p.net_ns
-	m.Namespaces.TimeInum = p.time_ns
-	m.Namespaces.TimeChildInum = p.time_for_children_ns
-	m.Namespaces.CgroupInum = p.cgroup_ns
-	m.Namespaces.UserInum = p.user_ns
+	m.Unix.Msg.Namespaces.UtsInum = p.uts_ns
+	m.Unix.Msg.Namespaces.IpcInum = p.ipc_ns
+	m.Unix.Msg.Namespaces.MntInum = p.mnt_ns
+	m.Unix.Msg.Namespaces.PidInum = p.pid_ns
+	m.Unix.Msg.Namespaces.PidChildInum = p.pid_for_children_ns
+	m.Unix.Msg.Namespaces.NetInum = p.net_ns
+	m.Unix.Msg.Namespaces.TimeInum = p.time_ns
+	m.Unix.Msg.Namespaces.TimeChildInum = p.time_for_children_ns
+	m.Unix.Msg.Namespaces.CgroupInum = p.cgroup_ns
+	m.Unix.Msg.Namespaces.UserInum = p.user_ns
 
-	m.Process.Size = p.size
-	m.Process.PID = p.pid
-	m.Process.TID = p.tid
-	m.Process.NSPID = p.nspid
+	m.Unix.Process.Size = p.size
+	m.Unix.Process.PID = p.pid
+	m.Unix.Process.TID = p.tid
+	m.Unix.Process.NSPID = p.nspid
 	// use euid to be compatible with ps
-	m.Process.UID = p.uids[1]
-	m.Process.AUID = p.auid
-	m.Creds = processapi.MsgGenericCredMinimal{
+	m.Unix.Process.UID = p.uids[1]
+	m.Unix.Process.AUID = p.auid
+	m.Unix.Msg.Creds = processapi.MsgGenericCredMinimal{
 		Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
 		Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
 	}
-	m.Process.Flags = p.flags | flags
-	m.Process.Ktime = p.ktime
-	m.Common.Ktime = p.ktime
-	m.Process.Filename = filename
-	m.Process.Args = args
+	m.Unix.Process.Flags = p.flags | flags
+	m.Unix.Process.Ktime = p.ktime
+	m.Unix.Msg.Common.Ktime = p.ktime
+	m.Unix.Process.Filename = filename
+	m.Unix.Process.Args = args
 
 	observer.AllListeners(&m)
 }

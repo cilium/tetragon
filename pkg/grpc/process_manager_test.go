@@ -167,26 +167,30 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		nil,
 		&rthooks.Runner{})
 	assert.NoError(t, err)
-	pi := &exec.MsgExecveEventUnix{MsgExecveEventUnix: processapi.MsgExecveEventUnix{
-		Common: processapi.MsgCommon{
-			Ktime: 1234,
+	pi := &exec.MsgExecveEventUnix{
+		Unix: &processapi.MsgExecveEventUnix{
+			Msg: &processapi.MsgExecveEvent{
+				Common: processapi.MsgCommon{
+					Ktime: 1234,
+				},
+				Creds: processapi.MsgGenericCredMinimal{
+					Uid:  1000,
+					Gid:  1000,
+					Euid: 10000,
+					Egid: 10000,
+				},
+				Capabilities: processapi.MsgCapabilities{
+					Permitted:   1,
+					Effective:   1,
+					Inheritable: 1,
+				},
+			},
+			Process: processapi.MsgProcess{
+				PID:        5678,
+				SecureExec: processapi.ExecveSetuid | processapi.ExecveSetgid,
+			},
 		},
-		Creds: processapi.MsgGenericCredMinimal{
-			Uid:  1000,
-			Gid:  1000,
-			Euid: 10000,
-			Egid: 10000,
-		},
-		Capabilities: processapi.MsgCapabilities{
-			Permitted:   1,
-			Effective:   1,
-			Inheritable: 1,
-		},
-		Process: processapi.MsgProcess{
-			PID:        5678,
-			SecureExec: processapi.ExecveSetuid | processapi.ExecveSetgid,
-		},
-	}}
+	}
 
 	assert.Nil(t, exec.GetProcessExec(pi, false).Process.Cap)
 

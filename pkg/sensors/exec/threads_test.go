@@ -129,9 +129,9 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	for _, ev := range events {
 		switch ev := ev.(type) {
 		case *grpcexec.MsgExecveEventUnix:
-			if ev.Process.Filename == testBin {
-				execPID = ev.Process.PID
-				execTID = ev.Process.TID
+			if ev.Unix.Process.Filename == testBin {
+				execPID = ev.Unix.Process.PID
+				execTID = ev.Unix.Process.TID
 			}
 		case *grpcexec.MsgCloneEventUnix:
 			// We found the exec parent then catch the single per thread

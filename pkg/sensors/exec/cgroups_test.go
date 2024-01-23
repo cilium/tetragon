@@ -442,17 +442,17 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 			}
 		}
 		if exec, ok := ev.(*grpcexec.MsgExecveEventUnix); ok {
-			if strings.Contains(exec.Process.Filename, "printf") {
-				args := strings.Split(exec.Process.Args, `\n`)
+			if strings.Contains(exec.Unix.Process.Filename, "printf") {
+				args := strings.Split(exec.Unix.Process.Args, `\n`)
 				argDir := args[0]
 				for i, cgroup := range cgroupHierarchiesMap[selectedController] {
 					// Ensure that argument matches the target cgroup directory of
 					// the hierarchy we want
 					if cgroup.path == argDir {
 						// cgroup path match, let's save the cgrpid of the execve
-						cgroupHierarchiesMap[selectedController][i].execCgrpID = exec.Kube.Cgrpid
+						cgroupHierarchiesMap[selectedController][i].execCgrpID = exec.Unix.Msg.Kube.Cgrpid
 						// save the received docker id of the execve
-						cgroupHierarchiesMap[selectedController][i].actualDocker = exec.Kube.Docker
+						cgroupHierarchiesMap[selectedController][i].actualDocker = exec.Unix.Kube.Docker
 						// we had our match break
 						break
 					}
@@ -505,17 +505,17 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupRoot string, 
 			}
 		}
 		if exec, ok := ev.(*grpcexec.MsgExecveEventUnix); ok {
-			if strings.Contains(exec.Process.Filename, "printf") {
-				args := strings.Split(exec.Process.Args, `\n`)
+			if strings.Contains(exec.Unix.Process.Filename, "printf") {
+				args := strings.Split(exec.Unix.Process.Args, `\n`)
 				argDir := args[0]
 				for i, cgroup := range cgroupHierarchy {
 					// Ensure that argument matches the target cgroup directory of
 					// the hierarchy we want
 					if cgroup.path == argDir {
 						// cgroup path match, let's save the cgrpid of the execve
-						cgroupHierarchy[i].execCgrpID = exec.Kube.Cgrpid
+						cgroupHierarchy[i].execCgrpID = exec.Unix.Msg.Kube.Cgrpid
 						// save the received docker id of the execve
-						cgroupHierarchy[i].actualDocker = exec.Kube.Docker
+						cgroupHierarchy[i].actualDocker = exec.Unix.Kube.Docker
 						// we had our match break
 						break
 					}
