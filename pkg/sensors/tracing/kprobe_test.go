@@ -3825,11 +3825,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	tailEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.ProcessKey.Pid) == tailPID {
+			if int(kprobe.Msg.ProcessKey.Pid) == tailPID {
 				tailEventExist = true
 				continue
 			}
-			if int(kprobe.ProcessKey.Pid) == headPID {
+			if int(kprobe.Msg.ProcessKey.Pid) == headPID {
 				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
 				break
 			}
@@ -3915,7 +3915,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "sys_read") {
+			if int(kprobe.Msg.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "sys_read") {
 				return
 			}
 		}
@@ -4012,15 +4012,15 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	tailEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.ProcessKey.Pid) == tailEtcPID {
+			if int(kprobe.Msg.ProcessKey.Pid) == tailEtcPID {
 				tailEventExist = true
 				continue
 			}
-			if int(kprobe.ProcessKey.Pid) == tailProcPID {
+			if int(kprobe.Msg.ProcessKey.Pid) == tailProcPID {
 				t.Error("kprobe event triggered by \"/usr/bin/tail /proc/uptime\" should be filtered by the matchArgs selector")
 				break
 			}
-			if int(kprobe.ProcessKey.Pid) == headPID {
+			if int(kprobe.Msg.ProcessKey.Pid) == headPID {
 				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
 				break
 			}
