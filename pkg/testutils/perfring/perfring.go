@@ -33,7 +33,7 @@ func loopEvents(events []observer.Event, eventFn EventFn, complChecker *testsens
 	for _, ev := range events {
 		switch xev := ev.(type) {
 		case *testapi.MsgTestEventUnix:
-			cpu := xev.Arg0
+			cpu := xev.Msg.Arg0
 			complChecker.Update(cpu)
 		}
 
