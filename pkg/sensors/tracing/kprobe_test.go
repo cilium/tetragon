@@ -5773,7 +5773,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 					Return:  false,
 					Args: []v1alpha1.KProbeArg{
 						{
-							Index: 1,
+							Index: 0,
 							Type:  "linux_binprm",
 						},
 					},
@@ -5782,7 +5782,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 							MatchArgs: []v1alpha1.ArgSelector{
 								{
 									Operator: "In",
-									Index:    1,
+									Index:    0,
 									Values:   []string{"/usr/bin/id"},
 								},
 							},
@@ -5811,7 +5811,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 			if int(kprobe.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == "security_bprm_check" {
 				return
 			}
-		}
+		} 
 	}
 	t.Error("bprm error")
 }
