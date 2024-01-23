@@ -1068,14 +1068,8 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	}
 
 	unix := &tracing.MsgGenericKprobeUnix{}
-	unix.Common = m.Common
-	unix.ProcessKey = m.ProcessKey
-	unix.Id = m.FuncId
-	unix.Action = m.ActionId
-	unix.Tid = m.Tid
+	unix.Msg = m
 	unix.FuncName = gk.funcName
-	unix.Namespaces = m.Namespaces
-	unix.Capabilities = m.Capabilities
 	unix.PolicyName = gk.policyName
 	unix.Message = gk.message
 
@@ -1220,7 +1214,7 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 			enterEv.Args = append(enterEv.Args, retArg)
 		}
 	}
-	enterEv.ReturnAction = retEv.Action
+	enterEv.ReturnAction = retEv.Msg.ActionId
 	return enterEv
 }
 
