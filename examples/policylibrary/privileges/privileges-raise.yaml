@@ -1,7 +1,9 @@
 # This 'privileges-raise' Tracing Policy monitors processes trying
 # to raise their privileges:
 #
-# 1. Change their uids/gids to user root.
+# 1. Unprivileged creating user namespace to gain new capabilities.
+#
+# 2. Change their uids/gids to user root.
 #
 #  __sys_setuid
 #    - __x64_sys_setuid
@@ -60,6 +62,18 @@ metadata:
     description: "Detects privileges raising operations"
 spec:
   kprobes:
+  - call: "create_user_ns"
+    syscall: false
+    message: "Unprivileged process created a user namespace where it will be privileged"
+    args:
+    - index: 0
+      type: "nop" # No need for argument as this targets unprivileged anyway.
+    selectors:
+    - matchCapabilities:
+      - type: Effective
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
   - call: "__sys_setuid"
     message: "Privileged operation setuid to root"
     syscall: false
