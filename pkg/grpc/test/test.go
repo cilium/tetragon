@@ -20,7 +20,7 @@ var (
 )
 
 type MsgTestEventUnix struct {
-	testapi.MsgTestEvent
+	Msg *testapi.MsgTestEvent
 }
 
 func (msg *MsgTestEventUnix) Notify() bool {
@@ -37,17 +37,17 @@ func (msg *MsgTestEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 
 func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
-	switch msg.Common.Op {
+	switch msg.Msg.Common.Op {
 	case ops.MSG_OP_TEST:
 		res = &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_Test{Test: &tetragon.Test{
-				Arg0: msg.Arg0,
-				Arg1: msg.Arg1,
-				Arg2: msg.Arg2,
-				Arg3: msg.Arg3,
+				Arg0: msg.Msg.Arg0,
+				Arg1: msg.Msg.Arg1,
+				Arg2: msg.Msg.Arg2,
+				Arg3: msg.Msg.Arg3,
 			}},
 			NodeName: nodeName,
-			Time:     ktime.ToProto(msg.Common.Ktime),
+			Time:     ktime.ToProto(msg.Msg.Common.Ktime),
 		}
 	default:
 		logger.GetLogger().WithField("message", msg).Warn("HandleTestMessage: Unhandled event")
@@ -57,5 +57,5 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 func (msg *MsgTestEventUnix) Cast(o interface{}) notify.Message {
 	t := o.(testapi.MsgTestEvent)
-	return &MsgTestEventUnix{MsgTestEvent: t}
+	return &MsgTestEventUnix{Msg: &t}
 }

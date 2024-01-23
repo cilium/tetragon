@@ -43,7 +43,7 @@ func AddTest() {
 
 func msgToTestUnix(m *api.MsgTestEvent) *test.MsgTestEventUnix {
 	return &test.MsgTestEventUnix{
-		MsgTestEvent: *m,
+		Msg: m,
 	}
 }
 
