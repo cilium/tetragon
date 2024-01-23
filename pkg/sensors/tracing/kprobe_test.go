@@ -6159,6 +6159,7 @@ spec:
     syscall: false
     return: true
     message: "Access sensitive files /etc/passwd"
+    tags: [ "observability.filesystem" ]
     args:
     - index: 0
       type: "file" # (struct file *) used for getting the path
@@ -6182,6 +6183,7 @@ spec:
     syscall: false
     return: true
     message: "Access sensitive files /etc/shadow"
+    tags: [ "observability.filesystem" ]
     args:
     - index: 0
       type: "file" # (struct file *) used for getting the path
@@ -6228,6 +6230,7 @@ spec:
 
 	kpCheckersRead := ec.NewProcessKprobeChecker("").
 		WithMessage(sm.Full("Access sensitive files /etc/passwd")).
+		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("observability.filesystem"))).
 		WithFunctionName(sm.Full("security_file_permission")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -6238,6 +6241,7 @@ spec:
 
 	kpCheckersMmap := ec.NewProcessKprobeChecker("").
 		WithMessage(sm.Full("Access sensitive files /etc/shadow")).
+		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("observability.filesystem"))).
 		WithFunctionName(sm.Full("security_mmap_file")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
