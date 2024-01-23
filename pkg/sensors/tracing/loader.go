@@ -167,10 +167,9 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	path := m.Path[:m.PathSize-1]
 
 	msg := &tracing.MsgProcessLoaderUnix{
-		ProcessKey: m.ProcessKey,
-		Ktime:      m.Common.Ktime,
-		Path:       strutils.UTF8FromBPFBytes(path),
-		Buildid:    m.BuildId[:m.BuildIdSize],
+		Msg:     &m,
+		Path:    strutils.UTF8FromBPFBytes(path),
+		Buildid: m.BuildId[:m.BuildIdSize],
 	}
 	return []observer.Event{msg}, nil
 }
