@@ -621,13 +621,9 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	}
 
 	unix := &tracing.MsgGenericTracepointUnix{
-		Common:     m.Common,
-		ProcessKey: m.ProcessKey,
-		Id:         m.FuncId,
-		Tid:        m.Tid,
-		Subsys:     "UNKNOWN",
-		Event:      "UNKNOWN",
-		Action:     m.ActionId,
+		Msg:    &m,
+		Subsys: "UNKNOWN",
+		Event:  "UNKNOWN",
 	}
 
 	tp, err := genericTracepointTable.getTracepoint(int(m.FuncId))
