@@ -241,7 +241,7 @@ best-practice to identify when privileges are raised.
 
 ### Policy
 
-The [privileges-setuid-root.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-setuid-root.yaml) is a catch all to the various interfaces of `setuid()` and `setgid()` to root.
+The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml) monitors the various interfaces of `setuid()` and `setgid()` to root.
 
 ### Example jq Filter
 
