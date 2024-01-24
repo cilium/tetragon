@@ -122,10 +122,10 @@ func detectModifyReturn() bool {
 	return true
 }
 
-func detectModifyReturnSyscall() bool {
+func detectModifyReturnSyscall() (bool, error) {
 	sysGetcpu, err := arch.AddSyscallPrefix("sys_getcpu")
 	if err != nil {
-		return false
+		return false, fmt.Errorf("failed to add arch specific syscall prefix: %w", err)
 	}
 	logger.GetLogger().Debugf("probing detectModifyReturnSyscall using %s", sysGetcpu)
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
@@ -140,8 +140,7 @@ func detectModifyReturnSyscall() bool {
 		License:    "MIT",
 	})
 	if err != nil {
-		logger.GetLogger().WithError(err).Info("detectModifyReturnSyscall: failed to load")
-		return false
+		return false, fmt.Errorf("failed to load: %w", err)
 	}
 	defer prog.Close()
 
@@ -149,11 +148,10 @@ func detectModifyReturnSyscall() bool {
 		Program: prog,
 	})
 	if err != nil {
-		logger.GetLogger().WithError(err).Info("detectModifyReturnSyscall, failed to attach")
-		return false
+		return false, fmt.Errorf("failed to attach: %w", err)
 	}
 	link.Close()
-	return true
+	return true, nil
 }
 
 func HasModifyReturn() bool {
@@ -165,7 +163,11 @@ func HasModifyReturn() bool {
 
 func HasModifyReturnSyscall() bool {
 	modifyReturnSyscall.init.Do(func() {
-		modifyReturnSyscall.detected = detectModifyReturnSyscall()
+		var err error
+		modifyReturnSyscall.detected, err = detectModifyReturnSyscall()
+		if err != nil {
+			logger.GetLogger().WithError(err).Error("detect modify return syscall")
+		}
 	})
 	return modifyReturnSyscall.detected
 }
