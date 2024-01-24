@@ -127,7 +127,7 @@ func detectModifyReturnSyscall() bool {
 	if err != nil {
 		return false
 	}
-	logger.GetLogger().Infof("probing detectModifyReturnSyscall using %s", sysGetcpu)
+	logger.GetLogger().Debugf("probing detectModifyReturnSyscall using %s", sysGetcpu)
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
 		Name: "probe_sys_fmod_ret",
 		Type: ebpf.Tracing,
