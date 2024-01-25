@@ -14,10 +14,12 @@
     - [Container](#tetragon-Container)
     - [CreateContainer](#tetragon-CreateContainer)
     - [CreateContainer.AnnotationsEntry](#tetragon-CreateContainer-AnnotationsEntry)
+    - [FileProperties](#tetragon-FileProperties)
     - [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest)
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
+    - [Inode](#tetragon-Inode)
     - [KernelModule](#tetragon-KernelModule)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
@@ -222,6 +224,7 @@ Reasons of why the process privileges changed.
 | setuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set user ID used for execution |
 | setgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set group ID used for execution |
 | privileges_changed | [ProcessPrivilegesChanged](#tetragon-ProcessPrivilegesChanged) | repeated | The reasons why this binary execution changed privileges. Usually this happens when the process executes a binary with the set-user-ID to root or file capability sets. The final granted privileges can be listed inside the `process_credentials` or capabilities fields part of of the `process` object. |
+| file | [FileProperties](#tetragon-FileProperties) |  | File properties in case the executed binary is: 1. An anonymous shared memory file https://man7.org/linux/man-pages/man7/shm_overview.7.html. 2. An anonymous file obtained with memfd API https://man7.org/linux/man-pages/man2/memfd_create.2.html. 3. Or it was deleted from the file system. |
 
 
 
@@ -301,6 +304,22 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
+<a name="tetragon-FileProperties"></a>
+
+### FileProperties
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| inode | [Inode](#tetragon-Inode) |  | Inode of the file |
+| path | [string](#string) |  | Path of the file |
+
+
+
+
+
+
 <a name="tetragon-GetHealthStatusRequest"></a>
 
 ### GetHealthStatusRequest
@@ -358,6 +377,22 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | Identifier of the container image composed of the registry path and the sha256. |
 | name | [string](#string) |  | Name of the container image composed of the registry path and the tag. |
+
+
+
+
+
+
+<a name="tetragon-Inode"></a>
+
+### Inode
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| number | [uint64](#uint64) |  | The inode number |
+| links | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The inode links on the file system. If zero means the file is only in memory |
 
 
 
