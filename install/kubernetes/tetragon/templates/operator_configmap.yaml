@@ -10,4 +10,5 @@ data:
   skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}
   skip-pod-info-crd: {{ not .Values.tetragonOperator.podInfo.enabled | quote }}
   skip-tracing-policy-crd: {{ not .Values.tetragonOperator.tracingPolicy.enabled | quote }}
+  force-update-crds: {{ .Values.tetragonOperator.forceUpdateCRDs | quote }}
 {{- end }}
