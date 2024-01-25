@@ -45,6 +45,11 @@ var (
 	comparableCRDSchemaVersion = versioncheck.MustVersion(v1alpha1.CustomResourceDefinitionSchemaVersion)
 )
 
+// CRDOptions are options for CRD registration
+type CRDOptions struct {
+	ForceUpdate bool
+}
+
 type CRD struct {
 	Definition apiextensionsv1.CustomResourceDefinition
 	CRDName    string
@@ -69,22 +74,27 @@ func NewCRD(crdName, resName string, crd apiextensionsv1.CustomResourceDefinitio
 }
 
 func RegisterCRDs(clientset apiextensionsclient.Interface, crds []CRD) error {
+	return RegisterCRDsWithOptions(clientset, crds, CRDOptions{})
+}
+
+func RegisterCRDsWithOptions(clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
-		return createCRDs(clientset, crds)
+		return createCRDs(clientset, crds, opts)
 	})
 
 	return g.Wait()
 }
 
-// createTPCRDs creates or updates the CRDs with the API server.
-func createCRDs(clientset apiextensionsclient.Interface, crds []CRD) error {
+// createCRDs creates or updates the CRDs with the API server.
+func createCRDs(clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
 	doCreateCRD := func(crd *CRD) error {
 		err := createUpdateCRD(
 			clientset,
 			crd.CRDName,
 			constructV1CRD(crd.ResName, crd.Definition),
-			newDefaultPoller())
+			newDefaultPoller(),
+			opts)
 		if err != nil {
 			err = fmt.Errorf("failed to create %s: %w", crd.CRDName, err)
 			return err
@@ -110,6 +120,7 @@ func createUpdateCRD(
 	crdName string,
 	crd *apiextensionsv1.CustomResourceDefinition,
 	poller poller,
+	opts CRDOptions,
 ) error {
 	scopedLog := log.WithField("name", crdName)
 
@@ -122,6 +133,7 @@ func createUpdateCRD(
 			crdName,
 			crd,
 			poller,
+			opts,
 		)
 	}
 
@@ -151,7 +163,7 @@ func createUpdateCRD(
 	}
 
 	// CRD already registered, update it with the new version.
-	if err := updateV1CRD(scopedLog, crd, clusterCRD, v1CRDClient, poller); err != nil {
+	if err := updateV1CRD(scopedLog, crd, clusterCRD, v1CRDClient, poller, opts); err != nil {
 		return err
 	}
 	if err := waitForV1CRD(scopedLog, crdName, clusterCRD, v1CRDClient, poller); err != nil {
@@ -189,11 +201,17 @@ func constructV1CRD(
 	}
 }
 
-// needsUpdateV1 returns true if the CRD needs to be updated, in three cases:
+// needsUpdateV1 returns true if the CRD needs to be updated, in next cases:
+// - ForceUpdate is set.
 // - CRD does not have a Schema.
 // - CRD does not have labels, equal to the Schema Version Key.
 // - Schema Version Key of the CRD has changed.
-func needsUpdateV1(clusterCRD *apiextensionsv1.CustomResourceDefinition) bool {
+func needsUpdateV1(clusterCRD *apiextensionsv1.CustomResourceDefinition, opts CRDOptions) bool {
+
+	if opts.ForceUpdate {
+		return true
+	}
+
 	if clusterCRD.Spec.Versions[0].Schema == nil {
 		// no validation detected
 		return true
@@ -219,10 +237,11 @@ func updateV1CRD(
 	crd, clusterCRD *apiextensionsv1.CustomResourceDefinition,
 	client v1client.CustomResourceDefinitionsGetter,
 	poller poller,
+	opts CRDOptions,
 ) error {
 	scopedLog.Debug("Checking if CRD (CustomResourceDefinition) needs update...")
 
-	if crd.Spec.Versions[0].Schema != nil && needsUpdateV1(clusterCRD) {
+	if crd.Spec.Versions[0].Schema != nil && needsUpdateV1(clusterCRD, opts) {
 		scopedLog.Info("Updating CRD (CustomResourceDefinition)...")
 
 		// Update the CRD with the validation schema.
@@ -239,7 +258,7 @@ func updateV1CRD(
 			// This seems too permissive, but we only get here if the version is
 			// different per needsUpdate above. If so, we want to update on any
 			// validation change including adding or removing validation.
-			if needsUpdateV1(clusterCRD) {
+			if needsUpdateV1(clusterCRD, opts) {
 				scopedLog.Debug("CRD validation is different, updating it...")
 
 				clusterCRD.ObjectMeta.Labels = crd.ObjectMeta.Labels
@@ -347,6 +366,7 @@ func createUpdateV1beta1CRD(
 	crdName string,
 	crd *apiextensionsv1.CustomResourceDefinition,
 	poller poller,
+	opts CRDOptions,
 ) error {
 	v1beta1CRD, err := convertToV1Beta1CRD(crd)
 	if err != nil {
@@ -374,7 +394,7 @@ func createUpdateV1beta1CRD(
 		return err
 	}
 
-	if err := updateV1beta1CRD(scopedLog, v1beta1CRD, clusterCRD, client, poller); err != nil {
+	if err := updateV1beta1CRD(scopedLog, v1beta1CRD, clusterCRD, client, poller, opts); err != nil {
 		return err
 	}
 	if err := waitForV1beta1CRD(scopedLog, crdName, clusterCRD, client, poller); err != nil {
@@ -386,7 +406,12 @@ func createUpdateV1beta1CRD(
 	return nil
 }
 
-func needsUpdateV1beta1(clusterCRD *apiextensionsv1beta1.CustomResourceDefinition) bool {
+func needsUpdateV1beta1(clusterCRD *apiextensionsv1beta1.CustomResourceDefinition, opts CRDOptions) bool {
+
+	if opts.ForceUpdate {
+		return true
+	}
+
 	if clusterCRD.Spec.Validation == nil {
 		// no validation detected
 		return true
@@ -434,10 +459,11 @@ func updateV1beta1CRD(
 	crd, clusterCRD *apiextensionsv1beta1.CustomResourceDefinition,
 	client v1beta1client.CustomResourceDefinitionsGetter,
 	poller poller,
+	opts CRDOptions,
 ) error {
 	scopedLog.Debug("Checking if CRD (CustomResourceDefinition) needs update...")
 
-	if crd.Spec.Validation != nil && needsUpdateV1beta1(clusterCRD) {
+	if crd.Spec.Validation != nil && needsUpdateV1beta1(clusterCRD, opts) {
 		scopedLog.Info("Updating CRD (CustomResourceDefinition)...")
 
 		// Update the CRD with the validation schema.
@@ -454,7 +480,7 @@ func updateV1beta1CRD(
 			// This seems too permissive but we only get here if the version is
 			// different per needsUpdate above. If so, we want to update on any
 			// validation change including adding or removing validation.
-			if needsUpdateV1beta1(clusterCRD) {
+			if needsUpdateV1beta1(clusterCRD, opts) {
 				scopedLog.Debug("CRD validation is different, updating it...")
 
 				clusterCRD.ObjectMeta.Labels = crd.ObjectMeta.Labels
