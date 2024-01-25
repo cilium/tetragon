@@ -30,6 +30,10 @@ const (
 	// SkipTracingPolicyCRD specifies whether the tracing-policies CustomResourceDefinition will be
 	// disabled
 	SkipTracingPolicyCRD = "skip-tracing-policy-crd"
+
+	// ForceUpdateCRDs specifies whether operator should ignore current CRD version
+	// and forcefully update it.
+	ForceUpdateCRDs = "force-update-crds"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -50,6 +54,10 @@ type OperatorConfig struct {
 	// SkipTracingPolicyCRD disables creation of the TracingPolicy and
 	// TracingPolicyNamespaced CustomResourceDefinition only.
 	SkipTracingPolicyCRD bool
+
+	// ForceUpdateCRDs forces the CRD to be updated even if it's version
+	// is lower than the one in the cluster.
+	ForceUpdateCRDs bool
 }
 
 // Config represents the operator configuration.
@@ -62,4 +70,5 @@ func ConfigPopulate() {
 	Config.ConfigDir = viper.GetString(ConfigDir)
 	Config.SkipPodInfoCRD = viper.GetBool(SkipPodInfoCRD)
 	Config.SkipTracingPolicyCRD = viper.GetBool(SkipTracingPolicyCRD)
+	Config.ForceUpdateCRDs = viper.GetBool(ForceUpdateCRDs)
 }
