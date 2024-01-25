@@ -228,6 +228,7 @@ tetragonOperator:
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
   extraVolumeMounts: []
+  forceUpdateCRDs: false
   # Skip CRD creation.
   skipCRDCreation: false
   podInfo:
