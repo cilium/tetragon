@@ -67,9 +67,7 @@ loader_kprobe(struct pt_regs *ctx)
 	struct perf_mmap_event *mmap_event;
 	struct execve_map_value *curr;
 	struct task_struct *current;
-	struct vm_area_struct *vma;
 	struct msg_loader *msg;
-	unsigned long vm_flags;
 	struct perf_event *pe;
 	__u64 *id_map, id_pe;
 	const char *path;
@@ -110,16 +108,15 @@ loader_kprobe(struct pt_regs *ctx)
 
 	mmap_event = (struct perf_mmap_event *)PT_REGS_PARM2_CORE(ctx);
 
-	vma = BPF_CORE_READ(mmap_event, vma);
-	vm_flags = BPF_CORE_READ(vma, vm_flags);
-
-	/* We are interested only in exec maps. */
-	if (!(vm_flags & VM_EXEC))
+	/* Send all events with valid build id, user space will sort
+	 * out duplicates.
+	 */
+	msg->buildid_size = BPF_CORE_READ(mmap_event, build_id_size);
+	if (!msg->buildid_size)
 		return 0;
 
 	probe_read(&msg->buildid[0], sizeof(msg->buildid),
 		   _(&mmap_event->build_id[0]));
-	msg->buildid_size = BPF_CORE_READ(mmap_event, build_id_size);
 
 	path = BPF_CORE_READ(mmap_event, file_name);
 	len = probe_read_str(&msg->path, sizeof(msg->path), path);
