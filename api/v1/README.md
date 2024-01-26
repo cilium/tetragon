@@ -19,7 +19,7 @@
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
     - [HealthStatus](#tetragon-HealthStatus)
     - [Image](#tetragon-Image)
-    - [Inode](#tetragon-Inode)
+    - [InodeProperties](#tetragon-InodeProperties)
     - [KernelModule](#tetragon-KernelModule)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
@@ -312,7 +312,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| inode | [Inode](#tetragon-Inode) |  | Inode of the file |
+| inode | [InodeProperties](#tetragon-InodeProperties) |  | Inode of the file |
 | path | [string](#string) |  | Path of the file |
 
 
@@ -383,9 +383,9 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
-<a name="tetragon-Inode"></a>
+<a name="tetragon-InodeProperties"></a>
 
-### Inode
+### InodeProperties
 
 
 
