@@ -126,6 +126,7 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - linux_binprm
                             type: string
                         required:
                         - index
@@ -217,6 +218,7 @@ spec:
                           - load_info
                           - module
                           - syscall64
+                          - linux_binprm
                           type: string
                       required:
                       - index
@@ -861,6 +863,7 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - linux_binprm
                             type: string
                         required:
                         - index
@@ -1411,6 +1414,7 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - linux_binprm
                             type: string
                         required:
                         - index

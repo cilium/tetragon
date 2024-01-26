@@ -7,6 +7,7 @@
 #include "operations.h"
 #include "bpf_task.h"
 #include "bpf_cred.h"
+#include "linux_binprm.h"
 #include "skb.h"
 #include "sock.h"
 #include "../bpf_process_event.h"
@@ -67,6 +68,8 @@ enum {
 	u16_ty = 30,
 	s8_ty = 31,
 	u8_ty = 32,
+
+	linux_binprm_type = 33,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -1494,6 +1497,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_kernel_module);
 	case kernel_module_type:
 		return sizeof(struct tg_kernel_module);
+	case linux_binprm_type:
+		return sizeof(struct msg_linux_binprm);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2392,6 +2397,16 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		arg = (unsigned long)file;
 	}
 		// fallthrough to file_ty
+	case linux_binprm_type: {
+		struct linux_binprm *bprm = (struct linux_binprm *)arg;
+		struct file *file;
+
+		arg = (unsigned long)_(&bprm->file);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		arg = (unsigned long)file;
+
+		// fallthrough to file_ty
+	}
 	case file_ty: {
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);

@@ -439,6 +439,17 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		arg.Value = int32(int8(output))
 		arg.Label = a.label
 		return arg
+	case gt.GenericLinuxBinprmType:
+		var arg api.MsgGenericKprobeArgLinuxBinprm
+
+				if err != nil {
+			logger.GetLogger().WithError(err).Warnf("linux_binprm type error")
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value, err = parseString(r)
+		arg.Label = a.label
+		return arg
 	default:
 		logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 	}

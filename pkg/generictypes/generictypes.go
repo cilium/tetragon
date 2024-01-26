@@ -44,6 +44,8 @@ const (
 	GenericS8Type  = 31
 	GenericU8Type  = 32
 
+	GenericLinuxBinprmType = 33
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -106,6 +108,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericKernelModule
 	case "syscall64":
 		return GenericSyscall64
+	case "linux_binprm":
+		return GenericLinuxBinprmType
 	case "sint16", "int16":
 		return GenericS16Type
 	case "uint16":
