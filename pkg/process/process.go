@@ -322,7 +322,7 @@ func initProcessInternalExec(
 
 	apiBinaryProp.PrivilegesChanged = caps.GetPrivilegesChangedReasons(process.SecureExec)
 	if process.Ino != 0 && process.Nlink == 0 {
-		inode := &tetragon.Inode{
+		inode := &tetragon.InodeProperties{
 			Number: process.Ino,
 			Links:  &wrapperspb.UInt32Value{Value: process.Nlink},
 		}

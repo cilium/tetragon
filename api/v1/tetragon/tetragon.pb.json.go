@@ -136,7 +136,7 @@ func (msg *ProcessCredentials) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler
-func (msg *Inode) MarshalJSON() ([]byte, error) {
+func (msg *InodeProperties) MarshalJSON() ([]byte, error) {
 	return protojson.MarshalOptions{
 		UseEnumNumbers:  false,
 		EmitUnpopulated: false,
@@ -145,7 +145,7 @@ func (msg *Inode) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (msg *Inode) UnmarshalJSON(b []byte) error {
+func (msg *InodeProperties) UnmarshalJSON(b []byte) error {
 	return protojson.UnmarshalOptions{
 		DiscardUnknown: false,
 	}.Unmarshal(b, msg)

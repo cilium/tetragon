@@ -1351,7 +1351,7 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 				WithArguments(sm.Full(strId)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
-						WithInode(ec.NewInodeChecker().
+						WithInode(ec.NewInodePropertiesChecker().
 							WithLinks(0).
 							WithNumber(stat.Ino),
 						),
@@ -1424,7 +1424,7 @@ func TestExecDeletedBinary(t *testing.T) {
 				WithArguments(sm.Full(strId)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
-						WithInode(ec.NewInodeChecker().
+						WithInode(ec.NewInodePropertiesChecker().
 							WithLinks(0).
 							WithNumber(stat.Ino),
 						),

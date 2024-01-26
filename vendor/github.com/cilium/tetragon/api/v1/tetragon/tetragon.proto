@@ -136,7 +136,7 @@ message ProcessCredentials {
 	UserNamespace user_ns = 11;
 }
 
-message Inode {
+message InodeProperties {
 	// The inode number
 	uint64 number = 1;
 	// The inode links on the file system. If zero means the file is only in memory
@@ -145,7 +145,7 @@ message Inode {
 
 message FileProperties {
 	// Inode of the file
-	Inode inode = 1;
+	InodeProperties inode = 1;
 	// Path of the file
 	string path = 2;
 }

@@ -161,7 +161,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| inode | [Inode](#tetragon-Inode) |  | Inode of the file |
+| inode | [InodeProperties](#tetragon-InodeProperties) |  | Inode of the file |
 | path | [string](#string) |  | Path of the file |
 
 <a name="tetragon-GetHealthStatusRequest"></a>
@@ -199,9 +199,9 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | id | [string](#string) |  | Identifier of the container image composed of the registry path and the sha256. |
 | name | [string](#string) |  | Name of the container image composed of the registry path and the tag. |
 
-<a name="tetragon-Inode"></a>
+<a name="tetragon-InodeProperties"></a>
 
-### Inode
+### InodeProperties
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |

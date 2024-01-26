@@ -3005,26 +3005,26 @@ nextCheck:
 	return nil
 }
 
-// InodeChecker implements a checker struct to check a Inode field
-type InodeChecker struct {
+// InodePropertiesChecker implements a checker struct to check a InodeProperties field
+type InodePropertiesChecker struct {
 	Number *uint64 `json:"number,omitempty"`
 	Links  *uint32 `json:"links,omitempty"`
 }
 
-// NewInodeChecker creates a new InodeChecker
-func NewInodeChecker() *InodeChecker {
-	return &InodeChecker{}
+// NewInodePropertiesChecker creates a new InodePropertiesChecker
+func NewInodePropertiesChecker() *InodePropertiesChecker {
+	return &InodePropertiesChecker{}
 }
 
 // Get the type of the checker as a string
-func (checker *InodeChecker) GetCheckerType() string {
-	return "InodeChecker"
+func (checker *InodePropertiesChecker) GetCheckerType() string {
+	return "InodePropertiesChecker"
 }
 
-// Check checks a Inode field
-func (checker *InodeChecker) Check(event *tetragon.Inode) error {
+// Check checks a InodeProperties field
+func (checker *InodePropertiesChecker) Check(event *tetragon.InodeProperties) error {
 	if event == nil {
-		return fmt.Errorf("%s: Inode field is nil", CheckerLogPrefix(checker))
+		return fmt.Errorf("%s: InodeProperties field is nil", CheckerLogPrefix(checker))
 	}
 
 	fieldChecks := func() error {
@@ -3049,20 +3049,20 @@ func (checker *InodeChecker) Check(event *tetragon.Inode) error {
 	return nil
 }
 
-// WithNumber adds a Number check to the InodeChecker
-func (checker *InodeChecker) WithNumber(check uint64) *InodeChecker {
+// WithNumber adds a Number check to the InodePropertiesChecker
+func (checker *InodePropertiesChecker) WithNumber(check uint64) *InodePropertiesChecker {
 	checker.Number = &check
 	return checker
 }
 
-// WithLinks adds a Links check to the InodeChecker
-func (checker *InodeChecker) WithLinks(check uint32) *InodeChecker {
+// WithLinks adds a Links check to the InodePropertiesChecker
+func (checker *InodePropertiesChecker) WithLinks(check uint32) *InodePropertiesChecker {
 	checker.Links = &check
 	return checker
 }
 
-//FromInode populates the InodeChecker using data from a Inode field
-func (checker *InodeChecker) FromInode(event *tetragon.Inode) *InodeChecker {
+//FromInodeProperties populates the InodePropertiesChecker using data from a InodeProperties field
+func (checker *InodePropertiesChecker) FromInodeProperties(event *tetragon.InodeProperties) *InodePropertiesChecker {
 	if event == nil {
 		return checker
 	}
@@ -3079,7 +3079,7 @@ func (checker *InodeChecker) FromInode(event *tetragon.Inode) *InodeChecker {
 
 // FilePropertiesChecker implements a checker struct to check a FileProperties field
 type FilePropertiesChecker struct {
-	Inode *InodeChecker                `json:"inode,omitempty"`
+	Inode *InodePropertiesChecker      `json:"inode,omitempty"`
 	Path  *stringmatcher.StringMatcher `json:"path,omitempty"`
 }
 
@@ -3119,7 +3119,7 @@ func (checker *FilePropertiesChecker) Check(event *tetragon.FileProperties) erro
 }
 
 // WithInode adds a Inode check to the FilePropertiesChecker
-func (checker *FilePropertiesChecker) WithInode(check *InodeChecker) *FilePropertiesChecker {
+func (checker *FilePropertiesChecker) WithInode(check *InodePropertiesChecker) *FilePropertiesChecker {
 	checker.Inode = check
 	return checker
 }
@@ -3136,7 +3136,7 @@ func (checker *FilePropertiesChecker) FromFileProperties(event *tetragon.FilePro
 		return checker
 	}
 	if event.Inode != nil {
-		checker.Inode = NewInodeChecker().FromInode(event.Inode)
+		checker.Inode = NewInodePropertiesChecker().FromInodeProperties(event.Inode)
 	}
 	checker.Path = stringmatcher.Full(event.Path)
 	return checker
