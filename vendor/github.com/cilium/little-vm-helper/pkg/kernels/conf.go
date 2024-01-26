@@ -23,6 +23,8 @@ type KernelConf struct {
 	URL string `json:"url"`
 	// config options
 	Opts []ConfigOption `json:"opts,omitempty"`
+	// Extra make args
+	ExtraMakeArgs []string `json:"extra_make_args,omitempty"`
 }
 
 type Conf struct {
@@ -194,8 +196,10 @@ func (cnf *Conf) getOptions(kc *KernelConf) []ConfigOption {
 	}
 
 	// then kernel-specific options
-	for _, opts := range kc.Opts {
-		ret = append(ret, opts)
+	if kc != nil {
+		for _, opts := range kc.Opts {
+			ret = append(ret, opts)
+		}
 	}
 
 	return ret
