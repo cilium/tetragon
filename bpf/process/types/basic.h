@@ -2405,7 +2405,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		probe_read(&file, sizeof(file), (const void *)arg);
 		arg = (unsigned long)file;
 
-		// fallthrough to file_ty
+		/* FALLTHRU */
 	}
 	case file_ty: {
 		struct file *file;
