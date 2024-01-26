@@ -29,6 +29,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"syscall"
 	"unsafe"
 
@@ -44,7 +45,17 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"golang.org/x/sys/unix"
+)
+
+type cacheKey struct {
+	Pid  uint32
+	Path string
+}
+
+const (
+	cacheSize = 1024
 )
 
 var (
@@ -59,6 +70,8 @@ var (
 	idsMap = program.MapBuilder("ids_map", loader)
 
 	loaderEnabled bool
+
+	cache *lru.Cache[cacheKey, bool]
 )
 
 type loaderSensor struct {
@@ -73,6 +86,18 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit(loader.name, loader)
 
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_LOADER, handleLoader)
+
+	var err error
+	cache, err = lru.NewWithEvict(
+		cacheSize,
+		func(_ cacheKey, _ bool) {
+			// not used at the moment, let's see if we want to add metric for this
+		},
+	)
+	if err != nil {
+		log.Fatalf("loader init failed with %v", err)
+	}
+
 }
 
 func GetLoaderSensor() *sensors.Sensor {
@@ -110,7 +135,11 @@ func createLoaderEvents() error {
 		Type:        unix.PERF_TYPE_SOFTWARE,
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
 		Sample_type: unix.PERF_SAMPLE_RAW,
-		Bits:        unix.PerfBitMmap | unix.PerfBitMmap2 | bpf.PerfBitBuildId,
+
+		// Enable all possible perf mmap events to increase the possibility
+		// we get valid build id data for the binary.
+		Bits: unix.PerfBitMmap | unix.PerfBitMmap2 | bpf.PerfBitBuildId |
+			unix.PerfBitMmapData,
 	}
 
 	nCpus := bpf.GetNumPossibleCPUs()
@@ -156,6 +185,15 @@ func (k *loaderSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return nil
 }
 
+func inCache(pid uint32, path string) bool {
+	key := cacheKey{pid, path}
+	_, ok := cache.Get(key)
+	if !ok {
+		cache.Add(key, true)
+	}
+	return ok
+}
+
 func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	m := tracingapi.MsgLoader{}
 	err := binary.Read(r, binary.LittleEndian, &m)
@@ -165,6 +203,12 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	}
 
 	path := m.Path[:m.PathSize-1]
+
+	// We can get multiple entries for given pid/path,
+	// check if we already processed it
+	if inCache(m.Pid, string(path[:])) {
+		return nil, nil
+	}
 
 	msg := &tracing.MsgProcessLoaderUnix{
 		Msg:     &m,
