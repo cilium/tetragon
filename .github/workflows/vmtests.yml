@@ -67,17 +67,17 @@ jobs:
         matrix:
            kernel:
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'bpf-next-20240108.012952'
+              - 'bpf-next-20240126.012639'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.1-20231220.153727'
+              - '6.1-20240125.104921'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.15-20231220.153727'
+              - '5.15-20240125.104921'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.10-20231220.153727'
+              - '5.10-20240125.104921'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.4-20231220.153727'
+              - '5.4-20240125.104921'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '4.19-20231220.153727'
+              - '4.19-20240125.104921'
            group:
               - 0
     concurrency:
