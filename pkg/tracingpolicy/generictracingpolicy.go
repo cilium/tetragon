@@ -272,11 +272,11 @@ func FromYAML(data string) (TracingPolicy, error) {
 
 	validationResult, err := ValidateCRD(policy)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validation failed %q: %w", policy.GetMetadata().Name, err)
 	}
 
 	if len(validationResult.Errors) > 0 {
-		return nil, fmt.Errorf("validation failed: %w", validationResult.AsError())
+		return nil, fmt.Errorf("validation failed: %q: %w", policy.GetMetadata().Name, validationResult.AsError())
 	}
 
 	return policy, nil
@@ -287,7 +287,11 @@ func FromFile(path string) (TracingPolicy, error) {
 	if err != nil {
 		return nil, err
 	}
-	return FromYAML(string(policy))
+	tp, err := FromYAML(string(policy))
+	if err != nil {
+		return nil, fmt.Errorf("failed loading tracing policy file %q: %w", path, err)
+	}
+	return tp, nil
 }
 
 type GenericTracingPolicyNamespaced struct {

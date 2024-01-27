@@ -6,6 +6,7 @@ package tracingpolicy
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -526,4 +527,71 @@ func TestYamlNamespaced(t *testing.T) {
 	require.NoError(t, err)
 	_, ok := tp.(TracingPolicyNamespaced)
 	require.True(t, ok)
+}
+
+func createTempFile(t *testing.T, data string) string {
+	file, err := os.CreateTemp(t.TempDir(), "tetragon-")
+	if err != nil {
+		t.Fatalf("cannot create temp. file: %v", err)
+	}
+
+	_, err = file.WriteString(data)
+	if err != nil {
+		t.Fatalf("cannot write to temp. file: %v", err)
+	}
+	err = file.Close()
+	if err != nil {
+		t.Fatalf("cannot close temp. file: %v", err)
+	}
+
+	return file.Name()
+}
+
+const failedLoadingTpFile = "failed loading tracing policy file"
+
+func TestEmptyTracingPolicy(t *testing.T) {
+	path := createTempFile(t, "")
+	_, err := FromFile(path)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
+	assert.Contains(t, errors.Unwrap(err).Error(), "could not find validator for: /", "unexpected wrapped error")
+}
+
+func TestInvalidYAMLInTracingPolicy(t *testing.T) {
+	path := createTempFile(t, "<not-quite-yaml>")
+	_, err := FromFile(path)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
+	assert.Contains(t, errors.Unwrap(err).Error(), "failed to unmarshall policy", "unexpected wrapped error")
+}
+
+const tpWithoutMetadata = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata: {}
+`
+
+func TestTracingPolicyWithoutMetadata(t *testing.T) {
+	path := createTempFile(t, tpWithoutMetadata)
+	_, err := FromFile(path)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
+	assert.Contains(t, errors.Unwrap(err).Error(), "validation failure list:\nmetadata.name", "unexpected wrapped error")
+}
+
+const tpNotCoveredBySpec = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: not-covered-by-spec
+spec:
+  some_field: some_value
+`
+
+func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
+	path := createTempFile(t, tpNotCoveredBySpec)
+	_, err := FromFile(path)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
+	assert.Contains(t, errors.Unwrap(err).Error(), "unknown field \"some_field\"", "unexpected wrapped error")
 }
