@@ -56,6 +56,11 @@ jobs:
           sudo mkdir -p /etc/tetragon/tetragon.tp.d/
           sudo cp examples/tracingpolicy/bpf.yaml /etc/tetragon/tetragon.tp.d/bpf.yaml
 
+      - name: Configure gops
+        run: |
+          sudo mkdir -p /etc/tetragon/tetragon.conf.d/
+          echo "localhost:8118" | sudo tee /etc/tetragon/tetragon.conf.d/gops-address
+
       - name: Install Tetragon Tarball
         run: |
           tar zxvf tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
@@ -85,6 +90,7 @@ jobs:
           sudo tetra tracingpolicy list | grep bpf -
           sudo tetra bugtool
           test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
+          sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof-heap" -
 
       - name: Uninstall Tetragon Tarball
         run: |
