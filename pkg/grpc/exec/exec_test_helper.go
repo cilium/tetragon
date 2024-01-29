@@ -99,7 +99,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			},
 			Parent: tetragonAPI.MsgExecveKey{
 				Pid:   0,
-				Pad:   0,
+				Auid:  0,
 				Ktime: 0,
 			},
 			ParentFlags: 0,
@@ -140,7 +140,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			},
 			Parent: tetragonAPI.MsgExecveKey{
 				Pid:   1,
-				Pad:   0,
+				Auid:  0,
 				Ktime: 0,
 			},
 			ParentFlags: 0,
@@ -181,7 +181,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			},
 			Parent: tetragonAPI.MsgExecveKey{
 				Pid:   ParentPid,
-				Pad:   0,
+				Auid:  0,
 				Ktime: ParentKtime,
 			},
 			ParentFlags: 0,
@@ -215,7 +215,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
 			Pid:   Pid,
-			Pad:   0,
+			Auid:  0,
 			Ktime: Ktime,
 		},
 		Info: tetragonAPI.MsgExitInfo{
@@ -241,7 +241,7 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 		},
 		Parent: tetragonAPI.MsgExecveKey{
 			Pid:   ParentPid,
-			Pad:   0,
+			Auid:  0,
 			Ktime: ParentKtime,
 		},
 		PID:   Pid,
@@ -263,7 +263,7 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
 			Pid:   Pid,
-			Pad:   0,
+			Auid:  0,
 			Ktime: Ktime,
 		},
 		Info: tetragonAPI.MsgExitInfo{

@@ -528,6 +528,29 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchLoginUids:
+                            description: A list of login uid filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: LoginUid selector operator.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - GreaterThan
+                                  - LessThan
+                                  type: string
+                                values:
+                                  description: LoginUid to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -1199,6 +1222,29 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchLoginUids:
+                            description: A list of login uid filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: LoginUid selector operator.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - GreaterThan
+                                  - LessThan
+                                  type: string
+                                values:
+                                  description: LoginUid to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -1765,6 +1811,29 @@ spec:
                                   description: Capabilities to match.
                                   items:
                                     type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchLoginUids:
+                            description: A list of login uid filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: LoginUid selector operator.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - GreaterThan
+                                  - LessThan
+                                  type: string
+                                values:
+                                  description: LoginUid to match.
+                                  items:
+                                    format: int32
+                                    type: integer
                                   type: array
                               required:
                               - operator

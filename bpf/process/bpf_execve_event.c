@@ -298,6 +298,7 @@ execve_send(void *ctx)
 #endif
 		curr->key.pid = p->pid;
 		curr->key.ktime = p->ktime;
+		curr->key.auid = p->auid;
 		curr->nspid = p->nspid;
 		curr->pkey = event->parent;
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
