@@ -50,10 +50,7 @@ static inline __attribute__((always_inline)) void event_exit_send(void *ctx, __u
 		exit->common.ktime = ktime_get_ns();
 
 		exit->current.pid = tgid;
-		exit->current.pad[0] = 0;
-		exit->current.pad[1] = 0;
-		exit->current.pad[2] = 0;
-		exit->current.pad[3] = 0;
+		exit->current.auid = enter->key.auid;
 		exit->current.ktime = enter->key.ktime;
 
 		/**
