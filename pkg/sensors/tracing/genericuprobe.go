@@ -170,6 +170,11 @@ func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
+type addUprobeIn struct {
+	sensorPath string
+	policyName string
+}
+
 func createGenericUprobeSensor(
 	name string,
 	uprobes []v1alpha1.UProbeSpec,
@@ -177,8 +182,138 @@ func createGenericUprobeSensor(
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
+	var ids []idtable.EntryID
+	var err error
 
-	sensorPath := name
+	in := addUprobeIn{
+		sensorPath: name,
+		policyName: policyName,
+	}
+
+	for _, spec := range uprobes {
+		ids, err = addUprobe(&spec, ids, &in)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	progs, maps, err = createSingleUprobeSensor(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sensors.Sensor{
+		Name:  name,
+		Progs: progs,
+		Maps:  maps,
+	}, nil
+}
+
+func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn) ([]idtable.EntryID, error) {
+	var args []v1alpha1.KProbeArg
+
+	if err := isValidUprobeSelectors(spec.Selectors); err != nil {
+		return nil, err
+	}
+
+	// Parse Filters into kernel filter logic
+	uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	msgField, err := getPolicyMessage(spec.Message)
+	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
+		return nil, err
+	} else if errors.Is(err, ErrMsgSyntaxLong) {
+		logger.GetLogger().WithField("policy-name", in.policyName).
+			Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
+	}
+
+	var (
+		argTypes [api.EventConfigMaxArgs]int32
+		argMeta  [api.EventConfigMaxArgs]uint32
+		argSet   [api.EventConfigMaxArgs]bool
+
+		argPrinters []argPrinter
+	)
+
+	// Parse Arguments
+	for i, a := range spec.Args {
+		argType := gt.GenericTypeFromString(a.Type)
+		if argType == gt.GenericInvalidType {
+			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
+		}
+		argMValue, err := getMetaValue(&a)
+		if err != nil {
+			return nil, err
+		}
+		if a.Index > 4 {
+			return nil, fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+				a.Type, int(a.Index))
+		}
+		argTypes[a.Index] = int32(argType)
+		argMeta[a.Index] = uint32(argMValue)
+		argSet[a.Index] = true
+
+		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
+	}
+
+	// Mark remaining arguments as 'nops' the kernel side will skip
+	// copying 'nop' args.
+	for i, a := range argSet {
+		if !a {
+			argTypes[i] = gt.GenericNopType
+			argMeta[i] = 0
+		}
+	}
+
+	for _, sym := range spec.Symbols {
+		config := &api.EventConfig{
+			Arg:  argTypes,
+			ArgM: argMeta,
+		}
+
+		uprobeEntry := &genericUprobe{
+			tableId:     idtable.UninitializedEntryID,
+			config:      config,
+			path:        spec.Path,
+			symbol:      sym,
+			selectors:   uprobeSelectorState,
+			policyName:  in.policyName,
+			message:     msgField,
+			argPrinters: argPrinters,
+		}
+
+		uprobeTable.AddEntry(uprobeEntry)
+		id := uprobeEntry.tableId
+
+		uprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("%d", id.ID))
+		config.FuncId = uint32(id.ID)
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+func createSingleUprobeSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+
+	for _, id := range ids {
+		uprobeEntry, err := genericUprobeTableGet(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		progs, maps = createUprobeSensorFromEntry(uprobeEntry, progs, maps)
+	}
+
+	return progs, maps, nil
+}
+
+func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
+	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgName := "bpf_generic_uprobe.o"
 	if kernels.EnableV61Progs() {
@@ -187,119 +322,31 @@ func createGenericUprobeSensor(
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 
-	for _, spec := range uprobes {
-		var args []v1alpha1.KProbeArg
+	pinPath := uprobeEntry.pinPathPrefix
+	pinProg := sensors.PathJoin(pinPath, "prog")
 
-		if err := isValidUprobeSelectors(spec.Selectors); err != nil {
-			return nil, err
-		}
-
-		// Parse Filters into kernel filter logic
-		uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		msgField, err := getPolicyMessage(spec.Message)
-		if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-			return nil, err
-		} else if errors.Is(err, ErrMsgSyntaxLong) {
-			logger.GetLogger().WithField("policy-name", policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
-		}
-
-		var (
-			argTypes [api.EventConfigMaxArgs]int32
-			argMeta  [api.EventConfigMaxArgs]uint32
-			argSet   [api.EventConfigMaxArgs]bool
-
-			argPrinters []argPrinter
-		)
-
-		// Parse Arguments
-		for i, a := range spec.Args {
-			argType := gt.GenericTypeFromString(a.Type)
-			if argType == gt.GenericInvalidType {
-				return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
-			}
-			argMValue, err := getMetaValue(&a)
-			if err != nil {
-				return nil, err
-			}
-			if a.Index > 4 {
-				return nil, fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
-					a.Type, int(a.Index))
-			}
-			argTypes[a.Index] = int32(argType)
-			argMeta[a.Index] = uint32(argMValue)
-			argSet[a.Index] = true
-
-			argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
-		}
-
-		// Mark remaining arguments as 'nops' the kernel side will skip
-		// copying 'nop' args.
-		for i, a := range argSet {
-			if !a {
-				argTypes[i] = gt.GenericNopType
-				argMeta[i] = 0
-			}
-		}
-
-		for _, sym := range spec.Symbols {
-			config := &api.EventConfig{
-				Arg:  argTypes,
-				ArgM: argMeta,
-			}
-
-			uprobeEntry := &genericUprobe{
-				tableId:     idtable.UninitializedEntryID,
-				config:      config,
-				path:        spec.Path,
-				symbol:      sym,
-				selectors:   uprobeSelectorState,
-				policyName:  policyName,
-				message:     msgField,
-				argPrinters: argPrinters,
-			}
-
-			uprobeTable.AddEntry(uprobeEntry)
-			id := uprobeEntry.tableId.ID
-
-			uprobeEntry.pinPathPrefix = sensors.PathJoin(sensorPath, fmt.Sprintf("%d", id))
-			config.FuncId = uint32(id)
-
-			pinPath := uprobeEntry.pinPathPrefix
-			pinProg := sensors.PathJoin(pinPath, "prog")
-
-			attachData := &program.UprobeAttachData{
-				Path:   spec.Path,
-				Symbol: sym,
-			}
-
-			load := program.Builder(
-				path.Join(option.Config.HubbleLib, loadProgName),
-				"",
-				"uprobe/generic_uprobe",
-				pinProg,
-				"generic_uprobe").
-				SetAttachData(attachData).
-				SetLoaderData(uprobeEntry)
-
-			progs = append(progs, load)
-
-			configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-			tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
-			filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-			selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-			maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
-		}
+	attachData := &program.UprobeAttachData{
+		Path:   uprobeEntry.path,
+		Symbol: uprobeEntry.symbol,
 	}
 
-	return &sensors.Sensor{
-		Name:  name,
-		Progs: progs,
-		Maps:  maps,
-	}, nil
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		"",
+		"uprobe/generic_uprobe",
+		pinProg,
+		"generic_uprobe").
+		SetAttachData(attachData).
+		SetLoaderData(uprobeEntry)
+
+	progs = append(progs, load)
+
+	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
+	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	return progs, maps
 }
 
 func (k *observerUprobeSensor) PolicyHandler(
