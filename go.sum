@@ -57,8 +57,8 @@ github.com/cilium/controller-tools v0.8.0-1 h1:D5xhwSUZZceaKAacHOyfcpUMgLbs2TGeJ
 github.com/cilium/controller-tools v0.8.0-1/go.mod h1:qE2DXhVOiEq5ijmINcFbqi9GZrrUjzB1TuJU0xa6eoY=
 github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3 h1:3PErIjIq4DlOwNsQNPcILFzbGnxPuKuqJsHEFpiwstM=
 github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3/go.mod h1:/7LC2GOgyXJ7maupZlaVIumYQiGPIgllSf6mA9sg6RU=
-github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c h1:A4GKNW2FJKFAwvkJvFVnxyVn+9LGaUPz5LY6r8wZAh0=
-github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c/go.mod h1:9BszLnmZR7oucpa/kBbVVf1ts3BoUSpltcnNp1hQkVw=
+github.com/cilium/ebpf v0.12.4-0.20240129143945-9dcb17704aab h1:fzztB4ee5WuWU4Y+RWMP8+G0jrsV/lHfv2nCwurGVSI=
+github.com/cilium/ebpf v0.12.4-0.20240129143945-9dcb17704aab/go.mod h1:9BszLnmZR7oucpa/kBbVVf1ts3BoUSpltcnNp1hQkVw=
 github.com/cilium/little-vm-helper v0.0.16 h1:ebw5hT4RVz1oqYWNJgQbK3TskyPQ0DgsAmWLBjSghLg=
 github.com/cilium/little-vm-helper v0.0.16/go.mod h1:BBnQ5i6fWBpO9L9BbZwMzVqPGRC8X2CN0BIH5gYav8A=
 github.com/cilium/lumberjack/v2 v2.3.0 h1:IhVJMvPpqDYmQzC0KDhAoy7KlaRsyOsZnT97Nsa3u0o=

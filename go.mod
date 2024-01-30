@@ -205,6 +205,8 @@ require (
 )
 
 replace (
+	github.com/cilium/ebpf => github.com/cilium/ebpf v0.12.4-0.20240129143945-9dcb17704aab
+
 	// Use local version of API
 	github.com/cilium/tetragon/api => ./api
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s

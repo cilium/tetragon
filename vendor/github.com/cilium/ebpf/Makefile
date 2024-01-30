@@ -84,7 +84,8 @@ all: format $(addsuffix -el.elf,$(TARGETS)) $(addsuffix -eb.elf,$(TARGETS)) gene
 	ln -srf testdata/loader-$(CLANG)-eb.elf testdata/loader-eb.elf
 
 generate:
-	go generate ./...
+	go generate -run "internal/cmd/gentypes" ./...
+	go generate -skip "internal/cmd/gentypes" ./...
 
 testdata/loader-%-el.elf: testdata/loader.c
 	$* $(CFLAGS) -target bpfel -c $< -o $@
@@ -103,14 +104,7 @@ testdata/loader-%-eb.elf: testdata/loader.c
 	$(STRIP) -g $@
 
 .PHONY: update-kernel-deps
-update-kernel-deps: KERNEL_VERSION?=6.6
+update-kernel-deps: export KERNEL_VERSION?=6.7
 update-kernel-deps:
-	$(eval TMP := $(shell mktemp -d))
-	curl -fL https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/plain/tools/lib/bpf/libbpf.c?h=v$(KERNEL_VERSION) -o "$(TMP)/libbpf.c"
-	"$(CURDIR)/internal/cmd/gensections.awk" "$(TMP)/libbpf.c" | gofmt > "$(CURDIR)/elf_sections.go"
-	curl -fL "$(CI_KERNEL_URL)/linux-$(KERNEL_VERSION)-amd64.tgz" -o "$(TMP)/linux.tgz"
-	tar xvf "$(TMP)/linux.tgz" -C "$(TMP)" --strip-components=2 ./boot/vmlinuz ./lib/modules
-	/lib/modules/$(shell uname -r)/build/scripts/extract-vmlinux "$(TMP)/vmlinuz" > "$(TMP)/vmlinux"
-	$(OBJCOPY) --dump-section .BTF=/dev/stdout "$(TMP)/vmlinux" /dev/null | gzip > "btf/testdata/vmlinux.btf.gz"
-	find "$(TMP)/modules" -type f -name bpf_testmod.ko -exec $(OBJCOPY) --dump-section .BTF="btf/testdata/btf_testmod.btf" {} /dev/null \;
-	$(RM) -r "$(TMP)"
+	./testdata/sh/update-kernel-deps.sh
+	$(MAKE) container-all
