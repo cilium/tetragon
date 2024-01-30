@@ -68,6 +68,7 @@ const (
 	KeyNetnsDir = "netns-dir"
 
 	KeyDisableKprobeMulti = "disable-kprobe-multi"
+	KeyDisableUprobeMulti = "disable-uprobe-multi"
 
 	KeyRBSize      = "rb-size"
 	KeyRBSizeTotal = "rb-size-total"

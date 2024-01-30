@@ -248,7 +248,7 @@ type addUprobeIn struct {
 
 func createGenericUprobeSensor(
 	name string,
-	uprobes []v1alpha1.UProbeSpec,
+	spec *v1alpha1.TracingPolicySpec,
 	policyName string,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
@@ -256,14 +256,23 @@ func createGenericUprobeSensor(
 	var ids []idtable.EntryID
 	var err error
 
+	options, err := getSpecOptions(spec.Options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set options: %s", err)
+	}
+
 	in := addUprobeIn{
 		sensorPath: name,
 		policyName: policyName,
-		useMulti:   bpf.HasUprobeMulti(),
+
+		// use multi kprobe only if:
+		// - it's not disabled by spec option
+		// - there's support detected
+		useMulti: !options.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
-	for _, spec := range uprobes {
-		ids, err = addUprobe(&spec, ids, &in)
+	for _, uprobe := range spec.UProbes {
+		ids, err = addUprobe(&uprobe, ids, &in)
 		if err != nil {
 			return nil, err
 		}
@@ -480,5 +489,5 @@ func (k *observerUprobeSensor) PolicyHandler(
 
 	name := fmt.Sprintf("gup-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 	policyName := p.TpName()
-	return createGenericUprobeSensor(name, spec.UProbes, policyName)
+	return createGenericUprobeSensor(name, spec, policyName)
 }
