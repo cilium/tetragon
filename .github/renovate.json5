@@ -427,11 +427,19 @@
     },
     {
       "customType": "regex",
+      // explicitely not writing ^Makefile$ to match files with Makefile.extension
       "fileMatch": [
-        "^Makefile\\.cli$"
+        "^Makefile"
       ],
+      // This regex is for upgrading docker image full reference in Makefiles, for examples:
+      //
+      // # renovate: datasource=docker
+      // GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.55.2@sha256:e699df940be1810b08ba6ec050bfc34cc1931027283b5a7f607fb6a67b503876
+      //
+      // # renovate: datasource=docker
+      // GO_IMAGE = docker.io/library/golang:1.21.6-alpine@sha256:a6a7f1fcf12f5efa9e04b1e75020931a616cd707f14f62ab5262bfbe109aa84
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?)\\s+GO_IMAGE[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s@]*)@?(?<currentDigest>sha256:[a-f0-9]+)?",
+        "# renovate: datasource=(?<datasource>.*?)\\s+.+[[:blank:]]*=[[:blank:]]*(?<depName>.*?):(?<currentValue>[^\\s@]*)@?(?<currentDigest>sha256:[a-f0-9]+)?"
       ]
     },
     {
