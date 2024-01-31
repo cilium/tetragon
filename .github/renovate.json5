@@ -436,15 +436,6 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Makefile$"
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+GOLANGCILINT_WANT_VERSION[[:blank:]]*=[[:blank:]]*(?<currentValue>[^\\s]*)"
-      ]
-    },
-    {
-      "customType": "regex",
       // match all go.mod in all subfolders
       "fileMatch": [
         "go\\.mod$"
