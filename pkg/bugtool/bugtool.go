@@ -44,6 +44,7 @@ type InitInfo struct {
 	GopsAddr    string `json:"gops_address"`
 	MapDir      string `json:"map_dir"`
 	BpfToolPath string `json:"bpftool_path"`
+	GopsPath    string `json:"gops_path"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -81,6 +82,14 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 	} else {
 		info.BpfToolPath = bpftool
 		logger.GetLogger().WithField("bpftool", info.BpfToolPath).Info("Successfully detected bpftool path")
+	}
+
+	gops, err := exec.LookPath("gops")
+	if err != nil {
+		logger.GetLogger().Warn("failed to locate gops binary, on bugtool debugging ensure you have gops installed")
+	} else {
+		info.GopsPath = gops
+		logger.GetLogger().WithField("gops", info.GopsPath).Info("Successfully detected gops path")
 	}
 
 	// Create DefaultRunDir if it does not already exist
@@ -182,7 +191,7 @@ func (s *bugtoolInfo) tarAddFile(tarWriter *tar.Writer, fnameSrc string, fnameDs
 }
 
 // Bugtool gathers information and writes it as a tar archive in the given filename
-func Bugtool(outFname string, bpftool string) error {
+func Bugtool(outFname string, bpftool string, gops string) error {
 	info, err := LoadInitInfo()
 	if err != nil {
 		return err
@@ -190,6 +199,10 @@ func Bugtool(outFname string, bpftool string) error {
 
 	if bpftool != "" {
 		info.BpfToolPath = bpftool
+	}
+
+	if gops != "" {
+		info.GopsPath = gops
 	}
 
 	return doBugtool(info, outFname)
@@ -488,7 +501,7 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 
 	_, err := os.Stat(s.info.BpfToolPath)
 	if err != nil {
-		s.multiLog.WithError(err).Warn("Failed to locate bpftool, please install it.")
+		s.multiLog.WithError(err).Warn("Failed to locate bpftool. Please install it or specify its path, see 'bugtool --help'")
 		return
 	}
 	s.execCmd(tarWriter, "bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
@@ -498,11 +511,26 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 
 func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 	if s.info.GopsAddr == "" {
+		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
 		return
 	}
-	s.execCmd(tarWriter, "gops.stack", "gops", "stack", s.info.GopsAddr)
-	s.execCmd(tarWriter, "gpos.stats", "gops", "stats", s.info.GopsAddr)
-	s.execCmd(tarWriter, "gops.memstats", "gops", "memstats", s.info.GopsAddr)
+
+	if s.info.GopsPath == "" {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).Warn("Failed to locate gops. Please install it or specify its path, see 'bugtool --help'")
+		return
+	}
+
+	_, err := os.Stat(s.info.GopsPath)
+	if err != nil {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to locate gops, please install it.")
+		return
+	}
+
+	s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).Info("Dumping gops information")
+
+	s.execCmd(tarWriter, "gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
+	s.execCmd(tarWriter, "gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
+	s.execCmd(tarWriter, "gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
 }
 
 func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
