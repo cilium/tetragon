@@ -358,7 +358,7 @@ func initProcessInternalExec(
 			Binary:       binary,
 			Arguments:    args,
 			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
-			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
+			StartTime:    ktime.ToProtoOptStable(process.Ktime),
 			Auid:         &wrapperspb.UInt32Value{Value: process.AUID},
 			Pod:          protoPod,
 			ExecId:       execID,

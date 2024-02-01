@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/fileutils"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
+	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
@@ -155,6 +156,8 @@ func tetragonExecute() error {
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Info(ktime.GetBootTime())
 
 	if !filepath.IsAbs(option.Config.TracingPolicyDir) {
 		log.Fatalf("Failed path specified by --tracing-policy-dir '%q' is not absolute", option.Config.TracingPolicyDir)
