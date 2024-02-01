@@ -1,0 +1,90 @@
+name: Packages e2e Tests
+
+on:
+  pull_request:
+    paths-ignore:
+    - "**.md"
+    - 'docs/**'
+
+jobs:
+  standalone-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # We use the native arch build
+          - os: ubuntu-22.04
+            arch: amd64
+            match_arch: x86-64
+
+    steps:
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Checkout Source Code
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: true
+
+      - name: Getting version tag
+        id: tag
+        run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
+
+      # Logging into Docker Hub makes the job less flaky, but it relies on repo secrets so
+      # does not work for external contributors. Let's compromise and do this for internal
+      # PRs at least (for now). We can always improve the situation later.
+      - name: Login to Docker Hub
+        if: ${{ github.event.pull_request.head.repo.full_name == 'cilium/tetragon' }}
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME_CI }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD_CI }}
+
+      - name: Generate Tetragon Tarball
+        id: tetragon-tarball
+        run: make tarball
+
+      - name: Configure gops
+        run: |
+          sudo mkdir -p /etc/tetragon/tetragon.conf.d/
+          echo "localhost:8118" | sudo tee /etc/tetragon/tetragon.conf.d/gops-address
+
+      - name: Install Tetragon Tarball
+        run: |
+          tar zxvf tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
+          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/install.sh
+        working-directory: ./build/${{ matrix.arch }}/linux-tarball/
+
+      - name: Wait for Tetragon service
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2
+        with:
+          timeout_seconds: 30
+          max_attempts: 5
+          retry_wait_seconds: 5
+          retry_on: error
+          command: |
+            # Ensure that default native builds work
+            file /usr/local/bin/tetragon | grep ${{ matrix.match_arch }} -
+            sudo systemctl is-active tetragon
+            sudo tetra status
+
+      - name: Check Tetragon startup logs
+        run: sudo journalctl -b -u tetragon --no-pager
+
+      - name: Test Tetragon
+        run: |
+          sudo tetra status
+          sudo grep "tetra" /var/log/tetragon/tetragon.log
+          sudo tetra tracingpolicy list
+          sudo tetra bugtool
+          test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
+          sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof-heap" -
+
+      - name: Uninstall Tetragon Tarball
+        run: |
+          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/uninstall.sh
+        working-directory: ./build/${{ matrix.arch }}/linux-tarball/
