@@ -88,10 +88,18 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 }
 
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
-	if _, exists := h.collections[op.name]; exists {
+	// allow overriding existing policy collection that resulted in an error
+	// during the loading state
+	if col, exists := h.collections[op.name]; exists && col.state != LoadErrorState {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
 	}
 	tpID := h.allocPolicyID()
+
+	col := collection{
+		name:            op.name,
+		tracingpolicy:   op.tp,
+		tracingpolicyID: uint64(tpID),
+	}
 
 	// update policy filter state before loading the sensors of the policy.
 	//
@@ -104,28 +112,30 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	// other than filterID is passed.
 	filterID, err := h.updatePolicyFilter(op.tp, tpID)
 	if err != nil {
+		col.err = err
+		col.state = LoadErrorState
+		h.collections[op.name] = col
 		return err
 	}
+	col.policyfilterID = uint64(filterID)
 
 	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
 	if err != nil {
+		col.err = err
+		col.state = LoadErrorState
+		h.collections[op.name] = col
 		return err
 	}
+	col.sensors = sensors
 
-	col := collection{
-		sensors:         sensors,
-		name:            op.name,
-		tracingpolicy:   op.tp,
-		tracingpolicyID: uint64(tpID),
-		policyfilterID:  uint64(filterID),
-	}
 	if err := col.load(h.bpfDir); err != nil {
+		col.err = err
+		col.state = LoadErrorState
+		h.collections[op.name] = col
 		return err
 	}
 	col.state = EnabledState
 
-	// NB: in some cases it might make sense to keep the policy registered if there was an
-	// error. For now, however, we only keep it if it was successfully loaded
 	h.collections[op.name] = col
 	return nil
 }
