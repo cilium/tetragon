@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	gopssignal "github.com/google/gops/signal"
 	"go.uber.org/multierr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -509,6 +511,33 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
 }
 
+func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string) error {
+	if s.info.GopsAddr == "" {
+		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
+		return nil
+	}
+
+	s.multiLog.WithField("gops-address", s.info.GopsAddr).Info("Contacting gops server for pprof dump")
+
+	conn, err := net.Dial("tcp", s.info.GopsAddr)
+	if err != nil {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to contact gops server")
+		return err
+	}
+
+	buf := []byte{gopssignal.HeapProfile}
+	if _, err := conn.Write(buf); err != nil {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to send gops pprof-heap command")
+		return err
+	}
+
+	buff := new(bytes.Buffer)
+	if _, err = buff.ReadFrom(conn); err != nil {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed reading gops pprof-heap response")
+	}
+	return s.tarAddBuff(tarWriter, file, buff)
+}
+
 func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 	if s.info.GopsAddr == "" {
 		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
@@ -522,7 +551,7 @@ func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 
 	_, err := os.Stat(s.info.GopsPath)
 	if err != nil {
-		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to locate gops, please install it.")
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to locate gops, please install it")
 		return
 	}
 
@@ -531,6 +560,12 @@ func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
+	err = s.getPProf(tarWriter, "gops.pprof-heap")
+	if err != nil {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).WithError(err).Warn("Failed to dump gops pprof-heap")
+	} else {
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).Info("Successfully dumped gops pprof-heap")
+	}
 }
 
 func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
