@@ -136,6 +136,20 @@ message ProcessCredentials {
 	UserNamespace user_ns = 11;
 }
 
+message InodeProperties {
+	// The inode number
+	uint64 number = 1;
+	// The inode links on the file system. If zero means the file is only in memory
+	google.protobuf.UInt32Value links = 2;
+}
+
+message FileProperties {
+	// Inode of the file
+	InodeProperties inode = 1;
+	// Path of the file
+	string path = 2;
+}
+
 message BinaryProperties {
 	// If set then this is the set user ID used for execution
 	google.protobuf.UInt32Value setuid = 1;
@@ -145,6 +159,11 @@ message BinaryProperties {
 	// a binary with the set-user-ID to root or file capability sets.
 	// The final granted privileges can be listed inside the `process_credentials` or capabilities fields part of of the `process` object.
 	repeated ProcessPrivilegesChanged privileges_changed = 3;
+	// File properties in case the executed binary is:
+	// 1. An anonymous shared memory file https://man7.org/linux/man-pages/man7/shm_overview.7.html.
+	// 2. An anonymous file obtained with memfd API https://man7.org/linux/man-pages/man2/memfd_create.2.html.
+	// 3. Or it was deleted from the file system.
+	FileProperties file = 4;
 }
 
 message Process {
