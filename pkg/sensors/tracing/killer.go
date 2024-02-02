@@ -108,8 +108,7 @@ func (kh *killerHandler) LoadProbe(args sensors.LoadProbeArgs) error {
 }
 
 // select proper override method based on configuration and spec options
-func selectOverrideMethod(specOpts *specOptions, hasSyscall bool) (OverrideMethod, error) {
-	overrideMethod := specOpts.OverrideMethod
+func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (OverrideMethod, error) {
 	switch overrideMethod {
 	case OverrideMethodDefault:
 		// by default, first try OverrideReturn and if this does not work try fmod_ret
@@ -158,7 +157,10 @@ func (kh *killerHandler) createKillerSensor(
 
 	killer := killers[0]
 
-	var hasSyscall bool
+	var (
+		hasSyscall  bool
+		hasSecurity bool
+	)
 
 	// get all the syscalls
 	for idx := range killer.Calls {
@@ -199,6 +201,7 @@ func (kh *killerHandler) createKillerSensor(
 		}
 
 		hasSyscall = hasSyscall || isSyscall || isPrefix
+		hasSecurity = hasSecurity || isSecurity
 	}
 
 	// register killer sensor
@@ -215,7 +218,20 @@ func (kh *killerHandler) createKillerSensor(
 	}
 
 	// select proper override method based on configuration and spec options
-	overrideMethod, err := selectOverrideMethod(specOpts, hasSyscall)
+	overrideMethod := specOpts.OverrideMethod
+
+	// we can't use override return for security_* functions (kernel limitation)
+	// switch to fmod_ret and warn
+	if hasSecurity && overrideMethod != OverrideMethodFmodRet {
+		// fail if override-return is directly requested
+		if overrideMethod == OverrideMethodReturn {
+			return nil, fmt.Errorf("killer: can't override security function with override-return")
+		}
+		overrideMethod = OverrideMethodFmodRet
+		logger.GetLogger().Infof("killer: forcing fmod_ret (security_* call detected)")
+	}
+
+	overrideMethod, err = selectOverrideMethod(overrideMethod, hasSyscall)
 	if err != nil {
 		return nil, err
 	}
