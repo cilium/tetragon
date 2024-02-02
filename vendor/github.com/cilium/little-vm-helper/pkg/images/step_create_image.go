@@ -21,7 +21,7 @@ var (
 	// DelImageIfExists: if set to true, image will be deleted at Cleanup() by the CreateImage step
 	DelImageIfExists = "DelImageIfExist"
 
-	rootDev    = "/dev/sda"
+	rootDev    = "/dev/vda"
 	rootFsType = "ext4"
 	resizeFS   = "resize2fs"
 )
@@ -104,7 +104,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		imgSize = size
 	}
 
-	// example: guestfish -N foo.img=disk:8G -- mkfs ext4 /dev/sda : mount /dev/sda / : tar-in /tmp/foo.tar /
+	// example: guestfish -N foo.img=disk:8G -- mkfs ext4 /dev/vda : mount /dev/vda / : tar-in /tmp/foo.tar /
 	if s.bootable {
 		dirname, err := os.MkdirTemp("", "extlinux-")
 		if err != nil {
