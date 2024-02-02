@@ -843,7 +843,7 @@ kprobes:
   - call: kfree_skb_reason
     selectors:
     - matchActions:
-      - action: post
+      - action: Post
         stackTrace: true
 ```
 
