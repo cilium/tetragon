@@ -5,6 +5,7 @@ package images
 
 import (
 	"archive/tar"
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -121,41 +122,72 @@ func handleTarObject(ctx context.Context, tr *tar.Reader, hdr *tar.Header, conf 
 		}
 	case tar.TypeReg:
 		compressed := strings.HasSuffix(dstPath, ".zst")
+
+		// Copy the target file out to the host (compressed or not).
+		dstFile, err := os.Create(dstPath)
+		if err != nil {
+			return image, fmt.Errorf("failed to open %s: %w", dstPath, err)
+		}
+		defer func() {
+			path := dstFile.Name()
+			dstFile.Close()
+			if err != nil || (!conf.Cache && compressed) {
+				// Only keep the compressed copy on the hostfs
+				// if asked for it, and if there are no errors.
+				os.Remove(path)
+				return
+			}
+		}()
+
+		n, err := io.CopyN(dstFile, tr, hdr.Size)
+		if err != nil {
+			return image, fmt.Errorf("failed to copy %s from container %s: %w", dstPath, containerID, err)
+		}
+		if n != hdr.Size {
+			return image, fmt.Errorf("tar header reports file %s size %d, but only %d bytes were pulled", hdr.Name, hdr.Size, n)
+		}
+
 		if compressed {
-			image = strings.TrimSuffix(dstPath, ".zst")
-			if _, err := os.Stat(image); err == nil {
-				return image, os.ErrExist
+			if _, err = dstFile.Seek(0, 0); err != nil {
+				return image, fmt.Errorf("cannot seek to the start of the compressed target file %s: %w", dstPath, err)
 			}
+			compressedTarget := bufio.NewReader(dstFile)
+			dstImagePath := strings.TrimSuffix(dstPath, ".zst")
 
-			cmd := exec.CommandContext(ctx, "zstd", "-d", "-", "-o", image)
-			cmd.Stdin = tr
-
-			if _, err := cmd.Output(); err != nil {
-				var e *exec.ExitError
-				if errors.As(err, &e) {
-					fmt.Fprintf(os.Stderr, string(e.Stderr))
-				}
-				return image, fmt.Errorf("failed during zst decompression of %s: %w", hdr.Name, err)
-			}
+			return dstImagePath, extractZst(ctx, compressedTarget, dstImagePath)
 		}
-		if conf.Cache || !compressed {
-			dst, err := os.Create(dstPath)
-			if err != nil {
-				return image, fmt.Errorf("failed to create file %s: %w", dstPath, err)
-			}
-			defer dst.Close()
 
-			n, err := io.CopyN(dst, tr, hdr.Size)
-			if err != nil {
-				return image, fmt.Errorf("failed to copy %s from container %s: %w", dstPath, containerID, err)
-			}
-			if n != hdr.Size {
-				return image, fmt.Errorf("tar header reports file %s size %d, but only %d bytes were pulled", hdr.Name, hdr.Size, n)
-			}
-		}
 	default:
 		return image, fmt.Errorf("unexpected tar header type %d", hdr.Typeflag)
 	}
 
 	return image, nil
+}
+
+func extractZst(ctx context.Context, reader io.Reader, dstPath string) error {
+	dstDir, dstName := filepath.Split(dstPath)
+
+	var tmpPath string
+	if tmpf, err := os.CreateTemp(dstDir, fmt.Sprintf("%s-*", dstName)); err != nil {
+		return err
+	} else {
+		tmpPath = tmpf.Name()
+		tmpf.Close()
+		// NB: remove temp file in case something goes wrong
+		defer os.Remove(tmpPath)
+	}
+
+	// NB: we need to force with -f, because the destination file exists (we created it)
+	cmd := exec.CommandContext(ctx, "zstd", "-d", "-", "-o", tmpPath, "-f")
+	cmd.Stdin = reader
+
+	if _, err := cmd.Output(); err != nil {
+		var e *exec.ExitError
+		if errors.As(err, &e) {
+			os.Stderr.Write(e.Stderr)
+		}
+		return fmt.Errorf("failed during zst decompression to %s: %w", dstPath, err)
+	}
+
+	return os.Rename(tmpPath, dstPath)
 }
