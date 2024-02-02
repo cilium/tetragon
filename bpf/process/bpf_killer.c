@@ -23,12 +23,14 @@ do_killer(void *ctx)
 
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/killer"
+#define FUNC kprobe_multi_killer
 #else
 #define MAIN "kprobe/killer"
+#define FUNC kprobe_killer
 #endif
 
 __attribute__((section(MAIN), used)) int
-multi_kprobe_killer(void *ctx)
+FUNC(void *ctx)
 {
 	long ret;
 
