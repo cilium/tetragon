@@ -50,6 +50,11 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("killer", gKillerPolicy)
 }
 
+func killerMap(policyName string, load *program.Program) *program.Map {
+	return program.MapBuilderPin(killerDataMapName,
+		fmt.Sprintf("%s_%s", killerDataMapName, policyName), load)
+}
+
 func (kp *killerPolicy) killerGet(name string) (*killerHandler, bool) {
 	kp.mu.Lock()
 	defer kp.mu.Unlock()
@@ -92,7 +97,7 @@ func (kp *killerPolicy) PolicyHandler(
 	}
 	if len(spec.Killers) > 0 {
 		name := fmt.Sprintf("killer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return kp.createKillerSensor(spec.Killers, spec.Lists, spec.Options, name)
+		return kp.createKillerSensor(spec.Killers, spec.Lists, spec.Options, name, policy.TpName())
 	}
 
 	return nil, nil
@@ -182,6 +187,7 @@ func (kp *killerPolicy) createKillerSensor(
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
 	name string,
+	policyName string,
 ) (*sensors.Sensor, error) {
 
 	if len(killers) > 1 {
@@ -309,7 +315,7 @@ func (kp *killerPolicy) createKillerSensor(
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	killerDataMap := program.MapBuilderPin(killerDataMapName, killerDataMapName, load)
+	killerDataMap := killerMap(policyName, load)
 	maps = append(maps, killerDataMap)
 
 	if ok := kp.killerAdd(name, kh); !ok {
