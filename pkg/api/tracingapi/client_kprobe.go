@@ -309,6 +309,78 @@ func (m MsgGenericKprobeArgCapability) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKernelCapType struct {
+	Caps uint64
+}
+
+type MsgGenericKprobeArgKernelCapType struct {
+	Index uint64
+	Caps  uint64
+	Label string
+}
+
+func (m MsgGenericKprobeArgKernelCapType) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgKernelCapType) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericCapInheritable struct {
+	Caps uint64
+}
+
+type MsgGenericKprobeArgCapInheritable struct {
+	Index uint64
+	Caps  uint64
+	Label string
+}
+
+func (m MsgGenericKprobeArgCapInheritable) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgCapInheritable) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericCapPermitted struct {
+	Caps uint64
+}
+
+type MsgGenericKprobeArgCapPermitted struct {
+	Index uint64
+	Caps  uint64
+	Label string
+}
+
+func (m MsgGenericKprobeArgCapPermitted) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgCapPermitted) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericCapEffective struct {
+	Caps uint64
+}
+
+type MsgGenericKprobeArgCapEffective struct {
+	Index uint64
+	Caps  uint64
+	Label string
+}
+
+func (m MsgGenericKprobeArgCapEffective) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgCapEffective) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericUserNamespace struct {
 	Level  int32
 	Uid    uint32
