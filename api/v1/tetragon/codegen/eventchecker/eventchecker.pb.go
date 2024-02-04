@@ -4901,6 +4901,10 @@ type KprobeArgumentChecker struct {
 	ProcessCredentialsArg *ProcessCredentialsChecker   `json:"processCredentialsArg,omitempty"`
 	UserNsArg             *UserNamespaceChecker        `json:"userNsArg,omitempty"`
 	ModuleArg             *KernelModuleChecker         `json:"moduleArg,omitempty"`
+	KernelCapTArg         *stringmatcher.StringMatcher `json:"kernelCapTArg,omitempty"`
+	CapInheritableArg     *stringmatcher.StringMatcher `json:"capInheritableArg,omitempty"`
+	CapPermittedArg       *stringmatcher.StringMatcher `json:"capPermittedArg,omitempty"`
+	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5121,6 +5125,46 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: ModuleArg check failed: %T is not a ModuleArg", event)
 			}
 		}
+		if checker.KernelCapTArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_KernelCapTArg:
+				if err := checker.KernelCapTArg.Match(event.KernelCapTArg); err != nil {
+					return fmt.Errorf("KernelCapTArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: KernelCapTArg check failed: %T is not a KernelCapTArg", event)
+			}
+		}
+		if checker.CapInheritableArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_CapInheritableArg:
+				if err := checker.CapInheritableArg.Match(event.CapInheritableArg); err != nil {
+					return fmt.Errorf("CapInheritableArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: CapInheritableArg check failed: %T is not a CapInheritableArg", event)
+			}
+		}
+		if checker.CapPermittedArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_CapPermittedArg:
+				if err := checker.CapPermittedArg.Match(event.CapPermittedArg); err != nil {
+					return fmt.Errorf("CapPermittedArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: CapPermittedArg check failed: %T is not a CapPermittedArg", event)
+			}
+		}
+		if checker.CapEffectiveArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_CapEffectiveArg:
+				if err := checker.CapEffectiveArg.Match(event.CapEffectiveArg); err != nil {
+					return fmt.Errorf("CapEffectiveArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: CapEffectiveArg check failed: %T is not a CapEffectiveArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -5254,6 +5298,30 @@ func (checker *KprobeArgumentChecker) WithModuleArg(check *KernelModuleChecker) 
 	return checker
 }
 
+// WithKernelCapTArg adds a KernelCapTArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithKernelCapTArg(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
+	checker.KernelCapTArg = check
+	return checker
+}
+
+// WithCapInheritableArg adds a CapInheritableArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithCapInheritableArg(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
+	checker.CapInheritableArg = check
+	return checker
+}
+
+// WithCapPermittedArg adds a CapPermittedArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithCapPermittedArg(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
+	checker.CapPermittedArg = check
+	return checker
+}
+
+// WithCapEffectiveArg adds a CapEffectiveArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithCapEffectiveArg(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
+	checker.CapEffectiveArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -5384,6 +5452,22 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 		if event.ModuleArg != nil {
 			checker.ModuleArg = NewKernelModuleChecker().FromKernelModule(event.ModuleArg)
 		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_KernelCapTArg:
+		checker.KernelCapTArg = stringmatcher.Full(event.KernelCapTArg)
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_CapInheritableArg:
+		checker.CapInheritableArg = stringmatcher.Full(event.CapInheritableArg)
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_CapPermittedArg:
+		checker.CapPermittedArg = stringmatcher.Full(event.CapPermittedArg)
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_CapEffectiveArg:
+		checker.CapEffectiveArg = stringmatcher.Full(event.CapEffectiveArg)
 	}
 	checker.Label = stringmatcher.Full(event.Label)
 	return checker
