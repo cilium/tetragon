@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/arch"
@@ -29,13 +30,13 @@ type killerHandler struct {
 }
 
 type killerPolicy struct {
-	configured bool
-	killer     killerHandler
+	mu      sync.Mutex
+	killers map[string]*killerHandler
 }
 
 func newKillerPolicy() *killerPolicy {
 	return &killerPolicy{
-		configured: false,
+		killers: map[string]*killerHandler{},
 	}
 }
 
@@ -49,8 +50,31 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("killer", gKillerPolicy)
 }
 
-func (kp *killerPolicy) killerGet() *killerHandler {
-	return &kp.killer
+func (kp *killerPolicy) killerGet(name string) (*killerHandler, bool) {
+	kp.mu.Lock()
+	defer kp.mu.Unlock()
+	kh, ok := kp.killers[name]
+	return kh, ok
+}
+
+func (kp *killerPolicy) killerAdd(name string, kh *killerHandler) bool {
+	kp.mu.Lock()
+	defer kp.mu.Unlock()
+	if _, ok := kp.killers[name]; ok {
+		return false
+	}
+	kp.killers[name] = kh
+	return true
+}
+
+func (kp *killerPolicy) killerDel(name string) bool {
+	kp.mu.Lock()
+	defer kp.mu.Unlock()
+	if _, ok := kp.killers[name]; !ok {
+		return false
+	}
+	delete(kp.killers, name)
+	return true
 }
 
 func (kp *killerPolicy) PolicyHandler(
@@ -105,7 +129,15 @@ func (kp *killerPolicy) loadMultiKillerSensor(
 }
 
 func (kp *killerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
-	kh := kp.killerGet()
+	name, ok := args.Load.LoaderData.(string)
+	if !ok {
+		return fmt.Errorf("invalid loadData type: expecting string and got: %T (%v)",
+			args.Load.LoaderData, args.Load.LoaderData)
+	}
+	kh, ok := kp.killerGet(name)
+	if !ok {
+		return fmt.Errorf("failed to get killer handler for '%s'", name)
+	}
 	if args.Load.Label == "kprobe.multi/killer" {
 		return kp.loadMultiKillerSensor(kh, args.BPFDir, args.MapDir, args.Load, args.Verbose)
 	}
@@ -145,14 +177,6 @@ func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (Overr
 	return overrideMethod, nil
 }
 
-func (kp *killerPolicy) unload() error {
-	kh := kp.killerGet()
-	kp.configured = false
-	kh.syscallsSyms = []string{}
-	logger.GetLogger().Infof("Cleaning up killer")
-	return nil
-}
-
 func (kp *killerPolicy) createKillerSensor(
 	killers []v1alpha1.KillerSpec,
 	lists []v1alpha1.ListSpec,
@@ -164,11 +188,6 @@ func (kp *killerPolicy) createKillerSensor(
 		return nil, fmt.Errorf("failed: we support only single killer sensor")
 	}
 
-	if kp.configured {
-		return nil, fmt.Errorf("failed: killer sensor is already configured")
-	}
-	kp.configured = true
-
 	killer := killers[0]
 
 	var (
@@ -176,7 +195,7 @@ func (kp *killerPolicy) createKillerSensor(
 		hasSecurity bool
 	)
 
-	kh := kp.killerGet()
+	kh := &killerHandler{}
 
 	// get all the syscalls
 	for idx := range killer.Calls {
@@ -269,7 +288,9 @@ func (kp *killerPolicy) createKillerSensor(
 			attach,
 			label,
 			pinPath,
-			"killer")
+			"killer").
+			SetLoaderData(name)
+
 		progs = append(progs, load)
 	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
@@ -280,7 +301,8 @@ func (kp *killerPolicy) createKillerSensor(
 				syscallSym,
 				"fmod_ret/security_task_prctl",
 				pinPath,
-				"killer")
+				"killer").
+				SetLoaderData(name)
 			progs = append(progs, load)
 		}
 	default:
@@ -290,10 +312,23 @@ func (kp *killerPolicy) createKillerSensor(
 	killerDataMap := program.MapBuilderPin(killerDataMapName, killerDataMapName, load)
 	maps = append(maps, killerDataMap)
 
+	if ok := kp.killerAdd(name, kh); !ok {
+		return nil, fmt.Errorf("failed to add killer: '%s'", name)
+	}
+
+	logger.GetLogger().Infof("Added killer sensor '%s'", name)
+
 	return &sensors.Sensor{
-		Name:           "__killer__",
-		Progs:          progs,
-		Maps:           maps,
-		PostUnloadHook: gKillerPolicy.unload,
+		Name:  "__killer__",
+		Progs: progs,
+		Maps:  maps,
+		PostUnloadHook: func() error {
+			if ok := kp.killerDel(name); !ok {
+				logger.GetLogger().Infof("Failed to clean up killer sensor '%s'", name)
+			} else {
+				logger.GetLogger().Infof("Cleaned up killer sensor '%s'", name)
+			}
+			return nil
+		},
 	}, nil
 }
