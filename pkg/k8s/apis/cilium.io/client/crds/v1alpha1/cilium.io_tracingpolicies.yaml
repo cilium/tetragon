@@ -126,6 +126,10 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
                             type: string
                         required:
                         - index
@@ -217,6 +221,10 @@ spec:
                           - load_info
                           - module
                           - syscall64
+                          - kernel_cap_t
+                          - cap_inheritable
+                          - cap_permitted
+                          - cap_effective
                           type: string
                       required:
                       - index
@@ -861,6 +869,10 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
                             type: string
                         required:
                         - index
@@ -1411,6 +1423,10 @@ spec:
                             - load_info
                             - module
                             - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
                             type: string
                         required:
                         - index
