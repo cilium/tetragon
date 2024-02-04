@@ -21,7 +21,8 @@ PROGS = sigkill-tester \
 	killer-tester \
 	drop-privileges \
 	getcpu \
-	direct-write-tester
+	direct-write-tester \
+	change-capabilities
 
 # For now killer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
@@ -44,6 +45,9 @@ threads-exit: threads-exit.c
 	$(GCC) -Wall -fno-inline $< -o $@ -lcap -lpthread
 
 capabilities-tester: capabilities-tester.c
+	$(GCC) -Wall $< -o $@ -lcap
+
+change-capabilities: change-capabilities.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 exit-tester: exit-tester.c

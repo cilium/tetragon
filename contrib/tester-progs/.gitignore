@@ -20,3 +20,4 @@ killer-tester
 killer-tester-32
 /getcpu
 drop-privileges
+change-capabilities
