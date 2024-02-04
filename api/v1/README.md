@@ -444,6 +444,10 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | process_credentials_arg | [ProcessCredentials](#tetragon-ProcessCredentials) |  |  |
 | user_ns_arg | [UserNamespace](#tetragon-UserNamespace) |  |  |
 | module_arg | [KernelModule](#tetragon-KernelModule) |  |  |
+| kernel_cap_t_arg | [string](#string) |  | Capabilities in hexadecimal format. |
+| cap_inheritable_arg | [string](#string) |  | Capabilities inherited by a forked process in hexadecimal format. |
+| cap_permitted_arg | [string](#string) |  | Capabilities that are currently permitted in hexadecimal format. |
+| cap_effective_arg | [string](#string) |  | Capabilities that are actually used in hexadecimal format. |
 | label | [string](#string) |  |  |
 
 
