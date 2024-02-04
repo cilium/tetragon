@@ -237,6 +237,18 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_ModuleArg{ModuleArg: mArg}
 		a.Label = e.Label
+	case api.MsgGenericKprobeArgKernelCapType:
+		a.Arg = &tetragon.KprobeArgument_KernelCapTArg{KernelCapTArg: caps.GetCapabilitiesHex(e.Caps)}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgCapInheritable:
+		a.Arg = &tetragon.KprobeArgument_CapInheritableArg{CapInheritableArg: caps.GetCapabilitiesHex(e.Caps)}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgCapPermitted:
+		a.Arg = &tetragon.KprobeArgument_CapPermittedArg{CapPermittedArg: caps.GetCapabilitiesHex(e.Caps)}
+		a.Label = e.Label
+	case api.MsgGenericKprobeArgCapEffective:
+		a.Arg = &tetragon.KprobeArgument_CapEffectiveArg{CapEffectiveArg: caps.GetCapabilitiesHex(e.Caps)}
+		a.Label = e.Label
 	default:
 		logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 	}
