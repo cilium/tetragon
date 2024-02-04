@@ -49,6 +49,10 @@ func GetCapabilities(capInt uint64) string {
 	return strings.Join(caps, " ")
 }
 
+func GetCapabilitiesHex(capInt uint64) string {
+	return fmt.Sprintf("%016x", capInt)
+}
+
 /* uapi/linux/capability.h */
 var capabilitiesString = map[uint64]string{
 	/* In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
