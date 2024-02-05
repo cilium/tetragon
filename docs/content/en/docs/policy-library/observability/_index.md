@@ -16,6 +16,7 @@ description: >
 - [Privileges Escalation via SUID Binary Execution]({{< ref "#privileges-suid" >}})
 - [Privileges Escalation via File Capabilities Execution]({{< ref "#privileges-fscaps" >}})
 - [Privileges Escalation via Setuid system calls]({{< ref "#privileges-setuid" >}})
+- [Privileges Change via Capset system call]({{< ref "#privileges-capset" >}})
 
 ### System Activity
 
@@ -197,6 +198,43 @@ jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test(
 "2024-02-05T15:23:28.731752014Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
 "2024-02-05T15:23:30.803946368Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
 "2024-02-05T15:23:30.805118893Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
+```
+
+## Privileges Change via Capset System Call {#privileges-capset}
+
+### Description
+
+Monitor execution of the [capset()](https://www.man7.org/linux/man-pages/man2/capset.2.html)
+system call.
+
+### Use Case
+
+The [capset()](https://www.man7.org/linux/man-pages/man2/capset.2.html)
+system call allows to change the process [capabilities](https://www.man7.org/linux/man-pages/man7/capabilities.7.html).
+
+Detecting [capset()](https://www.man7.org/linux/man-pages/man2/capset.2.html)
+calls that set the effective, inheritable and permitted capabilities to non
+zero is a common best-practice to identify processes that could raise their
+privileges.
+
+### Policy
+
+The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml)
+monitors `capset()` calls that do not drop capabilities.
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-raise")) | select(.process_kprobe.function_name | test("capset")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.args[3]) \(.process_kprobe.args[1])"'
+```
+
+### Example Output
+
+```shell
+"2024-02-05T21:12:03.579600653Z null null /usr/bin/sudo id security_capset {\"cap_permitted_arg\":\"000001ffffffffff\"} {\"cap_effective_arg\":\"000001ffffffffff\"}"
+"2024-02-05T21:12:04.754115578Z null null /usr/local/sbin/runc --root /run/containerd/runc/k8s.io --log /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/log.json --log-format json --systemd-cgroup exec --process /tmp/runc-process2431693392 --detach --pid-file /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/9403a57a3061274de26cad41915bad5416d4d484c9e142b22193b74e19a252c5.pid 024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392 security_capset {\"cap_permitted_arg\":\"000001ffffffffff\"} {\"cap_effective_arg\":\"000001ffffffffff\"}"
+"2024-02-05T21:12:12.836813445Z null null /usr/bin/runc --root /var/run/docker/runtime-runc/moby --log /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9/log.json --log-format json --systemd-cgroup create --bundle /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9 --pid-file /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9/init.pid c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9 security_capset {\"cap_permitted_arg\":\"00000000a80425fb\"} {\"cap_effective_arg\":\"00000000a80425fb\"}"
+"2024-02-05T21:12:14.774175889Z null null /usr/local/sbin/runc --root /run/containerd/runc/k8s.io --log /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/log.json --log-format json --systemd-cgroup exec --process /tmp/runc-process2888400204 --detach --pid-file /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/d8b8598320fe3d874b901c70863f36233760b3e63650a2474f707cc51b4340f9.pid 024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392 security_capset {\"cap_permitted_arg\":\"000001ffffffffff\"} {\"cap_effective_arg\":\"000001ffffffffff\"}"
 ```
 
 ## eBPF Subsystem Interactions {#ebpf}
