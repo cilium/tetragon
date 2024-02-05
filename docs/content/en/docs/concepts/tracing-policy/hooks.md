@@ -214,11 +214,9 @@ running in all the bash shells.
 
 ## Arguments
 
-Kprobes and tracepoints may use the optional `args` field. It is a list of
-arguments to include in the trace output. Tetragon's BPF code requires
-information about the types of arguments to properly read, print and
-filter on its arguments. This information needs to be provided by the user under the
-`args` section. For the [available
+Kprobes and tracepoints may use the optional `args` field. Tetragon's BPF code requires
+information about the types of arguments to properly read, print and filters on its arguments.
+ This information can be provided by the user under the `args` section. For the [available
 types](https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml#L64-L88),
 check the [`TracingPolicy`
 CRD](https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml).
