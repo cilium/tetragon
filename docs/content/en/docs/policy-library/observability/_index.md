@@ -16,6 +16,7 @@ description: >
 - [Privileges Escalation via SUID Binary Execution]({{< ref "#privileges-suid" >}})
 - [Privileges Escalation via File Capabilities Execution]({{< ref "#privileges-fscaps" >}})
 - [Privileges Escalation via Setuid system calls]({{< ref "#privileges-setuid" >}})
+- [Privileges Escalation via Unprivileged User Namespaces]({{< ref "#privileges-userns" >}})
 - [Privileges Change via Capset system call]({{< ref "#privileges-capset" >}})
 
 ### System Activity
@@ -198,6 +199,52 @@ jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test(
 "2024-02-05T15:23:28.731752014Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
 "2024-02-05T15:23:30.803946368Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
 "2024-02-05T15:23:30.805118893Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
+```
+
+## Privileges Escalation via Unprivileged User Namespaces {#privileges-userns}
+
+### Description
+
+Monitor creation of [User namespaces](https://man7.org/linux/man-pages/man7/user_namespaces.7.html)
+by unprivileged.
+
+### Use Case
+
+User namespaces isolate security-related identifiers like user IDs, group IDs
+[credentials](https://man7.org/linux/man-pages/man7/credentials.7.html) and
+[capabilities](https://www.man7.org/linux/man-pages/man7/capabilities.7.html).
+A process can have a normal unprivileged user ID outside a user namespace
+while at the same time having a privileged user ID 0 (root) inside its own
+user namespace.
+
+When an unprivileged process creates a new user namespace beside having a
+privileged user ID, it will also receive the full set of capabilities. User
+namespaces are feature to replace `setuid` and `setgid` binaries, and to allow
+applications to create sandboxes. However, they expose lot of kernel
+interfaces that are normally restricted to privileged (root). Such interfaces
+may increase the attack surface and get abused by attackers in order to
+perform privileges escalation exploits.
+
+Unfortunatly, a [report from Google](https://security.googleblog.com/2023/06/learnings-from-kctf-vrps-42-linux.html)
+shows up that 44% of the exploits required unprivileged user namespaces to
+perform chain privileges escalation. Therfore, detecting the creation of user
+namespaces by unprivileged is a common best-practice to identify such cases.
+
+### Policy
+
+The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml)
+monitors the creation of user namespaces by unprivileged.
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-raise")) | select(.process_kprobe.function_name | test("create_user_ns")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.process.process_credentials)"'
+```
+
+### Example Output
+
+```shell
+"2024-02-05T22:08:15.033035972Z null null /usr/bin/unshare -rUfp create_user_ns {\"uid\":1000,\"gid\":1000,\"euid\":1000,\"egid\":1000,\"suid\":1000,\"sgid\":1000,\"fsuid\":1000,\"fsgid\":1000}"
 ```
 
 ## Privileges Change via Capset System Call {#privileges-capset}
