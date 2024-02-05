@@ -5,7 +5,10 @@ package process
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -117,11 +121,13 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 }
 
 func (pc *Cache) refDec(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
 	if val, ok := p.refcntOps[reason]; ok {
 		p.refcntOps[reason] = val + 1
 	} else {
 		p.refcntOps[reason] = 1
 	}
+	p.refcntOpsLock.Unlock()
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
@@ -129,11 +135,13 @@ func (pc *Cache) refDec(p *ProcessInternal, reason string) {
 }
 
 func (pc *Cache) refInc(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
 	if val, ok := p.refcntOps[reason]; ok {
 		p.refcntOps[reason] = val + 1
 	} else {
 		p.refcntOps[reason] = 1
 	}
+	p.refcntOpsLock.Unlock()
 	atomic.AddUint32(&p.refcnt, 1)
 }
 
@@ -238,7 +246,10 @@ func (pc *Cache) Dump(skipZeroRefCnt bool) {
 			if skipZeroRefCnt && v.refcnt == 0 {
 				continue
 			}
-			fmt.Println(v.process.Pid.GetValue(), "|", v.process.Binary, v.process.Arguments, "|", v.process.Flags, "|", v.refcnt, v.color, v.refcntOps)
+			v.refcntOpsLock.Lock()
+			opsStr := fmt.Sprint(v.refcntOps)
+			v.refcntOpsLock.Unlock()
+			fmt.Println(v.process.Pid.GetValue(), "|", v.process.ExecId, "|", v.process.ParentExecId, "|", v.process.Binary, v.process.Arguments, "|", v.process.Flags, "|", v.refcnt, v.color, opsStr)
 		}
 	}
 
@@ -249,6 +260,51 @@ func (pc *Cache) Dump(skipZeroRefCnt bool) {
 			fmt.Println(k.Pid)
 		}
 	}
+
+	procFS, err := os.ReadDir(option.Config.ProcFS)
+	if err != nil {
+		return
+	}
+
+	procSet := make(map[uint32]bool)
+	for _, d := range procFS {
+		if !d.IsDir() {
+			continue
+		}
+
+		if !regexp.MustCompile(`\d`).MatchString(d.Name()) {
+			continue
+		}
+
+		name := d.Name()
+		s, err := strconv.ParseUint(name, 10, 32)
+		if err != nil {
+			fmt.Println("Skipping:", name)
+			continue
+		}
+
+		procSet[uint32(s)] = true
+	}
+	procSetLen := len(procSet)
+
+	fmt.Printf("************ items in execve_map (%d) but not in proc (%d) *************\n", execveMapLen, procSetLen)
+	for k := range data {
+		exists := procSet[k.Pid]
+		if !exists {
+			if k.Pid != 0 { // we know that we have an entry with 0
+				fmt.Println(k.Pid)
+			}
+		}
+	}
+
+	fmt.Printf("************ items in proc (%d)  but not in execve_map (%d)  *************\n", procSetLen, execveMapLen)
+	for k := range procSet {
+		_, exists := data[execvemap.ExecveKey{Pid: k}]
+		if !exists {
+			fmt.Println(k)
+		}
+	}
+
 	fmt.Println("******************************************************************************")
 	fmt.Printf("\n\n")
 }

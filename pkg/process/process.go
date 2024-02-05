@@ -50,9 +50,10 @@ type ProcessInternal struct {
 	// about the binary during the corresponding ProcessExec only.
 	apiBinaryProp *tetragon.BinaryProperties
 	// garbage collector metadata
-	color     int // Writes should happen only inside gc select channel
-	refcnt    uint32
-	refcntOps map[string]int
+	color         int // Writes should happen only inside gc select channel
+	refcnt        uint32
+	refcntOps     map[string]int
+	refcntOpsLock sync.Mutex
 }
 
 var (
