@@ -149,6 +149,15 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
+/**
+ * read_exe() Reads the path from the backing executable file of the current
+ * process.
+ *
+ * The executable file of a process can change using the prctl() system call
+ * and PR_SET_MM_EXE_FILE. Thus, this function should only be used under the
+ * execve path since the executable file is locked and usually there is only
+ * one remaining thread at its exit path.
+ */
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) __u32
 read_exe(struct task_struct *task, struct heap_exe *exe)
