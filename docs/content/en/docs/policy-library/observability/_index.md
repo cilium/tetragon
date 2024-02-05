@@ -13,8 +13,8 @@ description: >
 
 - [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
-- [SUID Binary Execution]({{< ref "#suid" >}})
-- [Setuid system calls]({{< ref "#setuid" >}})
+- [Privileges Escalation via SUID Binary Execution]({{< ref "#privileges-suid" >}})
+- [Privileges Escalation via Setuid system calls]({{< ref "#privileges-setuid" >}})
 
 ### System Activity
 
@@ -82,7 +82,7 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary | contai
 "2023-10-31T19:03:35.273111185Z null /usr/bin/sudo -i"
 ```
 
-## SUID Binary Execution {#suid}
+## Privileges Escalation via SUID Binary Execution {#privileges-suid}
 
 ### Description
 
@@ -134,18 +134,18 @@ No policy needs to be loaded, standard process execution observability is suffic
 ### Example jq Filter
 
 ```shell
-jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.setuid != null or .process_exec.process.binary_properties.setgid != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid)"'
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.setuid != null or .process_exec.process.binary_properties.setgid != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid) binary_properties=\(.process_exec.process.binary_properties)"'
 ```
 
 ### Example Output
 
 ```shell
-"2023-11-13T08:20:43.615672640Z null null /usr/bin/sudo id uid=1000 euid=0  gid=1000 egid=1000"
-"2023-11-13T08:20:45.591560940Z null null /usr/bin/wall hello uid=1000 euid=1000  gid=1000 egid=5"
-"2023-11-13T08:20:47.036760043Z null null /usr/bin/su - uid=1000 euid=0  gid=1000 egid=1000"
+"2024-02-05T20:20:50.828208246Z null null /usr/bin/sudo id uid=1000 euid=0  gid=1000 egid=1000 binary_properties={\"setuid\":0,\"privileges_changed\":[\"PRIVILEGES_RAISED_EXEC_FILE_SETUID\"]}"
+"2024-02-05T20:20:57.008655978Z null null /usr/bin/wall hello uid=1000 euid=1000  gid=1000 egid=5 binary_properties={\"setgid\":5}"
+"2024-02-05T20:21:00.116297664Z null null /usr/bin/su --help uid=1000 euid=0  gid=1000 egid=1000 binary_properties={\"setuid\":0,\"privileges_changed\":[\"PRIVILEGES_RAISED_EXEC_FILE_SETUID\"]}"
 ```
 
-## Setuid System Calls {#setuid}
+## Privileges Escalation via Setuid System Calls {#privileges-setuid}
 
 ### Description
 
