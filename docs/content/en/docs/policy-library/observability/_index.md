@@ -246,16 +246,18 @@ The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/ma
 ### Example jq Filter
 
 ```shell
-jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-setuid-root")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.args)"'
+jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test("privileges-raise")) | select(.process_kprobe.function_name | test("__sys_")) | "\(.time) \(.process_kprobe.process.pod.namespace) \(.process_kprobe.process.pod.name) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.function_name) \(.process_kprobe.args)"'
 ```
 
 ### Example Output
 
 ```shell
-"2023-11-12T22:17:40.754680857Z null null /usr/bin/sudo id __sys_setresgid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
-"2023-11-12T22:17:40.754730285Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
-"2023-11-12T22:17:40.758125709Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
-"2023-11-12T22:17:40.758747395Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
+"2024-02-05T15:23:24.734543507Z null null /usr/local/sbin/runc --root /run/containerd/runc/k8s.io --log /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/log.json --log-format json --systemd-cgroup exec --process /tmp/runc-process2191655094 --detach --pid-file /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/2d56fcb136b07310685c9e188be7a49d32dc0e45a10d3fe14bc550e6ce2aa5cb.pid 024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392 __sys_setuid [{\"int_arg\":0}]"
+"2024-02-05T15:23:24.734550826Z null null /usr/local/sbin/runc --root /run/containerd/runc/k8s.io --log /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/log.json --log-format json --systemd-cgroup exec --process /tmp/runc-process2191655094 --detach --pid-file /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/2d56fcb136b07310685c9e188be7a49d32dc0e45a10d3fe14bc550e6ce2aa5cb.pid 024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392 __sys_setgid [{\"int_arg\":0}]"
+"2024-02-05T15:23:28.731719921Z null null /usr/bin/sudo id __sys_setresgid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
+"2024-02-05T15:23:28.731752014Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
+"2024-02-05T15:23:30.803946368Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
+"2024-02-05T15:23:30.805118893Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
 ```
 
 ## SSHd connection monitoring {#ssh-network}
