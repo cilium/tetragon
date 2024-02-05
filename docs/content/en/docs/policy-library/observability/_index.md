@@ -9,18 +9,18 @@ description: >
 
 ## Index
 
-### System Activity
-
-- [eBPF System Activity]({{< ref "#ebpf" >}})
-- [Kernel Module Audit trail]({{< ref "#kernel-module" >}})
-- [Shared Library Loading]({{< ref "#library" >}})
-
 ### Security Sensitive Events
 
 - [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
 - [SUID Binary Execution]({{< ref "#suid" >}})
 - [Setuid system calls]({{< ref "#setuid" >}})
+
+### System Activity
+
+- [eBPF System Activity]({{< ref "#ebpf" >}})
+- [Kernel Module Audit trail]({{< ref "#kernel-module" >}})
+- [Shared Library Loading]({{< ref "#library" >}})
 
 ### Networking
 
@@ -29,86 +29,6 @@ description: >
 
 
 # Observability Policies
-
-## eBPF Subsystem Interactions {#ebpf}
-
-### Description
-
-Audit BPF program loads and BPFFS interactions
-
-### Use Case
-
-Understanding BPF programs loaded in a cluster and interactions between applications
-and programs can identify bugs and malicious or unexpected BPF activity.
-
-### Policy
-
-[bpf.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml)
-
-### Example jq Filter
-
-```shell
-jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"
-```
-
-### Example Output
-
-```shell
-"2023-11-01T02:56:54.926403604Z /usr/bin/bpftool prog list programType:BPF_PROG_TYPE_SOCKET_FILTER programInsn:2"
-```
-
-## Kernel Module Audit Trail {#kernel-module}
-
-### Description
-
-Audit loading of kernel modules
-
-### Use Case
-
-Understanding exactly what kernel modules are running in the cluster is crucial to understand attack surface and any malicious actors loading unexpected modules.
-
-### Policy
-
-[modules.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/modules.yaml)
-
-### Example jq Filter
-
-```shell
- jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
-```
-
-### Example Output
-
-```shell
-"2023-11-01T04:11:38.390880528Z /sbin/iptables -A OUTPUT -m cgroup --cgroup 1 -j LOG module:ipt_LOG"
-```
-
-## Shared Library Loading {#library}
-
-### Description
-
-Monitor loading of libraries
-
-### Use Case
-
-Understanding the exact versions of shared libraries that binaries load and use is crucial to understand use of vulnerable or deprecated library versions or attacks such as shared library hijacking.
-
-### Policy
-
-[library.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml)
-
-
-### Example jq Filter
-
-```shell
-jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
-```
-
-### Example Output
-
-```shell
-"2023-10-31T19:42:33.065233159Z default/xwing /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
-```
 
 ## Binary Execution in /tmp {#tmp-execs}
 
@@ -258,6 +178,86 @@ jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test(
 "2024-02-05T15:23:28.731752014Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":-1},{\"int_arg\":0},{\"int_arg\":-1}]"
 "2024-02-05T15:23:30.803946368Z null null /usr/bin/sudo id __sys_setgid [{\"int_arg\":0}]"
 "2024-02-05T15:23:30.805118893Z null null /usr/bin/sudo id __sys_setresuid [{\"int_arg\":0},{\"int_arg\":0},{\"int_arg\":0}]"
+```
+
+## eBPF Subsystem Interactions {#ebpf}
+
+### Description
+
+Audit BPF program loads and BPFFS interactions
+
+### Use Case
+
+Understanding BPF programs loaded in a cluster and interactions between applications
+and programs can identify bugs and malicious or unexpected BPF activity.
+
+### Policy
+
+[bpf.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml)
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"
+```
+
+### Example Output
+
+```shell
+"2023-11-01T02:56:54.926403604Z /usr/bin/bpftool prog list programType:BPF_PROG_TYPE_SOCKET_FILTER programInsn:2"
+```
+
+## Kernel Module Audit Trail {#kernel-module}
+
+### Description
+
+Audit loading of kernel modules
+
+### Use Case
+
+Understanding exactly what kernel modules are running in the cluster is crucial to understand attack surface and any malicious actors loading unexpected modules.
+
+### Policy
+
+[modules.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/modules.yaml)
+
+### Example jq Filter
+
+```shell
+ jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
+```
+
+### Example Output
+
+```shell
+"2023-11-01T04:11:38.390880528Z /sbin/iptables -A OUTPUT -m cgroup --cgroup 1 -j LOG module:ipt_LOG"
+```
+
+## Shared Library Loading {#library}
+
+### Description
+
+Monitor loading of libraries
+
+### Use Case
+
+Understanding the exact versions of shared libraries that binaries load and use is crucial to understand use of vulnerable or deprecated library versions or attacks such as shared library hijacking.
+
+### Policy
+
+[library.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml)
+
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
+```
+
+### Example Output
+
+```shell
+"2023-10-31T19:42:33.065233159Z default/xwing /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
 ```
 
 ## SSHd connection monitoring {#ssh-network}
