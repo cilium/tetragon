@@ -214,7 +214,7 @@ running in all the bash shells.
 
 ## Arguments
 
-Kprobes, uprobes and tracepoints all share a needed arguments fields called `args`. It is a list of
+Kprobes and tracepoints may use the optional `args` field. It is a list of
 arguments to include in the trace output. Tetragon's BPF code requires
 information about the types of arguments to properly read, print and
 filter on its arguments. This information needs to be provided by the user under the
