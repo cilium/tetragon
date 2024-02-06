@@ -155,6 +155,8 @@ func IsKernelVersionLessThan(version string) bool {
 func GenericKprobeObjs() (string, string) {
 	if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
+	} else if MinKernelVersion("5.11") {
+		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_kprobe_v53.o", "bpf_generic_retkprobe_v53.o"
 	}

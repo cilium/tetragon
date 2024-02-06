@@ -20,6 +20,11 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_tracepoint_v61.o \
 	  bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
 	  bpf_generic_uprobe_v61.o \
+	  bpf_execve_event_v511.o \
+	  bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
+	  bpf_generic_tracepoint_v511.o \
+	  bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
+	  bpf_generic_uprobe_v511.o \
 	  bpf_loader.o \
 	  bpf_killer.o bpf_multi_killer.o bpf_fmodret_killer.o
 
@@ -66,6 +71,7 @@ endef
 # Generic build targets for each sub-dir
 
 $(eval $(call DEFINE_VARIANT,v53))
+$(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
 
 # ALIGNCHECKER
@@ -117,13 +123,22 @@ $(DEPSDIR)%_v53.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
 objs/bpf_multi_kprobe_v61.ll objs/bpf_multi_retkprobe_v61.ll:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
 objs/%_v61.ll:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -c $< -o $@
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -c $< -o $@
 
 $(DEPSDIR)%_v61.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG  -D__V61_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
+
+objs/bpf_multi_kprobe_v511.ll objs/bpf_multi_retkprobe_v511.ll:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__MULTI_KPROBE -c $< -o $@
+
+objs/%_v511.ll:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -c $< -o $@
+
+$(DEPSDIR)%_v511.d:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
 # BPFTESTDIR
 objs/%.ll: $(BPFTESTDIR)%.c

@@ -728,8 +728,18 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 		if err != nil {
 			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 		}
-		for sizeIdx := 0; sizeIdx < StringMapsNumSubMaps; sizeIdx++ {
-			if size == StringMapsSizes[sizeIdx] {
+		numSubMaps := StringMapsNumSubMaps
+		if !kernels.MinKernelVersion("5.11") {
+			numSubMaps = StringMapsNumSubMapsSmall
+		}
+
+		for sizeIdx := 0; sizeIdx < numSubMaps; sizeIdx++ {
+			stringMapSize := StringMapsSizes[sizeIdx]
+			if sizeIdx == 7 && !kernels.MinKernelVersion("5.11") {
+				stringMapSize = StringMapSize7a
+			}
+
+			if size == stringMapSize {
 				maps[sizeIdx][value] = struct{}{}
 				break
 			}

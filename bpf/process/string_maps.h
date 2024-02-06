@@ -32,19 +32,35 @@
  * up are equally padded to the smallest key size that can accommodate them, and then
  * looked up in the related map.
  *
- * The chosen key sizes are 25, 49, 73, 97, 121, 145 (6 maps).
+ * The chosen key sizes are 25, 49, 73, 97, 121, 145, 258, 514, 1026, 2050, 4098 (11 maps).
+ * The first 6 are sized for common uses and to minimise the hashing of empty bytes. The
+ * following 5 maps notionally double in size, with lengths equal to 2^k + 2. On kernels
+ * <5.11, the last four maps are replaced with a single map with key size 512. This is due
+ * to key size limitations on kernels <5.11.
  *
  * In order to distinguish between character buffers that end in 0s and similar buffers
  * that are padded with 0s, each string will be prefixed by its length stored in a
- * single byte.
+ * single byte (for first 6 maps) or as a little endian u16 (latter maps).
  */
 #define STRING_MAPS_KEY_INC_SIZE 24
-#define STRING_MAPS_SIZE_0	 1 * STRING_MAPS_KEY_INC_SIZE + 1
-#define STRING_MAPS_SIZE_1	 2 * STRING_MAPS_KEY_INC_SIZE + 1
-#define STRING_MAPS_SIZE_2	 3 * STRING_MAPS_KEY_INC_SIZE + 1
-#define STRING_MAPS_SIZE_3	 4 * STRING_MAPS_KEY_INC_SIZE + 1
-#define STRING_MAPS_SIZE_4	 5 * STRING_MAPS_KEY_INC_SIZE + 1
-#define STRING_MAPS_SIZE_5	 6 * STRING_MAPS_KEY_INC_SIZE + 1
+#define STRING_MAPS_SIZE_0	 (1 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_1	 (2 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_2	 (3 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_3	 (4 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_4	 (5 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_5	 (6 * STRING_MAPS_KEY_INC_SIZE + 1)
+#define STRING_MAPS_SIZE_6	 (256 + 2)
+#ifdef __LARGE_MAP_KEYS
+#define STRING_MAPS_SIZE_7  (512 + 2)
+#define STRING_MAPS_SIZE_8  (1024 + 2)
+#define STRING_MAPS_SIZE_9  (2048 + 2)
+#define STRING_MAPS_SIZE_10 (4096 + 2)
+#else
+#define STRING_MAPS_SIZE_7 (512)
+#endif
+#define STRING_MAPS_HEAP_SIZE 16384
+#define STRING_MAPS_HEAP_MASK (8192 - 1)
+#define STRING_MAPS_COPY_MASK 4095
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
@@ -125,17 +141,84 @@ struct {
 } string_maps_5 SEC(".maps");
 
 struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[STRING_MAPS_SIZE_6]);
+			__type(value, __u8);
+		});
+} string_maps_6 SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[STRING_MAPS_SIZE_7]);
+			__type(value, __u8);
+		});
+} string_maps_7 SEC(".maps");
+
+#ifdef __LARGE_MAP_KEYS
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[STRING_MAPS_SIZE_8]);
+			__type(value, __u8);
+		});
+} string_maps_8 SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[STRING_MAPS_SIZE_9]);
+			__type(value, __u8);
+		});
+} string_maps_9 SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
+	__uint(key_size, sizeof(__u32));
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[STRING_MAPS_SIZE_10]);
+			__type(value, __u8);
+		});
+} string_maps_10 SEC(".maps");
+#endif
+
+struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, 512);
+	__uint(value_size, STRING_MAPS_HEAP_SIZE);
 } string_maps_heap SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, 512);
+	__uint(value_size, STRING_MAPS_HEAP_SIZE);
 } string_maps_ro_zero SEC(".maps");
 
 #define STRING_PREFIX_MAX_LENGTH 256

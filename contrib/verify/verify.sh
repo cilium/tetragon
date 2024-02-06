@@ -68,6 +68,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+	# Skip v5.11 objects check for kernel < 5.11
+	if [[ "$B" == *511.o && $(echo "$KERNEL < 5.11" | bc) == 1 ]]; then
+		continue
+	fi
+
 	# Skip bpf_loader for kernel < 5.19
 	if [[ "$B" == bpf_loader* && $(echo "$KERNEL < 5.19" | bc) == 1 ]]; then
 		continue
