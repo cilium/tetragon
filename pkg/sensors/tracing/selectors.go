@@ -17,7 +17,7 @@ import (
 
 func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, index uint32) []*program.MapLoad {
 	selBuff := ks.Buffer()
-	return []*program.MapLoad{
+	maps := []*program.MapLoad{
 		{
 			Index: index,
 			Name:  "filter_map",
@@ -53,6 +53,18 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			Name:  "tg_mb_paths",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
 				return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_prefix_maps",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringPrefixFilterMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
+			Index: 0,
+			Name:  "string_postfix_maps",
+			Load: func(outerMap *ebpf.Map, index uint32) error {
+				return populateStringPostfixFilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
@@ -92,18 +104,42 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			},
 		}, {
 			Index: 0,
-			Name:  "string_prefix_maps",
+			Name:  "string_maps_6",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
-				return populateStringPrefixFilterMaps(ks, pinPathPrefix, outerMap)
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 6)
 			},
 		}, {
 			Index: 0,
-			Name:  "string_postfix_maps",
+			Name:  "string_maps_7",
 			Load: func(outerMap *ebpf.Map, index uint32) error {
-				return populateStringPostfixFilterMaps(ks, pinPathPrefix, outerMap)
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 7)
 			},
 		},
 	}
+	if kernels.MinKernelVersion("5.11") {
+		maps = append(maps, []*program.MapLoad{
+			{
+				Index: 0,
+				Name:  "string_maps_8",
+				Load: func(outerMap *ebpf.Map, index uint32) error {
+					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 8)
+				},
+			}, {
+				Index: 0,
+				Name:  "string_maps_9",
+				Load: func(outerMap *ebpf.Map, index uint32) error {
+					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 9)
+				},
+			}, {
+				Index: 0,
+				Name:  "string_maps_10",
+				Load: func(outerMap *ebpf.Map, index uint32) error {
+					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 10)
+				},
+			},
+		}...)
+	}
+	return maps
 }
 
 func populateArgFilterMaps(
@@ -315,11 +351,15 @@ func populateStringFilterMap(
 	innerData map[[selectors.MaxStringMapsSize]byte]struct{},
 	maxEntries uint32,
 ) error {
+	mapKeySize := selectors.StringMapsSizes[subMap]
+	if subMap == 7 && !kernels.MinKernelVersion("5.11") {
+		mapKeySize = selectors.StringMapSize7a
+	}
 	innerName := fmt.Sprintf("string_maps_%d_%d", subMap, innerID)
 	innerSpec := &ebpf.MapSpec{
 		Name:       innerName,
 		Type:       ebpf.Hash,
-		KeySize:    uint32(selectors.StringMapsSizes[subMap]),
+		KeySize:    uint32(mapKeySize),
 		ValueSize:  uint32(1),
 		MaxEntries: maxEntries,
 	}
@@ -333,7 +373,7 @@ func populateStringFilterMap(
 
 	one := uint8(1)
 	for rawVal := range innerData {
-		val := rawVal[:selectors.StringMapsSizes[subMap]]
+		val := rawVal[:mapKeySize]
 		err := innerMap.Update(val, one, 0)
 		if err != nil {
 			return fmt.Errorf("failed to insert value into %s: %w", innerName, err)

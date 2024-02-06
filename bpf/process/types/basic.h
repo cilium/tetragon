@@ -192,7 +192,15 @@ struct event_config {
  * we will need to resize. TBD would be to size these at compile time using
  * buffer size information.
  */
-#define MAX_STRING 1024
+#ifdef __LARGE_BPF_PROG
+#ifdef __LARGE_MAP_KEYS
+#define MAX_STRING (STRING_MAPS_SIZE_10 - 2)
+#else
+#define MAX_STRING (STRING_MAPS_SIZE_7 - 2)
+#endif
+#else
+#define MAX_STRING (STRING_MAPS_SIZE_5 - 1)
+#endif
 
 #ifdef __MULTI_KPROBE
 static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
@@ -470,7 +478,9 @@ copy_strings(char *args, unsigned long arg)
 	long size;
 
 	// probe_read_str() always nul-terminates the string.
-	size = probe_read_str(&args[4], MAX_STRING, (char *)arg);
+	// So add one to the length to allow for it. This should
+	// result in us honouring our MAX_STRING correctly.
+	size = probe_read_str(&args[4], MAX_STRING + 1, (char *)arg);
 	if (size <= 1)
 		return invalid_ty;
 	// Remove the nul character from end.
@@ -703,31 +713,131 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e, data_heap);
 }
 
+static inline __attribute__((always_inline)) u16
+string_padded_len(u16 len)
+{
+	u16 padded_len = len;
+
+	if (len < STRING_MAPS_SIZE_5) {
+		if (len % STRING_MAPS_KEY_INC_SIZE != 0)
+			padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
+		return padded_len;
+	}
+	if (len <= STRING_MAPS_SIZE_6 - 2)
+		return STRING_MAPS_SIZE_6 - 2;
+#ifdef __LARGE_BPF_PROG
+#ifdef __LARGE_MAP_KEYS
+	if (len <= STRING_MAPS_SIZE_7 - 2)
+		return STRING_MAPS_SIZE_7 - 2;
+	if (len <= STRING_MAPS_SIZE_8 - 2)
+		return STRING_MAPS_SIZE_8 - 2;
+	if (len <= STRING_MAPS_SIZE_9 - 2)
+		return STRING_MAPS_SIZE_9 - 2;
+	return STRING_MAPS_SIZE_10 - 2;
+#else
+	return STRING_MAPS_SIZE_7 - 2;
+#endif
+#else
+	return STRING_MAPS_SIZE_5 - 1;
+#endif
+}
+
+static inline __attribute__((always_inline)) int
+string_map_index(u16 padded_len)
+{
+	if (padded_len < STRING_MAPS_SIZE_5)
+		return (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
+
+#ifdef __LARGE_BPF_PROG
+#ifdef __LARGE_MAP_KEYS
+	switch (padded_len) {
+	case STRING_MAPS_SIZE_6 - 2:
+		return 6;
+	case STRING_MAPS_SIZE_7 - 2:
+		return 7;
+	case STRING_MAPS_SIZE_8 - 2:
+		return 8;
+	case STRING_MAPS_SIZE_9 - 2:
+		return 9;
+	}
+	return 10;
+#else
+	if (padded_len == STRING_MAPS_SIZE_6 - 2)
+		return 6;
+	return 7;
+#endif
+#else
+	return 5;
+#endif
+}
+
+static inline __attribute__((always_inline)) void *
+get_string_map(int index, __u32 map_idx)
+{
+	switch (index) {
+	case 0:
+		return map_lookup_elem(&string_maps_0, &map_idx);
+	case 1:
+		return map_lookup_elem(&string_maps_1, &map_idx);
+	case 2:
+		return map_lookup_elem(&string_maps_2, &map_idx);
+	case 3:
+		return map_lookup_elem(&string_maps_3, &map_idx);
+	case 4:
+		return map_lookup_elem(&string_maps_4, &map_idx);
+	case 5:
+		return map_lookup_elem(&string_maps_5, &map_idx);
+#ifdef __LARGE_BPF_PROG
+	case 6:
+		return map_lookup_elem(&string_maps_6, &map_idx);
+	case 7:
+		return map_lookup_elem(&string_maps_7, &map_idx);
+#ifdef __LARGE_MAP_KEYS
+	case 8:
+		return map_lookup_elem(&string_maps_8, &map_idx);
+	case 9:
+		return map_lookup_elem(&string_maps_9, &map_idx);
+	case 10:
+		return map_lookup_elem(&string_maps_10, &map_idx);
+#endif
+#endif
+	}
+	return 0;
+}
+
 static inline __attribute__((always_inline)) long
 filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
 {
 	__u32 *map_ids = (__u32 *)&filter->value;
-	void *string_map;
-	__u32 map_idx;
-	__u8 len;
-	__u8 padded_len;
-	int index;
 	char *heap, *zero_heap;
+	void *string_map;
+	__u16 padded_len;
+	__u32 map_idx;
 	int zero = 0;
+	__u16 len;
+	int index;
 
-	if (orig_len >= STRING_MAPS_SIZE_5 || !orig_len)
+#ifdef __LARGE_BPF_PROG
+#ifdef __LARGE_MAP_KEYS
+	if (orig_len > STRING_MAPS_SIZE_10 - 2 || !orig_len)
 		return 0;
+#else
+	if (orig_len > STRING_MAPS_SIZE_7 - 2 || !orig_len)
+		return 0;
+#endif
+#else
+	if (orig_len > STRING_MAPS_SIZE_5 - 1 || !orig_len)
+		return 0;
+#endif
 
-	len = (__u8)orig_len;
+	len = (__u16)orig_len;
 	// Calculate padded string length
-	padded_len = len;
-	if (len % STRING_MAPS_KEY_INC_SIZE != 0)
-		padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
+	padded_len = string_padded_len(len);
 
 	// Check if we have entries for this padded length.
 	// Do this before we copy data for efficiency.
-	index = (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
-	map_idx = map_ids[index & 0x7];
+	index = string_map_index(padded_len);
+	map_idx = map_ids[index & 0xf];
 	if (map_idx == 0xffffffff)
 		return 0;
 
@@ -736,46 +846,46 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	if (!heap || !zero_heap)
 		return 0;
 
-	// Copy string to heap, preceded by length
+		// Copy string to heap, preceded by length -
+		// u8 for first 6 maps; u16 for latter maps
+#ifdef __LARGE_BPF_PROG
+	if (index <= 5)
+		heap[0] = len;
+	else
+		*(u16 *)heap = len;
+#else
 	heap[0] = len;
+#endif
 
-	asm volatile("%[len] &= 0xff;\n"
+	asm volatile("%[len] &= %1;\n"
 		     : [len] "+r"(len)
-		     :);
+		     : "i"(STRING_MAPS_HEAP_MASK));
+#ifdef __LARGE_BPF_PROG
+	if (index <= 5)
+		probe_read(&heap[1], len, arg_str);
+	else
+		probe_read(&heap[2], len, arg_str);
+#else
 	probe_read(&heap[1], len, arg_str);
+#endif
 
 	// Pad string to multiple of key increment size
 	if (padded_len > len) {
-		asm volatile("%[len] &= 0xff;\n"
+		asm volatile("%[len] &= %1;\n"
 			     : [len] "+r"(len)
-			     :);
-		probe_read(heap + len + 1, (padded_len - len) & 0xff, zero_heap);
+			     : "i"(STRING_MAPS_HEAP_MASK));
+#ifdef __LARGE_BPF_PROG
+		if (index <= 5)
+			probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		else
+			probe_read(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+#else
+		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+#endif
 	}
 
 	// Get map for this string length
-	switch (index) {
-	case 0:
-		string_map = map_lookup_elem(&string_maps_0, &map_idx);
-		break;
-	case 1:
-		string_map = map_lookup_elem(&string_maps_1, &map_idx);
-		break;
-	case 2:
-		string_map = map_lookup_elem(&string_maps_2, &map_idx);
-		break;
-	case 3:
-		string_map = map_lookup_elem(&string_maps_3, &map_idx);
-		break;
-	case 4:
-		string_map = map_lookup_elem(&string_maps_4, &map_idx);
-		break;
-	case 5:
-		string_map = map_lookup_elem(&string_maps_5, &map_idx);
-		break;
-	default:
-		return 0;
-	}
-
+	string_map = get_string_map(index, map_idx);
 	if (!string_map)
 		return 0;
 

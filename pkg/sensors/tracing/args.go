@@ -15,6 +15,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/network"
@@ -519,7 +520,13 @@ func parseString(r io.Reader) (string, error) {
 	}
 
 	// limit the size of the string to avoid huge memory allocation and OOM kill in case of issue
-	if size > maxStringSize {
+	maxStrLen := int32(maxStringSize)
+	if !kernels.MinKernelVersion("5.4") {
+		maxStrLen = maxStringSizeTiny
+	} else if !kernels.MinKernelVersion("5.11") {
+		maxStrLen = maxStringSizeSmall
+	}
+	if size > maxStrLen {
 		return "", fmt.Errorf("string size too large: %d, max size is %d", size, maxStringSize)
 	}
 	stringBuffer := make([]byte, size)

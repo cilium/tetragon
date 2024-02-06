@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/kernels"
 )
 
 type KernelLPMTrie4 struct {
@@ -29,20 +30,45 @@ type ValueReader interface {
 }
 
 const (
-	stringMapsKeyIncSize   = 24
-	StringMapsNumSubMaps   = 6
-	MaxStringMapsSize      = 6*stringMapsKeyIncSize + 1
-	StringPrefixMaxLength  = 256
-	StringPostfixMaxLength = 128
+	stringMapsKeyIncSize      = 24
+	StringMapsNumSubMaps      = 11
+	StringMapsNumSubMapsSmall = 8
+	MaxStringMapsSize         = 4096 + 2
+	StringPrefixMaxLength     = 256
+	StringPostfixMaxLength    = 128
+
+	// Maps with key string length <256 only require a single byte
+	// to store string length. Maps with key string length >=256
+	// require two bytes to store string length.
+	stringMapSize0  = 1*stringMapsKeyIncSize + 1
+	stringMapSize1  = 2*stringMapsKeyIncSize + 1
+	stringMapSize2  = 3*stringMapsKeyIncSize + 1
+	stringMapSize3  = 4*stringMapsKeyIncSize + 1
+	stringMapSize4  = 5*stringMapsKeyIncSize + 1
+	stringMapSize5  = 6*stringMapsKeyIncSize + 1
+	stringMapSize6  = 256 + 2
+	stringMapSize7  = 512 + 2
+	stringMapSize8  = 1024 + 2
+	stringMapSize9  = 2048 + 2
+	stringMapSize10 = 4096 + 2
+
+	StringMapSize7a = 512
 )
 
 var (
-	StringMapsSizes = [StringMapsNumSubMaps]int{1*stringMapsKeyIncSize + 1,
-		2*stringMapsKeyIncSize + 1,
-		3*stringMapsKeyIncSize + 1,
-		4*stringMapsKeyIncSize + 1,
-		5*stringMapsKeyIncSize + 1,
-		6*stringMapsKeyIncSize + 1}
+	StringMapsSizes = [StringMapsNumSubMaps]int{
+		stringMapSize0,
+		stringMapSize1,
+		stringMapSize2,
+		stringMapSize3,
+		stringMapSize4,
+		stringMapSize5,
+		stringMapSize6,
+		stringMapSize7,
+		stringMapSize8,
+		stringMapSize9,
+		stringMapSize10,
+	}
 )
 
 type StringMapLists [StringMapsNumSubMaps][]map[[MaxStringMapsSize]byte]struct{}
@@ -283,6 +309,35 @@ func ArgSelectorValue(v string) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
+func stringPaddedLen(s int) int {
+	paddedLen := s
+
+	if s <= 6*stringMapsKeyIncSize {
+		if s%stringMapsKeyIncSize != 0 {
+			paddedLen = ((s / stringMapsKeyIncSize) + 1) * stringMapsKeyIncSize
+		}
+		return paddedLen
+	}
+	// The '-2' is to reduce the key size to the key string size -
+	// the key includes a string length that is 2 bytes long.
+	if s <= stringMapSize6-2 {
+		return stringMapSize6 - 2
+	}
+	if kernels.MinKernelVersion("5.11") {
+		if s <= stringMapSize7-2 {
+			return stringMapSize7 - 2
+		}
+		if s <= stringMapSize8-2 {
+			return stringMapSize8 - 2
+		}
+		if s <= stringMapSize9-2 {
+			return stringMapSize9 - 2
+		}
+		return stringMapSize10 - 2
+	}
+	return StringMapSize7a - 2
+}
+
 func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, int, error) {
 	if removeNul {
 		// Remove any trailing nul characters ("\0" or 0x00)
@@ -293,23 +348,38 @@ func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, 
 	ret := [MaxStringMapsSize]byte{}
 	b := []byte(v)
 	s := len(b)
-	if s >= MaxStringMapsSize {
-		return ret, 0, fmt.Errorf("string is too long")
+	if kernels.MinKernelVersion("5.11") {
+		if s > MaxStringMapsSize-2 {
+			return ret, 0, fmt.Errorf("string is too long")
+		}
+	} else if kernels.MinKernelVersion("5.4") {
+		if s > StringMapSize7a-2 {
+			return ret, 0, fmt.Errorf("string is too long")
+		}
+	} else {
+		if s > stringMapSize5-1 {
+			return ret, 0, fmt.Errorf("string is too long")
+		}
 	}
 	if s == 0 {
 		return ret, 0, fmt.Errorf("string is empty")
 	}
-	paddedLen := s
 	// Calculate length of string padded to next multiple of key increment size
-	if s%stringMapsKeyIncSize != 0 {
-		paddedLen = ((s / stringMapsKeyIncSize) + 1) * stringMapsKeyIncSize
-	}
+	paddedLen := stringPaddedLen(s)
 
-	// Add real length to start and padding to end
-	ret[0] = byte(s)
-	copy(ret[1:], b)
-	// Total length is padded string len + prefixed length byte.
-	return ret, paddedLen + 1, nil
+	// Add real length to start and padding to end.
+	// u8 for first 6 maps and u16 little endian for latter maps.
+	if paddedLen <= 6*stringMapsKeyIncSize {
+		ret[0] = byte(s)
+		copy(ret[1:], b)
+		// Total length is padded string len + prefixed length byte.
+		return ret, paddedLen + 1, nil
+	}
+	ret[0] = byte(s % 0x100)
+	ret[1] = byte(s / 0x100)
+	copy(ret[2:], b)
+	// Total length is padded string len + prefixed length half word.
+	return ret, paddedLen + 2, nil
 }
 
 func ArgPostfixSelectorValue(v string, removeNul bool) ([]byte, uint32) {
@@ -359,21 +429,26 @@ func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
 		{},
 		{},
 		{},
+		{},
+		{},
+		{},
+		{},
+		{},
 	}
 }
 
-// In BPF, the string "equal" operator uses six hash maps, each stored within a matching array.
+// In BPF, the string "equal" operator uses 11 hash maps, each stored within a matching array.
 // For each kprobe there could be multiple string match selectors. Each of these selectors has
-// up to six hash maps (of different sizes) that hold potential matches. Each kprobe could have
+// up to 11 hash maps (of different sizes) that hold potential matches. Each kprobe could have
 // multiple string match selectors (for different parameters, and/or different actions). Arrays
 // of hash maps can only hold hash maps of a singular type; e.g. an array of hash maps with a
 // key size of 25 can only hold hash maps that have that key size – it can't hold hash maps with
 // different key sizes.
 //
-// As we have six different key sizes (to facilitate faster look ups for shorter strings), each
-// selector can potentially have six hash maps to look up the string in. And as each kprobe
+// As we have 11 different key sizes (to facilitate faster look ups for shorter strings), each
+// selector can potentially have 11 hash maps to look up the string in. And as each kprobe
 // could have multiple string match selectors, each kprobe could potentially have multiple hash
-// maps for each key size. Each kprobe therefore has six arrays of hash maps to hold these hash
+// maps for each key size. Each kprobe therefore has 11 arrays of hash maps to hold these hash
 // maps.
 //
 // In golang we create a list of hash maps for each key size. Each of these is inserted into the

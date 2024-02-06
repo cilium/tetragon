@@ -366,6 +366,8 @@ func createGenericTracepointSensor(
 	progName := "bpf_generic_tracepoint.o"
 	if kernels.EnableV61Progs() {
 		progName = "bpf_generic_tracepoint_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		progName = "bpf_generic_tracepoint_v511.o"
 	} else if kernels.EnableLargeProgs() {
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
@@ -428,7 +430,11 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, addr6FilterMaps)
 
-		for string_map_index := 0; string_map_index < selectors.StringMapsNumSubMaps; string_map_index++ {
+		numSubMaps := selectors.StringMapsNumSubMaps
+		if !kernels.MinKernelVersion("5.11") {
+			numSubMaps = selectors.StringMapsNumSubMapsSmall
+		}
+		for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
 			stringFilterMap := program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
 				sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), prog0)
 			if !kernels.MinKernelVersion("5.9") {

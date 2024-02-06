@@ -24,7 +24,6 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -902,6 +901,129 @@ func TestKprobeStringMatchHash5Max(t *testing.T) {
 	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
 }
 
+func TestKprobeStringMatchHash6Min(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 145
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash6Max(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 256
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash7Min(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 257
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash7Max(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 512
+	if !kernels.MinKernelVersion("5.11") {
+		pathLen = 510
+	}
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash8Min(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 513
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash8Max(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 1024
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash9Min(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 1025
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash9Max(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 2048
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash10Min(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 2049
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
+func TestKprobeStringMatchHash10Max(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("Test requires kernel 5.11+")
+	}
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pathLen := 4096
+	fileLen := len("/testfile")
+	dir := strings.Repeat("A", pathLen-fileLen)
+	readHook := testKprobeStringMatchHook(pidStr, dir)
+	testKprobeStringMatch(t, readHook, getOpenatChecker(t, dir), dir)
+}
+
 func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 	return `
   apiVersion: cilium.io/v1alpha1
@@ -1346,7 +1468,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
 func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(dir string) *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1501,7 +1623,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(dir string) *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1551,7 +1673,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(dir string) *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -4238,7 +4360,7 @@ spec:
 	t.Logf("got error (as expected): %s", err)
 }
 
-func testMaxData(t *testing.T, data []byte, checker *eventchecker.UnorderedEventChecker, configHook string, fd int) {
+func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, configHook string, fd int) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
