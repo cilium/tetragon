@@ -88,20 +88,31 @@ int main(int argc, char *argv[])
 	int cap;
 
 	cap = check_cap(CAP_SYS_ADMIN);
-	if (cap) {
-		printf("(pid:%d) checking capability CAP_SYS_ADMIN: is set\n", pid);
-		printf("(pid:%d) clearing capability CAP_SYS_ADMIN and CAP_CHOWN\n", pid);
-		clear_cap(CAP_SYS_ADMIN);
-		clear_cap(CAP_CHOWN);
-	} else {
+	if (!cap) {
 		printf("checking capability CAP_SYS_ADMIN: not set\n");
 		return 0;
 	}
+	cap = check_cap(CAP_CHOWN);
+	if (!cap) {
+		printf("checking capability CAP_CHOWN: not set\n");
+		return 0;
+	}
 
-	printf("(pid:%d) restoring capability CAP_SYS_ADMIN and CAP_CHOWN\n", pid);
+	printf("(pid:%d) checking capabilities CAP_SYS_ADMIN and CAP_CHOWN: are set\n", pid);
+	printf("(pid:%d) clearing capabilities CAP_SYS_ADMIN and CAP_CHOWN\n", pid);
+	clear_cap(CAP_SYS_ADMIN);
+	clear_cap(CAP_CHOWN);
+	printf("(pid:%d) cleared capabilities CAP_SYS_ADMIN and CAP_CHOWN with success\n", pid);
+
+	printf("(pid:%d) restoring capabilities CAP_SYS_ADMIN and CAP_CHOWN\n", pid);
 	set_cap(CAP_SYS_ADMIN);
 	set_cap(CAP_CHOWN);
+	if (!check_cap(CAP_SYS_ADMIN) || !check_cap(CAP_CHOWN)) {
+		printf("(pid:%d) restored capabilities CAP_SYS_ADMIN and CAP_CHOWN failed\n", pid);
+		exit(EXIT_FAILURE);
+	}
 
+	printf("(pid:%d) restored capabilities CAP_SYS_ADMIN and CAP_CHOWN with success\n", pid);
 	fflush(stdout);
 	return 0;
 }
