@@ -5,6 +5,7 @@ package tracing
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -6364,11 +6365,18 @@ spec:
 			))
 
 	testCmd := exec.CommandContext(ctx, testSetCaps)
+	var output, errput bytes.Buffer
+	testCmd.Stdout = &output
+	testCmd.Stderr = &errput
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		stderr := errput.String()
+		t.Fatalf("command failed with %s. Context error: %v, error output: %v", err, ctx.Err(), stderr)
+	}
+	if len(output.String()) > 0 {
+		t.Logf("Test %s command '%s' stdout:\n%v\n", t.Name(), testSetCaps, output.String())
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
