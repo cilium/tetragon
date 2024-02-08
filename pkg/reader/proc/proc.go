@@ -19,6 +19,9 @@ type Status struct {
 	Uids []string
 	Gids []string
 
+	NStgid []string
+	NSpid  []string
+
 	// /proc/[pid]/loginuid
 	LoginUid string
 }
@@ -107,6 +110,14 @@ func fillStatus(file string, status *Status) error {
 			continue
 		}
 
+		if fields[0] == "NStgid:" {
+			status.NStgid = fields[1:]
+		}
+
+		if fields[0] == "NSpid:" {
+			status.NSpid = fields[1:]
+		}
+
 		if fields[0] == "Uid:" {
 			if len(fields) != 5 {
 				return fmt.Errorf("Reading Uid from %s failed: malformed input", path)
@@ -119,10 +130,6 @@ func fillStatus(file string, status *Status) error {
 				return fmt.Errorf("Reading Gid from %s failed: malformed input", path)
 			}
 			status.Gids = []string{fields[1], fields[2], fields[3], fields[4]}
-		}
-
-		if len(status.Uids) > 0 && len(status.Gids) > 0 {
-			break
 		}
 	}
 

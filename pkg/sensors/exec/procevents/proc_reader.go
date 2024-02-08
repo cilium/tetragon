@@ -457,6 +457,16 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid))
 			}
+
+			// check and add only tgid processes
+			if len(status.NSpid) > 0 && len(status.NStgid) > 0 {
+				nspid, errNSpid := strconv.ParseUint(status.NSpid[0], 10, 32)
+				nstgid, errNStgid := strconv.ParseUint(status.NStgid[0], 10, 32)
+				if !kernelThread && errNSpid == nil && errNStgid == nil && nspid != nstgid {
+					fmt.Println("skipping", pid, "as this is not the thread leader", nspid, nstgid, string(cmdline))
+					continue
+				}
+			}
 		}
 
 		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))

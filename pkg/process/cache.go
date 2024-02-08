@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -274,6 +275,32 @@ func (pc *Cache) Dump(skipZeroRefCnt bool) {
 
 		if !regexp.MustCompile(`\d`).MatchString(d.Name()) {
 			continue
+		}
+
+		pathName := filepath.Join(option.Config.ProcFS, d.Name())
+
+		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
+		if err != nil {
+			continue
+		}
+
+		kernelThread := false
+		if string(cmdline) == "" {
+			kernelThread = true
+		}
+
+		status, err := proc.GetStatus(pathName)
+		if err != nil {
+			continue
+		}
+
+		// check and add only tgid processes
+		if len(status.NSpid) > 0 && len(status.NStgid) > 0 {
+			nspid, errNSpid := strconv.ParseUint(status.NSpid[0], 10, 32)
+			nstgid, errNStgid := strconv.ParseUint(status.NStgid[0], 10, 32)
+			if !kernelThread && errNSpid == nil && errNStgid == nil && nspid != nstgid {
+				continue
+			}
 		}
 
 		name := d.Name()
