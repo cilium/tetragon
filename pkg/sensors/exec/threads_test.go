@@ -123,6 +123,8 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 		}
 	}
 
+	cloneEvents := []*grpcexec.MsgCloneEventUnix{}
+
 	execPID, execTID := uint32(0), uint32(0)
 	clonePID, cloneTID := uint32(0), uint32(0)
 	events := perfring.RunTestEvents(t, ctx, ops)
@@ -134,12 +136,8 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 				execTID = ev.Unix.Process.TID
 			}
 		case *grpcexec.MsgCloneEventUnix:
-			// We found the exec parent then catch the single per thread
-			// clone event
-			if execPID != 0 && clonePID == 0 {
-				clonePID = ev.PID
-				cloneTID = ev.TID
-			}
+			// Store all received clone events so we parse them later
+			cloneEvents = append(cloneEvents, ev)
 		}
 	}
 
@@ -148,14 +146,23 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	require.NotZero(t, execPID)
 	require.Equal(t, execPID, execTID)
 
-	// ensure exec and all follow clone with all threads match back to parent exec
+	// ensure exec events match
 	require.Equal(t, execPID, tti.ParentPid)
 	require.Equal(t, execPID, tti.ParentChild1Pid)
 	require.Equal(t, execPID, tti.ParentThread1Pid)
 
-	// ensure clone event matches
+	for _, ev := range cloneEvents {
+		// Get the clone event that orginates from the exec event
+		if execPID == ev.Parent.Pid {
+			clonePID = ev.PID
+			cloneTID = ev.TID
+		}
+	}
+
+	// ensure clone event match
+	require.NotZero(t, clonePID)
 	require.Equal(t, clonePID, cloneTID)
-	require.Equal(t, clonePID, tti.Child1Pid) // First clone
+	require.Equal(t, clonePID, tti.Child1Pid)
 
 	// ensure that threads match on the thread group leader
 	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
