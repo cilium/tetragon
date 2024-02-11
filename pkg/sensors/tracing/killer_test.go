@@ -20,9 +20,14 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
@@ -411,4 +416,208 @@ spec:
 `
 
 	testSecurity(t, tracingPolicy, tempFile)
+}
+
+// This test loads 2 policies:
+// - first set standard killer tracepoint setup on sys_prctl
+//   with first argument value 0xffff
+// - second set standard killer tracepoint setup on sys_prctl
+//   with first argument value 0xfffe
+// then make sure both policies catch and kill.
+
+func TestKillerMulti(t *testing.T) {
+	if !bpf.HasSignalHelper() {
+		t.Skip("skipping killer test, bpf_send_signal helper not available")
+	}
+
+	if !bpf.HasModifyReturn() {
+		t.Skip("skipping killer test, fmod_ret is not available")
+	}
+
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support matchArgs for more than one arguments")
+	}
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+
+	policyYAML1 := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "killer-prctl-1"
+spec:
+  lists:
+  - name: "prctl"
+    type: "syscalls"
+    values:
+    - "sys_prctl"
+  killers:
+  - calls:
+    - "list:prctl"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "int64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:prctl"
+      - index: 1
+        operator: "Equal"
+        values:
+        - 0xffff
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "` + testBin + `"
+      matchActions:
+      - action: "NotifyKiller"
+        argError: -1
+        argSig: 9
+`
+
+	policyYAML2 := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "killer-prctl-2"
+spec:
+  lists:
+  - name: "prctl"
+    type: "syscalls"
+    values:
+    - "sys_prctl"
+  killers:
+  - calls:
+    - "list:prctl"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "int64"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "InMap"
+        values:
+        - "list:prctl"
+      - index: 1
+        operator: "Equal"
+        values:
+        - 0xfffe
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "` + testBin + `"
+      matchActions:
+      - action: "NotifyKiller"
+        argError: -1
+        argSig: 9
+`
+
+	policy1, err := tracingpolicy.FromYAML(policyYAML1)
+	if err != nil {
+		t.Errorf("FromYAML policyYAML1 error %s", err)
+	}
+
+	policy2, err := tracingpolicy.FromYAML(policyYAML2)
+	if err != nil {
+		t.Errorf("FromYAML policyYAML2 error %s", err)
+	}
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+
+	sensor1, err := gKillerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
+	assert.NoError(t, err)
+
+	sensor2, err := policyHandler{}.PolicyHandler(policy1, policyfilter.NoFilterID)
+	assert.NoError(t, err)
+
+	sensor3, err := gKillerPolicy.PolicyHandler(policy2, policyfilter.NoFilterID)
+	assert.NoError(t, err)
+
+	sensor4, err := policyHandler{}.PolicyHandler(policy2, policyfilter.NoFilterID)
+	assert.NoError(t, err)
+
+	// Loading all policies
+	tus.LoadSensor(t, sensor1)
+	tus.LoadSensor(t, sensor2)
+	tus.LoadSensor(t, sensor3)
+	tus.LoadSensor(t, sensor4)
+
+	t.Logf("All policies loaded\n")
+
+	// 'killer-tester 0xffff' should be killed by policy 1
+	cmd := exec.Command(testBin, "0xffff")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "signal: killed" {
+		t.Fatalf("Wrong error '%v' expected 'killed'", err)
+	}
+
+	// 'killer-tester 0xfffe' should be killed by policy 2
+	cmd = exec.Command(testBin, "0xfffe")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "signal: killed" {
+		t.Fatalf("Wrong error '%v' expected 'killed'", err)
+	}
+
+	// 'killer-tester 0xfffd' should NOT get killed
+	cmd = exec.Command(testBin, "0xfffd")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "exit status 22" {
+		t.Fatalf("Wrong error '%v' expected 'exit status 22'", err)
+	}
+
+	// Unload policy 1 (watch 0xffff)
+	sensor1.Unload()
+	sensor2.Unload()
+
+	t.Logf("Unloaded policy 1\n")
+
+	// 'killer-tester 0xffff' should NOT get killed now
+	cmd = exec.Command(testBin, "0xffff")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "exit status 22" {
+		t.Fatalf("Wrong error '%v' expected 'exit status 22'", err)
+	}
+
+	// 'killer-tester 0xfffe' should be killed by policy 2
+	cmd = exec.Command(testBin, "0xfffe")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "signal: killed" {
+		t.Fatalf("Wrong error '%v' expected 'killed'", err)
+	}
+
+	// Unload policy 2 (watch 0xfffe)
+	sensor3.Unload()
+	sensor4.Unload()
+
+	t.Logf("Unloaded policy 2\n")
+
+	// 'killer-tester 0xfffe' should NOT get killed now
+	cmd = exec.Command(testBin, "0xfffe")
+	err = cmd.Run()
+
+	if err == nil || err.Error() != "exit status 22" {
+		t.Fatalf("Wrong error '%v' expected 'exit status 22'", err)
+	}
 }
