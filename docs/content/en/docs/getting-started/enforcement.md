@@ -117,11 +117,11 @@ kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/example
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring_enforce.yaml
 {{< /tab >}}
 {{< tab Docker >}}
-wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
+wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring_enforce.yaml
 docker stop tetragon-container
 docker run --name tetragon-container --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
-  -v ${PWD}/file_monitoring.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring_enforce.yaml \
+  -v ${PWD}/file_monitoring_enforce.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring_enforce.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
   quay.io/cilium/tetragon-ci:latest
 {{< /tab >}}
