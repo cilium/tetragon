@@ -21,3 +21,4 @@ killer-tester-32
 /getcpu
 drop-privileges
 change-capabilities
+direct-write-tester
