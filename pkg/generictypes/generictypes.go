@@ -49,6 +49,9 @@ const (
 	GenericCapPermitted   = 35
 	GenericCapEffective   = 36
 
+	GenericUrlType  = 37
+	GenericFqdnType = 38
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
