@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -113,7 +114,8 @@ func New() *cobra.Command {
 	var tpListOutputFlag string
 	tpListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "list tracing policies",
+		Short: "list loaded tracing policies",
+		Long:  "List loaded tracing policies, use the JSON output format for full output.",
 		Args:  cobra.ExactArgs(0),
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if tpListOutputFlag != "json" && tpListOutputFlag != "text" {
@@ -130,13 +132,18 @@ func New() *cobra.Command {
 				return fmt.Errorf("failed to list tracing policies: %w", err)
 			}
 
-			if tpListOutputFlag == "json" {
+			switch tpListOutputFlag {
+			case "json":
 				b, err := res.MarshalJSON()
 				if err != nil {
 					return fmt.Errorf("failed to generate json: %w", err)
 				}
 				cmd.Println(string(b))
-			} else {
+			case "text":
+				// tabwriter config imitates kubectl default output, i.e. 3 spaces padding
+				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
+				fmt.Fprintln(w, "ID\tNAME\tSTATE\tFILTERID\tNAMESPACE\tSENSORS")
+
 				for _, pol := range res.Policies {
 					namespace := pol.Namespace
 					if namespace == "" {
@@ -167,14 +174,16 @@ func New() *cobra.Command {
 						}
 					}
 
-					cmd.Printf("[%d] %s enabled:%t filterID:%d namespace:%s sensors:%s\n", pol.Id, pol.Name, pol.Enabled, pol.FilterId, namespace, sensors)
-					if pol.Info != "" {
-						cmd.Printf("\tinfo: %s\n", pol.Info)
-					}
-					if pol.Error != "" && pol.Error != "<nil>" {
-						cmd.Printf("\terror: %s\n", pol.Error)
-					}
+					fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\t\n",
+						pol.Id,
+						pol.Name,
+						strings.ToLower(pol.State.String()),
+						pol.FilterId,
+						namespace,
+						sensors,
+					)
 				}
+				w.Flush()
 			}
 
 			return nil
