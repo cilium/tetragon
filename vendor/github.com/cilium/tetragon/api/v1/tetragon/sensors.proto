@@ -103,6 +103,12 @@ message GetVersionResponse{
 	string version = 1;
 }
 
+message DebugCmdRequest{
+	int32 cmd = 1; 
+	bool skipZeroRefCnt = 2;
+}
+message DebugCmdResponse{}
+
 service FineGuidanceSensors {
     rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
     rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
@@ -123,4 +129,6 @@ service FineGuidanceSensors {
     rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
 
     rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
+
+    rpc DebugCmd(DebugCmdRequest) returns (DebugCmdResponse) {}
 }
