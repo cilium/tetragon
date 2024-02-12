@@ -9,6 +9,8 @@
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
 
+#include "time.h"
+
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 struct {
@@ -184,7 +186,7 @@ event_execve(struct sched_execve_args *ctx)
 	struct execve_map_value *parent;
 	struct msg_process *p;
 	__u32 zero = 0;
-	__u64 pid;
+	__u64 pid, start_boottime;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
@@ -209,7 +211,8 @@ event_execve(struct sched_execve_args *ctx)
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
 	p->nspid = get_task_pid_vnr();
-	p->ktime = ktime_get_ns();
+	start_boottime = BPF_CORE_READ(task, start_boottime);
+	p->ktime = nsec_to_clock_t(timens_add_boottime_ns(start_boottime)) * 10000000LLU; // similarly to what /proc/<PID>/stat provides (i.e. https://elixir.bootlin.com/linux/v6.1.75/source/fs/proc/array.c#L568)
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	p->uid = get_current_uid_gid();

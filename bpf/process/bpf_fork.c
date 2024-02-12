@@ -11,6 +11,8 @@
 #include "environ_conf.h"
 #include "bpf_process_event.h"
 
+#include "time.h"
+
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 #ifdef VMLINUX_KERNEL_VERSION
 int _version __attribute__((section(("version")), used)) =
@@ -22,7 +24,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
-	u64 msg_size = sizeof(struct msg_clone_event);
+	u64 start_boottime, msg_size = sizeof(struct msg_clone_event);
 	u32 flags, tgid = 0;
 
 	if (!task)
@@ -56,7 +58,8 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	/* Setup the execve_map entry. */
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	curr->key.pid = tgid;
-	curr->key.ktime = ktime_get_ns();
+	start_boottime = BPF_CORE_READ(task, start_boottime);
+	curr->key.ktime = nsec_to_clock_t(timens_add_boottime_ns(start_boottime)) * 10000000LLU; // similarly to what /proc/<PID>/stat provides (i.e. https://elixir.bootlin.com/linux/v6.1.75/source/fs/proc/array.c#L568)
 	curr->nspid = get_task_pid_vnr();
 	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
 	curr->pkey = parent->key;
