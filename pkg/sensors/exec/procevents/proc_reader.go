@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -80,6 +82,7 @@ type procs struct {
 	time_for_children_ns uint32
 	cgroup_ns            uint32
 	user_ns              uint32
+	kernel_thread        bool
 }
 
 func (p procs) args() []byte {
@@ -186,58 +189,95 @@ func pushExecveEvents(p procs) {
 		args = args + " " + cwd
 	}
 
-	m := exec.MsgExecveEventUnix{}
-	m.Unix = &processapi.MsgExecveEventUnix{}
-	m.Unix.Msg = &processapi.MsgExecveEvent{}
-	m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
-	m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
+	// If this is a kernel thread, we use its filename as process name
+	// similarly to what ps reports.
+	if p.kernel_thread {
+		filename = fmt.Sprintf("[%s]", filename)
+		args = ""
+	}
 
-	m.Unix.Msg.Kube.NetNS = 0
-	m.Unix.Msg.Kube.Cid = 0
-	m.Unix.Msg.Kube.Cgrpid = 0
-	if p.pid > 0 {
-		m.Unix.Kube.Docker, err = procsDockerId(p.pid)
-		if err != nil {
-			logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+	if p.kernel_thread {
+		m := exec.MsgKThreadInitUnix{}
+		m.Unix = &processapi.MsgExecveEventUnix{}
+		m.Unix.Msg = &processapi.MsgExecveEvent{}
+
+		m.Unix.Msg.Common = processapi.MsgCommon{}
+		m.Unix.Msg.Kube = processapi.MsgK8s{}
+		m.Unix.Msg.CleanupProcess = processapi.MsgExecveKey{}
+
+		m.Unix.Msg.Parent.Pid = p.ppid
+		m.Unix.Msg.Parent.Ktime = p.pktime
+
+		m.Unix.Msg.Capabilities = processapi.MsgCapabilities{}
+		m.Unix.Msg.Namespaces = processapi.MsgNamespaces{}
+
+		m.Unix.Process.Size = p.size
+		m.Unix.Process.PID = p.pid
+		m.Unix.Process.TID = p.pid
+		m.Unix.Process.NSPID = p.nspid
+		m.Unix.Process.UID = 0
+		m.Unix.Process.AUID = proc.InvalidUid
+
+		m.Unix.Process.Flags = api.EventProcFS
+		m.Unix.Process.Ktime = p.ktime
+		m.Unix.Process.Filename = filename
+		m.Unix.Process.Args = ""
+
+		observer.AllListeners(&m)
+	} else {
+		m := exec.MsgExecveEventUnix{}
+		m.Unix = &processapi.MsgExecveEventUnix{}
+		m.Unix.Msg = &processapi.MsgExecveEvent{}
+		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
+		m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
+
+		m.Unix.Msg.Kube.NetNS = 0
+		m.Unix.Msg.Kube.Cid = 0
+		m.Unix.Msg.Kube.Cgrpid = 0
+		if p.pid > 0 {
+			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+			}
 		}
+
+		m.Unix.Msg.Parent.Pid = p.ppid
+		m.Unix.Msg.Parent.Ktime = p.pktime
+
+		m.Unix.Msg.Capabilities.Permitted = p.permitted
+		m.Unix.Msg.Capabilities.Effective = p.effective
+		m.Unix.Msg.Capabilities.Inheritable = p.inheritable
+
+		m.Unix.Msg.Namespaces.UtsInum = p.uts_ns
+		m.Unix.Msg.Namespaces.IpcInum = p.ipc_ns
+		m.Unix.Msg.Namespaces.MntInum = p.mnt_ns
+		m.Unix.Msg.Namespaces.PidInum = p.pid_ns
+		m.Unix.Msg.Namespaces.PidChildInum = p.pid_for_children_ns
+		m.Unix.Msg.Namespaces.NetInum = p.net_ns
+		m.Unix.Msg.Namespaces.TimeInum = p.time_ns
+		m.Unix.Msg.Namespaces.TimeChildInum = p.time_for_children_ns
+		m.Unix.Msg.Namespaces.CgroupInum = p.cgroup_ns
+		m.Unix.Msg.Namespaces.UserInum = p.user_ns
+
+		m.Unix.Process.Size = p.size
+		m.Unix.Process.PID = p.pid
+		m.Unix.Process.TID = p.tid
+		m.Unix.Process.NSPID = p.nspid
+		// use euid to be compatible with ps
+		m.Unix.Process.UID = p.uids[1]
+		m.Unix.Process.AUID = p.auid
+		m.Unix.Msg.Creds = processapi.MsgGenericCredMinimal{
+			Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
+			Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
+		}
+		m.Unix.Process.Flags = p.flags | flags
+		m.Unix.Process.Ktime = p.ktime
+		m.Unix.Msg.Common.Ktime = p.ktime
+		m.Unix.Process.Filename = filename
+		m.Unix.Process.Args = args
+
+		observer.AllListeners(&m)
 	}
-
-	m.Unix.Msg.Parent.Pid = p.ppid
-	m.Unix.Msg.Parent.Ktime = p.pktime
-
-	m.Unix.Msg.Capabilities.Permitted = p.permitted
-	m.Unix.Msg.Capabilities.Effective = p.effective
-	m.Unix.Msg.Capabilities.Inheritable = p.inheritable
-
-	m.Unix.Msg.Namespaces.UtsInum = p.uts_ns
-	m.Unix.Msg.Namespaces.IpcInum = p.ipc_ns
-	m.Unix.Msg.Namespaces.MntInum = p.mnt_ns
-	m.Unix.Msg.Namespaces.PidInum = p.pid_ns
-	m.Unix.Msg.Namespaces.PidChildInum = p.pid_for_children_ns
-	m.Unix.Msg.Namespaces.NetInum = p.net_ns
-	m.Unix.Msg.Namespaces.TimeInum = p.time_ns
-	m.Unix.Msg.Namespaces.TimeChildInum = p.time_for_children_ns
-	m.Unix.Msg.Namespaces.CgroupInum = p.cgroup_ns
-	m.Unix.Msg.Namespaces.UserInum = p.user_ns
-
-	m.Unix.Process.Size = p.size
-	m.Unix.Process.PID = p.pid
-	m.Unix.Process.TID = p.tid
-	m.Unix.Process.NSPID = p.nspid
-	// use euid to be compatible with ps
-	m.Unix.Process.UID = p.uids[1]
-	m.Unix.Process.AUID = p.auid
-	m.Unix.Msg.Creds = processapi.MsgGenericCredMinimal{
-		Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
-		Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
-	}
-	m.Unix.Process.Flags = p.flags | flags
-	m.Unix.Process.Ktime = p.ktime
-	m.Unix.Msg.Common.Ktime = p.ktime
-	m.Unix.Process.Filename = filename
-	m.Unix.Process.Args = args
-
-	observer.AllListeners(&m)
 }
 
 func updateExecveMapStats(procs int64) {
@@ -321,14 +361,14 @@ func writeExecveMap(procs []procs) {
 	updateExecveMapStats(int64(len(procs)))
 }
 
-func pushEvents(procs []procs) {
-	writeExecveMap(procs)
+func pushEvents(ps []procs) {
+	writeExecveMap(ps)
 
-	sort.Slice(procs, func(i, j int) bool {
-		return procs[i].ppid < procs[j].ppid
+	sort.Slice(ps, func(i, j int) bool {
+		return ps[i].ppid < ps[j].ppid
 	})
-	procs = append(procs, procKernel())
-	for _, p := range procs {
+	ps = append([]procs{procKernel()}, ps...)
+	for _, p := range ps {
 		pushExecveEvents(p)
 	}
 }
@@ -352,14 +392,28 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			continue
 		}
 
+		// All processes have a directory name that consists from a number.
+		if !regexp.MustCompile(`\d`).MatchString(d.Name()) {
+			continue
+		}
+
 		pathName := filepath.Join(procPath, d.Name())
 
 		cmdline, err := os.ReadFile(filepath.Join(pathName, "cmdline"))
 		if err != nil {
 			continue
 		}
-		if string(cmdline) == "" {
+
+		// We read comm in the case where cmdling is empty (i.e. kernel thread).
+		comm, err := os.ReadFile(filepath.Join(pathName, "comm"))
+		if err != nil {
 			continue
+		}
+
+		kernelThread := false
+		if string(cmdline) == "" {
+			cmdline = comm
+			kernelThread = true
 		}
 
 		pid, err := proc.GetProcPid(d.Name())
@@ -476,6 +530,15 @@ func listRunningProcs(procPath string) ([]procs, error) {
 				continue
 			}
 
+			pcomm, err := os.ReadFile(filepath.Join(parentPath, "comm"))
+			if err != nil {
+				continue
+			}
+
+			if string(pcmdline) == "" {
+				pcmdline = pcomm
+			}
+
 			pstats, err = proc.GetProcStatStrings(string(parentPath))
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("parent stats read error")
@@ -500,13 +563,21 @@ func listRunningProcs(procPath string) ([]procs, error) {
 
 		execPath, err := os.Readlink(filepath.Join(procPath, d.Name(), "exe"))
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("process", d.Name()).Warnf("reading process exe error")
+			if kernelThread {
+				execPath = strings.TrimSuffix(string(cmdline), "\n")
+			} else {
+				logger.GetLogger().WithError(err).WithField("process", d.Name()).Warnf("reading process exe error")
+			}
 		}
 
 		if _ppid != 0 {
 			pexecPath, err = os.Readlink(filepath.Join(procPath, ppid, "exe"))
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("process", ppid).Warnf("reading process exe error")
+				if kernelThread {
+					pexecPath = strings.TrimSuffix(string(pcmdline), "\n")
+				} else {
+					logger.GetLogger().WithError(err).WithField("process", ppid).Warnf("reading process exe error")
+				}
 			}
 		} else {
 			pexecPath = ""
@@ -542,6 +613,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			time_for_children_ns: time_for_children_ns,
 			cgroup_ns:            cgroup_ns,
 			user_ns:              user_ns,
+			kernel_thread:        kernelThread,
 		}
 
 		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)
