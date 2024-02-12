@@ -23,14 +23,9 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
 	u64 msg_size = sizeof(struct msg_clone_event);
-	u32 flags, tgid = 0;
+	u32 tgid = 0;
 
 	if (!task)
-		return 0;
-
-	/* We do not care about kernel threads. */
-	flags = BPF_CORE_READ(task, flags);
-	if (flags & PF_KTHREAD)
 		return 0;
 
 	tgid = BPF_CORE_READ(task, tgid);
