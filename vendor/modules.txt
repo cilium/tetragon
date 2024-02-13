@@ -248,13 +248,13 @@ github.com/cilium/proxy/go/envoy/type/tracing/v3
 github.com/cilium/proxy/go/envoy/type/v3
 github.com/cilium/proxy/pkg/policy/api/kafka
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ./api
-## explicit; go 1.21.0
+## explicit; go 1.22.0
 github.com/cilium/tetragon/api/v1/tetragon
 github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker
 github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml
 github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers
 # github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000 => ./pkg/k8s
-## explicit; go 1.21.0
+## explicit; go 1.22.0
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1
