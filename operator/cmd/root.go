@@ -26,7 +26,7 @@ func New() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   binaryName,
 		Short: "Run " + binaryName,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			common.Initialize(cmd)
 		},
 		PreRunE: func(cmd *cobra.Command, _ []string) error {

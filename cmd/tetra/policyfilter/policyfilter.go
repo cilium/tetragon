@@ -37,7 +37,7 @@ func dumpCmd() *cobra.Command {
 		Use:   "dump",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			dump.PolicyfilterState(mapFname)
 		},
 	}
@@ -54,7 +54,7 @@ func addCommand() *cobra.Command {
 		Use:   "add [policy id] [cgroup]",
 		Short: "add policyfilter entry",
 		Args:  cobra.ExactArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			x, err := strconv.ParseUint(args[0], 10, 32)
 			if err != nil {
 				logger.GetLogger().WithError(err).Fatal("Failed to parse policy id")

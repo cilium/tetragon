@@ -37,7 +37,7 @@ func New() *cobra.Command {
 	empty := &cobra.Command{
 		Use:   "empty",
 		Short: "empty",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			tp := generate.NewTracingPolicy("empty")
 			b, err := yaml.Marshal(tp)
 			if err != nil {
@@ -50,7 +50,7 @@ func New() *cobra.Command {
 	allSyscalls := &cobra.Command{
 		Use:   "all-syscalls",
 		Short: "all system calls",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			tp := generate.NewTracingPolicy("syscalls")
 			syscalls, err := btf.AvailableSyscalls()
 			if err != nil {
@@ -74,7 +74,7 @@ func New() *cobra.Command {
 	allSyscallsList := &cobra.Command{
 		Use:   "all-syscalls-list",
 		Short: "all system calls using a list",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			tp := generate.NewTracingPolicy("syscalls")
 			syscalls, err := btf.AvailableSyscalls()
 			if err != nil {
@@ -102,7 +102,7 @@ func New() *cobra.Command {
 	ftraceList := &cobra.Command{
 		Use:   "ftrace-list",
 		Short: "ftrace list",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			tp := generate.NewTracingPolicy("ftrace")
 			syms, err := ftrace.ReadAvailFuncs(ftraceRegex)
 			if err != nil {
@@ -130,7 +130,7 @@ func New() *cobra.Command {
 	uprobes := &cobra.Command{
 		Use:   "uprobes",
 		Short: "all binary symbols",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			if uprobesBinary == "" {
 				log.Fatalf("binary is not specified, please use --binary option")
 			}

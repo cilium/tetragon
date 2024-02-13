@@ -278,7 +278,7 @@ func tetragonExecute() error {
 	}()
 
 	defaultLevel := logger.GetLogLevel()
-	go func(obs *observer.Observer) {
+	go func() {
 		for {
 			s := <-sigs
 			switch s {
@@ -309,7 +309,7 @@ func tetragonExecute() error {
 				log.Infof("Received signal SIGRTMIN+22: resetting original LogLevel '%s'", logger.GetLogLevel())
 			}
 		}
-	}(obs)
+	}()
 
 	// start sensor manager, and have it wait on sensorMgWait until we load
 	// the base sensor. note that this means that calling methods on the
@@ -767,7 +767,7 @@ func execute() error {
 	rootCmd := &cobra.Command{
 		Use:   "tetragon",
 		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			if viper.GetBool(option.KeyGenerateDocs) {
 				if err := doc.GenYaml(cmd, os.Stdout); err != nil {
 					log.WithError(err).Fatal("Failed to generate docs")

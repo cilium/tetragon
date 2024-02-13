@@ -174,7 +174,7 @@ func (r *Runner) Init() *Runner {
 	r.Setup(r.installTetragon)
 
 	// Store test success or failure
-	r.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
+	r.AfterEachTest(func(ctx context.Context, _ *envconf.Config, t *testing.T) (context.Context, error) {
 		if t.Failed() {
 			return context.WithValue(ctx, state.TestFailure, true), nil
 		}
@@ -228,7 +228,7 @@ func (r *Runner) cancelContext() {
 
 // Must be called at the beinning of every test.
 func (r *Runner) SetupExport(t *testing.T) {
-	setup := features.New("Setup Export").Assess("Setup Export", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+	setup := features.New("Setup Export").Assess("Setup Export", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 		ctx, err := helpers.CreateExportDir(ctx, t)
 		if err != nil {
 			t.Fatalf("failed to create export dir: %s", err)

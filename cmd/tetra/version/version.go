@@ -32,7 +32,7 @@ func New() *cobra.Command {
 		Short:   "Print version from CLI and server",
 		Example: examples,
 		Args:    cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Printf("CLI version: %s\n", version.Version)
 
 			if server {

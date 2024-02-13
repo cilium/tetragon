@@ -46,7 +46,7 @@ func RawAttach(targetFD int) AttachFunc {
 }
 
 func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
@@ -74,7 +74,7 @@ func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 }
 
 func TracepointAttach(load *Program) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		parts := strings.Split(load.Attach, "/")
@@ -97,7 +97,7 @@ func TracepointAttach(load *Program) AttachFunc {
 }
 
 func RawTracepointAttach(load *Program) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		var lnk link.Link
@@ -274,7 +274,7 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 }
 
 func UprobeAttach(load *Program) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		data, ok := load.AttachData.(*UprobeAttachData)
@@ -304,8 +304,8 @@ func UprobeAttach(load *Program) AttachFunc {
 }
 
 func NoAttach() AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
-		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
+		prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
 			unloader.PinUnloader{
 				Prog: prog,
@@ -315,7 +315,7 @@ func NoAttach() AttachFunc {
 }
 
 func TracingAttach() AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		linkFn := func() (link.Link, error) {
 			return link.AttachTracing(link.TracingOptions{
@@ -336,7 +336,7 @@ func TracingAttach() AttachFunc {
 }
 
 func LSMAttach() AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		linkFn := func() (link.Link, error) {
 			return link.AttachLSM(link.LSMOptions{
@@ -469,7 +469,7 @@ func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 }
 
 func KprobeAttachMany(load *Program, syms []string) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		unloader := unloader.ChainUnloader{
@@ -531,8 +531,8 @@ func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) e
 func LoadFmodRetProgram(bpfDir, mapDir string, load *Program, progName string, verbose int) error {
 	opts := &loadOpts{
 		attach: func(
-			coll *ebpf.Collection,
-			collSpec *ebpf.CollectionSpec,
+			_ *ebpf.Collection,
+			_ *ebpf.CollectionSpec,
 			prog *ebpf.Program,
 			spec *ebpf.ProgramSpec,
 		) (unloader.Unloader, error) {

@@ -30,7 +30,7 @@ func New() *cobra.Command {
 	add := &cobra.Command{
 		Use:   "create-container --container-id=<containerID> --root-dir=<rootDir>",
 		Short: "trigger create-container hook",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				createContainer(ctx, cli, &cnf)
 			})

@@ -25,7 +25,7 @@ func New() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Print health status",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			common.CliRun(getStatus)
 		},
 	}

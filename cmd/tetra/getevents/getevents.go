@@ -158,7 +158,7 @@ func New() *cobra.Command {
 		Use:   "getevents",
 		Short: "Print events",
 		Long:  fmt.Sprintf(DocLong, "tetra"),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if Options.Output != "json" && Options.Output != "compact" {
 				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, Options.Output)
 			}
@@ -184,7 +184,7 @@ func New() *cobra.Command {
 
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			fi, _ := os.Stdin.Stat()
 			if fi.Mode()&os.ModeNamedPipe != 0 {
 				// read events from stdin

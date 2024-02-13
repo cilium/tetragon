@@ -32,10 +32,10 @@ func TestTestChecker(t *testing.T) {
 
 	dummyErr := errors.New("dummy error")
 	dummyChecker := ec.FnEventChecker{
-		NextCheckFn: func(ev ec.Event, log *logrus.Logger) (bool, error) {
+		NextCheckFn: func(_ ec.Event, _ *logrus.Logger) (bool, error) {
 			return false, nil
 		},
-		FinalCheckFn: func(log *logrus.Logger) error {
+		FinalCheckFn: func(_ *logrus.Logger) error {
 			return dummyErr
 		},
 	}

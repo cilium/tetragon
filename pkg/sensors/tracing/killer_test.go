@@ -96,7 +96,7 @@ func TestKillerOverride(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(err error, rc int) {
+	checkerFunc := func(_ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
@@ -144,7 +144,7 @@ func TestKillerSignal(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(err error, rc int) {
+	checkerFunc := func(err error, _ int) {
 		if err == nil || err.Error() != "signal: killed" {
 			t.Fatalf("Wrong error '%v' expected 'killed'", err)
 		}

@@ -40,7 +40,7 @@ func execveMapCmd() *cobra.Command {
 		Use:   "execve",
 		Short: "dump execve map",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			dumpExecveMap(mapFname)
 		},
 	}
@@ -59,7 +59,7 @@ func policyfilterCmd() *cobra.Command {
 		Use:   "policyfilter",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			PolicyfilterState(mapFname)
 		},
 	}
