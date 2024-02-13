@@ -53,8 +53,8 @@ import (
 )
 
 var (
-	metricsAddr    = "localhost:2112"
-	metricsEnabled = false
+	metricsAddr = "localhost:2112"
+	metricsOnce sync.Once
 )
 
 type testObserverOptions struct {
@@ -253,19 +253,10 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 	}
 	saveInitInfo(o, exportFname)
 
-	// There doesn't appear to be a better way to enable the metrics server once and only
-	// once at the beginning of the observer tests. My initial thought was to use the init
-	// function in this file, however that actually ends up interfering with the Tetragon agent
-	// since it get compiled into the observer package.
-	//
-	// This is horrifically ugly, so we may want to figure out a better way to do this
-	// at some point in the future. I just don't see a better way that doesn't involve
-	// a lot of code changes in a lot of a files.
-	if !metricsEnabled {
+	metricsOnce.Do(func() {
 		go metrics.EnableMetrics(metricsAddr)
 		metricsconfig.InitAllMetrics(metrics.GetRegistry())
-		metricsEnabled = true
-	}
+	})
 
 	tb.Cleanup(func() {
 		testDone(tb, obs)
