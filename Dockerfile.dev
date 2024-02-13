@@ -9,7 +9,7 @@ FROM quay.io/cilium/cilium-bpftool@sha256:1832b32d118e7006ea2ce530b14ae5b28acd55
 COPY . ./
 
 
-FROM docker.io/library/golang:1.21.7@sha256:b7bac393658f891b69189cfd98111525f951ac0fec8bab97a1990fe43c85d342
+FROM docker.io/library/golang:1.22.0@sha256:56808813690dac3bb8b3550d373093d1a16c45f704ede7f58e39d2684636ffbe
 RUN apt-get update -y &&    \
     apt-get upgrade -y &&   \
     apt-get install -y      \

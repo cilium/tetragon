@@ -395,6 +395,10 @@ message KprobeArgument {
 	ProcessCredentials process_credentials_arg = 19;
 	UserNamespace user_ns_arg = 20;
 	KernelModule module_arg = 21;
+	string kernel_cap_t_arg = 22; // Capabilities in hexadecimal format.
+	string cap_inheritable_arg = 23; // Capabilities inherited by a forked process in hexadecimal format.
+	string cap_permitted_arg = 24; // Capabilities that are currently permitted in hexadecimal format.
+	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
     }
     string label = 18;
 }
