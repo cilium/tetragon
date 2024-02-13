@@ -5,6 +5,8 @@ run:
 
 output:
   format: tab
+  unique-by-line: false
+  sort-results: true
 
 linters:
   disable-all: true
@@ -34,6 +36,8 @@ linters-settings:
     keywords: ["the", "and", "a", "for", "to", "as", "in", "of", "with", "by", "on", "at", "from"]
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # Disallows any kind of `fmt.Errorf("%s is too high", bar)`, too opinionated.
     - linters: [goerr113]
