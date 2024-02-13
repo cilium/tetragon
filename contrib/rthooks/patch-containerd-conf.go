@@ -34,7 +34,7 @@ func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "patch-containerd-conf",
 		Short: "Patch containerd.conf to install an OCI hook",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			log := logrus.New()
 			return addHook(log, &cmdConf)
 		},

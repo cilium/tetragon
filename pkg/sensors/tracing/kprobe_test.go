@@ -1623,7 +1623,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
 
-	checker := func(dir string) *ec.UnorderedEventChecker {
+	checker := func() *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1647,7 +1647,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 
 	// testfile exists
 	// we look for sys_openat(-100, "...testfile", ..) > 0
-	testKprobeObjectFilteredReturnValue(t, openHook, checker(path), path, false /* OK */)
+	testKprobeObjectFilteredReturnValue(t, openHook, checker(), path, false /* OK */)
 }
 
 func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
@@ -1673,7 +1673,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
 
-	checker := func(dir string) *ec.UnorderedEventChecker {
+	checker := func() *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1688,7 +1688,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 
 	// testfile DOES NOT exist
 	// we look for sys_openat(-100, "...testfile", ..) < 0
-	testKprobeObjectFilteredReturnValue(t, openHook, checker(path), path, false /* OK */)
+	testKprobeObjectFilteredReturnValue(t, openHook, checker(), path, false /* OK */)
 }
 
 func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
@@ -5571,7 +5571,7 @@ spec:
 
 	res := &net.Resolver{
 		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		Dial: func(_ context.Context, _, _ string) (net.Conn, error) {
 			dial := net.Dialer{}
 			return dial.Dial("udp", "127.0.0.1:53")
 		},
@@ -5755,7 +5755,7 @@ spec:
 
 	res := &net.Resolver{
 		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		Dial: func(_ context.Context, _, _ string) (net.Conn, error) {
 			dial := net.Dialer{}
 			return dial.Dial("udp", "[::1]:53")
 		},

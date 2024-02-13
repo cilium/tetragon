@@ -154,7 +154,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	t.Log("Marked test end")
 
 	tpEventsNr := 0
-	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+	nextCheck := func(event ec.Event, _ *logrus.Logger) (bool, error) {
 		switch tpEvent := event.(type) {
 		case *tetragon.ProcessTracepoint:
 			if err := checkFn(tpEvent); err != nil {
@@ -171,7 +171,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 
 		}
 	}
-	finalCheck := func(l *logrus.Logger) error {
+	finalCheck := func(_ *logrus.Logger) error {
 		defer func() { tpEventsNr = 0 }()
 		// NB: in some cases we get more than one events. I think this
 		// might be due to -EINTR or similar return values.
@@ -204,7 +204,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 		unix.Seek(-1, 0, whenceBogusValue)
 	}
 
-	check := func(event *tetragon.ProcessTracepoint) error {
+	check := func(_ *tetragon.ProcessTracepoint) error {
 		return nil
 	}
 

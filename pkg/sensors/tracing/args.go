@@ -188,12 +188,12 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		arg.Label = a.label
 		return arg
 	case gt.GenericCharBuffer, gt.GenericCharIovec, gt.GenericIovIter:
-		if arg, err := ReadArgBytes(r, a.index, a.maxData); err == nil {
+		arg, err := ReadArgBytes(r, a.index, a.maxData)
+		if err == nil {
 			arg.Label = a.label
 			return *arg
-		} else {
-			logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")
 		}
+		logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")
 	case gt.GenericSkbType:
 		var skb api.MsgGenericKprobeSkb
 		var arg api.MsgGenericKprobeArgSkb

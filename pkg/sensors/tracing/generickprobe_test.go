@@ -20,7 +20,7 @@ import (
 )
 
 func Fuzz_parseString(f *testing.F) {
-	f.Fuzz(func(t *testing.T, input []byte) {
+	f.Fuzz(func(_ *testing.T, input []byte) {
 		reader := bytes.NewReader(input)
 		parseString(reader)
 	})

@@ -188,7 +188,7 @@ FieldsLoop:
 // The Format field for this events is going to be empty. Callers can call LoadFormat() to fill it.
 func GetAllTracepoints() ([]Tracepoint, error) {
 	ret := []Tracepoint{}
-	err := filepath.Walk(tracepointsPath, func(path string, info fs.FileInfo, err error) error {
+	err := filepath.Walk(tracepointsPath, func(path string, info fs.FileInfo, _ error) error {
 		if info.IsDir() {
 			name := strings.TrimPrefix(path, tracepointsPath+"/")
 			arr := strings.Split(name, "/")

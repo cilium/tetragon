@@ -98,7 +98,7 @@ func TestNamespacedPolicy(t *testing.T) {
 			}
 			return ctx
 		}).
-		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 			if err := grpc.WaitForTracingPolicy(ctx, "syscalls"); err != nil {
 				klog.ErrorS(err, "failed to wait for policy")
 				t.Fail()
@@ -229,7 +229,7 @@ func TestPodLabelFilters(t *testing.T) {
 			}
 			return ctx
 		}).
-		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 			if err := grpc.WaitForTracingPolicy(ctx, "l1-syscalls"); err != nil {
 				klog.ErrorS(err, "failed to wait for policy")
 				t.Fail()

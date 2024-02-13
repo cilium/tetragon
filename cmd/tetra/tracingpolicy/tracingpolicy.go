@@ -115,13 +115,13 @@ func New() *cobra.Command {
 		Use:   "list",
 		Short: "list tracing policies",
 		Args:  cobra.ExactArgs(0),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if tpListOutputFlag != "json" && tpListOutputFlag != "text" {
 				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, tpListOutputFlag)
 			}
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			c := common.NewConnectedClient()
 			defer c.Close()
 

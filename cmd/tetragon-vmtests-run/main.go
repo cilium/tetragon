@@ -25,7 +25,7 @@ func main() {
 		Use:          "vmtest-run",
 		Short:        "vmtest-run: helper to run tetragon unit tests on VMs",
 		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			log := logrus.New()
 			t0 := time.Now()
 

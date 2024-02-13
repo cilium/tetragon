@@ -28,10 +28,10 @@ func New() *cobra.Command {
 		Use:          "tetra",
 		Short:        "Tetragon CLI",
 		SilenceUsage: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Help()
 		},
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			if common.Debug {
 				logger.DefaultLogger.SetLevel(logrus.DebugLevel)
 			}

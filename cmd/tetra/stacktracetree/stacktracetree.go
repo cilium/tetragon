@@ -25,7 +25,7 @@ func New() *cobra.Command {
 		Use:   "print <tree-name>",
 		Short: "Print stacktrace tree",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			stt := args[0]
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				sttPrint(ctx, cli, stt)
