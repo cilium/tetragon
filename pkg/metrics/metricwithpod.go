@@ -113,13 +113,6 @@ func ListMetricsWithPod() []*prometheus.MetricVec {
 	return metricsWithPod
 }
 
-func GetRegistry() *prometheus.Registry {
-	registryOnce.Do(func() {
-		registry = prometheus.NewRegistry()
-	})
-	return registry
-}
-
 func StartPodDeleteHandler() {
 	queue := GetPodQueue()
 	for {
