@@ -15,7 +15,7 @@ import (
 var (
 	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "policyflter_metrics_total",
+		Name:        "policyfilter_metrics_total",
 		Help:        "Policy filter metrics. For internal use only.",
 		ConstLabels: nil,
 	}, []string{"subsys", "op", "error_type"})
