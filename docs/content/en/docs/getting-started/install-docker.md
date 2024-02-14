@@ -2,6 +2,7 @@
 title: "Quick Local Docker Install"
 weight: 2
 description: "Discover and experiment with Tetragon on your local Linux host"
+aliases: ["/docs/tutorials/try-tetragon-linux"]
 ---
 
 {{< note >}}
