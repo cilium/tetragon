@@ -14,6 +14,7 @@ description: >
 - [Binary Execution in /tmp]({{< ref "#tmp-execs" >}})
 - [sudo Monitoring]({{< ref "#sudo" >}})
 - [Privileges Escalation via SUID Binary Execution]({{< ref "#privileges-suid" >}})
+- [Privileges Escalation via File Capabilities Execution]({{< ref "#privileges-fscaps" >}})
 - [Privileges Escalation via Setuid system calls]({{< ref "#privileges-setuid" >}})
 
 ### System Activity
@@ -118,6 +119,49 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary_properti
 "2024-02-05T20:20:50.828208246Z null null /usr/bin/sudo id uid=1000 euid=0  gid=1000 egid=1000 binary_properties={\"setuid\":0,\"privileges_changed\":[\"PRIVILEGES_RAISED_EXEC_FILE_SETUID\"]}"
 "2024-02-05T20:20:57.008655978Z null null /usr/bin/wall hello uid=1000 euid=1000  gid=1000 egid=5 binary_properties={\"setgid\":5}"
 "2024-02-05T20:21:00.116297664Z null null /usr/bin/su --help uid=1000 euid=0  gid=1000 egid=1000 binary_properties={\"setuid\":0,\"privileges_changed\":[\"PRIVILEGES_RAISED_EXEC_FILE_SETUID\"]}"
+```
+
+## Privileges Escalation via File Capabilities Execution {#privileges-fscaps}
+
+### Description
+
+Monitor execution of binaries with file capabilities.
+
+### Use Case
+
+File capabilities allow the binary execution to acquire more privileges
+to perform specific tasks. They are stored in the extended attribute part
+of the binary on the file system. They can be set using the
+[setcap](https://man7.org/linux/man-pages/man8/setcap.8.html) tool.
+
+For further reference, please check [capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html)
+man page; section `File capabilities`.
+
+Detecting the execution of `file capabilities` binaries is a common
+best-practice, since they cross privilege boundaries which make them a suitable
+target for attackers. Such binaries are also used by attackers to hide their
+privileges after a successful exploit.
+
+### Requirement
+
+Tetragon must run with the Process Credentials visibility enabled, please
+refer to [Enable Process Credentials]({{< ref "docs/installation/configuration#enable-process-credentials" >}})
+documentation.
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is sufficient.
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.privileges_changed != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid) caps=\(.process_exec.process.cap) binary_properties=\(.process_exec.process.binary_properties)"''
+```
+
+### Example Output
+
+```shell
+"2024-02-05T20:49:39.551528684Z null null /usr/bin/ping ebpf.io uid=1000 euid=1000  gid=1000 egid=1000 caps={\"permitted\":[\"CAP_NET_RAW\"],\"effective\":[\"CAP_NET_RAW\"]} binary_properties={\"privileges_changed\":[\"PRIVILEGES_RAISED_EXEC_FILE_CAP\"]}"
 ```
 
 ## Privileges Escalation via Setuid System Calls {#privileges-setuid}
