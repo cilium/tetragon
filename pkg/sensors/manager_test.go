@@ -139,12 +139,15 @@ func TestAddPolicyLoadError(t *testing.T) {
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"
-	err = mgr.AddTracingPolicy(ctx, &policy)
-	assert.NotNil(t, err)
-	t.Logf("got error (as expected): %s", err)
-	l, err := mgr.ListSensors(ctx)
+	addError := mgr.AddTracingPolicy(ctx, &policy)
+	assert.NotNil(t, addError)
+	t.Logf("got error (as expected): %s", addError)
+
+	l, err := mgr.ListTracingPolicies(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, []SensorStatus{}, *l)
+	assert.Len(t, l.Policies, 1)
+	assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
+	assert.Equal(t, addError.Error(), l.Policies[0].Error)
 }
 
 func TestPolicyFilterDisabled(t *testing.T) {
