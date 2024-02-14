@@ -99,33 +99,8 @@ during an exploit for subsequent execution.
 
 ### Requirement
 
-Run Tetragon with `enable-process-creds` setting set to enable visibility
-into [process_credentials]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) and [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}}).
-
-{{< tabpane lang=shell >}}
-
-{{< tab Kubernetes >}}
-kubectl edit cm -n kube-system tetragon-config
-# Change "enable-process-cred" from "false" to "true", then save and exit
-# Restart Tetragon daemonset
-kubectl rollout restart -n kube-system ds/tetragon
-{{< /tab >}}
-{{< tab docker >}}
-docker run --name tetragon --rm -d \
-  --pid=host --cgroupns=host --privileged \
-  -v /sys/kernel:/sys/kernel \
-  -v /var/log/tetragon:/var/log/tetragon \
-  quay.io/cilium/tetragon:{{< latest-version >}} \
-  /usr/bin/tetragon --enable-process-cred \
-  --export-filename /var/log/tetragon/tetragon.log
-{{< /tab >}}
-{{< tab systemd >}}
-# Write to the drop-in file /etc/tetragon/tetragon.conf.d/enable-process-cred  true
-# Run the following as a privileged user then restart tetragon service
-echo "true" > /etc/tetragon/tetragon.conf.d/enable-process-cred
-systemctl restart tetragon
-{{< /tab >}}
-{{< /tabpane >}}
+Tetragon must run with the Process Credentials visibility enabled, please
+refer to [Enable Process Credentials]({{< ref "docs/installation/configuration#enable-process-credentials" >}}) documentation.
 
 ### Policy
 
