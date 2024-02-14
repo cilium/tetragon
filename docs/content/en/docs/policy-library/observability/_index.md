@@ -18,6 +18,7 @@ description: >
 - [Privileges Escalation via Setuid system calls]({{< ref "#privileges-setuid" >}})
 - [Privileges Escalation via Unprivileged User Namespaces]({{< ref "#privileges-userns" >}})
 - [Privileges Change via Capset system call]({{< ref "#privileges-capset" >}})
+- [Fileless Execution]({{< ref "#exec-fileless" >}})
 
 ### System Activity
 
@@ -283,6 +284,58 @@ jq 'select(.process_kprobe != null) | select(.process_kprobe.policy_name | test(
 "2024-02-05T21:12:12.836813445Z null null /usr/bin/runc --root /var/run/docker/runtime-runc/moby --log /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9/log.json --log-format json --systemd-cgroup create --bundle /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9 --pid-file /run/containerd/io.containerd.runtime.v2.task/moby/c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9/init.pid c7bc6bf80f07bf6475e507f735866186650137bca2be796d6a39e22b747b97e9 security_capset {\"cap_permitted_arg\":\"00000000a80425fb\"} {\"cap_effective_arg\":\"00000000a80425fb\"}"
 "2024-02-05T21:12:14.774175889Z null null /usr/local/sbin/runc --root /run/containerd/runc/k8s.io --log /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/log.json --log-format json --systemd-cgroup exec --process /tmp/runc-process2888400204 --detach --pid-file /run/containerd/io.containerd.runtime.v2.task/k8s.io/024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392/d8b8598320fe3d874b901c70863f36233760b3e63650a2474f707cc51b4340f9.pid 024daa4cc70eb683355f6f67beda3012c65d64f479d958e421cd209738a75392 security_capset {\"cap_permitted_arg\":\"000001ffffffffff\"} {\"cap_effective_arg\":\"000001ffffffffff\"}"
 ```
+
+## Fileless Execution {#exec-fileless}
+
+### Description
+
+Monitor the execution of binaries that exist exclusively as a computer
+memory-based artifact.
+
+### Use Case
+
+Often attackers execute fileless binaries that reside only in memory
+rather than on the file system to cover their traces. On Linux this
+is possible with the help of [memfd_create()](https://man7.org/linux/man-pages/man2/memfd_create.2.html)
+and [shared memory](https://man7.org/linux/man-pages/man7/shm_overview.7.html)
+anonymous files. Therefore, detecting execution of such binaries that
+live only in RAM or backed by volatile storage is a common best-practice.
+
+### Requirement
+
+Tetragon must run with the Process Credentials visibility enabled, please
+refer to [Enable Process Credentials]({{< ref "docs/installation/configuration#enable-process-credentials" >}})
+documentation.
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is
+sufficient.
+
+### Demo to reproduce
+
+You can use the [exec-memfd.py](https://raw.githubusercontent.com/cilium/tetragon/main/testdata/demos/tools/exec-memfd.py)
+python script as an example which will copy the binary `/bin/true` into
+an anonymous memory then execute it. The binary will not be linked on the
+file system.
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.file) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid) binary_properties=\(.process_exec.process.binary_properties)"'
+```
+
+### Example Output
+
+```shell
+"2024-02-14T15:17:48.758997159Z null null /proc/self/fd/3 null uid=1000 euid=1000 binary_properties={\"file\":{\"inode\":{\"number\":\"45021\",\"links\":0}}}"
+```
+
+The output shows that the executed binary refers to a file descriptor
+`/proc/self/fd/3` that it is not linked on the file system.
+The [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}})
+includes an [inode]({{< ref "/docs/reference/grpc-api#inodeproperties" >}})
+with zero links on the file system.
 
 ## eBPF Subsystem Interactions {#ebpf}
 
