@@ -1,8 +1,37 @@
 ---
-title: "Software bill of materials"
-weight: 4
-description: "Download and verify the signature of the software bill of materials"
+title: "Verify installation"
+weight: 5
+description: "Verify Tetragon image and software bill of materials signatures"
+aliases: ["/docs/tutorials/verify-tetragon-image-signatures", "/docs/tutorials/software-bill-of-materials"]
 ---
+
+## Verify Tetragon image signature
+
+Learn how to verify Tetragon container images signatures.
+
+### Prerequisites
+
+You will need to [install cosign](https://docs.sigstore.dev/system_config/installation/).
+
+### Verify Signed Container Images
+
+Since version 0.8.4, all Tetragon container images are signed using cosign.
+
+Let's verify a Tetragon image's signature using the `cosign verify` command:
+
+```shell
+COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com <Image URL> | jq
+```
+
+{{< note >}}
+`COSIGN_EXPERIMENTAL=1` is used to allow verification of images signed in
+KEYLESS mode. To learn more about keyless signing, please refer to [Keyless
+Signatures](https://github.com/sigstore/cosign/blob/main/KEYLESS.md#keyless-signatures).
+{{< /note >}}
+
+## Verify the SBOM signature
+
+Download and verify the signature of the software bill of materials
 
 A Software Bill of Materials (SBOM) is a complete, formally structured list of
 components that are required to build a given piece of software. SBOM provides
@@ -22,6 +51,7 @@ download sbom` command.
 ```shell
 cosign download sbom --output-file sbom.spdx <Image URL>
 ```
+
 ### Verify SBOM Image Signature
 
 To ensure the SBOM is tamper-proof, its signature can be verified using the
