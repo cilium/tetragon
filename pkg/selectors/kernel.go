@@ -176,46 +176,50 @@ const (
 
 	// mirrors gt.GenericSyscall64
 	argTypeSyscall64 = 28
+
+	argTypeLinuxBinprm = 29
 )
 
 var argTypeTable = map[string]uint32{
-	"int":        argTypeInt,
-	"uint32":     argTypeU32,
-	"int32":      argTypeS32,
-	"uint64":     argTypeU64,
-	"int64":      argTypeS64,
-	"char_buf":   argTypeCharBuf,
-	"char_iovec": argTypeCharIovec,
-	"sizet":      argTypeSizet,
-	"skb":        argTypeSkb,
-	"string":     argTypeString,
-	"fd":         argTypeFd,
-	"path":       argTypePath,
-	"file":       argTypeFile,
-	"sock":       argTypeSock,
-	"url":        argTypeUrl,
-	"fqdn":       argTypeFqdn,
-	"syscall64":  argTypeSyscall64,
+	"int":          argTypeInt,
+	"uint32":       argTypeU32,
+	"int32":        argTypeS32,
+	"uint64":       argTypeU64,
+	"int64":        argTypeS64,
+	"char_buf":     argTypeCharBuf,
+	"char_iovec":   argTypeCharIovec,
+	"sizet":        argTypeSizet,
+	"skb":          argTypeSkb,
+	"string":       argTypeString,
+	"fd":           argTypeFd,
+	"path":         argTypePath,
+	"file":         argTypeFile,
+	"sock":         argTypeSock,
+	"url":          argTypeUrl,
+	"fqdn":         argTypeFqdn,
+	"syscall64":    argTypeSyscall64,
+	"linux_binprm": argTypeLinuxBinprm,
 }
 
 var argTypeStringTable = map[uint32]string{
-	argTypeInt:       "int",
-	argTypeU32:       "uint32",
-	argTypeS32:       "int32",
-	argTypeU64:       "uint64",
-	argTypeS64:       "int64",
-	argTypeCharBuf:   "char_buf",
-	argTypeCharIovec: "char_iovec",
-	argTypeSizet:     "sizet",
-	argTypeSkb:       "skb",
-	argTypeString:    "string",
-	argTypeFd:        "fd",
-	argTypeFile:      "file",
-	argTypePath:      "path",
-	argTypeSock:      "sock",
-	argTypeUrl:       "url",
-	argTypeFqdn:      "fqdn",
-	argTypeSyscall64: "syscall64",
+	argTypeInt:         "int",
+	argTypeU32:         "uint32",
+	argTypeS32:         "int32",
+	argTypeU64:         "uint64",
+	argTypeS64:         "int64",
+	argTypeCharBuf:     "char_buf",
+	argTypeCharIovec:   "char_iovec",
+	argTypeSizet:       "sizet",
+	argTypeSkb:         "skb",
+	argTypeString:      "string",
+	argTypeFd:          "fd",
+	argTypeFile:        "file",
+	argTypePath:        "path",
+	argTypeSock:        "sock",
+	argTypeUrl:         "url",
+	argTypeFqdn:        "fqdn",
+	argTypeSyscall64:   "syscall64",
+	argTypeLinuxBinprm: "linux_binprm",
 }
 
 const (
@@ -845,7 +849,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf:
+		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf, argTypeLinuxBinprm:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)

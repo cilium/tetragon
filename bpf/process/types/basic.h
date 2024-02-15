@@ -73,6 +73,8 @@ enum {
 	cap_prm_ty = 35,
 	cap_eff_ty = 36,
 
+	linux_binprm_type = 37,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -201,6 +203,10 @@ struct event_config {
 #else
 #define MAX_STRING (STRING_MAPS_SIZE_5 - 1)
 #endif
+
+struct msg_linux_binprm {
+	char path[MAX_STRING];
+} __attribute__((packed));
 
 #ifdef __MULTI_KPROBE
 static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
@@ -1613,6 +1619,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_kernel_module);
 	case kernel_module_type:
 		return sizeof(struct tg_kernel_module);
+	case linux_binprm_type:
+		return sizeof(struct msg_linux_binprm);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2560,6 +2568,17 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 			return -1;
 		}
 	} break;
+#ifdef __LARGE_BPF_PROG
+	case linux_binprm_type: {
+		struct linux_binprm *bprm = (struct linux_binprm *)arg;
+		struct file *file;
+
+		arg = (unsigned long)_(&bprm->file);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		path_arg = _(&file->f_path);
+		size = copy_path(args, path_arg);
+	} break;
+#endif
 	case filename_ty: {
 		struct filename *file;
 		probe_read(&file, sizeof(file), &arg);

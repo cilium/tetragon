@@ -49,6 +49,8 @@ const (
 	GenericCapPermitted   = 35
 	GenericCapEffective   = 36
 
+	GenericLinuxBinprmType = 37
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -127,6 +129,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericCapPermitted
 	case "cap_effective":
 		return GenericCapEffective
+	case "linux_binprm":
+		return GenericLinuxBinprmType
 	default:
 		return GenericInvalidType
 	}

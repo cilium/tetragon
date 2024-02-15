@@ -4416,6 +4416,56 @@ func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *Kp
 	return checker
 }
 
+// KprobeLinuxBinprmChecker implements a checker struct to check a KprobeLinuxBinprm field
+type KprobeLinuxBinprmChecker struct {
+	Path *stringmatcher.StringMatcher `json:"path,omitempty"`
+}
+
+// NewKprobeLinuxBinprmChecker creates a new KprobeLinuxBinprmChecker
+func NewKprobeLinuxBinprmChecker() *KprobeLinuxBinprmChecker {
+	return &KprobeLinuxBinprmChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeLinuxBinprmChecker) GetCheckerType() string {
+	return "KprobeLinuxBinprmChecker"
+}
+
+// Check checks a KprobeLinuxBinprm field
+func (checker *KprobeLinuxBinprmChecker) Check(event *tetragon.KprobeLinuxBinprm) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeLinuxBinprm field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Path != nil {
+			if err := checker.Path.Match(event.Path); err != nil {
+				return fmt.Errorf("Path check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithPath adds a Path check to the KprobeLinuxBinprmChecker
+func (checker *KprobeLinuxBinprmChecker) WithPath(check *stringmatcher.StringMatcher) *KprobeLinuxBinprmChecker {
+	checker.Path = check
+	return checker
+}
+
+//FromKprobeLinuxBinprm populates the KprobeLinuxBinprmChecker using data from a KprobeLinuxBinprm field
+func (checker *KprobeLinuxBinprmChecker) FromKprobeLinuxBinprm(event *tetragon.KprobeLinuxBinprm) *KprobeLinuxBinprmChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Path = stringmatcher.Full(event.Path)
+	return checker
+}
+
 // KprobeCapabilityChecker implements a checker struct to check a KprobeCapability field
 type KprobeCapabilityChecker struct {
 	Value *int32                       `json:"value,omitempty"`
@@ -4905,6 +4955,7 @@ type KprobeArgumentChecker struct {
 	CapInheritableArg     *stringmatcher.StringMatcher `json:"capInheritableArg,omitempty"`
 	CapPermittedArg       *stringmatcher.StringMatcher `json:"capPermittedArg,omitempty"`
 	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
+	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5165,6 +5216,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: CapEffectiveArg check failed: %T is not a CapEffectiveArg", event)
 			}
 		}
+		if checker.LinuxBinprmArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_LinuxBinprmArg:
+				if err := checker.LinuxBinprmArg.Check(event.LinuxBinprmArg); err != nil {
+					return fmt.Errorf("LinuxBinprmArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: LinuxBinprmArg check failed: %T is not a LinuxBinprmArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -5322,6 +5383,12 @@ func (checker *KprobeArgumentChecker) WithCapEffectiveArg(check *stringmatcher.S
 	return checker
 }
 
+// WithLinuxBinprmArg adds a LinuxBinprmArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithLinuxBinprmArg(check *KprobeLinuxBinprmChecker) *KprobeArgumentChecker {
+	checker.LinuxBinprmArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -5468,6 +5535,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	switch event := event.Arg.(type) {
 	case *tetragon.KprobeArgument_CapEffectiveArg:
 		checker.CapEffectiveArg = stringmatcher.Full(event.CapEffectiveArg)
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_LinuxBinprmArg:
+		if event.LinuxBinprmArg != nil {
+			checker.LinuxBinprmArg = NewKprobeLinuxBinprmChecker().FromKprobeLinuxBinprm(event.LinuxBinprmArg)
+		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
 	return checker
