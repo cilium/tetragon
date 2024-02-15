@@ -19,6 +19,7 @@ description: >
 - [Privileges Escalation via Unprivileged User Namespaces]({{< ref "#privileges-userns" >}})
 - [Privileges Change via Capset system call]({{< ref "#privileges-capset" >}})
 - [Fileless Execution]({{< ref "#exec-fileless" >}})
+- [Execution of Deleted Binaries]({{< ref "#exec-unlinked" >}})
 
 ### System Activity
 
@@ -333,6 +334,46 @@ jq 'select(.process_exec != null) | select(.process_exec.process.binary_properti
 
 The output shows that the executed binary refers to a file descriptor
 `/proc/self/fd/3` that it is not linked on the file system.
+The [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}})
+includes an [inode]({{< ref "/docs/reference/grpc-api#inodeproperties" >}})
+with zero links on the file system.
+
+## Execution of Deleted Binaries {#exec-unlinked}
+
+### Description
+
+Monitor the execution of deleted binaries.
+
+### Use Case
+
+Malicious actors may open a binary, delete it from the file system to hide
+their traces then execute it. Detecting such executions is a good pratice.
+
+### Requirement
+
+Tetragon must run with the Process Credentials visibility enabled, please
+refer to [Enable Process Credentials]({{< ref "docs/installation/configuration#enable-process-credentials" >}})
+documentation.
+
+### Policy
+
+No policy needs to be loaded, standard process execution observability is
+sufficient.
+
+### Example jq Filter
+
+```shell
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.file != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid) binary_properties=\(.process_exec.process.binary_properties)"'
+```
+
+### Example Output
+
+```shell
+"2024-02-14T16:07:54.265540484Z null null /proc/self/fd/14 null uid=1000 euid=1000 binary_properties={\"file\":{\"inode\":{\"number\":\"4991635\",\"links\":0}}}"
+```
+
+The output shows that the executed binary refers to a file descriptor
+`/proc/self/fd/14` that it is not linked on the file system.
 The [binary_properties]({{< ref "/docs/reference/grpc-api#binaryproperties" >}})
 includes an [inode]({{< ref "/docs/reference/grpc-api#inodeproperties" >}})
 with zero links on the file system.
