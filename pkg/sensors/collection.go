@@ -44,11 +44,6 @@ func (c *collection) load(bpfDir, mapDir string) error {
 			// because that would complicate things.
 			continue
 		}
-		if err = sensor.FindPrograms(); err != nil {
-			err = fmt.Errorf("sensor %s programs from collection %s could not be found: %s", sensor.Name, c.name, err)
-			break
-		}
-
 		if err = sensor.Load(bpfDir, mapDir); err != nil {
 			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.Name, c.name, err)
 			break
