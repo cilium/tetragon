@@ -19,14 +19,14 @@ var (
 )
 
 func LoadSockOpt(
-	bpfDir, mapDir string,
+	bpfDir string,
 	load *program.Program, verbose int,
 ) error {
-	return LoadCgroupProgram(bpfDir, mapDir, load, verbose)
+	return LoadCgroupProgram(bpfDir, load, verbose)
 }
 
 func LoadCgroupProgram(
-	bpfDir, mapDir string,
+	bpfDir string,
 	load *program.Program, verbose int) error {
 	if fgsCgroupFD < 0 {
 		fd, err := unix.Open(fgsCgroupPath, unix.O_RDONLY, 0)

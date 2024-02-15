@@ -107,7 +107,7 @@ func (kp *killerPolicy) loadSingleKillerSensor(
 	kh *killerHandler,
 	bpfDir, mapDir string, load *program.Program, verbose int,
 ) error {
-	if err := program.LoadKprobeProgramAttachMany(bpfDir, mapDir, load, kh.syscallsSyms, verbose); err == nil {
+	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded killer sensor: %s", load.Attach)
 	} else {
 		return err
@@ -125,7 +125,7 @@ func (kp *killerPolicy) loadMultiKillerSensor(
 
 	load.SetAttachData(data)
 
-	if err := program.LoadMultiKprobeProgram(bpfDir, mapDir, load, verbose); err != nil {
+	if err := program.LoadMultiKprobeProgram(bpfDir, load, verbose); err != nil {
 		return err
 	}
 
@@ -151,7 +151,7 @@ func (kp *killerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
-		return program.LoadFmodRetProgram(args.BPFDir, args.MapDir, args.Load, "fmodret_killer", args.Verbose)
+		return program.LoadFmodRetProgram(args.BPFDir, args.Load, "fmodret_killer", args.Verbose)
 	}
 
 	return fmt.Errorf("killer loader: unknown label: %s", args.Load.Label)

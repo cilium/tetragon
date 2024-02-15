@@ -430,7 +430,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
@@ -445,14 +445,14 @@ func LoadTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) er
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadRawTracepointProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: RawTracepointAttach(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
@@ -490,14 +490,14 @@ func KprobeAttachMany(load *Program, syms []string) AttachFunc {
 	}
 }
 
-func LoadKprobeProgramAttachMany(bpfDir, mapDir string, load *Program, syms []string, verbose int) error {
+func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, verbose int) error {
 	opts := &loadOpts{
 		attach: KprobeAttachMany(load, syms),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "uprobe_calls" {
@@ -512,7 +512,7 @@ func LoadUprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error 
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
@@ -528,7 +528,7 @@ func LoadMultiKprobeProgram(bpfDir, mapDir string, load *Program, verbose int) e
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadFmodRetProgram(bpfDir, mapDir string, load *Program, progName string, verbose int) error {
+func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose int) error {
 	opts := &loadOpts{
 		attach: func(
 			_ *ebpf.Collection,
@@ -564,14 +564,14 @@ func LoadFmodRetProgram(bpfDir, mapDir string, load *Program, progName string, v
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadTracingProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: TracingAttach(),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadLSMProgram(bpfDir, mapDir string, load *Program, verbose int) error {
+func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &loadOpts{
 		attach: LSMAttach(),
 	}
