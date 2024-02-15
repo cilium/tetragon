@@ -123,7 +123,7 @@ func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, path, nil)
+	mgr, err := sensors.StartSensorManager(path, nil)
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {

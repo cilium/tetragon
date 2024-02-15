@@ -47,7 +47,7 @@ func GetTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager 
 	}
 
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, path, nil)
+	mgr, err := sensors.StartSensorManager(path, nil)
 	if err != nil {
 		t.Fatalf("startSensorController failed: %s", err)
 	}
