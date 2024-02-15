@@ -60,6 +60,8 @@
 - [tetragon/events.proto](#tetragon_events-proto)
     - [AggregationInfo](#tetragon-AggregationInfo)
     - [AggregationOptions](#tetragon-AggregationOptions)
+    - [CapFilter](#tetragon-CapFilter)
+    - [CapFilterSet](#tetragon-CapFilterSet)
     - [FieldFilter](#tetragon-FieldFilter)
     - [Filter](#tetragon-Filter)
     - [GetEventsRequest](#tetragon-GetEventsRequest)
@@ -1126,6 +1128,44 @@ AggregationOptions defines configuration options for aggregating events.
 
 
 
+<a name="tetragon-CapFilter"></a>
+
+### CapFilter
+Filter over a set of Linux process capabilities. See `message Capabilities`
+for more info.  WARNING: Multiple sets are ANDed. For example, if the
+permitted filter matches, but the effective filter does not, the filter will
+NOT match.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| permitted | [CapFilterSet](#tetragon-CapFilterSet) |  | Filter over the set of permitted capabilities. |
+| effective | [CapFilterSet](#tetragon-CapFilterSet) |  | Filter over the set of effective capabilities. |
+| inheritable | [CapFilterSet](#tetragon-CapFilterSet) |  | Filter over the set of inheritable capabilities. |
+
+
+
+
+
+
+<a name="tetragon-CapFilterSet"></a>
+
+### CapFilterSet
+Capability set to filter over. NOTE: you may specify only ONE set here.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| any | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Match if the capability set contains any of the capabilities defined in this filter. |
+| all | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Match if the capability set contains all of the capabilities defined in this filter. |
+| exactly | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Match if the capability set exactly matches all of the capabilities defined in this filter. |
+| none | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated | Match if the capability set contains none of the capabilities defined in this filter. |
+
+
+
+
+
+
 <a name="tetragon-FieldFilter"></a>
 
 ### FieldFilter
@@ -1162,6 +1202,7 @@ AggregationOptions defines configuration options for aggregating events.
 | arguments_regex | [string](#string) | repeated | Filter by process.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | labels | [string](#string) | repeated | Filter events by pod labels using Kubernetes label selector syntax: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors Note that this filter never matches events without the pod field (i.e. host process events). |
 | policy_names | [string](#string) | repeated | Filter events by tracing policy names |
+| capabilities | [CapFilter](#tetragon-CapFilter) |  | Filter events by Linux process capability |
 
 
 
