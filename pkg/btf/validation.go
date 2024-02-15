@@ -239,6 +239,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct cred *":
 			return true
 		}
+	case "linux_binprm":
+		switch kernelTy {
+		case "struct linux_binprm *":
+			return true
+		}
 	case "load_info":
 		switch kernelTy {
 		case "struct load_info *":

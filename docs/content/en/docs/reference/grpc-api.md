@@ -248,6 +248,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap_inheritable_arg | [string](#string) |  | Capabilities inherited by a forked process in hexadecimal format. |
 | cap_permitted_arg | [string](#string) |  | Capabilities that are currently permitted in hexadecimal format. |
 | cap_effective_arg | [string](#string) |  | Capabilities that are actually used in hexadecimal format. |
+| linux_binprm_arg | [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -300,6 +301,14 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+
+<a name="tetragon-KprobeLinuxBinprm"></a>
+
+### KprobeLinuxBinprm
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) |  |  |
 
 <a name="tetragon-KprobePath"></a>
 

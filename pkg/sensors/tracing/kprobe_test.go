@@ -5865,6 +5865,81 @@ spec:
 	}
 }
 
+func TestLinuxBinprmExtractPath(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	bprmTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "bprm-extract-path",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			Options: []v1alpha1.OptionSpec{
+				{
+					Name:  "disable-kprobe-multi",
+					Value: "1",
+				},
+			},
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "security_bprm_check",
+					Syscall: false,
+					Return:  false,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "linux_binprm",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchArgs: []v1alpha1.ArgSelector{
+								{
+									Operator: "In",
+									Index:    0,
+									Values:   []string{"/usr/bin/id"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
+	assert.NoError(t, err)
+
+	command := exec.Command("/usr/bin/id")
+
+	ops := func() {
+		err = command.Start()
+		assert.NoError(t, err)
+		defer command.Process.Kill()
+	}
+
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.Msg.ProcessKey.Pid) == command.Process.Pid && kprobe.FuncName == "security_bprm_check" {
+				return
+			}
+		}
+	}
+	t.Error("bprm error")
+}
+
 // Test module loading/unloading on Ubuntu
 func TestTraceKernelModule(t *testing.T) {
 	_, err := ftrace.ReadAvailFuncs("find_module_sections")

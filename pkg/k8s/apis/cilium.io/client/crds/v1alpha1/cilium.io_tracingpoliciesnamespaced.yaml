@@ -130,6 +130,7 @@ spec:
                             - cap_inheritable
                             - cap_permitted
                             - cap_effective
+                            - linux_binprm
                             type: string
                         required:
                         - index
@@ -225,6 +226,7 @@ spec:
                           - cap_inheritable
                           - cap_permitted
                           - cap_effective
+                          - linux_binprm
                           type: string
                       required:
                       - index
@@ -873,6 +875,7 @@ spec:
                             - cap_inheritable
                             - cap_permitted
                             - cap_effective
+                            - linux_binprm
                             type: string
                         required:
                         - index
@@ -1427,6 +1430,7 @@ spec:
                             - cap_inheritable
                             - cap_permitted
                             - cap_effective
+                            - linux_binprm
                             type: string
                         required:
                         - index
