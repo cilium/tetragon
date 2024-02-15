@@ -42,7 +42,7 @@ jobs:
         go-version: '1.22.0'
 
     - name: Install Kind and create cluster
-      uses: helm/kind-action@dda0770415bac9fc20092cacbc54aa298604d140 # v1.8.0
+      uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
 
     - name: Pull Tetragon Images
       uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
