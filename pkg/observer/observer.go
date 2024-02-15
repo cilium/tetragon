@@ -330,9 +330,9 @@ type Observer struct {
 // On errors we also print a warning that advanced Cgroups tracking will be
 // disabled which might affect process association with kubernetes pods and
 // containers.
-func (k *Observer) UpdateRuntimeConf(mapDir string) error {
+func (k *Observer) UpdateRuntimeConf(bpfDir string) error {
 	pid := os.Getpid()
-	err := confmap.UpdateTgRuntimeConf(mapDir, pid)
+	err := confmap.UpdateTgRuntimeConf(bpfDir, pid)
 	if err != nil {
 		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
 		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
@@ -354,7 +354,7 @@ func (k *Observer) Start(ctx context.Context) error {
 
 // InitSensorManager starts the sensor controller
 func (k *Observer) InitSensorManager(waitChan chan struct{}) error {
-	mgr, err := sensors.StartSensorManager(option.Config.BpfDir, option.Config.MapDir, waitChan)
+	mgr, err := sensors.StartSensorManager(option.Config.BpfDir, waitChan)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (k *Observer) PrintStats() {
 }
 
 func (k *Observer) RemovePrograms() {
-	RemovePrograms(option.Config.BpfDir, option.Config.MapDir)
+	RemovePrograms(option.Config.BpfDir)
 }
 
 func RemoveSensors(ctx context.Context) {
