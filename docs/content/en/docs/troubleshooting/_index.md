@@ -28,7 +28,7 @@ tetra bugtool
 
 Tetragon's bugtool captures potentially useful information about your environment for debugging. The tool is meant to be used for debugging a single Tetragon agent node. Note in Kubernetes, the command needs to be run from inside the Tetragon pod/container.
 
-#### Key Information Collected by the Bugtool:
+**Key Information Collected by the Bugtool:**
 
 - Tetragon configuration
 - Network configuration
@@ -52,21 +52,26 @@ kubectl get pods -n <tetragron-namespace> -l app.kubernetes.io/name=tetragon
 kubectl exec -n <tetragron-namespace> <tetragron-pod-name> -- tetra bugtool
 ```
 
-Scenario 2: Container Installation
+#### Scenario 2: Container Installation
 
-Enter the Tetragon Container:
+1. **Enter the Tetragon Container:**
 
-Bash
+```bash
 docker exec -it <tetragron-container-id> /bin/sh
-Use code with caution.
-Run tetra bugtool:
+```
 
-Bash
+2. **Run tetra bugtool:**
+
+```bash
 tetra bugtool
-Use code with caution.
-Scenario 3: Systemd Host Installation
+```
 
-Execute tetra bugtool with Elevated Permissions:
-Bash
+#### Scenario 3: Systemd Host Installation
+
+1. **Execute tetra bugtool with Elevated Permissions:**
+
+```bash
 sudo tetra bugtool
-Use code with caution.
+```
+
+> Note: Replace <...> placeholders with the actual values applicable to your setup.
