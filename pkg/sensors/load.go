@@ -346,7 +346,6 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 		// Registered probes need extra setup
 		return probe.LoadProbe(LoadProbeArgs{
 			BPFDir:  bpfDir,
-			MapDir:  mapDir,
 			Load:    load,
 			Version: version,
 			Verbose: verbose,

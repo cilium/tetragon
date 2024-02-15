@@ -119,7 +119,7 @@ func RegisterProbeType(probeType string, s probeLoader) {
 
 // LoadProbeArgs are the args to the LoadProbe function.
 type LoadProbeArgs struct {
-	BPFDir, MapDir   string
+	BPFDir           string
 	Load             *program.Program
 	Version, Verbose int
 }

@@ -933,7 +933,7 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	return selectorsMaploads(state, kprobeEntry.pinPathPrefix, index)
 }
 
-func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *program.Program, verbose int) error {
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
@@ -961,7 +961,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir, mapDir string, load *pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *program.Program, verbose int) error {
+func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
 	bin_buf := make([]bytes.Buffer, len(ids))
 
 	data := &program.MultiKprobeAttachData{}
@@ -1005,12 +1005,12 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir, mapDir string, load *p
 	return nil
 }
 
-func loadGenericKprobeSensor(bpfDir, mapDir string, load *program.Program, verbose int) error {
+func loadGenericKprobeSensor(bpfDir string, load *program.Program, verbose int) error {
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
-		return loadSingleKprobeSensor(id, bpfDir, mapDir, load, verbose)
+		return loadSingleKprobeSensor(id, bpfDir, load, verbose)
 	}
 	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, mapDir, load, verbose)
+		return loadMultiKprobeSensor(ids, bpfDir, load, verbose)
 	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)
@@ -1234,5 +1234,5 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	return loadGenericKprobeSensor(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Verbose)
 }

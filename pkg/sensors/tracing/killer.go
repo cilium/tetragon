@@ -105,7 +105,7 @@ func (kp *killerPolicy) PolicyHandler(
 
 func (kp *killerPolicy) loadSingleKillerSensor(
 	kh *killerHandler,
-	bpfDir, mapDir string, load *program.Program, verbose int,
+	bpfDir string, load *program.Program, verbose int,
 ) error {
 	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded killer sensor: %s", load.Attach)
@@ -117,7 +117,7 @@ func (kp *killerPolicy) loadSingleKillerSensor(
 
 func (kp *killerPolicy) loadMultiKillerSensor(
 	kh *killerHandler,
-	bpfDir, mapDir string, load *program.Program, verbose int,
+	bpfDir string, load *program.Program, verbose int,
 ) error {
 	data := &program.MultiKprobeAttachData{}
 
@@ -144,10 +144,10 @@ func (kp *killerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 		return fmt.Errorf("failed to get killer handler for '%s'", name)
 	}
 	if args.Load.Label == "kprobe.multi/killer" {
-		return kp.loadMultiKillerSensor(kh, args.BPFDir, args.MapDir, args.Load, args.Verbose)
+		return kp.loadMultiKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
 	if args.Load.Label == "kprobe/killer" {
-		return kp.loadSingleKillerSensor(kh, args.BPFDir, args.MapDir, args.Load, args.Verbose)
+		return kp.loadSingleKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
