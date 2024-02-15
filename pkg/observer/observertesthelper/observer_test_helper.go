@@ -207,7 +207,6 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 
 func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
 	option.Config.BpfDir = bpf.MapPrefixPath()
-	option.Config.MapDir = bpf.MapPrefixPath()
 	return observer.NewObserver(oo.config)
 }
 
@@ -312,7 +311,6 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 	opts = append(opts, WithLib(lib))
 
 	option.Config.BpfDir = bpf.MapPrefixPath()
-	option.Config.MapDir = bpf.MapPrefixPath()
 
 	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
 

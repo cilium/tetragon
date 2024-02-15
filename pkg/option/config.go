@@ -35,7 +35,6 @@ type config struct {
 
 	GopsAddr string
 
-	MapDir string
 	BpfDir string
 
 	LogOpts map[string]string
