@@ -15,8 +15,8 @@ import (
 
 type handler struct {
 	// map of sensor collections: name -> collection
-	collections    map[string]collection
-	bpfDir, mapDir string
+	collections map[string]collection
+	bpfDir      string
 
 	nextPolicyID uint64
 	pfState      policyfilter.State
@@ -24,11 +24,10 @@ type handler struct {
 
 func newHandler(
 	pfState policyfilter.State,
-	bpfDir, mapDir string) (*handler, error) {
+	bpfDir string) (*handler, error) {
 	return &handler{
 		collections: map[string]collection{},
 		bpfDir:      bpfDir,
-		mapDir:      mapDir,
 		pfState:     pfState,
 		// NB: we are using policy ids for filtering, so we start with
 		// the first valid id. This is because value 0 is reserved to
@@ -120,7 +119,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		tracingpolicyID: uint64(tpID),
 		policyfilterID:  uint64(filterID),
 	}
-	if err := col.load(h.bpfDir, h.mapDir); err != nil {
+	if err := col.load(h.bpfDir); err != nil {
 		return err
 	}
 	col.enabled = true
@@ -212,7 +211,7 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return fmt.Errorf("tracing policy %s is already enabled", op.name)
 	}
 
-	if err := col.load(h.bpfDir, h.mapDir); err != nil {
+	if err := col.load(h.bpfDir); err != nil {
 		return err
 	}
 
@@ -267,7 +266,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 		return fmt.Errorf("sensor %s does not exist", op.name)
 	}
 
-	return col.load(h.bpfDir, h.mapDir)
+	return col.load(h.bpfDir)
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {
