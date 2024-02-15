@@ -335,11 +335,11 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 
 	switch load.Type {
 	case "tracepoint":
-		return program.LoadTracepointProgram(bpfDir, mapDir, load, verbose)
+		return program.LoadTracepointProgram(bpfDir, load, verbose)
 	case "raw_tracepoint", "raw_tp":
-		return program.LoadRawTracepointProgram(bpfDir, mapDir, load, verbose)
+		return program.LoadRawTracepointProgram(bpfDir, load, verbose)
 	case "cgrp_socket":
-		return cgroup.LoadCgroupProgram(bpfDir, mapDir, load, verbose)
+		return cgroup.LoadCgroupProgram(bpfDir, load, verbose)
 	}
 
 	if probe != nil {
@@ -353,7 +353,7 @@ func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose
 		})
 	}
 
-	return program.LoadKprobeProgram(bpfDir, mapDir, load, verbose)
+	return program.LoadKprobeProgram(bpfDir, load, verbose)
 }
 
 func observerMinReqs() (bool, error) {

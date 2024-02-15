@@ -598,7 +598,7 @@ func LoadGenericTracepointSensor(bpfDir, mapDir string, load *program.Program, v
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	if err := program.LoadTracepointProgram(bpfDir, mapDir, load, verbose); err == nil {
+	if err := program.LoadTracepointProgram(bpfDir, load, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
