@@ -35,5 +35,5 @@ func LoadCgroupProgram(
 		}
 		fgsCgroupFD = fd
 	}
-	return program.LoadProgram(bpfDir, []string{mapDir}, load, program.RawAttach(fgsCgroupFD), verbose)
+	return program.LoadProgram(bpfDir, load, program.RawAttach(fgsCgroupFD), verbose)
 }
