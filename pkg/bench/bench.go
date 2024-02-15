@@ -86,7 +86,6 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	option.Config.RBSize = args.RBSize
 
 	option.Config.BpfDir = bpf.MapPrefixPath()
-	option.Config.MapDir = bpf.MapPrefixPath()
 	obs := observer.NewObserver(configFile)
 
 	if err := obs.InitSensorManager(nil); err != nil {

@@ -25,7 +25,7 @@ func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
-	mapHandle, err := ebpf.LoadPinnedMap(filepath.Join(option.Config.MapDir, "tg_stats_map"), nil)
+	mapHandle, err := ebpf.LoadPinnedMap(filepath.Join(option.Config.BpfDir, "tg_stats_map"), nil)
 	if err != nil {
 		return
 	}
