@@ -40,6 +40,7 @@ func overrideMethodParse(s string) OverrideMethod {
 
 type specOptions struct {
 	DisableKprobeMulti bool
+	DisableUprobeMulti bool
 	OverrideMethod     OverrideMethod
 }
 
@@ -59,6 +60,12 @@ var opts = map[string]opt{
 	option.KeyDisableKprobeMulti: opt{
 		set: func(str string, options *specOptions) (err error) {
 			options.DisableKprobeMulti, err = strconv.ParseBool(str)
+			return err
+		},
+	},
+	option.KeyDisableUprobeMulti: opt{
+		set: func(str string, options *specOptions) (err error) {
+			options.DisableUprobeMulti, err = strconv.ParseBool(str)
 			return err
 		},
 	},

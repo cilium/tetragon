@@ -54,6 +54,16 @@ type UprobeAttachData struct {
 	Symbol string
 }
 
+type MultiUprobeAttachSymbolsCookies struct {
+	Symbols []string
+	Cookies []uint64
+}
+
+type MultiUprobeAttachData struct {
+	// Path -> []{Symbol,Cookie}
+	Attach map[string]*MultiUprobeAttachSymbolsCookies
+}
+
 // Program reprents a BPF program.
 type Program struct {
 	// Name is the name of the BPF object file.

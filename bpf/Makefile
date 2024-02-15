@@ -20,6 +20,7 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_tracepoint_v61.o \
 	  bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
 	  bpf_generic_uprobe_v61.o \
+	  bpf_multi_uprobe_v61.o \
 	  bpf_execve_event_v511.o \
 	  bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 	  bpf_generic_tracepoint_v511.o \
@@ -66,6 +67,7 @@ deps/bpf_multi_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
 deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
 deps/bpf_generic_tracepoint_$$(VAR).d: process/bpf_generic_tracepoint.c
 deps/bpf_generic_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
+deps/bpf_multi_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
 endef
 
 # Generic build targets for each sub-dir
@@ -124,6 +126,9 @@ $(DEPSDIR)%_v53.d:
 
 objs/bpf_multi_kprobe_v61.ll objs/bpf_multi_retkprobe_v61.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
+
+objs/bpf_multi_uprobe_v61.ll:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
 objs/%_v61.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -c $< -o $@
