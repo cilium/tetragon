@@ -5,7 +5,7 @@ go 1.22.0
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.15.0
+	github.com/cilium/cilium v1.15.1
 	github.com/cilium/ebpf v0.12.4-0.20231215112452-00c0cb05d35c
 	github.com/cilium/little-vm-helper v0.0.16
 	github.com/cilium/lumberjack/v2 v2.3.0
