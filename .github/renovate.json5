@@ -36,7 +36,7 @@
     "pkg/k8s/go.sum",
     "contrib/rthooks/tetragon-oci-hook/go.mod",
     "contrib/rthooks/tetragon-oci-hook/go.sum",
-    "Dockerfile*",
+    "*Dockerfile*",
     "install/kubernetes/tetragon/values.yaml",
     "Makefile.cli",
     "Makefile",
