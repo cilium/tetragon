@@ -6,6 +6,7 @@ syntax = "proto3";
 package tetragon;
 
 import "tetragon/tetragon.proto";
+import "tetragon/capabilities.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
@@ -53,6 +54,33 @@ message Filter {
     repeated string labels = 9;
     // Filter events by tracing policy names
     repeated string policy_names = 10;
+	// Filter events by Linux process capability
+	CapFilter capabilities = 11;
+}
+
+// Filter over a set of Linux process capabilities. See `message Capabilities`
+// for more info.  WARNING: Multiple sets are ANDed. For example, if the
+// permitted filter matches, but the effective filter does not, the filter will
+// NOT match.
+message CapFilter {
+	// Filter over the set of permitted capabilities.
+	CapFilterSet permitted = 1;
+	// Filter over the set of effective capabilities.
+	CapFilterSet effective = 2;
+	// Filter over the set of inheritable capabilities.
+	CapFilterSet inheritable = 3;
+}
+
+// Capability set to filter over. NOTE: you may specify only ONE set here.
+message CapFilterSet {
+	// Match if the capability set contains any of the capabilities defined in this filter.
+	repeated CapabilitiesType any = 1;
+	// Match if the capability set contains all of the capabilities defined in this filter.
+	repeated CapabilitiesType all = 2;
+	// Match if the capability set exactly matches all of the capabilities defined in this filter.
+	repeated CapabilitiesType exactly = 3;
+	// Match if the capability set contains none of the capabilities defined in this filter.
+	repeated CapabilitiesType none = 4;
 }
 
 // Determines the behavior of a field filter

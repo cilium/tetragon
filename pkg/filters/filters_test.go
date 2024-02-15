@@ -5,15 +5,25 @@ package filters
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+func TestMain(m *testing.M) {
+	// Needed for cap filters
+	option.Config.EnableProcessCred = true
+
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestParseFilterList(t *testing.T) {
 	f := `{"namespace":["kube-system",""]}
@@ -22,7 +32,8 @@ func TestParseFilterList(t *testing.T) {
 {"binary_regex":["/usr/sbin/.*"],"namespace":["default"]}
 {"pid_set":[1]}
 {"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_TRACEPOINT"]}
-{"arguments_regex":["^--version$","^-a -b -c$"]}`
+{"arguments_regex":["^--version$","^-a -b -c$"]}
+{"capabilities": {"effective": {"all": ["CAP_BPF", "CAP_SYS_ADMIN"]}}}`
 	filterProto, err := ParseFilterList(f, true)
 	assert.NoError(t, err)
 	if diff := cmp.Diff(
@@ -34,9 +45,16 @@ func TestParseFilterList(t *testing.T) {
 			{PidSet: []uint32{1}},
 			{EventSet: []tetragon.EventType{tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_EXIT, tetragon.EventType_PROCESS_KPROBE, tetragon.EventType_PROCESS_TRACEPOINT}},
 			{ArgumentsRegex: []string{"^--version$", "^-a -b -c$"}},
+			{Capabilities: &tetragon.CapFilter{
+				Effective: &tetragon.CapFilterSet{
+					All: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_BPF, tetragon.CapabilitiesType_CAP_SYS_ADMIN},
+				},
+			}},
 		},
 		filterProto,
 		cmpopts.IgnoreUnexported(tetragon.Filter{}),
+		cmpopts.IgnoreUnexported(tetragon.CapFilter{}),
+		cmpopts.IgnoreUnexported(tetragon.CapFilterSet{}),
 		cmpopts.IgnoreUnexported(wrapperspb.BoolValue{}),
 	); diff != "" {
 		t.Errorf("filter mismatch (-want +got):\n%s", diff)
