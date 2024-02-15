@@ -41,7 +41,7 @@ func StartSensorManager(
 		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
 	}
 
-	handler, err := newHandler(pfState, bpfDir, mapDir)
+	handler, err := newHandler(pfState, bpfDir)
 	if err != nil {
 		return nil, err
 	}

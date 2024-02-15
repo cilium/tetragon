@@ -113,7 +113,7 @@ spec:
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	initialSensor := base.GetInitialSensor()
-	initialSensor.Load(bpf.MapPrefixPath(), bpf.MapPrefixPath())
+	initialSensor.Load(bpf.MapPrefixPath())
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -4175,7 +4175,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	err = sens.Load(option.Config.BpfDir, option.Config.MapDir)
+	err = sens.Load(option.Config.BpfDir)
 	if err != nil {
 		return err
 	}

@@ -434,7 +434,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	tp tracingpolicy.TracingPolicy) error {
 
-	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
+	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 
@@ -452,11 +452,11 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 }
 
 func loadSensor(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor) error {
-	if err := base.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
+	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := sens.Load(option.Config.BpfDir, option.Config.MapDir); err != nil {
+	if err := sens.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("LoadConfig error: %s\n", err)
 	}
 	return nil

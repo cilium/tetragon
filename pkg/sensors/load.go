@@ -55,16 +55,16 @@ const (
 )
 
 // LoadConfig loads the default sensor, including any from the configuration file.
-func LoadConfig(bpfDir, mapDir string, sens []*Sensor) error {
+func LoadConfig(bpfDir string, sens []*Sensor) error {
 	load := mergeSensors(sens)
-	if err := load.Load(bpfDir, mapDir); err != nil {
+	if err := load.Load(bpfDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load BPF programs: %w", err)
 	}
 	return nil
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(bpfDir, mapDir string) error {
+func (s *Sensor) Load(bpfDir string) error {
 	if s == nil {
 		return nil
 	}
@@ -82,7 +82,7 @@ func (s *Sensor) Load(bpfDir, mapDir string) error {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
-	createDir(bpfDir, mapDir)
+	os.Mkdir(bpfDir, os.ModeDir)
 
 	l := logger.GetLogger()
 
@@ -98,7 +98,7 @@ func (s *Sensor) Load(bpfDir, mapDir string) error {
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.loadMaps(mapDir); err != nil {
+	if err := s.loadMaps(bpfDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func (s *Sensor) Load(bpfDir, mapDir string) error {
 			continue
 		}
 
-		if err := observerLoadInstance(bpfDir, mapDir, p); err != nil {
+		if err := observerLoadInstance(bpfDir, p); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
@@ -209,7 +209,7 @@ func (s *Sensor) FindPrograms() error {
 }
 
 // loadMaps loads all the BPF maps in the sensor.
-func (s *Sensor) loadMaps(mapDir string) error {
+func (s *Sensor) loadMaps(bpfDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
 		if m.PinState.IsLoaded() {
@@ -221,7 +221,7 @@ func (s *Sensor) loadMaps(mapDir string) error {
 			continue
 		}
 
-		pinPath := filepath.Join(mapDir, m.PinName)
+		pinPath := filepath.Join(bpfDir, m.PinName)
 
 		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
 		if err != nil {
@@ -271,7 +271,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(bpfDir, mapDir string, load *program.Program) error {
+func observerLoadInstance(bpfDir string, load *program.Program) error {
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return err
@@ -283,33 +283,33 @@ func observerLoadInstance(bpfDir, mapDir string, load *program.Program) error {
 		"kern_version": version,
 	}).Debug("observerLoadInstance", load.Name, version)
 	if load.Type == "tracepoint" {
-		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
-		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"raw_tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload()
-			err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
 	} else {
-		err = loadInstance(bpfDir, mapDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
@@ -318,7 +318,7 @@ func observerLoadInstance(bpfDir, mapDir string, load *program.Program) error {
 	return nil
 }
 
-func loadInstance(bpfDir, mapDir string, load *program.Program, version, verbose int) error {
+func loadInstance(bpfDir string, load *program.Program, version, verbose int) error {
 	version = kernels.FixKernelVersion(version)
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
@@ -361,11 +361,6 @@ func observerMinReqs() (bool, error) {
 		return false, fmt.Errorf("kernel version lookup failed, required for kprobe")
 	}
 	return true, nil
-}
-
-func createDir(bpfDir, mapDir string) {
-	os.Mkdir(bpfDir, os.ModeDir)
-	os.Mkdir(mapDir, os.ModeDir)
 }
 
 func unloadProgram(prog *program.Program) {

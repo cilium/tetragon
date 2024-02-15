@@ -427,7 +427,7 @@ func tetragonExecute() error {
 
 	// load base sensor
 	base := base.GetInitialSensor()
-	if err := base.Load(observerDir, observerDir); err != nil {
+	if err := base.Load(observerDir); err != nil {
 		return err
 	}
 	defer func() {
