@@ -136,14 +136,23 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 	}).Debug("Received a GetEvents request")
 	allowList, err := filters.BuildFilterList(s.ctx, request.AllowList, filters.Filters)
 	if err != nil {
+		if readyWG != nil {
+			readyWG.Done()
+		}
 		return err
 	}
 	denyList, err := filters.BuildFilterList(s.ctx, request.DenyList, filters.Filters)
 	if err != nil {
+		if readyWG != nil {
+			readyWG.Done()
+		}
 		return err
 	}
 	aggregator, err := aggregator.NewAggregator(server, request.AggregationOptions)
 	if err != nil {
+		if readyWG != nil {
+			readyWG.Done()
+		}
 		return err
 	}
 	if aggregator != nil {
