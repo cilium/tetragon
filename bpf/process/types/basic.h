@@ -20,7 +20,7 @@
 #include "../string_maps.h"
 #include "common.h"
 #include "process/data_event.h"
-#include "process/bpf_killer.h"
+#include "process/bpf_enforcer.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -2218,12 +2218,12 @@ struct {
 
 #if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
 static inline __attribute__((always_inline)) void
-do_action_notify_killer(int error, int signal)
+do_action_notify_enforcer(int error, int signal)
 {
-	do_killer_action(error, signal);
+	do_enforcer_action(error, signal);
 }
 #else
-#define do_action_notify_killer(error, signal)
+#define do_action_notify_enforcer(error, signal)
 #endif
 
 static inline __attribute__((always_inline)) __u32
@@ -2312,7 +2312,7 @@ do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 	case ACTION_NOTIFY_KILLER:
 		error = actions->act[++i];
 		signal = actions->act[++i];
-		do_action_notify_killer(error, signal);
+		do_action_notify_enforcer(error, signal);
 		break;
 	default:
 		break;

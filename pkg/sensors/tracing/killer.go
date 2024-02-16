@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	killerDataMapName = "killer_data"
+	killerDataMapName = "enforcer_data"
 )
 
 type killerHandler struct {
@@ -143,15 +143,15 @@ func (kp *killerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 	if !ok {
 		return fmt.Errorf("failed to get killer handler for '%s'", name)
 	}
-	if args.Load.Label == "kprobe.multi/killer" {
+	if args.Load.Label == "kprobe.multi/enforcer" {
 		return kp.loadMultiKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
-	if args.Load.Label == "kprobe/killer" {
+	if args.Load.Label == "kprobe/enforcer" {
 		return kp.loadSingleKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
-		return program.LoadFmodRetProgram(args.BPFDir, args.Load, "fmodret_killer", args.Verbose)
+		return program.LoadFmodRetProgram(args.BPFDir, args.Load, "fmodret_enforcer", args.Verbose)
 	}
 
 	return fmt.Errorf("killer loader: unknown label: %s", args.Load.Label)
@@ -282,11 +282,11 @@ func (kp *killerPolicy) createKillerSensor(
 	case OverrideMethodReturn:
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 		logger.GetLogger().Infof("killer: using override return (multi-kprobe: %t)", useMulti)
-		label := "kprobe/killer"
-		prog := "bpf_killer.o"
+		label := "kprobe/enforcer"
+		prog := "bpf_enforcer.o"
 		if useMulti {
-			label = "kprobe.multi/killer"
-			prog = "bpf_multi_killer.o"
+			label = "kprobe.multi/enforcer"
+			prog = "bpf_multi_enforcer.o"
 		}
 		attach := fmt.Sprintf("%d syscalls: %s", len(kh.syscallsSyms), kh.syscallsSyms)
 		load = program.Builder(
@@ -303,7 +303,7 @@ func (kp *killerPolicy) createKillerSensor(
 		logger.GetLogger().Infof("killer: using fmod_ret")
 		for _, syscallSym := range kh.syscallsSyms {
 			load = program.Builder(
-				path.Join(option.Config.HubbleLib, "bpf_fmodret_killer.o"),
+				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
 				pinPath,
