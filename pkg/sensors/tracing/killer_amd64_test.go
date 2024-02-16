@@ -34,7 +34,7 @@ func TestKillerOverride32(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -64,7 +64,7 @@ func TestKillerSignal32(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -95,7 +95,7 @@ func TestKillerOverrideBothBits(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	tpChecker64 := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -103,7 +103,7 @@ func TestKillerOverrideBothBits(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker32, tpChecker64)
 
