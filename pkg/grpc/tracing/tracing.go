@@ -60,7 +60,7 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 	case tracingapi.ActionUntrackSock:
 		return tetragon.KprobeAction_KPROBE_ACTION_UNTRACKSOCK
 	case tracingapi.ActionNotifyKiller:
-		return tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER
+		return tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER
 	default:
 		return tetragon.KprobeAction_KPROBE_ACTION_UNKNOWN
 	}
