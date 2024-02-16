@@ -18,16 +18,16 @@ PROGS = sigkill-tester \
 	threads-tester \
 	bench-reader \
 	threads-exit \
-	killer-tester \
+	enforcer-tester \
 	drop-privileges \
 	getcpu \
 	direct-write-tester \
 	change-capabilities
 
-# For now killer-tester is compiled to 32-bit only on x86_64 as we want
+# For now enforcer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
 ifeq ($(shell uname -m),x86_64)
-	PROGS += killer-tester-32
+	PROGS += enforcer-tester-32
 endif
 
 all: $(PROGS)
@@ -79,7 +79,7 @@ uprobe-test-2: uprobe-test-1
 
 # -m32 is an x86_64 flag.
 # NB(kkourt) we compile this as static to avoid the need for ia32 libs in VMs
-killer-tester-32: killer-tester.c
+enforcer-tester-32: enforcer-tester.c
 	$(GCC) -Wall -m32 -static $< -o $@
 
 lseek-pipe: FORCE
