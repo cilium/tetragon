@@ -14,7 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-type KillerSpecBuilder struct {
+type EnforcerSpecBuilder struct {
 	name           string
 	syscalls       [][]string
 	kill           *uint32
@@ -24,61 +24,61 @@ type KillerSpecBuilder struct {
 	multiKprobe    *bool
 }
 
-func NewKillerSpecBuilder(name string) *KillerSpecBuilder {
-	return &KillerSpecBuilder{
+func NewEnforcerSpecBuilder(name string) *EnforcerSpecBuilder {
+	return &EnforcerSpecBuilder{
 		name: name,
 	}
 }
 
-func (ksb *KillerSpecBuilder) WithSyscallList(calls ...string) *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithSyscallList(calls ...string) *EnforcerSpecBuilder {
 	ksb.syscalls = append(ksb.syscalls, calls)
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithKill(sig uint32) *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithKill(sig uint32) *EnforcerSpecBuilder {
 	ksb.kill = &sig
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithMultiKprobe() *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithMultiKprobe() *EnforcerSpecBuilder {
 	multi := true
 	ksb.multiKprobe = &multi
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithoutMultiKprobe() *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithoutMultiKprobe() *EnforcerSpecBuilder {
 	multi := false
 	ksb.multiKprobe = &multi
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithOverrideValue(ret int32) *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithOverrideValue(ret int32) *EnforcerSpecBuilder {
 	ksb.override = &ret
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithMatchBinaries(bins ...string) *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithMatchBinaries(bins ...string) *EnforcerSpecBuilder {
 	ksb.binaries = append(ksb.binaries, bins...)
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithOverrideReturn() *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithOverrideReturn() *EnforcerSpecBuilder {
 	ksb.overrideMethod = valOverrideReturn
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) WithFmodRet() *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithFmodRet() *EnforcerSpecBuilder {
 	ksb.overrideMethod = valFmodRet
 	return ksb
 
 }
 
-func (ksb *KillerSpecBuilder) WithDefaultOverride() *KillerSpecBuilder {
+func (ksb *EnforcerSpecBuilder) WithDefaultOverride() *EnforcerSpecBuilder {
 	ksb.overrideMethod = ""
 	return ksb
 }
 
-func (ksb *KillerSpecBuilder) MustBuild() *v1alpha1.TracingPolicy {
+func (ksb *EnforcerSpecBuilder) MustBuild() *v1alpha1.TracingPolicy {
 	spec, err := ksb.Build()
 	if err != nil {
 		log.Fatalf("MustBuild failed with %v", err)
@@ -86,7 +86,7 @@ func (ksb *KillerSpecBuilder) MustBuild() *v1alpha1.TracingPolicy {
 	return spec
 }
 
-func (ksb *KillerSpecBuilder) MustYAML() string {
+func (ksb *EnforcerSpecBuilder) MustYAML() string {
 	tp, err := ksb.Build()
 	if err != nil {
 		log.Fatalf("MustYAML: build failed with %v", err)
@@ -99,11 +99,11 @@ func (ksb *KillerSpecBuilder) MustYAML() string {
 	return string(b)
 }
 
-func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
+func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 
 	var listNames []string
 	var lists []v1alpha1.ListSpec
-	var killers []v1alpha1.EnforcerSpec
+	var enforcers []v1alpha1.EnforcerSpec
 	var matchBinaries []v1alpha1.BinarySelector
 	var options []v1alpha1.OptionSpec
 
@@ -123,15 +123,15 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 			Pattern:   nil,
 			Validated: false,
 		})
-		killers = append(killers, v1alpha1.EnforcerSpec{
+		enforcers = append(enforcers, v1alpha1.EnforcerSpec{
 			Calls: []string{listName},
 		})
 	}
 
-	actions := []v1alpha1.ActionSelector{{Action: "NotifyKiller"}}
+	actions := []v1alpha1.ActionSelector{{Action: "NotifyEnforcer"}}
 	act := &actions[0]
 	if ksb.kill == nil && ksb.override == nil {
-		return nil, fmt.Errorf("need either override or kill to notify killer")
+		return nil, fmt.Errorf("need either override or kill to notify enforcer")
 	}
 	if ksb.kill != nil {
 		act.ArgSig = *ksb.kill
@@ -192,7 +192,7 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 					MatchBinaries: matchBinaries,
 				}},
 			}},
-			Enforcers: killers,
+			Enforcers: enforcers,
 			Options:   options,
 		},
 	}, nil

@@ -32,16 +32,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func testKillerCheckSkip(t *testing.T) {
+func testEnforcerCheckSkip(t *testing.T) {
 	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
+		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}
 	if !bpf.HasOverrideHelper() && !bpf.HasModifyReturnSyscall() {
 		t.Skip("skipping test, neither bpf_override_return nor fmod_ret for syscalls is available")
 	}
 }
 
-func testKiller(t *testing.T, configHook string,
+func testEnforcer(t *testing.T, configHook string,
 	test string, test2 string,
 	checker *eventchecker.UnorderedEventChecker,
 	checkerFunc func(err error, rc int)) {
@@ -80,12 +80,12 @@ func testKiller(t *testing.T, configHook string,
 	assert.NoError(t, err)
 }
 
-func TestKillerOverride(t *testing.T) {
-	testKillerCheckSkip(t)
+func TestEnforcerOverride(t *testing.T) {
+	testEnforcerCheckSkip(t)
 
 	test := testutils.RepoRootPath("contrib/tester-progs/getcpu")
-	builder := func() *KillerSpecBuilder {
-		return NewKillerSpecBuilder("killer-override").
+	builder := func() *EnforcerSpecBuilder {
+		return NewEnforcerSpecBuilder("enforcer-override").
 			WithSyscallList("sys_getcpu").
 			WithMatchBinaries(test).
 			WithOverrideValue(-17) // EEXIST
@@ -117,12 +117,12 @@ func TestKillerOverride(t *testing.T) {
 				t.Skip("no multi-kprobe support")
 			}
 			yaml := builder().WithOverrideReturn().WithMultiKprobe().MustYAML()
-			testKiller(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, test, "", checker, checkerFunc)
 		})
 
 		t.Run("kprobe (no multi)", func(t *testing.T) {
 			yaml := builder().WithOverrideReturn().WithoutMultiKprobe().MustYAML()
-			testKiller(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, test, "", checker, checkerFunc)
 		})
 	})
 	t.Run("fmod_ret", func(t *testing.T) {
@@ -130,14 +130,14 @@ func TestKillerOverride(t *testing.T) {
 			t.Skip("fmod_ret not supported")
 		}
 		yaml := builder().WithFmodRet().MustYAML()
-		testKiller(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, test, "", checker, checkerFunc)
 	})
 }
 
-func TestKillerSignal(t *testing.T) {
-	testKillerCheckSkip(t)
+func TestEnforcerSignal(t *testing.T) {
+	testEnforcerCheckSkip(t)
 
-	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
 	tpChecker := ec.NewProcessTracepointChecker("").
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -155,8 +155,8 @@ func TestKillerSignal(t *testing.T) {
 		}
 	}
 
-	builder := func() *KillerSpecBuilder {
-		return NewKillerSpecBuilder("killer-signal").
+	builder := func() *EnforcerSpecBuilder {
+		return NewEnforcerSpecBuilder("enforcer-signal").
 			WithSyscallList("sys_prctl").
 			WithMatchBinaries(test).
 			WithOverrideValue(-17). // EEXIST
@@ -172,18 +172,18 @@ func TestKillerSignal(t *testing.T) {
 		}
 
 		yaml := builder().WithMultiKprobe().MustYAML()
-		testKiller(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, test, "", checker, checkerFunc)
 	})
 
 	t.Run("kprobe (no multi)", func(t *testing.T) {
 		yaml := builder().WithoutMultiKprobe().MustYAML()
-		testKiller(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, test, "", checker, checkerFunc)
 	})
 
 }
 
-func TestKillerMultiNotSupported(t *testing.T) {
-	yaml := NewKillerSpecBuilder("killer-multi").
+func TestEnforcerMultiNotSupported(t *testing.T) {
+	yaml := NewEnforcerSpecBuilder("enforcer-multi").
 		WithSyscallList("sys_prctl").
 		WithSyscallList("sys_dup").
 		WithOverrideValue(-17). // EEXIST
@@ -244,25 +244,25 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 // in this case direct pwrite syscall.
 // Standard Sigkill action kills executed from sys_pwrite probe kills the
 // process, but only after the pwrite syscall is executed.
-// Now we can mitigate that by attaching killer to security_file_permission
+// Now we can mitigate that by attaching enforcer to security_file_permission
 // function and override its return value to prevent the pwrite syscall
 // execution.
 //
 // The testing spec below:
 // - attaches probe to pwrite
-// - attaches killer to security_file_permission
+// - attaches enforcer to security_file_permission
 // - executes SigKill action for attempted pwrite to specific file
-// - executes NotifyEnforcer action to instruct killer to override the
+// - executes NotifyEnforcer action to instruct enforcer to override the
 //   security_file_permission return value with -1
 // - tests that no data got written to the monitored file
 
-func TestKillerSecuritySigKill(t *testing.T) {
+func TestEnforcerSecuritySigKill(t *testing.T) {
 	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
+		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}
 
 	if !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, fmod_ret is not available")
+		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
 	if !kernels.EnableLargeProgs() {
@@ -280,7 +280,7 @@ spec:
   options:
     - name: "override-method"
       value: "fmod-ret"
-  killers:
+  enforcers:
   - calls:
     - "security_file_permission"
   kprobes:
@@ -332,24 +332,24 @@ spec:
 }
 
 // Testing the ability to kill the process before it executes the syscall,
-// in similar way as in TestKillerSecuritySigKill test.
+// in similar way as in TestEnforcerSecuritySigKill test.
 // The only difference is we use the NotifyEnforcer to send the signal instead
 // of using SigKill action.
 //
 // The testing spec below:
 // - attaches probe to pwrite
-// - attaches killer to security_file_permission
-// - executes NotifyEnforcer to instruct killer to send sigkill to current process
+// - attaches enforcer to security_file_permission
+// - executes NotifyEnforcer to instruct enforcer to send sigkill to current process
 //   and override the security_file_permission return value with -1
 // - tests that no data got written to the monitored file
 
-func TestKillerSecurityNotifyEnforcer(t *testing.T) {
+func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
+		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}
 
 	if !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, fmod_ret is not available")
+		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
 	if !kernels.EnableLargeProgs() {
@@ -367,7 +367,7 @@ spec:
   options:
     - name: "override-method"
       value: "fmod-ret"
-  killers:
+  enforcers:
   - calls:
     - "security_file_permission"
   kprobes:
@@ -419,39 +419,39 @@ spec:
 }
 
 // This test loads 2 policies:
-// - first set standard killer tracepoint setup on sys_prctl
+// - first set standard enforcer tracepoint setup on sys_prctl
 //   with first argument value 0xffff
-// - second set standard killer tracepoint setup on sys_prctl
+// - second set standard enforcer tracepoint setup on sys_prctl
 //   with first argument value 0xfffe
 // then make sure both policies catch and kill.
 
-func TestKillerMulti(t *testing.T) {
+func TestEnforcerMulti(t *testing.T) {
 	if !bpf.HasSignalHelper() {
-		t.Skip("skipping killer test, bpf_send_signal helper not available")
+		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}
 
 	if !bpf.HasModifyReturn() {
-		t.Skip("skipping killer test, fmod_ret is not available")
+		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
 	if !kernels.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	testBin := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+	testBin := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
 	policyYAML1 := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "killer-prctl-1"
+  name: "enforcer-prctl-1"
 spec:
   lists:
   - name: "prctl"
     type: "syscalls"
     values:
     - "sys_prctl"
-  killers:
+  enforcers:
   - calls:
     - "list:prctl"
   tracepoints:
@@ -486,14 +486,14 @@ spec:
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "killer-prctl-2"
+  name: "enforcer-prctl-2"
 spec:
   lists:
   - name: "prctl"
     type: "syscalls"
     values:
     - "sys_prctl"
-  killers:
+  enforcers:
   - calls:
     - "list:prctl"
   tracepoints:
@@ -541,13 +541,13 @@ spec:
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(t, base.GetInitialSensor())
 
-	sensor1, err := gKillerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
+	sensor1, err := gEnforcerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
 	assert.NoError(t, err)
 
 	sensor2, err := policyHandler{}.PolicyHandler(policy1, policyfilter.NoFilterID)
 	assert.NoError(t, err)
 
-	sensor3, err := gKillerPolicy.PolicyHandler(policy2, policyfilter.NoFilterID)
+	sensor3, err := gEnforcerPolicy.PolicyHandler(policy2, policyfilter.NoFilterID)
 	assert.NoError(t, err)
 
 	sensor4, err := policyHandler{}.PolicyHandler(policy2, policyfilter.NoFilterID)
@@ -561,7 +561,7 @@ spec:
 
 	t.Logf("All policies loaded\n")
 
-	// 'killer-tester 0xffff' should be killed by policy 1
+	// 'enforcer-tester 0xffff' should be killed by policy 1
 	cmd := exec.Command(testBin, "0xffff")
 	err = cmd.Run()
 
@@ -569,7 +569,7 @@ spec:
 		t.Fatalf("Wrong error '%v' expected 'killed'", err)
 	}
 
-	// 'killer-tester 0xfffe' should be killed by policy 2
+	// 'enforcer-tester 0xfffe' should be killed by policy 2
 	cmd = exec.Command(testBin, "0xfffe")
 	err = cmd.Run()
 
@@ -577,7 +577,7 @@ spec:
 		t.Fatalf("Wrong error '%v' expected 'killed'", err)
 	}
 
-	// 'killer-tester 0xfffd' should NOT get killed
+	// 'enforcer-tester 0xfffd' should NOT get killed
 	cmd = exec.Command(testBin, "0xfffd")
 	err = cmd.Run()
 
@@ -591,7 +591,7 @@ spec:
 
 	t.Logf("Unloaded policy 1\n")
 
-	// 'killer-tester 0xffff' should NOT get killed now
+	// 'enforcer-tester 0xffff' should NOT get killed now
 	cmd = exec.Command(testBin, "0xffff")
 	err = cmd.Run()
 
@@ -599,7 +599,7 @@ spec:
 		t.Fatalf("Wrong error '%v' expected 'exit status 22'", err)
 	}
 
-	// 'killer-tester 0xfffe' should be killed by policy 2
+	// 'enforcer-tester 0xfffe' should be killed by policy 2
 	cmd = exec.Command(testBin, "0xfffe")
 	err = cmd.Run()
 
@@ -613,7 +613,7 @@ spec:
 
 	t.Logf("Unloaded policy 2\n")
 
-	// 'killer-tester 0xfffe' should NOT get killed now
+	// 'enforcer-tester 0xfffe' should NOT get killed now
 	cmd = exec.Command(testBin, "0xfffe")
 	err = cmd.Run()
 

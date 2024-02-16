@@ -22,67 +22,67 @@ import (
 )
 
 const (
-	killerDataMapName = "enforcer_data"
+	enforcerDataMapName = "enforcer_data"
 )
 
-type killerHandler struct {
+type enforcerHandler struct {
 	syscallsSyms []string
 }
 
-type killerPolicy struct {
-	mu      sync.Mutex
-	killers map[string]*killerHandler
+type enforcerPolicy struct {
+	mu        sync.Mutex
+	enforcers map[string]*enforcerHandler
 }
 
-func newKillerPolicy() *killerPolicy {
-	return &killerPolicy{
-		killers: map[string]*killerHandler{},
+func newEnforcerPolicy() *enforcerPolicy {
+	return &enforcerPolicy{
+		enforcers: map[string]*enforcerHandler{},
 	}
 }
 
 var (
-	// global killer policy
-	gKillerPolicy = newKillerPolicy()
+	// global enforcer policy
+	gEnforcerPolicy = newEnforcerPolicy()
 )
 
 func init() {
-	sensors.RegisterProbeType("killer", gKillerPolicy)
-	sensors.RegisterPolicyHandlerAtInit("killer", gKillerPolicy)
+	sensors.RegisterProbeType("enforcer", gEnforcerPolicy)
+	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func killerMap(policyName string, load *program.Program) *program.Map {
-	return program.MapBuilderPin(killerDataMapName,
-		fmt.Sprintf("%s_%s", killerDataMapName, policyName), load)
+func enforcerMap(policyName string, load *program.Program) *program.Map {
+	return program.MapBuilderPin(enforcerDataMapName,
+		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load)
 }
 
-func (kp *killerPolicy) killerGet(name string) (*killerHandler, bool) {
+func (kp *enforcerPolicy) enforcerGet(name string) (*enforcerHandler, bool) {
 	kp.mu.Lock()
 	defer kp.mu.Unlock()
-	kh, ok := kp.killers[name]
+	kh, ok := kp.enforcers[name]
 	return kh, ok
 }
 
-func (kp *killerPolicy) killerAdd(name string, kh *killerHandler) bool {
+func (kp *enforcerPolicy) enforcerAdd(name string, kh *enforcerHandler) bool {
 	kp.mu.Lock()
 	defer kp.mu.Unlock()
-	if _, ok := kp.killers[name]; ok {
+	if _, ok := kp.enforcers[name]; ok {
 		return false
 	}
-	kp.killers[name] = kh
+	kp.enforcers[name] = kh
 	return true
 }
 
-func (kp *killerPolicy) killerDel(name string) bool {
+func (kp *enforcerPolicy) enforcerDel(name string) bool {
 	kp.mu.Lock()
 	defer kp.mu.Unlock()
-	if _, ok := kp.killers[name]; !ok {
+	if _, ok := kp.enforcers[name]; !ok {
 		return false
 	}
-	delete(kp.killers, name)
+	delete(kp.enforcers, name)
 	return true
 }
 
-func (kp *killerPolicy) PolicyHandler(
+func (kp *enforcerPolicy) PolicyHandler(
 	policy tracingpolicy.TracingPolicy,
 	_ policyfilter.PolicyID,
 ) (*sensors.Sensor, error) {
@@ -96,27 +96,27 @@ func (kp *killerPolicy) PolicyHandler(
 		}
 	}
 	if len(spec.Enforcers) > 0 {
-		name := fmt.Sprintf("killer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return kp.createKillerSensor(spec.Enforcers, spec.Lists, spec.Options, name, policy.TpName())
+		name := fmt.Sprintf("enforcer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, name, policy.TpName())
 	}
 
 	return nil, nil
 }
 
-func (kp *killerPolicy) loadSingleKillerSensor(
-	kh *killerHandler,
+func (kp *enforcerPolicy) loadSingleEnforcerSensor(
+	kh *enforcerHandler,
 	bpfDir string, load *program.Program, verbose int,
 ) error {
 	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded killer sensor: %s", load.Attach)
+		logger.GetLogger().Infof("Loaded enforcer sensor: %s", load.Attach)
 	} else {
 		return err
 	}
 	return nil
 }
 
-func (kp *killerPolicy) loadMultiKillerSensor(
-	kh *killerHandler,
+func (kp *enforcerPolicy) loadMultiEnforcerSensor(
+	kh *enforcerHandler,
 	bpfDir string, load *program.Program, verbose int,
 ) error {
 	data := &program.MultiKprobeAttachData{}
@@ -129,32 +129,32 @@ func (kp *killerPolicy) loadMultiKillerSensor(
 		return err
 	}
 
-	logger.GetLogger().Infof("Loaded killer sensor: %s", load.Attach)
+	logger.GetLogger().Infof("Loaded enforcer sensor: %s", load.Attach)
 	return nil
 }
 
-func (kp *killerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
+func (kp *enforcerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 	name, ok := args.Load.LoaderData.(string)
 	if !ok {
 		return fmt.Errorf("invalid loadData type: expecting string and got: %T (%v)",
 			args.Load.LoaderData, args.Load.LoaderData)
 	}
-	kh, ok := kp.killerGet(name)
+	kh, ok := kp.enforcerGet(name)
 	if !ok {
-		return fmt.Errorf("failed to get killer handler for '%s'", name)
+		return fmt.Errorf("failed to get enforcer handler for '%s'", name)
 	}
 	if args.Load.Label == "kprobe.multi/enforcer" {
-		return kp.loadMultiKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
+		return kp.loadMultiEnforcerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
 	if args.Load.Label == "kprobe/enforcer" {
-		return kp.loadSingleKillerSensor(kh, args.BPFDir, args.Load, args.Verbose)
+		return kp.loadSingleEnforcerSensor(kh, args.BPFDir, args.Load, args.Verbose)
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
 		return program.LoadFmodRetProgram(args.BPFDir, args.Load, "fmodret_enforcer", args.Verbose)
 	}
 
-	return fmt.Errorf("killer loader: unknown label: %s", args.Load.Label)
+	return fmt.Errorf("enforcer loader: unknown label: %s", args.Load.Label)
 }
 
 // select proper override method based on configuration and spec options
@@ -167,7 +167,7 @@ func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (Overr
 		} else if bpf.HasModifyReturnSyscall() {
 			overrideMethod = OverrideMethodFmodRet
 		} else {
-			return OverrideMethodInvalid, fmt.Errorf("no override helper or mod_ret support: cannot load killer")
+			return OverrideMethodInvalid, fmt.Errorf("no override helper or mod_ret support: cannot load enforcer")
 		}
 	case OverrideMethodReturn:
 		if !bpf.HasOverrideHelper() {
@@ -182,30 +182,30 @@ func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (Overr
 	return overrideMethod, nil
 }
 
-func (kp *killerPolicy) createKillerSensor(
-	killers []v1alpha1.EnforcerSpec,
+func (kp *enforcerPolicy) createEnforcerSensor(
+	enforcers []v1alpha1.EnforcerSpec,
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
 	name string,
 	policyName string,
 ) (*sensors.Sensor, error) {
 
-	if len(killers) > 1 {
-		return nil, fmt.Errorf("failed: we support only single killer sensor")
+	if len(enforcers) > 1 {
+		return nil, fmt.Errorf("failed: we support only single enforcer sensor")
 	}
 
-	killer := killers[0]
+	enforcer := enforcers[0]
 
 	var (
 		hasSyscall  bool
 		hasSecurity bool
 	)
 
-	kh := &killerHandler{}
+	kh := &enforcerHandler{}
 
 	// get all the syscalls
-	for idx := range killer.Calls {
-		sym := killer.Calls[idx]
+	for idx := range enforcer.Calls {
+		sym := enforcer.Calls[idx]
 		if strings.HasPrefix(sym, "list:") {
 			listName := sym[len("list:"):]
 
@@ -230,7 +230,7 @@ func (kp *killerPolicy) createKillerSensor(
 		isSecurity := strings.HasPrefix(sym, "security_")
 
 		if !isSyscall && !isSecurity && !isPrefix {
-			return nil, fmt.Errorf("killer sensor requires either syscall or security_ functions")
+			return nil, fmt.Errorf("enforcer sensor requires either syscall or security_ functions")
 		}
 
 		if isSyscall {
@@ -245,7 +245,7 @@ func (kp *killerPolicy) createKillerSensor(
 		hasSecurity = hasSecurity || isSecurity
 	}
 
-	// register killer sensor
+	// register enforcer sensor
 	var load *program.Program
 	var progs []*program.Program
 	var maps []*program.Map
@@ -255,7 +255,7 @@ func (kp *killerPolicy) createKillerSensor(
 	}
 
 	if !bpf.HasSignalHelper() {
-		return nil, fmt.Errorf("killer sensor requires signal helper which is not available")
+		return nil, fmt.Errorf("enforcer sensor requires signal helper which is not available")
 	}
 
 	// select proper override method based on configuration and spec options
@@ -266,10 +266,10 @@ func (kp *killerPolicy) createKillerSensor(
 	if hasSecurity && overrideMethod != OverrideMethodFmodRet {
 		// fail if override-return is directly requested
 		if overrideMethod == OverrideMethodReturn {
-			return nil, fmt.Errorf("killer: can't override security function with override-return")
+			return nil, fmt.Errorf("enforcer: can't override security function with override-return")
 		}
 		overrideMethod = OverrideMethodFmodRet
-		logger.GetLogger().Infof("killer: forcing fmod_ret (security_* call detected)")
+		logger.GetLogger().Infof("enforcer: forcing fmod_ret (security_* call detected)")
 	}
 
 	overrideMethod, err = selectOverrideMethod(overrideMethod, hasSyscall)
@@ -277,11 +277,11 @@ func (kp *killerPolicy) createKillerSensor(
 		return nil, err
 	}
 
-	pinPath := sensors.PathJoin(name, "killer_kprobe")
+	pinPath := sensors.PathJoin(name, "enforcer_kprobe")
 	switch overrideMethod {
 	case OverrideMethodReturn:
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
-		logger.GetLogger().Infof("killer: using override return (multi-kprobe: %t)", useMulti)
+		logger.GetLogger().Infof("enforcer: using override return (multi-kprobe: %t)", useMulti)
 		label := "kprobe/enforcer"
 		prog := "bpf_enforcer.o"
 		if useMulti {
@@ -294,20 +294,20 @@ func (kp *killerPolicy) createKillerSensor(
 			attach,
 			label,
 			pinPath,
-			"killer").
+			"enforcer").
 			SetLoaderData(name)
 
 		progs = append(progs, load)
 	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
-		logger.GetLogger().Infof("killer: using fmod_ret")
+		logger.GetLogger().Infof("enforcer: using fmod_ret")
 		for _, syscallSym := range kh.syscallsSyms {
 			load = program.Builder(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
 				pinPath,
-				"killer").
+				"enforcer").
 				SetLoaderData(name)
 			progs = append(progs, load)
 		}
@@ -315,24 +315,24 @@ func (kp *killerPolicy) createKillerSensor(
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	killerDataMap := killerMap(policyName, load)
-	maps = append(maps, killerDataMap)
+	enforcerDataMap := enforcerMap(policyName, load)
+	maps = append(maps, enforcerDataMap)
 
-	if ok := kp.killerAdd(name, kh); !ok {
-		return nil, fmt.Errorf("failed to add killer: '%s'", name)
+	if ok := kp.enforcerAdd(name, kh); !ok {
+		return nil, fmt.Errorf("failed to add enforcer: '%s'", name)
 	}
 
-	logger.GetLogger().Infof("Added killer sensor '%s'", name)
+	logger.GetLogger().Infof("Added enforcer sensor '%s'", name)
 
 	return &sensors.Sensor{
-		Name:  "__killer__",
+		Name:  "__enforcer__",
 		Progs: progs,
 		Maps:  maps,
 		PostUnloadHook: func() error {
-			if ok := kp.killerDel(name); !ok {
-				logger.GetLogger().Infof("Failed to clean up killer sensor '%s'", name)
+			if ok := kp.enforcerDel(name); !ok {
+				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", name)
 			} else {
-				logger.GetLogger().Infof("Cleaned up killer sensor '%s'", name)
+				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", name)
 			}
 			return nil
 		},
