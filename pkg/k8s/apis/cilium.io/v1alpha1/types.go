@@ -191,7 +191,7 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyKiller
+	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer
 	// Action to execute.
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
@@ -354,7 +354,7 @@ type PodInfoList struct {
 	Items           []PodInfo `json:"items"`
 }
 
-type KillerSpec struct {
-	// Calls where killer is executed in
+type EnforcerSpec struct {
+	// Calls where enforcer is executed in
 	Calls []string `json:"calls"`
 }

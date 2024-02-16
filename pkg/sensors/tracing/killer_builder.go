@@ -103,7 +103,7 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 
 	var listNames []string
 	var lists []v1alpha1.ListSpec
-	var killers []v1alpha1.KillerSpec
+	var killers []v1alpha1.EnforcerSpec
 	var matchBinaries []v1alpha1.BinarySelector
 	var options []v1alpha1.OptionSpec
 
@@ -123,7 +123,7 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 			Pattern:   nil,
 			Validated: false,
 		})
-		killers = append(killers, v1alpha1.KillerSpec{
+		killers = append(killers, v1alpha1.EnforcerSpec{
 			Calls: []string{listName},
 		})
 	}
@@ -192,8 +192,8 @@ func (ksb *KillerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 					MatchBinaries: matchBinaries,
 				}},
 			}},
-			Killers: killers,
-			Options: options,
+			Enforcers: killers,
+			Options:   options,
 		},
 	}, nil
 }
