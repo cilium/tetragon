@@ -318,8 +318,8 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		maps = append(maps, socktrack)
 	}
 
-	killerDataMap := killerMap(policyName, load)
-	maps = append(maps, killerDataMap)
+	enforcerDataMap := enforcerMap(policyName, load)
+	maps = append(maps, enforcerDataMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
@@ -868,8 +868,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		maps = append(maps, socktrack)
 	}
 
-	killerDataMap := killerMap(kprobeEntry.policyName, load)
-	maps = append(maps, killerDataMap)
+	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
+	maps = append(maps, enforcerDataMap)
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
