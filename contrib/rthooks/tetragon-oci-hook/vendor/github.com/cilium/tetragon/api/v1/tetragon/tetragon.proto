@@ -340,6 +340,10 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeLinuxBinprm {
+    string path = 1;
+}
+
 message KprobeCapability {
 	google.protobuf.Int32Value value = 1;
 	string name = 2;
@@ -399,6 +403,7 @@ message KprobeArgument {
 	string cap_inheritable_arg = 23; // Capabilities inherited by a forked process in hexadecimal format.
 	string cap_permitted_arg = 24; // Capabilities that are currently permitted in hexadecimal format.
 	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
+	KprobeLinuxBinprm linux_binprm_arg = 26;
     }
     string label = 18;
 }
