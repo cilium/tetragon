@@ -410,7 +410,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		case "security_file_permission":
 			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_file_permission")
 			attr := ""
-			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+			if len(kprobe.Args) > 1 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
 				file := kprobe.Args[0].GetFileArg()
 				action := kprobe.Args[1].GetIntArg()
 				if action == 0x02 {
@@ -424,7 +424,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		case "security_mmap_file":
 			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_mmap_file")
 			attr := ""
-			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
+			if len(kprobe.Args) > 1 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
 				file := kprobe.Args[0].GetFileArg()
 				action := kprobe.Args[1].GetUintArg()
 				eventTag := "mmap-"
