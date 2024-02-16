@@ -18,11 +18,11 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 )
 
-func TestKillerOverride32(t *testing.T) {
-	testKillerCheckSkip(t)
+func TestEnforcerOverride32(t *testing.T) {
+	testEnforcerCheckSkip(t)
 
-	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
-	yaml := NewKillerSpecBuilder("killer-override").
+	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
+	yaml := NewEnforcerSpecBuilder("enforcer-override").
 		WithSyscallList("__ia32_sys_prctl").
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
@@ -44,14 +44,14 @@ func TestKillerOverride32(t *testing.T) {
 		}
 	}
 
-	testKiller(t, yaml, test, "", checker, checkerFunc)
+	testEnforcer(t, yaml, test, "", checker, checkerFunc)
 }
 
-func TestKillerSignal32(t *testing.T) {
-	testKillerCheckSkip(t)
+func TestEnforcerSignal32(t *testing.T) {
+	testEnforcerCheckSkip(t)
 
-	test := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
-	yaml := NewKillerSpecBuilder("killer-signal").
+	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
+	yaml := NewEnforcerSpecBuilder("enforcer-signal").
 		WithSyscallList("__ia32_sys_prctl").
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
@@ -74,16 +74,16 @@ func TestKillerSignal32(t *testing.T) {
 		}
 	}
 
-	testKiller(t, yaml, test, "", checker, checkerFunc)
+	testEnforcer(t, yaml, test, "", checker, checkerFunc)
 }
 
-func TestKillerOverrideBothBits(t *testing.T) {
-	testKillerCheckSkip(t)
+func TestEnforcerOverrideBothBits(t *testing.T) {
+	testEnforcerCheckSkip(t)
 
-	test32 := testutils.RepoRootPath("contrib/tester-progs/killer-tester-32")
-	test64 := testutils.RepoRootPath("contrib/tester-progs/killer-tester")
+	test32 := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
+	test64 := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
-	yaml := NewKillerSpecBuilder("killer-override").
+	yaml := NewEnforcerSpecBuilder("enforcer-override").
 		WithSyscallList("__ia32_sys_prctl", "sys_prctl").
 		WithMatchBinaries(test32, test64).
 		WithOverrideValue(-17). // EEXIST
@@ -113,5 +113,5 @@ func TestKillerOverrideBothBits(t *testing.T) {
 		}
 	}
 
-	testKiller(t, yaml, test64, test32, checker, checkerFunc)
+	testEnforcer(t, yaml, test64, test32, checker, checkerFunc)
 }
