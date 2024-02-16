@@ -26,7 +26,7 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
 	  bpf_generic_uprobe_v511.o \
 	  bpf_loader.o \
-	  bpf_killer.o bpf_multi_killer.o bpf_fmodret_killer.o
+	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o bpf_globals.o
@@ -82,27 +82,27 @@ $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
 
 
-# Killer programs: bpf_killer, bpf_multi_killer, bpf_fmodret_killer
+# Enforcer programs: bpf_enforcer, bpf_multi_enforcer, bpf_fmodret_enforcer
 
-## bpf_killer: __BPF_OVERRIDE_RETURN, but no __MULTI_KPROBE
-objs/bpf_killer.ll: process/bpf_killer.c
+## bpf_enforcer: __BPF_OVERRIDE_RETURN, but no __MULTI_KPROBE
+objs/bpf_enforcer.ll: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -c $< -o $@
 
-$(DEPSDIR)bpf_killer.d: process/bpf_killer.c
+$(DEPSDIR)bpf_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
-## bpf_multi_killer: __BPF_OVERRIDE_RETURN and __MULTI_KPROBE
-objs/bpf_multi_killer.ll: process/bpf_killer.c
+## bpf_multi_enforcer: __BPF_OVERRIDE_RETURN and __MULTI_KPROBE
+objs/bpf_multi_enforcer.ll: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -c $< -o $@
 
-$(DEPSDIR)/bpf_multi_killer.d: process/bpf_killer.c
+$(DEPSDIR)/bpf_multi_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
-## bpf_fmodret_killer no bpf_override_return: we need fmod_ret
-objs/bpf_fmodret_killer.ll: process/bpf_killer.c
+## bpf_fmodret_enforcer no bpf_override_return: we need fmod_ret
+objs/bpf_fmodret_enforcer.ll: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -c $< -o $@
 
-$(DEPSDIR)/bpf_fmodret_killer.d: process/bpf_killer.c
+$(DEPSDIR)/bpf_fmodret_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
 # PROCESSDIR
