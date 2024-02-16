@@ -252,7 +252,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 // - attaches probe to pwrite
 // - attaches killer to security_file_permission
 // - executes SigKill action for attempted pwrite to specific file
-// - executes NotifyKiller action to instruct killer to override the
+// - executes NotifyEnforcer action to instruct killer to override the
 //   security_file_permission return value with -1
 // - tests that no data got written to the monitored file
 
@@ -324,7 +324,7 @@ spec:
         - "` + tempFile + `"
       matchActions:
       - action: Sigkill
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argError: -1
 `
 
@@ -333,17 +333,17 @@ spec:
 
 // Testing the ability to kill the process before it executes the syscall,
 // in similar way as in TestKillerSecuritySigKill test.
-// The only difference is we use the NotifyKiller to send the signal instead
+// The only difference is we use the NotifyEnforcer to send the signal instead
 // of using SigKill action.
 //
 // The testing spec below:
 // - attaches probe to pwrite
 // - attaches killer to security_file_permission
-// - executes NotifyKiller to instruct killer to send sigkill to current process
+// - executes NotifyEnforcer to instruct killer to send sigkill to current process
 //   and override the security_file_permission return value with -1
 // - tests that no data got written to the monitored file
 
-func TestKillerSecurityNotifyKiller(t *testing.T) {
+func TestKillerSecurityNotifyEnforcer(t *testing.T) {
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping killer test, bpf_send_signal helper not available")
 	}
@@ -410,7 +410,7 @@ spec:
         values:
         - "` + tempFile + `"
       matchActions:
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argError: -1
         argSig: 9
 `
@@ -477,7 +477,7 @@ spec:
         values:
         - "` + testBin + `"
       matchActions:
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argError: -1
         argSig: 9
 `
@@ -519,7 +519,7 @@ spec:
         values:
         - "` + testBin + `"
       matchActions:
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argError: -1
         argSig: 9
 `

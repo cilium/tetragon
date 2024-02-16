@@ -95,9 +95,9 @@ func (kp *killerPolicy) PolicyHandler(
 			return nil, err
 		}
 	}
-	if len(spec.Killers) > 0 {
+	if len(spec.Enforcers) > 0 {
 		name := fmt.Sprintf("killer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return kp.createKillerSensor(spec.Killers, spec.Lists, spec.Options, name, policy.TpName())
+		return kp.createKillerSensor(spec.Enforcers, spec.Lists, spec.Options, name, policy.TpName())
 	}
 
 	return nil, nil
@@ -183,7 +183,7 @@ func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (Overr
 }
 
 func (kp *killerPolicy) createKillerSensor(
-	killers []v1alpha1.KillerSpec,
+	killers []v1alpha1.EnforcerSpec,
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
 	name string,

@@ -34,12 +34,12 @@ spec:
           spec:
             description: Tracing policy specification.
             properties:
-              killers:
+              enforcers:
                 description: A killer spec.
                 items:
                   properties:
                     calls:
-                      description: Calls where killer is executed in
+                      description: Calls where enforcer is executed in
                       items:
                         type: string
                       type: array
@@ -264,7 +264,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -572,7 +572,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -918,7 +918,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1226,7 +1226,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1473,7 +1473,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1781,7 +1781,7 @@ spec:
                                   - Signal
                                   - TrackSock
                                   - UntrackSock
-                                  - NotifyKiller
+                                  - NotifyEnforcer
                                   type: string
                                 argError:
                                   description: error value for override action

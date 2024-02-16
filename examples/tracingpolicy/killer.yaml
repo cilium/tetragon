@@ -10,7 +10,7 @@ spec:
     - "sys_dup"
     - "sys_dup2"
     - "__ia32_sys_dup"
-  killers:
+  enforcers:
   - calls:
     - "list:dups"
   tracepoints:
@@ -30,6 +30,6 @@ spec:
         values:
         - "/usr/bin/bash"
       matchActions:
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argError: -1
         argSig: 9

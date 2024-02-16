@@ -96,7 +96,7 @@ type TracingPolicySpec struct {
 
 	// +kubebuilder:validation:Optional
 	// A killer spec.
-	Killers []KillerSpec `json:"killers,omitempty"`
+	Enforcers []EnforcerSpec `json:"enforcers,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// A list of overloaded options
