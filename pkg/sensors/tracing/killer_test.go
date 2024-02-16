@@ -97,7 +97,7 @@ func TestKillerOverride(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(unix.SYS_GETCPU),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -145,7 +145,7 @@ func TestKillerSignal(t *testing.T) {
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
 			)).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER)
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
@@ -221,7 +221,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Suffix(testBin))).
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_pwrite64"))).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYKILLER).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
