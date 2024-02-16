@@ -20,6 +20,10 @@ const (
 	opNotIn
 )
 
+const (
+	K8sPodNamespace = "k8s:io.kubernetes.pod.namespace"
+)
+
 type selectorOp struct {
 	key      string
 	operator operator

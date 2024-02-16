@@ -204,8 +204,18 @@ func (pol *policy) podMatches(podNs string, podLabels labels.Labels) bool {
 	if pol.namespace != "" && podNs != pol.namespace {
 		return false
 	}
+	var podLabels1 labels.Labels
+	if podLabels != nil {
+		podLabels1 = podLabels
+	} else {
+		podLabels1 = make(labels.Labels)
+	}
 
-	return pol.podSelector.Match(podLabels)
+	if _, ok := podLabels1[labels.K8sPodNamespace]; !ok {
+		podLabels1[labels.K8sPodNamespace] = podNs
+	}
+
+	return pol.podSelector.Match(podLabels1)
 }
 
 func (pol *policy) podInfoMatches(pod *podInfo) bool {

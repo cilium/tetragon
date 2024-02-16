@@ -14,6 +14,7 @@ import (
 type testLabel struct {
 	labels      Labels
 	expectedRes bool
+	namespace   string
 }
 
 type testCase struct {
@@ -27,8 +28,8 @@ func TestLabels(t *testing.T) {
 			// empty label selector should match everything
 			labelSelector: &slimv1.LabelSelector{},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, true},
-				{nil, true},
+				{map[string]string{"app": "tetragon"}, true, "default"},
+				{Labels{}, true, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -37,8 +38,8 @@ func TestLabels(t *testing.T) {
 				},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, true},
-				{map[string]string{"app": "cilium"}, false},
+				{map[string]string{"app": "tetragon"}, true, "default"},
+				{map[string]string{"app": "cilium"}, false, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -49,9 +50,9 @@ func TestLabels(t *testing.T) {
 				}},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, true},
-				{map[string]string{"app": "cilium"}, true},
-				{map[string]string{"app": "hubble"}, false},
+				{map[string]string{"app": "tetragon"}, true, "default"},
+				{map[string]string{"app": "cilium"}, true, "default"},
+				{map[string]string{"app": "hubble"}, false, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -62,9 +63,9 @@ func TestLabels(t *testing.T) {
 				}},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, false},
-				{map[string]string{"app": "cilium"}, false},
-				{map[string]string{"app": "hubble"}, true},
+				{map[string]string{"app": "tetragon"}, false, "default"},
+				{map[string]string{"app": "cilium"}, false, "default"},
+				{map[string]string{"app": "hubble"}, true, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -74,9 +75,9 @@ func TestLabels(t *testing.T) {
 				}},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, true},
-				{map[string]string{"application": "cilium"}, false},
-				{map[string]string{"app": "hubble"}, true},
+				{map[string]string{"app": "tetragon"}, true, "default"},
+				{map[string]string{"application": "cilium"}, false, "default"},
+				{map[string]string{"app": "hubble"}, true, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -86,9 +87,9 @@ func TestLabels(t *testing.T) {
 				}},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, false},
-				{map[string]string{"application": "cilium"}, true},
-				{map[string]string{"app": "hubble"}, false},
+				{map[string]string{"app": "tetragon"}, false, "default"},
+				{map[string]string{"application": "cilium"}, true, "default"},
+				{map[string]string{"app": "hubble"}, false, "default"},
 			},
 		}, {
 			labelSelector: &slimv1.LabelSelector{
@@ -101,10 +102,59 @@ func TestLabels(t *testing.T) {
 				},
 			},
 			tests: []testLabel{
-				{map[string]string{"app": "tetragon"}, true},
-				{map[string]string{"application": "tetragon"}, false},
-				{map[string]string{"app": "tetragon", "application": "tetragon"}, false},
-				{map[string]string{"app": "tetragon", "pizza": "yes"}, true},
+				{map[string]string{"app": "tetragon"}, true, "default"},
+				{map[string]string{"application": "tetragon"}, false, "default"},
+				{map[string]string{"app": "tetragon", "application": "tetragon"}, false, "default"},
+				{map[string]string{"app": "tetragon", "pizza": "yes"}, true, "default"},
+			},
+		}, {
+			labelSelector: &slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      K8sPodNamespace,
+					Operator: "In",
+					Values:   []string{"tetragon"},
+				}},
+			},
+			tests: []testLabel{
+				{map[string]string{K8sPodNamespace: "tetragon"}, true, "tetragon"},
+				{map[string]string{K8sPodNamespace: "test"}, false, "default"},
+			},
+		}, {
+			labelSelector: &slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      K8sPodNamespace,
+					Operator: "In",
+					Values:   []string{"cilium", "tetragon"},
+				}},
+			},
+			tests: []testLabel{
+				{map[string]string{"app": "tetragon"}, true, "cilium"},
+				{map[string]string{"app": "cilium"}, true, "tetragon"},
+				{map[string]string{"app": "hubble"}, false, "default"},
+			},
+		}, {
+			labelSelector: &slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      K8sPodNamespace,
+					Operator: "NotIn",
+					Values:   []string{"cilium", "tetragon"},
+				}},
+			},
+			tests: []testLabel{
+				{map[string]string{"app": "tetragon"}, false, "cilium"},
+				{map[string]string{"app": "cilium"}, false, "tetragon"},
+				{map[string]string{"app": "hubble"}, true, "default"},
+			},
+		}, {
+			labelSelector: &slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      K8sPodNamespace,
+					Operator: "Exists",
+				}},
+			},
+			tests: []testLabel{
+				{map[string]string{K8sPodNamespace: "tetragon"}, true, "tetragon"},
+				{map[string]string{}, true, ""},
 			},
 		},
 	}
@@ -113,6 +163,9 @@ func TestLabels(t *testing.T) {
 		selector, err := SelectorFromLabelSelector(tc.labelSelector)
 		require.NoError(t, err)
 		for _, test := range tc.tests {
+			if _, ok := test.labels[K8sPodNamespace]; !ok {
+				test.labels[K8sPodNamespace] = test.namespace
+			}
 			res := selector.Match(test.labels)
 			if res != test.expectedRes {
 				t.Fatalf("label selector:%+v labels:%+v expected:%t got:%t", tc.labelSelector, test.labels, test.expectedRes, res)
