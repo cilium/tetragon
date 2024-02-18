@@ -318,9 +318,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -626,9 +630,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -981,9 +989,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1289,9 +1301,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1545,9 +1561,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1853,9 +1873,13 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action

@@ -430,8 +430,8 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 
 		for sid, selector := range f.Selectors {
 			for mid, matchAction := range selector.MatchActions {
-				if matchAction.StackTrace && matchAction.Action != "Post" {
-					return fmt.Errorf("stackTrace can only be used along Post action: got stackTrace enabled in kprobes[%d].selectors[%d].matchActions[%d] with action '%s'", i, sid, mid, matchAction.Action)
+				if (matchAction.KernelStackTrace || matchAction.UserStackTrace) && matchAction.Action != "Post" {
+					return fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in kprobes[%d].selectors[%d].matchActions[%d] with action '%s'", i, sid, mid, matchAction.Action)
 				}
 			}
 		}
@@ -1115,20 +1115,31 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		printers = gk.argSigPrinters
 	}
 
-	if m.Common.Flags&processapi.MSG_COMMON_FLAG_STACKTRACE != 0 {
-		if m.StackID < 0 {
-			logger.GetLogger().Warnf("failed to retrieve stacktrace: id equal to errno %d", m.StackID)
-		} else {
+	if m.Common.Flags&(processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE|processapi.MSG_COMMON_FLAG_USER_STACKTRACE) != 0 {
+		if m.KernelStackID < 0 {
+			logger.GetLogger().Warnf("failed to retrieve kernel stacktrace: id equal to errno %d", m.KernelStackID)
+		}
+		if m.UserStackID < 0 {
+			logger.GetLogger().Warnf("failed to retrieve user stacktrace: id equal to errno %d", m.UserStackID)
+		}
+		if gk.data.stackTraceMap.MapHandle == nil {
+			logger.GetLogger().WithError(err).Warn("failed to load the stacktrace map")
+		}
+		if m.KernelStackID > 0 || m.UserStackID > 0 {
 			// remove the error part
-			id := uint32(m.StackID)
-
-			if gk.data.stackTraceMap.MapHandle != nil {
-				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.StackTrace)
+			if m.KernelStackID > 0 {
+				id := uint32(m.KernelStackID)
+				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.KernelStackTrace)
 				if err != nil {
 					logger.GetLogger().WithError(err).Warn("failed to lookup the stacktrace map")
 				}
-			} else {
-				logger.GetLogger().WithError(err).Warn("failed to load the stacktrace map")
+			}
+			if m.UserStackID > 0 {
+				id := uint32(m.UserStackID)
+				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.UserStackTrace)
+				if err != nil {
+					logger.GetLogger().WithError(err).Warn("failed to lookup the stacktrace map")
+				}
 			}
 		}
 	}

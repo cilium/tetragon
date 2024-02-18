@@ -234,8 +234,11 @@ type ActionSelector struct {
 	// Only valid with the post action and with a rateLimit specified.
 	RateLimitScope string `json:"rateLimitScope"`
 	// +kubebuilder:validation:Optional
-	// Enable stack trace export. Only valid with the post action.
-	StackTrace bool `json:"stackTrace"`
+	// Enable kernel stack trace export. Only valid with the post action.
+	KernelStackTrace bool `json:"kernelStackTrace"`
+	// +kubebuilder:validation:Optional
+	// Enable user stack trace export. Only valid with the post action.
+	UserStackTrace bool `json:"userStackTrace"`
 }
 
 type TracepointSpec struct {
