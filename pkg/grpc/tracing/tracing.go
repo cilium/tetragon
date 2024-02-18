@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/procsyms"
 	"github.com/cilium/tetragon/pkg/reader/bpf"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
@@ -301,8 +302,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		}
 	}
 
-	var stackTrace []*tetragon.StackTraceEntry
-	for _, addr := range event.StackTrace {
+	var kernelStackTrace []*tetragon.StackTraceEntry
+	for _, addr := range event.KernelStackTrace {
 		if addr == 0 {
 			// the stack trace from the MsgGenericKprobeUnix is a fixed size
 			// array, [unix.PERF_MAX_STACK_DEPTH]uint64, used for binary decode,
@@ -325,24 +326,46 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			Offset: fnOffset.Offset,
 			Symbol: fnOffset.SymName,
 		}
-		if option.Config.ExposeKernelAddresses {
+		if option.Config.ExposeAddresses {
 			entry.Address = addr
 		}
-		stackTrace = append(stackTrace, entry)
+		kernelStackTrace = append(kernelStackTrace, entry)
+	}
+
+	var userStackTrace []*tetragon.StackTraceEntry
+	for _, addr := range event.UserStackTrace {
+		if addr == 0 {
+			continue
+		}
+		// TODO extract symbols from procfs
+		entry := &tetragon.StackTraceEntry{}
+		fsym, err := procsyms.GetFnSymbol(int(event.Msg.Tid), addr)
+		if err != nil {
+			logger.GetLogger().WithField("address", fmt.Sprintf("0x%x", addr)).Debug("stacktrace: failed to retrieve symbol, offset and module")
+			continue
+		}
+		entry.Offset = fsym.Offset
+		entry.Module = fsym.Module
+		entry.Symbol = fsym.Name
+		if option.Config.ExposeAddresses {
+			entry.Address = addr
+		}
+		userStackTrace = append(userStackTrace, entry)
 	}
 
 	tetragonEvent := &tetragon.ProcessKprobe{
-		Process:      tetragonProcess,
-		Parent:       tetragonParent,
-		FunctionName: event.FuncName,
-		Args:         tetragonArgs,
-		Return:       tetragonReturnArg,
-		Action:       kprobeAction(event.Msg.ActionId),
-		ReturnAction: kprobeAction(event.ReturnAction),
-		StackTrace:   stackTrace,
-		PolicyName:   event.PolicyName,
-		Message:      event.Message,
-		Tags:         event.Tags,
+		Process:          tetragonProcess,
+		Parent:           tetragonParent,
+		FunctionName:     event.FuncName,
+		Args:             tetragonArgs,
+		Return:           tetragonReturnArg,
+		Action:           kprobeAction(event.Msg.ActionId),
+		ReturnAction:     kprobeAction(event.ReturnAction),
+		KernelStackTrace: kernelStackTrace,
+		UserStackTrace:   userStackTrace,
+		PolicyName:       event.PolicyName,
+		Message:          event.Message,
+		Tags:             event.Tags,
 	}
 
 	if tetragonProcess.Pid == nil {
@@ -553,14 +576,15 @@ func (msg *MsgGenericTracepointUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 }
 
 type MsgGenericKprobeUnix struct {
-	Msg          *tracingapi.MsgGenericKprobe
-	ReturnAction uint64
-	FuncName     string
-	Args         []tracingapi.MsgGenericKprobeArg
-	PolicyName   string
-	Message      string
-	StackTrace   [unix.PERF_MAX_STACK_DEPTH]uint64
-	Tags         []string
+	Msg              *tracingapi.MsgGenericKprobe
+	ReturnAction     uint64
+	FuncName         string
+	Args             []tracingapi.MsgGenericKprobeArg
+	PolicyName       string
+	Message          string
+	KernelStackTrace [unix.PERF_MAX_STACK_DEPTH]uint64
+	UserStackTrace   [unix.PERF_MAX_STACK_DEPTH]uint64
+	Tags             []string
 }
 
 func (msg *MsgGenericKprobeUnix) Notify() bool {

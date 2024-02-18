@@ -2264,18 +2264,25 @@ do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
-		__u32 stack_trace = actions->act[++i];
+		__u32 kernel_stack_trace = actions->act[++i];
 
-		if (stack_trace) {
+		if (kernel_stack_trace) {
 			// Stack id 0 is valid so we need a flag.
-			e->common.flags |= MSG_COMMON_FLAG_STACKTRACE;
+			e->common.flags |= MSG_COMMON_FLAG_KERNEL_STACKTRACE;
 			// We could use BPF_F_REUSE_STACKID to override old with new stack if
 			// same stack id. It means that if we have a collision and user space
 			// reads the old one too late, we are reading the wrong stack (the new,
 			// old one was overwritten).
 			//
 			// Here we just signal that there was a collision returning -EEXIST.
-			e->stack_id = get_stackid(ctx, &stack_trace_map, 0);
+			e->kernel_stack_id = get_stackid(ctx, &stack_trace_map, 0);
+		}
+
+		__u32 user_stack_trace = actions->act[++i];
+
+		if (user_stack_trace) {
+			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
+			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
 		break;
 	}

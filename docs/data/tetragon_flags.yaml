@@ -94,9 +94,9 @@ options:
       default_value: "-1"
       usage: |
         Rate limit (per minute) for event export. Set to -1 to disable
-    - name: expose-kernel-addresses
+    - name: expose-addresses
       default_value: "false"
-      usage: Expose real kernel addresses in events stack traces
+      usage: Expose real linear addresses in events stack traces
     - name: field-filters
       usage: Field filters for event exports
     - name: force-large-progs

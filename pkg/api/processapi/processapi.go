@@ -40,8 +40,9 @@ const (
 	ExecveSetgidRoot = 0x10 // This binary execution gained new capabilities through setgid root execution
 
 	// flags of MsgCommon
-	MSG_COMMON_FLAG_RETURN     = 0x1
-	MSG_COMMON_FLAG_STACKTRACE = 0x2
+	MSG_COMMON_FLAG_RETURN            = 0x1
+	MSG_COMMON_FLAG_KERNEL_STACKTRACE = 0x2
+	MSG_COMMON_FLAG_USER_STACKTRACE   = 0x4
 
 	BINARY_PATH_MAX_LEN = 256
 )

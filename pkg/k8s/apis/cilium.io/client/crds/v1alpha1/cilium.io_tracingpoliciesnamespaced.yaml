@@ -322,6 +322,10 @@ spec:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
                                   type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                               required:
                               - action
                               type: object
@@ -629,6 +633,10 @@ spec:
                                 stackTrace:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -985,6 +993,10 @@ spec:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
                                   type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                               required:
                               - action
                               type: object
@@ -1292,6 +1304,10 @@ spec:
                                 stackTrace:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1549,6 +1565,10 @@ spec:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
                                   type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                               required:
                               - action
                               type: object
@@ -1856,6 +1876,10 @@ spec:
                                 stackTrace:
                                   description: Enable stack trace export. Only valid
                                     with the post action.
+                                  type: boolean
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
