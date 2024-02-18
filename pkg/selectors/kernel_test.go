@@ -485,6 +485,7 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
+		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 	}
 	if err := ParseMatchAction(k, act1, &actionArgTable); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], act1)
@@ -497,8 +498,9 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
+		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 	}
-	length := []byte{36, 0x00, 0x00, 0x00}
+	length := []byte{44, 0x00, 0x00, 0x00}
 	expected := append(length, expected1[:]...)
 	expected = append(expected, expected2[:]...)
 
@@ -601,11 +603,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0x10, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x14, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x44, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x48, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -723,11 +725,12 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // value 2
 
 		// actions header
-		32, 0x00, 0x00, 0x00, // size = (4 * sizeof(uint32) * number of actions) + args
+		36, 0x00, 0x00, 0x00, // size = (5 * sizeof(uint32) * number of actions) + args
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
+		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
@@ -760,11 +763,12 @@ func TestInitKernelSelectors(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
 
 		// actions header
-		32, 0x00, 0x00, 0x00, // size = (4 * sizeof(uint32) * number of actions) + args + 4
+		36, 0x00, 0x00, 0x00, // size = (5 * sizeof(uint32) * number of actions) + args + 4
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
+		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x01, 0x00, 0x00, 0x00, // fdinstall
 		0x00, 0x00, 0x00, 0x00, // arg index of fd
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
@@ -945,21 +949,22 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 
 	expU32Push(1)  // off: 0       number of selectors
 	expU32Push(4)  // off: 4       relative ofset of selector (4 + 4 = 8)
-	expU32Push(60) // off: 8       selector: length
+	expU32Push(64) // off: 8       selector: length
 	expU32Push(24) // off: 12      selector: matchReturnArgs length
 	expU32Push(0)  // off: 16      selector: matchReturnArgs arg offset[0]
 	expU32Push(0)  // off: 20      selector: matchReturnArgs arg offset[1]
 	expU32Push(0)  // off: 24      selector: matchReturnArgs arg offset[2]
 	expU32Push(0)  // off: 28      selector: matchReturnArgs arg offset[3]
 	expU32Push(0)  // off: 32      selector: matchReturnArgs arg offset[4]
-	expU32Push(32) // off: 36      selector: matchReturnActions length
+	expU32Push(36) // off: 36      selector: matchReturnActions length
 	expU32Push(0)  // off: 40      selector: selectors.ActionTypePost
 	expU32Push(0)  // off: 44      selector: rateLimit
 	expU32Push(0)  // off: 44      selector: rateLimitScope
 	expU32Push(0)  // off: 48      selector: stackTrace
-	expU32Push(1)  // off: 52      selector: selectors.ActionTypeFollowFd
-	expU32Push(7)  // off: 56      selector: action.ArgFd
-	expU32Push(8)  // off: 60      selector: action.ArgName
+	expU32Push(0)  // off: 52      selector: userStackTrace
+	expU32Push(1)  // off: 56      selector: selectors.ActionTypeFollowFd
+	expU32Push(7)  // off: 60      selector: action.ArgFd
+	expU32Push(8)  // off: 64      selector: action.ArgName
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
 		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])

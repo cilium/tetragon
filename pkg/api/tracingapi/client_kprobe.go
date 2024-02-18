@@ -45,16 +45,17 @@ type MsgLoader struct {
 }
 
 type MsgGenericKprobe struct {
-	Common       processapi.MsgCommon
-	ProcessKey   processapi.MsgExecveKey
-	Namespaces   processapi.MsgNamespaces
-	Capabilities processapi.MsgCapabilities
-	FuncId       uint64
-	RetProbeId   uint64
-	ActionId     uint64
-	ActionArgId  uint32
-	Tid          uint32 // The recorded TID that triggered the event
-	StackID      int64
+	Common        processapi.MsgCommon
+	ProcessKey    processapi.MsgExecveKey
+	Namespaces    processapi.MsgNamespaces
+	Capabilities  processapi.MsgCapabilities
+	FuncId        uint64
+	RetProbeId    uint64
+	ActionId      uint64
+	ActionArgId   uint32
+	Tid           uint32 // The recorded TID that triggered the event
+	KernelStackID int64
+	UserStackID   int64
 }
 
 type MsgGenericKprobeArgPath struct {

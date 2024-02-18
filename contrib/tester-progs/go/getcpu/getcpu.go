@@ -5,6 +5,7 @@ package main
 
 import (
 	"os"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -18,5 +19,6 @@ func main() {
 		uintptr(unsafe.Pointer(&node)),
 		0,
 	)
+	time.Sleep(1 * time.Second)
 	os.Exit(int(err))
 }

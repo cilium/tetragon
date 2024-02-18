@@ -6083,7 +6083,7 @@ spec:
 	assert.NoError(t, err)
 }
 
-func TestKprobeStackTrace(t *testing.T) {
+func TestKprobeKernelStackTrace(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6100,7 +6100,7 @@ spec:
       selectors:
       - matchActions:
         - action: Post
-          stackTrace: true`
+          kernelStackTrace: true`
 
 	createCrdFile(t, tracingPolicy)
 
@@ -6119,7 +6119,7 @@ spec:
 
 	stackTraceChecker := ec.NewProcessKprobeChecker("stack-trace").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(unameBin))).
-		WithStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+		WithKernelStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
 			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("sys_newuname"))),
 			// we could technically check for more but stack traces look
 			// different on different archs, at least we check that the stack
@@ -6136,6 +6136,60 @@ spec:
 			//   0x0: el0_svc+0x48
 			//   0x0: el0t_64_sync_handler+0xa4
 			//   0x0: el0t_64_sync+0x1a4
+		))
+
+	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+func TestKprobeUserStackTrace(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+	testGetCpu := testutils.RepoRootPath("contrib/tester-progs/getcpu")
+	tracingPolicy := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-user-stacktrace"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + testGetCpu + `"
+      matchActions:
+      - action: Post
+        userStackTrace: true`
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testGetCpu).Run(); err != nil {
+		t.Fatalf("failed to run %s: %s", testGetCpu, err)
+	}
+
+	stackTraceChecker := ec.NewProcessKprobeChecker("user-stack-trace").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testGetCpu))).
+		WithUserStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("main.main"))),
+			// syscall user-nix /home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu __x64_sys_getcpu
+			// User space:
+			// 0x0: runtime/internal/syscall.Syscall6 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x2aee)
+			// 0x0: syscall.Syscall (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x635e6)
+			// 0x0: syscall.Syscall.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x6374e)
+			// 0x0: main.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x652e5)
+			// 0x0: runtime.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x3313d)
+			// 0x0: runtime.goexit.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x5e901)
 		))
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)

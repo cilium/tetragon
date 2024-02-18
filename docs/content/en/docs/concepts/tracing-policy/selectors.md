@@ -905,9 +905,10 @@ can be expanded to all processes by specifying the same with the value "global".
 
 #### Stack traces
 
-`Post` takes the `stackTrace` parameter, when turned to `true` (by default to
+`Post` takes the `kernelStackTrace` parameter, when turned to `true` (by default to
 `false`) it enables dump of the kernel stack trace to the hook point in kprobes
-events. For example, the following kprobe hook can be used to retrieve the
+events. To dump user space stack trace set `userStackTrace` parameter to `true`.
+For example, the following kprobe hook can be used to retrieve the
 kernel stack to `kfree_skb_reason`, the function called in the kernel to drop
 kernel socket buffers.
 
@@ -917,7 +918,7 @@ kprobes:
     selectors:
     - matchActions:
       - action: Post
-        stackTrace: true
+        kernelStackTrace: true
 ```
 
 {{< caution >}}
