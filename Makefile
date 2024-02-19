@@ -433,3 +433,10 @@ metrics-docs: tetra
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs health >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs resources >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs events >> $(METRICS_DOCS_PATH)
+
+.PHONY: lint-metrics-md
+lint-metrics-md: metrics-docs
+	@if [ -n "$$(git status --porcelain $(METRICS_DOCS_PATH))" ]; then \
+		echo "metrics doc out of sync; please run 'make metrics-docs'" > /dev/stderr; \
+		false; \
+	fi

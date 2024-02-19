@@ -43,3 +43,6 @@ jobs:
             git status --porcelain
             echo "Please run 'make generate-flags' and submit your changes'"; exit 1
           fi
+      - name: Check metrics docs
+        run: |
+          make lint-metrics-md
