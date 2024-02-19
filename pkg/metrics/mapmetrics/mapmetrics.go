@@ -23,7 +23,7 @@ var (
 	))
 	MapErrors = metrics.NewBPFCounter(prometheus.NewDesc(
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_errors_total"),
-		"The total number of entries dropped per LRU map.",
+		"The number of errors per map.",
 		[]string{"map"}, nil,
 	))
 )
