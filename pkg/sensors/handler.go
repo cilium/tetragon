@@ -123,7 +123,6 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		return err
 	}
 	col.state = EnabledState
-	col.enabled = true
 
 	// NB: in some cases it might make sense to keep the policy registered if there was an
 	// error. For now, however, we only keep it if it was successfully loaded
@@ -159,7 +158,7 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 		pol := tetragon.TracingPolicyStatus{
 			Id:       col.tracingpolicyID,
 			Name:     name,
-			Enabled:  col.enabled,
+			Enabled:  col.state == EnabledState,
 			FilterId: col.policyfilterID,
 			Error:    fmt.Sprint(col.err),
 			State:    col.state.ToTetragonState(),
@@ -187,7 +186,7 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)
 	}
 
-	if !col.enabled {
+	if col.state == DisabledState {
 		return fmt.Errorf("tracing policy %s is already disabled", op.name)
 	}
 
@@ -201,7 +200,6 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		return col.err
 	}
 
-	col.enabled = false
 	col.state = DisabledState
 	h.collections[op.name] = col
 	return nil
@@ -213,7 +211,7 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.name)
 	}
 
-	if col.enabled {
+	if col.state == EnabledState {
 		return fmt.Errorf("tracing policy %s is already enabled", op.name)
 	}
 
@@ -224,7 +222,6 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return col.err
 	}
 
-	col.enabled = true
 	col.state = EnabledState
 	h.collections[op.name] = col
 	return nil

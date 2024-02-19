@@ -48,8 +48,6 @@ type collection struct {
 	tracingpolicyID uint64
 	// if this is not zero, then the policy is filtered
 	policyfilterID uint64
-	// indicates if the collection is enabled or disabled
-	enabled bool
 	// state indicates the state of the collection
 	state TracingPolicyState
 }
