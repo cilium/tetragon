@@ -982,7 +982,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  | namespace is the namespace of the policy (or empty of the policy is global) |
 | info | [string](#string) |  | info is additional information about the policy |
 | sensors | [string](#string) | repeated | sensors loaded in the scope of this policy |
-| enabled | [bool](#bool) |  | indicating if the policy is enabled |
+| enabled | [bool](#bool) |  | **Deprecated.** indicating if the policy is enabled. Deprecated: use &#39;state&#39; instead. |
 | filter_id | [uint64](#uint64) |  | filter ID of the policy used for k8s filtering |
 | error | [string](#string) |  | potential error of the policy |
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
