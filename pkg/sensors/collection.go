@@ -6,9 +6,35 @@ package sensors
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"go.uber.org/multierr"
 )
+
+type TracingPolicyState int
+
+const (
+	UnknownState TracingPolicyState = iota
+	EnabledState
+	DisabledState
+	LoadErrorState
+	ErrorState
+)
+
+func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
+	switch s {
+	case EnabledState:
+		return tetragon.TracingPolicyState_TP_STATE_ENABLED
+	case DisabledState:
+		return tetragon.TracingPolicyState_TP_STATE_DISABLED
+	case LoadErrorState:
+		return tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR
+	case ErrorState:
+		return tetragon.TracingPolicyState_TP_STATE_ERROR
+	default:
+		return tetragon.TracingPolicyState_TP_STATE_UNKNOWN
+	}
+}
 
 // collection is a collection of sensors
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
@@ -24,6 +50,8 @@ type collection struct {
 	policyfilterID uint64
 	// indicates if the collection is enabled or disabled
 	enabled bool
+	// state indicates the state of the collection
+	state TracingPolicyState
 }
 
 func (c *collection) info() string {

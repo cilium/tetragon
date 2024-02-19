@@ -122,6 +122,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err := col.load(h.bpfDir); err != nil {
 		return err
 	}
+	col.state = EnabledState
 	col.enabled = true
 
 	// NB: in some cases it might make sense to keep the policy registered if there was an
@@ -142,8 +143,7 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	filterID := policyfilter.PolicyID(col.policyfilterID)
 	err := h.pfState.DelPolicy(filterID)
 	if err != nil {
-		col.err = fmt.Errorf("failed to remove from policyfilter: %w", err)
-		return err
+		return fmt.Errorf("failed to remove from policyfilter: %w", err)
 	}
 
 	return nil
@@ -162,6 +162,7 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 			Enabled:  col.enabled,
 			FilterId: col.policyfilterID,
 			Error:    fmt.Sprint(col.err),
+			State:    col.state.ToTetragonState(),
 		}
 
 		pol.Namespace = ""
@@ -192,11 +193,16 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 
 	err := col.unload()
 	if err != nil {
-		col.err = fmt.Errorf("failed to unload tracing policy: %w", err)
-		return err
+		// for now, the only way col.unload() can return an error is if the
+		// collection is not currently loaded, which should be impossible
+		col.err = fmt.Errorf("failed to unload tracing policy %q: %w", col.name, err)
+		col.state = ErrorState
+		h.collections[op.name] = col
+		return col.err
 	}
 
 	col.enabled = false
+	col.state = DisabledState
 	h.collections[op.name] = col
 	return nil
 }
@@ -212,10 +218,14 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 	}
 
 	if err := col.load(h.bpfDir); err != nil {
-		return err
+		col.state = LoadErrorState
+		col.err = fmt.Errorf("failed to load tracing policy %q: %w", col.name, err)
+		h.collections[op.name] = col
+		return col.err
 	}
 
 	col.enabled = true
+	col.state = EnabledState
 	h.collections[op.name] = col
 	return nil
 }
