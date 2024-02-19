@@ -3,7 +3,11 @@
 
 package node
 
-import "os"
+import (
+	"os"
+
+	"github.com/cilium/tetragon/pkg/logger"
+)
 
 // getNodeNameForExport returns node name string for JSON export. It uses NODE_NAME
 // env variable by default, which is also used by k8s watcher to watch for local pods:
@@ -12,9 +16,16 @@ import "os"
 //
 // Set HUBBLE_NODE_NAME to override the node_name field for JSON export.
 func GetNodeNameForExport() string {
+	var err error
 	nodeName := os.Getenv("HUBBLE_NODE_NAME")
-	if nodeName != "" {
-		return nodeName
+	if nodeName == "" {
+		nodeName = os.Getenv("NODE_NAME")
 	}
-	return os.Getenv("NODE_NAME")
+	if nodeName == "" {
+		nodeName, err = os.Hostname()
+		if err != nil {
+			logger.GetLogger().WithError(err).Warn("failed to retrieve hostname")
+		}
+	}
+	return nodeName
 }
