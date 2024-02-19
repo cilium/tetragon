@@ -101,6 +101,8 @@
     - [SensorStatus](#tetragon-SensorStatus)
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
+    - [TracingPolicyState](#tetragon-TracingPolicyState)
+  
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
   
 - [Scalar Value Types](#scalar-value-types)
@@ -1670,12 +1672,28 @@ Determines the behavior of a field filter
 | enabled | [bool](#bool) |  | indicating if the policy is enabled |
 | filter_id | [uint64](#uint64) |  | filter ID of the policy used for k8s filtering |
 | error | [string](#string) |  | potential error of the policy |
+| state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
 
 
 
 
 
  
+
+
+<a name="tetragon-TracingPolicyState"></a>
+
+### TracingPolicyState
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TP_STATE_UNKNOWN | 0 | unknown state |
+| TP_STATE_ENABLED | 1 | loaded and enabled |
+| TP_STATE_DISABLED | 2 | loaded but disabled |
+| TP_STATE_LOAD_ERROR | 3 | failed to load |
+| TP_STATE_ERROR | 4 | failed during lifetime |
+
 
  
 
