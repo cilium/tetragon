@@ -221,7 +221,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 }
 
 func Test_getNodeNameForExport(t *testing.T) {
-	assert.Equal(t, "", node.GetNodeNameForExport())
+	assert.NotEqual(t, "", node.GetNodeNameForExport()) // we should get the hostname here
 	assert.NoError(t, os.Setenv("NODE_NAME", "from-node-name"))
 	assert.Equal(t, "from-node-name", node.GetNodeNameForExport())
 	assert.NoError(t, os.Setenv("HUBBLE_NODE_NAME", "from-hubble-node-name"))
