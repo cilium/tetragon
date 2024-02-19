@@ -53,8 +53,8 @@ message TracingPolicyStatus {
 	string info = 4;
 	// sensors loaded in the scope of this policy
 	repeated string sensors = 5;
-	// indicating if the policy is enabled
-	bool enabled = 6;
+	// indicating if the policy is enabled. Deprecated: use 'state' instead.
+	bool enabled = 6 [deprecated = true];
 	// filter ID of the policy used for k8s filtering
 	uint64 filter_id = 7;
 	// potential error of the policy
