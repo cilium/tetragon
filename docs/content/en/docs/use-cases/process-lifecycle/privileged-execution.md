@@ -16,33 +16,66 @@ have. This would help us answer questions like:
 > Which Kubernetes pods have host network or pid namespace access in my
 > cluster?
 
-As a first step let's enable visibility to capability and namespace changes via
-the configmap by setting `enable-process-cred` and `enable-process-ns` from
-`false` to `true`:
-```bash
-kubectl edit cm -n kube-system tetragon-config
-# change "enable-process-cred" from "false" to "true"
-# change "enable-process-ns" from "false" to "true"
-# then save and exit
-```
-Restart the Tetragon daemonset:
-```
-kubectl rollout restart -n kube-system ds/tetragon
-```
+## Step 1: Enabling Process Credential and Namespace Monitoring
 
-As a second step, let's start monitoring the Security Observability events from the privileged `test-pod` workload:
-```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents --namespace default --pod test-pod
-```
+* Edit the Tetragon configmap:
 
-In another terminal let's apply the privileged PodSpec:
-```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/testdata/specs/testpod.yaml
-```
+  ```bash
+  kubectl edit cm -n kube-system tetragon-config
+  ```
 
-If you observe the output in the first terminal, you can see the container start with `CAP_SYS_ADMIN`:
-```bash
-🚀 process default/test-pod /bin/sleep 365d                🛑 CAP_SYS_ADMIN
-🚀 process default/test-pod /usr/bin/jq -r .bundle         🛑 CAP_SYS_ADMIN
-🚀 process default/test-pod /usr/bin/cp /kind/product_name /kind/product_uuid /run/containerd/io.containerd.runtime.v2.task/k8s.io/7c7e513cd4d506417bc9d97dd9af670d94d9e84161c8c8 fdc9fa3a678289a59/rootfs/ 🛑 CAP_SYS_ADMIN
-```
+* Set the following flags from "false" to "true":
+
+  ```bash
+  # enable-process-cred: true
+  # enable-process-ns: true
+  ```
+
+* Save your changes and exit.
+
+* Restart the Tetragon daemonset:
+
+  ```bash
+  kubectl rollout restart -n kube-system ds/tetragon
+  ```
+## Step 2: Deploying a Privileged Nginx Pod
+
+* Create a YAML file (e.g., privileged-nginx.yaml) with the following PodSpec:
+
+  ```yaml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: privileged-the-pod
+  spec:
+    hostPID: true
+    hostNetwork: true
+    containers:
+    - name: privileged-the-pod
+      image: nginx:latest
+      ports:
+      - containerPort: 80
+      securityContext:
+        privileged: true
+  ```
+
+* Apply the configuration:
+
+  ```bash
+  kubectl apply -f privileged-nginx.yaml
+  ```
+
+## Step 3: Monitoring with Tetragon
+
+* Start monitoring events from the privileged Nginx pod:
+
+  ```bash
+  kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents --namespace default --pod privileged-the-pod
+  ```
+
+* You should observe Tetragon generating events similar to these, indicating the privileged container start:
+
+  ```bash
+  🚀 process default/privileged-nginx /nginx -g daemon off;  🛑 CAP_SYS_ADMIN
+  ```
+  
