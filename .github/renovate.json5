@@ -38,8 +38,7 @@
     "contrib/rthooks/tetragon-oci-hook/go.sum",
     "*Dockerfile*",
     "install/kubernetes/tetragon/values.yaml",
-    "Makefile.cli",
-    "Makefile",
+    "**/*Makefile*"
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -429,7 +428,7 @@
       "customType": "regex",
       // explicitely not writing ^Makefile$ to match files with Makefile.extension
       "fileMatch": [
-        "^Makefile"
+        "Makefile"
       ],
       // This regex is for upgrading docker image full reference in Makefiles, for examples:
       //
