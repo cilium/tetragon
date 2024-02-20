@@ -421,7 +421,9 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	req := tetragon.GetEventsRequest{AllowList: opts.allowList, DenyList: opts.denyList}
 	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
-	exporter.Start()
+	if err := exporter.Start(); err != nil {
+		return err
+	}
 	obs.AddListener(processManager)
 	tb.Cleanup(func() {
 		obs.RemoveListener(processManager)

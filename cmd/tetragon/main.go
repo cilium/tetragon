@@ -705,8 +705,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Debug("Configured field filters")
 	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
 	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
-	exporter.Start()
-	return nil
+	return exporter.Start()
 }
 
 func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {

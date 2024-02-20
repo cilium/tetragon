@@ -256,7 +256,9 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 
 	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil, AggregationOptions: nil}
 	exporter := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, writer, nil)
-	exporter.Start()
+	if err := exporter.Start(); err != nil {
+		return err
+	}
 	obs.AddListener(processManager)
 	return nil
 }
