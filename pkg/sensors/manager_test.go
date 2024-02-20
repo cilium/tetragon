@@ -189,3 +189,67 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.Error(t, err)
 }
+
+func TestPolicyStates(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	t.Run("LoadError", func(t *testing.T) {
+		RegisterPolicyHandlerAtInit("load-fail", &dummyHandler{s: &Sensor{
+			Name:  "dummy-sensor",
+			Progs: []*program.Program{{Name: "bpf-program-that-does-not-exist"}},
+		}})
+		t.Cleanup(func() {
+			delete(registeredPolicyHandlers, "load-fail")
+		})
+
+		policy := v1alpha1.TracingPolicy{}
+		mgr, err := StartSensorManager("", nil)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			if err := mgr.StopSensorManager(ctx); err != nil {
+				panic("failed to stop sensor manager")
+			}
+		})
+		policy.ObjectMeta.Name = "test-policy"
+		addError := mgr.AddTracingPolicy(ctx, &policy)
+		assert.NotNil(t, addError)
+
+		l, err := mgr.ListTracingPolicies(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, l.Policies, 1)
+		assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
+		assert.Equal(t, addError.Error(), l.Policies[0].Error)
+	})
+
+	t.Run("EnabledDisabled", func(t *testing.T) {
+		RegisterPolicyHandlerAtInit("dummy", &dummyHandler{s: &Sensor{Name: "dummy-sensor"}})
+		t.Cleanup(func() {
+			delete(registeredPolicyHandlers, "dummy")
+		})
+
+		policy := v1alpha1.TracingPolicy{}
+		mgr, err := StartSensorManager("", nil)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			if err := mgr.StopSensorManager(ctx); err != nil {
+				panic("failed to stop sensor manager")
+			}
+		})
+		policy.ObjectMeta.Name = "test-policy"
+		err = mgr.AddTracingPolicy(ctx, &policy)
+		assert.NoError(t, err)
+
+		l, err := mgr.ListTracingPolicies(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, l.Policies, 1)
+		assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
+
+		err = mgr.DisableTracingPolicy(ctx, policy.ObjectMeta.Name)
+		assert.NoError(t, err)
+		l, err = mgr.ListTracingPolicies(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, l.Policies, 1)
+		assert.Equal(t, DisabledState.ToTetragonState(), l.Policies[0].State)
+	})
+}
