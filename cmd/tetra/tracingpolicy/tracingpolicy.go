@@ -167,7 +167,9 @@ func New() *cobra.Command {
 						str := strings.NewReader(pol.Info)
 						_, err := fmt.Fscanf(str, "%253s enabled:%t filterID:%d error:%512s", &parsedName, &parsedEnabled, &parsedFilterID, &parsedError)
 						if err == nil {
-							pol.Enabled = parsedEnabled
+							if parsedEnabled {
+								pol.State = tetragon.TracingPolicyState_TP_STATE_ENABLED
+							}
 							pol.FilterId = parsedFilterID
 							pol.Error = parsedError
 							pol.Info = ""
