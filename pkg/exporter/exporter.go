@@ -5,6 +5,7 @@ package exporter
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -39,17 +40,17 @@ func NewExporter(
 	return &Exporter{ctx, request, server, encoder, closer, rateLimiter}
 }
 
-func (e *Exporter) Start() {
+func (e *Exporter) Start() error {
 	var readyWG sync.WaitGroup
+	var exporterStartErr error
 	readyWG.Add(1)
 	go func() {
 		if err := e.server.GetEventsWG(e.request, e, e.closer, &readyWG); err != nil {
-			if e.ctx.Err() == nil {
-				logger.GetLogger().WithError(err).Error("Failed to start JSON exporter")
-			}
+			exporterStartErr = fmt.Errorf("error starting JSON exporter: %w", err)
 		}
 	}()
 	readyWG.Wait()
+	return exporterStartErr
 }
 
 func (e *Exporter) Send(event *tetragon.GetEventsResponse) error {
