@@ -1,3 +1,5 @@
+# renovate: datasource=docker
+BUILDER_IMAGE=docker.io/library/golang:1.20.5@sha256:fd9306e1c664bd49a11d4a4a04e41303430e069e437d137876e9290a555e06fb
 GO ?= go
 VERSION=$(shell git describe --tags --always)
 GO_GCFLAGS ?= ""
@@ -10,18 +12,26 @@ GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 
 all: generate
 
-.PHONY: generate
-
 .PHONY: help
 help:
 	@echo 'Generated files:'
-	@echo '    generate          - genereate kubebuilder files'
+	@echo '    generate          - generate kubebuilder files'
 
 ifeq (1,$(NOOPT))
 GO_GCFLAGS = "all=-N -l"
 endif
 
+.PHONY: generate
 generate:
+	docker container run --rm \
+		--volume $(CURDIR)/../..:/src \
+		--user "$(shell id -u):$(shell id -g)" \
+		--env GOCACHE=/go/.cache \
+		$(BUILDER_IMAGE) \
+		make -C /src/pkg/k8s __do_generate
+
+.PHONY: __do_generate
+__do_generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
 	# Do two invocations of generate-groups.sh, one with --plural-exceptions, one without
 	export GOPATH=$$(go env GOPATH); \
