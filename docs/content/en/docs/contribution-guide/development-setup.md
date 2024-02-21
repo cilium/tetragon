@@ -70,7 +70,7 @@ make codegen
 
 And to run k8s CRD generation, run the following command from the root of the repository:
 ```shell
-make generate
+make crds
 ```
 
 Finally, should you wish to modify any of the resulting codegen files (ending
