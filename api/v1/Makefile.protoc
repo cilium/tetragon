@@ -18,7 +18,7 @@ TETRAGON_PROTOC_PLUGINS := \
 	--plugin=$(GOPATH)/bin/protoc-gen-go \
 	--plugin=$(GOPATH)/bin/protoc-gen-go-grpc \
 	--plugin=$(GOPATH)/bin/protoc-gen-go-json \
-        --plugin=$(GOPATH)/bin/protoc-gen-go-tetragon \
+    --plugin=../../bin/protoc-gen-go-tetragon \
 
 .PHONY: all
 all: protobuf codegen
