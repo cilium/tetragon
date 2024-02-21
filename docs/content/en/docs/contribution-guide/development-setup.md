@@ -78,7 +78,7 @@ you will be required to re-run code generation before your PR can be accepted.
 To run codegen from protoc, run the following command from the root of the
 repository:
 ```shell
-make codegen
+make protogen
 ```
 
 And to run k8s CRD generation, run the following command from the root of the repository:
@@ -88,7 +88,7 @@ make crds
 
 Finally, should you wish to modify any of the resulting codegen files (ending
 in` .pb.go`), do not modify them directly. Instead, you can edit the files in
-`cmd/protoc-gen-go-tetragon` and then re-run `make codegen`.
+`cmd/protoc-gen-go-tetragon` and then re-run `make protogen`.
 
 ## Running vendor
 
@@ -100,7 +100,7 @@ you can use:
 make vendor
 ```
 
-Note that the `make codegen` and `make crds` commands already vendor
+Note that the `make protogen` and `make crds` commands already vendor
 changes automatically.
 
 ## Building and running a Docker image
