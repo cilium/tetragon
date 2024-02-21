@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
-	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/imports"
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/imports"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
