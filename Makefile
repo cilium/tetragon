@@ -110,7 +110,7 @@ help:
 	@echo '        tarball           - build Tetragon compressed tarball'
 	@echo '        tarball-release   - build Tetragon release tarball'
 	@echo '    Generated files:'
-	@echo '        codegen           - generate code based on .proto files'
+	@echo '        protogen          - generate code based on .proto files'
 	@echo '        crds              - generate kubebuilder files'
 	@echo '        generate-flags    - generate Tetragon daemon flags for documentation'
 	@echo '    Linting and chores:'
@@ -275,7 +275,7 @@ update-copyright:
 lint:
 	golint -set_exit_status $$(go list ./...)
 
-.PHONY: image image-operator image-test image-codegen
+.PHONY: image image-operator image-test
 image:
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
@@ -290,11 +290,6 @@ image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
-
-image-codegen:
-	$(CONTAINER_ENGINE) build -f Dockerfile.codegen -t "cilium/tetragon-codegen:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-codegen:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-clang
 image-clang:
@@ -330,7 +325,7 @@ tarball-clean:
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
-.PHONY: crdgen generate codegen protoc-gen-go-tetragon
+.PHONY: crdgen generate protogen codegen protoc-gen-go-tetragon
 generate: | crds
 crds:
 	# Need to call vendor twice here, once before and once after generate, the reason
@@ -339,7 +334,8 @@ crds:
 	$(MAKE) -C pkg/k8s/
 	$(MAKE) vendor
 
-codegen: image-codegen
+codegen: | protogen
+protogen: protoc-gen-go-tetragon
 	# Need to call vendor twice here, once before and once after codegen the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
 	$(MAKE) vendor
@@ -347,7 +343,7 @@ codegen: image-codegen
 	$(MAKE) vendor
 
 protoc-gen-go-tetragon:
-	$(GO_BUILD) -o bin/$@ ./cmd/protoc-gen-go-tetragon/
+	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
 
 # renovate: datasource=docker
 GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.56.2@sha256:04c2e881e069d6827ddca7d9c4fcf4de46eda0c10e58692609a047f8a09a0274

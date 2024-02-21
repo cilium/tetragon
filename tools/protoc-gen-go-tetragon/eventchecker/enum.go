@@ -6,7 +6,7 @@ package eventchecker
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/cmd/protoc-gen-go-tetragon/common"
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"github.com/jpillora/longestcommon"
 	"google.golang.org/protobuf/compiler/protogen"
 )
