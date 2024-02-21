@@ -111,7 +111,7 @@ help:
 	@echo '        tarball-release   - build Tetragon release tarball'
 	@echo '    Generated files:'
 	@echo '        codegen           - generate code based on .proto files'
-	@echo '        generate          - generate kubebuilder files'
+	@echo '        crds              - generate kubebuilder files'
 	@echo '        generate-flags    - generate Tetragon daemon flags for documentation'
 	@echo '    Linting and chores:'
 	@echo '        vendor            - tidy and vendor Go modules'
@@ -330,8 +330,9 @@ tarball-clean:
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
-.PHONY: generate codegen protoc-gen-go-tetragon
-generate:
+.PHONY: crdgen generate codegen protoc-gen-go-tetragon
+generate: | crds
+crds:
 	# Need to call vendor twice here, once before and once after generate, the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
 	$(MAKE) vendor

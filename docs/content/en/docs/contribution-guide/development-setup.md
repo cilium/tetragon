@@ -83,7 +83,7 @@ make codegen
 
 And to run k8s CRD generation, run the following command from the root of the repository:
 ```shell
-make generate
+make crds
 ```
 
 Finally, should you wish to modify any of the resulting codegen files (ending
@@ -100,7 +100,7 @@ you can use:
 make vendor
 ```
 
-Note that the `make codegen` and `make generate` commands already vendor
+Note that the `make codegen` and `make crds` commands already vendor
 changes automatically.
 
 ## Building and running a Docker image
