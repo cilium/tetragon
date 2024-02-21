@@ -1,15 +1,25 @@
+# renovate: datasource=docker
+BUILDER_IMAGE=docker.io/library/golang:1.22.0@sha256:7b297d9abee021bab9046e492506b3c2da8a3722cbf301653186545ecc1e00bb
 GO ?= go
 
 all: generate
 
-.PHONY: generate
-
 .PHONY: help
 help:
 	@echo 'Generated files:'
-	@echo '    generate          - genereate kubebuilder files'
+	@echo '    generate          - generate kubebuilder files'
 
+.PHONY: generate
 generate:
+	docker container run --rm \
+		--volume $(CURDIR)/../..:/src \
+		--user "$(shell id -u):$(shell id -g)" \
+		--env GOCACHE=/go/.cache \
+		$(BUILDER_IMAGE) \
+		make -C /src/pkg/k8s __do_generate
+
+.PHONY: __do_generate
+__do_generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
 	chmod +x vendor/k8s.io/code-generator/generate-internal-groups.sh
 	# Do two invocations of generate-groups.sh, one with --plural-exceptions, one without
