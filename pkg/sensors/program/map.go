@@ -19,6 +19,15 @@ type MaxEntries struct {
 	Set bool
 }
 
+type MapType int
+
+const (
+	MapTypeGlobal MapType = iota
+	MapTypePolicy
+	MapTypeSensor
+	MapTypeProgram
+)
+
 // Map represents BPF maps.
 type Map struct {
 	Name         string
@@ -29,6 +38,7 @@ type Map struct {
 	MapHandle    *ebpf.Map
 	Entries      MaxEntries
 	InnerEntries MaxEntries
+	Type         MapType
 }
 
 // Map holds pointer to Program object as a source of its ebpf object
@@ -44,8 +54,8 @@ type Map struct {
 //	p.PinMap["map2"] = &map2
 //	...
 //	p.PinMap["mapX"] = &mapX
-func mapBuilder(name, pin string, lds ...*Program) *Map {
-	m := &Map{name, pin, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
+func mapBuilder(name, pin string, ty MapType, lds ...*Program) *Map {
+	m := &Map{name, pin, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -53,11 +63,31 @@ func mapBuilder(name, pin string, lds ...*Program) *Map {
 }
 
 func MapBuilder(name string, lds ...*Program) *Map {
-	return mapBuilder(name, name, lds...)
+	return mapBuilder(name, name, MapTypeGlobal, lds...)
 }
 
 func MapBuilderPin(name, pin string, lds ...*Program) *Map {
-	return mapBuilder(name, pin, lds...)
+	return mapBuilder(name, pin, MapTypeGlobal, lds...)
+}
+
+func MapBuilderProgram(name string, lds ...*Program) *Map {
+	return mapBuilder(name, name, MapTypeProgram, lds...)
+}
+
+func MapBuilderSensor(name string, lds ...*Program) *Map {
+	return mapBuilder(name, name, MapTypeSensor, lds...)
+}
+
+func MapBuilderPolicy(name string, lds ...*Program) *Map {
+	return mapBuilder(name, name, MapTypePolicy, lds...)
+}
+
+func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
+	return mapBuilder(name, name, ty, lds...)
+}
+
+func PolicyMapPath(mapDir, policy, name string) string {
+	return filepath.Join(mapDir, policy, name)
 }
 
 func (m *Map) Unload() error {
