@@ -898,10 +898,15 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		maps = append(maps, filterMaps(loadret, pinPath, kprobeEntry)...)
 
 		// add maps with non-default paths (pins) to the retprobe
-		program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
-		program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
+		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
+		maps = append(maps, callHeap)
+
+		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
+		maps = append(maps, fdinstall)
+
 		if kernels.EnableLargeProgs() {
-			program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
+			socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
+			maps = append(maps, socktrack)
 		}
 	}
 
