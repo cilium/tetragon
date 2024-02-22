@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
 
@@ -339,10 +340,10 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 		}
 	}
 
-	var sensor *sensors.Sensor
+	var sens []*sensors.Sensor
 
 	if tp != nil {
-		sensor, err = sensors.GetMergedSensorFromParserPolicy(tp)
+		sens, err = sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 		if err != nil {
 			return nil, err
 		}
@@ -350,11 +351,12 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 
 	base := base.GetInitialSensor()
 
-	if err = loadSensor(tb, base, sensor); err != nil {
+	if err = loadSensors(tb, base, sens); err != nil {
 		return nil, err
 	}
 
-	return []*sensors.Sensor{sensor, base}, nil
+	sens = append(sens, base)
+	return sens, nil
 }
 
 func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
@@ -450,13 +452,15 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	return nil
 }
 
-func loadSensor(tb testing.TB, base *sensors.Sensor, sens *sensors.Sensor) error {
+func loadSensors(tb testing.TB, base *sensors.Sensor, sens []*sensors.Sensor) error {
 	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := sens.Load(option.Config.BpfDir); err != nil {
-		tb.Fatalf("LoadConfig error: %s\n", err)
+	for _, s := range sens {
+		if err := s.Load(option.Config.BpfDir); err != nil {
+			tb.Fatalf("LoadConfig error: %s\n", err)
+		}
 	}
 	return nil
 }
