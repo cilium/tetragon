@@ -99,9 +99,11 @@ func GetInitialSensor() *sensors.Sensor {
 func ExecObj() string {
 	if kernels.EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
-	} else if kernels.EnableLargeProgs() {
-		return "bpf_execve_event_v53.o"
-	} else {
-		return "bpf_execve_event.o"
 	}
+
+	if kernels.EnableLargeProgs() {
+		return "bpf_execve_event_v53.o"
+	}
+
+	return "bpf_execve_event.o"
 }

@@ -651,7 +651,9 @@ func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 			})
 		}
 		return ret
-	} else if enum := field.Enum; enum != nil {
+	}
+
+	if enum := field.Enum; enum != nil {
 		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
 		ret := fmt.Sprintf("%sListMatcher", enum.GoIdent.GoName)
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
@@ -662,10 +664,10 @@ func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 			})
 		}
 		return ret
-	} else {
-		varIdent := field.kind().String()
-		return fmt.Sprintf("%sListMatcher", strcase.ToCamel(varIdent))
 	}
+
+	varIdent := field.kind().String()
+	return fmt.Sprintf("%sListMatcher", strcase.ToCamel(varIdent))
 }
 
 func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
@@ -680,7 +682,9 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 			})
 		}
 		return ret
-	} else if enum := field.Enum; enum != nil {
+	}
+
+	if enum := field.Enum; enum != nil {
 		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
 		ret := fmt.Sprintf("New%sListMatcher", enum.GoIdent.GoName)
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
@@ -691,10 +695,10 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 			})
 		}
 		return ret
-	} else {
-		varIdent := field.kind().String()
-		return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
 	}
+
+	varIdent := field.kind().String()
+	return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
 }
 
 func (field *Field) kind() protoreflect.Kind {

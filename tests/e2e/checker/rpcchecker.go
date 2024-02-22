@@ -246,7 +246,7 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			continue
 		case <-timeout.C:
 			if rc.timeLimit > 0 {
-				klog.Info("event checker %s timed out after %v", rc.name, rc.timeLimit)
+				klog.Infof("event checker %s timed out after %v", rc.name, rc.timeLimit)
 				return rc.checker.FinalCheck(nil)
 			}
 		case res := <-c:

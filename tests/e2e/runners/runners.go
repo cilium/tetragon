@@ -136,7 +136,7 @@ func (r *Runner) Init() *Runner {
 
 	cfg, err := envconf.NewFromFlags()
 	if err != nil {
-		klog.Fatalf("Failed to configure test environment: %w", err)
+		klog.Fatalf("Failed to configure test environment: %s", err)
 	}
 	klog.Info("IMPORTANT: Tetragon e2e tests require parallel tests enabled. User preferences will be ignored.")
 	cfg = cfg.WithParallelTestEnabled()
