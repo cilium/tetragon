@@ -48,9 +48,6 @@ GO_IMAGE_LDFLAGS=$(GO_LDFLAGS_STATIC)
 GO_OPERATOR_IMAGE_LDFLAGS="-X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)' -s -w"
 
 
-GOLANGCILINT_WANT_VERSION = 1.52.2
-GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
-
 # Do a parallel build with multiple jobs, based on the number of CPUs online
 # in this system: 'make -j8' on a 8-CPU system, etc.
 #
@@ -308,21 +305,23 @@ codegen: image-codegen
 protoc-gen-go-tetragon:
 	$(GO) build -gcflags=$(GO_GCFLAGS) -ldflags=$(GO_LDFLAGS) -mod=vendor -o bin/$@ ./cmd/protoc-gen-go-tetragon/
 
+# renovate: datasource=docker
+GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.55.2@sha256:e699df940be1810b08ba6ec050bfc34cc1931027283b5a7f607fb6a67b503876
+GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
+GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 .PHONY: check
 ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
 check:
 	golangci-lint run
 else
 check:
-	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
-	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app golangci-lint:tetragon golangci-lint run
+	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app --env GOTOOLCHAIN=auto $(GOLANGCILINT_IMAGE) golangci-lint run
 endif
 
 .PHONY: copy-golangci-lint
 copy-golangci-lint:
 	mkdir -p bin/
-	$(CONTAINER_ENGINE) build -t golangci-lint:tetragon . -f Dockerfile.golangci-lint
-	$(eval xid=$(shell docker create golangci-lint:tetragon))
+	$(eval xid=$(shell $(CONTAINER_ENGINE) create $(GOLANGCILINT_IMAGE)))
 	echo ${xid}
 	docker cp ${xid}:/usr/bin/golangci-lint bin/golangci-lint
 	docker rm ${xid}
