@@ -292,7 +292,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 			err := m.updatePodHandler(pod)
 			pfmetrics.OpInc("pod-handlers", "add", err)
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
 			if !ok {
 				logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)

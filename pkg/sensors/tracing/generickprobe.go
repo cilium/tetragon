@@ -904,7 +904,7 @@ func dnsLookup(fqdn string) {
 	// We fire and forget DNS lookups, and we don't care if they hit or not.
 	res := &net.Resolver{
 		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		Dial: func(_ context.Context, _, _ string) (net.Conn, error) {
 			dial := net.Dialer{}
 			return dial.Dial("udp", "1.1.1.1:53")
 		},

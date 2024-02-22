@@ -163,7 +163,7 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEv
 		eventProtoNum := tetragon.EventType_UNDEF
 
 		rft := event.ProtoReflect()
-		rft.Range(func(eventDesc protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		rft.Range(func(eventDesc protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
 			if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
 				return true
 			}

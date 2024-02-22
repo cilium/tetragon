@@ -179,7 +179,7 @@ func (c *ciliumCLI) status(wait bool) error {
 // Setup installs Cilium with the given options.
 func Setup(options ...Option) env.Func {
 	o := processOpts(options...)
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
 		return ctx, newCiliumCLI(o).install()
 	}
 }
@@ -187,7 +187,7 @@ func Setup(options ...Option) env.Func {
 // Finish uninstalls Cilium.
 func Finish(options ...Option) env.Func {
 	o := processOpts(options...)
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
 		return ctx, newCiliumCLI(o).uninstall()
 	}
 }

@@ -38,7 +38,7 @@ func policyfilterCmd() *cobra.Command {
 		Use:   "policyfilter",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			dumpPolicyfilterState(mapFname)
 		},
 	}

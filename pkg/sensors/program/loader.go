@@ -160,7 +160,7 @@ func UprobeAttach(load *Program) AttachFunc {
 }
 
 func NoAttach() AttachFunc {
-	return func(prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
 			unloader.PinUnloader{
 				Prog: prog,

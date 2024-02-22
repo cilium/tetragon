@@ -190,7 +190,7 @@ func TestEventExitThreads(t *testing.T) {
 
 	// check we got single exit event for each testThreadsExit
 	// execution and no more
-	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+	nextCheck := func(event ec.Event, _ *logrus.Logger) (bool, error) {
 		switch ev := event.(type) {
 		case *tetragon.ProcessExit:
 			if ev.Process.Binary != testThreadsExit {
@@ -207,7 +207,7 @@ func TestEventExitThreads(t *testing.T) {
 		}
 	}
 
-	finalCheck := func(l *logrus.Logger) error {
+	finalCheck := func(_ *logrus.Logger) error {
 		// Make sure we saw all pids
 		for pid, used := range tgids {
 			assert.True(t, used, "did not see exit event for pid %d", pid)

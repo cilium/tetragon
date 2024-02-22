@@ -76,7 +76,7 @@ func TestExitLeader(t *testing.T) {
 	// run for 3 seconds and exits. We verify that we get exit event 3
 	// seconds after the start.
 
-	nextCheck := func(event ec.Event, l *logrus.Logger) (bool, error) {
+	nextCheck := func(event ec.Event, _ *logrus.Logger) (bool, error) {
 		switch ev := event.(type) {
 		case *tetragon.ProcessExec:
 			if ev.Process.Binary == testExitLeader {
@@ -92,7 +92,7 @@ func TestExitLeader(t *testing.T) {
 		return false, nil
 	}
 
-	finalCheck := func(l *logrus.Logger) error {
+	finalCheck := func(_ *logrus.Logger) error {
 		delta := exitTime.Sub(startTime)
 
 		fmt.Printf("execTime %v\n", startTime)

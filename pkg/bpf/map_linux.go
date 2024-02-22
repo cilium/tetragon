@@ -384,7 +384,7 @@ func (m *Map) DumpWithCallbackIfExists(cb DumpCallback) error {
 // Dump returns the map (type map[string][]string) which contains all
 // data stored in BPF map.
 func (m *Map) Dump(hash map[string][]string) error {
-	callback := func(m *Map, key MapKey, value MapValue) {
+	callback := func(_ *Map, key MapKey, value MapValue) {
 		// No need to deep copy since we are creating strings.
 		hash[key.String()] = append(hash[key.String()], value.String())
 	}

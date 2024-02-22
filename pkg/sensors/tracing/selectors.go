@@ -83,13 +83,13 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 		}, {
 			Index: 0,
 			Name:  "argfilter_maps",
-			Load: func(outerMap *ebpf.Map, index uint32) error {
+			Load: func(outerMap *ebpf.Map, _ uint32) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "sel_names_map",
-			Load: func(outerMap *ebpf.Map, index uint32) error {
+			Load: func(outerMap *ebpf.Map, _ uint32) error {
 				return populateBinariesMaps(ks, pinPathPrefix, outerMap)
 			},
 		},

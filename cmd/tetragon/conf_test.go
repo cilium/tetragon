@@ -1195,7 +1195,7 @@ func TestReadConfigSettings(t *testing.T) {
 		rootCmd := &cobra.Command{
 			Use:   "testing-only",
 			Short: "Perform read configuration tests",
-			Run: func(cmd *cobra.Command, args []string) {
+			Run: func(_ *cobra.Command, _ []string) {
 				runTestCases(t)
 			},
 		}
@@ -1210,7 +1210,7 @@ func TestReadConfigSettings(t *testing.T) {
 		flags.Bool(keyEnableCiliumAPI, false, "Access Cilium API to associate tetragon events with Cilium endpoints and DNS cache")
 		flags.Uint(keyEventQueueSize, 10000, "Set the size of the internal event queue.")
 		viper.BindPFlags(flags)
-		t.Run(c.description, func(t *testing.T) {
+		t.Run(c.description, func(_ *testing.T) {
 			rootCmd.Execute()
 		})
 		viper.Reset()

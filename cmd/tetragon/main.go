@@ -220,7 +220,7 @@ func tetragonExecute() error {
 	}()
 
 	defaultLevel := logger.GetLogLevel()
-	go func(obs *observer.Observer) {
+	go func(_ *observer.Observer) {
 		for {
 			s := <-sigs
 			switch s {
@@ -578,7 +578,7 @@ func execute() error {
 	rootCmd := &cobra.Command{
 		Use:   "tetragon",
 		Short: "Run the tetragon agent",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			readAndSetFlags()
 
 			if err := startGopsServer(); err != nil {

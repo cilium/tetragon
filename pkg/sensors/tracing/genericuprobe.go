@@ -132,7 +132,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		{
 			Index: 0,
 			Name:  "sel_names_map",
-			Load: func(outerMap *ebpf.Map, index uint32) error {
+			Load: func(outerMap *ebpf.Map, _ uint32) error {
 				return populateBinariesMaps(uprobeEntry.selectors, uprobeEntry.pinPathPrefix, outerMap)
 			},
 		},

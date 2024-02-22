@@ -38,7 +38,7 @@ func New() *cobra.Command {
 		Use:   "add <yaml_file>",
 		Short: "Add a new sensor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				addTracingPolicy(ctx, cli, args[0])
 			})
@@ -50,13 +50,13 @@ func New() *cobra.Command {
 		Use:   "list",
 		Short: "list tracing policies",
 		Args:  cobra.ExactArgs(0),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if tpListOutputFlag != "json" && tpListOutputFlag != "text" {
 				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, tpListOutputFlag)
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				listTracingPolicies(ctx, cli, tpListOutputFlag)
 			})
@@ -69,7 +69,7 @@ func New() *cobra.Command {
 		Use:   "generate",
 		Short: "generate tracing policies",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			generateTracingPolicy(args[0])
 		},
 	}

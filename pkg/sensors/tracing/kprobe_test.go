@@ -1190,7 +1190,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -1234,7 +1234,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
 
-	checker := func(dir string) *eventchecker.UnorderedEventChecker {
+	checker := func(_ string) *eventchecker.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
 			ec.NewProcessKprobeChecker("").
 				WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_openat"))).
@@ -3634,7 +3634,7 @@ spec:
 
 	res := &net.Resolver{
 		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		Dial: func(_ context.Context, _, _ string) (net.Conn, error) {
 			dial := net.Dialer{}
 			return dial.Dial("udp", "127.0.0.1:53")
 		},

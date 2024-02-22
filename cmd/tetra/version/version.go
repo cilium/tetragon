@@ -45,7 +45,7 @@ func New() *cobra.Command {
 		Use:   "version",
 		Short: "Print version",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			if viper.GetBool("client") {
 				printClientersion()
 				return

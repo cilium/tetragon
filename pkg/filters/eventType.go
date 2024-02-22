@@ -19,7 +19,7 @@ func filterByEventType(types []tetragon.EventType) hubbleFilters.FilterFunc {
 			eventProtoNum := tetragon.EventType_UNDEF
 
 			rft := event.ProtoReflect()
-			rft.Range(func(eventDesc protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			rft.Range(func(eventDesc protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
 				if eventDesc.ContainingOneof() == nil || !rft.Has(eventDesc) {
 					return true
 				}

@@ -32,7 +32,7 @@ func New() *cobra.Command {
 	sensorsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available sensors",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			common.CliRun(listSensors)
 		},
 	}
@@ -42,7 +42,7 @@ func New() *cobra.Command {
 		Use:   "enable <sensor>",
 		Short: "Enable sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			sensor := args[0]
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				enableSensor(ctx, cli, sensor)
@@ -55,7 +55,7 @@ func New() *cobra.Command {
 		Use:   "disable <sensor>",
 		Short: "Disable sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			sensor := args[0]
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				disableSensor(ctx, cli, sensor)
@@ -68,7 +68,7 @@ func New() *cobra.Command {
 		Use:   "config <sensor> [param] [val]",
 		Short: "Configure sensor",
 		Args:  cobra.RangeArgs(1, 3),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			sensor := args[0]
 			switch len(args) {
 			case 1:
@@ -92,7 +92,7 @@ func New() *cobra.Command {
 		Use:   "rm <sensor_name>",
 		Short: "remove a sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				removeSensor(ctx, cli, args[0])
 			})
