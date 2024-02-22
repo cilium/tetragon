@@ -20,11 +20,13 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version: '1.19.6'
+          # renovate: datasource=golang-version depName=go
+          go-version: '1.22.0'
       - name: Run static checks
-        uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
+        uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804 # v4.0.0
         with:
-          version: v1.52.2
+          # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
+          version: v1.56.2
           args: --config=.golangci.yml --verbose
           skip-cache: true
       - name: Check gofmt formatting
