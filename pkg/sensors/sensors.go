@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/program/cgroup"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	// load rthooks for policy filter
@@ -95,6 +96,13 @@ var (
 	registeredPolicyHandlers = map[string]policyHandler{}
 	// list of registers loaders, see registerProbeType()
 	registeredProbeLoad = map[string]probeLoader{}
+	standardTypes       = map[string]func(string, *program.Program, int) error{
+		"tracepoint":     program.LoadTracepointProgram,
+		"raw_tracepoint": program.LoadRawTracepointProgram,
+		"raw_tp":         program.LoadRawTracepointProgram,
+		"cgrp_socket":    cgroup.LoadCgroupProgram,
+		"kprobe":         program.LoadKprobeProgram,
+	}
 )
 
 // RegisterPolicyHandlerAtInit registers a handler for a tracing policy.

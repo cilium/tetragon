@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/cilium/tetragon/pkg/sensors/program/cgroup"
 
 	"github.com/sirupsen/logrus"
 )
@@ -319,31 +318,24 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 }
 
 func loadInstance(bpfDir string, load *program.Program, version, verbose int) error {
-	version = kernels.FixKernelVersion(version)
+	// Check if the load.type is a standard program type. If so, use the standard loader.
+	loadFn, ok := standardTypes[load.Type]
+	if ok {
+		logger.GetLogger().WithField("Program", load.Name).
+			WithField("Type", load.Type).
+			WithField("Attach", load.Attach).
+			Info("Loading BPF program")
+		return loadFn(bpfDir, load, verbose)
+	}
+	// Otherwise, check for a registered probe type. If one exists, use that.
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
 		logger.GetLogger().WithField("Program", load.Name).
 			WithField("Type", load.Type).
 			WithField("Attach", load.Attach).
 			Info("Loading registered BPF probe")
-	} else {
-		logger.GetLogger().WithField("Program", load.Name).
-			WithField("Type", load.Type).
-			WithField("Attach", load.Attach).
-			Info("Loading BPF program")
-	}
-
-	switch load.Type {
-	case "tracepoint":
-		return program.LoadTracepointProgram(bpfDir, load, verbose)
-	case "raw_tracepoint", "raw_tp":
-		return program.LoadRawTracepointProgram(bpfDir, load, verbose)
-	case "cgrp_socket":
-		return cgroup.LoadCgroupProgram(bpfDir, load, verbose)
-	}
-
-	if probe != nil {
 		// Registered probes need extra setup
+		version = kernels.FixKernelVersion(version)
 		return probe.LoadProbe(LoadProbeArgs{
 			BPFDir:  bpfDir,
 			Load:    load,
@@ -352,7 +344,7 @@ func loadInstance(bpfDir string, load *program.Program, version, verbose int) er
 		})
 	}
 
-	return program.LoadKprobeProgram(bpfDir, load, verbose)
+	return fmt.Errorf("program %s has unregistered type '%s'", load.Label, load.Type)
 }
 
 func observerMinReqs() (bool, error) {
