@@ -47,3 +47,4 @@ vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	chmod +x vendor/k8s.io/code-generator/generate-internal-groups.sh
