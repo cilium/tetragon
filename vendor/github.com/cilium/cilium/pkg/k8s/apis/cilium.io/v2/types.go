@@ -4,6 +4,7 @@
 package v2
 
 import (
+	"net"
 	"sort"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,11 +21,10 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=false
 // +kubebuilder:resource:categories={cilium},singular="ciliumendpoint",path="ciliumendpoints",scope="Namespaced",shortName={cep,ciliumep}
-// +kubebuilder:printcolumn:JSONPath=".status.id",description="Cilium endpoint id",name="Endpoint ID",type=integer
-// +kubebuilder:printcolumn:JSONPath=".status.identity.id",description="Cilium identity id",name="Identity ID",type=integer
-// +kubebuilder:printcolumn:JSONPath=".status.policy.ingress.state",description="Ingress enforcement in the endpoint",name="Ingress Enforcement",type=string
-// +kubebuilder:printcolumn:JSONPath=".status.policy.egress.state",description="Egress enforcement in the endpoint",name="Egress Enforcement",type=string
-// +kubebuilder:printcolumn:JSONPath=".status.visibility-policy-status",description="Status of visibility policy in the endpoint",name="Visibility Policy",type=string
+// +kubebuilder:printcolumn:JSONPath=".status.identity.id",description="Security Identity",name="Security Identity",type=integer
+// +kubebuilder:printcolumn:JSONPath=".status.policy.ingress.state",description="Ingress enforcement in the endpoint",name="Ingress Enforcement",type=string,priority=1
+// +kubebuilder:printcolumn:JSONPath=".status.policy.egress.state",description="Egress enforcement in the endpoint",name="Egress Enforcement",type=string,priority=1
+// +kubebuilder:printcolumn:JSONPath=".status.visibility-policy-status",description="Status of visibility policy in the endpoint",name="Visibility Policy",type=string,priority=1
 // +kubebuilder:printcolumn:JSONPath=".status.state",description="Endpoint current state",name="Endpoint State",type=string
 // +kubebuilder:printcolumn:JSONPath=".status.networking.addressing[0].ipv4",description="Endpoint IPv4 address",name="IPv4",type=string
 // +kubebuilder:printcolumn:JSONPath=".status.networking.addressing[0].ipv6",description="Endpoint IPv6 address",name="IPv6",type=string
@@ -221,7 +221,7 @@ type EndpointIdentity struct {
 // global coordination backend, and can be used in place of a KVStore (such as
 // etcd).
 // The name of the CRD is the numeric identity and the labels on the CRD object
-// are the the kubernetes sourced labels seen by cilium. This is currently the
+// are the kubernetes sourced labels seen by cilium. This is currently the
 // only label source possible when running under kubernetes. Non-kubernetes
 // labels are filtered but all labels, from all sources, are places in the
 // SecurityLabels field. These also include the source and are used to define
@@ -231,12 +231,6 @@ type EndpointIdentity struct {
 // with invocations such as:
 //
 //	kubectl get ciliumid -l 'foo=bar'
-//
-// Each node using a ciliumidentity updates the status field with it's name and
-// a timestamp when it first allocates or uses an identity, and periodically
-// after that. It deletes its entry when no longer using this identity.
-// cilium-operator uses the list of nodes in status to reference count
-// users of this identity, and to expire stale usage.
 type CiliumIdentity struct {
 	// +deepequal-gen=false
 	metav1.TypeMeta `json:",inline"`
@@ -261,7 +255,7 @@ type CiliumIdentityList struct {
 
 // +k8s:deepcopy-gen=false
 
-// AddressPair is is a par of IPv4 and/or IPv6 address.
+// AddressPair is a pair of IPv4 and/or IPv6 address.
 type AddressPair struct {
 	IPV4 string `json:"ipv4,omitempty"`
 	IPV6 string `json:"ipv6,omitempty"`
@@ -470,4 +464,23 @@ func (n *CiliumNode) InstanceID() (instanceID string) {
 		}
 	}
 	return
+}
+
+func (n NodeAddress) ToString() string {
+	return n.IP
+}
+
+func (n NodeAddress) AddrType() addressing.AddressType {
+	return n.Type
+}
+
+// GetIP returns one of the CiliumNode's IP addresses available with the
+// following priority:
+// - NodeInternalIP
+// - NodeExternalIP
+// - other IP address type
+// An error is returned if GetIP fails to extract an IP from the CiliumNode
+// based on the provided address family.
+func (n *CiliumNode) GetIP(ipv6 bool) net.IP {
+	return addressing.ExtractNodeIP[NodeAddress](n.Spec.Addresses, ipv6)
 }

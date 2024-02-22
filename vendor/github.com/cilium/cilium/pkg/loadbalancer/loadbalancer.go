@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/pkg/cidr"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
+	"github.com/cilium/cilium/pkg/option"
 )
 
 // SVCType is a type of a service.
@@ -334,13 +336,18 @@ type FEPortName string
 type ServiceID uint16
 
 // ServiceName represents the fully-qualified reference to the service by name,
-// including both the namespace and name of the service.
+// including both the namespace and name of the service (and optionally the cluster).
 type ServiceName struct {
 	Namespace string
 	Name      string
+	Cluster   string
 }
 
 func (n ServiceName) String() string {
+	if n.Cluster != "" {
+		return n.Cluster + "/" + n.Namespace + "/" + n.Name
+	}
+
 	return n.Namespace + "/" + n.Name
 }
 
@@ -428,6 +435,10 @@ func (s *SVC) GetModel() *models.Service {
 		},
 	}
 
+	if s.Name.Cluster != option.Config.ClusterName {
+		spec.Flags.Cluster = s.Name.Cluster
+	}
+
 	placements := make([]backendPlacement, len(s.Backends))
 	for i, be := range s.Backends {
 		placements[i] = backendPlacement{pos: i, id: be.ID}
@@ -474,13 +485,13 @@ func IsValidStateTransition(old, new BackendState) bool {
 
 func GetBackendState(state string) (BackendState, error) {
 	switch strings.ToLower(state) {
-	case "active", "":
+	case models.BackendAddressStateActive, "":
 		return BackendStateActive, nil
-	case "terminating":
+	case models.BackendAddressStateTerminating:
 		return BackendStateTerminating, nil
-	case "quarantined":
+	case models.BackendAddressStateQuarantined:
 		return BackendStateQuarantined, nil
-	case "maintenance":
+	case models.BackendAddressStateMaintenance:
 		return BackendStateMaintenance, nil
 	default:
 		return BackendStateInvalid, fmt.Errorf("invalid backend state %s", state)
@@ -490,13 +501,13 @@ func GetBackendState(state string) (BackendState, error) {
 func (state BackendState) String() (string, error) {
 	switch state {
 	case BackendStateActive:
-		return "active", nil
+		return models.BackendAddressStateActive, nil
 	case BackendStateTerminating:
-		return "terminating", nil
+		return models.BackendAddressStateTerminating, nil
 	case BackendStateQuarantined:
-		return "quarantined", nil
+		return models.BackendAddressStateQuarantined, nil
 	case BackendStateMaintenance:
-		return "maintenance", nil
+		return models.BackendAddressStateMaintenance, nil
 	default:
 		return "", fmt.Errorf("invalid backend state %d", state)
 	}
@@ -729,9 +740,9 @@ func (a *L3n4Addr) String() string {
 		scope = "/i"
 	}
 	if a.IsIPv6() {
-		return fmt.Sprintf("[%s]:%d%s", a.AddrCluster.String(), a.Port, scope)
+		return "[" + a.AddrCluster.String() + "]:" + strconv.FormatUint(uint64(a.Port), 10) + scope
 	}
-	return fmt.Sprintf("%s:%d%s", a.AddrCluster.String(), a.Port, scope)
+	return a.AddrCluster.String() + ":" + strconv.FormatUint(uint64(a.Port), 10) + scope
 }
 
 // StringWithProtocol returns the L3n4Addr in the "IPv4:Port/Protocol[/Scope]"
@@ -742,9 +753,9 @@ func (a *L3n4Addr) StringWithProtocol() string {
 		scope = "/i"
 	}
 	if a.IsIPv6() {
-		return fmt.Sprintf("[%s]:%d/%s%s", a.AddrCluster.String(), a.Port, a.Protocol, scope)
+		return "[" + a.AddrCluster.String() + "]:" + strconv.FormatUint(uint64(a.Port), 10) + "/" + a.Protocol + scope
 	}
-	return fmt.Sprintf("%s:%d/%s%s", a.AddrCluster.String(), a.Port, a.Protocol, scope)
+	return a.AddrCluster.String() + ":" + strconv.FormatUint(uint64(a.Port), 10) + "/" + a.Protocol + scope
 }
 
 // StringID returns the L3n4Addr as string to be used for unique identification

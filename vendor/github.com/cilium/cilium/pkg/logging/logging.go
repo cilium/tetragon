@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
@@ -26,8 +27,9 @@ const (
 	LevelOpt  = "level"
 	FormatOpt = "format"
 
-	LogFormatText LogFormat = "text"
-	LogFormatJSON LogFormat = "json"
+	LogFormatText          LogFormat = "text"
+	LogFormatJSON          LogFormat = "json"
+	LogFormatJSONTimestamp LogFormat = "json-ts"
 
 	// DefaultLogFormat is the string representation of the default logrus.Formatter
 	// we want to use (possible values: text or json)
@@ -39,7 +41,7 @@ const (
 
 // DefaultLogger is the base logrus logger. It is different from the logrus
 // default to avoid external dependencies from writing out unexpectedly
-var DefaultLogger = InitializeDefaultLogger()
+var DefaultLogger = initializeDefaultLogger()
 
 func initializeKLog() {
 	log := DefaultLogger.WithField(logfields.LogSubsys, "klog")
@@ -71,8 +73,9 @@ func initializeKLog() {
 // LogOptions maps configuration key-value pairs related to logging.
 type LogOptions map[string]string
 
-// InitializeDefaultLogger returns a logrus Logger with a custom text formatter.
-func InitializeDefaultLogger() (logger *logrus.Logger) {
+// initializeDefaultLogger returns a logrus Logger with the default logging
+// settings.
+func initializeDefaultLogger() (logger *logrus.Logger) {
 	logger = logrus.New()
 	logger.SetFormatter(GetFormatter(DefaultLogFormat))
 	logger.SetLevel(DefaultLogLevel)
@@ -105,10 +108,10 @@ func (o LogOptions) GetLogFormat() LogFormat {
 	}
 
 	formatOpt = strings.ToLower(formatOpt)
-	re := regexp.MustCompile(`^(text|json)$`)
+	re := regexp.MustCompile(`^(text|json|json-ts)$`)
 	if !re.MatchString(formatOpt) {
 		logrus.WithError(
-			fmt.Errorf("incorrect log format configured '%s', expected 'text' or 'json'", formatOpt),
+			fmt.Errorf("incorrect log format configured '%s', expected 'text', 'json' or 'json-ts'", formatOpt),
 		).Warning("Ignoring user-configured log format")
 		return DefaultLogFormat
 	}
@@ -202,6 +205,11 @@ func GetFormatter(format LogFormat) logrus.Formatter {
 	case LogFormatJSON:
 		return &logrus.JSONFormatter{
 			DisableTimestamp: true,
+		}
+	case LogFormatJSONTimestamp:
+		return &logrus.JSONFormatter{
+			DisableTimestamp: false,
+			TimestampFormat:  time.RFC3339Nano,
 		}
 	}
 

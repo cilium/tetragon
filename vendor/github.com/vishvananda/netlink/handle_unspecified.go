@@ -79,6 +79,10 @@ func (h *Handle) LinkSetVfVlanQos(link Link, vf, vlan, qos int) error {
 	return ErrNotImplemented
 }
 
+func (h *Handle) LinkSetVfVlanQosProto(link Link, vf, vlan, qos, proto int) error {
+	return ErrNotImplemented
+}
+
 func (h *Handle) LinkSetVfTxRate(link Link, vf, rate int) error {
 	return ErrNotImplemented
 }
@@ -168,6 +172,14 @@ func (h *Handle) LinkSetGSOMaxSize(link Link, maxSize int) error {
 }
 
 func (h *Handle) LinkSetGROMaxSize(link Link, maxSize int) error {
+	return ErrNotImplemented
+}
+
+func (h *Handle) LinkSetGSOIPv4MaxSize(link Link, maxSize int) error {
+	return ErrNotImplemented
+}
+
+func (h *Handle) LinkSetGROIPv4MaxSize(link Link, maxSize int) error {
 	return ErrNotImplemented
 }
 

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cilium/cilium/pkg/byteorder"
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/monitor/api"
 )
@@ -46,11 +47,63 @@ func (n *DropNotify) dumpIdentity(buf *bufio.Writer, numeric DisplayFormat) {
 	}
 }
 
+var sourceFileNames = map[int]string{
+	// source files from bpf/
+	1: "bpf_host.c",
+	2: "bpf_lxc.c",
+	3: "bpf_overlay.c",
+	4: "bpf_xdp.c",
+
+	// header files from bpf/lib/
+	101: "arp.h",
+	102: "drop.h",
+	103: "srv6.h",
+	104: "icmp6.h",
+	105: "nodeport.h",
+	106: "lb.h",
+	//end
+}
+
+// DecodeDropNotify will decode 'data' into the provided DropNotify structure
+func DecodeDropNotify(data []byte, dn *DropNotify) error {
+	return dn.decodeDropNotify(data)
+}
+
+func (n *DropNotify) decodeDropNotify(data []byte) error {
+	if l := len(data); l < DropNotifyLen {
+		return fmt.Errorf("unexpected DropNotify data length, expected %d but got %d", DropNotifyLen, l)
+	}
+
+	n.Type = data[0]
+	n.SubType = data[1]
+	n.Source = byteorder.Native.Uint16(data[2:4])
+	n.Hash = byteorder.Native.Uint32(data[4:8])
+	n.OrigLen = byteorder.Native.Uint32(data[8:12])
+	n.CapLen = byteorder.Native.Uint32(data[12:16])
+	n.SrcLabel = identity.NumericIdentity(byteorder.Native.Uint32(data[16:20]))
+	n.DstLabel = identity.NumericIdentity(byteorder.Native.Uint32(data[20:24]))
+	n.DstID = byteorder.Native.Uint32(data[24:28])
+	n.Line = byteorder.Native.Uint16(data[28:30])
+	n.File = data[30]
+	n.ExtError = int8(data[31])
+	n.Ifindex = byteorder.Native.Uint32(data[32:36])
+
+	return nil
+}
+
+func decodeBPFSourceFileName(fileId int) string {
+	if name, ok := sourceFileNames[fileId]; ok {
+		return name
+	}
+	// this shouldn't ever happen
+	return fmt.Sprintf("<unknown-id-%d>", fileId)
+}
+
 // DumpInfo prints a summary of the drop messages.
 func (n *DropNotify) DumpInfo(data []byte, numeric DisplayFormat) {
 	buf := bufio.NewWriter(os.Stdout)
-	fmt.Fprintf(buf, "xx drop (%s) flow %#x to endpoint %d, ifindex %d, file %d:%d, ",
-		api.DropReasonExt(n.SubType, n.ExtError), n.Hash, n.DstID, n.Ifindex, int(n.File), int(n.Line))
+	fmt.Fprintf(buf, "xx drop (%s) flow %#x to endpoint %d, ifindex %d, file %s:%d, ",
+		api.DropReasonExt(n.SubType, n.ExtError), n.Hash, n.DstID, n.Ifindex, decodeBPFSourceFileName(int(n.File)), int(n.Line))
 	n.dumpIdentity(buf, numeric)
 	fmt.Fprintf(buf, ": %s\n", GetConnectionSummary(data[DropNotifyLen:]))
 	buf.Flush()

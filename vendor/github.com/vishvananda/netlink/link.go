@@ -22,35 +22,39 @@ type (
 
 // LinkAttrs represents data shared by most link types
 type LinkAttrs struct {
-	Index        int
-	MTU          int
-	TxQLen       int // Transmit Queue Length
-	Name         string
-	HardwareAddr net.HardwareAddr
-	Flags        net.Flags
-	RawFlags     uint32
-	ParentIndex  int         // index of the parent link device
-	MasterIndex  int         // must be the index of a bridge
-	Namespace    interface{} // nil | NsPid | NsFd
-	Alias        string
-	Statistics   *LinkStatistics
-	Promisc      int
-	Allmulti     int
-	Multi        int
-	Xdp          *LinkXdp
-	EncapType    string
-	Protinfo     *Protinfo
-	OperState    LinkOperState
-	PhysSwitchID int
-	NetNsID      int
-	NumTxQueues  int
-	NumRxQueues  int
-	GSOMaxSize   uint32
-	GSOMaxSegs   uint32
-	GROMaxSize   uint32
-	Vfs          []VfInfo // virtual functions available on link
-	Group        uint32
-	Slave        LinkSlave
+	Index          int
+	MTU            int
+	TxQLen         int // Transmit Queue Length
+	Name           string
+	HardwareAddr   net.HardwareAddr
+	Flags          net.Flags
+	RawFlags       uint32
+	ParentIndex    int         // index of the parent link device
+	MasterIndex    int         // must be the index of a bridge
+	Namespace      interface{} // nil | NsPid | NsFd
+	Alias          string
+	Statistics     *LinkStatistics
+	Promisc        int
+	Allmulti       int
+	Multi          int
+	Xdp            *LinkXdp
+	EncapType      string
+	Protinfo       *Protinfo
+	OperState      LinkOperState
+	PhysSwitchID   int
+	NetNsID        int
+	NumTxQueues    int
+	NumRxQueues    int
+	TSOMaxSegs     uint32
+	TSOMaxSize     uint32
+	GSOMaxSegs     uint32
+	GSOMaxSize     uint32
+	GROMaxSize     uint32
+	GSOIPv4MaxSize uint32
+	GROIPv4MaxSize uint32
+	Vfs            []VfInfo // virtual functions available on link
+	Group          uint32
+	Slave          LinkSlave
 }
 
 // LinkSlave represents a slave device.
@@ -64,6 +68,7 @@ type VfInfo struct {
 	Mac       net.HardwareAddr
 	Vlan      int
 	Qos       int
+	VlanProto int
 	TxRate    int // IFLA_VF_TX_RATE  Max TxRate
 	Spoofchk  bool
 	LinkState uint32
@@ -266,6 +271,7 @@ type Bridge struct {
 	AgeingTime        *uint32
 	HelloTime         *uint32
 	VlanFiltering     *bool
+	VlanDefaultPVID   *uint16
 }
 
 func (bridge *Bridge) Attrs() *LinkAttrs {
@@ -349,6 +355,46 @@ func (tuntap *Tuntap) Attrs() *LinkAttrs {
 
 func (tuntap *Tuntap) Type() string {
 	return "tuntap"
+}
+
+type NetkitMode uint32
+
+const (
+	NETKIT_MODE_L2 NetkitMode = iota
+	NETKIT_MODE_L3
+)
+
+type NetkitPolicy int
+
+const (
+	NETKIT_POLICY_FORWARD   NetkitPolicy = 0
+	NETKIT_POLICY_BLACKHOLE NetkitPolicy = 2
+)
+
+func (n *Netkit) IsPrimary() bool {
+	return n.isPrimary
+}
+
+// SetPeerAttrs will not take effect if trying to modify an existing netkit device
+func (n *Netkit) SetPeerAttrs(Attrs *LinkAttrs) {
+	n.peerLinkAttrs = *Attrs
+}
+
+type Netkit struct {
+	LinkAttrs
+	Mode          NetkitMode
+	Policy        NetkitPolicy
+	PeerPolicy    NetkitPolicy
+	isPrimary     bool
+	peerLinkAttrs LinkAttrs
+}
+
+func (n *Netkit) Attrs() *LinkAttrs {
+	return &n.LinkAttrs
+}
+
+func (n *Netkit) Type() string {
+	return "netkit"
 }
 
 // Veth devices must specify PeerName on create
@@ -1065,6 +1111,7 @@ type Ip6tnl struct {
 	EncapFlags uint16
 	EncapSport uint16
 	EncapDport uint16
+	FlowBased  bool
 }
 
 func (ip6tnl *Ip6tnl) Attrs() *LinkAttrs {
@@ -1166,6 +1213,7 @@ type Gretun struct {
 	EncapFlags uint16
 	EncapSport uint16
 	EncapDport uint16
+	FlowBased  bool
 }
 
 func (gretun *Gretun) Attrs() *LinkAttrs {
@@ -1209,6 +1257,7 @@ func (gtp *GTP) Type() string {
 }
 
 // Virtual XFRM Interfaces
+//
 //	Named "xfrmi" to prevent confusion with XFRM objects
 type Xfrmi struct {
 	LinkAttrs

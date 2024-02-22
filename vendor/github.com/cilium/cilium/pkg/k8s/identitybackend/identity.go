@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/cilium/pkg/allocator"
+	cacheKey "github.com/cilium/cilium/pkg/identity/key"
 	"github.com/cilium/cilium/pkg/idpool"
 	k8sConst "github.com/cilium/cilium/pkg/k8s/apis/cilium.io"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
@@ -39,6 +41,9 @@ const (
 
 	k8sPrefix               = labels.LabelSourceK8s + ":"
 	k8sNamespaceLabelPrefix = labels.LabelSourceK8s + ":" + k8sConst.PodNamespaceMetaLabels + labels.PathDelimiter
+
+	// byKeyIndex is the name of the index of the identities by key.
+	byKeyIndex = "by-key-index"
 )
 
 func NewCRDBackend(c CRDBackendConfiguration) (allocator.Backend, error) {
@@ -46,10 +51,9 @@ func NewCRDBackend(c CRDBackendConfiguration) (allocator.Backend, error) {
 }
 
 type CRDBackendConfiguration struct {
-	NodeName string
-	Store    cache.Store
-	Client   clientset.Interface
-	KeyType  allocator.AllocatorKey
+	Store   cache.Indexer
+	Client  clientset.Interface
+	KeyFunc func(map[string]string) allocator.AllocatorKey
 }
 
 type crdBackend struct {
@@ -85,7 +89,8 @@ func sanitizeK8sLabels(old map[string]string) (selected, skipped map[string]stri
 // AllocateID will create an identity CRD, thus creating the identity for this
 // key-> ID mapping.
 // Note: the lock field is not supported with the k8s CRD allocator.
-func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator.AllocatorKey) error {
+// Returns an allocator key with the cilium identity stored in it.
+func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator.AllocatorKey) (allocator.AllocatorKey, error) {
 	selectedLabels, skippedLabels := sanitizeK8sLabels(key.GetAsMap())
 	log.WithField(logfields.Labels, skippedLabels).Info("Skipped non-kubernetes labels when labelling ciliumidentity. All labels will still be used in identity determination")
 
@@ -97,11 +102,14 @@ func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator
 		SecurityLabels: key.GetAsMap(),
 	}
 
-	_, err := c.Client.CiliumV2().CiliumIdentities().Create(ctx, identity, metav1.CreateOptions{})
-	return err
+	ci, err := c.Client.CiliumV2().CiliumIdentities().Create(ctx, identity, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return key.PutValue(cacheKey.MetadataKeyBackendKey, ci), nil
 }
 
-func (c *crdBackend) AllocateIDIfLocked(ctx context.Context, id idpool.ID, key allocator.AllocatorKey, lock kvstore.KVLocker) error {
+func (c *crdBackend) AllocateIDIfLocked(ctx context.Context, id idpool.ID, key allocator.AllocatorKey, lock kvstore.KVLocker) (allocator.AllocatorKey, error) {
 	return c.AllocateID(ctx, id, key)
 }
 
@@ -133,13 +141,18 @@ func (c *crdBackend) AcquireReference(ctx context.Context, id idpool.ID, key all
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("identity (id:%q,key:%q) does not exist", id, key)
+		// fall back to the key stored in the allocator key. If it's not present
+		// then return the error.
+		ci, ok = key.Value(cacheKey.MetadataKeyBackendKey).(*v2.CiliumIdentity)
+		if !ok {
+			return fmt.Errorf("identity (id:%q,key:%q) does not exist", id, key)
+		}
 	}
-	ci = ci.DeepCopy()
 
 	ts, ok = ci.Annotations[HeartBeatAnnotation]
 	if ok {
 		log.WithField(logfields.Identity, ci).Infof("Identity marked for deletion (at %s); attempting to unmark it", ts)
+		ci = ci.DeepCopy()
 		delete(ci.Annotations, HeartBeatAnnotation)
 		_, err = c.Client.CiliumV2().CiliumIdentities().Update(ctx, ci, metav1.UpdateOptions{})
 		if err != nil {
@@ -180,9 +193,10 @@ func (c *crdBackend) UpdateKey(ctx context.Context, id idpool.ID, key allocator.
 
 	if reliablyMissing {
 		// Recreate a missing master key
-		if err = c.AllocateID(ctx, id, key); err != nil {
+		if _, err = c.AllocateID(ctx, id, key); err != nil {
 			return fmt.Errorf("Unable recreate missing CRD identity %q->%q: %s", key, id, err)
 		}
+
 		return nil
 	}
 
@@ -213,14 +227,34 @@ func (c *crdLock) Comparator() interface{} {
 	return nil
 }
 
-// get returns the first identity found for the given set of labels as we might
-// have duplicated entries identities for the same set of labels.
+// get returns the identity found for the given set of labels.
+// In the case of duplicate entries, return an identity entry
+// from a sorted list.
 func (c *crdBackend) get(ctx context.Context, key allocator.AllocatorKey) *v2.CiliumIdentity {
 	if c.Store == nil {
 		return nil
 	}
 
-	for _, identityObject := range c.Store.List() {
+	identities, err := c.Store.ByIndex(byKeyIndex, key.GetKey())
+	if err != nil || len(identities) == 0 {
+		return nil
+	}
+
+	sort.Slice(identities, func(i, j int) bool {
+		left, ok := identities[i].(*v2.CiliumIdentity)
+		if !ok {
+			return false
+		}
+
+		right, ok := identities[j].(*v2.CiliumIdentity)
+		if !ok {
+			return false
+		}
+
+		return left.CreationTimestamp.Before(&right.CreationTimestamp)
+	})
+
+	for _, identityObject := range identities {
 		identity, ok := identityObject.(*v2.CiliumIdentity)
 		if !ok {
 			return nil
@@ -230,7 +264,6 @@ func (c *crdBackend) get(ctx context.Context, key allocator.AllocatorKey) *v2.Ci
 			return identity
 		}
 	}
-
 	return nil
 }
 
@@ -278,7 +311,7 @@ func (c *crdBackend) getById(ctx context.Context, id idpool.ID) (idty *v2.Cilium
 
 	identity, ok := obj.(*v2.CiliumIdentity)
 	if !ok {
-		return nil, false, fmt.Errorf("invalid object")
+		return nil, false, fmt.Errorf("invalid object %T", obj)
 	}
 	return identity, true, nil
 }
@@ -295,7 +328,7 @@ func (c *crdBackend) GetByID(ctx context.Context, id idpool.ID) (allocator.Alloc
 		return nil, nil
 	}
 
-	return c.KeyType.PutKeyFromMap(identity.SecurityLabels), nil
+	return c.KeyFunc(identity.SecurityLabels), nil
 }
 
 // Release dissociates this node from using the identity bound to the given ID.
@@ -308,8 +341,19 @@ func (c *crdBackend) Release(ctx context.Context, id idpool.ID, key allocator.Al
 	return nil
 }
 
+func getIdentitiesByKeyFunc(keyFunc func(map[string]string) allocator.AllocatorKey) func(obj interface{}) ([]string, error) {
+	return func(obj interface{}) ([]string, error) {
+		if identity, ok := obj.(*v2.CiliumIdentity); ok {
+			return []string{keyFunc(identity.SecurityLabels).GetKey()}, nil
+		}
+		return []string{}, fmt.Errorf("object other than CiliumIdentity was pushed to the store")
+	}
+}
+
 func (c *crdBackend) ListAndWatch(ctx context.Context, handler allocator.CacheMutations, stopChan chan struct{}) {
-	c.Store = cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)
+	c.Store = cache.NewIndexer(
+		cache.DeletionHandlingMetaNamespaceKeyFunc,
+		cache.Indexers{byKeyIndex: getIdentitiesByKeyFunc(c.KeyFunc)})
 	identityInformer := informer.NewInformerWithStore(
 		k8sUtils.ListerWatcherFromTyped[*v2.CiliumIdentityList](c.Client.CiliumV2().CiliumIdentities()),
 		&v2.CiliumIdentity{},
@@ -318,7 +362,7 @@ func (c *crdBackend) ListAndWatch(ctx context.Context, handler allocator.CacheMu
 			AddFunc: func(obj interface{}) {
 				if identity, ok := obj.(*v2.CiliumIdentity); ok {
 					if id, err := strconv.ParseUint(identity.Name, 10, 64); err == nil {
-						handler.OnAdd(idpool.ID(id), c.KeyType.PutKeyFromMap(identity.SecurityLabels))
+						handler.OnAdd(idpool.ID(id), c.KeyFunc(identity.SecurityLabels))
 					}
 				}
 			},
@@ -329,7 +373,7 @@ func (c *crdBackend) ListAndWatch(ctx context.Context, handler allocator.CacheMu
 							return
 						}
 						if id, err := strconv.ParseUint(newIdentity.Name, 10, 64); err == nil {
-							handler.OnModify(idpool.ID(id), c.KeyType.PutKeyFromMap(newIdentity.SecurityLabels))
+							handler.OnModify(idpool.ID(id), c.KeyFunc(newIdentity.SecurityLabels))
 						}
 					}
 				}
@@ -343,7 +387,7 @@ func (c *crdBackend) ListAndWatch(ctx context.Context, handler allocator.CacheMu
 
 				if identity, ok := obj.(*v2.CiliumIdentity); ok {
 					if id, err := strconv.ParseUint(identity.Name, 10, 64); err == nil {
-						handler.OnDelete(idpool.ID(id), c.KeyType.PutKeyFromMap(identity.SecurityLabels))
+						handler.OnDelete(idpool.ID(id), c.KeyFunc(identity.SecurityLabels))
 					}
 				} else {
 					log.Debugf("Ignoring unknown delete event %#v", obj)

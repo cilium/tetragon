@@ -15,10 +15,18 @@ import (
 
 type CiliumV2alpha1Interface interface {
 	RESTClient() rest.Interface
+	CiliumBGPAdvertisementsGetter
+	CiliumBGPClusterConfigsGetter
+	CiliumBGPNodeConfigsGetter
+	CiliumBGPNodeConfigOverridesGetter
+	CiliumBGPPeerConfigsGetter
 	CiliumBGPPeeringPoliciesGetter
+	CiliumCIDRGroupsGetter
 	CiliumEndpointSlicesGetter
+	CiliumL2AnnouncementPoliciesGetter
 	CiliumLoadBalancerIPPoolsGetter
 	CiliumNodeConfigsGetter
+	CiliumPodIPPoolsGetter
 }
 
 // CiliumV2alpha1Client is used to interact with features provided by the cilium.io group.
@@ -26,12 +34,40 @@ type CiliumV2alpha1Client struct {
 	restClient rest.Interface
 }
 
+func (c *CiliumV2alpha1Client) CiliumBGPAdvertisements() CiliumBGPAdvertisementInterface {
+	return newCiliumBGPAdvertisements(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumBGPClusterConfigs() CiliumBGPClusterConfigInterface {
+	return newCiliumBGPClusterConfigs(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumBGPNodeConfigs() CiliumBGPNodeConfigInterface {
+	return newCiliumBGPNodeConfigs(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumBGPNodeConfigOverrides() CiliumBGPNodeConfigOverrideInterface {
+	return newCiliumBGPNodeConfigOverrides(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumBGPPeerConfigs() CiliumBGPPeerConfigInterface {
+	return newCiliumBGPPeerConfigs(c)
+}
+
 func (c *CiliumV2alpha1Client) CiliumBGPPeeringPolicies() CiliumBGPPeeringPolicyInterface {
 	return newCiliumBGPPeeringPolicies(c)
 }
 
+func (c *CiliumV2alpha1Client) CiliumCIDRGroups() CiliumCIDRGroupInterface {
+	return newCiliumCIDRGroups(c)
+}
+
 func (c *CiliumV2alpha1Client) CiliumEndpointSlices() CiliumEndpointSliceInterface {
 	return newCiliumEndpointSlices(c)
+}
+
+func (c *CiliumV2alpha1Client) CiliumL2AnnouncementPolicies() CiliumL2AnnouncementPolicyInterface {
+	return newCiliumL2AnnouncementPolicies(c)
 }
 
 func (c *CiliumV2alpha1Client) CiliumLoadBalancerIPPools() CiliumLoadBalancerIPPoolInterface {
@@ -40,6 +76,10 @@ func (c *CiliumV2alpha1Client) CiliumLoadBalancerIPPools() CiliumLoadBalancerIPP
 
 func (c *CiliumV2alpha1Client) CiliumNodeConfigs(namespace string) CiliumNodeConfigInterface {
 	return newCiliumNodeConfigs(c, namespace)
+}
+
+func (c *CiliumV2alpha1Client) CiliumPodIPPools() CiliumPodIPPoolInterface {
+	return newCiliumPodIPPools(c)
 }
 
 // NewForConfig creates a new CiliumV2alpha1Client for the given config.

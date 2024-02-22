@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cilium/cilium/pkg/byteorder"
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/monitor/api"
+	"github.com/cilium/cilium/pkg/policy"
 )
 
 const (
@@ -54,8 +56,39 @@ type PolicyVerdictNotify struct {
 	DstPort     uint16
 	Proto       uint8
 	Flags       uint8
-	Pad1        uint32
+	AuthType    uint8
+	Pad1        uint8
+	Pad2        uint16
 	// data
+}
+
+// DecodePolicyVerdictNotify will decode 'data' into the provided PolicyVerdictNotify structure
+func DecodePolicyVerdictNotify(data []byte, pvn *PolicyVerdictNotify) error {
+	return pvn.decodePolicyVerdictNotify(data)
+}
+
+func (n *PolicyVerdictNotify) decodePolicyVerdictNotify(data []byte) error {
+	if l := len(data); l < PolicyVerdictNotifyLen {
+		return fmt.Errorf("unexpected PolicyVerdictNotify data length, expected %d but got %d", PolicyVerdictNotifyLen, l)
+	}
+
+	n.Type = data[0]
+	n.SubType = data[1]
+	n.Source = byteorder.Native.Uint16(data[2:4])
+	n.Hash = byteorder.Native.Uint32(data[4:8])
+	n.OrigLen = byteorder.Native.Uint32(data[8:12])
+	n.CapLen = byteorder.Native.Uint16(data[12:14])
+	n.Version = byteorder.Native.Uint16(data[14:16])
+	n.RemoteLabel = identity.NumericIdentity(byteorder.Native.Uint32(data[16:20]))
+	n.Verdict = int32(byteorder.Native.Uint32(data[20:24]))
+	n.DstPort = byteorder.Native.Uint16(data[24:26])
+	n.Proto = data[26]
+	n.Flags = data[27]
+	n.AuthType = data[28]
+	n.Pad1 = data[29]
+	n.Pad2 = byteorder.Native.Uint16(data[30:32])
+
+	return nil
 }
 
 // IsTrafficIngress returns true if this notify is for an ingress traffic
@@ -94,6 +127,12 @@ func GetPolicyActionString(verdict int32, audit bool) string {
 	return "allow"
 }
 
+// GetAuthType returns string for the authentication method applied (for success verdict)
+// or required (for drops).
+func (n *PolicyVerdictNotify) GetAuthType() policy.AuthType {
+	return policy.AuthType(n.AuthType)
+}
+
 // DumpInfo prints a summary of the policy notify messages.
 func (n *PolicyVerdictNotify) DumpInfo(data []byte, numeric DisplayFormat) {
 	buf := bufio.NewWriter(os.Stdout)
@@ -107,9 +146,9 @@ func (n *PolicyVerdictNotify) DumpInfo(data []byte, numeric DisplayFormat) {
 	} else {
 		fmt.Fprintf(buf, ", remote ID %s", n.RemoteLabel)
 	}
-	fmt.Fprintf(buf, ", proto %d, %s, action %s, match %s, %s\n", n.Proto, dir,
+	fmt.Fprintf(buf, ", proto %d, %s, action %s, auth: %s, match %s, %s\n", n.Proto, dir,
 		GetPolicyActionString(n.Verdict, n.IsTrafficAudited()),
-		n.GetPolicyMatchType(),
+		n.GetAuthType(), n.GetPolicyMatchType(),
 		GetConnectionSummary(data[PolicyVerdictNotifyLen:]))
 	buf.Flush()
 }

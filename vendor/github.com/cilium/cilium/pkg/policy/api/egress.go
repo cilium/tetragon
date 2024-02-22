@@ -69,7 +69,8 @@ type EgressCommonRule struct {
 
 	// ToEntities is a list of special entities to which the endpoint subject
 	// to the rule is allowed to initiate connections. Supported entities are
-	// `world`, `cluster` and `host`
+	// `world`, `cluster`,`host`,`remote-node`,`kube-apiserver`, `init`,
+	// `health`,`unmanaged` and `all`.
 	//
 	// +kubebuilder:validation:Optional
 	ToEntities EntitySlice `json:"toEntities,omitempty"`
@@ -147,15 +148,6 @@ type EgressRule struct {
 	// ToFQDN rule will not apply to that IP.
 	// Note: ToFQDN cannot occur in the same policy as other To* rules.
 	//
-	// The current implementation has a number of limitations:
-	// - The DNS resolution originates from cilium-agent, and not from the pods.
-	// Differences between the responses seen by cilium agent and a particular
-	// pod will whitelist the incorrect IP.
-	// - DNS TTLs are ignored, and cilium-agent will repoll on a short interval
-	// (5 seconds). Each change to the DNS data will trigger a policy
-	// regeneration. This may result in delayed updates to the policy for an
-	// endpoint when the data changes often or the system is under load.
-	//
 	// +kubebuilder:validation:Optional
 	ToFQDNs FQDNSelectorSlice `json:"toFQDNs,omitempty"`
 
@@ -169,10 +161,10 @@ type EgressRule struct {
 	// +kubebuilder:validation:Optional
 	ICMPs ICMPRules `json:"icmps,omitempty"`
 
-	// Auth is the required authentication type for the allowed traffic, if any.
+	// Authentication is the required authentication type for the allowed traffic, if any.
 	//
 	// +kubebuilder:validation:Optional
-	Auth *Auth `json:"auth,omitempty"`
+	Authentication *Authentication `json:"authentication,omitempty"`
 }
 
 // EgressDenyRule contains all rule types which can be applied at egress, i.e.

@@ -4,10 +4,12 @@
 package identity
 
 import (
-	"fmt"
+	"encoding/json"
 	"net"
+	"strconv"
 
 	"github.com/cilium/cilium/pkg/labels"
+	"github.com/cilium/cilium/pkg/option"
 )
 
 const (
@@ -15,6 +17,7 @@ const (
 	ReservedIdentityType     = "reserved"
 	ClusterLocalIdentityType = "cluster_local"
 	WellKnownIdentityType    = "well_known"
+	RemoteNodeIdentityType   = "remote_node"
 )
 
 // Identity is the representation of the security context for a particular set of
@@ -62,6 +65,23 @@ type IPIdentityPair struct {
 	K8sNamespace string          `json:"K8sNamespace,omitempty"`
 	K8sPodName   string          `json:"K8sPodName,omitempty"`
 	NamedPorts   []NamedPort     `json:"NamedPorts,omitempty"`
+}
+
+// GetKeyName returns the kvstore key to be used for the IPIdentityPair
+func (pair *IPIdentityPair) GetKeyName() string { return pair.PrefixString() }
+
+// Marshal returns the IPIdentityPair object as JSON byte slice
+func (pair *IPIdentityPair) Marshal() ([]byte, error) { return json.Marshal(pair) }
+
+// Unmarshal parses the JSON byte slice and updates the IPIdentityPair receiver
+func (pair *IPIdentityPair) Unmarshal(_ string, data []byte) error {
+	newPair := IPIdentityPair{}
+	if err := json.Unmarshal(data, &newPair); err != nil {
+		return err
+	}
+
+	*pair = newPair
+	return nil
 }
 
 // NamedPort is a mapping from a port name to a port number and protocol.
@@ -113,6 +133,12 @@ func (id *Identity) IsWellKnown() bool {
 	return WellKnown.lookupByNumericIdentity(id.ID) != nil
 }
 
+// IsWellKnownIdentity returns true if the identity represents a well-known
+// identity, false otherwise.
+func IsWellKnownIdentity(id NumericIdentity) bool {
+	return WellKnown.lookupByNumericIdentity(id) != nil
+}
+
 // NewIdentityFromLabelArray creates a new identity
 func NewIdentityFromLabelArray(id NumericIdentity, lblArray labels.LabelArray) *Identity {
 	var lbls labels.Labels
@@ -143,38 +169,46 @@ func (pair *IPIdentityPair) IsHost() bool {
 // format w.x.y.z if 'host' is true, or as a prefix in the format the w.x.y.z/N
 // if 'host' is false.
 func (pair *IPIdentityPair) PrefixString() string {
-	var suffix string
-	if !pair.IsHost() {
-		var ones int
-		if pair.Mask == nil {
-			if pair.IP.To4() != nil {
-				ones = net.IPv4len
-			} else {
-				ones = net.IPv6len
-			}
-		} else {
-			ones, _ = pair.Mask.Size()
-		}
-		suffix = fmt.Sprintf("/%d", ones)
+	ipstr := pair.IP.String()
+
+	if pair.IsHost() {
+		return ipstr
 	}
-	return fmt.Sprintf("%s%s", pair.IP.String(), suffix)
+
+	ones, _ := pair.Mask.Size()
+	return ipstr + "/" + strconv.Itoa(ones)
 }
 
 // RequiresGlobalIdentity returns true if the label combination requires a
 // global identity
 func RequiresGlobalIdentity(lbls labels.Labels) bool {
-	needsGlobal := true
+	return ScopeForLabels(lbls) == IdentityScopeGlobal
+}
+
+// ScopeForLabels returns the identity scope to be used for the label set.
+// If all labels are either CIDR or reserved, then returns the CIDR scope.
+// Note: This assumes the caller has already called LookupReservedIdentityByLabels;
+// it does not handle that case.
+func ScopeForLabels(lbls labels.Labels) NumericIdentity {
+	scope := IdentityScopeGlobal
+
+	// If this is a remote node, return the remote node scope.
+	// Note that this is not reachable when policy-cidr-selects-nodes is false, since
+	// callers will already have gotten a value from LookupReservedIdentityByLabels.
+	if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) {
+		return IdentityScopeRemoteNode
+	}
 
 	for _, label := range lbls {
 		switch label.Source {
 		case labels.LabelSourceCIDR, labels.LabelSourceReserved:
-			needsGlobal = false
+			scope = IdentityScopeLocal
 		default:
-			return true
+			return IdentityScopeGlobal
 		}
 	}
 
-	return needsGlobal
+	return scope
 }
 
 // AddUserDefinedNumericIdentitySet adds all key-value pairs from the given map
@@ -207,71 +241,58 @@ func LookupReservedIdentityByLabels(lbls labels.Labels) *Identity {
 		return identity
 	}
 
-	for _, lbl := range lbls {
-		var createID bool
-		switch {
+	// Check if a fixed identity exists.
+	if lbl, exists := lbls[labels.LabelKeyFixedIdentity]; exists {
 		// If the set of labels contain a fixed identity then and exists in
 		// the map of reserved IDs then return the identity of that reserved ID.
-		case lbl.Key == labels.LabelKeyFixedIdentity:
-			id := GetReservedID(lbl.Value)
-			if id != IdentityUnknown && IsUserReservedIdentity(id) {
-				return LookupReservedIdentity(id)
-			}
-			// If a fixed identity was not found then we return nil to avoid
-			// falling to a reserved identity.
-			return nil
-
-		case lbl.Source == labels.LabelSourceReserved:
-			id := GetReservedID(lbl.Key)
-			switch {
-			case id == ReservedIdentityKubeAPIServer && lbls.Has(labels.LabelHost[labels.IDNameHost]):
-				// Due to Golang map iteration order (random) we might get the
-				// ID returned as kube-apiserver. If there's a local host
-				// label, then we know this is local host reserved ID, so
-				// change it as such. All local host traffic should always be
-				// considered host (and not kube-apiserver).
-				//
-				// The kube-apiserver label can be a part of a few identities:
-				//   * host
-				//   * kube-apiserver reserved identity (contains remote-node
-				//     label)
-				//   * (maybe) CIDR
-				id = ReservedIdentityHost
-				fallthrough
-			case id == ReservedIdentityKubeAPIServer && lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]):
-				createID = true
-
-			case id == ReservedIdentityRemoteNode && lbls.Has(labels.LabelKubeAPIServer[labels.IDNameKubeAPIServer]):
-				// Due to Golang map iteration order (random) we might get the
-				// ID returned as remote-node. If there's a kube-apiserver
-				// label, then we know this is kube-apiserver reserved ID, so
-				// change it as such. Only traffic to non-kube-apiserver nodes
-				// should be considered as remote-node.
-				id = ReservedIdentityKubeAPIServer
-				fallthrough
-			case id == ReservedIdentityHost || id == ReservedIdentityRemoteNode:
-				// If it contains the reserved, local host or remote node
-				// identity, return it with the new list of labels. This is to
-				// ensure that the local node  or remote node retain their
-				// identity regardless of label changes.
-				createID = true
-			}
-
-			if createID {
-				return NewIdentity(id, lbls)
-			}
-
-			// If it doesn't contain a fixed-identity then make sure the set of
-			// labels only contains a single label and that label is of the
-			// reserved type. This is to prevent users from adding
-			// cilium-reserved labels into the workloads.
-			if len(lbls) != 1 {
-				return nil
-			}
-			if id != IdentityUnknown && !IsUserReservedIdentity(id) {
-				return LookupReservedIdentity(id)
-			}
+		id := GetReservedID(lbl.Value)
+		if id != IdentityUnknown && IsUserReservedIdentity(id) {
+			return LookupReservedIdentity(id)
 		}
+		// If a fixed identity was not found then we return nil to avoid
+		// falling to a reserved identity.
+		return nil
+	}
+
+	// If there is no reserved label, return nil.
+	if !lbls.IsReserved() {
+		return nil
+	}
+
+	var nid NumericIdentity
+	if lbls.Has(labels.LabelHost[labels.IDNameHost]) {
+		nid = ReservedIdentityHost
+	} else if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) {
+		// If selecting remote-nodes via CIDR policies is allowed, then
+		// they no longer have a reserved identity.
+		if option.Config.PolicyCIDRMatchesNodes() {
+			return nil
+		}
+		nid = ReservedIdentityRemoteNode
+		if lbls.Has(labels.LabelKubeAPIServer[labels.IDNameKubeAPIServer]) {
+			// If there's a kube-apiserver label, then we know this is
+			// kube-apiserver reserved ID, so change it as such.
+			// Only traffic from non-kube-apiserver nodes should be
+			// considered as remote-node.
+			nid = ReservedIdentityKubeAPIServer
+		}
+	}
+
+	if nid != IdentityUnknown {
+		return NewIdentity(nid, lbls)
+	}
+
+	// We have handled all the cases where multiple labels can be present.
+	// So, we make sure the set of labels only contains a single label and
+	// that label is of the reserved type. This is to prevent users from
+	// adding cilium-reserved labels into the workloads.
+	if len(lbls) != 1 {
+		return nil
+	}
+
+	nid = GetReservedID(lbls.ToSlice()[0].Key)
+	if nid != IdentityUnknown && !IsUserReservedIdentity(nid) {
+		return LookupReservedIdentity(nid)
 	}
 	return nil
 }

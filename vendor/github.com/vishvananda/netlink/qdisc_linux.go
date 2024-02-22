@@ -159,6 +159,9 @@ func (h *Handle) qdiscModify(cmd, flags int, qdisc Qdisc) error {
 func qdiscPayload(req *nl.NetlinkRequest, qdisc Qdisc) error {
 
 	req.AddData(nl.NewRtAttr(nl.TCA_KIND, nl.ZeroTerminated(qdisc.Type())))
+	if qdisc.Attrs().IngressBlock != nil {
+		req.AddData(nl.NewRtAttr(nl.TCA_INGRESS_BLOCK, nl.Uint32Attr(*qdisc.Attrs().IngressBlock)))
+	}
 
 	options := nl.NewRtAttr(nl.TCA_OPTIONS, nil)
 
@@ -264,6 +267,9 @@ func qdiscPayload(req *nl.NetlinkRequest, qdisc Qdisc) error {
 
 		if qdisc.Buckets > 0 {
 			options.AddRtAttr(nl.TCA_FQ_BUCKETS_LOG, nl.Uint32Attr((uint32(qdisc.Buckets))))
+		}
+		if qdisc.PacketLimit > 0 {
+			options.AddRtAttr(nl.TCA_FQ_PLIMIT, nl.Uint32Attr((uint32(qdisc.PacketLimit))))
 		}
 		if qdisc.LowRateThreshold > 0 {
 			options.AddRtAttr(nl.TCA_FQ_LOW_RATE_THRESHOLD, nl.Uint32Attr((uint32(qdisc.LowRateThreshold))))
@@ -448,6 +454,10 @@ func (h *Handle) QdiscList(link Link) ([]Qdisc, error) {
 
 					// no options for ingress
 				}
+			case nl.TCA_INGRESS_BLOCK:
+				ingressBlock := new(uint32)
+				*ingressBlock = native.Uint32(attr.Value)
+				base.IngressBlock = ingressBlock
 			}
 		}
 		*qdisc.Attrs() = base

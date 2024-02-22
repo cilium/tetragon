@@ -7,7 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
+	"net/netip"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -25,6 +26,14 @@ const (
 
 	// IDNameWorld is the label used for the world ID.
 	IDNameWorld = "world"
+
+	// IDNameWorldIPv4 is the label used for the world-ipv4 ID, to distinguish
+	// it from world-ipv6 in dual-stack mode.
+	IDNameWorldIPv4 = "world-ipv4"
+
+	// IDNameWorldIPv6 is the label used for the world-ipv6 ID, to distinguish
+	// it from world-ipv4 in dual-stack mode.
+	IDNameWorldIPv6 = "world-ipv6"
 
 	// IDNameCluster is the label used to identify an unspecified endpoint
 	// inside the cluster
@@ -69,6 +78,12 @@ var (
 	// LabelWorld is the label used for world.
 	LabelWorld = Labels{IDNameWorld: NewLabel(IDNameWorld, "", LabelSourceReserved)}
 
+	// LabelWorldIPv4 is the label used for world-ipv4.
+	LabelWorldIPv4 = Labels{IDNameWorldIPv4: NewLabel(IDNameWorldIPv4, "", LabelSourceReserved)}
+
+	// LabelWorldIPv6 is the label used for world-ipv6.
+	LabelWorldIPv6 = Labels{IDNameWorldIPv6: NewLabel(IDNameWorldIPv6, "", LabelSourceReserved)}
+
 	// LabelRemoteNode is the label used for remote nodes.
 	LabelRemoteNode = Labels{IDNameRemoteNode: NewLabel(IDNameRemoteNode, "", LabelSourceReserved)}
 
@@ -100,6 +115,9 @@ const (
 	// LabelSourceContainer is a label imported from the container runtime
 	LabelSourceContainer = "container"
 
+	// LabelSourceCNI is a label imported from the CNI plugin
+	LabelSourceCNI = "cni"
+
 	// LabelSourceReserved is the label source for reserved types.
 	LabelSourceReserved = "reserved"
 
@@ -129,26 +147,24 @@ type Labels map[string]Label
 
 // GetPrintableModel turns the Labels into a sorted list of strings
 // representing the labels, with CIDRs deduplicated (ie, only provide the most
-// specific CIDR).
+// specific CIDRs).
 func (l Labels) GetPrintableModel() (res []string) {
-	cidr := ""
-	prefixLength := 0
+	// Aggregate list of "leaf" CIDRs
+	leafCIDRs := leafCIDRList[*Label]{}
 	for _, v := range l {
+		// If this is a CIDR label, filter out non-leaf CIDRs for human consumption
 		if v.Source == LabelSourceCIDR {
-			vStr := strings.Replace(v.String(), "-", ":", -1)
-			prefix := strings.Replace(v.Key, "-", ":", -1)
-			_, ipnet, _ := net.ParseCIDR(prefix)
-			ones, _ := ipnet.Mask.Size()
-			if ones > prefixLength {
-				cidr = vStr
-				prefixLength = ones
-			}
-			continue
+			v := v
+			prefixStr := strings.Replace(v.Key, "-", ":", -1)
+			prefix, _ := netip.ParsePrefix(prefixStr)
+			leafCIDRs.insert(prefix, &v)
+		} else {
+			// not a CIDR label, no magic needed
+			res = append(res, v.String())
 		}
-		res = append(res, v.String())
 	}
-	if cidr != "" {
-		res = append(res, cidr)
+	for _, val := range leafCIDRs {
+		res = append(res, strings.Replace(val.String(), "-", ":", -1))
 	}
 
 	sort.Strings(res)
@@ -158,20 +174,6 @@ func (l Labels) GetPrintableModel() (res []string) {
 // String returns the map of labels as human readable string
 func (l Labels) String() string {
 	return strings.Join(l.GetPrintableModel(), ",")
-}
-
-// AppendPrefixInKey appends the given prefix to all the Key's of the map and the
-// respective Labels' Key.
-func (l Labels) AppendPrefixInKey(prefix string) Labels {
-	newLabels := Labels{}
-	for k, v := range l {
-		newLabels[prefix+k] = Label{
-			Key:    prefix + v.Key,
-			Value:  v.Value,
-			Source: v.Source,
-		}
-	}
-	return newLabels
 }
 
 // Equals returns true if the two Labels contain the same set of labels.
@@ -395,6 +397,15 @@ func NewLabelsFromModel(base []string) Labels {
 	return lbls
 }
 
+// FromSlice creates labels from a slice of labels.
+func FromSlice(labels []Label) Labels {
+	lbls := make(Labels, len(labels))
+	for _, lbl := range labels {
+		lbls[lbl.Key] = lbl
+	}
+	return lbls
+}
+
 // NewLabelsFromSortedList returns labels based on the output of SortedList()
 func NewLabelsFromSortedList(list string) Labels {
 	return NewLabelsFromModel(strings.Split(list, ";"))
@@ -409,6 +420,13 @@ func NewSelectLabelArrayFromModel(base []string) LabelArray {
 	}
 
 	return lbls.Sort()
+}
+
+// NewFrom creates a new Labels from the given labels by creating a copy.
+func NewFrom(l Labels) Labels {
+	nl := make(Labels, len(l))
+	nl.MergeLabels(l)
+	return nl
 }
 
 // GetModel returns model with all the values of the labels.
@@ -462,13 +480,24 @@ func (l Label) FormatForKVStore() []byte {
 	// kvstore.prefixMatchesKey())
 	b := make([]byte, 0, len(l.Source)+len(l.Key)+len(l.Value)+3)
 	buf := bytes.NewBuffer(b)
+	l.formatForKVStoreInto(buf)
+	return buf.Bytes()
+}
+
+// formatForKVStoreInto writes the label as a formatted string, ending in
+// a semicolon into buf.
+//
+// DO NOT BREAK THE FORMAT OF THIS. THE RETURNED STRING IS USED AS
+// PART OF THE KEY IN THE KEY-VALUE STORE.
+//
+// Non-pointer receiver allows this to be called on a value in a map.
+func (l Label) formatForKVStoreInto(buf *bytes.Buffer) {
 	buf.WriteString(l.Source)
 	buf.WriteRune(':')
 	buf.WriteString(l.Key)
 	buf.WriteRune('=')
 	buf.WriteString(l.Value)
 	buf.WriteRune(';')
-	return buf.Bytes()
 }
 
 // SortedList returns the labels as a sorted list, separated by semicolon
@@ -480,12 +509,23 @@ func (l Labels) SortedList() []byte {
 	for k := range l {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
-	b := make([]byte, 0, len(keys)*2)
+	// Labels can have arbitrary size. However, when many CIDR identities are in
+	// the system, for example due to a FQDN policy matching S3, CIDR labels
+	// dominate in number. IPv4 CIDR labels in serialized form are max 25 bytes
+	// long. Allocate slightly more to avoid having a realloc if there's some
+	// other labels which may longer, since the cost of allocating a few bytes
+	// more is dominated by a second allocation, especially since these
+	// allocations are short-lived.
+	//
+	// cidr:123.123.123.123/32=;
+	// 0        1         2
+	// 1234567890123456789012345
+	b := make([]byte, 0, len(keys)*30)
 	buf := bytes.NewBuffer(b)
 	for _, k := range keys {
-		buf.Write(l[k].FormatForKVStore())
+		l[k].formatForKVStoreInto(buf)
 	}
 
 	return buf.Bytes()

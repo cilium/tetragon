@@ -61,6 +61,21 @@ const (
 	// documentation add the label for every resource object.
 	AppKubernetes = "app.kubernetes.io"
 
+	// StatefulSetPodNameLabel is the label name which, in-tree, is used to
+	// automatically label Pods that are owned by StatefulSets with their name,
+	// so that one can attach a Service to a specific Pod in the StatefulSet.
+	StatefulSetPodNameLabel = "statefulset.kubernetes.io/pod-name"
+
+	// StatefulSetPodIndexLabel is the label name which, in-tree, is used to
+	// automatically label Pods that are owned by StatefulSets with their
+	// ordinal index.
+	StatefulSetPodIndexLabel = "apps.kubernetes.io/pod-index"
+
+	// IndexedJobCompletionIndexLabel is the label name which, in-tree, is used
+	// to automatically label Pods that are owned by Indexed Jobs with their
+	// completion index.
+	IndexedJobCompletionIndexLabel = "batch.kubernetes.io/job-completion-index"
+
 	// CtrlPrefixPolicyStatus is the prefix used for the controllers set up
 	// to sync the CNP with kube-apiserver.
 	CtrlPrefixPolicyStatus = "sync-cnp-policy-status"

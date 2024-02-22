@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 const (
@@ -33,6 +33,8 @@ var (
 	controllers controller.Manager
 
 	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "shared-store")
+
+	kvstoreSyncControllerGroup = controller.NewGroup("kvstore-sync")
 )
 
 // KeyCreator is the function to create a new empty Key instances. Store
@@ -166,11 +168,12 @@ type Key interface {
 	Marshal() ([]byte, error)
 
 	// Unmarshal is called when an update from the kvstore is received. The
+	// prefix configured for the store is removed from the key, and the
 	// byte slice passed to the function is coming from the Marshal
 	// function from another collaborator. The function must unmarshal and
 	// update the underlying data type. It is typically a good idea to use
 	// json.Unmarshal to implement this function.
-	Unmarshal(data []byte) error
+	Unmarshal(key string, data []byte) error
 }
 
 // LocalKey is a Key owned by the local store instance
@@ -179,6 +182,24 @@ type LocalKey interface {
 
 	// DeepKeyCopy must return a deep copy of the key
 	DeepKeyCopy() LocalKey
+}
+
+// KVPair represents a basic implementation of the LocalKey interface
+type KVPair struct{ Key, Value string }
+
+func NewKVPair(key, value string) *KVPair { return &KVPair{Key: key, Value: value} }
+func KVPairCreator() Key                  { return &KVPair{} }
+
+func (kv *KVPair) GetKeyName() string       { return kv.Key }
+func (kv *KVPair) Marshal() ([]byte, error) { return []byte(kv.Value), nil }
+
+func (kv *KVPair) Unmarshal(key string, data []byte) error {
+	kv.Key, kv.Value = key, string(data)
+	return nil
+}
+
+func (kv *KVPair) DeepKeyCopy() LocalKey {
+	return NewKVPair(kv.Key, kv.Value)
 }
 
 // JoinSharedStore creates a new shared store based on the provided
@@ -207,6 +228,7 @@ func JoinSharedStore(c Configuration) (*SharedStore, error) {
 
 	controllers.UpdateController(s.controllerName,
 		controller.ControllerParams{
+			Group: kvstoreSyncControllerGroup,
 			DoFunc: func(ctx context.Context) error {
 				return s.syncLocalKeys(ctx, true)
 			},
@@ -391,7 +413,7 @@ func (s *SharedStore) getLogger() *logrus.Entry {
 
 func (s *SharedStore) updateKey(name string, value []byte) error {
 	newKey := s.conf.KeyCreator()
-	if err := newKey.Unmarshal(value); err != nil {
+	if err := newKey.Unmarshal(name, value); err != nil {
 		return err
 	}
 
@@ -444,7 +466,7 @@ func (s *SharedStore) listAndStartWatcher() error {
 }
 
 func (s *SharedStore) watcher(listDone chan struct{}) {
-	s.kvstoreWatcher = s.backend.ListAndWatch(s.conf.Context, s.name+"-watcher", s.conf.Prefix, watcherChanSize)
+	s.kvstoreWatcher = s.backend.ListAndWatch(s.conf.Context, s.conf.Prefix, watcherChanSize)
 
 	for event := range s.kvstoreWatcher.Events {
 		if event.Typ == kvstore.EventTypeListDone {

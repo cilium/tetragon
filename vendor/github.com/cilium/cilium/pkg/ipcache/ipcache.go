@@ -7,21 +7,25 @@ import (
 	"context"
 	"net"
 	"net/netip"
+	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
+	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	"github.com/cilium/cilium/pkg/controller"
+	"github.com/cilium/cilium/pkg/counter"
 	"github.com/cilium/cilium/pkg/identity"
 	"github.com/cilium/cilium/pkg/identity/cache"
 	ipcacheTypes "github.com/cilium/cilium/pkg/ipcache/types"
+	"github.com/cilium/cilium/pkg/k8s"
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/metrics"
 	"github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/cilium/pkg/source"
+	"github.com/cilium/cilium/pkg/time"
 	"github.com/cilium/cilium/pkg/types"
 )
 
@@ -33,11 +37,30 @@ type Identity struct {
 	// Source is the source of the identity in the cache
 	Source source.Source
 
+	// This blank field ensures that the == operator cannot be used on this
+	// type, to avoid external packages accidentally comparing the private
+	// values below
+	_ []struct{}
+
 	// shadowed determines if another entry overlaps with this one.
 	// Shadowed identities are not propagated to listeners by default.
 	// Most commonly set for Identity with Source = source.Generated when
 	// a pod IP (other source) has the same IP.
 	shadowed bool
+
+	// createdFromMetadata indicates that this entry was created via the new
+	// metadata API. This is needed to know if it is safe to delete
+	// an IPCache entry when no further metadata is associated with its prefix.
+	// This field is intended to be removed once cilium/cilium#21142 has been
+	// fully implemented and all entries are created via the new metadata API
+	createdFromMetadata bool
+}
+
+func (i Identity) equals(o Identity) bool {
+	return i.ID == o.ID &&
+		i.Source == o.Source &&
+		i.shadowed == o.shadowed &&
+		i.createdFromMetadata == o.createdFromMetadata
 }
 
 // IPKeyPair is the (IP, key) pair used of the identity
@@ -63,7 +86,7 @@ type Configuration struct {
 	cache.IdentityAllocator
 	ipcacheTypes.PolicyHandler
 	ipcacheTypes.DatapathHandler
-	ipcacheTypes.NodeIDHandler
+	k8s.CacheStatus
 }
 
 // IPCache is a collection of mappings:
@@ -95,10 +118,6 @@ type IPCache struct {
 	// interface.
 	namedPorts namedPortMultiMapUpdater
 
-	// k8sSyncedChecker knows how to check for whether the K8s watcher cache
-	// has been fully synced.
-	k8sSyncedChecker k8sSyncedChecker
-
 	// Configuration provides pointers towards other agent components that
 	// the IPCache relies upon at runtime.
 	*Configuration
@@ -110,6 +129,14 @@ type IPCache struct {
 	// references to identities and removing the corresponding IPCache
 	// entries if unused.
 	deferredPrefixRelease *asyncPrefixReleaser
+
+	// prefixLengths tracks the unique set of prefix lengths for IPv4 and
+	// IPv6 addresses in order to optimize longest prefix match lookups.
+	prefixLengths *counter.PrefixLengthCounter
+
+	// injectionStarted is a sync.Once so we can lazily start the prefix injection controller,
+	// but only once
+	injectionStarted sync.Once
 }
 
 // NewIPCache returns a new IPCache with the mappings of endpoint IP to security
@@ -124,6 +151,7 @@ func NewIPCache(c *Configuration) *IPCache {
 		controllers:       controller.NewManager(),
 		namedPorts:        types.NewNamedPortMultiMap(),
 		metadata:          newMetadata(),
+		prefixLengths:     counter.DefaultPrefixLengthCounter(),
 		Configuration:     c,
 	}
 	ipc.deferredPrefixRelease = newAsyncPrefixReleaser(c.Context, ipc, 1*time.Millisecond)
@@ -133,7 +161,7 @@ func NewIPCache(c *Configuration) *IPCache {
 // Shutdown cleans up asynchronous routines associated with the IPCache.
 func (ipc *IPCache) Shutdown() error {
 	ipc.deferredPrefixRelease.Shutdown()
-	return ipc.ShutdownLabelInjection()
+	return ipc.controllers.RemoveControllerAndWait(LabelInjectorName)
 }
 
 // Lock locks the IPCache's mutex.
@@ -156,13 +184,6 @@ func (ipc *IPCache) RUnlock() {
 	ipc.mutex.RUnlock()
 }
 
-// SetListeners sets the listeners for this IPCache.
-func (ipc *IPCache) SetListeners(listeners []IPIdentityMappingListener) {
-	ipc.mutex.Lock()
-	ipc.listeners = listeners
-	ipc.mutex.Unlock()
-}
-
 // AddListener adds a listener for this IPCache.
 func (ipc *IPCache) AddListener(listener IPIdentityMappingListener) {
 	// We need to acquire the semaphored mutex as we Write Lock as we are
@@ -180,7 +201,10 @@ func (ipc *IPCache) AddListener(listener IPIdentityMappingListener) {
 }
 
 // Update a controller for this IPCache
-func (ipc *IPCache) UpdateController(name string, params controller.ControllerParams) {
+func (ipc *IPCache) UpdateController(
+	name string,
+	params controller.ControllerParams,
+) {
 	ipc.controllers.UpdateController(name, params)
 }
 
@@ -196,6 +220,12 @@ func endpointIPToCIDR(ip net.IP) *net.IPNet {
 	}
 }
 
+func (ipc *IPCache) GetHostIPCache(ip string) (net.IP, uint8) {
+	ipc.mutex.RLock()
+	defer ipc.mutex.RUnlock()
+	return ipc.getHostIPCache(ip)
+}
+
 func (ipc *IPCache) getHostIPCache(ip string) (net.IP, uint8) {
 	ipKeyPair := ipc.ipToHostIPCache[ip]
 	return ipKeyPair.IP, ipKeyPair.Key
@@ -203,10 +233,13 @@ func (ipc *IPCache) getHostIPCache(ip string) (net.IP, uint8) {
 
 // GetK8sMetadata returns Kubernetes metadata for the given IP address.
 // The returned pointer should *never* be modified.
-func (ipc *IPCache) GetK8sMetadata(ip string) *K8sMetadata {
+func (ipc *IPCache) GetK8sMetadata(ip netip.Addr) *K8sMetadata {
+	if !ip.IsValid() {
+		return nil
+	}
 	ipc.mutex.RLock()
 	defer ipc.mutex.RUnlock()
-	return ipc.getK8sMetadata(ip)
+	return ipc.getK8sMetadata(ip.String())
 }
 
 // getK8sMetadata returns Kubernetes metadata for the given IP address.
@@ -227,6 +260,11 @@ func (ipc *IPCache) getK8sMetadata(ip string) *K8sMetadata {
 // given IP. It is optional (may be nil) and is propagated to the listeners.
 // k8sMeta contains Kubernetes-specific metadata such as pod namespace and pod
 // name belonging to the IP (may be nil).
+//
+// When deleting ipcache entries that were previously inserted via this
+// function, ensure that the corresponding delete occurs via Delete().
+//
+// Deprecated: Prefer UpsertLabels() instead.
 func (ipc *IPCache) Upsert(ip string, hostIP net.IP, hostKey uint8, k8sMeta *K8sMetadata, newIdentity Identity) (namedPortsChanged bool, err error) {
 	ipc.mutex.Lock()
 	defer ipc.mutex.Unlock()
@@ -239,6 +277,15 @@ func (ipc *IPCache) Upsert(ip string, hostIP net.IP, hostKey uint8, k8sMeta *K8s
 // IPCache will not take into account the source of the identity and bypasses
 // the overwrite logic! Once GH-18301 is addressed, there will be no need for
 // any force logic.
+//
+// The ip argument is a string, and the format is one of
+// - Prefix (e.g., 10.0.0.0/24)
+// - Host IP (e.g., 10.0.0.1)
+// - Prefix with ClusterID (e.g., 10.0.0.0/24@1)
+// - Host IP with ClusterID (e.g., 10.0.0.1@1)
+//
+// The formats with ClusterID are only used by Cluster Mesh for overlapping IP
+// range support which identifies prefix or host IPs using prefix/ip + ClusterID.
 func (ipc *IPCache) upsertLocked(
 	ip string,
 	hostIP net.IP,
@@ -268,9 +315,8 @@ func (ipc *IPCache) upsertLocked(
 		}
 	}
 
-	var cidr *net.IPNet
+	var cidrCluster cmtypes.PrefixCluster
 	var oldIdentity *Identity
-	var hostID uint16
 	callbackListeners := true
 
 	oldHostIP, oldHostKey := ipc.getHostIPCache(ip)
@@ -288,12 +334,21 @@ func (ipc *IPCache) upsertLocked(
 
 		// Skip update if IP is already mapped to the given identity
 		// and the host IP hasn't changed.
-		if cachedIdentity == newIdentity && oldHostIP.Equal(hostIP) &&
+		if cachedIdentity.equals(newIdentity) && oldHostIP.Equal(hostIP) &&
 			hostKey == oldHostKey && metaEqual {
 			metrics.IPCacheErrorsTotal.WithLabelValues(
 				metricTypeUpsert, metricErrorIdempotent,
 			).Inc()
 			return false, nil
+		}
+
+		// Here we track if an entry was created via new asynchronous
+		// UpsertMetadata API or the old synchronous Upsert call.
+		// If an entry is ever touched via the old Upsert API, we want to keep
+		// createdFromMetadata set to false, and require that the entry
+		// manually is deleted via the Delete function.
+		if !cachedIdentity.createdFromMetadata {
+			newIdentity.createdFromMetadata = false
 		}
 
 		oldIdentity = &cachedIdentity
@@ -302,29 +357,28 @@ func (ipc *IPCache) upsertLocked(
 	// Endpoint IP identities take precedence over CIDR identities, so if the
 	// IP is a full CIDR prefix and there's an existing equivalent endpoint IP,
 	// don't notify the listeners.
-	if _, cidr, err = net.ParseCIDR(ip); err == nil {
-		ones, bits := cidr.Mask.Size()
-		if ones == bits {
-			if _, endpointIPFound := ipc.ipToIdentityCache[cidr.IP.String()]; endpointIPFound {
+	if cidrCluster, err = cmtypes.ParsePrefixCluster(ip); err == nil {
+		if cidrCluster.IsSingleIP() {
+			if _, endpointIPFound := ipc.ipToIdentityCache[cidrCluster.AddrCluster().String()]; endpointIPFound {
 				scopedLog.Debug("Ignoring CIDR to identity mapping as it is shadowed by an endpoint IP")
 				// Skip calling back the listeners, since the endpoint IP has
 				// precedence over the new CIDR.
 				newIdentity.shadowed = true
 			}
 		}
-	} else if endpointIP := net.ParseIP(ip); endpointIP != nil { // Endpoint IP.
-		cidr = endpointIPToCIDR(endpointIP)
+	} else if addrCluster, err := cmtypes.ParseAddrCluster(ip); err == nil { // Endpoint IP or Endpoint IP with ClusterID
+		cidrCluster = addrCluster.AsPrefixCluster()
 
 		// Check whether the upserted endpoint IP will shadow that CIDR, and
 		// replace its mapping with the listeners if that was the case.
 		if !found {
-			cidrStr := cidr.String()
-			if cidrIdentity, cidrFound := ipc.ipToIdentityCache[cidrStr]; cidrFound {
-				oldHostIP, _ = ipc.getHostIPCache(cidrStr)
+			cidrClusterStr := cidrCluster.String()
+			if cidrIdentity, cidrFound := ipc.ipToIdentityCache[cidrClusterStr]; cidrFound {
+				oldHostIP, _ = ipc.getHostIPCache(cidrClusterStr)
 				if cidrIdentity.ID != newIdentity.ID || !oldHostIP.Equal(hostIP) {
 					scopedLog.Debug("New endpoint IP started shadowing existing CIDR to identity mapping")
 					cidrIdentity.shadowed = true
-					ipc.ipToIdentityCache[cidrStr] = cidrIdentity
+					ipc.ipToIdentityCache[cidrClusterStr] = cidrIdentity
 					oldIdentity = &cidrIdentity
 				} else {
 					// The endpoint IP and the CIDR are associated with the
@@ -336,9 +390,9 @@ func (ipc *IPCache) upsertLocked(
 		}
 	} else {
 		log.WithFields(logrus.Fields{
-			logfields.IPAddr:   ip,
-			logfields.Identity: newIdentity,
-			logfields.Key:      hostKey,
+			logfields.AddrCluster: ip,
+			logfields.Identity:    newIdentity,
+			logfields.Key:         hostKey,
 		}).Error("Attempt to upsert invalid IP into ipcache layer")
 		metrics.IPCacheErrorsTotal.WithLabelValues(
 			metricTypeUpsert, metricErrorInvalid,
@@ -361,6 +415,7 @@ func (ipc *IPCache) upsertLocked(
 		ipc.identityToIPCache[newIdentity.ID] = map[string]struct{}{}
 	}
 	ipc.identityToIPCache[newIdentity.ID][ip] = struct{}{}
+	ipc.prefixLengths.Add([]netip.Prefix{cidrCluster.AsPrefix()})
 
 	if hostIP == nil {
 		delete(ipc.ipToHostIPCache, ip)
@@ -380,13 +435,9 @@ func (ipc *IPCache) upsertLocked(
 		namedPortsChanged = namedPortsChanged && ipc.needNamedPorts.Load()
 	}
 
-	if hostIP != nil {
-		hostID = ipc.AllocateNodeID(hostIP)
-	}
-
 	if callbackListeners && !newIdentity.shadowed {
 		for _, listener := range ipc.listeners {
-			listener.OnIPIdentityCacheChange(Upsert, *cidr, oldHostIP, hostIP, oldIdentity, newIdentity, hostKey, hostID, k8sMeta)
+			listener.OnIPIdentityCacheChange(Upsert, cidrCluster, oldHostIP, hostIP, oldIdentity, newIdentity, hostKey, k8sMeta)
 		}
 	}
 
@@ -404,24 +455,107 @@ func (ipc *IPCache) DumpToListener(listener IPIdentityMappingListener) {
 	ipc.RUnlock()
 }
 
+// MU is a batched metadata update, the short name is to cut down on visual clutter.
+type MU struct {
+	Prefix   netip.Prefix
+	Source   source.Source
+	Resource ipcacheTypes.ResourceID
+	Metadata []IPMetadata
+}
+
 // UpsertMetadata upserts a given IP and some corresponding information into
 // the ipcache metadata map. See IPMetadata for a list of types that are valid
 // to pass into this function. This will trigger asynchronous calculation of
 // any datapath updates necessary to implement the logic associated with the
 // specified metadata.
 func (ipc *IPCache) UpsertMetadata(prefix netip.Prefix, src source.Source, resource ipcacheTypes.ResourceID, aux ...IPMetadata) {
-	ipc.metadata.Lock()
-	ipc.metadata.upsertLocked(prefix, src, resource, aux...)
-	ipc.metadata.Unlock()
-	ipc.metadata.enqueuePrefixUpdates(prefix)
-	ipc.TriggerLabelInjection()
+	ipc.UpsertMetadataBatch(MU{Prefix: prefix, Source: src, Resource: resource, Metadata: aux})
 }
 
-func (ipc *IPCache) RemoveMetadata(prefix netip.Prefix, resource ipcacheTypes.ResourceID, aux ...IPMetadata) {
+// UpsertMetadataBatch applies updates to multiple prefixes in a single transaction,
+// reducing potential lock contention.
+//
+// Returns a revision number that can be passed to WaitForRevision().
+func (ipc *IPCache) UpsertMetadataBatch(updates ...MU) (revision uint64) {
+	prefixes := make([]netip.Prefix, 0, len(updates))
 	ipc.metadata.Lock()
-	ipc.metadata.remove(prefix, resource, aux...)
+	for _, upd := range updates {
+		ipc.metadata.upsertLocked(upd.Prefix, upd.Source, upd.Resource, upd.Metadata...)
+		prefixes = append(prefixes, upd.Prefix)
+	}
 	ipc.metadata.Unlock()
-	ipc.metadata.enqueuePrefixUpdates(prefix)
+	revision = ipc.metadata.enqueuePrefixUpdates(prefixes...)
+	ipc.TriggerLabelInjection()
+	return
+}
+
+// RemoveMetadata removes metadata associated with a specific resource from the
+// supplied prefix. Individual metadata types must be supplied for removal, but the
+// data need not match.
+//
+// This removes nothing:
+//
+//	RemoveMedata(pfx, resource)
+//
+// This removes all labels from the given resource:
+//
+//	RemoveMetadata(pfx, resource, Labels{})
+func (ipc *IPCache) RemoveMetadata(prefix netip.Prefix, resource ipcacheTypes.ResourceID, aux ...IPMetadata) {
+	ipc.RemoveMetadataBatch(MU{Prefix: prefix, Resource: resource, Metadata: aux})
+}
+
+// RemoveMetadataBatch is a batched version of RemoveMetadata.
+// Returns a revision number that can be passed to WaitForRevision().
+func (ipc *IPCache) RemoveMetadataBatch(updates ...MU) (revision uint64) {
+	prefixes := make([]netip.Prefix, 0, len(updates))
+	ipc.metadata.Lock()
+	for _, upd := range updates {
+		ipc.metadata.remove(upd.Prefix, upd.Resource, upd.Metadata...)
+		prefixes = append(prefixes, upd.Prefix)
+	}
+	ipc.metadata.Unlock()
+	revision = ipc.metadata.enqueuePrefixUpdates(prefixes...)
+	ipc.TriggerLabelInjection()
+	return
+}
+
+// UpsertPrefixes inserts the prefixes into the IPCache and associates CIDR
+// labels with these prefixes, thereby making these prefixes selectable in
+// policy via local ("CIDR") identities.
+//
+// This will trigger asynchronous calculation of any datapath updates necessary
+// to implement the logic associated with the new CIDR labels.
+//
+// Returns a revision number that can be passed to WaitForRevision().
+func (ipc *IPCache) UpsertPrefixes(prefixes []netip.Prefix, src source.Source, resource ipcacheTypes.ResourceID) (revision uint64) {
+	ipc.metadata.Lock()
+	for _, p := range prefixes {
+		ipc.metadata.upsertLocked(p, src, resource, labels.GetCIDRLabels(p))
+	}
+	ipc.metadata.Unlock()
+	revision = ipc.metadata.enqueuePrefixUpdates(prefixes...)
+	ipc.TriggerLabelInjection()
+	return
+}
+
+// RemovePrefixes removes the association between the prefixes and the CIDR
+// labels corresponding to those prefixes.
+//
+// This is the reverse operation of UpsertPrefixes(). If multiple callers call
+// UpsertPrefixes() with different resources, then RemovePrefixes() will only
+// remove the association for the target resource. That is, *all* callers must
+// call RemovePrefixes() before this the these prefixes become disassociated
+// from the "CIDR" labels.
+//
+// This will trigger asynchronous calculation of any datapath updates necessary
+// to implement the logic associated with the removed CIDR labels.
+func (ipc *IPCache) RemovePrefixes(prefixes []netip.Prefix, src source.Source, resource ipcacheTypes.ResourceID) {
+	ipc.metadata.Lock()
+	for _, p := range prefixes {
+		ipc.metadata.remove(p, resource, labels.GetCIDRLabels(p))
+	}
+	ipc.metadata.Unlock()
+	ipc.metadata.enqueuePrefixUpdates(prefixes...)
 	ipc.TriggerLabelInjection()
 }
 
@@ -440,6 +574,54 @@ func (ipc *IPCache) RemoveLabels(cidr netip.Prefix, lbls labels.Labels, resource
 	ipc.RemoveMetadata(cidr, resource, lbls)
 }
 
+// OverrideIdentity overrides the identity for a given prefix in the IPCache metadata
+// map. This is used when a resource indicates that this prefix already has a
+// defined identity, and where any additional labels associated with the prefix
+// are to be ignored.
+// If multiple resources override the identity, a warning is emitted and only
+// one of the override identities is used.
+// This will trigger asynchronous calculation of any local identity changes
+// that must occur to associate the specified labels with the prefix, and push
+// any datapath updates necessary to implement the logic associated with the
+// metadata currently associated with the 'prefix'.
+//
+// Callers must arrange for RemoveIdentityOverride() to eventually be called
+// to reverse this operation if the underlying resource is removed.
+//
+// Use with caution: For most use cases, UpsertLabels() is a better API to
+// allow metadata to be associated with the prefix. This will delegate identity
+// resolution to the IPCache internally, which provides better compatibility
+// between various features that may use the IPCache to associate metadata with
+// the same netip prefixes. Using this API may cause feature incompatibilities
+// with users of other APIs such as UpsertLabels(), UpsertMetadata() and other
+// variations on inserting metadata into the IPCache.
+func (ipc *IPCache) OverrideIdentity(prefix netip.Prefix, identityLabels labels.Labels, src source.Source, resource ipcacheTypes.ResourceID) {
+	ipc.UpsertMetadata(prefix, src, resource, overrideIdentity(true), identityLabels)
+}
+
+func (ipc *IPCache) RemoveIdentityOverride(cidr netip.Prefix, identityLabels labels.Labels, resource ipcacheTypes.ResourceID) {
+	ipc.RemoveMetadata(cidr, resource, overrideIdentity(true), identityLabels)
+}
+
+// WaitForRevision will block until the desired revision has been reached (or passed).
+// It can be used in concert with the revision number returned by Upsert* calls to
+// ensure that an update has been applied.
+//
+// The revision is updated every time the ipcache successfully applies all queued
+// metadata updates. Thus, the sequence
+//
+//	rev := UpsertMetadataBatch(prefix1, metadata, ...)
+//	WaitForRevision(rev)
+//
+// means that prefix1 has had at least one call to InjectLabels with the supplied
+// metadata. It does not guarantee that the metadata matches exactly what was
+// passed to UpsertMetadata, as other callers may have also queued modifications.
+//
+// Note that the revision number should be treated as an opaque identifier.
+func (ipc *IPCache) WaitForRevision(desired uint64) {
+	ipc.metadata.waitForRevision(desired)
+}
+
 // DumpToListenerLocked dumps the entire contents of the IPCache by triggering
 // the listener's "OnIPIdentityCacheChange" method for each entry in the cache.
 // The caller *MUST* grab the IPCache.Lock for reading before calling this
@@ -451,16 +633,12 @@ func (ipc *IPCache) DumpToListenerLocked(listener IPIdentityMappingListener) {
 		}
 		hostIP, encryptKey := ipc.getHostIPCache(ip)
 		k8sMeta := ipc.getK8sMetadata(ip)
-		_, cidr, err := net.ParseCIDR(ip)
+		cidrCluster, err := cmtypes.ParsePrefixCluster(ip)
 		if err != nil {
-			endpointIP := net.ParseIP(ip)
-			cidr = endpointIPToCIDR(endpointIP)
+			addrCluster := cmtypes.MustParseAddrCluster(ip)
+			cidrCluster = addrCluster.AsPrefixCluster()
 		}
-		nodeID := uint16(0)
-		if hostIP != nil {
-			nodeID = ipc.AllocateNodeID(hostIP)
-		}
-		listener.OnIPIdentityCacheChange(Upsert, *cidr, nil, hostIP, nil, identity, encryptKey, nodeID, k8sMeta)
+		listener.OnIPIdentityCacheChange(Upsert, cidrCluster, nil, hostIP, nil, identity, encryptKey, k8sMeta)
 	}
 }
 
@@ -489,7 +667,7 @@ func (ipc *IPCache) deleteLocked(ip string, source source.Source) (namedPortsCha
 		return false
 	}
 
-	var cidr *net.IPNet
+	var cidrCluster cmtypes.PrefixCluster
 	cacheModification := Delete
 	oldHostIP, encryptKey := ipc.getHostIPCache(ip)
 	oldK8sMeta := ipc.getK8sMetadata(ip)
@@ -497,31 +675,30 @@ func (ipc *IPCache) deleteLocked(ip string, source source.Source) (namedPortsCha
 	var oldIdentity *Identity
 	newIdentity := cachedIdentity
 	callbackListeners := true
-	var nodeID uint16
 
 	var err error
-	if _, cidr, err = net.ParseCIDR(ip); err == nil {
+	if cidrCluster, err = cmtypes.ParsePrefixCluster(ip); err == nil {
 		// Check whether the deleted CIDR was shadowed by an endpoint IP. In
 		// this case, skip calling back the listeners since they don't know
 		// about its mapping.
-		if _, endpointIPFound := ipc.ipToIdentityCache[cidr.IP.String()]; endpointIPFound {
+		if _, endpointIPFound := ipc.ipToIdentityCache[cidrCluster.AddrCluster().String()]; endpointIPFound {
 			scopedLog.Debug("Deleting CIDR shadowed by endpoint IP")
 			callbackListeners = false
 		}
-	} else if endpointIP := net.ParseIP(ip); endpointIP != nil { // Endpoint IP.
+	} else if addrCluster, err := cmtypes.ParseAddrCluster(ip); err == nil { // Endpoint IP or Endpoint IP with ClusterID
 		// Convert the endpoint IP into an equivalent full CIDR.
-		cidr = endpointIPToCIDR(endpointIP)
+		cidrCluster = addrCluster.AsPrefixCluster()
 
 		// Check whether the deleted endpoint IP was shadowing that CIDR, and
 		// restore its mapping with the listeners if that was the case.
-		cidrStr := cidr.String()
-		if cidrIdentity, cidrFound := ipc.ipToIdentityCache[cidrStr]; cidrFound {
-			newHostIP, _ = ipc.getHostIPCache(cidrStr)
+		cidrClusterStr := cidrCluster.String()
+		if cidrIdentity, cidrFound := ipc.ipToIdentityCache[cidrClusterStr]; cidrFound {
+			newHostIP, _ = ipc.getHostIPCache(cidrClusterStr)
 			if cidrIdentity.ID != cachedIdentity.ID || !oldHostIP.Equal(newHostIP) {
 				scopedLog.Debug("Removal of endpoint IP revives shadowed CIDR to identity mapping")
 				cacheModification = Upsert
 				cidrIdentity.shadowed = false
-				ipc.ipToIdentityCache[cidrStr] = cidrIdentity
+				ipc.ipToIdentityCache[cidrClusterStr] = cidrIdentity
 				oldIdentity = &cachedIdentity
 				newIdentity = cidrIdentity
 			} else {
@@ -547,6 +724,7 @@ func (ipc *IPCache) deleteLocked(ip string, source source.Source) (namedPortsCha
 	}
 	delete(ipc.ipToHostIPCache, ip)
 	delete(ipc.ipToK8sMetadata, ip)
+	ipc.prefixLengths.Delete([]netip.Prefix{cidrCluster.AsPrefix()})
 
 	// Update named ports
 	namedPortsChanged = false
@@ -556,14 +734,10 @@ func (ipc *IPCache) deleteLocked(ip string, source source.Source) (namedPortsCha
 		namedPortsChanged = namedPortsChanged && ipc.needNamedPorts.Load()
 	}
 
-	if newHostIP != nil {
-		nodeID = ipc.AllocateNodeID(newHostIP)
-	}
-
 	if callbackListeners {
 		for _, listener := range ipc.listeners {
-			listener.OnIPIdentityCacheChange(cacheModification, *cidr, oldHostIP, newHostIP,
-				oldIdentity, newIdentity, encryptKey, nodeID, oldK8sMeta)
+			listener.OnIPIdentityCacheChange(cacheModification, cidrCluster, oldHostIP, newHostIP,
+				oldIdentity, newIdentity, encryptKey, oldK8sMeta)
 		}
 	}
 
@@ -604,6 +778,8 @@ func (ipc *IPCache) DeleteOnMetadataMatch(IP string, source source.Source, names
 }
 
 // Delete removes the provided IP-to-security-identity mapping from the IPCache.
+//
+// Deprecated: Prefer RemoveLabels() or RemoveIdentity() instead.
 func (ipc *IPCache) Delete(IP string, source source.Source) (namedPortsChanged bool) {
 	ipc.mutex.Lock()
 	defer ipc.mutex.Unlock()
@@ -656,6 +832,39 @@ func (ipc *IPCache) LookupByPrefix(IP string) (Identity, bool) {
 	return ipc.LookupByPrefixRLocked(IP)
 }
 
+// LookupSecIDByIP performs a longest prefix match lookup in the IPCache for
+// the identity corresponding to the specified address (or, in the case of no
+// direct match, any shorter prefix). Returns the corresponding identity and
+// whether a match was found.
+func (ipc *IPCache) LookupSecIDByIP(ip netip.Addr) (id Identity, ok bool) {
+	if !ip.IsValid() {
+		return Identity{}, false
+	}
+
+	ipc.mutex.RLock()
+	defer ipc.mutex.RUnlock()
+
+	if id, ok = ipc.LookupByIPRLocked(ip.String()); ok {
+		return id, ok
+	}
+
+	ipv6Prefixes, ipv4Prefixes := ipc.prefixLengths.ToBPFData()
+	prefixes := ipv4Prefixes
+	if ip.Is6() {
+		prefixes = ipv6Prefixes
+	}
+	for _, prefixLen := range prefixes {
+		// note: we perform a lookup even when `prefixLen == bits`, as some
+		// entries derived by a single address cidr-range will not have been
+		// found by the above lookup
+		cidr, _ := ip.Prefix(prefixLen)
+		if id, ok = ipc.LookupByPrefixRLocked(cidr.String()); ok {
+			return id, ok
+		}
+	}
+	return id, false
+}
+
 // LookupByIdentity returns the set of IPs (endpoint or CIDR prefix) that have
 // security identity ID, or nil if the entry does not exist.
 func (ipc *IPCache) LookupByIdentity(id identity.NumericIdentity) (ips []string) {
@@ -690,12 +899,6 @@ func (ipc *IPCache) LookupByHostRLocked(hostIPv4, hostIPv6 net.IP) (cidrs []net.
 	return cidrs
 }
 
-// RegisterK8sWaiter registers the object that checks for wehther the K8s cache
-// has been fully synced.
-func (ipc *IPCache) RegisterK8sSyncedChecker(c k8sSyncedChecker) {
-	ipc.k8sSyncedChecker = c
-}
-
 // Equal returns true if two K8sMetadata pointers contain the same data or are
 // both nil.
 func (m *K8sMetadata) Equal(o *K8sMetadata) bool {
@@ -713,10 +916,4 @@ func (m *K8sMetadata) Equal(o *K8sMetadata) bool {
 		}
 	}
 	return m.Namespace == o.Namespace && m.PodName == o.PodName
-}
-
-// k8sCacheIsSynced is an interface for checking if the K8s watcher cache has
-// been fully synced.
-type k8sSyncedChecker interface {
-	K8sCacheIsSynced() bool
 }

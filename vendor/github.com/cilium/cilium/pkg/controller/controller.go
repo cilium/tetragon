@@ -7,21 +7,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
+	"math"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/sirupsen/logrus"
 
-	"github.com/cilium/cilium/api/v1/models"
+	"github.com/cilium/cilium/pkg/hive/cell"
 	"github.com/cilium/cilium/pkg/inctimer"
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/metrics"
-	"github.com/cilium/cilium/pkg/option"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 const (
 	success = "success"
 	failure = "failure"
+
+	// special Group "names" for metrics config
+	allControllerMetricsEnabled = "all"
+	noControllerMetricsEnabled  = "none"
 )
 
 // ControllerFunc is a function that the controller runs. This type is used for
@@ -43,8 +46,28 @@ func NewExitReason(reason string) ExitReason {
 	return ExitReason{errors.New(reason)}
 }
 
+// Group contains metadata about a group of controllers
+type Group struct {
+	// Name of the controller group.
+	//
+	// This name MUST NOT be dynamically generated based on
+	// resource identifier in order to limit metrics cardinality.
+	Name string
+}
+
+func NewGroup(name string) Group {
+	return Group{Name: name}
+}
+
 // ControllerParams contains all parameters of a controller
 type ControllerParams struct {
+	// Group is used for aggregate metrics collection.
+	// The Group.Name must NOT be dynamically generated from a
+	// resource identifier in order to limit metrics cardinality.
+	Group Group
+
+	HealthReporter cell.HealthReporter
+
 	// DoFunc is the function that will be run until it succeeds and/or
 	// using the interval RunInterval if not 0.
 	// An unset DoFunc is an error and will be logged as one.
@@ -97,6 +120,32 @@ func NoopFunc(ctx context.Context) error {
 	return nil
 }
 
+// isGroupMetricEnabled returns true if metrics are enabled for the Group
+//
+// The controller metrics config option is used to determine
+// if "all", "none" (takes precedence over "all"), or the
+// given set of Group names should be enabled.
+//
+// If no controller metrics config option was provided,
+// only then is the DefaultMetricsEnabled field used.
+func isGroupMetricEnabled(g Group) bool {
+	var metricsEnabled = groupMetricEnabled
+	if metricsEnabled == nil {
+		// There is currently no guarantee that a caller of this function
+		// has initialized the configuration map using the hive cell.
+		return false
+	}
+
+	if metricsEnabled[noControllerMetricsEnabled] {
+		// "none" takes precedence over "all"
+		return false
+	} else if metricsEnabled[allControllerMetricsEnabled] {
+		return true
+	} else {
+		return metricsEnabled[g.Name]
+	}
+}
+
 // Controller is a simple pattern that allows to perform the following
 // tasks:
 //   - Run an operation in the background and retry until it succeeds
@@ -132,10 +181,23 @@ func NoopFunc(ctx context.Context) error {
 //     owner dies. It is the responsibility of the owner to either lock the owner
 //     in a way that will delay destruction throughout the controller run or to
 //     check for the destruction throughout the run.
-type Controller struct {
+type controller struct {
+	// Constant after creation, safe to access without locking
+	group  Group
+	name   string
+	uuid   string
+	logger *logrus.Entry
+
+	// Channels written to and/or closed by the manager
+	stop    chan struct{}
+	update  chan ControllerParams
+	trigger chan struct{}
+
+	// terminated is closed by the controller goroutine when it terminates
+	terminated chan struct{}
+
+	// Manipulated by the controller, read by the Manager, requires locking
 	mutex             lock.RWMutex
-	name              string
-	params            ControllerParams
 	successCount      int
 	lastSuccessStamp  time.Time
 	failureCount      int
@@ -143,19 +205,10 @@ type Controller struct {
 	lastError         error
 	lastErrorStamp    time.Time
 	lastDuration      time.Duration
-	uuid              string
-	stop              chan struct{}
-	update            chan struct{}
-	trigger           chan struct{}
-	ctxDoFunc         context.Context
-	cancelDoFunc      context.CancelFunc
-
-	// terminated is closed after the controller has been terminated
-	terminated chan struct{}
 }
 
 // GetSuccessCount returns the number of successful controller runs
-func (c *Controller) GetSuccessCount() int {
+func (c *controller) GetSuccessCount() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
@@ -163,7 +216,7 @@ func (c *Controller) GetSuccessCount() int {
 }
 
 // GetFailureCount returns the number of failed controller runs
-func (c *Controller) GetFailureCount() int {
+func (c *controller) GetFailureCount() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
@@ -171,145 +224,121 @@ func (c *Controller) GetFailureCount() int {
 }
 
 // GetLastError returns the last error returned
-func (c *Controller) GetLastError() error {
+func (c *controller) GetLastError() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
 	return c.lastError
 }
 
-// Trigger triggers the controller
-func (c *Controller) Trigger() {
-	select {
-	case c.trigger <- struct{}{}:
-	default:
-	}
-}
-
 // GetLastErrorTimestamp returns the last error returned
-func (c *Controller) GetLastErrorTimestamp() time.Time {
+func (c *controller) GetLastErrorTimestamp() time.Time {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
 	return c.lastErrorStamp
 }
 
-func (c *Controller) runController() {
+func (c *controller) runController(params ControllerParams) {
 	errorRetries := 1
 
-	c.mutex.RLock()
-	ctx := c.ctxDoFunc
-	params := c.params
-	c.mutex.RUnlock()
-	runFunc := true
-	interval := 10 * time.Minute
-	maxRetryInterval := params.MaxRetryInterval
 	runTimer, timerDone := inctimer.New()
 	defer timerDone()
 
 	for {
 		var err error
-		if runFunc {
-			interval = params.RunInterval
 
-			start := time.Now()
-			err = params.DoFunc(ctx)
-			duration := time.Since(start)
+		interval := params.RunInterval
 
-			c.mutex.Lock()
-			c.lastDuration = duration
-			c.getLogger().Debug("Controller func execution time: ", c.lastDuration)
+		start := time.Now()
+		err = params.DoFunc(params.Context)
+		duration := time.Since(start)
 
-			if err != nil {
-				if ctx.Err() != nil {
-					// The controller's context was canceled. Let's wait for the
-					// next controller update (or stop).
-					err = NewExitReason("controller context canceled")
-				}
+		c.mutex.Lock()
+		c.lastDuration = duration
+		c.getLogger().Debug("Controller func execution time: ", c.lastDuration)
 
-				switch err := err.(type) {
-				case ExitReason:
-					// This is actually not an error case, but it causes an exit
-					c.recordSuccess()
-					c.lastError = err // This will be shown in the controller status
-
-					// Don't exit the goroutine, since that only happens when the
-					// controller is explicitly stopped. Instead, just wait for
-					// the next update.
-					c.getLogger().Debug("Controller run succeeded; waiting for next controller update or stop")
-					runFunc = false
-					interval = 10 * time.Minute
-
-				default:
-					c.getLogger().WithField(fieldConsecutiveErrors, errorRetries).
-						WithError(err).Debug("Controller run failed")
-					c.recordError(err)
-
-					if !params.NoErrorRetry {
-						if params.ErrorRetryBaseDuration != time.Duration(0) {
-							interval = time.Duration(errorRetries) * params.ErrorRetryBaseDuration
-						} else {
-							interval = time.Duration(errorRetries) * time.Second
-						}
-
-						if maxRetryInterval > 0 && interval > maxRetryInterval {
-							c.getLogger().WithFields(logrus.Fields{
-								"calculatedInterval": interval,
-								"maxAllowedInterval": maxRetryInterval,
-							}).Debug("Cap retry interval to max allowed value")
-							interval = maxRetryInterval
-						}
-
-						errorRetries++
-					}
-				}
-			} else {
-				c.recordSuccess()
-
-				// reset error retries after successful attempt
-				errorRetries = 1
-
-				// If no run interval is specified, no further updates
-				// are required.
-				if interval == time.Duration(0) {
-					// Don't exit the goroutine, since that only happens when the
-					// controller is explicitly stopped. Instead, just wait for
-					// the next update.
-					c.getLogger().Debug("Controller run succeeded; waiting for next controller update or stop")
-					runFunc = false
-					interval = 10 * time.Minute
-				}
+		if err != nil {
+			if params.Context.Err() != nil {
+				// The controller's context was canceled. Let's wait for the
+				// next controller update (or stop).
+				err = NewExitReason("controller context canceled")
 			}
 
-			c.mutex.Unlock()
+			switch err := err.(type) {
+			case ExitReason:
+				// This is actually not an error case, but it causes an exit
+				c.recordSuccess(params.HealthReporter)
+				c.lastError = err // This will be shown in the controller status
+
+				// Don't exit the goroutine, since that only happens when the
+				// controller is explicitly stopped. Instead, just wait for
+				// the next update.
+				c.getLogger().Debug("Controller run succeeded; waiting for next controller update or stop")
+				interval = time.Duration(math.MaxInt64)
+
+			default:
+				c.getLogger().WithField(fieldConsecutiveErrors, errorRetries).
+					WithError(err).Debug("Controller run failed")
+				c.recordError(err, params.HealthReporter)
+
+				if !params.NoErrorRetry {
+					if params.ErrorRetryBaseDuration != time.Duration(0) {
+						interval = time.Duration(errorRetries) * params.ErrorRetryBaseDuration
+					} else {
+						interval = time.Duration(errorRetries) * time.Second
+					}
+
+					if params.MaxRetryInterval > 0 && interval > params.MaxRetryInterval {
+						c.getLogger().WithFields(logrus.Fields{
+							"calculatedInterval": interval,
+							"maxAllowedInterval": params.MaxRetryInterval,
+						}).Debug("Cap retry interval to max allowed value")
+						interval = params.MaxRetryInterval
+					}
+
+					errorRetries++
+				}
+			}
+		} else {
+			c.recordSuccess(params.HealthReporter)
+
+			// reset error retries after successful attempt
+			errorRetries = 1
+
+			// If no run interval is specified, no further updates
+			// are required.
+			if interval == time.Duration(0) {
+				// Don't exit the goroutine, since that only happens when the
+				// controller is explicitly stopped. Instead, just wait for
+				// the next update.
+				c.getLogger().Debug("Controller run succeeded; waiting for next controller update or stop")
+				interval = time.Duration(math.MaxInt64)
+			}
 		}
+
+		c.mutex.Unlock()
+
 		select {
 		case <-c.stop:
 			goto shutdown
 
-		case <-c.update:
-			// If we receive a signal on both channels c.stop and c.update,
-			// golang will pick either c.stop or c.update randomly.
-			// This select will make sure we don't execute the controller
-			// while we are shutting down.
-			select {
-			case <-c.stop:
-				goto shutdown
-			default:
-			}
-			// Pick up any changes to the parameters in case the controller has
-			// been updated.
-			c.mutex.RLock()
-			ctx = c.ctxDoFunc
-			params = c.params
-			c.mutex.RUnlock()
-			runFunc = true
-
+		case params = <-c.update:
+			// update channel is never closed
 		case <-runTimer.After(interval):
+			// timer channel is not yet closed
 		case <-c.trigger:
-			runFunc = true
+			// trigger channel is never closed
 		}
 
+		// If we receive a signal on multiple channels golang will pick one randomly.
+		// This select will make sure we don't execute the controller
+		// while we are shutting down.
+		select {
+		case <-c.stop:
+			goto shutdown
+		default:
+		}
 	}
 
 shutdown:
@@ -317,7 +346,7 @@ shutdown:
 
 	if err := params.StopFunc(context.TODO()); err != nil {
 		c.mutex.Lock()
-		c.recordError(err)
+		c.recordError(err, params.HealthReporter)
 		c.mutex.Unlock()
 		c.getLogger().WithField(fieldConsecutiveErrors, errorRetries).
 			WithError(err).Warn("Error on Controller stop")
@@ -326,96 +355,51 @@ shutdown:
 	close(c.terminated)
 }
 
-// updateParamsLocked sets the specified controller's parameters.
-//
-// If the RunInterval exceeds ControllerMaxInterval, it will be capped.
-func (c *Controller) updateParamsLocked(params ControllerParams) {
-	if c.params.CancelDoFuncOnUpdate && c.cancelDoFunc != nil {
-		c.cancelDoFunc()
-
-		// (re)set the context as the previous might have been cancelled
-		if params.Context == nil {
-			c.ctxDoFunc, c.cancelDoFunc = context.WithCancel(context.Background())
-		} else {
-			c.ctxDoFunc, c.cancelDoFunc = context.WithCancel(params.Context)
-		}
-	}
-
-	c.params = params
-
-	maxInterval := time.Duration(option.Config.MaxControllerInterval) * time.Second
-	if maxInterval > 0 && params.RunInterval > maxInterval {
-		c.getLogger().Infof("Limiting interval to %s", maxInterval)
-		c.params.RunInterval = maxInterval
-	}
-}
-
-func (c *Controller) stopController() {
-	if c.cancelDoFunc != nil {
-		c.cancelDoFunc()
-	}
-
-	close(c.stop)
-	close(c.update)
-}
-
 // logger returns a logrus object with controllerName and UUID fields.
-func (c *Controller) getLogger() *logrus.Entry {
-	return log.WithFields(logrus.Fields{
-		fieldControllerName: c.name,
-		fieldUUID:           c.uuid,
-	})
-}
-
-// GetStatusModel returns a models.ControllerStatus representing the
-// controller's configuration & status
-func (c *Controller) GetStatusModel() *models.ControllerStatus {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	status := &models.ControllerStatus{
-		Name: c.name,
-		UUID: strfmt.UUID(c.uuid),
-		Configuration: &models.ControllerStatusConfiguration{
-			ErrorRetry:     !c.params.NoErrorRetry,
-			ErrorRetryBase: strfmt.Duration(c.params.ErrorRetryBaseDuration),
-			Interval:       strfmt.Duration(c.params.RunInterval),
-		},
-		Status: &models.ControllerStatusStatus{
-			SuccessCount:            int64(c.successCount),
-			LastSuccessTimestamp:    strfmt.DateTime(c.lastSuccessStamp),
-			FailureCount:            int64(c.failureCount),
-			LastFailureTimestamp:    strfmt.DateTime(c.lastErrorStamp),
-			ConsecutiveFailureCount: int64(c.consecutiveErrors),
-		},
+func (c *controller) getLogger() *logrus.Entry {
+	if c.logger == nil {
+		c.logger = log.WithFields(logrus.Fields{
+			fieldControllerName: c.name,
+			fieldUUID:           c.uuid,
+		})
 	}
 
-	if c.lastError != nil {
-		status.Status.LastFailureMsg = c.lastError.Error()
-	}
-
-	return status
+	return c.logger
 }
 
 // recordError updates all statistic collection variables on error
 // c.mutex must be held.
-func (c *Controller) recordError(err error) {
+func (c *controller) recordError(err error, hr cell.HealthReporter) {
+	if hr != nil {
+		hr.Degraded(c.name, err)
+	}
 	c.lastError = err
 	c.lastErrorStamp = time.Now()
 	c.failureCount++
 	c.consecutiveErrors++
+
 	metrics.ControllerRuns.WithLabelValues(failure).Inc()
+	if isGroupMetricEnabled(c.group) {
+		GroupRuns.WithLabelValues(c.group.Name, failure).Inc()
+	}
 	metrics.ControllerRunsDuration.WithLabelValues(failure).Observe(c.lastDuration.Seconds())
 }
 
 // recordSuccess updates all statistic collection variables on success
 // c.mutex must be held.
-func (c *Controller) recordSuccess() {
+func (c *controller) recordSuccess(hr cell.HealthReporter) {
+	if hr != nil {
+		hr.OK(c.name)
+	}
+
 	c.lastError = nil
 	c.lastSuccessStamp = time.Now()
 	c.successCount++
 	c.consecutiveErrors = 0
 
 	metrics.ControllerRuns.WithLabelValues(success).Inc()
+	if isGroupMetricEnabled(c.group) {
+		GroupRuns.WithLabelValues(c.group.Name, success).Inc()
+	}
 	metrics.ControllerRunsDuration.WithLabelValues(success).Observe(c.lastDuration.Seconds())
 }

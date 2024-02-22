@@ -4,7 +4,7 @@
 package api
 
 import (
-	"github.com/cilium/cilium/pkg/policy/api/kafka"
+	"github.com/cilium/proxy/pkg/policy/api/kafka"
 )
 
 // L4Proto is a layer 4 protocol name
@@ -22,6 +22,11 @@ const (
 
 	PortProtocolAny = "0/ANY"
 )
+
+// IsAny returns true if an L4Proto represents ANY protocol
+func (l4 L4Proto) IsAny() bool {
+	return l4 == ProtoAny || string(l4) == ""
+}
 
 // PortProtocol specifies an L4 port with an optional transport protocol
 type PortProtocol struct {
@@ -56,7 +61,7 @@ func (p PortProtocol) Covers(other PortProtocol) bool {
 		return false
 	}
 	if p.Protocol != other.Protocol {
-		return p.Protocol == "" || p.Protocol == ProtoAny
+		return p.Protocol.IsAny()
 	}
 	return true
 }

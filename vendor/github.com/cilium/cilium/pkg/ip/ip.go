@@ -11,7 +11,7 @@ import (
 	"net/netip"
 	"sort"
 
-	"golang.org/x/exp/slices"
+	"github.com/cilium/cilium/pkg/slices"
 )
 
 const (
@@ -248,7 +248,7 @@ func excludeContainedCIDR(allowCIDR, removeCIDR *net.IPNet) []*net.IPNet {
 
 // Flip the 'n'th highest bit in 'ip'. 'ip' is modified in place. 'n' is zero indexed.
 func flipNthHighestBit(ip net.IP, n uint) {
-	i := (n / 8)
+	i := n / 8
 	ip[i] = ip[i] ^ 0x80>>(n%8)
 }
 
@@ -317,7 +317,7 @@ func GetIPAtIndex(ipNet net.IPNet, index int64) net.IP {
 		ip = *netRange.First
 	} else {
 		ip = *netRange.Last
-		index += 1
+		index++
 	}
 	if ip.To4() != nil {
 		val.SetBytes(ip.To4())
@@ -333,7 +333,7 @@ func GetIPAtIndex(ipNet net.IPNet, index int64) net.IP {
 
 func getPreviousIP(ip net.IP) net.IP {
 	// Cannot go lower than zero!
-	if ip.Equal(net.IP(defaultIPv4)) || ip.Equal(net.IP(defaultIPv6)) {
+	if ip.Equal(defaultIPv4) || ip.Equal(defaultIPv6) {
 		return ip
 	}
 
@@ -572,7 +572,7 @@ func rangeToCIDRs(firstIP, lastIP net.IP) []*net.IPNet {
 		} else {
 			bitLen = ipv6BitLen
 		}
-		_, _, right := partitionCIDR(spanningCIDR, net.IPNet{IP: prevFirstRangeIP, Mask: net.CIDRMask(bitLen, bitLen)})
+		_, _, right := PartitionCIDR(spanningCIDR, net.IPNet{IP: prevFirstRangeIP, Mask: net.CIDRMask(bitLen, bitLen)})
 
 		// Append all CIDRs but the first, as this CIDR includes the upper
 		// bound of the spanning CIDR, which we still need to partition on.
@@ -595,7 +595,7 @@ func rangeToCIDRs(firstIP, lastIP net.IP) []*net.IPNet {
 		} else {
 			bitLen = ipv6BitLen
 		}
-		left, _, _ := partitionCIDR(spanningCIDR, net.IPNet{IP: nextFirstRangeIP, Mask: net.CIDRMask(bitLen, bitLen)})
+		left, _, _ := PartitionCIDR(spanningCIDR, net.IPNet{IP: nextFirstRangeIP, Mask: net.CIDRMask(bitLen, bitLen)})
 		cidrList = append(cidrList, left...)
 	} else {
 		// Otherwise, there is no need to partition; just use add the spanning
@@ -605,13 +605,13 @@ func rangeToCIDRs(firstIP, lastIP net.IP) []*net.IPNet {
 	return cidrList
 }
 
-// partitionCIDR returns a list of IP Networks partitioned upon excludeCIDR.
+// PartitionCIDR returns a list of IP Networks partitioned upon excludeCIDR.
 // The first list contains the networks to the left of the excludeCIDR in the
 // partition,  the second is a list containing the excludeCIDR itself if it is
 // contained within the targetCIDR (nil otherwise), and the
 // third is a list containing the networks to the right of the excludeCIDR in
 // the partition.
-func partitionCIDR(targetCIDR net.IPNet, excludeCIDR net.IPNet) ([]*net.IPNet, []*net.IPNet, []*net.IPNet) {
+func PartitionCIDR(targetCIDR net.IPNet, excludeCIDR net.IPNet) ([]*net.IPNet, []*net.IPNet, []*net.IPNet) {
 	var targetIsIPv4 bool
 	if targetCIDR.IP.To4() != nil {
 		targetIsIPv4 = true
@@ -739,45 +739,20 @@ func partitionCIDR(targetCIDR net.IPNet, excludeCIDR net.IPNet) ([]*net.IPNet, [
 	return left, excludeList, right
 }
 
-// KeepUniqueIPs transforms the provided multiset of IPs into a single set,
-// lexicographically sorted via a byte-wise comparison of the IP slices (i.e.
-// IPv4 addresses show up before IPv6).
-// The slice is manipulated in-place destructively.
-//
-// 1- Sort the slice by comparing the IPs as bytes
-// 2- For every unseen unique IP in the sorted slice, move it to the end of
-// the return slice.
-// Note that the slice is always large enough and, because it is sorted, we
-// will not overwrite a valid element with another. To overwrite an element i
-// with j, i must have come before j AND we decided it was a duplicate of the
-// element at i-1.
-func KeepUniqueIPs(ips []net.IP) []net.IP {
-	sort.Slice(ips, func(i, j int) bool {
-		return bytes.Compare(ips[i], ips[j]) == -1
-	})
-
-	returnIPs := ips[:0] // len==0 but cap==cap(ips)
-	for readIdx, ip := range ips {
-		if len(returnIPs) == 0 || !returnIPs[len(returnIPs)-1].Equal(ips[readIdx]) {
-			returnIPs = append(returnIPs, ip)
-		}
-	}
-
-	return returnIPs
-}
-
 // KeepUniqueAddrs transforms the provided multiset of IP addresses into a
 // single set, lexicographically sorted via comparison of the addresses using
 // netip.Addr.Compare (i.e. IPv4 addresses show up before IPv6).
 // The slice is manipulated in-place destructively; it does not create a new slice.
 func KeepUniqueAddrs(addrs []netip.Addr) []netip.Addr {
-	if len(addrs) == 0 {
-		return addrs
-	}
-	sort.Slice(addrs, func(i, j int) bool {
-		return addrs[i].Compare(addrs[j]) < 0
-	})
-	return slices.Compact(addrs)
+	return slices.SortedUniqueFunc(
+		addrs,
+		func(i, j int) bool {
+			return addrs[i].Compare(addrs[j]) < 0
+		},
+		func(a, b netip.Addr) bool {
+			return a == b
+		},
+	)
 }
 
 var privateIPBlocks []*net.IPNet
@@ -868,33 +843,19 @@ func SortIPList(ipList []net.IP) {
 	})
 }
 
+func SortAddrList(ipList []netip.Addr) {
+	sort.Slice(ipList, func(i, j int) bool {
+		return ipList[i].Compare(ipList[j]) < 0
+	})
+}
+
 // getSortedIPList returns a new net.IP slice in which the IPs are sorted.
 func getSortedIPList(ipList []net.IP) []net.IP {
 	sortedIPList := make([]net.IP, len(ipList))
-	for i := 0; i < len(ipList); i++ {
-		sortedIPList[i] = ipList[i]
-	}
-
+	copy(sortedIPList, ipList)
 	SortIPList(sortedIPList)
+
 	return sortedIPList
-}
-
-// SortedIPListsAreEqual compares two lists of sorted IPs. If any differ it returns
-// false.
-func SortedIPListsAreEqual(a, b []net.IP) bool {
-	// The IP set is definitely different if the lengths are different.
-	if len(a) != len(b) {
-		return false
-	}
-
-	// Lengths are equal, so each member in one set must be in the other
-	// If any IPs at the same index differ the sorted IP list are not equal.
-	for i := range a {
-		if !a[i].Equal(b[i]) {
-			return false
-		}
-	}
-	return true
 }
 
 // UnsortedIPListsAreEqual returns true if the list of net.IP provided is same
@@ -906,10 +867,17 @@ func UnsortedIPListsAreEqual(ipList1, ipList2 []net.IP) bool {
 		return false
 	}
 
-	sortedIPList1 := getSortedIPList(ipList1)
-	sortedIPList2 := getSortedIPList(ipList2)
+	a := getSortedIPList(ipList1)
+	b := getSortedIPList(ipList2)
 
-	return SortedIPListsAreEqual(sortedIPList1, sortedIPList2)
+	// Lengths are equal, so each member in one set must be in the other
+	// If any IPs at the same index differ the sorted IP list are not equal.
+	for i := range a {
+		if !a[i].Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetIPFromListByFamily returns a single IP address of the provided family from a list

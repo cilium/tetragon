@@ -3,7 +3,6 @@
 package kvstore
 
 import (
-	"context"
 	"sync"
 )
 
@@ -60,7 +59,6 @@ type Watcher struct {
 	// Events is the channel to which change notifications will be sent to
 	Events EventChan `json:"-"`
 
-	Name      string `json:"name"`
 	Prefix    string `json:"prefix"`
 	stopWatch stopChan
 
@@ -71,9 +69,8 @@ type Watcher struct {
 	stopWait sync.WaitGroup
 }
 
-func newWatcher(name, prefix string, chanSize int) *Watcher {
+func newWatcher(prefix string, chanSize int) *Watcher {
 	w := &Watcher{
-		Name:      name,
 		Prefix:    prefix,
 		Events:    make(EventChan, chanSize),
 		stopWatch: make(stopChan),
@@ -84,29 +81,11 @@ func newWatcher(name, prefix string, chanSize int) *Watcher {
 	return w
 }
 
-// String returns the name of the wather
-func (w *Watcher) String() string {
-	return w.Name
-}
-
-// ListAndWatch creates a new watcher which will watch the specified prefix for
-// changes. Before doing this, it will list the current keys matching the
-// prefix and report them as new keys. Name can be set to anything and is used
-// for logging messages. The Events channel is created with the specified
-// sizes. Upon every change observed, a KeyValueEvent will be sent to the
-// Events channel
-//
-// Returns a watcher structure plus a channel that is closed when the initial
-// list operation has been completed
-func ListAndWatch(ctx context.Context, name, prefix string, chanSize int) *Watcher {
-	return Client().ListAndWatch(ctx, name, prefix, chanSize)
-}
-
 // Stop stops a watcher previously created and started with Watch()
 func (w *Watcher) Stop() {
 	w.stopOnce.Do(func() {
 		close(w.stopWatch)
-		log.WithField(fieldWatcher, w).Debug("Stopped watcher")
+		log.WithField(fieldPrefix, w.Prefix).Debug("Stopped watcher")
 		w.stopWait.Wait()
 	})
 }

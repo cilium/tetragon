@@ -35,8 +35,14 @@ const (
 	// EventUUID is an event unique identifier
 	EventUUID = "eventID"
 
+	// CNIAttachmentID uniquely identifies an endpoint
+	CNIAttachmentID = "cniAttachmentID"
+
 	// ContainerID is the container identifier
 	ContainerID = "containerID"
+
+	// ContainerInterface is the name of the interface in the container namespace
+	ContainerInterface = "containerInterface"
 
 	// IdentityLabels are the labels relevant for the security identity
 	IdentityLabels = "identityLabels"
@@ -47,14 +53,24 @@ const (
 	// Labels are any label, they may not be relevant to the security identity.
 	Labels = "labels"
 
+	// SourceFilter is the label or node information source
+	SourceFilter = "sourceFilter"
+
 	// Controller is the name of the controller to log it.
 	Controller = "controller"
 
 	// Identity is the identifier of a security identity
 	Identity = "identity"
 
+	// ConflictingIdentity is the identifier of a security identity that conflicts
+	// with 'Identity'
+	ConflictingIdentity = "conflictingIdentity"
+
 	// Ingress is the identifier of an ingress object
 	Ingress = "ingress"
+
+	// IngressClass is the identifier of an ingress class object
+	IngressClass = "ingressClass"
 
 	// OldIdentity is a previously used security identity
 	OldIdentity = "oldIdentity"
@@ -110,6 +126,9 @@ const (
 
 	// NextHop is an IPV4 or IPv6 address for the next hop
 	NextHop = "nextHop"
+
+	// Address is an IPV4, IPv6 or FQDN address
+	Address = "address"
 
 	// IPAddr is an IPV4 or IPv6 address
 	IPAddr = "ipAddr"
@@ -201,7 +220,7 @@ const (
 	// NewCIDR is the new subnet/CIDR
 	NewCIDR = "newCIDR"
 
-	// IPAddrs is a lsit of IP addrs
+	// IPAddrs is a list of IP addrs
 	IPAddrs = "ipAddrs"
 
 	// MTU is the maximum transmission unit of one interface
@@ -246,6 +265,12 @@ const (
 
 	// ClusterName is the name of the cluster
 	ClusterName = "clusterName"
+
+	// ClusterID is the ID of the cluster
+	ClusterID = "clusterID"
+
+	// AddrCluster is a pair of IP address and ClusterID
+	AddrCluster = "addrCluster"
 
 	// ServiceID is the orchestration unique ID of a service
 	ServiceID = "serviceID"
@@ -313,9 +338,6 @@ const (
 	// BPFClockSource denotes the internal clock source (ktime vs jiffies)
 	BPFClockSource = "bpfClockSource"
 
-	// BPFInsnSet denotes the instruction set version
-	BPFInsnSet = "bpfInsnSet"
-
 	// CiliumLocalRedirectPolicyName is the name of a CiliumLocalRedirectPolicy
 	CiliumLocalRedirectName = "ciliumLocalRedirectPolicyName"
 
@@ -351,6 +373,16 @@ const (
 
 	// Tunnel is the tunnel name
 	Tunnel = "tunnel"
+
+	// TunnelPeer is the tunnel peer address
+	TunnelPeer = "tunnelPeer"
+
+	// ConflictingTunnelPeer is the address of a tunnel peer which conflicts
+	// with TunnelPeer
+	ConflictingTunnelPeer = "conflictingTunnelPeer"
+
+	// Type is the address type
+	Type = "type"
 
 	// Selector is a selector of any sort: endpoint, CIDR, toFQDNs
 	Selector = "Selector"
@@ -389,6 +421,9 @@ const (
 
 	// Resource is a resource
 	Resource = "resource"
+
+	// ConflictingResource is a resource that conflicts with 'Resource'
+	ConflictingResource = "conflictingResource"
 
 	// Route is a L2 or L3 Linux route
 	Route = "route"
@@ -529,6 +564,10 @@ const (
 	// Key is the identity of the encryption key
 	Key = "key"
 
+	// ConflictingKey is the identity of the encryption key which conflicts with
+	// Key
+	ConflictingKey = "conflictingKey"
+
 	// URL represents a Uniform Resource Locator.
 	URL = "url"
 
@@ -596,6 +635,9 @@ const (
 	// CEPName is the name of the CiliumEndpoint.
 	CEPName = "ciliumEndpointName"
 
+	// CEPCount is the count of the CiliumEndpoint.
+	CEPCount = "ciliumEndpointCount"
+
 	// CEPUID is the UID of the CiliumEndpoint.
 	CEPUID = "ciliumEndpointUID"
 
@@ -611,13 +653,14 @@ const (
 	// WorkQueueSyncBackoff is the backoff time used by workqueues before an attempt to retry sync with k8s-apiserver.
 	WorkQueueSyncBackOff = "workQueueSyncBackOff"
 
-	// CESSliceMode indicates the name of algorithm used to batch CEPs in a CES.
-	CESSliceMode = "ciliumEndpointSliceMode"
-
 	// SourceIP is a source IP
 	SourceIP = "sourceIP"
 
 	DestinationIP = "destinationIP"
+
+	LocalIP = "localIP"
+
+	RemoteIP = "remoteIP"
 
 	SourceCIDR = "sourceCIDR"
 
@@ -672,4 +715,25 @@ const (
 
 	// ConfigAnnotation is an annotation on a node
 	ConfigAnnotation = "configAnnotation"
+
+	// User identifies a given user
+	User = "user"
+
+	// CIDRGroupRef is a references to a CiliumCIDRGroup object.
+	CIDRGroupRef = "cidrGroupRef"
+
+	// Workers represents the number of workers.
+	Workers = "workers"
+
+	// Event identifies the type of an event.
+	Event = "event"
+
+	// Prefix identifies a given prefix.
+	Prefix = "prefix"
+
+	// Value identifies a generic value (e.g., of a key/value pair).
+	Value = "value"
+
+	// State is the state of an individual component (apiserver, kvstore etc)
+	State = "state"
 )

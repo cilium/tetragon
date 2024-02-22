@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/cilium/cilium/pkg/cidr"
 	"github.com/cilium/cilium/pkg/lock"
@@ -51,6 +52,69 @@ type AllocationIP struct {
 // AllocationMap is a map of allocated IPs indexed by IP
 type AllocationMap map[string]AllocationIP
 
+// IPAMPodCIDR is a pod CIDR
+//
+// +kubebuilder:validation:Format=cidr
+type IPAMPodCIDR string
+
+func (c *IPAMPodCIDR) ToPrefix() (*netip.Prefix, error) {
+	if c == nil {
+		return nil, fmt.Errorf("nil ipam cidr")
+	}
+
+	prefix, err := netip.ParsePrefix(string(*c))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ipam cidr %v: %w", c, err)
+	}
+
+	return &prefix, nil
+}
+
+// IPAMPoolAllocation describes an allocation of an IPAM pool from the operator to the
+// node. It contains the assigned PodCIDRs allocated from this pool
+type IPAMPoolAllocation struct {
+	// Pool is the name of the IPAM pool backing this allocation
+	//
+	// +kubebuilder:validation:MinLength=1
+	Pool string `json:"pool"`
+
+	// CIDRs contains a list of pod CIDRs currently allocated from this pool
+	//
+	// +optional
+	CIDRs []IPAMPodCIDR `json:"cidrs,omitempty"`
+}
+
+type IPAMPoolRequest struct {
+	// Pool is the name of the IPAM pool backing this request
+	//
+	// +kubebuilder:validation:MinLength=1
+	Pool string `json:"pool"`
+
+	// Needed indicates how many IPs out of the above Pool this node requests
+	// from the operator. The operator runs a reconciliation loop to ensure each
+	// node always has enough PodCIDRs allocated in each pool to fulfill the
+	// requested number of IPs here.
+	//
+	// +optional
+	Needed IPAMPoolDemand `json:"needed,omitempty"`
+}
+
+type IPAMPoolSpec struct {
+	// Requested contains a list of IPAM pool requests, i.e. indicates how many
+	// addresses this node requests out of each pool listed here. This field
+	// is owned and written to by cilium-agent and read by the operator.
+	//
+	// +optional
+	Requested []IPAMPoolRequest `json:"requested,omitempty"`
+
+	// Allocated contains the list of pooled CIDR assigned to this node. The
+	// operator will add new pod CIDRs to this field, whereas the agent will
+	// remove CIDRs it has released.
+	//
+	// +optional
+	Allocated []IPAMPoolAllocation `json:"allocated,omitempty"`
+}
+
 // IPAMSpec is the IPAM specification of the node
 //
 // This structure is embedded into v2.CiliumNode
@@ -61,6 +125,11 @@ type IPAMSpec struct {
 	//
 	// +optional
 	Pool AllocationMap `json:"pool,omitempty"`
+
+	// Pools contains the list of assigned IPAM pools for this node.
+	//
+	// +optional
+	Pools IPAMPoolSpec `json:"pools,omitempty"`
 
 	// PodCIDRs is the list of CIDRs available to the node for allocation.
 	// When an IP is used, the IP will be added to Status.IPAM.Used
@@ -102,25 +171,6 @@ type IPAMSpec struct {
 	//
 	// +kubebuilder:validation:Minimum=0
 	MaxAboveWatermark int `json:"max-above-watermark,omitempty"`
-
-	// PodCIDRAllocationThreshold defines the minimum number of free IPs which
-	// must be available to this node via its pod CIDR pool. If the total number
-	// of IP addresses in the pod CIDR pool is less than this value, the pod
-	// CIDRs currently in-use by this node will be marked as depleted and
-	// cilium-operator will allocate a new pod CIDR to this node.
-	// This value effectively defines the buffer of IP addresses available
-	// immediately without requiring cilium-operator to get involved.
-	//
-	// +kubebuilder:validation:Minimum=0
-	PodCIDRAllocationThreshold int `json:"pod-cidr-allocation-threshold,omitempty"`
-
-	// PodCIDRReleaseThreshold defines the maximum number of free IPs which may
-	// be available to this node via its pod CIDR pool. While the total number
-	// of free IP addresses in the pod CIDR pool is larger than this value,
-	// cilium-agent will attempt to release currently unused pod CIDRs.
-	//
-	// +kubebuilder:validation:Minimum=0
-	PodCIDRReleaseThreshold int `json:"pod-cidr-release-threshold,omitempty"`
 }
 
 // IPReleaseStatus  defines the valid states in IP release handshake
@@ -157,6 +207,22 @@ type IPAMStatus struct {
 	//
 	// +optional
 	ReleaseIPs map[string]IPReleaseStatus `json:"release-ips,omitempty"`
+}
+
+// IPAMPoolRequest is a request from the agent to the operator, indicating how
+// may IPs it requires from a given pool
+type IPAMPoolDemand struct {
+	// IPv4Addrs contains the number of requested IPv4 addresses out of a given
+	// pool
+	//
+	// +optional
+	IPv4Addrs int `json:"ipv4-addrs,omitempty"`
+
+	// IPv6Addrs contains the number of requested IPv6 addresses out of a given
+	// pool
+	//
+	// +optional
+	IPv6Addrs int `json:"ipv6-addrs,omitempty"`
 }
 
 type PodCIDRMap map[string]PodCIDRMapEntry
@@ -339,6 +405,13 @@ func NewInstanceMap() *InstanceMap {
 	return &InstanceMap{data: map[string]*Instance{}}
 }
 
+// UpdateInstance updates the interfaces map for a particular instance.
+func (m *InstanceMap) UpdateInstance(instanceID string, instance *Instance) {
+	m.mutex.Lock()
+	m.data[instanceID] = instance
+	m.mutex.Unlock()
+}
+
 // Update updates the definition of an interface for a particular instance. If
 // the interface is already known, the definition is updated, otherwise the
 // interface is added to the instance.
@@ -397,7 +470,7 @@ func (m *InstanceMap) ForeachAddress(instanceID string, fn AddressIterator) erro
 		if instance := m.data[instanceID]; instance != nil {
 			return foreachAddress(instanceID, instance, fn)
 		}
-		return fmt.Errorf("instance does not exist")
+		return fmt.Errorf("instance does not exist: %q", instanceID)
 	}
 
 	for instanceID, instance := range m.data {
@@ -438,7 +511,7 @@ func (m *InstanceMap) ForeachInterface(instanceID string, fn InterfaceIterator) 
 		if instance := m.data[instanceID]; instance != nil {
 			return foreachInterface(instanceID, instance, fn)
 		}
-		return fmt.Errorf("instance does not exist")
+		return fmt.Errorf("instance does not exist: %q", instanceID)
 	}
 	for instanceID, instance := range m.data {
 		if err := foreachInterface(instanceID, instance, fn); err != nil {

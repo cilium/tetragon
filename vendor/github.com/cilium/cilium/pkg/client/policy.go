@@ -19,6 +19,16 @@ func (c *Client) PolicyPut(policyJSON string) (*models.Policy, error) {
 	return resp.Payload, nil
 }
 
+// PolicyReplace replaces the `policyJSON`
+func (c *Client) PolicyReplace(policyJSON string, replace bool, replaceWithLabels []string) (*models.Policy, error) {
+	params := policy.NewPutPolicyParams().WithPolicy(policyJSON).WithReplace(&replace).WithReplaceWithLabels(replaceWithLabels).WithTimeout(api.ClientTimeout)
+	resp, err := c.Policy.PutPolicy(params)
+	if err != nil {
+		return nil, Hint(err)
+	}
+	return resp.Payload, nil
+}
+
 // PolicyGet returns policy rules
 func (c *Client) PolicyGet(labels []string) (*models.Policy, error) {
 	params := policy.NewGetPolicyParams().WithLabels(labels).WithTimeout(api.ClientTimeout)
@@ -47,14 +57,4 @@ func (c *Client) PolicyDelete(labels []string) (*models.Policy, error) {
 		return nil, Hint(err)
 	}
 	return resp.Payload, Hint(err)
-}
-
-// PolicyResolveGet resolves policy for a Trace Selector with source and destination identity.
-func (c *Client) PolicyResolveGet(traceSelector *models.TraceSelector) (*models.PolicyTraceResult, error) {
-	params := policy.NewGetPolicyResolveParams().WithTraceSelector(traceSelector).WithTimeout(api.ClientTimeout)
-	resp, err := c.Policy.GetPolicyResolve(params)
-	if err != nil {
-		return nil, Hint(err)
-	}
-	return resp.Payload, nil
 }

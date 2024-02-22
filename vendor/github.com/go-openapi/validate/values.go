@@ -120,7 +120,7 @@ func UniqueItems(path, in string, data interface{}) *errors.Validation {
 
 // MinLength validates a string for minimum length
 func MinLength(path, in, data string, minLength int64) *errors.Validation {
-	strLen := int64(utf8.RuneCount([]byte(data)))
+	strLen := int64(utf8.RuneCountInString(data))
 	if strLen < minLength {
 		return errors.TooShort(path, in, minLength, data)
 	}
@@ -129,7 +129,7 @@ func MinLength(path, in, data string, minLength int64) *errors.Validation {
 
 // MaxLength validates a string for maximum length
 func MaxLength(path, in, data string, maxLength int64) *errors.Validation {
-	strLen := int64(utf8.RuneCount([]byte(data)))
+	strLen := int64(utf8.RuneCountInString(data))
 	if strLen > maxLength {
 		return errors.TooLong(path, in, maxLength, data)
 	}
@@ -248,7 +248,7 @@ func MinimumUint(path, in string, data, min uint64, exclusive bool) *errors.Vali
 // MultipleOf validates if the provided number is a multiple of the factor
 func MultipleOf(path, in string, data, factor float64) *errors.Validation {
 	// multipleOf factor must be positive
-	if factor < 0 {
+	if factor <= 0 {
 		return errors.MultipleOfMustBePositive(path, in, factor)
 	}
 	var mult float64
@@ -266,7 +266,7 @@ func MultipleOf(path, in string, data, factor float64) *errors.Validation {
 // MultipleOfInt validates if the provided integer is a multiple of the factor
 func MultipleOfInt(path, in string, data int64, factor int64) *errors.Validation {
 	// multipleOf factor must be positive
-	if factor < 0 {
+	if factor <= 0 {
 		return errors.MultipleOfMustBePositive(path, in, factor)
 	}
 	mult := data / factor
@@ -278,6 +278,10 @@ func MultipleOfInt(path, in string, data int64, factor int64) *errors.Validation
 
 // MultipleOfUint validates if the provided unsigned integer is a multiple of the factor
 func MultipleOfUint(path, in string, data, factor uint64) *errors.Validation {
+	// multipleOf factor must be positive
+	if factor == 0 {
+		return errors.MultipleOfMustBePositive(path, in, factor)
+	}
 	mult := data / factor
 	if mult*factor != data {
 		return errors.NotMultipleOf(path, in, factor, data)

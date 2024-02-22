@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -21,6 +20,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/cilium/pkg/rate"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 var (
@@ -88,7 +88,7 @@ const (
 type Allocator struct {
 	// events is a channel which will receive AllocatorEvent as IDs are
 	// added, modified or removed from the allocator
-	events AllocatorEventChan
+	events AllocatorEventSendChan
 
 	// keyType is an instance of the type to be used as allocator key.
 	keyType AllocatorKey
@@ -148,6 +148,9 @@ type Allocator struct {
 	// disableGC disables the garbage collector
 	disableGC bool
 
+	// disableAutostart prevents starting the allocator when it is initialized
+	disableAutostart bool
+
 	// backend is the upstream, shared, backend to which we syncronize local
 	// information
 	backend Backend
@@ -199,11 +202,19 @@ type Backend interface {
 	// error in that case is not expected to be fatal. The actual ID is obtained
 	// by Allocator from the local idPool, which is updated with used-IDs as the
 	// Backend makes calls to the handler in ListAndWatch.
-	AllocateID(ctx context.Context, id idpool.ID, key AllocatorKey) error
+	// The implementation of the backend might return an AllocatorKey that is
+	// a copy of 'key' with an internal reference of the backend key or, if it
+	// doesn't use the internal reference of the backend key it simply returns
+	// 'key'. In case of an error the returned 'AllocatorKey' should be nil.
+	AllocateID(ctx context.Context, id idpool.ID, key AllocatorKey) (AllocatorKey, error)
 
 	// AllocateIDIfLocked behaves like AllocateID but when lock is non-nil the
 	// operation proceeds only if it is still valid.
-	AllocateIDIfLocked(ctx context.Context, id idpool.ID, key AllocatorKey, lock kvstore.KVLocker) error
+	// The implementation of the backend might return an AllocatorKey that is
+	// a copy of 'key' with an internal reference of the backend key or, if it
+	// doesn't use the internal reference of the backend key it simply returns
+	// 'key'. In case of an error the returned 'AllocatorKey' should be nil.
+	AllocateIDIfLocked(ctx context.Context, id idpool.ID, key AllocatorKey, lock kvstore.KVLocker) (AllocatorKey, error)
 
 	// AcquireReference records that this node is using this key->ID mapping.
 	// This is distinct from any reference counting within this agent; only one
@@ -316,6 +327,14 @@ func NewAllocator(typ AllocatorKey, backend Backend, opts ...AllocatorOption) (*
 
 	a.idPool = idpool.NewIDPool(a.min, a.max)
 
+	if !a.disableAutostart {
+		a.start()
+	}
+
+	return a, nil
+}
+
+func (a *Allocator) start() {
 	a.initialListDone = a.mainCache.start()
 	if !a.disableGC {
 		go func() {
@@ -327,8 +346,6 @@ func NewAllocator(typ AllocatorKey, backend Backend, opts ...AllocatorOption) (*
 			a.startLocalKeySync()
 		}()
 	}
-
-	return a, nil
 }
 
 // WithBackend sets this allocator to use backend. It is expected to be used at
@@ -345,7 +362,7 @@ func WithBackend(backend Backend) AllocatorOption {
 // read while NewAllocator() is being called to ensure that the channel does
 // not block indefinitely while NewAllocator() emits events on it while
 // populating the initial cache.
-func WithEvents(events AllocatorEventChan) AllocatorOption {
+func WithEvents(events AllocatorEventSendChan) AllocatorOption {
 	return func(a *Allocator) { a.events = events }
 }
 
@@ -378,10 +395,15 @@ func WithoutGC() AllocatorOption {
 	return func(a *Allocator) { a.disableGC = true }
 }
 
+// WithoutAutostart prevents starting the allocator when it is initialized
+func WithoutAutostart() AllocatorOption {
+	return func(a *Allocator) { a.disableAutostart = true }
+}
+
 // GetEvents returns the events channel given to the allocator when
 // constructed.
 // Note: This channel is not owned by the allocator!
-func (a *Allocator) GetEvents() AllocatorEventChan {
+func (a *Allocator) GetEvents() AllocatorEventSendChan {
 	return a.events
 }
 
@@ -439,7 +461,7 @@ type AllocatorKey interface {
 	// GetKey returns the canonical string representation of the key
 	GetKey() string
 
-	// PutKey stores the information in v into the key. This is is the inverse
+	// PutKey stores the information in v into the key. This is the inverse
 	// operation to GetKey
 	PutKey(v string) AllocatorKey
 
@@ -450,6 +472,13 @@ type AllocatorKey interface {
 	// PutKeyFromMap stores the labels in v into the key to be used later. This
 	// is the inverse operation to GetAsMap.
 	PutKeyFromMap(v map[string]string) AllocatorKey
+
+	// PutValue puts metadata inside the global identity for the given 'key' with
+	// the given 'value'.
+	PutValue(key any, value any) AllocatorKey
+
+	// Value returns the value stored in the metadata map.
+	Value(key any) any
 }
 
 func (a *Allocator) encodeKey(key AllocatorKey) string {
@@ -516,7 +545,7 @@ func (a *Allocator) lockedAllocate(ctx context.Context, key AllocatorKey) (idpoo
 
 		if err = a.backend.AcquireReference(ctx, value, key, lock); err != nil {
 			a.localKeys.release(k)
-			return 0, false, false, fmt.Errorf("unable to create slave key '%s': %s", k, err)
+			return 0, false, false, fmt.Errorf("unable to create secondary key '%s': %s", k, err)
 		}
 
 		// mark the key as verified in the local cache
@@ -565,12 +594,15 @@ func (a *Allocator) lockedAllocate(ctx context.Context, key AllocatorKey) (idpoo
 		return 0, false, false, fmt.Errorf("Found master key after proceeding with new allocation for %s", k)
 	}
 
-	err = a.backend.AllocateIDIfLocked(ctx, id, key, lock)
+	// Assigned to 'key' from 'key2' since in case of an error, we don't replace
+	// the original 'key' variable with 'nil'.
+	key2 := key
+	key, err = a.backend.AllocateIDIfLocked(ctx, id, key2, lock)
 	if err != nil {
 		// Creation failed. Another agent most likely beat us to allocting this
 		// ID, retry.
 		releaseKeyAndID()
-		return 0, false, false, fmt.Errorf("unable to allocate ID %s for key %s: %s", strID, key, err)
+		return 0, false, false, fmt.Errorf("unable to allocate ID %s for key %s: %s", strID, key2, err)
 	}
 
 	// Notify pool that leased ID is now in-use.
@@ -581,7 +613,7 @@ func (a *Allocator) lockedAllocate(ctx context.Context, key AllocatorKey) (idpoo
 		// exposed and may be in use by other nodes. The garbage
 		// collector will release it again.
 		releaseKeyAndID()
-		return 0, false, false, fmt.Errorf("slave key creation failed '%s': %s", k, err)
+		return 0, false, false, fmt.Errorf("secondary key creation failed '%s': %s", k, err)
 	}
 
 	// mark the key as verified in the local cache
@@ -867,6 +899,10 @@ func (a *Allocator) startLocalKeySync() {
 // AllocatorEventChan is a channel to receive allocator events on
 type AllocatorEventChan chan AllocatorEvent
 
+// Send- and receive-only versions of the above.
+type AllocatorEventRecvChan = <-chan AllocatorEvent
+type AllocatorEventSendChan = chan<- AllocatorEvent
+
 // AllocatorEvent is an event sent over AllocatorEventChan
 type AllocatorEvent struct {
 	// Typ is the type of event (create / modify / delete)
@@ -883,7 +919,22 @@ type AllocatorEvent struct {
 // identities. The contents are not directly accessible but will be merged into
 // the ForeachCache() function.
 type RemoteCache struct {
-	cache *cache
+	name string
+
+	allocator *Allocator
+	cache     *cache
+
+	watchFunc func(ctx context.Context, remote *RemoteCache, onSync func(context.Context))
+}
+
+func (a *Allocator) NewRemoteCache(remoteName string, remoteAlloc *Allocator) *RemoteCache {
+	return &RemoteCache{
+		name:      remoteName,
+		allocator: remoteAlloc,
+		cache:     &remoteAlloc.mainCache,
+
+		watchFunc: a.WatchRemoteKVStore,
+	}
 }
 
 // WatchRemoteKVStore starts watching an allocator base prefix the kvstore
@@ -891,23 +942,89 @@ type RemoteCache struct {
 // kvstore will be maintained in the RemoteCache structure returned and will
 // start being reported in the identities returned by the ForeachCache()
 // function. RemoteName should be unique per logical "remote".
-func (a *Allocator) WatchRemoteKVStore(remoteName string, remoteAlloc *Allocator) *RemoteCache {
-	rc := &RemoteCache{
-		cache: &remoteAlloc.mainCache,
+func (a *Allocator) WatchRemoteKVStore(ctx context.Context, rc *RemoteCache, onSync func(context.Context)) {
+	scopedLog := log.WithField(logfields.ClusterName, rc.name)
+	scopedLog.Info("Starting remote kvstore watcher")
+
+	rc.allocator.start()
+
+	select {
+	case <-ctx.Done():
+		scopedLog.Debug("Context canceled before remote kvstore watcher synchronization completed: stale identities will now be drained")
+		rc.close()
+
+		a.remoteCachesMutex.RLock()
+		old := a.remoteCaches[rc.name]
+		a.remoteCachesMutex.RUnlock()
+
+		if old != nil {
+			old.cache.mutex.RLock()
+			defer old.cache.mutex.RUnlock()
+		}
+
+		// Drain all entries that might have been received until now, and that
+		// are not present in the current cache (if any). This ensures we do not
+		// leak any stale identity, and at the same time we do not invalidate the
+		// current state.
+		rc.cache.drainIf(func(id idpool.ID) bool {
+			if old == nil {
+				return true
+			}
+
+			_, ok := old.cache.nextCache[id]
+			return !ok
+		})
+		return
+
+	case <-rc.cache.listDone:
+		scopedLog.Info("Remote kvstore watcher successfully synchronized and registered")
 	}
 
 	a.remoteCachesMutex.Lock()
-	a.remoteCaches[remoteName] = rc
+	old := a.remoteCaches[rc.name]
+	a.remoteCaches[rc.name] = rc
 	a.remoteCachesMutex.Unlock()
 
-	return rc
+	if old != nil {
+		// In case of reconnection, let's emit a deletion event for all stale identities
+		// that are no longer present in the kvstore. We take the lock of the new cache
+		// to ensure that we observe a stable state during this process (i.e., no keys
+		// are added/removed in the meanwhile).
+		scopedLog.Debug("Another kvstore watcher was already registered: deleting stale identities")
+		rc.cache.mutex.RLock()
+		old.cache.drainIf(func(id idpool.ID) bool {
+			_, ok := rc.cache.nextCache[id]
+			return !ok
+		})
+		rc.cache.mutex.RUnlock()
+	}
+
+	// Execute the on-sync callback handler.
+	onSync(ctx)
+
+	<-ctx.Done()
+	rc.close()
+	scopedLog.Info("Stopped remote kvstore watcher")
 }
 
-// RemoveRemoteKVStore removes any reference to a remote allocator / kvstore.
+// RemoveRemoteKVStore removes any reference to a remote allocator / kvstore, emitting
+// a deletion event for all previously known identities.
 func (a *Allocator) RemoveRemoteKVStore(remoteName string) {
 	a.remoteCachesMutex.Lock()
+	old := a.remoteCaches[remoteName]
 	delete(a.remoteCaches, remoteName)
 	a.remoteCachesMutex.Unlock()
+
+	if old != nil {
+		old.cache.drain()
+		log.WithField(logfields.ClusterName, remoteName).Info("Remote kvstore watcher unregistered")
+	}
+}
+
+// Watch starts watching the remote kvstore and synchronize the identities in
+// the local cache. It blocks until the context is closed.
+func (rc *RemoteCache) Watch(ctx context.Context, onSync func(context.Context)) {
+	rc.watchFunc(ctx, rc, onSync)
 }
 
 // NumEntries returns the number of entries in the remote cache
@@ -919,8 +1036,34 @@ func (rc *RemoteCache) NumEntries() int {
 	return rc.cache.numEntries()
 }
 
-// Close stops watching for identities in the kvstore associated with the
+// Synced returns whether the initial list of entries has been retrieved from
+// the kvstore, and new events are currently being watched.
+func (rc *RemoteCache) Synced() bool {
+	if rc == nil {
+		return false
+	}
+
+	select {
+	case <-rc.cache.stopChan:
+		return false
+	default:
+		select {
+		case <-rc.cache.listDone:
+			return true
+		default:
+			return false
+		}
+	}
+}
+
+// close stops watching for identities in the kvstore associated with the
 // remote cache.
-func (rc *RemoteCache) Close() {
+func (rc *RemoteCache) close() {
 	rc.cache.allocator.Delete()
+}
+
+// Observe the identity changes. Conforms to stream.Observable.
+// Replays the current state of the cache when subscribing.
+func (a *Allocator) Observe(ctx context.Context, next func(AllocatorChange), complete func(error)) {
+	a.mainCache.Observe(ctx, next, complete)
 }

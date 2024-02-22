@@ -330,6 +330,19 @@ func NewIfInfomsgChild(parent *RtAttr, family int) *IfInfomsg {
 	return msg
 }
 
+type Uint32Bitfield struct {
+	Value    uint32
+	Selector uint32
+}
+
+func (a *Uint32Bitfield) Serialize() []byte {
+	return (*(*[SizeofUint32Bitfield]byte)(unsafe.Pointer(a)))[:]
+}
+
+func DeserializeUint32Bitfield(data []byte) *Uint32Bitfield {
+	return (*Uint32Bitfield)(unsafe.Pointer(&data[0:SizeofUint32Bitfield][0]))
+}
+
 type Uint32Attribute struct {
 	Type  uint16
 	Value uint32
@@ -546,6 +559,11 @@ done:
 			if m.Header.Pid != pid {
 				continue
 			}
+
+			if m.Header.Flags&unix.NLM_F_DUMP_INTR != 0 {
+				return nil, syscall.Errno(unix.EINTR)
+			}
+
 			if m.Header.Type == unix.NLMSG_DONE || m.Header.Type == unix.NLMSG_ERROR {
 				native := NativeEndian()
 				errno := int32(native.Uint32(m.Data[0:4]))
@@ -556,7 +574,7 @@ done:
 				err = syscall.Errno(-errno)
 
 				unreadData := m.Data[4:]
-				if m.Header.Flags|unix.NLM_F_ACK_TLVS != 0 && len(unreadData) > syscall.SizeofNlMsghdr {
+				if m.Header.Flags&unix.NLM_F_ACK_TLVS != 0 && len(unreadData) > syscall.SizeofNlMsghdr {
 					// Skip the echoed request message.
 					echoReqH := (*syscall.NlMsghdr)(unsafe.Pointer(&unreadData[0]))
 					unreadData = unreadData[nlmAlignOf(int(echoReqH.Len)):]
@@ -568,8 +586,7 @@ done:
 
 						switch attr.Type {
 						case NLMSGERR_ATTR_MSG:
-							err = fmt.Errorf("%w: %s", err, string(attrData))
-
+							err = fmt.Errorf("%w: %s", err, unix.ByteSliceToString(attrData))
 						default:
 							// TODO: handle other NLMSGERR_ATTR types
 						}
@@ -649,12 +666,14 @@ func GetNetlinkSocketAt(newNs, curNs netns.NsHandle, protocol int) (*NetlinkSock
 // In case of success, the caller is expected to execute the returned function
 // at the end of the code that needs to be executed in the network namespace.
 // Example:
-// func jobAt(...) error {
-//      d, err := executeInNetns(...)
-//      if err != nil { return err}
-//      defer d()
-//      < code which needs to be executed in specific netns>
-//  }
+//
+//	func jobAt(...) error {
+//	     d, err := executeInNetns(...)
+//	     if err != nil { return err}
+//	     defer d()
+//	     < code which needs to be executed in specific netns>
+//	 }
+//
 // TODO: his function probably belongs to netns pkg.
 func executeInNetns(newNs, curNs netns.NsHandle) (func(), error) {
 	var (
@@ -791,6 +810,15 @@ func (s *NetlinkSocket) SetReceiveTimeout(timeout *unix.Timeval) error {
 	// Set a read timeout of SOCKET_READ_TIMEOUT, this will allow the Read to periodically unblock and avoid that a routine
 	// remains stuck on a recvmsg on a closed fd
 	return unix.SetsockoptTimeval(int(s.fd), unix.SOL_SOCKET, unix.SO_RCVTIMEO, timeout)
+}
+
+// SetReceiveBufferSize allows to set a receive buffer size on the socket
+func (s *NetlinkSocket) SetReceiveBufferSize(size int, force bool) error {
+	opt := unix.SO_RCVBUF
+	if force {
+		opt = unix.SO_RCVBUFFORCE
+	}
+	return unix.SetsockoptInt(int(s.fd), unix.SOL_SOCKET, opt, size)
 }
 
 // SetExtAck requests error messages to be reported on the socket

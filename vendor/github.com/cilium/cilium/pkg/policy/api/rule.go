@@ -10,24 +10,24 @@ import (
 	"github.com/cilium/cilium/pkg/labels"
 )
 
-// AuthType is a string identifying a supported authentication type
-type AuthType string
+// AuthenticationMode is a string identifying a supported authentication type
+type AuthenticationMode string
 
 const (
-	AuthTypeNull AuthType = "null" // Always succeeds
+	AuthenticationModeDisabled   AuthenticationMode = "disabled" // Always succeeds
+	AuthenticationModeRequired   AuthenticationMode = "required" // Mutual TLS with SPIFFE as certificate provider by default
+	AuthenticationModeAlwaysFail AuthenticationMode = "test-always-fail"
 )
 
-// Auth specifies the kind of cryptographic authentication required for the traffic to
+// Authentication specifies the kind of cryptographic authentication required for the traffic to
 // be allowed.
-type Auth struct {
-	// Type is the required authentication type for the allowed traffic, if any.
+type Authentication struct {
+	// Mode is the required authentication mode for the allowed traffic, if any.
 	//
-	// +kubebuilder:validation:Enum=null
+	// +kubebuilder:validation:Enum=disabled;required;test-always-fail
 	// +kubebuilder:validation:Required
-	Type AuthType `json:"type"`
+	Mode AuthenticationMode `json:"mode"`
 }
-
-// +kubebuilder:validation:Type=object
 
 // Rule is a policy rule which must be applied to all endpoints which match the
 // labels contained in the endpointSelector
@@ -64,7 +64,7 @@ type Rule struct {
 	Ingress []IngressRule `json:"ingress,omitempty"`
 
 	// IngressDeny is a list of IngressDenyRule which are enforced at ingress.
-	// Any rule inserted here will by denied regardless of the allowed ingress
+	// Any rule inserted here will be denied regardless of the allowed ingress
 	// rules in the 'ingress' field.
 	// If omitted or empty, this rule does not apply at ingress.
 	//
@@ -78,7 +78,7 @@ type Rule struct {
 	Egress []EgressRule `json:"egress,omitempty"`
 
 	// EgressDeny is a list of EgressDenyRule which are enforced at egress.
-	// Any rule inserted here will by denied regardless of the allowed egress
+	// Any rule inserted here will be denied regardless of the allowed egress
 	// rules in the 'egress' field.
 	// If omitted or empty, this rule does not apply at egress.
 	//
@@ -210,6 +210,11 @@ func (r *Rule) RequiresDerivative() bool {
 			return true
 		}
 	}
+	for _, rule := range r.EgressDeny {
+		if rule.RequiresDerivative() {
+			return true
+		}
+	}
 	return false
 }
 
@@ -218,6 +223,7 @@ func (r *Rule) RequiresDerivative() bool {
 func (r *Rule) CreateDerivative(ctx context.Context) (*Rule, error) {
 	newRule := r.DeepCopy()
 	newRule.Egress = []EgressRule{}
+	newRule.EgressDeny = []EgressDenyRule{}
 
 	for _, egressRule := range r.Egress {
 		derivativeEgressRule, err := egressRule.CreateDerivative(ctx)
@@ -225,6 +231,14 @@ func (r *Rule) CreateDerivative(ctx context.Context) (*Rule, error) {
 			return newRule, err
 		}
 		newRule.Egress = append(newRule.Egress, *derivativeEgressRule)
+	}
+
+	for _, egressDenyRule := range r.EgressDeny {
+		derivativeEgressDenyRule, err := egressDenyRule.CreateDerivative(ctx)
+		if err != nil {
+			return newRule, err
+		}
+		newRule.EgressDeny = append(newRule.EgressDeny, *derivativeEgressDenyRule)
 	}
 	return newRule, nil
 }

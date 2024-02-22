@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeTracingPoliciesNamespaced struct {
 	ns   string
 }
 
-var tracingpoliciesnamespacedResource = schema.GroupVersionResource{Group: "cilium.io", Version: "v1alpha1", Resource: "tracingpoliciesnamespaced"}
+var tracingpoliciesnamespacedResource = v1alpha1.SchemeGroupVersion.WithResource("tracingpoliciesnamespaced")
 
-var tracingpoliciesnamespacedKind = schema.GroupVersionKind{Group: "cilium.io", Version: "v1alpha1", Kind: "TracingPolicyNamespaced"}
+var tracingpoliciesnamespacedKind = v1alpha1.SchemeGroupVersion.WithKind("TracingPolicyNamespaced")
 
 // Get takes name of the tracingPolicyNamespaced, and returns the corresponding tracingPolicyNamespaced object, and an error if there is any.
 func (c *FakeTracingPoliciesNamespaced) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.TracingPolicyNamespaced, err error) {
