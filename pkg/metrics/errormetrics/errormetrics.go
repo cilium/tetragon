@@ -81,6 +81,19 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(ErrorTotal)
 	registry.MustRegister(HandlerErrors)
 
+	// Initialize metrics with labels
+	for er := range errorTypeLabelValues {
+		GetErrorTotal(er).Add(0)
+	}
+	for opcode := range ops.OpCodeStrings {
+		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+			GetHandlerErrors(opcode, HandlePerfHandlerError).Add(0)
+		}
+	}
+	// NB: We initialize only ops.MsgOpUndef here, but unknown_opcode can occur for any opcode
+	// that is not explicitly handled.
+	GetHandlerErrors(ops.MsgOpUndef, HandlePerfUnknownOp).Add(0)
+
 	// NOTES:
 	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
 	// * error, error_type, type - standardize on a label
