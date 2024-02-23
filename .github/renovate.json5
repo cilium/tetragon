@@ -85,6 +85,7 @@
         "github.com/google/", // Google official github org
         "k8s.io/", // Kubernetes official repo
         "sigs.k8s.io/", // Kubernetes official SIG repo
+        "quay.io/lvh-images/kernel-images", // LVH images
       ],
       "matchUpdateTypes": [
         "patch",
