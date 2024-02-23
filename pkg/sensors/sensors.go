@@ -39,6 +39,8 @@ var (
 type Sensor struct {
 	// Name is a human-readbale description.
 	Name string
+	// Policy name the sensor is part of.
+	Policy string
 	// Progs are all the BPF programs that exist on the filesystem.
 	Progs []*program.Program
 	// Maps are all the BPF Maps that the progs use.

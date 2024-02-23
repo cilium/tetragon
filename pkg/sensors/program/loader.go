@@ -229,7 +229,7 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("failed to clone generic_kprobe_override program: %w", err)
 	}
 
-	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_override")
 
 	if err := prog.Pin(pinPath); err != nil {
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
@@ -887,7 +887,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath)
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
 		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)
