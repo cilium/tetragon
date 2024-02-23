@@ -12,24 +12,38 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ErrorType string
+type ErrorType int
 
-var (
+const (
 	// Process not found on get() call.
-	ProcessCacheMissOnGet ErrorType = "process_cache_miss_on_get"
+	ProcessCacheMissOnGet ErrorType = iota
 	// Process evicted from the cache.
-	ProcessCacheEvicted ErrorType = "process_cache_evicted"
+	ProcessCacheEvicted
 	// Process not found on remove() call.
-	ProcessCacheMissOnRemove ErrorType = "process_cache_miss_on_remove"
+	ProcessCacheMissOnRemove
 	// Tid and Pid mismatch that could affect BPF and user space caching logic
-	ProcessPidTidMismatch ErrorType = "process_pid_tid_mismatch"
+	ProcessPidTidMismatch
 	// An event is missing process info.
-	EventMissingProcessInfo ErrorType = "event_missing_process_info"
+	EventMissingProcessInfo
 	// An error occurred in an event handler.
-	HandlerError ErrorType = "handler_error"
+	HandlerError
 	// An event finalizer on Process failed
-	EventFinalizeProcessInfoFailed ErrorType = "event_finalize_process_info_failed"
+	EventFinalizeProcessInfoFailed
 )
+
+var errorTypeLabelValues = map[ErrorType]string{
+	ProcessCacheMissOnGet:          "process_cache_miss_on_get",
+	ProcessCacheEvicted:            "process_cache_evicted",
+	ProcessCacheMissOnRemove:       "process_cache_miss_on_remove",
+	ProcessPidTidMismatch:          "process_pid_tid_mismatch",
+	EventMissingProcessInfo:        "event_missing_process_info",
+	HandlerError:                   "handler_error",
+	EventFinalizeProcessInfoFailed: "event_finalize_process_info_failed",
+}
+
+func (e ErrorType) String() string {
+	return errorTypeLabelValues[e]
+}
 
 var (
 	ErrorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -64,13 +78,13 @@ func InitMetrics(registry *prometheus.Registry) {
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType
-func GetErrorTotal(t ErrorType) prometheus.Counter {
-	return ErrorTotal.WithLabelValues(string(t))
+func GetErrorTotal(er ErrorType) prometheus.Counter {
+	return ErrorTotal.WithLabelValues(er.String())
 }
 
 // Increment an ErrorTotal for an ErrorType
-func ErrorTotalInc(t ErrorType) {
-	GetErrorTotal(t).Inc()
+func ErrorTotalInc(er ErrorType) {
+	GetErrorTotal(er).Inc()
 }
 
 // Get a new handle on the HandlerErrors metric
