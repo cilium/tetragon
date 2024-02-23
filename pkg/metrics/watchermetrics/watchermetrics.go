@@ -32,6 +32,9 @@ var (
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(WatcherErrors)
 	registry.MustRegister(WatcherEvents)
+
+	// NOTES:
+	// * error, error_type, type - standardize on a label
 }
 
 // Get a new handle on an WatcherEvents metric for a watcher type

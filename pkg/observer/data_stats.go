@@ -29,6 +29,10 @@ var (
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(DataEventStats)
 	registry.MustRegister(DataEventSizeHist)
+
+	// NOTES:
+	// * Don't confuse op in data_event_size with ops.OpCode
+	// * Don't confuse event in data_events_total with tetragon.EventType
 }
 
 type DataEventType int

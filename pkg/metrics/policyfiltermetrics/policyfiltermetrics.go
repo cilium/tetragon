@@ -23,6 +23,11 @@ var (
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(PolicyFilterOpMetrics)
+
+	// NOTES:
+	// * error, error_type, type - standardize on a label
+	// * Don't confuse op in policyfilter_metrics_total with ops.OpCode
+	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
 func OpInc(subsys, op string, err error) {
