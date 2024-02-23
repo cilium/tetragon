@@ -208,7 +208,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	 */
 	state := getProgramSelector(load, kprobeEntry)
 
-	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -217,7 +217,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	}
 	maps = append(maps, argFilterMaps)
 
-	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
+	addr4FilterMaps := program.MapBuilderProgram("addr4lpm_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -226,7 +226,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	}
 	maps = append(maps, addr4FilterMaps)
 
-	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
+	addr6FilterMaps := program.MapBuilderProgram("addr6lpm_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -242,8 +242,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	}
 
 	for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
-		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
-			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
+		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
 		if state != nil && !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -253,7 +252,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maps = append(maps, stringFilterMap[string_map_index])
 	}
 
-	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
+	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -262,7 +261,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	}
 	maps = append(maps, stringPrefixFilterMaps)
 
-	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
+	stringPostfixFilterMaps := program.MapBuilderProgram("string_postfix_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -318,51 +317,52 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		SetPolicy(policyName)
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
+	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
 	maps = append(maps, fdinstall)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
-	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
+	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
 	maps = append(maps, tailCalls)
 
 	load.SetTailCall("kprobe", tailCalls)
 
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
 	maps = append(maps, filterMaps(load, pinPath, nil)...)
 
-	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	maps = append(maps, retProbe)
 
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
 
-	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
+	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
 	maps = append(maps, matchBinariesPaths)
 
-	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
 	}
+
 	maps = append(maps, stackTraceMap)
 	data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
+		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
 	if kernels.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
+		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
 		}
@@ -378,7 +378,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
@@ -396,30 +396,30 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 			SetPolicy(policyName)
 		progs = append(progs, loadret)
 
-		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
+		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
 		maps = append(maps, retProbe)
 
-		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
+		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
 
-		retFilterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retprobe_filter_map"), loadret)
+		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
 
 		maps = append(maps, filterMaps(loadret, pinPath, nil)...)
 
-		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
+		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
+		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
 		maps = append(maps, fdinstall)
 
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
+		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 		maps = append(maps, socktrack)
 
-		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
+		tailCalls := program.MapBuilderSensor("retkprobe_calls", loadret)
 		maps = append(maps, tailCalls)
 
 		loadret.SetTailCall("kprobe", tailCalls)
@@ -659,9 +659,10 @@ func createGenericKprobeSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:  name,
-		Progs: progs,
-		Maps:  maps,
+		Name:   name,
+		Progs:  progs,
+		Maps:   maps,
+		Policy: policyName,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
@@ -910,35 +911,35 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
+	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
 	maps = append(maps, fdinstall)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
-	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
+	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
 	maps = append(maps, tailCalls)
 
 	load.SetTailCall("kprobe", tailCalls)
 
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
 	maps = append(maps, filterMaps(load, pinPath, kprobeEntry)...)
 
-	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	maps = append(maps, retProbe)
 
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
 
-	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
+	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -949,7 +950,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
 	// to tetragon
-	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
 		// to reduce memory footprint however, the stack map is created with a
 		// max entry of 1, we need to expand that at loading.
@@ -959,12 +960,12 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	kprobeEntry.data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
+		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
 	if kernels.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
+		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			// similarly as for stacktrace, we expand the max size only if
 			// needed to reduce the memory footprint when unused
@@ -979,7 +980,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 	maps = append(maps, enforcerDataMap)
 
-	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
@@ -998,34 +999,34 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 			SetPolicy(kprobeEntry.policyName)
 		progs = append(progs, loadret)
 
-		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
+		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
 		maps = append(maps, retProbe)
 
-		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
+		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
 
-		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
+		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
 		maps = append(maps, tailCalls)
 
 		loadret.SetTailCall("kprobe", tailCalls)
 
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retkprobe_filter_map"), loadret)
+		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
 
 		maps = append(maps, filterMaps(loadret, pinPath, kprobeEntry)...)
 
 		// add maps with non-default paths (pins) to the retprobe
-		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
+		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
+		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
 		maps = append(maps, fdinstall)
 
 		if kernels.EnableLargeProgs() {
-			socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
+			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 			maps = append(maps, socktrack)
 		}
 	}
