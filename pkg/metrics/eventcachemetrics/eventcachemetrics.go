@@ -91,6 +91,21 @@ func registerMetrics(registry *prometheus.Registry) {
 func InitMetrics(registry *prometheus.Registry) {
 	registerMetrics(registry)
 
+	// Initialize metrics with labels
+	for en := range cacheEntryTypeLabelValues {
+		EventCacheRetries(en).Add(0)
+	}
+	for ev := range tetragon.EventType_name {
+		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
+			ProcessInfoError(tetragon.EventType(ev)).Add(0)
+			PodInfoError(tetragon.EventType(ev)).Add(0)
+			ParentInfoError(tetragon.EventType(ev)).Add(0)
+			for er := range cacheErrorLabelValues {
+				EventCacheError(er, tetragon.EventType(ev)).Add(0)
+			}
+		}
+	}
+
 	// NOTES:
 	// * error, error_type, type - standardize on a label
 	// * event, event_type, type - standardize on a label
