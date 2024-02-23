@@ -209,7 +209,7 @@ github.com/cilium/cilium/pkg/wireguard/types
 # github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3
 ## explicit; go 1.18
 github.com/cilium/dns
-# github.com/cilium/ebpf v0.13.0
+# github.com/cilium/ebpf v0.13.2
 ## explicit; go 1.21.0
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
