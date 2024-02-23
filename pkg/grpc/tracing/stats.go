@@ -19,6 +19,9 @@ var (
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(LoaderStats)
+
+	// NOTES:
+	// * Rename process_loader_stats metric (to e.g. process_loader_events_total) and count label (to e.g. event)?
 }
 
 type LoaderType int

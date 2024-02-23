@@ -22,6 +22,9 @@ var (
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(syscallStats.ToProm())
+
+	// NOTES:
+	// * Delete syscalls_total? It seems to duplicate policy_events_total.
 }
 
 func Handle(event interface{}) {

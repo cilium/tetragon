@@ -33,6 +33,9 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(MergeErrors)
 	registry.MustRegister(MergeOkTotal)
 	registry.MustRegister(MergePushed)
+
+	// NOTES:
+	// * Consider merging ok and errors into one with status label
 }
 
 // Get a new handle on the mergeErrors metric for a current and previous function
