@@ -27,9 +27,17 @@ var (
 	}, []string{"op"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(MsgOpsCount)
 	registry.MustRegister(LatencyStats)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
+	// * Rename handling_latency to handler_latency_microseconds?
 }
 
 // Get a new handle on a msgOpsCount metric for an OpCode

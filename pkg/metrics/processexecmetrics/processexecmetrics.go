@@ -23,9 +23,13 @@ var (
 	}, []string{"exec_id"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(MissingParentErrors)
 	registry.MustRegister(SameExecIdErrors)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
 }
 
 // Get a new handle on the missingParentErrors metric for an execId

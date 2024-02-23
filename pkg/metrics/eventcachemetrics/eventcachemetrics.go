@@ -52,13 +52,22 @@ var (
 	}, []string{"event_type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(processInfoErrors)
 	registry.MustRegister(podInfoErrors)
 	registry.MustRegister(EventCacheCount)
 	registry.MustRegister(eventCacheErrorsTotal)
 	registry.MustRegister(eventCacheRetriesTotal)
 	registry.MustRegister(parentInfoErrors)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * error, error_type, type - standardize on a label
+	// * event, event_type, type - standardize on a label
+	// * Consider merging event cache errors metrics into one with error, event, entry labels
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType

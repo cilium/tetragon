@@ -28,9 +28,18 @@ var (
 	))
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(MapDrops)
 	// custom collectors are registered independently
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * Delete (move/replace) map_drops_total as it's monitoring process cache not maps
+	// * Rename map_in_use_gauge metric (to e.g. map_entries) and delete total label?
+	// * Introduce a metric for map capacity
 }
 
 func MapDropInc(mapName string) {

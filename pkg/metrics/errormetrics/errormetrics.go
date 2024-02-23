@@ -47,9 +47,20 @@ var (
 	}, []string{"opcode", "error_type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(ErrorTotal)
 	registry.MustRegister(HandlerErrors)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
+	// * error, error_type, type - standardize on a label
+	// * Delete errors_total{type="handler_error"} - it duplicates handler_errors_total
+	// * Consider further splitting errors_total
+	// * Rename handler_errors_total to event_handler_errors_total?
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType

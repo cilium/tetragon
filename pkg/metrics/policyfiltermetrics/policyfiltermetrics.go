@@ -21,8 +21,17 @@ var (
 	}, []string{"subsys", "op", "error_type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(PolicyFilterOpMetrics)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * error, error_type, type - standardize on a label
+	// * Don't confuse op and opcode labels
+	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
 func OpInc(subsys, op string, err error) {

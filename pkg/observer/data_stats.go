@@ -26,9 +26,17 @@ var (
 	}, []string{"op"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
+func registerMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(DataEventStats)
 	registry.MustRegister(DataEventSizeHist)
+}
+
+func InitMetrics(registry *prometheus.Registry) {
+	registerMetrics(registry)
+
+	// NOTES:
+	// * Don't confuse op and opcode labels
+	// * Don't confuse event and event_type labels
 }
 
 type DataEventType int
