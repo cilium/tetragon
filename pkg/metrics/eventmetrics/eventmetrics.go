@@ -57,6 +57,11 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(FlagCount)
 	registry.MustRegister(NotifyOverflowedEvents)
 	registry.MustRegister(policyStats.ToProm())
+	// custom collectors are registered independently
+
+	// NOTES:
+	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
+	// * event, event_type, type - standardize on a label
 }
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace string) {
