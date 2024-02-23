@@ -18,7 +18,8 @@ func Builder(
 		Name:       objFile,
 		Attach:     attach,
 		Label:      label,
-		PinPath:    pinFile,
+		PinPath:    "",
+		PinName:    pinFile,
 		RetProbe:   false,
 		ErrorFatal: true,
 		Override:   false,
@@ -73,6 +74,8 @@ type Program struct {
 	// PinPath is the pinned path to this program. Note this is a relative path
 	// based on the BPF directory FGS is running under.
 	PinPath string
+	// PinName
+	PinName string
 
 	// RetProbe indicates whether a kprobe is a kretprobe.
 	RetProbe bool

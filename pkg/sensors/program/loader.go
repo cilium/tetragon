@@ -872,7 +872,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath)
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
 		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)
