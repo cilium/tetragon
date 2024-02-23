@@ -31,7 +31,7 @@ type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebp
 type OpenFunc func(*ebpf.CollectionSpec) error
 
 type tailCall struct {
-	name   string
+	m      *Map
 	prefix string
 }
 
@@ -39,7 +39,7 @@ type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
 
-	TcMap    string
+	TcMap    *Map
 	TcPrefix string
 }
 
@@ -481,13 +481,13 @@ func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	var tc tailCall
 	for mName, m := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			tc = tailCall{m.PinName, "tracepoint"}
+			tc = tailCall{m, "tracepoint"}
 			break
 		}
 	}
 	opts := &LoadOpts{
 		Attach:   TracepointAttach(load),
-		TcMap:    tc.name,
+		TcMap:    tc.m,
 		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -504,14 +504,14 @@ func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var tc tailCall
 	for mName, m := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			tc = tailCall{m.PinName, "kprobe"}
+			tc = tailCall{m, "kprobe"}
 			break
 		}
 	}
 	opts := &LoadOpts{
 		Attach:   KprobeAttach(load, bpfDir),
 		Open:     KprobeOpen(load),
-		TcMap:    tc.name,
+		TcMap:    tc.m,
 		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -550,13 +550,13 @@ func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var tc tailCall
 	for mName, m := range load.PinMap {
 		if mName == "uprobe_calls" {
-			tc = tailCall{m.PinName, "uprobe"}
+			tc = tailCall{m, "uprobe"}
 			break
 		}
 	}
 	opts := &LoadOpts{
 		Attach:   UprobeAttach(load),
-		TcMap:    tc.name,
+		TcMap:    tc.m,
 		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -566,14 +566,14 @@ func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var tc tailCall
 	for mName, m := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			tc = tailCall{m.PinName, "kprobe"}
+			tc = tailCall{m, "kprobe"}
 			break
 		}
 	}
 	opts := &LoadOpts{
 		Attach:   MultiKprobeAttach(load, bpfDir),
 		Open:     KprobeOpen(load),
-		TcMap:    tc.name,
+		TcMap:    tc.m,
 		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -630,10 +630,16 @@ func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	tc := tailCall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
+	var tc tailCall
+	for mName, m := range load.PinMap {
+		if mName == "uprobe_calls" {
+			tc = tailCall{m, "uprobe"}
+			break
+		}
+	}
 	opts := &LoadOpts{
 		Attach:   MultiUprobeAttach(load),
-		TcMap:    tc.name,
+		TcMap:    tc.m,
 		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -682,8 +688,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		secToProgName[prog.SectionName] = name
 	}
 
-	install := func(mapName string, secPrefix string) error {
-		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, mapName), nil)
+	install := func(pinPath string, secPrefix string) error {
+		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, pinPath), nil)
 		if err != nil {
 			return nil
 		}
@@ -695,7 +701,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 				if prog, ok := coll.Programs[progName]; ok {
 					err := tailCallsMap.Update(uint32(i), uint32(prog.FD()), ebpf.UpdateAny)
 					if err != nil {
-						return fmt.Errorf("update of tail-call map '%s' failed: %w", mapName, err)
+						return fmt.Errorf("update of tail-call map '%s' failed: %w", pinPath, err)
 					}
 				}
 			}
@@ -703,8 +709,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return nil
 	}
 
-	if len(loadOpts.TcMap) != 0 {
-		if err := install(loadOpts.TcMap, loadOpts.TcPrefix); err != nil {
+	if loadOpts.TcMap != nil {
+		if err := install(loadOpts.TcMap.PinPath, loadOpts.TcPrefix); err != nil {
 			return err
 		}
 	}
