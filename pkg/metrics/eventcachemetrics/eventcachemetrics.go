@@ -8,11 +8,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type CacheEntryType int
+
 const (
-	ProcessInfo = "process_info"
-	ParentInfo  = "parent_info"
-	PodInfo     = "pod_info"
+	ProcessInfo CacheEntryType = iota
+	ParentInfo
+	PodInfo
 )
+
+var cacheEntryTypeLabelValues = map[CacheEntryType]string{
+	ProcessInfo: "process_info",
+	ParentInfo:  "parent_info",
+	PodInfo:     "pod_info",
+}
+
+func (t CacheEntryType) String() string {
+	return cacheEntryTypeLabelValues[t]
+}
 
 var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -82,8 +94,8 @@ func EventCacheError(err string) prometheus.Counter {
 }
 
 // Get a new handle on the eventCacheRetriesTotal metric for an entryType
-func EventCacheRetries(entryType string) prometheus.Counter {
-	return eventCacheRetriesTotal.WithLabelValues(entryType)
+func EventCacheRetries(entryType CacheEntryType) prometheus.Counter {
+	return eventCacheRetriesTotal.WithLabelValues(entryType.String())
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
