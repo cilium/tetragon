@@ -29,6 +29,19 @@ message ListSensorsResponse {
 
 message ListTracingPoliciesRequest { }
 
+enum TracingPolicyState {
+	// unknown state
+	TP_STATE_UNKNOWN = 0;
+	// loaded and enabled
+	TP_STATE_ENABLED = 1;
+	// loaded but disabled
+	TP_STATE_DISABLED = 2;
+	// failed to load
+	TP_STATE_LOAD_ERROR = 3;
+	// failed during lifetime
+	TP_STATE_ERROR = 4;
+}
+
 message TracingPolicyStatus {
 	// id is the id of the policy
 	uint64 id = 1;
@@ -40,12 +53,14 @@ message TracingPolicyStatus {
 	string info = 4;
 	// sensors loaded in the scope of this policy
 	repeated string sensors = 5;
-	// indicating if the policy is enabled
-	bool enabled = 6;
+	// indicating if the policy is enabled. Deprecated: use 'state' instead.
+	bool enabled = 6 [deprecated = true];
 	// filter ID of the policy used for k8s filtering
 	uint64 filter_id = 7;
 	// potential error of the policy
 	string error = 8;
+	// current state of the tracing policy
+	TracingPolicyState state = 9;
 }
 
 message ListTracingPoliciesResponse {
