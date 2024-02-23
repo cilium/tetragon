@@ -88,6 +88,10 @@ type pendingEventKey struct {
 	ktimeEnter uint64
 }
 
+type genericKprobeData struct {
+	stackTraceMap *program.Map
+}
+
 // internal genericKprobe info
 type genericKprobe struct {
 	loadArgs          kprobeLoadArgs
@@ -117,9 +121,10 @@ type genericKprobe struct {
 	// is there override defined for the kprobe
 	hasOverride bool
 
-	// reference to a stack trace map, must be closed when unloading the kprobe,
-	// this is done in the sensor PostUnloadHook
-	stackTraceMapRef *ebpf.Map
+	// sensor specific data that we need when we process event, so it's
+	// unique for each kprobeEntry when we use single kprobes and it's
+	// ont global instance when we use kprobe multi
+	data *genericKprobeData
 
 	customHandler eventhandler.Handler
 }
@@ -253,6 +258,8 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	var progs []*program.Program
 	var maps []*program.Map
 
+	data := &genericKprobeData{}
+
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
@@ -261,6 +268,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		if gk.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
 		}
+		gk.data = data
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -323,6 +331,8 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
+
+	data.stackTraceMap = stackTraceMap
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -577,23 +587,6 @@ func createGenericKprobeSensor(
 		Name:  name,
 		Progs: progs,
 		Maps:  maps,
-		PostUnloadHook: func() error {
-			var errs error
-			for _, id := range ids {
-				gk, err := genericKprobeTableGet(id)
-				if err != nil {
-					errs = errors.Join(errs, err)
-				}
-				if gk.stackTraceMapRef != nil {
-					err = gk.stackTraceMapRef.Close()
-					if err != nil {
-						errs = errors.Join(errs, fmt.Errorf("failed to close map: %v", gk.stackTraceMapRef))
-					}
-					gk.stackTraceMapRef = nil
-				}
-			}
-			return errs
-		},
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
@@ -863,6 +856,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	maps = append(maps, stackTraceMap)
 
+	kprobeEntry.data.stackTraceMap = stackTraceMap
+
 	if kernels.EnableLargeProgs() {
 		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
 		maps = append(maps, socktrack)
@@ -924,6 +919,7 @@ func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID) ([]*prog
 		if err != nil {
 			return nil, nil, err
 		}
+		gk.data = &genericKprobeData{}
 		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps)
 	}
 
@@ -1116,25 +1112,13 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			// remove the error part
 			id := uint32(m.StackID)
 
-			// lazy load the map reference if needed
-			if gk.stackTraceMapRef == nil {
-				bpf.MapPrefixPath()
-				gk.stackTraceMapRef, err = ebpf.LoadPinnedMap(path.Join(bpf.MapPrefixPath(), gk.pinPathPrefix)+"-stack_trace_map", &ebpf.LoadPinOptions{
-					ReadOnly: true,
-				})
-				if err != nil {
-					logger.GetLogger().WithError(err).Warn("failed to load the stacktrace map")
-				}
-				// close this in cleanup postHook defer stackTraceMap.Close()
-			}
-
-			// this can't be an else statement in the previous block since it
-			// must execute as well when the reference is first initialized
-			if gk.stackTraceMapRef != nil {
-				err = gk.stackTraceMapRef.Lookup(id, &unix.StackTrace)
+			if gk.data.stackTraceMap.MapHandle != nil {
+				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.StackTrace)
 				if err != nil {
 					logger.GetLogger().WithError(err).Warn("failed to lookup the stacktrace map")
 				}
+			} else {
+				logger.GetLogger().WithError(err).Warn("failed to load the stacktrace map")
 			}
 		}
 	}
