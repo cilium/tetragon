@@ -120,8 +120,6 @@ type genericKprobe struct {
 	// for kprobes that have a GetUrl or DnsLookup action, we store the table of arguments.
 	actionArgs idtable.Table
 
-	pinPathPrefix string
-
 	// policyName is the name of the policy that this tracepoint belongs to
 	policyName string
 
@@ -184,10 +182,6 @@ var (
 	MaxFilterIntArgs = 8
 )
 
-func multiKprobePinPath(sensorPath string) string {
-	return sensors.PathJoin(sensorPath, "multi_kprobe")
-}
-
 func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *selectors.KernelSelectorState {
 	if kprobeEntry != nil {
 		if load.RetProbe {
@@ -198,7 +192,7 @@ func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *sele
 	return nil
 }
 
-func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprobe) []*program.Map {
+func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Map {
 	var maps []*program.Map
 
 	/*
@@ -273,7 +267,7 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	return maps
 }
 
-func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
+func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
@@ -305,13 +299,11 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		loadProgRetName = "bpf_multi_retkprobe_v511.o"
 	}
 
-	pinPath := multiKprobePinPath(sensorPath)
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
 		"kprobe.multi/generic_kprobe",
-		pinPath,
+		"multi_kprobe",
 		"generic_kprobe").
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
@@ -334,7 +326,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMaps(load, pinPath, nil)...)
+	maps = append(maps, filterMaps(load, nil)...)
 
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	maps = append(maps, retProbe)
@@ -405,7 +397,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
 
-		maps = append(maps, filterMaps(loadret, pinPath, nil)...)
+		maps = append(maps, filterMaps(loadret, nil)...)
 
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
@@ -649,9 +641,9 @@ func createGenericKprobeSensor(
 	}
 
 	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(in.sensorPath, in.policyName, ids, has)
+		progs, maps, err = createMultiKprobeSensor(in.policyName, ids, has)
 	} else {
-		progs, maps, err = createSingleKprobeSensor(in.sensorPath, ids, has)
+		progs, maps, err = createSingleKprobeSensor(ids, has)
 	}
 
 	if err != nil {
@@ -873,12 +865,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 	genericKprobeTable.AddEntry(&kprobeEntry)
 	config.FuncId = uint32(kprobeEntry.tableId.ID)
 
-	if in.useMulti {
-		kprobeEntry.pinPathPrefix = multiKprobePinPath(in.sensorPath)
-	} else {
-		kprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gkp-%d", kprobeEntry.tableId.ID))
-	}
-
 	logger.GetLogger().
 		WithField("return", setRetprobe).
 		WithField("function", kprobeEntry.funcName).
@@ -888,20 +874,17 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 	return kprobeEntry.tableId, nil
 }
 
-func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
+func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
 	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
-	pinPath := kprobeEntry.pinPathPrefix
-	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", kprobeEntry.funcName))
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		kprobeEntry.funcName,
 		"kprobe/generic_kprobe",
-		pinProg,
+		kprobeEntry.funcName,
 		"generic_kprobe").
 		SetLoaderData(kprobeEntry.tableId).
 		SetPolicy(kprobeEntry.policyName)
@@ -928,7 +911,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMaps(load, pinPath, kprobeEntry)...)
+	maps = append(maps, filterMaps(load, kprobeEntry)...)
 
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	maps = append(maps, retProbe)
@@ -987,7 +970,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	maps = append(maps, overrideTasksMap)
 
 	if kprobeEntry.loadArgs.retprobe {
-		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
+		pinRetProg := sensors.PathJoin(fmt.Sprintf("%s_return", kprobeEntry.funcName))
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			kprobeEntry.funcName,
@@ -1013,7 +996,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
 
-		maps = append(maps, filterMaps(loadret, pinPath, kprobeEntry)...)
+		maps = append(maps, filterMaps(loadret, kprobeEntry)...)
 
 		// add maps with non-default paths (pins) to the retprobe
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
@@ -1036,7 +1019,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	return progs, maps
 }
 
-func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
+func createSingleKprobeSensor(ids []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -1052,7 +1035,7 @@ func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasM
 		has.rateLimit = gk.hasRatelimit
 		has.override = gk.hasOverride
 
-		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps, has)
+		progs, maps = createKprobeSensorFromEntry(gk, progs, maps, has)
 	}
 
 	return progs, maps, nil
