@@ -869,8 +869,12 @@ func doLoadProgram(
 	}
 
 	for _, mapLoad := range load.MapLoad {
+		pinPath := ""
+		if pm, ok := load.PinMap[mapLoad.Name]; ok {
+			pinPath = pm.PinPath
+		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
+			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
 				return nil, err
 			}
 		} else {

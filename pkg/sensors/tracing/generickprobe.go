@@ -1062,7 +1062,7 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	if state == nil {
 		return []*program.MapLoad{}
 	}
-	return selectorsMaploads(state, kprobeEntry.pinPathPrefix, index)
+	return selectorsMaploads(state, index)
 }
 
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
@@ -1078,7 +1078,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	config := &program.MapLoad{
 		Index: 0,
 		Name:  "config_map",
-		Load: func(m *ebpf.Map, index uint32) error {
+		Load: func(m *ebpf.Map, _ string, index uint32) error {
 			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 		},
 	}
@@ -1110,7 +1110,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 		config := &program.MapLoad{
 			Index: uint32(index),
 			Name:  "config_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
 			},
 		}
