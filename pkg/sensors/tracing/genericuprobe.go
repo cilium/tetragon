@@ -129,14 +129,14 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 		{
 			Index: 0,
 			Name:  "config_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		},
 		{
 			Index: 0,
 			Name:  "filter_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		},
@@ -175,14 +175,14 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			{
 				Index: uint32(index),
 				Name:  "config_map",
-				Load: func(m *ebpf.Map, index uint32) error {
+				Load: func(m *ebpf.Map, _ string, index uint32) error {
 					return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 				},
 			},
 			{
 				Index: uint32(index),
 				Name:  "filter_map",
-				Load: func(m *ebpf.Map, index uint32) error {
+				Load: func(m *ebpf.Map, _ string, index uint32) error {
 					return m.Update(index, selBuff[:], ebpf.UpdateAny)
 				},
 			},
