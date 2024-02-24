@@ -614,7 +614,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, verbose i
 		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
-	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, tp.pinPathPrefix, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, 0)...)
 
 	config, err := tp.EventConfig()
 	if err != nil {
@@ -625,7 +625,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, verbose i
 	cfg := &program.MapLoad{
 		Index: 0,
 		Name:  "config_map",
-		Load: func(m *ebpf.Map, index uint32) error {
+		Load: func(m *ebpf.Map, _ string, index uint32) error {
 			return m.Update(index, binBuf.Bytes()[:], ebpf.UpdateAny)
 		},
 	}

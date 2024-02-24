@@ -85,13 +85,13 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		if err != nil {
 			return err
 		}
-		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, gl.pinPathPrefix, 0)...)
+		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, 0)...)
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{
 			Index: 0,
 			Name:  "config_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		}
