@@ -17,6 +17,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -130,7 +131,7 @@ func (k *Observer) receiveEvent(data []byte) {
 	if err != nil {
 		// Increment error metrics
 		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
-		errormetrics.HandlerErrorsInc(int(op), err)
+		errormetrics.HandlerErrorsInc(ops.OpCode(op), err)
 		switch e := err.(type) {
 		case handlePerfUnknownOp:
 			k.log.WithField("opcode", e.op).Debug("unknown opcode ignored")

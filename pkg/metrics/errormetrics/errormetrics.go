@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -84,11 +85,11 @@ func ErrorTotalInc(er ErrorType) {
 }
 
 // Get a new handle on the HandlerErrors metric
-func GetHandlerErrors(opcode int, err error) prometheus.Counter {
-	return HandlerErrors.WithLabelValues(fmt.Sprint(opcode), strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""))
+func GetHandlerErrors(opcode ops.OpCode, err error) prometheus.Counter {
+	return HandlerErrors.WithLabelValues(fmt.Sprint(int32(opcode)), strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""))
 }
 
 // Increment the HandlerErrors metric
-func HandlerErrorsInc(opcode int, err error) {
+func HandlerErrorsInc(opcode ops.OpCode, err error) {
 	GetHandlerErrors(opcode, err).Inc()
 }
