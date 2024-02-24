@@ -4,7 +4,6 @@
 package test
 
 import (
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -35,14 +34,10 @@ var (
 	)
 
 	/* Cgroup tracking maps */
-	CgroupsTrackingMap    = program.MapBuilder("tg_cgrps_tracking_map", CgroupMkdir)
-	CgroupsTrackingMapV53 = program.MapBuilder("tg_cgrps_tracking_map", CgroupMkdir)
+	CgroupsTrackingMap = program.MapBuilder("tg_cgrps_tracking_map", CgroupMkdir)
 )
 
 func GetCgroupsTrackingMap() *program.Map {
-	if kernels.EnableLargeProgs() {
-		return CgroupsTrackingMapV53
-	}
 	return CgroupsTrackingMap
 }
 
