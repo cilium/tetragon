@@ -497,7 +497,7 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, matchBinariesPaths)
 
-		enforcerDataMap := enforcerMap(policyName, prog0)
+		enforcerDataMap := enforcerMap(prog0)
 		if has.enforcer {
 			enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 		}

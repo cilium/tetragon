@@ -361,7 +361,7 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 		maps = append(maps, ratelimitMap)
 	}
 
-	enforcerDataMap := enforcerMap(policyName, load)
+	enforcerDataMap := enforcerMap(load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 	}
@@ -957,7 +957,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 		maps = append(maps, ratelimitMap)
 	}
 
-	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
+	enforcerDataMap := enforcerMap(load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 	}
