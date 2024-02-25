@@ -50,9 +50,8 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMap(policyName string, load ...*program.Program) *program.Map {
-	return program.MapBuilderPin(enforcerDataMapName,
-		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load...)
+func enforcerMap(load ...*program.Program) *program.Map {
+	return program.MapBuilderPolicy(enforcerDataMapName, load...)
 }
 
 func (kp *enforcerPolicy) enforcerGet(name string) (*enforcerHandler, bool) {
@@ -315,7 +314,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	enforcerDataMap := enforcerMap(policyName, progs...)
+	enforcerDataMap := enforcerMap(progs...)
 	enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 
 	maps = append(maps, enforcerDataMap)
@@ -327,9 +326,10 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	logger.GetLogger().Infof("Added enforcer sensor '%s'", name)
 
 	return &sensors.Sensor{
-		Name:  "__enforcer__",
-		Progs: progs,
-		Maps:  maps,
+		Name:   "__enforcer__",
+		Progs:  progs,
+		Maps:   maps,
+		Policy: policyName,
 		PostUnloadHook: func() error {
 			if ok := kp.enforcerDel(name); !ok {
 				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", name)
