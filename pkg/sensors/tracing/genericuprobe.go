@@ -454,9 +454,6 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 
-	pinPath := uprobeEntry.pinPathPrefix
-	pinProg := sensors.PathJoin(pinPath, "prog")
-
 	attachData := &program.UprobeAttachData{
 		Path:   uprobeEntry.path,
 		Symbol: uprobeEntry.symbol,
@@ -466,7 +463,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		path.Join(option.Config.HubbleLib, loadProgName),
 		"",
 		"uprobe/generic_uprobe",
-		pinProg,
+		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetAttachData(attachData).
 		SetLoaderData(uprobeEntry)
