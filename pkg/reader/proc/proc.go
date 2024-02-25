@@ -10,6 +10,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/sirupsen/logrus"
 )
 
 // Status reflects fields of `/proc/[pid]/status` and other
@@ -248,4 +252,36 @@ func PrependPath(s string, b []byte) []byte {
 	split[0] = s
 	fullCmd := strings.Join(split[0:], "\u0000")
 	return []byte(fullCmd)
+}
+
+// LogCurrentLSMContext() Logs the current LSM security context.
+func LogCurrentSecurityContext() {
+	lsms := map[string]string{
+		"selinux":  "",
+		"apparmor": "",
+		"smack":    "",
+	}
+
+	logLSM := false
+	for k := range lsms {
+		path := ""
+		if k == "selinux" {
+			path = filepath.Join(option.Config.ProcFS, "/self/attr/current")
+		} else {
+			path = filepath.Join(option.Config.ProcFS, fmt.Sprintf("/self/attr/%s/current", k))
+		}
+		data, err := os.ReadFile(path)
+		if err == nil && len(data) > 0 {
+			lsms[k] = strings.TrimRight(string(data), "\n")
+			logLSM = true
+		}
+	}
+
+	if logLSM {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"SELinux":  lsms["selinux"],
+			"AppArmor": lsms["apparmor"],
+			"Smack":    lsms["smack"],
+		}).Info("Tetragon current Security context")
+	}
 }

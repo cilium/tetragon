@@ -44,6 +44,7 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -172,6 +173,9 @@ func tetragonExecute() error {
 
 	log.WithField("version", version.Version).Info("Starting tetragon")
 	log.WithField("config", viper.AllSettings()).Info("config settings")
+
+	// Log early security context in case something fails
+	proc.LogCurrentSecurityContext()
 
 	// When an instance terminates or restarts it may cleanup bpf programs,
 	// having a check here to see if another instance is already running, can
