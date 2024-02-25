@@ -265,7 +265,7 @@ func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Ma
 	return maps
 }
 
-func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, enableFDInstall bool) ([]*program.Program, []*program.Map, error) {
+func createMultiKprobeSensor(multiIDs []idtable.EntryID, enableFDInstall bool) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
@@ -356,7 +356,7 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, enab
 		maps = append(maps, ratelimitMap)
 	}
 
-	enforcerDataMap := enforcerMap(policyName, load)
+	enforcerDataMap := enforcerMap(load)
 	maps = append(maps, enforcerDataMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
@@ -615,7 +615,7 @@ func createGenericKprobeSensor(
 	}
 
 	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(in.policyName, ids, oneKprobeHasFDInstall)
+		progs, maps, err = createMultiKprobeSensor(ids, oneKprobeHasFDInstall)
 	} else {
 		progs, maps, err = createSingleKprobeSensor(ids, oneKprobeHasFDInstall)
 	}
@@ -928,7 +928,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 		maps = append(maps, ratelimitMap)
 	}
 
-	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
+	enforcerDataMap := enforcerMap(load)
 	maps = append(maps, enforcerDataMap)
 
 	if kprobeEntry.loadArgs.retprobe {
