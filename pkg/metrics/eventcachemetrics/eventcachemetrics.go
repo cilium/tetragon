@@ -4,6 +4,7 @@
 package eventcachemetrics
 
 import (
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -79,13 +80,13 @@ func InitMetrics(registry *prometheus.Registry) {
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
-func ProcessInfoError(eventType string) prometheus.Counter {
-	return processInfoErrors.WithLabelValues(eventType)
+func ProcessInfoError(eventType tetragon.EventType) prometheus.Counter {
+	return processInfoErrors.WithLabelValues(eventType.String())
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
-func PodInfoError(eventType string) prometheus.Counter {
-	return podInfoErrors.WithLabelValues(eventType)
+func PodInfoError(eventType tetragon.EventType) prometheus.Counter {
+	return podInfoErrors.WithLabelValues(eventType.String())
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
@@ -99,6 +100,6 @@ func EventCacheRetries(entryType CacheEntryType) prometheus.Counter {
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
-func ParentInfoError(eventType string) prometheus.Counter {
-	return parentInfoErrors.WithLabelValues(eventType)
+func ParentInfoError(eventType tetragon.EventType) prometheus.Counter {
+	return parentInfoErrors.WithLabelValues(eventType.String())
 }
