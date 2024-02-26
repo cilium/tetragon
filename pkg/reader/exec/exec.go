@@ -10,71 +10,64 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// TODO: Harmonize these with the API docs (Flags field in tetragon.Process)
+var FlagStrings = map[uint32]string{
+	api.EventExecve: "execve",
+	// nolint We still want to support this even though it's deprecated
+	api.EventExecveAt:              "execveat",
+	api.EventProcFS:                "procFS",
+	api.EventTruncFilename:         "truncFilename",
+	api.EventTruncArgs:             "truncArgs",
+	api.EventTaskWalk:              "taskWalk",
+	api.EventMiss:                  "miss",
+	api.EventNeedsAUID:             "auid",
+	api.EventErrorFilename:         "errorFilename",
+	api.EventErrorArgs:             "errorArgs",
+	api.EventNoCWDSupport:          "nocwd",
+	api.EventRootCWD:               "rootcwd",
+	api.EventErrorCWD:              "errorCWD",
+	api.EventClone:                 "clone",
+	api.EventErrorCgroupName:       "errorCgroupName",
+	api.EventErrorCgroupId:         "errorCgroupID",
+	api.EventErrorCgroupKn:         "errorCgroupKn",
+	api.EventErrorCgroupSubsysCgrp: "errorCgroupSubsysCgrp",
+	api.EventErrorCgroupSubsys:     "errorCgroupSubsys",
+	api.EventErrorCgroups:          "errorCgroups",
+	api.EventErrorPathComponents:   "errorPathResolutionCwd",
+}
+
+var flagsOrdered = []uint32{
+	api.EventExecve,
+	// nolint We still want to support this even though it's deprecated
+	api.EventExecveAt,
+	api.EventProcFS,
+	api.EventTruncFilename,
+	api.EventTruncArgs,
+	api.EventTaskWalk,
+	api.EventMiss,
+	api.EventNeedsAUID,
+	api.EventErrorFilename,
+	api.EventErrorArgs,
+	api.EventNoCWDSupport,
+	api.EventRootCWD,
+	api.EventErrorCWD,
+	api.EventClone,
+	api.EventErrorCgroupName,
+	api.EventErrorCgroupId,
+	api.EventErrorCgroupKn,
+	api.EventErrorCgroupSubsysCgrp,
+	api.EventErrorCgroupSubsys,
+	api.EventErrorCgroups,
+	api.EventErrorPathComponents,
+}
+
 func DecodeCommonFlags(flags uint32) []string {
 	var s []string
-	if (flags & api.EventExecve) != 0 {
-		s = append(s, "execve")
-	}
-	// nolint We still want to support this even though it's deprecated
-	if (flags & api.EventExecveAt) != 0 {
-		s = append(s, "execveat")
-	}
-	if (flags & api.EventProcFS) != 0 {
-		s = append(s, "procFS")
-	}
-	if (flags & api.EventTruncFilename) != 0 {
-		s = append(s, "truncFilename")
-	}
-	if (flags & api.EventTruncArgs) != 0 {
-		s = append(s, "truncArgs")
-	}
-	if (flags & api.EventTaskWalk) != 0 {
-		s = append(s, "taskWalk")
-	}
-	if (flags & api.EventMiss) != 0 {
-		s = append(s, "miss")
-	}
-	if (flags & api.EventNeedsAUID) != 0 {
-		s = append(s, "auid")
-	}
-	if (flags & api.EventErrorFilename) != 0 {
-		s = append(s, "errorFilename")
-	}
-	if (flags & api.EventErrorArgs) != 0 {
-		s = append(s, "errorArgs")
-	}
-	if (flags & api.EventNoCWDSupport) != 0 {
-		s = append(s, "nocwd")
-	}
-	if (flags & api.EventRootCWD) != 0 {
-		s = append(s, "rootcwd")
-	}
-	if (flags & api.EventErrorCWD) != 0 {
-		s = append(s, "errorCWD")
-	}
-	if (flags & api.EventClone) != 0 {
-		s = append(s, "clone")
-	}
-	if (flags & api.EventErrorCgroupName) != 0 {
-		s = append(s, "errorCgroupName")
-	}
-	if (flags & api.EventErrorCgroupId) != 0 {
-		s = append(s, "errorCgroupID")
-	}
-	if (flags & api.EventErrorCgroupKn) != 0 {
-		s = append(s, "errorCgroupKn")
-	}
-	if (flags & api.EventErrorCgroupSubsysCgrp) != 0 {
-		s = append(s, "errorCgroupSubsysCgrp")
-	}
-	if (flags & api.EventErrorCgroupSubsys) != 0 {
-		s = append(s, "errorCgroupSubsys")
-	}
-	if (flags & api.EventErrorCgroups) != 0 {
-		s = append(s, "errorCgroups")
-	}
-	if (flags & api.EventErrorPathComponents) != 0 {
-		s = append(s, "errorPathResolutionCwd")
+	for _, f := range flagsOrdered {
+		v := FlagStrings[f]
+		if (flags & f) != 0 {
+			s = append(s, v)
+		}
 	}
 	return s
 }
