@@ -68,18 +68,22 @@ const (
 	MsgOpTest               = 254
 )
 
+var OpCodeStrings = map[OpCode]string{
+	MsgOpUndef:              "Undef",
+	MsgOpExecve:             "Execve",
+	MsgOpExit:               "Exit",
+	MsgOpKfreeSkb:           "KfreeSkb",
+	MsgOpGenericKprobe:      "GenericKprobe",
+	MsgOpGeneric_Tracepoint: "GenericTracepoint",
+	MsgOpTest:               "Test",
+}
+
 func (op OpCode) String() string {
-	return [...]string{
-		0:   "Undef",
-		5:   "Execve",
-		7:   "Exit",
-		13:  "GenericKprobe",
-		14:  "GenericTracepoint",
-		23:  "Clone",
-		24:  "Data",
-		25:  "Cgroup",
-		254: "Test",
-	}[op]
+	s, ok := OpCodeStrings[op]
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 func (op CgroupOpCode) String() string {
