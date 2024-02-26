@@ -32,6 +32,14 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(MsgOpsCount)
 	registry.MustRegister(LatencyStats)
 
+	// Initialize all metrics
+	for opcode := range ops.OpCodeStrings {
+		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+			GetOpTotal(opcode).Add(0)
+			LatencyStats.WithLabelValues(fmt.Sprint(int32(opcode)))
+		}
+	}
+
 	// NOTES:
 	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
 	// * Rename handling_latency to handler_latency_microseconds?
