@@ -1181,26 +1181,26 @@ func reportMergeError(curr pendingEvent, prev pendingEvent) {
 	if curr.ev != nil {
 		currFn = curr.ev.FuncName
 	}
-	currType := "enter"
+	currType := kprobemetrics.MergeErrorTypeEnter
 	if curr.returnEvent {
-		currType = "exit"
+		currType = kprobemetrics.MergeErrorTypeExit
 	}
 
 	prevFn := "UNKNOWN"
 	if prev.ev != nil {
 		prevFn = prev.ev.FuncName
 	}
-	prevType := "enter"
+	prevType := kprobemetrics.MergeErrorTypeEnter
 	if prev.returnEvent {
-		prevType = "exit"
+		prevType = kprobemetrics.MergeErrorTypeExit
 	}
 
-	kprobemetrics.MergeErrorsInc(currFn, currType, prevFn, prevType)
+	kprobemetrics.MergeErrorsInc(currFn, prevFn, currType, prevType)
 	logger.GetLogger().WithFields(logrus.Fields{
 		"currFn":   currFn,
-		"currType": currType,
+		"currType": currType.String(),
 		"prevFn":   prevFn,
-		"prevType": prevType,
+		"prevType": prevType.String(),
 	}).Debugf("failed to merge events")
 }
 
