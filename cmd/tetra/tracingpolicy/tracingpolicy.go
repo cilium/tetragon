@@ -179,7 +179,7 @@ func New() *cobra.Command {
 					fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\t\n",
 						pol.Id,
 						pol.Name,
-						strings.ToLower(pol.State.String()),
+						strings.TrimPrefix(strings.ToLower(pol.State.String()), "tp_state_"),
 						pol.FilterId,
 						namespace,
 						sensors,
