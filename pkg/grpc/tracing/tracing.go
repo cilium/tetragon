@@ -335,7 +335,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessKprobe: nil Process.Pid").Inc()
+		eventcachemetrics.EventCacheError("GetProcessKprobe: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -497,7 +497,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessTracepoint: nil Process.Pid").Inc()
+		eventcachemetrics.EventCacheError("GetProcessTracepoint: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -615,28 +615,26 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		tetragonProcess = process.UnsafeGetProcess()
 	}
 
+	notifyEvent := &ProcessLoaderNotify{
+		ProcessLoader: tetragon.ProcessLoader{
+			Process: tetragonProcess,
+			Path:    msg.Path,
+			Buildid: msg.Buildid,
+		},
+	}
+
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessLoader: nil Process.Pid").Inc()
+		eventcachemetrics.EventCacheError("GetProcessLoader: nil Process.Pid", notify.EventType(notifyEvent)).Inc()
 		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
-		tetragonEvent := &ProcessLoaderNotify{}
-		tetragonEvent.Process = tetragonProcess
-		tetragonEvent.Path = msg.Path
-		tetragonEvent.Buildid = msg.Buildid
-		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		ec.Add(nil, notifyEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 
-	tetragonEvent := &tetragon.ProcessLoader{
-		Process: tetragonProcess,
-		Path:    msg.Path,
-		Buildid: msg.Buildid,
-	}
-
-	return tetragonEvent
+	return &notifyEvent.ProcessLoader
 }
 
 func (msg *MsgProcessLoaderUnix) Notify() bool {
@@ -735,7 +733,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessUprobe: nil Process.Pid").Inc()
+		eventcachemetrics.EventCacheError("GetProcessUprobe: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
