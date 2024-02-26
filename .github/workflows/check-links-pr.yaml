@@ -6,6 +6,8 @@ on:
       - 'README.md'
       - 'docs/content/**.md'
       - '.github/workflows/check-links-pr.yaml'
+    branches: 
+      - 'main'
 
 jobs:
   links-checker:
