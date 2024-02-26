@@ -5,11 +5,9 @@ package errormetrics
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -44,6 +42,23 @@ var errorTypeLabelValues = map[ErrorType]string{
 
 func (e ErrorType) String() string {
 	return errorTypeLabelValues[e]
+}
+
+type EventHandlerError int
+
+// TODO: Recognize different errors returned by individual handlers
+const (
+	HandlePerfUnknownOp EventHandlerError = iota
+	HandlePerfHandlerError
+)
+
+var eventHandlerErrorLabelValues = map[EventHandlerError]string{
+	HandlePerfUnknownOp:    "unknown_opcode",
+	HandlePerfHandlerError: "event_handler_failed",
+}
+
+func (e EventHandlerError) String() string {
+	return eventHandlerErrorLabelValues[e]
 }
 
 var (
@@ -85,11 +100,11 @@ func ErrorTotalInc(er ErrorType) {
 }
 
 // Get a new handle on the HandlerErrors metric
-func GetHandlerErrors(opcode ops.OpCode, err error) prometheus.Counter {
-	return HandlerErrors.WithLabelValues(fmt.Sprint(int32(opcode)), strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""))
+func GetHandlerErrors(opcode ops.OpCode, er EventHandlerError) prometheus.Counter {
+	return HandlerErrors.WithLabelValues(fmt.Sprint(int32(opcode)), er.String())
 }
 
 // Increment the HandlerErrors metric
-func HandlerErrorsInc(opcode ops.OpCode, err error) {
-	GetHandlerErrors(opcode, err).Inc()
+func HandlerErrorsInc(opcode ops.OpCode, er EventHandlerError) {
+	GetHandlerErrors(opcode, er).Inc()
 }
