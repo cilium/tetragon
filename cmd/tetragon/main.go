@@ -173,6 +173,9 @@ func tetragonExecute() error {
 	log.WithField("version", version.Version).Info("Starting tetragon")
 	log.WithField("config", viper.AllSettings()).Info("config settings")
 
+	// Create run dir early
+	os.MkdirAll(defaults.DefaultRunDir, 0755)
+
 	// When an instance terminates or restarts it may cleanup bpf programs,
 	// having a check here to see if another instance is already running, can
 	// help debug errors.
@@ -333,7 +336,6 @@ func tetragonExecute() error {
 	 * events no state should be lost/missed.
 	 */
 	obs.RemovePrograms()
-	os.Mkdir(defaults.DefaultRunDir, os.ModeDir)
 
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF); err != nil {
 		return err
