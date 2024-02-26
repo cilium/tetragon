@@ -335,7 +335,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessKprobe: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -447,7 +447,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessTracepoint: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -574,7 +574,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessLoader: nil Process.Pid", notify.EventType(notifyEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(notifyEvent)).Inc()
 		return nil
 	}
 
@@ -683,7 +683,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessUprobe: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 

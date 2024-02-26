@@ -27,6 +27,20 @@ func (t CacheEntryType) String() string {
 	return cacheEntryTypeLabelValues[t]
 }
 
+type CacheError int
+
+const (
+	NilProcessPid CacheError = iota
+)
+
+var cacheErrorLabelValues = map[CacheError]string{
+	NilProcessPid: "nil_process_pid",
+}
+
+func (e CacheError) String() string {
+	return cacheErrorLabelValues[e]
+}
+
 var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
@@ -90,8 +104,8 @@ func PodInfoError(eventType tetragon.EventType) prometheus.Counter {
 }
 
 // Get a new handle on an processInfoErrors metric for an eventType
-func EventCacheError(err string, eventType tetragon.EventType) prometheus.Counter {
-	return eventCacheErrorsTotal.WithLabelValues(err, eventType.String())
+func EventCacheError(er CacheError, eventType tetragon.EventType) prometheus.Counter {
+	return eventCacheErrorsTotal.WithLabelValues(er.String(), eventType.String())
 }
 
 // Get a new handle on the eventCacheRetriesTotal metric for an entryType
