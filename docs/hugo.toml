@@ -11,9 +11,6 @@ enableMissingTranslationPlaceholders = true
 
 enableRobotsTXT = true
 
-# Will give values to .Lastmod etc.
-enableGitInfo = true
-
 # Comment out to enable taxonomies in Docsy
 disableKinds = ["taxonomy"]
 
