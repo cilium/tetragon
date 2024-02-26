@@ -70,7 +70,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessExec: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -394,7 +394,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError("GetProcessExit: nil Process.Pid", notify.EventType(tetragonEvent)).Inc()
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
