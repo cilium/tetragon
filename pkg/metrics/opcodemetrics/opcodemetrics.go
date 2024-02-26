@@ -6,6 +6,7 @@ package opcodemetrics
 import (
 	"fmt"
 
+	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -41,11 +42,11 @@ func InitMetrics(registry *prometheus.Registry) {
 }
 
 // Get a new handle on a msgOpsCount metric for an OpCode
-func GetOpTotal(op int) prometheus.Counter {
-	return MsgOpsCount.WithLabelValues(fmt.Sprint(op))
+func GetOpTotal(opcode ops.OpCode) prometheus.Counter {
+	return MsgOpsCount.WithLabelValues(fmt.Sprint(int32(opcode)))
 }
 
 // Increment an msgOpsCount for an OpCode
-func OpTotalInc(op int) {
-	GetOpTotal(op).Inc()
+func OpTotalInc(opcode ops.OpCode) {
+	GetOpTotal(opcode).Inc()
 }
