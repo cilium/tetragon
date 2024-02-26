@@ -65,6 +65,11 @@ const (
 	MsgOpKfreeSkb           = 11
 	MsgOpGenericKprobe      = 13
 	MsgOpGeneric_Tracepoint = 14
+	MsgOpGenericUprobe      = 15
+	MsgOpClone              = 23
+	MsgOpData               = 24
+	MsgOpCgroup             = 25
+	MsgOpLoader             = 26
 	MsgOpTest               = 254
 )
 
@@ -75,6 +80,11 @@ var OpCodeStrings = map[OpCode]string{
 	MsgOpKfreeSkb:           "KfreeSkb",
 	MsgOpGenericKprobe:      "GenericKprobe",
 	MsgOpGeneric_Tracepoint: "GenericTracepoint",
+	MsgOpGenericUprobe:      "GenericUprobe",
+	MsgOpClone:              "Clone",
+	MsgOpData:               "Data",
+	MsgOpCgroup:             "Cgroup",
+	MsgOpLoader:             "Loader",
 	MsgOpTest:               "Test",
 }
 
