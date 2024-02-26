@@ -4,9 +4,6 @@
 package notify
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/process"
 )
@@ -27,11 +24,13 @@ type Event interface {
 	Encapsulate() tetragon.IsGetEventsResponse_Event
 }
 
-func EventTypeString(event Event) string {
-	// Get the concrete type of the event
-	ty := fmt.Sprintf("%T", event)
-	// Take only what comes after the last "."
-	tys := strings.Split(ty, ".")
-	ty = tys[len(tys)-1]
-	return ty
+func EventType(event Event) tetragon.EventType {
+	if event == nil {
+		return tetragon.EventType_UNDEF
+	}
+	eventWrapper := event.Encapsulate()
+	res := &tetragon.GetEventsResponse{
+		Event: eventWrapper,
+	}
+	return res.EventType()
 }

@@ -141,11 +141,11 @@ func (ec *Cache) handleEvents() {
 				continue
 			}
 			if errors.Is(err, ErrFailedToGetParentInfo) {
-				eventcachemetrics.ParentInfoError(notify.EventTypeString(event.event)).Inc()
+				eventcachemetrics.ParentInfoError(notify.EventType(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
-				eventcachemetrics.ProcessInfoError(notify.EventTypeString(event.event)).Inc()
+				eventcachemetrics.ProcessInfoError(notify.EventType(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
-				eventcachemetrics.PodInfoError(notify.EventTypeString(event.event)).Inc()
+				eventcachemetrics.PodInfoError(notify.EventType(event.event)).Inc()
 			}
 		}
 
