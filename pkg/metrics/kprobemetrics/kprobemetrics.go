@@ -8,6 +8,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type MergeErrorType int
+
+const (
+	MergeErrorTypeEnter MergeErrorType = iota
+	MergeErrorTypeExit
+)
+
+var mergeErrorTypeLabelValues = map[MergeErrorType]string{
+	MergeErrorTypeEnter: "enter",
+	MergeErrorTypeExit:  "exit",
+}
+
+func (t MergeErrorType) String() string {
+	return mergeErrorTypeLabelValues[t]
+}
+
 var (
 	MergeErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
@@ -40,14 +56,14 @@ func InitMetrics(registry *prometheus.Registry) {
 
 // Get a new handle on the mergeErrors metric for a current and previous function
 // name and probe type
-func GetMergeErrors(currFn, currType, prevFn, prevType string) prometheus.Counter {
-	return MergeErrors.WithLabelValues(currFn, currType, prevFn, prevType)
+func GetMergeErrors(currFn, prevFn string, currType, prevType MergeErrorType) prometheus.Counter {
+	return MergeErrors.WithLabelValues(currFn, prevFn, currType.String(), prevType.String())
 }
 
 // Increment the mergeErrors metric for a current and previous function
 // name and probe type
-func MergeErrorsInc(currFn, currType, prevFn, prevType string) {
-	GetMergeErrors(currFn, currType, prevFn, prevType).Inc()
+func MergeErrorsInc(currFn, prevFn string, currType, prevType MergeErrorType) {
+	GetMergeErrors(currFn, prevFn, currType, prevType).Inc()
 }
 
 func MergeOkTotalInc() {
