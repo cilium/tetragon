@@ -104,9 +104,9 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 				break
 			}
 
-			_, events, err := observer.HandlePerfData(record.RawSample)
-			if err != nil {
-				errChan <- fmt.Errorf("error handling perfring data: %v", err)
+			_, events, handlerErr := observer.HandlePerfData(record.RawSample)
+			if handlerErr != nil {
+				errChan <- fmt.Errorf("error handling perfring data: %v", handlerErr)
 				break
 			}
 			err = loopEvents(events, eventFn, complChecker)
