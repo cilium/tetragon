@@ -103,7 +103,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid); err != nil {
 		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
 	}
-	policyfiltermetrics.OpInc("rthooks", "add-container", err)
+	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, "add-container", err)
 
 	return nil
 }
