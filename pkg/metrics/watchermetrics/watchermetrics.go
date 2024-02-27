@@ -49,6 +49,10 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(WatcherErrors)
 	registry.MustRegister(WatcherEvents)
 
+	// Initialize metrics with labels
+	GetWatcherEvents(K8sWatcher).Add(0)
+	GetWatcherErrors(K8sWatcher, FailedToGetPodError).Add(0)
+
 	// NOTES:
 	// * error, error_type, type - standardize on a label
 }
