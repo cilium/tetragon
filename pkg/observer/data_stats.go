@@ -50,6 +50,13 @@ func registerMetrics(registry *prometheus.Registry) {
 func InitMetrics(registry *prometheus.Registry) {
 	registerMetrics(registry)
 
+	// Initialize metrics with labels
+	for _, ev := range DataEventTypeStrings {
+		DataEventStats.WithLabelValues(ev).Add(0)
+	}
+	DataEventSizeHist.WithLabelValues(DataEventOpOk.String())
+	DataEventSizeHist.WithLabelValues(DataEventOpBad.String())
+
 	// NOTES:
 	// * Don't confuse op and opcode labels
 	// * Don't confuse event and event_type labels
