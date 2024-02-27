@@ -108,3 +108,40 @@ func updateMapErrors(ch chan<- prometheus.Metric, mapLinkStats *ebpf.Map, name s
 		name,
 	)
 }
+
+// bpfZeroCollector implements prometheus.Collector. It collects "zero" metrics.
+// It's intended to be used when BPF metrics are not collected, but we still want
+// Prometheus metrics to be exposed.
+type bpfZeroCollector struct {
+	bpfCollector
+}
+
+func NewBPFZeroCollector() prometheus.Collector {
+	return &bpfZeroCollector{
+		bpfCollector: bpfCollector{},
+	}
+}
+
+func (c *bpfZeroCollector) Describe(ch chan<- *prometheus.Desc) {
+	c.bpfCollector.Describe(ch)
+}
+
+func (c *bpfZeroCollector) Collect(ch chan<- prometheus.Metric) {
+	// This list should contain all monitored maps.
+	// These are not maps from which metrics are read in the "real" collector -
+	// the metrics are stored in separate maps suffixed with "_stats".
+	monitoredMaps := []string{
+		"execve_map",
+		"tg_execve_joined_info_map",
+	}
+	for _, m := range monitoredMaps {
+		ch <- mapmetrics.MapSize.MustMetric(
+			0,
+			m, fmt.Sprint(0),
+		)
+		ch <- mapmetrics.MapErrors.MustMetric(
+			0,
+			m,
+		)
+	}
+}
