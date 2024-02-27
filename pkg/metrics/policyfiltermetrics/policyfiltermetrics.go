@@ -56,6 +56,12 @@ var (
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(PolicyFilterOpMetrics)
 
+	// Initialize metrics with labels
+	PolicyFilterOpMetrics.WithLabelValues(RTHooksSubsys.String(), AddContainerOperation.String()).Add(0)
+	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), AddPodOperation.String()).Add(0)
+	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), UpdatePodOperation.String()).Add(0)
+	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), DeletePodOperation.String()).Add(0)
+
 	// NOTES:
 	// * error, error_type, type - standardize on a label
 	// * Don't confuse op in policyfilter_metrics_total with ops.OpCode
