@@ -28,6 +28,26 @@ func (s Subsys) String() string {
 	return subsysLabelValues[s]
 }
 
+type Operation int
+
+const (
+	AddPodOperation Operation = iota
+	UpdatePodOperation
+	DeletePodOperation
+	AddContainerOperation
+)
+
+var operationLabelValues = map[Operation]string{
+	AddPodOperation:       "add",
+	UpdatePodOperation:    "update",
+	DeletePodOperation:    "delete",
+	AddContainerOperation: "add-container",
+}
+
+func (s Operation) String() string {
+	return operationLabelValues[s]
+}
+
 var (
 	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
@@ -50,9 +70,9 @@ func InitMetrics(registry *prometheus.Registry) {
 	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
-func OpInc(subsys Subsys, op string, err error) {
+func OpInc(subsys Subsys, op Operation, err error) {
 	PolicyFilterOpMetrics.WithLabelValues(
-		subsys.String(), op,
+		subsys.String(), op.String(),
 		strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""),
 	).Inc()
 }
