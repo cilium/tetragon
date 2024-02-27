@@ -50,16 +50,10 @@ export NAME="$(whoami)-$RANDOM"
 eksctl create cluster --name "${NAME}"
 ```
 {{% /tab %}}
-{{% tab Kind %}}
 
-```shell
-kind create cluster
-```
-{{% /tab %}}
+{{% tab "Kind" %}}
 
-{{% tab "Kind (running on Linux)" %}}
-
-Tetragon's correct operation depends on access to the host /proc filesystem. The following steps
+Tetragon's correct operation depends on access to the host `/proc` filesystem. The following steps
 configure kind and Tetragon accordingly when using a Linux system.
 
 ```shell
