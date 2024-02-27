@@ -30,6 +30,21 @@ const (
 	// SkipTracingPolicyCRD specifies whether the tracing-policies CustomResourceDefinition will be
 	// disabled
 	SkipTracingPolicyCRD = "skip-tracing-policy-crd"
+
+	// TetragonNamespace specifies the K8S namespace in which Tetragon is installed
+	TetragonNamespace = "tetragon-namespace"
+
+	// TetragonDaemonSetName specifies the Tetragon DaemonSet name
+	TetragonDaemonSetName = "tetragon-daemon-set-name"
+
+	// InstallTetragonDaemonSet specifies whether the Tetragon DaemonSet will be installed by operator
+	InstallTetragonDaemonSet = "install-tetragon-daemon-set"
+
+	// Default value for the TetragonNamespace config property
+	namespaceDefaultValue = "kube-system"
+
+	// Default value for the TetragonDaemonSetName config property
+	daemonSetNameDefaultValue = "tetragon"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -50,6 +65,15 @@ type OperatorConfig struct {
 	// SkipTracingPolicyCRD disables creation of the TracingPolicy and
 	// TracingPolicyNamespaced CustomResourceDefinition only.
 	SkipTracingPolicyCRD bool
+
+	// TetragonNamespace specifies the K8S namespace in which Tetragon is installed.
+	TetragonNamespace string
+
+	// TetragonDaemonSetName specifies the Tetragon DaemonSet name.
+	TetragonDaemonSetName string
+
+	// InstallTetragonDaemonSet enables installation of the Tetragon DaemonSet by operator.
+	InstallTetragonDaemonSet bool
 }
 
 // Config represents the operator configuration.
@@ -62,4 +86,13 @@ func ConfigPopulate() {
 	Config.ConfigDir = viper.GetString(ConfigDir)
 	Config.SkipPodInfoCRD = viper.GetBool(SkipPodInfoCRD)
 	Config.SkipTracingPolicyCRD = viper.GetBool(SkipTracingPolicyCRD)
+	Config.InstallTetragonDaemonSet = viper.GetBool(InstallTetragonDaemonSet)
+	Config.TetragonNamespace = viper.GetString(TetragonNamespace)
+	if Config.TetragonNamespace == "" {
+		Config.TetragonNamespace = namespaceDefaultValue
+	}
+	Config.TetragonDaemonSetName = viper.GetString(TetragonDaemonSetName)
+	if Config.TetragonDaemonSetName == "" {
+		Config.TetragonDaemonSetName = daemonSetNameDefaultValue
+	}
 }

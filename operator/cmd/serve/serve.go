@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/tetragon/operator/cmd/common"
+	"github.com/cilium/tetragon/operator/daemon"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/operator/podinfo"
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -45,6 +46,13 @@ func New() *cobra.Command {
 			log := logrusr.New(logging.DefaultLogger.WithField(logfields.LogSubsys, "operator"))
 			ctrl.SetLogger(log)
 			common.Initialize(cmd)
+
+			if operatorOption.Config.InstallTetragonDaemonSet {
+				if err := daemon.InstallTetragonDaemonSet(); err != nil {
+					return fmt.Errorf("unable to install tetragon daemon set: %w", err)
+				}
+			}
+
 			mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 				Scheme:                 scheme,
 				Metrics:                metricsserver.Options{BindAddress: metricsAddr},
@@ -96,6 +104,6 @@ func New() *cobra.Command {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	common.AddCommonFlags(&cmd)
-	viper.BindPFlags(cmd.Flags())
+	_ = viper.BindPFlags(cmd.Flags())
 	return &cmd
 }
