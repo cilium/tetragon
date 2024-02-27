@@ -12,6 +12,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type Subsys int
+
+const (
+	RTHooksSubsys Subsys = iota
+	PodHandlersSubsys
+)
+
+var subsysLabelValues = map[Subsys]string{
+	PodHandlersSubsys: "pod-handlers",
+	RTHooksSubsys:     "rthooks",
+}
+
+func (s Subsys) String() string {
+	return subsysLabelValues[s]
+}
+
 var (
 	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
@@ -34,9 +50,9 @@ func InitMetrics(registry *prometheus.Registry) {
 	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
-func OpInc(subsys, op string, err error) {
+func OpInc(subsys Subsys, op string, err error) {
 	PolicyFilterOpMetrics.WithLabelValues(
-		subsys, op,
+		subsys.String(), op,
 		strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""),
 	).Inc()
 }

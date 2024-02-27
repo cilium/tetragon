@@ -300,7 +300,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc("pod-handlers", "add", err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, "add", err)
 		},
 		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
@@ -309,7 +309,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc("pod-handlers", "update", err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, "update", err)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// Remove all containers for this pod
@@ -332,7 +332,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 					"namespace": namespace,
 				}).Warn("policyfilter, delete-pod handler: DelPod failed")
 			}
-			policyfiltermetrics.OpInc("pod-handlers", "delete", err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, "delete", err)
 		},
 	}
 }
