@@ -43,7 +43,7 @@ func getPodInfo(
 	}
 	pod, container, ok := w.FindContainer(containerID)
 	if !ok {
-		watchermetrics.GetWatcherErrors("k8s", watchermetrics.FailedToGetPodError).Inc()
+		watchermetrics.GetWatcherErrors(watchermetrics.K8sWatcher, watchermetrics.FailedToGetPodError).Inc()
 		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
 		return nil
 	}
@@ -63,7 +63,7 @@ func getPodInfo(
 		}
 	}
 	workloadObject, workloadType := GetWorkloadMetaFromPod(pod)
-	watchermetrics.GetWatcherEvents("k8s").Inc()
+	watchermetrics.GetWatcherEvents(watchermetrics.K8sWatcher).Inc()
 	return &tetragon.Pod{
 		Namespace:    pod.Namespace,
 		Workload:     workloadObject.Name,
