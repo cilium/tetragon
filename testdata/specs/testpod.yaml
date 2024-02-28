@@ -7,7 +7,8 @@ spec:
   hostNetwork: true
   containers:
   - name: test-pod
-    image: docker.io/cilium/starwars:latest
-    command: [ "sleep", "365d" ]
+    image: nginx:latest
+    ports:
+    - containerPort: 80
     securityContext:
       privileged: true
