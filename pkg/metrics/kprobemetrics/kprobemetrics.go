@@ -54,6 +54,10 @@ func InitMetrics(registry *prometheus.Registry) {
 	// * Consider merging ok and errors into one with status label
 }
 
+func InitMetricsForDocs(registry *prometheus.Registry) {
+	InitMetrics(registry)
+}
+
 // Get a new handle on the mergeErrors metric for a current and previous function
 // name and probe type
 func GetMergeErrors(currFn, prevFn string, currType, prevType MergeErrorType) prometheus.Counter {
