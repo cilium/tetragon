@@ -56,6 +56,13 @@ func InitMetrics(registry *prometheus.Registry) {
 
 func InitMetricsForDocs(registry *prometheus.Registry) {
 	InitMetrics(registry)
+
+	// Initialize metrics with example labels
+	for _, curr := range mergeErrorTypeLabelValues {
+		for _, prev := range mergeErrorTypeLabelValues {
+			MergeErrors.WithLabelValues(consts.ExampleKprobeLabel, curr, consts.ExampleKprobeLabel, prev).Add(0)
+		}
+	}
 }
 
 // Get a new handle on the mergeErrors metric for a current and previous function
