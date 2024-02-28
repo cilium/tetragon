@@ -15,7 +15,9 @@ import (
 
 func New() *cobra.Command {
 	targets := map[string]string{
-		"tetragon": "Tetragon",
+		"health":    "Tetragon Health",
+		"resources": "Tetragon Resources",
+		"events":    "Tetragon Events",
 	}
 
 	overrides := []metricsmd.LabelOverrides{
@@ -56,7 +58,14 @@ func New() *cobra.Command {
 	return metricsmd.NewCmd(nil, nil, map[string]string{}, targets, overrides, initMetrics)
 }
 
-func initMetrics(_ string, reg *prometheus.Registry, _ *slog.Logger) error {
-	metricsconfig.InitMetricsForDocs(reg)
+func initMetrics(target string, reg *prometheus.Registry, _ *slog.Logger) error {
+	switch target {
+	case "health":
+		metricsconfig.InitHealthMetricsForDocs(reg)
+	case "resources":
+		metricsconfig.InitResourcesMetricsForDocs(reg)
+	case "events":
+		metricsconfig.InitEventsMetricsForDocs(reg)
+	}
 	return nil
 }
