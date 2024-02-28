@@ -209,7 +209,10 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PASSWORD_CI }}
 
       - name: Generate Tetragon Tarball
-        run: make tarball-release
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          make tarball-release
 
       # Cache tarball releases for later
       - name: Save tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz Tarball
