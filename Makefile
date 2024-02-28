@@ -412,3 +412,15 @@ kind-install-tetragon:
 
 .PHONY: kind-setup
 kind-setup: images kind kind-install-tetragon
+
+METRICS_DOCS_PATH := docs/content/en/docs/reference/metrics.md
+
+.PHONY: metrics-docs
+metrics-docs: tetra
+	echo '---' > $(METRICS_DOCS_PATH)
+	echo 'title: "Metrics Reference"' >> $(METRICS_DOCS_PATH)
+	echo 'description: >' >> $(METRICS_DOCS_PATH)
+	echo '  This reference documents Prometheus metrics exposed by Tetragon.' >> $(METRICS_DOCS_PATH)
+	echo 'weight: 4' >> $(METRICS_DOCS_PATH)
+	echo '---' >> $(METRICS_DOCS_PATH)
+	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs tetragon >> $(METRICS_DOCS_PATH)
