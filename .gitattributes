@@ -7,4 +7,5 @@
 # docs
 /docs/content/en/docs/reference/helm-chart.md linguist-generated
 /docs/content/en/docs/reference/grpc-api.md linguist-generated
+/docs/content/en/docs/reference/metrics.md linguist-generated
 /docs/data/tetragon_flags.yaml linguist-generated
