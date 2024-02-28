@@ -4,10 +4,12 @@
 package eventmetrics
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,6 +49,31 @@ func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
 	for i, data := range sum.SentFailed {
 		if data > 0 {
 			ch <- MissedEvents.MustMetric(float64(data), strconv.Itoa(i))
+		}
+	}
+}
+
+// bpfZeroCollector implements prometheus.Collector. It collects "zero" metrics.
+// It's intended to be used when BPF metrics are not collected, but we still want
+// Prometheus metrics to be exposed.
+type bpfZeroCollector struct {
+	bpfCollector
+}
+
+func NewBPFZeroCollector() prometheus.Collector {
+	return &bpfZeroCollector{
+		bpfCollector: bpfCollector{},
+	}
+}
+
+func (c *bpfZeroCollector) Describe(ch chan<- *prometheus.Desc) {
+	c.bpfCollector.Describe(ch)
+}
+
+func (c *bpfZeroCollector) Collect(ch chan<- prometheus.Metric) {
+	for opcode := range ops.OpCodeStrings {
+		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+			ch <- MissedEvents.MustMetric(0, fmt.Sprint(int32(opcode)))
 		}
 	}
 }
