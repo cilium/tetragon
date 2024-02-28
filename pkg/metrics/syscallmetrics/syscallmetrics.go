@@ -4,6 +4,8 @@
 package syscallmetrics
 
 import (
+	"slices"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
@@ -29,6 +31,9 @@ func InitMetrics(registry *prometheus.Registry) {
 
 func InitMetricsForDocs(registry *prometheus.Registry) {
 	InitMetrics(registry)
+
+	// Initialize metrics with example labels
+	syscallStats.WithLabelValues(slices.Concat([]string{consts.ExampleSyscallLabel}, consts.ExampleProcessLabels)...).Inc()
 }
 
 func Handle(event interface{}) {
