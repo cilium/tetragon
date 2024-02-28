@@ -69,6 +69,7 @@ func InitHealthMetricsForDocs(registry *prometheus.Registry) {
 
 	// register custom zero collectors
 	registry.MustRegister(observer.NewBPFZeroCollector())
+	registry.MustRegister(eventmetrics.NewBPFZeroCollector())
 }
 
 func initResourcesMetrics(registry *prometheus.Registry) {
