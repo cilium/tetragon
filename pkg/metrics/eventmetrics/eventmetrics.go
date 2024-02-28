@@ -4,6 +4,8 @@
 package eventmetrics
 
 import (
+	"slices"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -74,6 +76,14 @@ func InitEventsMetrics(registry *prometheus.Registry) {
 
 func InitEventsMetricsForDocs(registry *prometheus.Registry) {
 	InitEventsMetrics(registry)
+
+	// Initialize metrics with example labels
+	for ev, evString := range tetragon.EventType_name {
+		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
+			EventsProcessed.WithLabelValues(slices.Concat([]string{evString}, consts.ExampleProcessLabels)...).Add(0)
+		}
+	}
+	policyStats.WithLabelValues(slices.Concat([]string{consts.ExamplePolicyLabel, consts.ExampleKprobeLabel}, consts.ExampleProcessLabels)...).Add(0)
 }
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace string) {
