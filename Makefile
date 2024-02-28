@@ -430,4 +430,6 @@ metrics-docs: tetra
 	echo '  This reference documents Prometheus metrics exposed by Tetragon.' >> $(METRICS_DOCS_PATH)
 	echo 'weight: 4' >> $(METRICS_DOCS_PATH)
 	echo '---' >> $(METRICS_DOCS_PATH)
-	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs tetragon >> $(METRICS_DOCS_PATH)
+	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs health >> $(METRICS_DOCS_PATH)
+	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs resources >> $(METRICS_DOCS_PATH)
+	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetra metrics-docs events >> $(METRICS_DOCS_PATH)
