@@ -24,6 +24,8 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(newPolicyStateCollector(observer.GetSensorManager()))
 }
 
+func InitMetricsForDocs(registry *prometheus.Registry) {}
+
 // This metric collector converts the output of ListTracingPolicies into a few
 // gauges metrics on collection. Thus, it needs a sensor manager to query.
 func newPolicyStateCollector(sensorManager *sensors.Manager) *policyStateCollector {
