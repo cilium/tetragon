@@ -8,6 +8,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type DataEventOp int
+
+const (
+	DataEventOpOk DataEventOp = iota
+	DataEventOpBad
+)
+
+var dataEventStrings = map[DataEventOp]string{
+	DataEventOpOk:  "ok",
+	DataEventOpBad: "bad",
+}
+
+func (e DataEventOp) String() string {
+	return dataEventStrings[e]
+}
+
 var (
 	// Define a counter metric for data event statistics
 	DataEventStats = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -65,9 +81,9 @@ func DataEventMetricInc(event DataEventType) {
 }
 
 func DataEventMetricSizeOk(size uint32) {
-	DataEventSizeHist.WithLabelValues("ok").Observe(float64(size))
+	DataEventSizeHist.WithLabelValues(DataEventOpOk.String()).Observe(float64(size))
 }
 
 func DataEventMetricSizeBad(size uint32) {
-	DataEventSizeHist.WithLabelValues("bad").Observe(float64(size))
+	DataEventSizeHist.WithLabelValues(DataEventOpBad.String()).Observe(float64(size))
 }
