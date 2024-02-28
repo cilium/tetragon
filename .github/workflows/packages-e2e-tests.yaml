@@ -41,6 +41,8 @@ jobs:
         if: ${{ matrix.cross_compile == 'no' }}
         id: tetragon-tarball
         run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
           make tarball
           mkdir ${{ matrix.upload_path }}
           mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz ./${{ matrix.upload_path }}
