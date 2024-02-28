@@ -59,6 +59,11 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(policyStats.ToProm())
 	// custom collectors are registered independently
 
+	// Initialize metrics with labels
+	for _, v := range exec.FlagStrings {
+		FlagCount.WithLabelValues(v).Add(0)
+	}
+
 	// NOTES:
 	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
 	// * event, event_type, type - standardize on a label
