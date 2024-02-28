@@ -93,9 +93,3 @@ func InitAllMetrics(registry *prometheus.Registry) {
 	initAllResourcesMetrics(registry)
 	initAllEventsMetrics(registry)
 }
-
-func InitMetricsForDocs(registry *prometheus.Registry) {
-	InitHealthMetricsForDocs(registry)
-	InitResourcesMetricsForDocs(registry)
-	InitEventsMetricsForDocs(registry)
-}
