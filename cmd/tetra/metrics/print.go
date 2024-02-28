@@ -68,6 +68,6 @@ func New() *cobra.Command {
 }
 
 func initMetrics(_ string, reg *prometheus.Registry, _ *slog.Logger) error {
-	metricsconfig.InitAllMetrics(reg)
+	metricsconfig.InitMetricsForDocs(reg)
 	return nil
 }

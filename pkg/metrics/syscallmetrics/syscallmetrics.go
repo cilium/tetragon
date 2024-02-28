@@ -27,6 +27,10 @@ func InitMetrics(registry *prometheus.Registry) {
 	// * Delete syscalls_total? It seems to duplicate policy_events_total.
 }
 
+func InitMetricsForDocs(registry *prometheus.Registry) {
+	InitMetrics(registry)
+}
+
 func Handle(event interface{}) {
 	ev, ok := event.(*tetragon.GetEventsResponse)
 	if !ok {

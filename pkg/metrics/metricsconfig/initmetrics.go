@@ -25,32 +25,77 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
-func InitAllMetrics(registry *prometheus.Registry) {
+func initHealthMetrics(registry *prometheus.Registry) {
+	version.InitMetrics(registry)
 	errormetrics.InitMetrics(registry)
 	eventcachemetrics.InitMetrics(registry)
-	eventmetrics.InitMetrics(registry)
-	kprobemetrics.InitMetrics(registry)
+	eventmetrics.InitHealthMetrics(registry)
 	mapmetrics.InitMetrics(registry)
 	opcodemetrics.InitMetrics(registry)
 	policyfiltermetrics.InitMetrics(registry)
 	ringbufmetrics.InitMetrics(registry)
 	ringbufqueuemetrics.InitMetrics(registry)
-	syscallmetrics.InitMetrics(registry)
 	watchermetrics.InitMetrics(registry)
 	observer.InitMetrics(registry)
 	tracing.InitMetrics(registry)
 	ratelimitmetrics.InitMetrics(registry)
+
+	// register common third-party collectors
+	registry.MustRegister(grpcmetrics.NewServerMetrics())
+}
+
+func initAllHealthMetrics(registry *prometheus.Registry) {
+	initHealthMetrics(registry)
+
+	kprobemetrics.InitMetrics(registry)
 	policystatemetrics.InitMetrics(registry)
 
-	// register BPF collectors
+	// register custom collectors
 	registry.MustRegister(mapmetrics.NewBPFCollector(
 		observer.NewBPFCollector(),
 	))
 	registry.MustRegister(eventmetrics.NewBPFCollector())
+}
 
+func InitHealthMetricsForDocs(registry *prometheus.Registry) {
+	initHealthMetrics(registry)
+
+	kprobemetrics.InitMetricsForDocs(registry)
+	policystatemetrics.InitMetricsForDocs(registry)
+}
+
+func initResourcesMetrics(registry *prometheus.Registry) {
 	// register common third-party collectors
 	registry.MustRegister(collectors.NewGoCollector())
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	registry.MustRegister(grpcmetrics.NewServerMetrics())
-	version.InitMetrics(registry)
+}
+
+func initAllResourcesMetrics(registry *prometheus.Registry) {
+	initResourcesMetrics(registry)
+}
+
+func InitResourcesMetricsForDocs(registry *prometheus.Registry) {
+	initResourcesMetrics(registry)
+}
+
+func initAllEventsMetrics(registry *prometheus.Registry) {
+	eventmetrics.InitEventsMetrics(registry)
+	syscallmetrics.InitMetrics(registry)
+}
+
+func InitEventsMetricsForDocs(registry *prometheus.Registry) {
+	eventmetrics.InitEventsMetricsForDocs(registry)
+	syscallmetrics.InitMetricsForDocs(registry)
+}
+
+func InitAllMetrics(registry *prometheus.Registry) {
+	initAllHealthMetrics(registry)
+	initAllResourcesMetrics(registry)
+	initAllEventsMetrics(registry)
+}
+
+func InitMetricsForDocs(registry *prometheus.Registry) {
+	InitHealthMetricsForDocs(registry)
+	InitResourcesMetricsForDocs(registry)
+	InitEventsMetricsForDocs(registry)
 }
