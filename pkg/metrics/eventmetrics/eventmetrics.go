@@ -62,6 +62,11 @@ func registerMetrics(registry *prometheus.Registry) {
 func InitMetrics(registry *prometheus.Registry) {
 	registerMetrics(registry)
 
+	// Initialize metrics with labels
+	for _, v := range exec.FlagStrings {
+		FlagCount.WithLabelValues(v).Add(0)
+	}
+
 	// NOTES:
 	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
 	// * event, event_type, type - standardize on a label
