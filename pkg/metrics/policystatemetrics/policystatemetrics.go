@@ -24,7 +24,9 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(newPolicyStateCollector(observer.GetSensorManager()))
 }
 
-func InitMetricsForDocs(registry *prometheus.Registry) {}
+func InitMetricsForDocs(registry *prometheus.Registry) {
+	registry.MustRegister(newPolicyStateZeroCollector())
+}
 
 // This metric collector converts the output of ListTracingPolicies into a few
 // gauges metrics on collection. Thus, it needs a sensor manager to query.
@@ -82,6 +84,50 @@ func (c *policyStateCollector) Collect(ch chan<- prometheus.Metric) {
 		c.descriptor,
 		prometheus.GaugeValue,
 		float64(counters[tetragon.TracingPolicyState_TP_STATE_ENABLED]),
+		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ENABLED.String()), "tp_state_"),
+	)
+}
+
+// policyStateZeroCollector implements prometheus.Collector. It collects "zero"
+// metrics. It's intended to be used when the sensor manager doesn't exist, but
+// we still want Prometheus metrics to be exposed.
+type policyStateZeroCollector struct {
+	policyStateCollector
+}
+
+func newPolicyStateZeroCollector() prometheus.Collector {
+	return &policyStateZeroCollector{
+		policyStateCollector: *newPolicyStateCollector(nil),
+	}
+}
+
+func (c *policyStateZeroCollector) Describe(ch chan<- *prometheus.Desc) {
+	c.policyStateCollector.Describe(ch)
+}
+
+func (c *policyStateZeroCollector) Collect(ch chan<- prometheus.Metric) {
+	ch <- prometheus.MustNewConstMetric(
+		c.descriptor,
+		prometheus.GaugeValue,
+		0,
+		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR.String()), "tp_state_"),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.descriptor,
+		prometheus.GaugeValue,
+		0,
+		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ERROR.String()), "tp_state_"),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.descriptor,
+		prometheus.GaugeValue,
+		0,
+		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_DISABLED.String()), "tp_state_"),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.descriptor,
+		prometheus.GaugeValue,
+		0,
 		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ENABLED.String()), "tp_state_"),
 	)
 }
