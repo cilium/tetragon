@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // FakeK8sWatcher is used as an "empty" K8sResourceWatcher when --enable-k8s-api flag is not set.
@@ -58,3 +59,12 @@ func (watcher *FakeK8sWatcher) AddService(service *corev1.Service) {
 func (watcher *FakeK8sWatcher) ClearAllServices() {
 	watcher.services = nil
 }
+
+func (watcher *FakeK8sWatcher) AddInformers(_ InternalSharedInformerFactory, _ ...*InternalInformer) {
+}
+
+func (watcher *FakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {
+	return nil
+}
+
+func (watcher *FakeK8sWatcher) Start() {}
