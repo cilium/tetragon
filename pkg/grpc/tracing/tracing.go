@@ -385,6 +385,16 @@ func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev
 	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
 }
 
+func familyString(family uint16) string {
+	switch family {
+	case unix.AF_INET:
+		return "AF_INET"
+	case unix.AF_INET6:
+		return "AF_INET6"
+	}
+	return ""
+}
+
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var tetragonParent, tetragonProcess *tetragon.Process
 
@@ -428,6 +438,46 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		case []byte:
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_BytesArg{
 				BytesArg: v,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgSkb:
+			skb := tetragon.KprobeSkb{
+				Family:      familyString(v.Family),
+				Hash:        v.Hash,
+				Len:         v.Len,
+				Priority:    v.Priority,
+				Mark:        v.Mark,
+				Saddr:       v.Saddr,
+				Daddr:       v.Daddr,
+				Sport:       v.Sport,
+				Dport:       v.Dport,
+				Proto:       v.Proto,
+				Protocol:    network.InetProtocol(uint16(v.Proto)),
+				SecPathLen:  v.SecPathLen,
+				SecPathOlen: v.SecPathOLen,
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SkbArg{
+				SkbArg: &skb,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgSock:
+			sk := tetragon.KprobeSock{
+				Family:   familyString(v.Family),
+				Type:     network.InetType(v.Type),
+				Protocol: network.InetProtocol(uint16(v.Protocol)),
+				Mark:     v.Mark,
+				Priority: v.Priority,
+				Saddr:    v.Saddr,
+				Daddr:    v.Daddr,
+				Sport:    v.Sport,
+				Dport:    v.Dport,
+				Cookie:   v.Sockaddr,
+				State:    network.TcpState(v.State),
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockArg{
+				SockArg: &sk,
 			}})
 
 		default:
