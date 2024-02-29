@@ -51,6 +51,8 @@ const (
 
 	GenericLinuxBinprmType = 37
 
+	GenericDataLoc = 38
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -131,6 +133,8 @@ func GenericTypeFromString(arg string) int {
 		return GenericCapEffective
 	case "linux_binprm":
 		return GenericLinuxBinprmType
+	case "data_loc":
+		return GenericDataLoc
 	default:
 		return GenericInvalidType
 	}

@@ -745,7 +745,7 @@ func handleMsgGenericTracepoint(
 					logger.GetLogger().Warnf("failed to read array argument: unexpected base type: %w", intTy.Base)
 				}
 			}
-		case gt.GenericStringType:
+		case gt.GenericStringType, gt.GenericDataLoc:
 			if arg, err := parseString(r); err != nil {
 				logger.GetLogger().WithError(err).Warn("error parsing arg type string")
 			} else {

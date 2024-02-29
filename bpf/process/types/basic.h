@@ -75,6 +75,8 @@ enum {
 
 	linux_binprm_type = 37,
 
+	data_loc_type = 38,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -478,15 +480,15 @@ a:
 }
 
 static inline __attribute__((always_inline)) long
-copy_strings(char *args, unsigned long arg)
+copy_strings(char *args, char *arg, int max_size)
 {
 	int *s = (int *)args;
 	long size;
 
 	// probe_read_str() always nul-terminates the string.
 	// So add one to the length to allow for it. This should
-	// result in us honouring our MAX_STRING correctly.
-	size = probe_read_str(&args[4], MAX_STRING + 1, (char *)arg);
+	// result in us honouring our max_size correctly.
+	size = probe_read_str(&args[4], max_size + 1, arg);
 	if (size <= 1)
 		return invalid_ty;
 	// Remove the nul character from end.
@@ -1801,6 +1803,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
+		case data_loc_type:
 			/* for strings, we just encode the length */
 			pass &= filter_char_buf(filter, args, 4);
 			break;
@@ -2586,8 +2589,15 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 		// fallthrough to copy_string
 	case string_type:
-		size = copy_strings(args, arg);
+		size = copy_strings(args, (char *)arg, MAX_STRING);
 		break;
+	case data_loc_type: {
+		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
+		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
+		char *dl_loc = ctx + (arg & 0xffff);
+
+		size = copy_strings(args, dl_loc, dl_len);
+	} break;
 	case syscall64_type:
 	case size_type:
 	case s64_ty:

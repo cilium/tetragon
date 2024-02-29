@@ -178,6 +178,8 @@ const (
 	argTypeSyscall64 = 28
 
 	argTypeLinuxBinprm = 29
+
+	argTypeDataLoc = 38
 )
 
 var argTypeTable = map[string]uint32{
@@ -199,6 +201,7 @@ var argTypeTable = map[string]uint32{
 	"fqdn":         argTypeFqdn,
 	"syscall64":    argTypeSyscall64,
 	"linux_binprm": argTypeLinuxBinprm,
+	"data_loc":     argTypeDataLoc,
 }
 
 var argTypeStringTable = map[uint32]string{
@@ -220,6 +223,7 @@ var argTypeStringTable = map[uint32]string{
 	argTypeFqdn:        "fqdn",
 	argTypeSyscall64:   "syscall64",
 	argTypeLinuxBinprm: "linux_binprm",
+	argTypeDataLoc:     "data_loc",
 }
 
 const (
@@ -849,7 +853,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf, argTypeLinuxBinprm:
+		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf, argTypeLinuxBinprm, argTypeDataLoc:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
