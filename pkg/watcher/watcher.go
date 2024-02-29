@@ -148,8 +148,6 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 
 	podhooks.InstallHooks(podInformer)
 
-	k8sWatcher.Start()
-
 	return k8sWatcher
 }
 
