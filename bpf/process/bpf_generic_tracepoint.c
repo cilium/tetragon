@@ -68,12 +68,14 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case s64_ty:
 	case u64_ty: {
 		u64 ret;
+
 		probe_read(&ret, sizeof(u64), src);
 		return ret;
 	}
 
 	case size_type: {
 		size_t ret;
+
 		probe_read(&ret, sizeof(size_t), src);
 		return (unsigned long)ret;
 	}
@@ -81,6 +83,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case nop_s32_ty:
 	case s32_ty: {
 		s32 ret;
+
 		probe_read(&ret, sizeof(u32), src);
 		return ret;
 	}
@@ -88,6 +91,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case nop_u32_ty:
 	case u32_ty: {
 		u32 ret;
+
 		probe_read(&ret, sizeof(u32), src);
 		return ret;
 	}
@@ -97,6 +101,13 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 		char *buff;
 		probe_read(&buff, sizeof(char *), src);
 		return (unsigned long)buff;
+	}
+
+	case data_loc_type: {
+		u32 ret;
+
+		probe_read(&ret, sizeof(ret), src);
+		return ret;
 	}
 
 	case const_buf_type: {
