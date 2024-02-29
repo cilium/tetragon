@@ -50,6 +50,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -567,6 +568,15 @@ func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1
 
 	return &pod, &container, true
 }
+
+func (f *fakeK8sWatcher) AddInformers(_ watcher.InternalSharedInformerFactory, _ ...*watcher.InternalInformer) {
+}
+
+func (f *fakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {
+	return nil
+}
+
+func (f *fakeK8sWatcher) Start() {}
 
 // Used to wait for a process to start, we do a lookup on PROCFS because this
 // may be called before obs is created.
