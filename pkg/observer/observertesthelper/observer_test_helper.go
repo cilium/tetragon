@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/exporter"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -562,6 +563,14 @@ func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1
 	}
 
 	return &pod, &container, true
+}
+
+func (f *fakeK8sWatcher) FindServiceByIP(ip string) ([]*corev1.Service, error) {
+	return nil, fmt.Errorf("service with IP %s not found", ip)
+}
+
+func (f *fakeK8sWatcher) FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error) {
+	return nil, fmt.Errorf("PodInfo with IP %s not found", ip)
 }
 
 // Used to wait for a process to start, we do a lookup on PROCFS because this

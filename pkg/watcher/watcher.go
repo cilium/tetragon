@@ -45,6 +45,12 @@ type K8sResourceWatcher interface {
 
 	// Find a pod given the podID
 	FindPod(podID string) (*corev1.Pod, error)
+
+	// FindServiceByIP finds a service given the IP address.
+	FindServiceByIP(ip string) ([]*corev1.Service, error)
+
+	// FindPodInfoByIP finds a service given the IP address.
+	FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
@@ -275,4 +281,42 @@ func findContainer(containerID string, pods []interface{}) (*corev1.Pod, *corev1
 		}
 	}
 	return nil, nil, false
+}
+
+func (watcher *K8sWatcher) FindServiceByIP(ip string) ([]*corev1.Service, error) {
+	objs, err := watcher.serviceInformer.GetIndexer().ByIndex(serviceIPsIdx, ip)
+	if err != nil {
+		return nil, fmt.Errorf("watcher returned: %w", err)
+	}
+	if len(objs) == 0 {
+		return nil, fmt.Errorf("service with IP %s not found", ip)
+	}
+	var services []*corev1.Service
+	for _, obj := range objs {
+		service, ok := obj.(*corev1.Service)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type %t", objs[0])
+		}
+		services = append(services, service)
+	}
+	return services, nil
+}
+
+func (watcher *K8sWatcher) FindPodInfoByIP(ip string) ([]*v1alpha1.PodInfo, error) {
+	objs, err := watcher.podInfoInformer.GetIndexer().ByIndex(podInfoIPsIdx, ip)
+	if err != nil {
+		return nil, fmt.Errorf("pod info watcher returned: %w", err)
+	}
+	if len(objs) == 0 {
+		return nil, fmt.Errorf("PodInfo with IP %s not found", ip)
+	}
+	var podInfo []*v1alpha1.PodInfo
+	for _, obj := range objs {
+		service, ok := obj.(*v1alpha1.PodInfo)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type %t", objs[0])
+		}
+		podInfo = append(podInfo, service)
+	}
+	return podInfo, nil
 }
