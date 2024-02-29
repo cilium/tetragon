@@ -11,10 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
-	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/fake"
-	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	corev1 "k8s.io/api/core/v1"
@@ -26,20 +22,14 @@ import (
 )
 
 const (
-	containerIDLen      = 15
-	containerIdx        = "containers-ids"
-	podIdx              = "pod-ids"
-	serviceIPsIdx       = "service-ips"
-	podInfoIPsIdx       = "pod-info-ips"
-	podInformerName     = "pod"
-	serviceInformerName = "service"
-	podInfoInformerName = "podInfo"
+	containerIDLen  = 15
+	containerIdx    = "containers-ids"
+	podIdx          = "pod-ids"
+	podInformerName = "pod"
 )
 
 var (
-	errNoPod     = errors.New("object is not a *corev1.Pod")
-	errNoService = errors.New("object is not a *corev1.Service")
-	errNoPodInfo = errors.New("object is not a *PodInfo")
+	errNoPod = errors.New("object is not a *corev1.Pod")
 )
 
 // K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
@@ -127,35 +117,8 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
-// serviceIPIndexFunc indexes services by their IP addresses
-func serviceIPIndexFunc(obj interface{}) ([]string, error) {
-	switch t := obj.(type) {
-	case *corev1.Service:
-		return t.Spec.ClusterIPs, nil
-	}
-	return nil, fmt.Errorf("%w - found %T", errNoService, obj)
-}
-
-// podInfoIPIndexFunc indexes services by their IP addresses
-func podInfoIPIndexFunc(obj interface{}) ([]string, error) {
-	switch t := obj.(type) {
-	case *v1alpha1.PodInfo:
-		var ips []string
-		for _, ip := range t.Status.PodIPs {
-			ips = append(ips, ip.IP)
-		}
-		return ips, nil
-	}
-	return nil, fmt.Errorf("%w - found %T", errNoPodInfo, obj)
-}
-
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
 func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
-	return NewK8sWatcherWithTetragonClient(k8sClient, fake.NewSimpleClientset(), stateSyncIntervalSec)
-}
-
-// NewK8sWatcherWithTetragonClient returns a pointer to an initialized K8sWatcher struct.
-func NewK8sWatcherWithTetragonClient(k8sClient kubernetes.Interface, tetragonClient versioned.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
 	nodeName := os.Getenv("NODE_NAME")
 	if nodeName == "" {
 		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
@@ -178,27 +141,6 @@ func NewK8sWatcherWithTetragonClient(k8sClient kubernetes.Interface, tetragonCli
 		Indexers: map[string]cache.IndexFunc{
 			containerIdx: containerIndexFunc,
 			podIdx:       podIndexFunc,
-		},
-	})
-
-	// can't share the same informer factory as pods because the pod informer filters by spec.nodeName field.
-	serviceInformerFactory := informers.NewSharedInformerFactory(k8sClient, stateSyncIntervalSec)
-	serviceInformer := serviceInformerFactory.Core().V1().Services().Informer()
-	k8sWatcher.AddInformers(serviceInformerFactory, &InternalInformer{
-		Name:     serviceInformerName,
-		Informer: serviceInformer,
-		Indexers: map[string]cache.IndexFunc{
-			serviceIPsIdx: serviceIPIndexFunc,
-		},
-	})
-
-	podInfoInformerFactory := externalversions.NewSharedInformerFactory(tetragonClient, stateSyncIntervalSec)
-	podInfoInformer := podInfoInformerFactory.Cilium().V1alpha1().PodInfo().Informer()
-	k8sWatcher.AddInformers(podInfoInformerFactory, &InternalInformer{
-		Name:     podInfoInformerName,
-		Informer: podInfoInformer,
-		Indexers: map[string]cache.IndexFunc{
-			podInfoIPsIdx: podInfoIPIndexFunc,
 		},
 	})
 
