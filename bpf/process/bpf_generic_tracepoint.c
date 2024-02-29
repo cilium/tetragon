@@ -114,6 +114,20 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 		return (unsigned long)src;
 	}
 
+	case skb_type: {
+		struct sk_buff *skb;
+
+		probe_read(&skb, sizeof(struct sk_buff *), src);
+		return (unsigned long)skb;
+	}
+
+	case sock_type: {
+		struct sock *sk;
+
+		probe_read(&sk, sizeof(struct sock *), src);
+		return (unsigned long)sk;
+	}
+
 	default:
 	case nop_ty:
 		return 0;

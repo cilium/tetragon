@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -754,6 +755,49 @@ func handleMsgGenericTracepoint(
 			} else {
 				unix.Args = append(unix.Args, arg)
 			}
+		case gt.GenericSkbType:
+			var skb api.MsgGenericKprobeSkb
+			var arg api.MsgGenericKprobeArgSkb
+
+			err := binary.Read(r, binary.LittleEndian, &skb)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("skb type err")
+			}
+
+			arg.Hash = skb.Hash
+			arg.Len = skb.Len
+			arg.Priority = skb.Priority
+			arg.Mark = skb.Mark
+			arg.Family = skb.Tuple.Family
+			arg.Saddr = network.GetIP(skb.Tuple.Saddr, skb.Tuple.Family).String()
+			arg.Daddr = network.GetIP(skb.Tuple.Daddr, skb.Tuple.Family).String()
+			arg.Sport = uint32(skb.Tuple.Sport)
+			arg.Dport = uint32(skb.Tuple.Dport)
+			arg.Proto = uint32(skb.Tuple.Protocol)
+			arg.SecPathLen = skb.SecPathLen
+			arg.SecPathOLen = skb.SecPathOLen
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericSockType:
+			var sock api.MsgGenericKprobeSock
+			var arg api.MsgGenericKprobeArgSock
+
+			err := binary.Read(r, binary.LittleEndian, &sock)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("sock type err")
+			}
+
+			arg.Family = sock.Tuple.Family
+			arg.State = sock.State
+			arg.Type = sock.Type
+			arg.Protocol = sock.Tuple.Protocol
+			arg.Mark = sock.Mark
+			arg.Priority = sock.Priority
+			arg.Saddr = network.GetIP(sock.Tuple.Saddr, sock.Tuple.Family).String()
+			arg.Daddr = network.GetIP(sock.Tuple.Daddr, sock.Tuple.Family).String()
+			arg.Sport = uint32(sock.Tuple.Sport)
+			arg.Dport = uint32(sock.Tuple.Dport)
+			arg.Sockaddr = sock.Sockaddr
+			unix.Args = append(unix.Args, arg)
 
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
