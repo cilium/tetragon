@@ -3,6 +3,12 @@
 
 package ops
 
+import (
+	"fmt"
+
+	"github.com/cilium/tetragon/pkg/logger"
+)
+
 const (
 	MSG_OP_UNDEF = 0
 	// MSG_OP_EXECVE event indicates a process was created. The 'PID'
@@ -91,7 +97,8 @@ var OpCodeStrings = map[OpCode]string{
 func (op OpCode) String() string {
 	s, ok := OpCodeStrings[op]
 	if !ok {
-		return ""
+		logger.GetLogger().WithField("opcode", op).Info("Unknown OpCode. This is a bug, please report it to Tetragon developers.")
+		return fmt.Sprintf("Unknown(%d)", op)
 	}
 	return s
 }
