@@ -505,7 +505,10 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 		if err != nil {
 			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
-		selType := selectors.ArgTypeToString(uint32(ty))
+		selType, err := gt.GenericTypeToString(ty)
+		if err != nil {
+			return fmt.Errorf("output argument %v type not found: %w", tpArg, err)
+		}
 
 		// NB: this a selector argument, meant to be passed to InitKernelSelectors.
 		// The only fields needed for the latter are Index and Type

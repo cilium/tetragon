@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -151,79 +152,6 @@ var capabilitiesTypeTable = map[string]uint32{
 	"effective":   capsEffective,
 	"inheritable": capsInheritable,
 	"permitted":   capsPermitted,
-}
-
-const (
-	argTypeInt       = 1
-	argTypeCharBuf   = 2
-	argTypeCharIovec = 3
-	argTypeSizet     = 4
-	argTypeSkb       = 5
-	argTypeString    = 6
-	argTypeSock      = 7
-
-	argTypeS64 = 10
-	argTypeU64 = 11
-	argTypeS32 = 12
-	argTypeU32 = 13
-
-	argTypePath = 15
-	argTypeFile = 16
-	argTypeFd   = 17
-
-	argTypeUrl  = 18
-	argTypeFqdn = 19
-
-	// mirrors gt.GenericSyscall64
-	argTypeSyscall64 = 28
-
-	argTypeLinuxBinprm = 29
-
-	argTypeDataLoc = 38
-)
-
-var argTypeTable = map[string]uint32{
-	"int":          argTypeInt,
-	"uint32":       argTypeU32,
-	"int32":        argTypeS32,
-	"uint64":       argTypeU64,
-	"int64":        argTypeS64,
-	"char_buf":     argTypeCharBuf,
-	"char_iovec":   argTypeCharIovec,
-	"sizet":        argTypeSizet,
-	"skb":          argTypeSkb,
-	"string":       argTypeString,
-	"fd":           argTypeFd,
-	"path":         argTypePath,
-	"file":         argTypeFile,
-	"sock":         argTypeSock,
-	"url":          argTypeUrl,
-	"fqdn":         argTypeFqdn,
-	"syscall64":    argTypeSyscall64,
-	"linux_binprm": argTypeLinuxBinprm,
-	"data_loc":     argTypeDataLoc,
-}
-
-var argTypeStringTable = map[uint32]string{
-	argTypeInt:         "int",
-	argTypeU32:         "uint32",
-	argTypeS32:         "int32",
-	argTypeU64:         "uint64",
-	argTypeS64:         "int64",
-	argTypeCharBuf:     "char_buf",
-	argTypeCharIovec:   "char_iovec",
-	argTypeSizet:       "sizet",
-	argTypeSkb:         "skb",
-	argTypeString:      "string",
-	argTypeFd:          "fd",
-	argTypeFile:        "file",
-	argTypePath:        "path",
-	argTypeSock:        "sock",
-	argTypeUrl:         "url",
-	argTypeFqdn:        "fqdn",
-	argTypeSyscall64:   "syscall64",
-	argTypeLinuxBinprm: "linux_binprm",
-	argTypeDataLoc:     "data_loc",
 }
 
 const (
@@ -413,14 +341,6 @@ func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) er
 	return nil
 }
 
-func kprobeArgType(t string) uint32 {
-	return argTypeTable[t]
-}
-
-func ArgTypeToString(t uint32) string {
-	return argTypeStringTable[t]
-}
-
 func ActionTypeFromString(action string) int32 {
 	act, ok := actionTypeTable[strings.ToLower(action)]
 	if !ok {
@@ -434,7 +354,7 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 		if arg.Index == s.Index {
 			// TBD: We shouldn't get this far with invalid KProbe args
 			// KProbe args have already been validated
-			return kprobeArgType(s.Type), nil
+			return uint32(gt.GenericTypeFromString(s.Type)), nil
 		}
 	}
 	return 0, fmt.Errorf("argFilter for unknown index")
@@ -482,14 +402,14 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 	}
 	for idx := 0; idx < 2; idx++ {
 		switch ty {
-		case argTypeS64, argTypeInt:
+		case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 			i, err := strconv.ParseInt(rangeStr[idx], 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			sRangeVal[idx] = i
 
-		case argTypeU64:
+		case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 			i, err := strconv.ParseUint(rangeStr[idx], 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
@@ -500,7 +420,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 		}
 	}
 	switch ty {
-	case argTypeS64, argTypeInt:
+	case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 		if sRangeVal[0] > sRangeVal[1] {
 			sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
 		}
@@ -510,7 +430,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 			m.Data[valByte] = struct{}{}
 		}
 
-	case argTypeU64:
+	case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 		if uRangeVal[0] > uRangeVal[1] {
 			uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
 		}
@@ -548,9 +468,9 @@ func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueM
 		var val [8]byte
 
 		switch ty {
-		case argTypeS64, argTypeInt, argTypeSyscall64:
+		case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 			binary.LittleEndian.PutUint64(val[:], uint64(values[idx]))
-		case argTypeU64:
+		case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 			binary.LittleEndian.PutUint64(val[:], uint64(values[idx]))
 		default:
 			return fmt.Errorf("Unknown type: %d", ty)
@@ -581,13 +501,13 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, o
 			continue
 		}
 		switch ty {
-		case argTypeS64, argTypeInt, argTypeSyscall64:
+		case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			binary.LittleEndian.PutUint64(val[:], uint64(i))
-		case argTypeU64:
+		case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 			i, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
@@ -694,33 +614,34 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
-		case argTypeS32, argTypeInt, argTypeSizet:
+
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType:
 			i, err := strconv.ParseInt(v, base, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(&k.data, int32(i))
-		case argTypeU32:
+		case gt.GenericU32Type:
 			i, err := strconv.ParseUint(v, base, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(&k.data, uint32(i))
-		case argTypeS64:
+		case gt.GenericS64Type, gt.GenericSyscall64:
 			i, err := strconv.ParseInt(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt64(&k.data, int64(i))
-		case argTypeU64:
+		case gt.GenericU64Type:
 			i, err := strconv.ParseUint(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint64(&k.data, uint64(i))
-		case argTypeSock, argTypeSkb:
+		case gt.GenericSockType, gt.GenericSkbType:
 			return fmt.Errorf("MatchArgs type sock and skb do not support operator %s", selectorOpStringTable[op])
-		case argTypeCharIovec:
+		case gt.GenericCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
 	}
@@ -731,7 +652,7 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	maps := k.createStringMaps()
 
 	for _, v := range values {
-		trimNulSuffix := ty == argTypeString
+		trimNulSuffix := ty == gt.GenericStringType
 		value, size, err := ArgStringSelectorValue(v, trimNulSuffix)
 		if err != nil {
 			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
@@ -795,7 +716,7 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 	for _, v := range values {
 		var value []byte
 		var size uint32
-		if ty == argTypeCharBuf {
+		if ty == gt.GenericCharBuffer {
 			value, size = ArgPostfixSelectorValue(v, false)
 		} else {
 			value, size = ArgPostfixSelectorValue(v, true)
@@ -853,7 +774,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case argTypeFd, argTypeFile, argTypePath, argTypeString, argTypeCharBuf, argTypeLinuxBinprm, argTypeDataLoc:
+		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
@@ -875,15 +796,15 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
-		if ty != argTypeSock && ty != argTypeSkb {
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
-		err := writeMatchRangesInMap(k, arg.Values, argTypeU64, op) // force type for ports and protocols as ty is sock/skb
+		err := writeMatchRangesInMap(k, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/skb
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
 	case SelectorOpSaddr, SelectorOpDaddr, SelectorOpNotSaddr, SelectorOpNotDaddr:
-		if ty != argTypeSock && ty != argTypeSkb {
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
 		err := writeMatchAddrsInMap(k, arg.Values)
@@ -892,7 +813,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
-		if ty != argTypeSock && ty != argTypeSkb {
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
 	default:

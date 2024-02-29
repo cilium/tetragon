@@ -3,6 +3,8 @@
 
 package generictypes
 
+import "fmt"
+
 const (
 	GenericIntType    = 1
 	GenericCharBuffer = 2
@@ -57,85 +59,108 @@ const (
 	GenericInvalidType = -2
 )
 
+var GenericStringToType = map[string]int{
+	"string":          GenericStringType,
+	"int":             GenericIntType,
+	"uint64":          GenericU64Type,
+	"unsigned long":   GenericU64Type,
+	"ulong":           GenericU64Type,
+	"uint32":          GenericU32Type,
+	"sint64":          GenericS64Type,
+	"int64":           GenericS64Type,
+	"long":            GenericS64Type,
+	"sint32":          GenericS32Type,
+	"int32":           GenericS32Type,
+	"skb":             GenericSkbType,
+	"sock":            GenericSockType,
+	"size_t":          GenericSizeType,
+	"char_buf":        GenericCharBuffer,
+	"char_iovec":      GenericCharIovec,
+	"filename":        GenericFilenameType,
+	"file":            GenericFileType,
+	"path":            GenericPathType,
+	"fd":              GenericFdType,
+	"cred":            GenericCredType,
+	"const_buf":       GenericConstBuffer,
+	"nop":             GenericNopType,
+	"bpf_attr":        GenericBpfAttr,
+	"perf_event":      GenericPerfEvent,
+	"bpf_map":         GenericBpfMap,
+	"user_namespace":  GenericUserNamespace,
+	"capability":      GenericCapability,
+	"kiocb":           GenericKiocb,
+	"iov_iter":        GenericIovIter,
+	"load_info":       GenericLoadModule,
+	"module":          GenericKernelModule,
+	"syscall64":       GenericSyscall64,
+	"sint16":          GenericS16Type,
+	"int16":           GenericS16Type,
+	"uint16":          GenericU16Type,
+	"sint8":           GenericS8Type,
+	"int8":            GenericS8Type,
+	"uint8":           GenericU8Type,
+	"kernel_cap_t":    GenericKernelCap,
+	"cap_inheritable": GenericCapInheritable,
+	"cap_permitted":   GenericCapPermitted,
+	"cap_effective":   GenericCapEffective,
+	"linux_binprm":    GenericLinuxBinprmType,
+	"data_loc":        GenericDataLoc,
+}
+
+var GenericTypeToStringTable = map[int]string{
+	GenericStringType:      "string",
+	GenericIntType:         "int",
+	GenericU64Type:         "uint64",
+	GenericU32Type:         "uint32",
+	GenericS64Type:         "int64",
+	GenericS32Type:         "int32",
+	GenericSkbType:         "skb",
+	GenericSockType:        "sock",
+	GenericSizeType:        "size_t",
+	GenericCharBuffer:      "char_buf",
+	GenericCharIovec:       "char_iovec",
+	GenericFilenameType:    "filename",
+	GenericFileType:        "file",
+	GenericPathType:        "path",
+	GenericFdType:          "fd",
+	GenericCredType:        "cred",
+	GenericConstBuffer:     "const_buf",
+	GenericNopType:         "nop",
+	GenericBpfAttr:         "bpf_attr",
+	GenericPerfEvent:       "perf_event",
+	GenericBpfMap:          "bpf_map",
+	GenericUserNamespace:   "user_namespace",
+	GenericCapability:      "capability",
+	GenericKiocb:           "kiocb",
+	GenericIovIter:         "iov_iter",
+	GenericLoadModule:      "load_info",
+	GenericKernelModule:    "module",
+	GenericSyscall64:       "syscall64",
+	GenericS16Type:         "int16",
+	GenericU16Type:         "uint16",
+	GenericS8Type:          "int8",
+	GenericU8Type:          "uint8",
+	GenericKernelCap:       "kernel_cap_t",
+	GenericCapInheritable:  "cap_inheritable",
+	GenericCapPermitted:    "cap_permitted",
+	GenericCapEffective:    "cap_effective",
+	GenericLinuxBinprmType: "linux_binprm",
+	GenericDataLoc:         "data_loc",
+	GenericInvalidType:     "",
+}
+
 func GenericTypeFromString(arg string) int {
-	switch arg {
-	case "string":
-		return GenericStringType
-	case "int":
-		return GenericIntType
-	case "uint64", "unsigned long", "ulong":
-		return GenericU64Type
-	case "uint32":
-		return GenericU32Type
-	case "sint64", "int64", "long":
-		return GenericS64Type
-	case "sint32", "int32":
-		return GenericS32Type
-	case "skb":
-		return GenericSkbType
-	case "sock":
-		return GenericSockType
-	case "size_t":
-		return GenericSizeType
-	case "char_buf":
-		return GenericCharBuffer
-	case "char_iovec":
-		return GenericCharIovec
-	case "filename":
-		return GenericFilenameType
-	case "file":
-		return GenericFileType
-	case "path":
-		return GenericPathType
-	case "fd":
-		return GenericFdType
-	case "cred":
-		return GenericCredType
-	case "const_buf":
-		return GenericConstBuffer
-	case "nop":
-		return GenericNopType
-	case "bpf_attr":
-		return GenericBpfAttr
-	case "perf_event":
-		return GenericPerfEvent
-	case "bpf_map":
-		return GenericBpfMap
-	case "user_namespace":
-		return GenericUserNamespace
-	case "capability":
-		return GenericCapability
-	case "kiocb":
-		return GenericKiocb
-	case "iov_iter":
-		return GenericIovIter
-	case "load_info":
-		return GenericLoadModule
-	case "module":
-		return GenericKernelModule
-	case "syscall64":
-		return GenericSyscall64
-	case "sint16", "int16":
-		return GenericS16Type
-	case "uint16":
-		return GenericU16Type
-	case "sint8", "int8":
-		return GenericS8Type
-	case "uint8":
-		return GenericU8Type
-	case "kernel_cap_t":
-		return GenericKernelCap
-	case "cap_inheritable":
-		return GenericCapInheritable
-	case "cap_permitted":
-		return GenericCapPermitted
-	case "cap_effective":
-		return GenericCapEffective
-	case "linux_binprm":
-		return GenericLinuxBinprmType
-	case "data_loc":
-		return GenericDataLoc
-	default:
-		return GenericInvalidType
+	ty, ok := GenericStringToType[arg]
+	if !ok {
+		ty = GenericInvalidType
 	}
+	return ty
+}
+
+func GenericTypeToString(ty int) (string, error) {
+	arg, ok := GenericTypeToStringTable[ty]
+	if !ok {
+		return "", fmt.Errorf("invalid argument type")
+	}
+	return arg, nil
 }
