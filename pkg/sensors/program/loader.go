@@ -30,15 +30,15 @@ type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebp
 
 type OpenFunc func(*ebpf.CollectionSpec) error
 
-type customInstall struct {
-	mapName   string
-	secPrefix string
+type TailCallMetadata struct {
+	MapName   string
+	SecPrefix string
 }
 
 type loadOpts struct {
-	attach AttachFunc
-	open   OpenFunc
-	ci     *customInstall
+	attach           AttachFunc
+	open             OpenFunc
+	tailCallMetadata []*TailCallMetadata
 }
 
 func RawAttach(targetFD int) AttachFunc {
@@ -431,16 +431,16 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tailCallMetadata []*TailCallMetadata
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			ci = &customInstall{mPath, "tracepoint"}
+			tailCallMetadata = append(tailCallMetadata, &TailCallMetadata{mPath, "tracepoint"})
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: TracepointAttach(load),
-		ci:     ci,
+		attach:           TracepointAttach(load),
+		tailCallMetadata: tailCallMetadata,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -453,17 +453,17 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tailCallMetadata []*TailCallMetadata
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			tailCallMetadata = append(tailCallMetadata, &TailCallMetadata{mPath, "kprobe"})
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: KprobeAttach(load, bpfDir),
-		open:   KprobeOpen(load),
-		ci:     ci,
+		attach:           KprobeAttach(load, bpfDir),
+		open:             KprobeOpen(load),
+		tailCallMetadata: tailCallMetadata,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -498,32 +498,32 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ve
 }
 
 func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tailCallMetadata []*TailCallMetadata
 	for mName, mPath := range load.PinMap {
 		if mName == "uprobe_calls" {
-			ci = &customInstall{mPath, "uprobe"}
+			tailCallMetadata = append(tailCallMetadata, &TailCallMetadata{mPath, "uprobe"})
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: UprobeAttach(load),
-		ci:     ci,
+		attach:           UprobeAttach(load),
+		tailCallMetadata: tailCallMetadata,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tailCallMetadata []*TailCallMetadata
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			tailCallMetadata = append(tailCallMetadata, &TailCallMetadata{mPath, "kprobe"})
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: MultiKprobeAttach(load, bpfDir),
-		open:   KprobeOpen(load),
-		ci:     ci,
+		attach:           MultiKprobeAttach(load, bpfDir),
+		open:             KprobeOpen(load),
+		tailCallMetadata: tailCallMetadata,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -613,7 +613,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, ci *customInstall) error {
+func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, metadata []*TailCallMetadata) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -642,8 +642,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return nil
 	}
 
-	if ci != nil {
-		if err := install(ci.mapName, ci.secPrefix); err != nil {
+	for _, tc := range metadata {
+		if err := install(tc.MapName, tc.SecPrefix); err != nil {
 			return err
 		}
 	}
@@ -782,7 +782,7 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(bpfDir, spec, coll, loadOpts.ci)
+	err = installTailCalls(bpfDir, spec, coll, loadOpts.tailCallMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
@@ -887,8 +887,10 @@ func LoadProgram(
 	bpfDir string,
 	load *Program,
 	attach AttachFunc,
+	open OpenFunc,
+	tailCalls []*TailCallMetadata,
 	verbose int,
 ) error {
-	opts := &loadOpts{attach: attach}
+	opts := &loadOpts{attach: attach, open: open, tailCallMetadata: tailCalls}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
