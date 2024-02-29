@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -556,34 +557,34 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	}
 
 	// value               absolute offset    explanation
-	expU32Push(2)               // off: 0       number of selectors
-	expU32Push(8)               // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(100)             // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
-	expU32Push(96)              // off: 12      selector1: length (76 + 12 = 96)
-	expU32Push(24)              // off: 16      selector1: MatchPIDs: len
-	expU32Push(SelectorOpNotIn) // off: 20      selector1: MatchPIDs[0]: op
-	expU32Push(0)               // off: 24      selector1: MatchPIDs[0]: flags
-	expU32Push(2)               // off: 28      selector1: MatchPIDs[0]: number of values
-	expU32Push(33)              // off: 32      selector1: MatchPIDs[0]: val1
-	expU32Push(44)              // off: 36      selector1: MatchPIDs[0]: val2
-	expU32Push(4)               // off: 40      selector1: MatchNamespaces: len
-	expU32Push(4)               // off: 44      selector1: MatchCapabilities: len
-	expU32Push(4)               // off: 48      selector1: MatchNamespaceChanges: len
-	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
-	expU32Push(48)              // off: 80      selector1: matchArgs: len
-	expU32Push(24)              // off: 84      selector1: matchArgs[0]: offset
-	expU32Push(0)               // off: 88      selector1: matchArgs[1]: offset
-	expU32Push(0)               // off: 92      selector1: matchArgs[2]: offset
-	expU32Push(0)               // off: 96      selector1: matchArgs[3]: offset
-	expU32Push(0)               // off: 100     selector1: matchArgs[4]: offset
-	expU32Push(1)               // off: 104     selector1: matchArgs: arg0: index
-	expU32Push(SelectorOpEQ)    // off: 108     selector1: matchArgs: arg0: operator
-	expU32Push(16)              // off: 112     selector1: matchArgs: arg0: len of vals
-	expU32Push(argTypeInt)      // off: 116     selector1: matchArgs: arg0: type
-	expU32Push(10)              // off: 120     selector1: matchArgs: arg0: val0: 10
-	expU32Push(20)              // off: 124     selector1: matchArgs: arg0: val1: 20
-	expU32Push(4)               // off: 128     selector1: matchActions: length
-	expU32Push(96)              // off: 132     selector2: length
+	expU32Push(2)                 // off: 0       number of selectors
+	expU32Push(8)                 // off: 4       relative ofset of 1st selector (4 + 8 = 12)
+	expU32Push(100)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
+	expU32Push(96)                // off: 12      selector1: length (76 + 12 = 96)
+	expU32Push(24)                // off: 16      selector1: MatchPIDs: len
+	expU32Push(SelectorOpNotIn)   // off: 20      selector1: MatchPIDs[0]: op
+	expU32Push(0)                 // off: 24      selector1: MatchPIDs[0]: flags
+	expU32Push(2)                 // off: 28      selector1: MatchPIDs[0]: number of values
+	expU32Push(33)                // off: 32      selector1: MatchPIDs[0]: val1
+	expU32Push(44)                // off: 36      selector1: MatchPIDs[0]: val2
+	expU32Push(4)                 // off: 40      selector1: MatchNamespaces: len
+	expU32Push(4)                 // off: 44      selector1: MatchCapabilities: len
+	expU32Push(4)                 // off: 48      selector1: MatchNamespaceChanges: len
+	expU32Push(4)                 // off: 52      selector1: MatchCapabilityChanges: len
+	expU32Push(48)                // off: 80      selector1: matchArgs: len
+	expU32Push(24)                // off: 84      selector1: matchArgs[0]: offset
+	expU32Push(0)                 // off: 88      selector1: matchArgs[1]: offset
+	expU32Push(0)                 // off: 92      selector1: matchArgs[2]: offset
+	expU32Push(0)                 // off: 96      selector1: matchArgs[3]: offset
+	expU32Push(0)                 // off: 100     selector1: matchArgs[4]: offset
+	expU32Push(1)                 // off: 104     selector1: matchArgs: arg0: index
+	expU32Push(SelectorOpEQ)      // off: 108     selector1: matchArgs: arg0: operator
+	expU32Push(16)                // off: 112     selector1: matchArgs: arg0: len of vals
+	expU32Push(gt.GenericIntType) // off: 116     selector1: matchArgs: arg0: type
+	expU32Push(10)                // off: 120     selector1: matchArgs: arg0: val0: 10
+	expU32Push(20)                // off: 124     selector1: matchArgs: arg0: val1: 20
+	expU32Push(4)                 // off: 128     selector1: matchActions: length
+	expU32Push(96)                // off: 132     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
@@ -892,22 +893,22 @@ func TestReturnSelectorArgInt(t *testing.T) {
 		expectedLen += 4
 	}
 
-	expU32Push(1)            // off: 0       number of selectors
-	expU32Push(4)            // off: 4       relative ofset of selector (4 + 4 = 8)
-	expU32Push(56)           // off: 8       selector: length
-	expU32Push(48)           // off: 12      selector: matchReturnArgs length
-	expU32Push(24)           // off: 16      selector: matchReturnArgs arg offset[0]
-	expU32Push(0)            // off: 20      selector: matchReturnArgs arg offset[1]
-	expU32Push(0)            // off: 24      selector: matchReturnArgs arg offset[2]
-	expU32Push(0)            // off: 28      selector: matchReturnArgs arg offset[3]
-	expU32Push(0)            // off: 32      selector: matchReturnArgs arg offset[4]
-	expU32Push(0)            // off: 36      selector: matchReturnArgs[0].Index
-	expU32Push(SelectorOpEQ) // off: 40      selector: matchReturnArgs[0].Operator
-	expU32Push(16)           // off: 44      selector: length (4 + 3*4) = 16
-	expU32Push(argTypeInt)   // off: 48      selector: matchReturnArgs[0].Type
-	expU32Push(10)           // off: 52      selector: matchReturnArgs[0].Values[0]
-	expU32Push(20)           // off: 56      selector: matchReturnArgs[0].Values[1]
-	expU32Push(4)            // off: 60      selector: MatchActions length
+	expU32Push(1)                 // off: 0       number of selectors
+	expU32Push(4)                 // off: 4       relative ofset of selector (4 + 4 = 8)
+	expU32Push(56)                // off: 8       selector: length
+	expU32Push(48)                // off: 12      selector: matchReturnArgs length
+	expU32Push(24)                // off: 16      selector: matchReturnArgs arg offset[0]
+	expU32Push(0)                 // off: 20      selector: matchReturnArgs arg offset[1]
+	expU32Push(0)                 // off: 24      selector: matchReturnArgs arg offset[2]
+	expU32Push(0)                 // off: 28      selector: matchReturnArgs arg offset[3]
+	expU32Push(0)                 // off: 32      selector: matchReturnArgs arg offset[4]
+	expU32Push(0)                 // off: 36      selector: matchReturnArgs[0].Index
+	expU32Push(SelectorOpEQ)      // off: 40      selector: matchReturnArgs[0].Operator
+	expU32Push(16)                // off: 44      selector: length (4 + 3*4) = 16
+	expU32Push(gt.GenericIntType) // off: 48      selector: matchReturnArgs[0].Type
+	expU32Push(10)                // off: 52      selector: matchReturnArgs[0].Values[0]
+	expU32Push(20)                // off: 56      selector: matchReturnArgs[0].Values[1]
+	expU32Push(4)                 // off: 60      selector: MatchActions length
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
 		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
