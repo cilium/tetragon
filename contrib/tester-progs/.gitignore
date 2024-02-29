@@ -16,8 +16,8 @@ lseek-pipe
 threads-tester
 bench-reader
 threads-exit
-killer-tester
-killer-tester-32
+enforcer-tester
+enforcer-tester-32
 /getcpu
 drop-privileges
 change-capabilities
