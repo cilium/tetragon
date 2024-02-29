@@ -54,6 +54,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 
 	k8sClient := fake.NewSimpleClientset(&pod)
 	watcher := watcher.NewK8sWatcher(k8sClient, time.Hour)
+	watcher.Start()
 	pid := uint32(1)
 	podInfo := getPodInfo(watcher, "abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
