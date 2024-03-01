@@ -88,6 +88,7 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 func FreeCache() {
 	procCache.Purge()
 	procCache = nil
+	ProcessCacheTotal.Set(0)
 }
 
 // GetProcessCopy() duplicates tetragon.Process and returns it
@@ -462,6 +463,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	}
 
 	procCache.add(proc)
+	ProcessCacheTotal.Inc()
 	return proc
 }
 
@@ -485,6 +487,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 
 	parent.RefInc()
 	procCache.add(proc)
+	ProcessCacheTotal.Inc()
 	return nil
 }
 
