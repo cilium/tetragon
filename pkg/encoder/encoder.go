@@ -239,6 +239,17 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			status = p.Colorer.Red.Sprint(exit.Status)
 		}
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
+	case *tetragon.GetEventsResponse_ProcessThrottle:
+		throttle := response.GetProcessThrottle()
+		event := p.Colorer.Red.Sprintf("🧬 %-7s", "throttle")
+		var typ string
+		switch throttle.Type {
+		case tetragon.ThrottleType_THROTTLE_START:
+			typ = p.Colorer.Red.Sprint("START")
+		case tetragon.ThrottleType_THROTTLE_STOP:
+			typ = p.Colorer.Green.Sprint("STOP ")
+		}
+		return fmt.Sprintf("%s %s %s", event, typ, throttle.Cgroup), nil
 	case *tetragon.GetEventsResponse_ProcessLoader:
 		loader := response.GetProcessLoader()
 		if loader.Process == nil {
