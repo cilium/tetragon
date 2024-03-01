@@ -4,28 +4,17 @@
 package process
 
 import (
-	"fmt"
-
-	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// bpfCollector implements prometheus.Collector. It collects metrics directly from BPF maps.
-type bpfCollector struct{}
+var ProcessCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+	Namespace:   consts.MetricsNamespace,
+	Name:        "process_cache_size",
+	Help:        "The size of the process cache",
+	ConstLabels: nil,
+})
 
-func NewBPFCollector() prometheus.Collector {
-	return &bpfCollector{}
-}
-
-func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- mapmetrics.MapSize.Desc()
-}
-
-func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
-	if procCache != nil {
-		ch <- mapmetrics.MapSize.MustMetric(
-			float64(procCache.len()),
-			"processLru", fmt.Sprint(procCache.size),
-		)
-	}
+func InitMetrics(registry *prometheus.Registry) {
+	registry.MustRegister(ProcessCacheTotal)
 }
