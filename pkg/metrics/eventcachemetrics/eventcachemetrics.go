@@ -61,22 +61,22 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(parentInfoErrors)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on a processInfoErrors metric for an eventType
 func ProcessInfoError(eventType string) prometheus.Counter {
 	return processInfoErrors.WithLabelValues(eventType)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on a podInfoErrors metric for an eventType
 func PodInfoError(eventType string) prometheus.Counter {
 	return podInfoErrors.WithLabelValues(eventType)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on an eventCacheErrorsTotal metric for an error
 func EventCacheError(err string) prometheus.Counter {
 	return eventCacheErrorsTotal.WithLabelValues(err)
 }
 
-// Get a new handle on the eventCacheRetriesTotal metric for an entryType
+// Get a new handle on an eventCacheRetriesTotal metric for an entryType
 func EventCacheRetries(entryType string) prometheus.Counter {
 	return eventCacheRetriesTotal.WithLabelValues(entryType)
 }
