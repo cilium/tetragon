@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -132,7 +131,7 @@ func NewCache(
 	lruCache, err := lru.NewWithEvict(
 		processCacheSize,
 		func(_ string, _ *ProcessInternal) {
-			mapmetrics.MapDropInc("processLru")
+			errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
 		},
 	)
 	if err != nil {
@@ -160,9 +159,6 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 // clone or execve events
 func (pc *Cache) add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
-	if evicted {
-		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
-	}
 	return evicted
 }
 

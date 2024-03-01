@@ -10,12 +10,6 @@ import (
 )
 
 var (
-	MapDrops = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "map_drops_total",
-		Help:        "The total number of entries dropped per LRU map.",
-		ConstLabels: nil,
-	}, []string{"map"})
 	MapSize = metrics.NewBPFGauge(prometheus.NewDesc(
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_in_use_gauge"),
 		"The total number of in-use entries per map.",
@@ -28,13 +22,8 @@ var (
 	))
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(MapDrops)
+func InitMetrics(_ *prometheus.Registry) {
 	// custom collectors are registered independently
-}
-
-func MapDropInc(mapName string) {
-	MapDrops.WithLabelValues(mapName).Inc()
 }
 
 // bpfCollector implements prometheus.Collector. It collects metrics directly from BPF maps.
