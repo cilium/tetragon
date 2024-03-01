@@ -247,7 +247,3 @@ func New(s *server.Server) *Cache {
 func Get() *Cache {
 	return cache
 }
-
-func (ec *Cache) len() int {
-	return len(ec.cache)
-}
