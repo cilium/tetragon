@@ -15,7 +15,7 @@ require (
 	github.com/containerd/containerd v1.7.13
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/fatih/color v1.16.0
-	github.com/go-openapi/strfmt v0.22.1
+	github.com/go-openapi/strfmt v0.22.2
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.6.0
@@ -95,7 +95,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
-	github.com/go-openapi/errors v0.21.0 // indirect
+	github.com/go-openapi/errors v0.21.1 // indirect
 	github.com/go-openapi/jsonpointer v0.20.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect

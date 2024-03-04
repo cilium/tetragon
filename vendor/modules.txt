@@ -399,7 +399,7 @@ github.com/go-openapi/analysis/internal/flatten/operations
 github.com/go-openapi/analysis/internal/flatten/replace
 github.com/go-openapi/analysis/internal/flatten/schutils
 github.com/go-openapi/analysis/internal/flatten/sortref
-# github.com/go-openapi/errors v0.21.0
+# github.com/go-openapi/errors v0.21.1
 ## explicit; go 1.19
 github.com/go-openapi/errors
 # github.com/go-openapi/jsonpointer v0.20.0
@@ -426,7 +426,7 @@ github.com/go-openapi/runtime/yamlpc
 # github.com/go-openapi/spec v0.20.11
 ## explicit; go 1.13
 github.com/go-openapi/spec
-# github.com/go-openapi/strfmt v0.22.1
+# github.com/go-openapi/strfmt v0.22.2
 ## explicit; go 1.19
 github.com/go-openapi/strfmt
 # github.com/go-openapi/swag v0.22.4
