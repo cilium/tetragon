@@ -126,41 +126,36 @@ func (msg *MsgCgroupEventUnix) Retry(_ *process.ProcessInternal, _ notify.Event)
 }
 
 func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
-	switch msg.Common.Op {
-	case ops.MSG_OP_CGROUP:
-		op := ops.CgroupOpCode(msg.CgrpOp)
-		st := ops.CgroupState(msg.CgrpData.State).String()
-		switch op {
-		case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.event":       op.String(),
-				"PID":                msg.PID,
-				"NSPID":              msg.NSPID,
-				"cgroup.ID":          msg.Cgrpid,
-				"cgroup.state":       st,
-				"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
-				"cgroup.level":       msg.CgrpData.Level,
-				"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
-			}).Debug("Received Cgroup event")
-		case ops.MSG_OP_CGROUP_ATTACH_TASK:
-			// Here we should get notification when Tetragon migrate itself
-			// and discovers cgroups configuration
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.event":       op.String(),
-				"PID":                msg.PID,
-				"NSPID":              msg.NSPID,
-				"cgroup.IDTracker":   msg.CgrpidTracker,
-				"cgroup.ID":          msg.Cgrpid,
-				"cgroup.state":       st,
-				"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
-				"cgroup.level":       msg.CgrpData.Level,
-				"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
-			}).Info("Received Cgroup event")
-		default:
-			logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
-		}
+	op := ops.CgroupOpCode(msg.CgrpOp)
+	st := ops.CgroupState(msg.CgrpData.State).String()
+	switch op {
+	case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.event":       op.String(),
+			"PID":                msg.PID,
+			"NSPID":              msg.NSPID,
+			"cgroup.ID":          msg.Cgrpid,
+			"cgroup.state":       st,
+			"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
+			"cgroup.level":       msg.CgrpData.Level,
+			"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+		}).Debug("Received Cgroup event")
+	case ops.MSG_OP_CGROUP_ATTACH_TASK:
+		// Here we should get notification when Tetragon migrate itself
+		// and discovers cgroups configuration
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.event":       op.String(),
+			"PID":                msg.PID,
+			"NSPID":              msg.NSPID,
+			"cgroup.IDTracker":   msg.CgrpidTracker,
+			"cgroup.ID":          msg.Cgrpid,
+			"cgroup.state":       st,
+			"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
+			"cgroup.level":       msg.CgrpData.Level,
+			"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
+		}).Info("Received Cgroup event")
 	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled event")
+		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
 	}
 	return nil
 }
@@ -247,17 +242,13 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 
 func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
-	switch msg.Unix.Msg.Common.Op {
-	case ops.MSG_OP_EXECVE:
-		if e := GetProcessExec(msg, true); e != nil {
-			res = &tetragon.GetEventsResponse{
-				Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
-				NodeName: nodeName,
-				Time:     ktime.ToProto(msg.Unix.Msg.Common.Ktime),
-			}
+
+	if e := GetProcessExec(msg, true); e != nil {
+		res = &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
+			NodeName: nodeName,
+			Time:     ktime.ToProto(msg.Unix.Msg.Common.Ktime),
 		}
-	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleExecveMessage: Unhandled event")
 	}
 	return res
 }
@@ -317,16 +308,11 @@ func (msg *MsgCloneEventUnix) Retry(_ *process.ProcessInternal, _ notify.Event) 
 }
 
 func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
-	switch msg.Common.Op {
-	case ops.MSG_OP_CLONE:
-		if err := process.AddCloneEvent(&msg.MsgCloneEvent); err != nil {
-			ec := eventcache.Get()
-			if ec != nil {
-				ec.Add(nil, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
-			}
+	if err := process.AddCloneEvent(&msg.MsgCloneEvent); err != nil {
+		ec := eventcache.Get()
+		if ec != nil {
+			ec.Add(nil, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
 		}
-	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleCloneMessage: Unhandled event")
 	}
 	return nil
 }
@@ -463,19 +449,14 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var res *tetragon.GetEventsResponse
 
-	switch msg.Common.Op {
-	case ops.MSG_OP_EXIT:
-		msg.RefCntDone = [2]bool{false, false}
-		e := GetProcessExit(msg)
-		if e != nil {
-			res = &tetragon.GetEventsResponse{
-				Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
-				NodeName: nodeName,
-				Time:     ktime.ToProto(msg.Common.Ktime),
-			}
+	msg.RefCntDone = [2]bool{false, false}
+	e := GetProcessExit(msg)
+	if e != nil {
+		res = &tetragon.GetEventsResponse{
+			Event:    &tetragon.GetEventsResponse_ProcessExit{ProcessExit: e},
+			NodeName: nodeName,
+			Time:     ktime.ToProto(msg.Common.Ktime),
 		}
-	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleExitMessage: Unhandled event")
 	}
 	return res
 }
