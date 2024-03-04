@@ -21,10 +21,10 @@ generate:
 .PHONY: __do_generate
 __do_generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
-	chmod +x vendor/k8s.io/code-generator/generate-internal-groups.sh
-	# Do two invocations of generate-groups.sh, one with --plural-exceptions, one without
+	chmod +x vendor/k8s.io/code-generator/kube_codegen.sh
+	# Do two invocations of kube_codegen.sh, one with --plural-exceptions, one without
 	export GOPATH=$$(go env GOPATH); \
-	  bash vendor/k8s.io/code-generator/generate-groups.sh deepcopy,defaulter \
+	  bash vendor/k8s.io/code-generator/kube_codegen.sh deepcopy,defaulter \
 	  github.com/cilium/tetragon/pkg/k8s/client \
 	  github.com/cilium/tetragon/pkg/k8s/apis \
 	  cilium.io:v1alpha1 \
@@ -32,7 +32,7 @@ __do_generate:
 	  -o . \
 	  --trim-path-prefix github.com/cilium/tetragon/pkg/k8s \
 	  ; \
-	  bash vendor/k8s.io/code-generator/generate-groups.sh lister,informer,client \
+	  bash vendor/k8s.io/code-generator/kube_codegen.sh lister,informer,client \
 	  github.com/cilium/tetragon/pkg/k8s/client \
 	  github.com/cilium/tetragon/pkg/k8s/apis \
 	  cilium.io:v1alpha1 \
