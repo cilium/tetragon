@@ -16,3 +16,4 @@ spec:
         - matchActions:
           - action: Post
             kernelStackTrace: true
+            userStackTrace: true
