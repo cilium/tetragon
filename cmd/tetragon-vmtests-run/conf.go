@@ -29,6 +29,7 @@ type RunConf struct {
 	testerConf            vmtests.Conf
 	detailedResults       bool
 	keepAllLogs           bool
+	rootDev               string
 
 	filesystems []QemuFS
 }

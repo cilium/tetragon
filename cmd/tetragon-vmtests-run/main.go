@@ -161,6 +161,7 @@ func main() {
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")
+	cmd.Flags().StringVar(&rcnf.rootDev, "root-dev", "vda", "type of root device (hda or vda)")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
