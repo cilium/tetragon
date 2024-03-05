@@ -919,36 +919,40 @@ kprobes:
     - matchActions:
       - action: Post
         kernelStackTrace: true
+        userStackTrace: true
 ```
 
 {{< caution >}}
-By default Tetragon does not expose the kernel addresses, you need to enable
-the flag `--expose-kernel-addresses` to get the addresses along the rest.
+By default Tetragon does not expose the linear addresses from kernel space or
+user space, you need to enable the flag `--expose-addresses` to get the addresses
+along the rest.
 
 Note that the Tetragon agent is using its privilege to read the kernel symbols
 and their address. Being able to retrieve kernel symbols address can be used to
 break kernel address space layout randomization (KASLR) so only privileged users
 should be able to enable this feature and read events containing stack traces.
+The same thing we can say about retrieving address for user mode processes.
+Stack trace addresses can be used to bypass address space layout randomization (ASLR).
 {{< /caution >}}
 
-Once loaded, events created from this policy will contain a new `stack_trace`
+Once loaded, events created from this policy will contain a new `kernel_stack_trace`
 field on the `process_kprobe` event with an output similar to:
 
 ```
 {
-  "address": "18446670264256120896",
-  "offset": "272",
-  "symbol": "skb_release_head_state"
+  "address": "18446744072119856613",
+  "offset": "5",
+  "symbol": "kfree_skb_reason"
 },
 {
-  "address": "18446670264257081512",
-  "offset": "88",
-  "symbol": "ip_protocol_deliver_rcu"
+  "address": "18446744072119769755",
+  "offset": "107",
+  "symbol": "__sys_connect_file"
 },
 {
-  "address": "18446670264257082152",
-  "offset": "88",
-  "symbol": "ip_local_deliver_finish"
+  "address": "18446744072119769989",
+  "offset": "181",
+  "symbol": "__sys_connect"
 },
 [...]
 ```
@@ -956,29 +960,58 @@ field on the `process_kprobe` event with an output similar to:
 The "address" is the kernel function address, "offset" is the offset into the
 native instruction for the function and "symbol" is the function symbol name.
 
+User mode stack trace is contained in `user_stack_trace` field on the
+`process_kprobe` event and looks like:
+
+```
+{
+  "address": "140498967885099",
+  "offset": "1209643",
+  "symbol": "__connect",
+  "module": "/usr/lib/x86_64-linux-gnu/libc.so.6"
+},
+{
+  "address": "140498968021470",
+  "offset": "1346014",
+  "symbol": "inet_pton",
+  "module": "/usr/lib/x86_64-linux-gnu/libc.so.6"
+},
+{
+  "address": "140498971185511",
+  "offset": "106855",
+  "module": "/usr/lib/x86_64-linux-gnu/libcurl.so.4.7.0"
+},
+```
+The "address" is the function address, "offset" is the function offset from the
+beginning of the binary module. "module" is the absolute path of the binary file
+to which address belongs. "symbol" is the function symbol name. "symbol" may be missing
+if the binary file is stripped.
+
 This output can be enhanced in a more human friendly using the `tetra getevents
 -o compact` command. Indeed, by default, it will print the stack trace along
 the compact output of the event similarly to this:
 
 ```
-❓ syscall  /usr/bin/curl kfree_skb_reason
-   0xffffbcdee5bf4840: skb_release_head_state+0x110
-   0xffffbcdee5be3678: __sys_connect_file+0x88
-   0xffffbcdee5be376c: __sys_connect+0xbc
-   0xffffbcdee5be37bc: __arm64_sys_connect+0x28
-   0xffffbcdee4dfcd68: invoke_syscall+0x78
-   0xffffbcdee4dfcf70: el0_svc_common.constprop.0+0x180
-   0xffffbcdee4dfcfa4: do_el0_svc+0x30
-   0xffffbcdee5e861e8: el0_svc+0x48
-   0xffffbcdee5e881b4: el0t_64_sync_handler+0xa4
-   0xffffbcdee4de1e38: el0t_64_sync+0x1a4
+❓ syscall /usr/bin/curl kfree_skb_reason
+Kernel:
+   0xffffffffa13f2de5: kfree_skb_reason+0x5
+   0xffffffffa13dda9b: __sys_connect_file+0x6b
+   0xffffffffa13ddb85: __sys_connect+0xb5
+   0xffffffffa13ddbd8: __x64_sys_connect+0x18
+   0xffffffffa1714bd8: do_syscall_64+0x58
+   0xffffffffa18000e6: entry_SYSCALL_64_after_hwframe+0x6e
+User space:
+   0x7f878cf2752b: __connect (/usr/lib/x86_64-linux-gnu/libc.so.6+0x12752b)
+   0x7f878cf489de: inet_pton (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1489de)
+   0x7f878d1b6167:  (/usr/lib/x86_64-linux-gnu/libcurl.so.4.7.0+0x1a167)
 ```
 
-The printing format is `"0x%x: %s+0x%x", address, symbol, offset`.
+The printing format for kernel stack trace is `"0x%x: %s+0x%x", address, symbol, offset`.
+The printing format for user stack trace is `"0x%x: %s (%s+0x%x)", address, symbol, module, offset`.
 
 {{< note >}}
 Compact output will display missing addresses as `0x0`, see the above note on
-`--expose-kernel-addresses` for more info.
+`--expose-addresses` for more info.
 {{< /note >}}
 
 ### NoPost action
