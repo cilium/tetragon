@@ -13,7 +13,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -25,7 +27,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -33,7 +34,7 @@ import (
 
 var (
 	logFname                        = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
-	logLevel                        = flag.String("log-level", "info", "log level")
+	logLevelStr                     = flag.String("log-level", "info", "log level")
 	agentAddress                    = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
 	grpcTimeout                     = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
 	disableGrpc                     = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
@@ -128,13 +129,14 @@ func getCgroupPath(spec *specs.Spec) (string, error) {
 
 // NB: the second argument is only used in case of an error, so disable revive's complains
 // revive:disable:error-return
-func createContainerHook(log *logrus.Entry) (error, map[string]string) {
+func createContainerHook(log *slog.Logger) (error, map[string]string) {
 
 	// rootDir is the current directory
 	rootDir, err := os.Getwd()
 	var configName string
 	if err != nil {
-		log.Warnf("failed to retrieve CWD: %s, using '.'", err)
+		log.Warn("failed to retrieve CWD, using '.'",
+			"error", err)
 		rootDir = "."
 	}
 
@@ -161,9 +163,9 @@ func createContainerHook(log *logrus.Entry) (error, map[string]string) {
 	var cgroupPath string
 	spec, err := readJsonSpec(configName)
 	if err != nil {
-		log.WithError(err).Warnf("failed to read spec file: %s", configName)
+		log.Warn("failed to read spec file", "name", configName, "error", err)
 	} else if cgroupPath, err = getCgroupPath(spec); err != nil {
-		log.Warnf("error getting cgroup path: %v", err)
+		log.Warn("error getting cgroup path", "error", err)
 	}
 
 	// if have no information whatsover, do not contact the agent
@@ -181,94 +183,132 @@ func createContainerHook(log *logrus.Entry) (error, map[string]string) {
 		},
 	}
 
+	log = log.With(
+		"req-cgroups", cgroupPath,
+		"req-rootdir", rootDir,
+	)
+	if log.Enabled(context.TODO(), slog.LevelDebug) {
+		// NB: only add annotations in debug level since they are too noisy
+		log = log.With("req-annotations", spec.Annotations)
+	}
+
 	if *disableGrpc {
-		log.WithFields(logrus.Fields{
-			"req-cgroups":     cgroupPath,
-			"req-rootdir":     rootDir,
-			"req-annotations": spec.Annotations,
-			// NB: omit annotations since they are too noisy
-		}).Warn("hook request (gRPC disabled)")
+		log.Info("gRPC was disabled, so will not be contacting the agent")
 		return nil, nil
 	}
 
 	err = hookRequest(req)
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"req-cgroups": cgroupPath,
-			"req-rootdir": rootDir,
-			// NB: omit annotations since they are too noisy
-		}).Warn("hook request to agent failed")
+		log.Warn("hook request to the agent failed", "err", err)
 		return err, spec.Annotations
 	}
 
-	log.WithField("req", req).Info("hook request to agent succeeded")
+	log.Info("hook request to agent succeeded")
 	return nil, nil
 }
 
-func checkFail(log *logrus.Entry, annotations map[string]string) {
-	var prog *celProg
+func checkFail(log *slog.Logger, prog *celProg, annotations map[string]string) error {
 	var err error
 
-	if expr := *failCelUser; expr != "" {
-		prog, err = celUserExpr(expr)
-	} else {
-		prog, err = celAllowNamespaces(*failAllowNamespaces)
-	}
-
-	if err != nil {
-		log.WithError(err).Fatal("failCheck failed")
-	}
-
-	log.Debugf("running fail check with annotations: %v", annotations)
+	log.Debug("running fail check", "annotations", annotations)
 	fail, err := prog.RunFailCheck(annotations)
 	if err != nil {
-		log.WithError(err).Fatal("failCheck failed")
+		return fmt.Errorf("failed to run failCheck: %w", err)
 	}
 
 	if fail {
-		log.Fatal("failCheck determined failure. Failing")
+		return errors.New("failCheck determined that we should fail")
 	}
 
 	log.Info("failCheck determined that we should not fail this container, even if there was an error")
+	return nil
+}
+
+func failTestProg() (*celProg, error) {
+	var ret *celProg
+	var err error
+	if expr := *failCelUser; expr != "" {
+		ret, err = celUserExpr(expr)
+	} else {
+		ret, err = celAllowNamespaces(*failAllowNamespaces)
+	}
+	return ret, err
+}
+
+type logHandler struct {
+	slog.Handler
+}
+
+func (lh *logHandler) Handle(ctx context.Context, r slog.Record) error {
+	err := lh.Handler.Handle(ctx, r)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error writing to logger: %v\n", err)
+	}
+	return err
 }
 
 func main() {
 	flag.Parse()
 
-	log := logrus.New()
-	log.SetOutput(&lumberjack.Logger{
-		Filename:   *logFname,
-		MaxSize:    50, // megabytes
-		MaxBackups: 3,
-		MaxAge:     7, //days
-	})
+	var logLevel slog.Level
+	var logLevelArgError bool
+	if err := logLevel.UnmarshalText([]byte(*logLevelStr)); err != nil {
+		logLevel = slog.LevelInfo
+		logLevelArgError = true
+	}
 
-	if lvl, err := logrus.ParseLevel(*logLevel); err == nil {
-		log.SetLevel(lvl)
-	} else {
-		log.WithField("log-level", *logLevel).Warn("unknonwn log level, ignoring")
+	log := slog.New(&logHandler{slog.NewJSONHandler(
+		&lumberjack.Logger{
+			Filename:   *logFname,
+			MaxSize:    50, // megabytes
+			MaxBackups: 3,
+			MaxAge:     7, //days
+		},
+		&slog.HandlerOptions{
+			Level: logLevel,
+		},
+	)})
+
+	if logLevelArgError {
+		log.Warn("was not able to parse logLevel, using default",
+			"arg", *logLevelStr,
+			"default", logLevel)
 	}
 
 	args := flag.Args()
 	if len(args) < 1 {
 		log.Warn("hook called without event, bailing out")
-		return
+		os.Exit(1)
+	}
+
+	failTestProg, err := failTestProg()
+	if err != nil {
+		log.Warn("error in creating fail test prog, bailing out", "errro", err)
+		os.Exit(1)
 	}
 
 	hookName := args[0]
 	switch hookName {
 	case "createContainer":
-		log := log.WithField("hook", "create-container").WithField("start-time", getTime())
+		log = log.With(
+			"hook", "create-container",
+			"start-time", getTime(),
+		)
 		err, annotations := createContainerHook(log)
 		if err != nil {
-			checkFail(log, annotations)
+			if shouldFail := checkFail(log, failTestProg, annotations); shouldFail != nil {
+				log.Warn("failing container", "error", shouldFail)
+				os.Exit(1)
+			}
 		}
 	case "createRuntime":
 		// do nothing
 	case "poststop":
 		// do nothing
 	default:
-		log.WithField("hook", hookName).Warn("hook called with unknown hook")
+		log.Warn("hook called with unknown hook",
+			"hook", hookName,
+		)
 	}
 
 	return
