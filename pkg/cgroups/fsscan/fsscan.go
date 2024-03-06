@@ -151,6 +151,10 @@ func findContainerDirectory(podpath string, containerID string) string {
 		}
 
 		name := dentry.Name()
+		// skip crio's conmon container
+		if strings.Contains(name, "crio-conmon") {
+			continue
+		}
 		if strings.Contains(name, containerID) {
 			return name
 		}
