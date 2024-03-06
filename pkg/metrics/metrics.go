@@ -17,6 +17,13 @@ var (
 	registryOnce sync.Once
 )
 
+func GetRegistry() *prometheus.Registry {
+	registryOnce.Do(func() {
+		registry = prometheus.NewRegistry()
+	})
+	return registry
+}
+
 func EnableMetrics(address string) {
 	reg := GetRegistry()
 
