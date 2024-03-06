@@ -148,7 +148,7 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		arg.Flags = flags
 		arg.Label = a.label
 		return arg
-	case gt.GenericFilenameType, gt.GenericStringType:
+	case gt.GenericFilenameType, gt.GenericStringType, gt.GenericNetDev:
 		var arg api.MsgGenericKprobeArgString
 
 		arg.Index = uint64(a.index)

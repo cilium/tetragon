@@ -84,6 +84,12 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 	case api.MsgGenericKprobeArgString:
 		a.Arg = &tetragon.KprobeArgument_StringArg{StringArg: e.Value}
 		a.Label = e.Label
+	case api.MsgGenericKprobeArgNetDev:
+		netDevArg := &tetragon.KprobeNetDev{
+			Name: e.Name,
+		}
+		a.Arg = &tetragon.KprobeArgument_NetDevArg{NetDevArg: netDevArg}
+		a.Label = e.Label
 	case api.MsgGenericKprobeArgSock:
 		sockArg := &tetragon.KprobeSock{
 			Cookie:   e.Sockaddr,

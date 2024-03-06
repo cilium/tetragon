@@ -9,6 +9,7 @@
 #include "bpf_cred.h"
 #include "skb.h"
 #include "sock.h"
+#include "net_device.h"
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
 #include "perfevent.h"
@@ -76,6 +77,8 @@ enum {
 	linux_binprm_type = 37,
 
 	data_loc_type = 38,
+
+	net_dev_ty = 39,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -1623,6 +1626,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct tg_kernel_module);
 	case linux_binprm_type:
 		return sizeof(struct msg_linux_binprm);
+	case net_dev_ty:
+		return IFNAMSIZ;
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -1803,6 +1808,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
+		case net_dev_ty:
 		case data_loc_type:
 			/* for strings, we just encode the length */
 			pass &= filter_char_buf(filter, args, 4);
@@ -2591,6 +2597,11 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case string_type:
 		size = copy_strings(args, (char *)arg, MAX_STRING);
 		break;
+	case net_dev_ty: {
+		struct net_device *dev = (struct net_device *)arg;
+
+		size = copy_strings(args, dev->name, IFNAMSIZ);
+	} break;
 	case data_loc_type: {
 		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
 		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars

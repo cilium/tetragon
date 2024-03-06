@@ -639,8 +639,8 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint64(&k.data, uint64(i))
-		case gt.GenericSockType, gt.GenericSkbType:
-			return fmt.Errorf("MatchArgs type sock and skb do not support operator %s", selectorOpStringTable[op])
+		case gt.GenericSockType, gt.GenericSkbType, gt.GenericNetDev:
+			return fmt.Errorf("MatchArgs type sock, skb and net_device do not support operator %s", selectorOpStringTable[op])
 		case gt.GenericCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
@@ -774,7 +774,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc:
+		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)

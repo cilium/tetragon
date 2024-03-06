@@ -55,6 +55,8 @@ const (
 
 	GenericDataLoc = 38
 
+	GenericNetDev = 39
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -105,6 +107,7 @@ var GenericStringToType = map[string]int{
 	"cap_effective":   GenericCapEffective,
 	"linux_binprm":    GenericLinuxBinprmType,
 	"data_loc":        GenericDataLoc,
+	"net_device":      GenericNetDev,
 }
 
 var GenericTypeToStringTable = map[int]string{
@@ -146,6 +149,7 @@ var GenericTypeToStringTable = map[int]string{
 	GenericCapEffective:    "cap_effective",
 	GenericLinuxBinprmType: "linux_binprm",
 	GenericDataLoc:         "data_loc",
+	GenericNetDev:          "net_device",
 	GenericInvalidType:     "",
 }
 

@@ -132,6 +132,7 @@ spec:
                             - cap_effective
                             - linux_binprm
                             - data_loc
+                            - net_device
                             type: string
                         required:
                         - index
@@ -229,6 +230,7 @@ spec:
                           - cap_effective
                           - linux_binprm
                           - data_loc
+                          - net_device
                           type: string
                       required:
                       - index
@@ -879,6 +881,7 @@ spec:
                             - cap_effective
                             - linux_binprm
                             - data_loc
+                            - net_device
                             type: string
                         required:
                         - index
@@ -1435,6 +1438,7 @@ spec:
                             - cap_effective
                             - linux_binprm
                             - data_loc
+                            - net_device
                             type: string
                         required:
                         - index

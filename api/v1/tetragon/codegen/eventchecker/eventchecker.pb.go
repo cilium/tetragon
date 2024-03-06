@@ -4092,6 +4092,56 @@ func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *Kprob
 	return checker
 }
 
+// KprobeNetDevChecker implements a checker struct to check a KprobeNetDev field
+type KprobeNetDevChecker struct {
+	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
+}
+
+// NewKprobeNetDevChecker creates a new KprobeNetDevChecker
+func NewKprobeNetDevChecker() *KprobeNetDevChecker {
+	return &KprobeNetDevChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeNetDevChecker) GetCheckerType() string {
+	return "KprobeNetDevChecker"
+}
+
+// Check checks a KprobeNetDev field
+func (checker *KprobeNetDevChecker) Check(event *tetragon.KprobeNetDev) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeNetDev field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithName adds a Name check to the KprobeNetDevChecker
+func (checker *KprobeNetDevChecker) WithName(check *stringmatcher.StringMatcher) *KprobeNetDevChecker {
+	checker.Name = check
+	return checker
+}
+
+//FromKprobeNetDev populates the KprobeNetDevChecker using data from a KprobeNetDev field
+func (checker *KprobeNetDevChecker) FromKprobeNetDev(event *tetragon.KprobeNetDev) *KprobeNetDevChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	return checker
+}
+
 // KprobePathChecker implements a checker struct to check a KprobePath field
 type KprobePathChecker struct {
 	Mount *stringmatcher.StringMatcher `json:"mount,omitempty"`
@@ -4956,6 +5006,7 @@ type KprobeArgumentChecker struct {
 	CapPermittedArg       *stringmatcher.StringMatcher `json:"capPermittedArg,omitempty"`
 	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
 	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
+	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5226,6 +5277,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: LinuxBinprmArg check failed: %T is not a LinuxBinprmArg", event)
 			}
 		}
+		if checker.NetDevArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_NetDevArg:
+				if err := checker.NetDevArg.Check(event.NetDevArg); err != nil {
+					return fmt.Errorf("NetDevArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: NetDevArg check failed: %T is not a NetDevArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -5389,6 +5450,12 @@ func (checker *KprobeArgumentChecker) WithLinuxBinprmArg(check *KprobeLinuxBinpr
 	return checker
 }
 
+// WithNetDevArg adds a NetDevArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithNetDevArg(check *KprobeNetDevChecker) *KprobeArgumentChecker {
+	checker.NetDevArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -5540,6 +5607,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_LinuxBinprmArg:
 		if event.LinuxBinprmArg != nil {
 			checker.LinuxBinprmArg = NewKprobeLinuxBinprmChecker().FromKprobeLinuxBinprm(event.LinuxBinprmArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_NetDevArg:
+		if event.NetDevArg != nil {
+			checker.NetDevArg = NewKprobeNetDevChecker().FromKprobeNetDev(event.NetDevArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)

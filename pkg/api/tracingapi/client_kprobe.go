@@ -31,6 +31,7 @@ const (
 	BPF_OBJ_NAME_LEN = 16
 	KSYM_NAME_LEN    = 128
 	MODULE_NAME_LEN  = 64
+	NETDEV_NAME_LEN  = 16
 )
 
 type MsgLoader struct {
@@ -246,6 +247,25 @@ func (m MsgGenericKprobeArgSkb) GetIndex() uint64 {
 }
 
 func (m MsgGenericKprobeArgSkb) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericKprobeNetDev struct {
+	OrigSize uint64 // if len(Value) < OrigSize, then the result was truncated
+	Name     []byte
+}
+
+type MsgGenericKprobeArgNetDev struct {
+	Index uint64
+	Name  string
+	Label string
+}
+
+func (m MsgGenericKprobeArgNetDev) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgNetDev) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
