@@ -317,6 +317,10 @@ message KprobeSkb {
     string family = 13;
 }
 
+message KprobeNetDev {
+    string name = 1;
+}
+
 message KprobePath {
     string mount = 1;
     string path  = 2;
@@ -404,6 +408,7 @@ message KprobeArgument {
 	string cap_permitted_arg = 24; // Capabilities that are currently permitted in hexadecimal format.
 	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
 	KprobeLinuxBinprm linux_binprm_arg = 26;
+    KprobeNetDev net_dev_arg = 27;
     }
     string label = 18;
 }
