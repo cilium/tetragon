@@ -14,54 +14,80 @@ for up to date information. Not all Tetragon features work with older kernel
 versions. BPF evolves rapidly and we recommend you use the most recent stable
 kernel possible to get the most out of Tetragon's features.
 
-Note that Tetragon also needs [BTF support]({{< ref "/docs/faq/_index.md#tetragon-failed-to-start-complaining-about-a-missing-btf-file">}})
+Note that Tetragon needs [BTF support]({{< ref "/docs/faq/_index.md#tetragon-failed-to-start-complaining-about-a-missing-btf-file">}})
 which might take some work on older kernels.
 
-<details><summary>See the recommended Linux kernel configuration options</summary>
-<p>
+### What are the Linux kernel configuration options needed to run Tetragon?
+
+This is the list of needed configuration options, note that this might evolve
+quickly with new Tetragon features:
 
 ```
-  # CORE BPF
-  CONFIG_BPF
-  CONFIG_BPF_JIT
-  CONFIG_BPF_JIT_DEFAULT_ON
-  CONFIG_BPF_EVENTS
-  CONFIG_BPF_SYSCALL
-  CONFIG_HAVE_BPF_JIT
-  CONFIG_HAVE_EBPF_JIT
-  CONFIG_FTRACE_SYSCALLS
+# CORE BPF
+CONFIG_BPF
+CONFIG_BPF_JIT
+CONFIG_BPF_JIT_DEFAULT_ON
+CONFIG_BPF_EVENTS
+CONFIG_BPF_SYSCALL
+CONFIG_HAVE_BPF_JIT
+CONFIG_HAVE_EBPF_JIT
+CONFIG_FTRACE_SYSCALLS
 
-  # BTF
-  CONFIG_DEBUG_INFO_BTF
-  CONFIG_DEBUG_INFO_BTF_MODULES
+# BTF
+CONFIG_DEBUG_INFO_BTF
+CONFIG_DEBUG_INFO_BTF_MODULES
 
-  # Enforcement
-  CONFIG_BPF_KPROBE_OVERRIDE
+# Enforcement
+CONFIG_BPF_KPROBE_OVERRIDE
 
-  # CGROUP and Process tracking
-  CONFIG_CGROUPS=y        Control Group support
-  CONFIG_MEMCG=y          Memory Control group
-  CONFIG_BLK_CGROUP=y     Generic block IO controller
-  CONFIG_CGROUP_SCHED=y
-  CONFIG_CGROUP_PIDS=y    Process Control group
-  CONFIG_CGROUP_FREEZER=y Freeze and unfreeze tasks controller
-  CONFIG_CPUSETS=y        Manage CPUSETs
-  CONFIG_PROC_PID_CPUSET=y
-  CONFIG_CGROUP_DEVICE=Y  Devices Control group
-  CONFIG_CGROUP_CPUACCT=y CPU accouting controller
-  CONFIG_CGROUP_PERF=y
-  CONFIG_CGROUP_BPF=y     Attach eBPF programs to a cgroup
-  CGROUP_FAVOR_DYNMODS=y  (optional)  >= 6.0
-    Reduces the latencies of dynamic cgroup modifications at the
-    cost of making hot path operations such as forks and exits
-    more expensive.
-    Platforms with frequent cgroup migrations could enable this
-    option as a potential alleviation for pod and containers
-    association issues.
+# CGROUP and Process tracking
+CONFIG_CGROUPS=y        Control Group support
+CONFIG_MEMCG=y          Memory Control group
+CONFIG_BLK_CGROUP=y     Generic block IO controller
+CONFIG_CGROUP_SCHED=y
+CONFIG_CGROUP_PIDS=y    Process Control group
+CONFIG_CGROUP_FREEZER=y Freeze and unfreeze tasks controller
+CONFIG_CPUSETS=y        Manage CPUSETs
+CONFIG_PROC_PID_CPUSET=y
+CONFIG_CGROUP_DEVICE=Y  Devices Control group
+CONFIG_CGROUP_CPUACCT=y CPU accouting controller
+CONFIG_CGROUP_PERF=y
+CONFIG_CGROUP_BPF=y     Attach eBPF programs to a cgroup
+CGROUP_FAVOR_DYNMODS=y  (optional)  >= 6.0
+  Reduces the latencies of dynamic cgroup modifications at the
+  cost of making hot path operations such as forks and exits
+  more expensive.
+  Platforms with frequent cgroup migrations could enable this
+  option as a potential alleviation for pod and containers
+  association issues.
 ```
 
-</p>
-</details>
+At runtime, to probe if your kernel has sufficient features turned on, you can
+run `tetra` with root privileges with the `probe` command:
+
+```shell
+sudo tetra probe
+```
+
+You can also run this command directly from the tetragon container image on a
+Kubernetes cluster node. For example:
+
+```shell
+kubectl run bpf-probe --image=quay.io/cilium/tetragon-ci:latest --privileged --restart=Never -it --rm --command -- tetra probe
+```
+
+The output should be similar to this (with boolean values depending on your
+actual configuration):
+
+```
+override_return: true
+buildid: true
+kprobe_multi: false
+fmodret: true
+fmodret_syscall: true
+signal: true
+large: true
+```
 
 ### Tetragon failed to start complaining about a missing BTF file
 
