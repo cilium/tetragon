@@ -4,6 +4,7 @@
 package policyfilter
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 
@@ -26,8 +27,29 @@ func New() *cobra.Command {
 	ret.AddCommand(
 		dumpCmd(),
 		addCommand(),
+		cgroupGetIDCommand(),
 	)
 
+	return ret
+}
+
+func cgroupGetIDCommand() *cobra.Command {
+	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, policyfilter.MapName)
+	ret := &cobra.Command{
+		Use:   "cgroupid",
+		Short: "retrieve cgroup id from file",
+		Args:  cobra.ExactArgs(1),
+		Run: func(_ *cobra.Command, args []string) {
+			cgID, err := cgroups.GetCgroupIdFromPath(args[0])
+			if err != nil {
+				logger.GetLogger().WithError(err).Fatal("Failed to parse cgroup")
+			}
+			fmt.Printf("%d\n", cgID)
+		},
+	}
+
+	flags := ret.Flags()
+	flags.StringVar(&mapFname, "map-fname", mapFname, "policyfilter map filename")
 	return ret
 }
 
