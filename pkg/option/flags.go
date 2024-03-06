@@ -92,6 +92,8 @@ const (
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 
 	KeyGenerateDocs = "generate-docs"
+
+	KeyConfigFile = "config-file"
 )
 
 func ReadAndSetFlags() error {
@@ -172,6 +174,7 @@ func ReadAndSetFlags() error {
 
 	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
 
+	Config.ConfigFile = viper.GetString(KeyConfigFile)
 	return nil
 }
 
@@ -278,4 +281,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
+
+	flags.String(KeyConfigFile, "", "configuration file")
 }

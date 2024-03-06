@@ -86,6 +86,8 @@ type config struct {
 	EnableTracingPolicyCRD bool
 
 	ExposeKernelAddresses bool
+
+	ConfigFile string
 }
 
 var (

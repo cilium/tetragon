@@ -10,6 +10,8 @@ options:
       usage: Location of btf
     - name: config-dir
       usage: Configuration directory that contains a file for each option
+    - name: config-file
+      usage: configuration file
     - name: cpuprofile
       usage: Store CPU profile into provided file
     - name: data-cache-size
