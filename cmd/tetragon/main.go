@@ -428,12 +428,12 @@ func tetragonExecute() error {
 	obs.LogPinnedBpf(observerDir)
 
 	// load base sensor
-	base := base.GetInitialSensor()
-	if err := base.Load(observerDir); err != nil {
+	initialSensor := base.GetInitialSensor()
+	if err := initialSensor.Load(observerDir); err != nil {
 		return err
 	}
 	defer func() {
-		base.Unload()
+		initialSensor.Unload()
 	}()
 
 	// now that the base sensor was loaded, we can start the sensor manager
