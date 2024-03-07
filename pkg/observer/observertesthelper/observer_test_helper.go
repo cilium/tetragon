@@ -211,7 +211,7 @@ func newDefaultObserver() *observer.Observer {
 	return observer.NewObserver()
 }
 
-func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
+func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
 	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
 
 	o := newDefaultTestOptions(opts...)
@@ -243,7 +243,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 		}
 	}
 
-	if err := loadObserver(tb, ctx, base, tp); err != nil {
+	if err := loadObserver(tb, ctx, initialSensor, tp); err != nil {
 		return nil, err
 	}
 
