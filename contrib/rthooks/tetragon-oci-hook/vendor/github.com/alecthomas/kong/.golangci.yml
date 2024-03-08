@@ -41,10 +41,21 @@ linters:
     - exhaustruct
     - nonamedreturns
     - nilnil
+    - nosnakecase # deprecated since v1.48.1
+    - structcheck # deprecated since v1.49.0
+    - deadcode    # deprecated since v1.49.0
+    - varcheck    # deprecated since v1.49.0
+    - depguard    # nothing to guard against yet
+    - tagalign    # hurts readability of kong tags
 
 linters-settings:
   govet:
     check-shadowing: true
+    # These govet checks are disabled by default, but they're useful.
+    enable:
+      - niliness
+      - sortslice
+      - unusedwrite
   dupl:
     threshold: 100
   gocyclo:
@@ -65,4 +76,14 @@ issues:
     - 'bad syntax for struct tag key'
     - 'bad syntax for struct tag pair'
     - 'result .* \(error\) is always nil'
-    - 'package io/ioutil is deprecated'
+
+  exclude-rules:
+    # Don't warn on unused parameters.
+    # Parameter names are useful for documentation.
+    # Replacing them with '_' hides useful information.
+    - linters: [revive]
+      text: 'unused-parameter: parameter \S+ seems to be unused, consider removing or renaming it as _'
+
+    # Duplicate words are okay in tests.
+    - linters: [dupword]
+      path: _test\.go

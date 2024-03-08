@@ -296,6 +296,13 @@ func buildField(k *Kong, node *Node, v reflect.Value, ft reflect.StructField, fv
 			return failField(v, ft, "duplicate flag --%s", value.Name)
 		}
 		seenFlags["--"+value.Name] = true
+		for _, alias := range tag.Aliases {
+			aliasFlag := "--" + alias
+			if seenFlags[aliasFlag] {
+				return failField(v, ft, "duplicate flag %s", aliasFlag)
+			}
+			seenFlags[aliasFlag] = true
+		}
 		if tag.Short != 0 {
 			if seenFlags["-"+string(tag.Short)] {
 				return failField(v, ft, "duplicate short flag -%c", tag.Short)
@@ -304,6 +311,7 @@ func buildField(k *Kong, node *Node, v reflect.Value, ft reflect.StructField, fv
 		}
 		flag := &Flag{
 			Value:       value,
+			Aliases:     tag.Aliases,
 			Short:       tag.Short,
 			PlaceHolder: tag.PlaceHolder,
 			Envs:        tag.Envs,

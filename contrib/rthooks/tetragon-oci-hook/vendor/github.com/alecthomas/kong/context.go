@@ -161,7 +161,7 @@ func (c *Context) Empty() bool {
 }
 
 // Validate the current context.
-func (c *Context) Validate() error { // nolint: gocyclo
+func (c *Context) Validate() error { //nolint: gocyclo
 	err := Visit(c.Model, func(node Visitable, next Next) error {
 		switch node := node.(type) {
 		case *Value:
@@ -347,7 +347,7 @@ func (c *Context) endParsing() {
 	}
 }
 
-func (c *Context) trace(node *Node) (err error) { // nolint: gocyclo
+func (c *Context) trace(node *Node) (err error) { //nolint: gocyclo
 	positional := 0
 	node.Active = true
 
@@ -377,7 +377,7 @@ func (c *Context) trace(node *Node) (err error) { // nolint: gocyclo
 				switch {
 				case v == "-":
 					fallthrough
-				default: // nolint
+				default: //nolint
 					c.scan.Pop()
 					c.scan.PushTyped(token.Value, PositionalArgumentToken)
 
@@ -684,15 +684,24 @@ func flipBoolValue(value reflect.Value) error {
 
 func (c *Context) parseFlag(flags []*Flag, match string) (err error) {
 	candidates := []string{}
+
 	for _, flag := range flags {
 		long := "--" + flag.Name
-		short := "-" + string(flag.Short)
-		neg := "--no-" + flag.Name
+		matched := long == match
 		candidates = append(candidates, long)
 		if flag.Short != 0 {
+			short := "-" + string(flag.Short)
+			matched = matched || (short == match)
 			candidates = append(candidates, short)
 		}
-		if short != match && long != match && !(match == neg && flag.Tag.Negatable) {
+		for _, alias := range flag.Aliases {
+			alias = "--" + alias
+			matched = matched || (alias == match)
+			candidates = append(candidates, alias)
+		}
+
+		neg := "--no-" + flag.Name
+		if !matched && !(match == neg && flag.Tag.Negatable) {
 			continue
 		}
 		// Found a matching flag.

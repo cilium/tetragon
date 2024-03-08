@@ -41,7 +41,7 @@ func (b bindings) addProvider(provider interface{}) error {
 		errv := out[1]
 		var err error
 		if !errv.IsNil() {
-			err = errv.Interface().(error) // nolint
+			err = errv.Interface().(error) //nolint
 		}
 		return out[0], err
 	}
@@ -99,7 +99,7 @@ func callFunction(f reflect.Value, bindings bindings) error {
 	if out[0].IsNil() {
 		return nil
 	}
-	return out[0].Interface().(error) // nolint
+	return out[0].Interface().(error) //nolint
 }
 
 func callAnyFunction(f reflect.Value, bindings bindings) (out []any, err error) {

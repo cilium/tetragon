@@ -62,7 +62,7 @@ type tagChars struct {
 var kongChars = tagChars{sep: ',', quote: '\'', assign: '=', needsUnquote: false}
 var bareChars = tagChars{sep: ' ', quote: '"', assign: ':', needsUnquote: true}
 
-// nolint:gocyclo
+//nolint:gocyclo
 func parseTagItems(tagString string, chr tagChars) (map[string][]string, error) {
 	d := map[string][]string{}
 	key := []rune{}
@@ -203,7 +203,7 @@ func parseTag(parent reflect.Value, ft reflect.StructField) (*Tag, error) {
 	return t, nil
 }
 
-func hydrateTag(t *Tag, typ reflect.Type) error { // nolint: gocyclo
+func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	var typeName string
 	var isBool bool
 	var isBoolPtr bool

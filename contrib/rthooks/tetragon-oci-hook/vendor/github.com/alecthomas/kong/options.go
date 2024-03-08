@@ -20,7 +20,7 @@ type Option interface {
 // OptionFunc is function that adheres to the Option interface.
 type OptionFunc func(k *Kong) error
 
-func (o OptionFunc) Apply(k *Kong) error { return o(k) } // nolint: revive
+func (o OptionFunc) Apply(k *Kong) error { return o(k) } //nolint: revive
 
 // Vars sets the variables to use for interpolation into help strings and default values.
 //
@@ -287,7 +287,7 @@ func AutoGroup(format func(parent Visitable, flag *Flag) *Group) Option {
 // See also ExplicitGroups for a more structured alternative.
 type Groups map[string]string
 
-func (g Groups) Apply(k *Kong) error { // nolint: revive
+func (g Groups) Apply(k *Kong) error { //nolint: revive
 	for key, info := range g {
 		lines := strings.Split(info, "\n")
 		title := strings.TrimSpace(lines[0])

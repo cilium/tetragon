@@ -490,6 +490,7 @@ func formatFlag(haveShort bool, flag *Flag) string {
 	flagString := ""
 	name := flag.Name
 	isBool := flag.IsBool()
+	isCounter := flag.IsCounter()
 	if flag.Short != 0 {
 		if isBool && flag.Tag.Negatable {
 			flagString += fmt.Sprintf("-%c, --[no-]%s", flag.Short, name)
@@ -511,7 +512,7 @@ func formatFlag(haveShort bool, flag *Flag) string {
 			}
 		}
 	}
-	if !isBool {
+	if !isBool && !isCounter {
 		flagString += fmt.Sprintf("=%s", flag.FormatPlaceHolder())
 	}
 	return flagString
