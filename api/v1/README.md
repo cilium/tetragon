@@ -21,6 +21,7 @@
     - [Image](#tetragon-Image)
     - [InodeProperties](#tetragon-InodeProperties)
     - [KernelModule](#tetragon-KernelModule)
+    - [KernelProbe](#tetragon-KernelProbe)
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
     - [KprobeBpfMap](#tetragon-KprobeBpfMap)
@@ -422,6 +423,23 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 
 
 
+<a name="tetragon-KernelProbe"></a>
+
+### KernelProbe
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address | [uint64](#uint64) |  | If set then the address of the symbole where the kprobe is registered. |
+| offset | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then the offset into the symbol where the kprobe is registered. |
+| symbol | [string](#string) |  | If set then the Kernel symbol name where the kprobe point is registered. |
+
+
+
+
+
+
 <a name="tetragon-KprobeArgument"></a>
 
 ### KprobeArgument
@@ -456,6 +474,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap_effective_arg | [string](#string) |  | Capabilities that are actually used in hexadecimal format. |
 | linux_binprm_arg | [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm) |  |  |
 | net_dev_arg | [KprobeNetDev](#tetragon-KprobeNetDev) |  |  |
+| kprobe_arg | [KernelProbe](#tetragon-KernelProbe) |  |  |
 | label | [string](#string) |  |  |
 
 

@@ -381,6 +381,15 @@ message KprobeBpfMap {
     string  MapName = 5;
 }
 
+message KernelProbe {
+	// If set then the address of the symbole where the kprobe is registered.
+	uint64 address = 1;
+	// If set then the offset into the symbol where the kprobe is registered.
+	google.protobuf.UInt32Value offset = 2;
+	// If set then the Kernel symbol name where the kprobe point is registered.
+	string symbol = 3;
+}
+
 message KprobeArgument {
     oneof arg {
 	string    string_arg = 1;
@@ -409,6 +418,7 @@ message KprobeArgument {
 	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
 	KprobeLinuxBinprm linux_binprm_arg = 26;
 	KprobeNetDev net_dev_arg = 27;
+	KernelProbe kprobe_arg = 28;
     }
     string label = 18;
 }

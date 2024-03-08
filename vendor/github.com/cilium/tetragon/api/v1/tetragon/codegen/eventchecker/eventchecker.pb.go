@@ -4979,6 +4979,91 @@ func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMa
 	return checker
 }
 
+// KernelProbeChecker implements a checker struct to check a KernelProbe field
+type KernelProbeChecker struct {
+	Address *uint64                      `json:"address,omitempty"`
+	Offset  *uint32                      `json:"offset,omitempty"`
+	Symbol  *stringmatcher.StringMatcher `json:"symbol,omitempty"`
+}
+
+// NewKernelProbeChecker creates a new KernelProbeChecker
+func NewKernelProbeChecker() *KernelProbeChecker {
+	return &KernelProbeChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KernelProbeChecker) GetCheckerType() string {
+	return "KernelProbeChecker"
+}
+
+// Check checks a KernelProbe field
+func (checker *KernelProbeChecker) Check(event *tetragon.KernelProbe) error {
+	if event == nil {
+		return fmt.Errorf("%s: KernelProbe field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Address != nil {
+			if *checker.Address != event.Address {
+				return fmt.Errorf("Address has value %d which does not match expected value %d", event.Address, *checker.Address)
+			}
+		}
+		if checker.Offset != nil {
+			if event.Offset == nil {
+				return fmt.Errorf("Offset is nil and does not match expected value %v", *checker.Offset)
+			}
+			if *checker.Offset != event.Offset.Value {
+				return fmt.Errorf("Offset has value %v which does not match expected value %v", event.Offset.Value, *checker.Offset)
+			}
+		}
+		if checker.Symbol != nil {
+			if err := checker.Symbol.Match(event.Symbol); err != nil {
+				return fmt.Errorf("Symbol check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithAddress adds a Address check to the KernelProbeChecker
+func (checker *KernelProbeChecker) WithAddress(check uint64) *KernelProbeChecker {
+	checker.Address = &check
+	return checker
+}
+
+// WithOffset adds a Offset check to the KernelProbeChecker
+func (checker *KernelProbeChecker) WithOffset(check uint32) *KernelProbeChecker {
+	checker.Offset = &check
+	return checker
+}
+
+// WithSymbol adds a Symbol check to the KernelProbeChecker
+func (checker *KernelProbeChecker) WithSymbol(check *stringmatcher.StringMatcher) *KernelProbeChecker {
+	checker.Symbol = check
+	return checker
+}
+
+//FromKernelProbe populates the KernelProbeChecker using data from a KernelProbe field
+func (checker *KernelProbeChecker) FromKernelProbe(event *tetragon.KernelProbe) *KernelProbeChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		val := event.Address
+		checker.Address = &val
+	}
+	if event.Offset != nil {
+		val := event.Offset.Value
+		checker.Offset = &val
+	}
+	checker.Symbol = stringmatcher.Full(event.Symbol)
+	return checker
+}
+
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg             *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
@@ -5007,6 +5092,7 @@ type KprobeArgumentChecker struct {
 	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
 	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
 	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
+	KprobeArg             *KernelProbeChecker          `json:"kprobeArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5287,6 +5373,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: NetDevArg check failed: %T is not a NetDevArg", event)
 			}
 		}
+		if checker.KprobeArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_KprobeArg:
+				if err := checker.KprobeArg.Check(event.KprobeArg); err != nil {
+					return fmt.Errorf("KprobeArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: KprobeArg check failed: %T is not a KprobeArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -5456,6 +5552,12 @@ func (checker *KprobeArgumentChecker) WithNetDevArg(check *KprobeNetDevChecker) 
 	return checker
 }
 
+// WithKprobeArg adds a KprobeArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithKprobeArg(check *KernelProbeChecker) *KprobeArgumentChecker {
+	checker.KprobeArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -5613,6 +5715,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_NetDevArg:
 		if event.NetDevArg != nil {
 			checker.NetDevArg = NewKprobeNetDevChecker().FromKprobeNetDev(event.NetDevArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_KprobeArg:
+		if event.KprobeArg != nil {
+			checker.KprobeArg = NewKernelProbeChecker().FromKernelProbe(event.KprobeArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
