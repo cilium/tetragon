@@ -133,6 +133,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - kprobe
                             type: string
                         required:
                         - index
@@ -231,6 +232,7 @@ spec:
                           - linux_binprm
                           - data_loc
                           - net_device
+                          - kprobe
                           type: string
                       required:
                       - index
@@ -882,6 +884,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - kprobe
                             type: string
                         required:
                         - index
@@ -1439,6 +1442,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - kprobe
                             type: string
                         required:
                         - index
