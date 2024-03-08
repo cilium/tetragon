@@ -22,10 +22,10 @@ type ResolverFunc func(context *Context, parent *Path, flag *Flag) (interface{},
 
 var _ Resolver = ResolverFunc(nil)
 
-func (r ResolverFunc) Resolve(context *Context, parent *Path, flag *Flag) (interface{}, error) { // nolint: revive
+func (r ResolverFunc) Resolve(context *Context, parent *Path, flag *Flag) (interface{}, error) { //nolint: revive
 	return r(context, parent, flag)
 }
-func (r ResolverFunc) Validate(app *Application) error { return nil } // nolint: revive
+func (r ResolverFunc) Validate(app *Application) error { return nil } //nolint: revive
 
 // JSON returns a Resolver that retrieves values from a JSON source.
 //

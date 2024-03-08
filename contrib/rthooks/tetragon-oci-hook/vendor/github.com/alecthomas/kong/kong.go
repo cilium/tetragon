@@ -412,7 +412,7 @@ func (k *Kong) FatalIfErrorf(err error, args ...interface{}) {
 	}
 	msg := err.Error()
 	if len(args) > 0 {
-		msg = fmt.Sprintf(args[0].(string), args[1:]...) + ": " + err.Error() // nolint
+		msg = fmt.Sprintf(args[0].(string), args[1:]...) + ": " + err.Error() //nolint
 	}
 	// Maybe display usage information.
 	var parseErr *ParseError
@@ -439,11 +439,11 @@ func (k *Kong) LoadConfig(path string) (Resolver, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := os.Open(path) // nolint: gas
+	r, err := os.Open(path) //nolint: gas
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close() // nolint: gosec
+	defer r.Close()
 
 	return k.loader(r)
 }

@@ -330,7 +330,7 @@ var cli struct {
 
 func main() {
   // Debug logger going to discard.
-  logger := log.New(ioutil.Discard, "", log.LstdFlags)
+  logger := log.New(io.Discard, "", log.LstdFlags)
 
   ctx := kong.Parse(&cli, kong.Bind(logger))
 
@@ -566,7 +566,7 @@ Both can coexist with standard Tag parsing.
 | `default:"1"`        | On a command, make it the default.                                                                                                                                                                                                                                                                                             |
 | `default:"withargs"` | On a command, make it the default and allow args/flags from that command                                                                                                                                                                                                                                                       |
 | `short:"X"`          | Short name, if flag.                                                                                                                                                                                                                                                                                                           |
-| `aliases:"X,Y"`      | One or more aliases (for cmd).                                                                                                                                                                                                                                                                                                 |
+| `aliases:"X,Y"`      | One or more aliases (for cmd or flag).                                                                                                                                                                                                                                                                                                 |
 | `required:""`        | If present, flag/arg is required.                                                                                                                                                                                                                                                                                              |
 | `optional:""`        | If present, flag/arg is optional.                                                                                                                                                                                                                                                                                              |
 | `hidden:""`          | If present, command or flag is hidden.                                                                                                                                                                                                                                                                                         |
