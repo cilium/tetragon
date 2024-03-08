@@ -553,6 +553,29 @@ func (m MsgGenericKprobeArgBpfMap) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeKprobeType struct {
+	Addr   uint64
+	Offset uint32
+	Pad    uint32
+	Symbol [KSYM_NAME_LEN]byte
+}
+
+type MsgGenericKprobeArgKprobeType struct {
+	Index  uint64
+	Addr   uint64
+	Offset uint32
+	Symbol string
+	Label  string
+}
+
+func (m MsgGenericKprobeArgKprobeType) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgKprobeType) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobeArg interface {
 	GetIndex() uint64
 	IsReturnArg() bool
