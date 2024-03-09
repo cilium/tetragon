@@ -228,7 +228,7 @@ static __u64 BPF_FUNC(get_attach_cookie, void *ctx);
 static long BPF_FUNC(loop, __u32 nr_loops, void *callback_fn, void *callback_ctx, __u64 flags);
 
 static long BPF_FUNC(ringbuf_output, void *data, uint64_t size, uint64_t flags);
-static void BPF_FUNC(ringbuf_reserve, void *ringbuf, uint64_t size, uint64_t flags);
+static void *BPF_FUNC(ringbuf_reserve, void *ringbuf, uint64_t size, uint64_t flags);
 static void BPF_FUNC(ringbuf_submit, void *data, uint64_t flags);
 static void BPF_FUNC(ringbuf_discard, void *data, uint64_t flags);
 static long BPF_FUNC(ringbuf_query, void *ringbuf, uint64_t flags);
