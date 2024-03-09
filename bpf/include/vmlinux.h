@@ -9400,7 +9400,23 @@ enum bpf_func_id {
 	BPF_FUNC_ima_file_hash = 193,
 	BPF_FUNC_kptr_xchg = 194,
 	BPF_FUNC_map_lookup_percpu_elem = 195,
-	__BPF_FUNC_MAX_ID = 136,
+	BPF_FUNC_skc_to_mptcp_sock = 196,
+	BPF_FUNC_dynptr_from_mem = 197,
+	BPF_FUNC_ringbuf_reserve_dynptr = 198,
+	BPF_FUNC_ringbuf_submit_dynptr = 199,
+	BPF_FUNC_ringbuf_discard_dynptr = 200,
+	BPF_FUNC_dynptr_read = 201,
+	BPF_FUNC_dynptr_write = 202,
+	BPF_FUNC_dynptr_data = 203,
+	BPF_FUNC_tcp_raw_gen_syncookie_ipv4 = 204,
+	BPF_FUNC_tcp_raw_gen_syncookie_ipv6 = 205,
+	BPF_FUNC_tcp_raw_check_syncookie_ipv4 = 206,
+	BPF_FUNC_tcp_raw_check_syncookie_ipv6 = 207,
+	BPF_FUNC_ktime_get_tai_ns = 208,
+	BPF_FUNC_user_ringbuf_drain = 209,
+	BPF_FUNC_cgrp_storage_get = 210,
+	BPF_FUNC_cgrp_storage_delete = 211,
+	__BPF_FUNC_MAX_ID = 212,
 };
 
 struct bpf_func_info {
@@ -85138,4 +85154,13 @@ struct amd_hostbridge {
 	u32 slot;
 	u32 device;
 };
+
+struct bpf_timer {
+	u64 __opaque[2];
+} __attribute__((aligned(8)));
+
+struct bpf_dynptr {
+	__u64 __opaque[2];
+} __attribute__((aligned(8)));
+
 #endif
