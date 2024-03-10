@@ -20,6 +20,14 @@ Build information about tetragon
 | `modified` | `false` |
 | `time ` | `2022-05-13T15:54:45Z` |
 
+### `tetragon_config_stats_total`
+
+Config statistics. For internal use only.
+
+| label | values |
+| ----- | ------ |
+| `count` | `ParseFail, ParseOk, Reload` |
+
 ### `tetragon_data_event_size`
 
 The size of received data events.

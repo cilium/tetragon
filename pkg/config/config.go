@@ -57,17 +57,20 @@ func NewConfig(path string, interval time.Duration,
 }
 
 func (h *Handler) reload() {
+	MetricInc(Reload)
 	config, hash, err := h.readConfig()
 	if hash == h.hash {
 		return
 	}
 	if err == nil {
 		h.onReload(hash, *config)
+		MetricInc(ParseOk)
 	} else {
 		logger.GetLogger().WithError(err).
 			WithField("path", h.path).
 			WithField("hash", hash).
 			Warn("Failed to read config file")
+		MetricInc(ParseFail)
 	}
 	h.hash = hash
 }
