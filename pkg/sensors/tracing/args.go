@@ -34,6 +34,7 @@ const (
 	argReturnCopyBit    = 1 << 4
 	argMaxDataBit       = 1 << 5
 	argUserspaceDataBit = 1 << 6
+	argRawSyscallsBit   = 1 << 7
 )
 
 func argReturnCopy(meta int) bool {
@@ -47,9 +48,10 @@ func argReturnCopy(meta int) bool {
 //	    4 : ReturnCopy
 //	    5 : MaxData
 //	    6 : UserspaceData
-//	 7-15 : reserved
+//	    7 : RawSyscalls
+//	 8-15 : reserved
 //	16-31 : size for const_buf
-func getMetaValue(arg *v1alpha1.KProbeArg, userspaceDataDefault bool) (int, error) {
+func getMetaValue(arg *v1alpha1.KProbeArg, userspaceDataDefault bool, rawSyscalls bool) (int, error) {
 	meta := 0
 
 	if arg.SizeArgIndex > 0 {
@@ -74,6 +76,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg, userspaceDataDefault bool) (int, erro
 		if *arg.IsUserspaceData {
 			meta = meta | argUserspaceDataBit
 		}
+	}
+	if rawSyscalls {
+		meta = meta | argRawSyscallsBit
 	}
 	return meta, nil
 }

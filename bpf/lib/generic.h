@@ -48,6 +48,7 @@ struct msg_generic_kprobe {
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
+	unsigned long ret;
 	long argsoff[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index

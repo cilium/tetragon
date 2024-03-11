@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "bpf_exit.h"
+#include "types/probe_read_kernel_or_user.h"
 #include "bpf_tracing.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";

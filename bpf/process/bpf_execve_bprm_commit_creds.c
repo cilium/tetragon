@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "api.h"
+#include "types/probe_read_kernel_or_user.h"
 #include "bpf_tracing.h"
 
 #include "common.h"

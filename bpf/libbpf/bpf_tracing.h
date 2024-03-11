@@ -2,6 +2,8 @@
 #ifndef __BPF_TRACING_H__
 #define __BPF_TRACING_H__
 
+#include "bpf_core_read.h"
+
 /* Scan the ARCH passed in from ARCH env variable (see Makefile) */
 #if defined(__TARGET_ARCH_x86)
 	#define bpf_target_x86
@@ -443,9 +445,9 @@ struct pt_regs;
 #else
 
 #define BPF_KPROBE_READ_RET_IP(ip, ctx)					    \
-	({ bpf_probe_read_kernel(&(ip), sizeof(ip), (void *)PT_REGS_RET(ctx)); })
+	({ bpf_probe_read(&(ip), sizeof(ip), (void *)PT_REGS_RET(ctx)); })
 #define BPF_KRETPROBE_READ_RET_IP(ip, ctx)				    \
-	({ bpf_probe_read_kernel(&(ip), sizeof(ip), (void *)(PT_REGS_FP(ctx) + sizeof(ip))); })
+	({ bpf_probe_read(&(ip), sizeof(ip), (void *)(PT_REGS_FP(ctx) + sizeof(ip))); })
 
 #endif
 

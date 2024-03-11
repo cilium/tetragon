@@ -279,6 +279,9 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	} else if kernels.MinKernelVersion("5.11") {
 		loadProgName = "bpf_multi_kprobe_v511.o"
 		loadProgRetName = "bpf_multi_retkprobe_v511.o"
+	} else if kernels.MinKernelVersion("5.4") {
+		loadProgName = "bpf_multi_kprobe_v54.o"
+		loadProgRetName = "bpf_multi_retkprobe_v54.o"
 	}
 
 	pinPath := multiKprobePinPath(sensorPath)
@@ -663,7 +666,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 			}
 		}
 		// For kprobes, args default to userspace memory for syscalls, and kernel memory otherwise.
-		argMValue, err := getMetaValue(&a, f.Syscall)
+		argMValue, err := getMetaValue(&a, f.Syscall, false)
 		if err != nil {
 			return errFn(err)
 		}
@@ -703,6 +706,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
 		config.ArgReturn = int32(argType)
+		argMValue, err := getMetaValue(f.ReturnArg, f.Syscall, false)
+		if err != nil {
+			return errFn(err)
+		}
+		config.ArgMReturn = uint32(argMValue)
 		argsBTFSet[api.ReturnArgIndex] = true
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
@@ -716,6 +724,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
 		config.ArgReturnCopy = int32(argType)
+		argMValue, err := getMetaValue(argRetprobe, f.Syscall, false)
+		if err != nil {
+			return errFn(err)
+		}
+		config.ArgMReturnCopy = uint32(argMValue)
 
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
