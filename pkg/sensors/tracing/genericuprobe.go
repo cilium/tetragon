@@ -50,6 +50,8 @@ type genericUprobe struct {
 	message string
 	// argument data printers
 	argPrinters []argPrinter
+	// tags field of the Tracing Policy
+	tags []string
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -97,6 +99,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Symbol = uprobeEntry.symbol
 	unix.PolicyName = uprobeEntry.policyName
 	unix.Message = uprobeEntry.message
+	unix.Tags = uprobeEntry.tags
 
 	// Get argument objects for specific printers/types
 	for _, a := range uprobeEntry.argPrinters {
@@ -238,6 +241,11 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argPrinters []argPrinter
 	)
 
+	tagsField, err := getPolicyTags(spec.Tags)
+	if err != nil {
+		return nil, err
+	}
+
 	// Parse Arguments
 	for i, a := range spec.Args {
 		argType := gt.GenericTypeFromString(a.Type)
@@ -283,6 +291,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			policyName:  in.policyName,
 			message:     msgField,
 			argPrinters: argPrinters,
+			tags:        tagsField,
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)

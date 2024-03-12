@@ -85,6 +85,9 @@ type genericTracepoint struct {
 	// message field of the Tracing Policy
 	message string
 
+	// tags field of the Tracing Policy
+	tags []string
+
 	// parsed kernel selector state
 	selectors *selectors.KernelSelectorState
 
@@ -321,6 +324,11 @@ func createGenericTracepoint(
 		logger.GetLogger().WithField("policy-name", policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
+	tagsField, err := getPolicyTags(conf.Tags)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := tp.LoadFormat(); err != nil {
 		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
 	}
@@ -338,6 +346,7 @@ func createGenericTracepoint(
 		policyName:    policyName,
 		customHandler: customHandler,
 		message:       msgField,
+		tags:          tagsField,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
@@ -666,6 +675,7 @@ func handleMsgGenericTracepoint(
 	unix.Event = tp.Info.Event
 	unix.PolicyName = tp.policyName
 	unix.Message = tp.message
+	unix.Tags = tp.tags
 
 	for idx, out := range tp.args {
 
