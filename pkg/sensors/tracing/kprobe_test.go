@@ -4390,7 +4390,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 
 func TestKprobeWriteMaxDataTrunc(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestKprobeWriteMaxDataTrunc requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
 	myPid := observertesthelper.GetMyPid()
@@ -4453,7 +4453,7 @@ spec:
 
 func TestKprobeWriteMaxData(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestKprobeWriteMaxData requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
 	myPid := observertesthelper.GetMyPid()
@@ -4512,7 +4512,7 @@ spec:
 
 func TestKprobeWriteMaxDataFull(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestKprobeWriteMaxDataFull requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
 	myPid := observertesthelper.GetMyPid()
@@ -5783,7 +5783,7 @@ spec:
 
 func TestKprobeListSyscallDupsRange(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestKprobeListSyscallDupsRange requires at least 5.3.0 version")
 	}
 	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
