@@ -334,7 +334,7 @@ tarball-clean:
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
-.PHONY: crdgen generate protogen codegen protoc-gen-go-tetragon
+.PHONY: generate crds protogen codegen protoc-gen-go-tetragon
 generate: | crds
 crds:
 	# Need to call vendor twice here, once before and once after generate, the reason
