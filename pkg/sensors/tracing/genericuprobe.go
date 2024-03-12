@@ -338,7 +338,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if argType == gt.GenericInvalidType {
 			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getMetaValue(&a)
+		// For uprobes, args default to userspace memory.
+		argMValue, err := getMetaValue(&a, true)
 		if err != nil {
 			return nil, err
 		}

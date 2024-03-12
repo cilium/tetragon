@@ -670,7 +670,8 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
 			}
 		}
-		argMValue, err := getMetaValue(&a)
+		// For kprobes, args default to userspace memory for syscalls, and kernel memory otherwise.
+		argMValue, err := getMetaValue(&a, f.Syscall)
 		if err != nil {
 			return errFn(err)
 		}

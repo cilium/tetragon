@@ -222,10 +222,10 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 		if err != nil {
 			return gt.GenericInvalidType, fmt.Errorf("failed to get size of array type %w", err)
 		}
-		if out.MetaArg == 0 {
-			// set MetaArg equal to the number of bytes we need to copy
-			out.MetaArg = nbytes
-		}
+		// set MetaArg's upper half-word equal to the number of bytes we need to copy
+		out.MetaArg = out.MetaArg & 0xffff
+		out.MetaArg = out.MetaArg | (nbytes << 16)
+
 		return gt.GenericConstBuffer, nil
 
 	case tracepoint.SizeTy:
@@ -238,6 +238,7 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	nfields := uint32(len(info.Format.Fields))
+	syscall := info.Subsys == "syscalls" || info.Subsys == "raw_syscalls"
 
 	for argIdx := range specArgs {
 		specArg := &specArgs[argIdx]
@@ -245,11 +246,16 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 			return nil, fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested", info.Subsys, info.Event, nfields, specArg.Index)
 		}
 		field := info.Format.Fields[specArg.Index]
+		// Syscall tracepoint arguments are in userspace memory.
+		metaTp, err := getMetaValue(specArg, syscall)
+		if err != nil {
+			return nil, fmt.Errorf("tracepoint %s/%s getMetaValue error: %w", info.Subsys, info.Event, err)
+		}
 		ret = append(ret, genericTracepointArg{
 			CtxOffset:     int(field.Offset),
 			ArgIdx:        uint32(argIdx),
 			TpIdx:         int(specArg.Index),
-			MetaTp:        getTracepointMetaValue(specArg),
+			MetaTp:        metaTp,
 			nopTy:         false,
 			format:        &field,
 			genericTypeId: gt.GenericInvalidType,
@@ -275,12 +281,16 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 		}
 		field := info.Format.Fields[tpIdx]
 		argIdx := uint32(len(ret))
+		metaArg := 0
+		if syscall {
+			metaArg = argUserspaceDataBit
+		}
 		ret = append(ret, genericTracepointArg{
 			CtxOffset:     int(field.Offset),
 			ArgIdx:        argIdx,
 			TpIdx:         tpIdx,
 			MetaTp:        0,
-			MetaArg:       0,
+			MetaArg:       metaArg,
 			nopTy:         true,
 			format:        &field,
 			genericTypeId: gt.GenericInvalidType,
@@ -290,15 +300,18 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 
 	for idx := 0; idx < len(ret); idx++ {
 		meta := ret[idx].MetaTp
-		if meta == 0 || meta == -1 {
+		metaArgIndex := meta & argSizeArgIndexMask
+
+		if metaArgIndex == 0 || (meta&argReturnCopyBit != 0) {
 			ret[idx].MetaArg = meta
 			continue
 		}
-		a, err := getOrAppendMeta(meta)
+		a, err := getOrAppendMeta(metaArgIndex)
 		if err != nil {
 			return nil, err
 		}
-		ret[idx].MetaArg = int(a.ArgIdx) + 1
+		meta = meta & ^argSizeArgIndexMask
+		ret[idx].MetaArg = meta | (int(a.ArgIdx) + 1)
 	}
 	return ret, nil
 }

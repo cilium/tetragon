@@ -47,7 +47,7 @@ enum {
 	fd_ty = 17,
 
 	/* const_buf_type is a type for buffers with static size that is passed
-	 * in the meta argument
+	 * in the meta argument's upper 16 bits
 	 */
 	const_buf_type = 18,
 	bpf_attr_type = 19,
@@ -636,9 +636,10 @@ copy_kernel_module(char *args, unsigned long arg)
 	return sizeof(struct tg_kernel_module);
 }
 
-#define ARGM_INDEX_MASK	 0xf
-#define ARGM_RETURN_COPY BIT(4)
-#define ARGM_MAX_DATA	 BIT(5)
+#define ARGM_INDEX_MASK     0xf
+#define ARGM_RETURN_COPY    BIT(4)
+#define ARGM_MAX_DATA       BIT(5)
+#define ARGM_USERSPACE_DATA BIT(6)
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
@@ -650,6 +651,12 @@ static inline __attribute__((always_inline)) bool
 has_max_data(unsigned long argm)
 {
 	return (argm & ARGM_MAX_DATA) != 0;
+}
+
+static inline __attribute__((always_inline)) bool
+is_userspace_data(unsigned long argm)
+{
+	return (argm & ARGM_USERSPACE_DATA) != 0;
 }
 
 static inline __attribute__((always_inline)) unsigned long
@@ -1614,7 +1621,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case char_iovec:
 		return 4;
 	case const_buf_type:
-		return argm;
+		// For const_buf_type, the size is in the upper 16 bits of the meta argument.
+		return argm >> 16;
 	case bpf_attr_type:
 		return sizeof(struct bpf_info_type);
 	case perf_event_type:
@@ -2663,8 +2671,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	case const_buf_type: {
+		// for const_buf_type the size is in the upper 16 bits of the meta argument
 		// bound size to 1023 to help the verifier out
-		size = argm & 0x03ff;
+		size = (argm >> 16) & 0x03ff;
 		probe_read(args, size, (char *)arg);
 		break;
 	}

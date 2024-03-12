@@ -30,8 +30,10 @@ type argPrinter struct {
 }
 
 const (
-	argReturnCopyBit = 1 << 4
-	argMaxDataBit    = 1 << 5
+	argSizeArgIndexMask = int(0xf)
+	argReturnCopyBit    = 1 << 4
+	argMaxDataBit       = 1 << 5
+	argUserspaceDataBit = 1 << 6
 )
 
 func argReturnCopy(meta int) bool {
@@ -41,17 +43,20 @@ func argReturnCopy(meta int) bool {
 // meta value format:
 // bits
 //
-//	0-3 : SizeArgIndex
-//	  4 : ReturnCopy
-//	  5 : MaxData
-func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
-	var meta int
+//	  0-3 : SizeArgIndex
+//	    4 : ReturnCopy
+//	    5 : MaxData
+//	    6 : UserspaceData
+//	 7-15 : reserved
+//	16-31 : size for const_buf
+func getMetaValue(arg *v1alpha1.KProbeArg, userspaceDataDefault bool) (int, error) {
+	meta := 0
 
 	if arg.SizeArgIndex > 0 {
 		if arg.SizeArgIndex > 15 {
 			return 0, fmt.Errorf("invalid SizeArgIndex value (>15): %v", arg.SizeArgIndex)
 		}
-		meta = int(arg.SizeArgIndex)
+		meta = meta | int(arg.SizeArgIndex)
 	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
@@ -59,19 +64,18 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	if arg.MaxData {
 		meta = meta | argMaxDataBit
 	}
+	if arg.IsUserspaceData == nil {
+		// If not set in policy, use the default.
+		if userspaceDataDefault {
+			meta = meta | argUserspaceDataBit
+		}
+	} else {
+		// Otherwise, use the provided value.
+		if *arg.IsUserspaceData {
+			meta = meta | argUserspaceDataBit
+		}
+	}
 	return meta, nil
-}
-
-// getTracepointMetaArg is a temporary helper to find meta values while tracepoint
-// converts into new CRD and config formats.
-func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
-	if arg.SizeArgIndex > 0 {
-		return int(arg.SizeArgIndex)
-	}
-	if arg.ReturnCopy {
-		return -1
-	}
-	return 0
 }
 
 func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
