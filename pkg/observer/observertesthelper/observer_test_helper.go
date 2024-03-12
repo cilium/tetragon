@@ -60,9 +60,10 @@ var (
 )
 
 type testObserverOptions struct {
-	crd    bool
-	config string
-	lib    string
+	crd        bool
+	config     string
+	lib        string
+	cgroupRate string
 }
 
 type testExporterOptions struct {
@@ -121,6 +122,12 @@ func withCiliumState(s *hubbleCilium.State) TestOption {
 func WithLib(lib string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.lib = lib
+	}
+}
+
+func WithCgroupRate(rate string) TestOption {
+	return func(o *TestOptions) {
+		o.observer.cgroupRate = rate
 	}
 }
 
@@ -224,6 +231,10 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	procfs := os.Getenv("TETRAGON_PROCFS")
 	if procfs != "" {
 		option.Config.ProcFS = procfs
+	}
+
+	if o.observer.cgroupRate != "" {
+		option.Config.CgroupRate = option.ParseCgroupRate(o.observer.cgroupRate)
 	}
 
 	obs := newDefaultObserver()

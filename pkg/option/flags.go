@@ -175,7 +175,7 @@ func ReadAndSetFlags() error {
 
 	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
 
-	Config.CgroupRate = parseCgroupRate(viper.GetString(KeyCgroupRate))
+	Config.CgroupRate = ParseCgroupRate(viper.GetString(KeyCgroupRate))
 	return nil
 }
 
@@ -192,7 +192,7 @@ type CgroupRate struct {
 	Interval uint64
 }
 
-func parseCgroupRate(rate string) CgroupRate {
+func ParseCgroupRate(rate string) CgroupRate {
 	empty := CgroupRate{}
 
 	if rate == "" {
