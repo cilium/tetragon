@@ -118,6 +118,9 @@ type genericKprobe struct {
 	// message field of the Tracing Policy
 	message string
 
+	// tags field of the Tracing Policy
+	tags []string
+
 	// is there override defined for the kprobe
 	hasOverride bool
 
@@ -646,6 +649,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
+	tagsField, err := getPolicyTags(f.Tags)
+	if err != nil {
+		return errFn(fmt.Errorf("Error: '%v'", err))
+	}
+
 	argRetprobe = nil // holds pointer to arg for return handler
 
 	// Parse Arguments
@@ -761,6 +769,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		hasOverride:       selectors.HasOverride(f),
 		customHandler:     in.customHandler,
 		message:           msgField,
+		tags:              tagsField,
 	}
 
 	// Parse Filters into kernel filter logic
@@ -1088,6 +1097,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	unix.FuncName = gk.funcName
 	unix.PolicyName = gk.policyName
 	unix.Message = gk.message
+	unix.Tags = gk.tags
 
 	returnEvent := m.Common.Flags&processapi.MSG_COMMON_FLAG_RETURN != 0
 
