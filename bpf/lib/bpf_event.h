@@ -11,9 +11,8 @@ struct event {
 };
 
 struct {
-	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
-	__type(key, int);
-	__type(value, struct event);
+	__uint(type, BPF_MAP_TYPE_RINGBUF);
+	__uint(max_entries, 8LU * 1024LU * 1024LU); // 8MB
 } tcpmon_map SEC(".maps");
 
 #endif // __BPF_EVENT_H

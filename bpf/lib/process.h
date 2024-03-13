@@ -582,7 +582,7 @@ static inline __attribute__((always_inline)) void perf_event_output_metric(void 
 	__u32 zero = 0;
 	long err;
 
-	err = perf_event_output(ctx, map, flags, data, size);
+	err = ringbuf_output(map, data, size, 0);
 	if (err < 0) {
 		valp = map_lookup_elem(&tg_stats_map, &zero);
 		if (valp)

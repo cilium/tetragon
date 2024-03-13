@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	testapi "github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -69,7 +69,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 	}
 	defer perfMap.Close()
 
-	perfReader, err := perf.NewReader(perfMap, 65535)
+	rd, err := ringbuf.NewReader(perfMap)
 	if err != nil {
 		t.Fatalf("creating perf array reader failed: %v", err)
 	}
@@ -96,7 +96,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 				break
 			}
 
-			record, err := perfReader.Read()
+			record, err := rd.Read()
 			if err != nil {
 				if ctx.Err() == nil {
 					errChan <- fmt.Errorf("error reading perfring data: %v", err)
@@ -127,11 +127,11 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		case err := <-errChan:
 			t.Fatal(err)
 		case <-complChan:
-			perfReader.Close()
+			rd.Close()
 			return
 		case <-ctx.Done():
 			// Wait for context cancel.
-			perfReader.Close()
+			rd.Close()
 			return
 		}
 	}
