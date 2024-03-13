@@ -211,11 +211,13 @@ func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) str
 			}
 		}
 		if ev.ProcessKprobe.UserStackTrace != nil {
-			fmt.Fprintf(out, "User space:\n")
+			fmt.Fprintf(out, "User:\n")
 			for _, st := range ev.ProcessKprobe.UserStackTrace {
 				colorer.Green.Fprintf(out, "   0x%x:", st.Address)
-				colorer.Blue.Fprintf(out, " %s ", st.Symbol)
-				colorer.Yellow.Fprintf(out, "(%s+0x%x)\n", st.Module, st.Offset)
+				if st.Symbol != "" {
+					colorer.Blue.Fprintf(out, " %s", st.Symbol)
+				}
+				colorer.Yellow.Fprintf(out, " (%s+0x%x)\n", st.Module, st.Offset)
 			}
 		}
 	}

@@ -91,7 +91,7 @@ const (
 	KeyEnablePodInfo          = "enable-pod-info"
 	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
 
-	KeyExposeAddresses = "expose-addresses"
+	KeyExposeStackAddresses = "expose-stack-addresses"
 
 	KeyGenerateDocs = "generate-docs"
 )
@@ -172,7 +172,7 @@ func ReadAndSetFlags() error {
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
-	Config.ExposeAddresses = viper.GetBool(KeyExposeAddresses)
+	Config.ExposeAddresses = viper.GetBool(KeyExposeStackAddresses)
 
 	return nil
 }
@@ -280,7 +280,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
 
-	flags.Bool(KeyExposeAddresses, false, "Expose real linear addresses in events stack traces")
+	flags.Bool(KeyExposeStackAddresses, false, "Expose real linear addresses in events stack traces")
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
 }

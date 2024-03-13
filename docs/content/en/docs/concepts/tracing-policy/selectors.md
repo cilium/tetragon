@@ -924,7 +924,7 @@ kprobes:
 
 {{< caution >}}
 By default Tetragon does not expose the linear addresses from kernel space or
-user space, you need to enable the flag `--expose-addresses` to get the addresses
+user space, you need to enable the flag `--expose-stack-addresses` to get the addresses
 along the rest.
 
 Note that the Tetragon agent is using its privilege to read the kernel symbols
@@ -987,6 +987,14 @@ beginning of the binary module. "module" is the absolute path of the binary file
 to which address belongs. "symbol" is the function symbol name. "symbol" may be missing
 if the binary file is stripped.
 
+{{< note >}}
+Information from `procfs (/proc/<pid>/maps)` is used to symbolize user
+stack trace addresses. Stack trace addresses extraction and symbolizing are async.
+It might happen that process is terminated and the `/proc/<pid>/maps` file will be
+not existed at user stack trace symbolization step. In such case user stack traces
+for very short living process might be not collected.
+{{< /note >}}
+
 This output can be enhanced in a more human friendly using the `tetra getevents
 -o compact` command. Indeed, by default, it will print the stack trace along
 the compact output of the event similarly to this:
@@ -1011,7 +1019,7 @@ The printing format for user stack trace is `"0x%x: %s (%s+0x%x)", address, symb
 
 {{< note >}}
 Compact output will display missing addresses as `0x0`, see the above note on
-`--expose-addresses` for more info.
+`--expose-stack-addresses` for more info.
 {{< /note >}}
 
 ### NoPost action
