@@ -20,7 +20,7 @@ RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
 # Second builder (cross-)compile:
 # - tetragon (pkg/bpf uses CGO, so a gcc cross compiler is needed)
 # - tetra
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.8@sha256:c82d4ad02c062cf2b393bf0374df26638c6fed3dfe52cdbd3635d4a7befab86e as tetragon-builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.8@sha256:856073656d1a517517792e6cdd2f7a5ef080d3ca2dff33e518c8412f140fdd2d as tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH BUILDARCH
 RUN apt-get update
