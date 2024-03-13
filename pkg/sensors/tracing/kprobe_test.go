@@ -6148,7 +6148,7 @@ func TestKprobeUserStackTrace(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
-	testGetCpu := testutils.RepoRootPath("contrib/tester-progs/getcpu")
+	testUserStacktrace := testutils.RepoRootPath("contrib/tester-progs/user-stacktrace")
 	tracingPolicy := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -6160,7 +6160,7 @@ spec:
     - matchBinaries:
       - operator: "In"
         values:
-        - "` + testGetCpu + `"
+        - "` + testUserStacktrace + `"
       matchActions:
       - action: Post
         userStackTrace: true`
@@ -6173,27 +6173,32 @@ spec:
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
+	test_cmd := exec.Command(testUserStacktrace)
 
-	if err := exec.Command(testGetCpu).Run(); err != nil {
-		t.Fatalf("failed to run %s: %s", testGetCpu, err)
+	if err := test_cmd.Start(); err != nil {
+		t.Fatalf("failed to run %s: %s", testUserStacktrace, err)
 	}
 
 	stackTraceChecker := ec.NewProcessKprobeChecker("user-stack-trace").
-		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testGetCpu))).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testUserStacktrace))).
 		WithUserStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
 			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("main.main"))),
-			// syscall user-nix /home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu __x64_sys_getcpu
-			// User space:
-			// 0x0: runtime/internal/syscall.Syscall6 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x2aee)
-			// 0x0: syscall.Syscall (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x635e6)
-			// 0x0: syscall.Syscall.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x6374e)
-			// 0x0: main.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x652e5)
-			// 0x0: runtime.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x3313d)
-			// 0x0: runtime.goexit.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/getcpu+0x5e901)
+			// syscall user-nix /home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace __x64_sys_getcpu
+			// User:
+			//   0x0: runtime/internal/syscall.Syscall6 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x2aee)
+			//   0x0: syscall.Syscall (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x63346)
+			//   0x0: syscall.Syscall.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x634ae)
+			//   0x0: main.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x6503e)
+			//   0x0: runtime.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x3313d)
+			//   0x0: runtime.goexit.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x5e661)
 		))
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
+
+	// Kill test because of endless loop in the test for stable stack trace extraction
+	test_cmd.Process.Kill()
+
 	assert.NoError(t, err)
 }
 
