@@ -10,7 +10,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+//nolint:all
 func main() {
+	// This test has endless loop for stable stack trace collection.
+	// It must be terminated from tests.
 	var cpu, node int
 	_, _, err := unix.Syscall(
 		unix.SYS_GETCPU,
@@ -18,5 +21,9 @@ func main() {
 		uintptr(unsafe.Pointer(&node)),
 		0,
 	)
-	os.Exit(int(err))
+	if err != 0 {
+		os.Exit(int(err))
+	}
+	for {
+	}
 }

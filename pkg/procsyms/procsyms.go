@@ -116,17 +116,19 @@ func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 			// Symbols are unordered by Value, so using linear scan
 			if symOffset <= sym.Offset && sym.Offset < (symOffset+s.Size) {
 				sym.Name = s.Name
-				key := struct {
-					module string
-					offset uint64
-				}{
-					module: sym.Module,
-					offset: sym.Offset,
-				}
-				cache.Add(key, sym.Name)
 				break
 			}
 		}
+
+		// Store sym in cache, no matter was it found or not.
+		key := struct {
+			module string
+			offset uint64
+		}{
+			module: sym.Module,
+			offset: sym.Offset,
+		}
+		cache.Add(key, sym.Name)
 	}
 	return &sym, nil
 }
