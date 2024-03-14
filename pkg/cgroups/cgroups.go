@@ -639,7 +639,7 @@ func detectDeploymentMode() (DeploymentCode, error) {
 	return getDeploymentMode(), nil
 }
 
-func DetectDeploymentMode() (uint32, error) {
+func DetectDeploymentMode() (DeploymentCode, error) {
 	detectDeploymentOnce.Do(func() {
 		mode, err := detectDeploymentMode()
 		if err != nil {
@@ -657,10 +657,10 @@ func DetectDeploymentMode() (uint32, error) {
 
 	mode := getDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
-		return uint32(mode), fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
+		return mode, fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
 	}
 
-	return uint32(mode), nil
+	return mode, nil
 }
 
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()

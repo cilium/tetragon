@@ -37,7 +37,7 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(&info1, info2) {
-		t.Errorf("mismatching structures: %s vs %s", info1, info2)
+		t.Errorf("mismatching structures: %v vs %v", info1, info2)
 	}
 
 	t.Log("Success")

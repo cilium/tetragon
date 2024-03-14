@@ -110,7 +110,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 
 	log.WithFields(logrus.Fields{
 		"confmap-update":                configMapName,
-		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
+		"deployment.mode":               deployMode.String(),
 		"log.level":                     logrus.Level(v.LogLevel).String(),
 		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
