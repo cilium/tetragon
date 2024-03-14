@@ -58,10 +58,11 @@ type MsgGenericKprobe struct {
 }
 
 type MsgGenericKprobeArgPath struct {
-	Index uint64
-	Value string
-	Flags uint32
-	Label string
+	Index      uint64
+	Value      string
+	Flags      uint32
+	Permission uint16
+	Label      string
 }
 
 func (m MsgGenericKprobeArgPath) GetIndex() uint64 {
@@ -73,10 +74,11 @@ func (m MsgGenericKprobeArgPath) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgFile struct {
-	Index uint64
-	Value string
-	Flags uint32
-	Label string
+	Index      uint64
+	Value      string
+	Flags      uint32
+	Permission uint16
+	Label      string
 }
 
 func (m MsgGenericKprobeArgFile) GetIndex() uint64 {
@@ -406,9 +408,11 @@ type MsgGenericKprobeLinuxBinprm struct {
 }
 
 type MsgGenericKprobeArgLinuxBinprm struct {
-	Index uint64
-	Value string
-	Label string
+	Index      uint64
+	Value      string
+	Flags      uint32
+	Permission uint16
+	Label      string
 }
 
 func (m MsgGenericKprobeArgLinuxBinprm) GetIndex() uint64 {

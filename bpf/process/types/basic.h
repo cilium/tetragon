@@ -445,6 +445,7 @@ copy_path(char *args, const struct path *arg)
 	int size = 0, flags = 0;
 	char *buffer;
 	void *curr = &args[4];
+	umode_t i_mode;
 
 	buffer = d_path_local(arg, &size, &flags);
 	if (!buffer)
@@ -456,12 +457,14 @@ copy_path(char *args, const struct path *arg)
 	*s = size;
 	size += 4;
 
+	BPF_CORE_READ_INTO(&i_mode, arg, dentry, d_inode, i_mode);
+
 	/*
 	 * the format of the path is:
-	 * -------------------------------
-	 * | 4 bytes | N bytes | 4 bytes |
-	 * | pathlen |  path   |  flags  |
-	 * -------------------------------
+	 * -----------------------------------------
+	 * | 4 bytes | N bytes | 4 bytes | 2 bytes |
+	 * | pathlen |  path   |  flags  |   mode  |
+	 * -----------------------------------------
 	 * Next we set up the flags.
 	 */
 	asm volatile goto(
@@ -472,12 +475,14 @@ copy_path(char *args, const struct path *arg)
 		"r1 += r7;\n"
 		"r2 = *(u32 *)%[flags];\n"
 		"*(u32 *)(r1 + 0) = r2;\n"
+		"r2 = *(u16 *)%[mode];\n"
+		"*(u16 *)(r1 + 4) = r2;\n"
 		:
-		: [pid] "m"(args), [flags] "m"(flags), [offset] "+m"(size)
+		: [pid] "m"(args), [flags] "m"(flags), [offset] "+m"(size), [mode] "m"(i_mode)
 		: "r0", "r1", "r2", "r7", "memory"
 		: a);
 a:
-	size += sizeof(u32); // for the flags
+	size += sizeof(u32) + sizeof(u16); // for the flags + i_mode
 
 	return size;
 }

@@ -95,6 +95,7 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		var arg api.MsgGenericKprobeArgFile
 		var flags uint32
 		var b int32
+		var mode uint16
 
 		/* Eat file descriptor its not used in userland */
 		if a.ty == gt.GenericFdType {
@@ -122,12 +123,21 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 			flags = 0
 		}
 
+		if a.ty == gt.GenericFileType || a.ty == gt.GenericKiocb {
+			err := binary.Read(r, binary.LittleEndian, &mode)
+			if err != nil {
+				mode = 0
+			}
+			arg.Permission = mode
+		}
+
 		arg.Flags = flags
 		arg.Label = a.label
 		return arg
 	case gt.GenericPathType:
 		var arg api.MsgGenericKprobeArgPath
 		var flags uint32
+		var mode uint16
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -145,7 +155,13 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 			flags = 0
 		}
 
+		err = binary.Read(r, binary.LittleEndian, &mode)
+		if err != nil {
+			mode = 0
+		}
+
 		arg.Flags = flags
+		arg.Permission = mode
 		arg.Label = a.label
 		return arg
 	case gt.GenericFilenameType, gt.GenericStringType, gt.GenericNetDev:
@@ -498,6 +514,8 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		return arg
 	case gt.GenericLinuxBinprmType:
 		var arg api.MsgGenericKprobeArgLinuxBinprm
+		var flags uint32
+		var mode uint16
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -508,6 +526,18 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 				logger.GetLogger().WithError(err).Warn("error parsing arg type linux_binprm")
 			}
 		}
+
+		err := binary.Read(r, binary.LittleEndian, &flags)
+		if err != nil {
+			flags = 0
+		}
+
+		err = binary.Read(r, binary.LittleEndian, &mode)
+		if err != nil {
+			mode = 0
+		}
+		arg.Flags = flags
+		arg.Permission = mode
 		arg.Label = a.label
 		return arg
 	default:

@@ -543,6 +543,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 
 
@@ -558,6 +559,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | path | [string](#string) |  |  |
+| flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 
 
@@ -590,6 +593,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 
 
