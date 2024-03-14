@@ -223,7 +223,7 @@ github.com/cilium/ebpf/internal/sysenc
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-github.com/cilium/ebpf/perf
+github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
 # github.com/cilium/little-vm-helper v0.0.16
 ## explicit; go 1.21.0

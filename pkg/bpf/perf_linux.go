@@ -8,10 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -19,13 +16,7 @@ const (
 )
 
 type PerfEventConfig struct {
-	NumCpus      int
-	NumPages     int
-	MapName      string
-	Type         int
-	Config       int
-	SampleType   int
-	WakeupEvents int
+	MapName string
 }
 
 // GetNumPossibleCPUs returns a total number of possible CPUS, i.e. CPUs that
@@ -74,30 +65,7 @@ func getNumPossibleCPUsFromReader(r io.Reader) int {
 // DefaultPerfEventConfig returns the default perf event configuration. It
 // relies on the map root to be set.
 func DefaultPerfEventConfig() *PerfEventConfig {
-	numCpus := GetNumPossibleCPUs()
-	if numCpus == 0 {
-		numCpus = runtime.NumCPU()
-	}
 	return &PerfEventConfig{
-		MapName:      filepath.Join(MapPrefixPath(), eventsMapName),
-		Type:         PERF_TYPE_SOFTWARE,
-		Config:       PERF_COUNT_SW_BPF_OUTPUT,
-		SampleType:   PERF_SAMPLE_RAW,
-		WakeupEvents: 1,
-		NumCpus:      numCpus,
-		NumPages:     128,
+		MapName: filepath.Join(MapPrefixPath(), eventsMapName),
 	}
-}
-
-func UpdateElementFromPointers(fd int, structPtr, sizeOfStruct uintptr) error {
-	ret, _, err := unix.Syscall(
-		unix.SYS_BPF,
-		BPF_MAP_UPDATE_ELEM,
-		structPtr,
-		sizeOfStruct,
-	)
-	if ret != 0 || err != 0 {
-		return fmt.Errorf("Unable to update element for map with file descriptor %d: %s", fd, err)
-	}
-	return nil
 }

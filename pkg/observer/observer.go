@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -16,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -31,10 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	perCPUBufferBytes = 65535
 )
 
 var (
@@ -144,23 +139,6 @@ func (k *Observer) receiveEvent(data []byte) {
 	}
 }
 
-// Gets final size for single perf ring buffer rounded from
-// passed size argument (kindly borrowed from ebpf/cilium)
-func perfBufferSize(perCPUBuffer int) int {
-	pageSize := os.Getpagesize()
-
-	// Smallest whole number of pages
-	nPages := (perCPUBuffer + pageSize - 1) / pageSize
-
-	// Round up to nearest power of two number of pages
-	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
-
-	// Add one for metadata
-	nPages++
-
-	return nPages * pageSize
-}
-
 func sizeWithSuffix(size int) string {
 	suffix := [4]string{"", "K", "M", "G"}
 
@@ -171,26 +149,6 @@ func sizeWithSuffix(size int) string {
 	}
 
 	return fmt.Sprintf("%d%s", size, suffix[i])
-}
-
-func (k *Observer) getRBSize(cpus int) int {
-	var size int
-
-	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
-		size = perCPUBufferBytes
-	} else if option.Config.RBSize != 0 {
-		size = option.Config.RBSize
-	} else {
-		size = option.Config.RBSizeTotal / int(cpus)
-	}
-
-	cpuSize := perfBufferSize(size)
-	totalSize := cpuSize * cpus
-
-	k.log.WithField("percpu", sizeWithSuffix(cpuSize)).
-		WithField("total", sizeWithSuffix(totalSize)).
-		Info("Perf ring buffer size (bytes)")
-	return size
 }
 
 func (k *Observer) getRBQueueSize() int {
@@ -211,11 +169,9 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	}
 	defer perfMap.Close()
 
-	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
-	perfReader, err := perf.NewReader(perfMap, rbSize)
-
+	rd, err := ringbuf.NewReader(perfMap)
 	if err != nil {
-		return fmt.Errorf("creating perf array reader failed: %w", err)
+		return fmt.Errorf("opening ringbuf reader: %w", err)
 	}
 
 	// Inform caller that we're about to start processing events.
@@ -224,7 +180,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	// We spawn go routine to read and process perf events,
 	// connected with main app through eventsQueue channel.
-	eventsQueue := make(chan *perf.Record, k.getRBQueueSize())
+	eventsQueue := make(chan *ringbuf.Record, k.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -237,7 +193,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	go func() {
 		defer wg.Done()
 		for stopCtx.Err() == nil {
-			record, err := perfReader.Read()
+			record, err := rd.Read()
 			if err != nil {
 				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
@@ -255,11 +211,6 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 					}
 					k.recvCntr++
 					ringbufmetrics.PerfEventReceived.Inc()
-				}
-
-				if record.LostSamples > 0 {
-					atomic.AddUint64(&k.lostCntr, uint64(record.LostSamples))
-					ringbufmetrics.PerfEventLost.Add(float64(record.LostSamples))
 				}
 			}
 		}
@@ -290,7 +241,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	// Wait for context to be cancelled and then stop.
 	<-stopCtx.Done()
-	return perfReader.Close()
+	return rd.Close()
 }
 
 // Observer represents the link between the BPF perf ring and the listeners. It
