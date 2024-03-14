@@ -302,6 +302,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 <a name="tetragon-KprobeLinuxBinprm"></a>
 
@@ -310,6 +311,8 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | path | [string](#string) |  |  |
+| flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 <a name="tetragon-KprobeNetDev"></a>
 
@@ -328,6 +331,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | mount | [string](#string) |  |  |
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
+| permission | [string](#string) |  |  |
 
 <a name="tetragon-KprobePerfEvent"></a>
 

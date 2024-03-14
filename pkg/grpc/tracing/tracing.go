@@ -168,15 +168,17 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		a.Label = e.Label
 	case api.MsgGenericKprobeArgFile:
 		fileArg := &tetragon.KprobeFile{
-			Path:  e.Value,
-			Flags: path.FilePathFlagsToStr(e.Flags),
+			Path:       e.Value,
+			Flags:      path.FilePathFlagsToStr(e.Flags),
+			Permission: path.FilePathModeToStr(e.Permission),
 		}
 		a.Arg = &tetragon.KprobeArgument_FileArg{FileArg: fileArg}
 		a.Label = e.Label
 	case api.MsgGenericKprobeArgPath:
 		pathArg := &tetragon.KprobePath{
-			Path:  e.Value,
-			Flags: path.FilePathFlagsToStr(e.Flags),
+			Path:       e.Value,
+			Flags:      path.FilePathFlagsToStr(e.Flags),
+			Permission: path.FilePathModeToStr(e.Permission),
 		}
 		a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
 		a.Label = e.Label
@@ -257,7 +259,9 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		a.Label = e.Label
 	case api.MsgGenericKprobeArgLinuxBinprm:
 		lArg := &tetragon.KprobeLinuxBinprm{
-			Path: e.Value,
+			Path:       e.Value,
+			Flags:      path.FilePathFlagsToStr(e.Flags),
+			Permission: path.FilePathModeToStr(e.Permission),
 		}
 		a.Arg = &tetragon.KprobeArgument_LinuxBinprmArg{LinuxBinprmArg: lArg}
 		a.Label = e.Label
