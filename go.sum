@@ -394,8 +394,8 @@ github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mattn/go-shellwords v1.0.12 h1:M2zGm7EW6UQJvDeQxo4T51eKPurbeFbe8WtebGE2xrk=
 github.com/mattn/go-shellwords v1.0.12/go.mod h1:EZzvwXDESEeg03EKmM+RmDnNOPKG4lLtQsUlTZDWQ8Y=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
-github.com/mennanov/fieldmask-utils v1.1.0 h1:OznpB7hfv+1LVkPsYyVm9HptTk984cxOCFXlwao1nk0=
-github.com/mennanov/fieldmask-utils v1.1.0/go.mod h1:QKL2T2dcS9lo+Z+jbDRUUVHU5oZPhi7YsEpiwIrDYys=
+github.com/mennanov/fieldmask-utils v1.1.2 h1:f5hd3hYeWdl+q2thiKYyZZmqTqn90uayWG03bca9U+E=
+github.com/mennanov/fieldmask-utils v1.1.2/go.mod h1:xRqd9Fjz/gFEDYCQw7pxGouxqLhSPrkOdx2yhEAXEls=
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/miekg/dns v1.1.41 h1:WMszZWJG0XmzbK9FEmzH2TVcqYzFesusSIB41b8KHxY=
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
