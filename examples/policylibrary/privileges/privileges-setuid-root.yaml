@@ -53,7 +53,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "privileges-setuid-root.yaml"
+  name: "privileges-setuid-root"
 spec:
   kprobes:
   - call: "__sys_setuid"
