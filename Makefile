@@ -122,6 +122,10 @@ help:
 	@echo '    Documentation:'
 	@echo '        docs              - preview documentation website'
 	@echo '        metrics-docs      - generate metrics reference documentation page'
+	@echo 'End-to-end tests: '
+	@echo '    e2e-test                                        - run e2e tests'
+	@echo '    e2e-test E2E_BUILD_IMAGES=0                     - run e2e tests without (re-)building images'
+	@echo '    e2e-test E2E_TESTS=./tests/e2e/tests/skeleton   - run a specific e2e test'
 	@echo 'Options:'
 	@echo '    TARGET_ARCH            - target architecture to build for (e.g. amd64 or arm64)'
 	@echo '    BPF_TARGET_ARCH        - target architecture for BPF progs, set by TARGET_ARCH'
@@ -238,6 +242,7 @@ else
 endif
 # Build image and operator images locally before running test. Set to 0 to disable.
 E2E_BUILD_IMAGES ?= 1
+E2E_TESTS ?= ./tests/e2e/tests/...
 
 # Run an e2e-test
 .PHONY: e2e-test
@@ -246,7 +251,7 @@ e2e-test: image image-operator
 else
 e2e-test:
 endif
-	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover ./tests/e2e/tests/... ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+	$(GO) test -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover $(E2E_TESTS) ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
 
 TEST_COMPILE ?= ./...
 .PHONY: test-compile
