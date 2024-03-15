@@ -649,9 +649,14 @@ ensure they properly follow the [Error Injectable Functions](https://docs.kernel
 ### FollowFD action
 
 The `FollowFD` action allows to create a mapping using a BPF map between file
-descriptors numbers and filenames. It however needs to maintain a state
-correctly, see [`UnfollowFD`](#unfollowfd-action) and
-[`CopyFD`](#copyfd-action) related actions.
+descriptors and filenames. After its creation, the mapping can be maintained
+through [`UnfollowFD`](#unfollowfd-action) and [`CopyFD`](#copyfd-action)
+actions. Note that proper maintenance of the mapping is up to the tracing policy
+writer.
+
+`FollowFD` is typically used at hook points where a file descriptor and its
+associated filename appear together. The kernel function `fd_install`
+is a good example.
 
 The `fd_install` kernel function  is called each time a file descriptor must be
 installed into the file descriptor table of a process, typically referenced
@@ -682,11 +687,79 @@ This action uses the dedicated `argFd` and `argName` fields to get respectively
 the index of the file descriptor argument and the index of the name argument in
 the call.
 
+While the mapping between the file descriptor and filename remains in place
+(that is, between `FollowFD` and `UnfollowFD` for the same file descriptor)
+tracing policies may refer to filenames instead of file descriptors.  This
+offers greater convenience and allows more functionality to reside inside the
+kernel, thereby reducing overhead.
+
+For instance, assume that you want to prevent writes into file
+`/etc/passwd`. The system call `sys_write` only receives a file descriptor,
+not a filename, as argument. Yet with a bracketing pair of `FollowFD`
+and `UnfollowFD` actions in place the tracing policy that hooks into `sys_write`
+can nevertheless refer to the filename `/etc/passwd`,
+if it also marks the relevant argument as of type `fd`.
+
+The following example combines actions `FollowFD` and `UnfollowFD` as well
+as an argument of type `fd` to such effect:
+
+```yaml
+kprobes:
+- call: "fd_install"
+  syscall: false
+  args:
+  - index: 0
+    type: int
+  - index: 1
+    type: "file"
+  selectors:
+  - matchArgs:
+    - index: 1
+      operator: "Equal"
+      values:
+      - "/tmp/passwd"
+    matchActions:
+    - action: FollowFD
+      argFd: 0
+      argName: 1
+- call: "sys_write"
+  syscall: true
+  args:
+  - index: 0
+    type: "fd"
+  - index: 1
+    type: "char_buf"
+    sizeArgIndex: 3
+  - index: 2
+    type: "size_t"
+  selectors:
+  - matchArgs:
+    - index: 0
+      operator: "Equal"
+      values:
+      - "/tmp/passwd"
+    matchActions:
+    - action: Sigkill
+- call: "sys_close"
+  syscall: true
+  args:
+  - index: 0
+     type: "int"
+  selectors:
+  - matchActions:
+    - action: UnfollowFD
+      argFd: 0
+      argName: 0
+```
+
 ### UnfollowFD action
 
 The `UnfollowFD` action takes a file descriptor from a system call and deletes
 the corresponding entry from the BPF map, where it was put under the `FollowFD`
 action.
+It is typically used at hooks points where the scope of association between
+a file descriptor and a filename ends. The system call `sys_close` is a
+good example.
 
 Let's take a look at the following example:
 ```yaml
