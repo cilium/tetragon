@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/tests/e2e/state"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -65,7 +66,14 @@ func ensureTracingPolicy(ctx context.Context, policyName string, client tetragon
 
 	for _, pol := range res.GetPolicies() {
 		if pol.GetName() == policyName {
-			return nil
+			if pol.State == tetragon.TracingPolicyState_TP_STATE_ENABLED && pol.Error == "" {
+				return nil
+			}
+			return fmt.Errorf("policy %s exists but is in state:%s (error:%s)",
+				policyName,
+				tetragon.TracingPolicyState_name[int32(pol.State)],
+				pol.Error,
+			)
 		}
 	}
 
