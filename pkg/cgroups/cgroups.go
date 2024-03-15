@@ -115,9 +115,9 @@ var (
 	cgroupFSPath       string
 	cgroupFSMagic      uint64
 
-	// Cgroup Migration Path
-	findMigPath       sync.Once
-	cgrpMigrationPath string
+	// Current Cgroup Path
+	cgrpCurrentPathOnce sync.Once
+	cgrpCurrentPath     string
 
 	// Cgroup Tracking Hierarchy
 	cgrpHierarchy    uint32
@@ -523,11 +523,8 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 	return strings.Split(strings.TrimSpace(string(cgroups)), "\n"), nil
 }
 
-func findMigrationPath(pid uint32) (string, error) {
-	if cgrpMigrationPath != "" {
-		return cgrpMigrationPath, nil
-	}
-
+func detectCurrentCgrpPath() (string, error) {
+	pid := uint32(os.Getpid())
 	cgroupPaths, err := getPidCgroupPaths(pid)
 	if err != nil {
 		logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
@@ -542,13 +539,13 @@ func findMigrationPath(pid uint32) (string, error) {
 	/* Run the validate and get cgroup migration path once
 	 * as it triggers lot of checks.
 	 */
-	findMigPath.Do(func() {
+	cgrpCurrentPathOnce.Do(func() {
 		var err error
 		switch mode {
 		case CGROUP_LEGACY, CGROUP_HYBRID:
-			cgrpMigrationPath, err = getValidCgroupv1Path(cgroupPaths)
+			cgrpCurrentPath, err = getValidCgroupv1Path(cgroupPaths)
 		case CGROUP_UNIFIED:
-			cgrpMigrationPath, err = getValidCgroupv2Path(cgroupPaths)
+			cgrpCurrentPath, err = getValidCgroupv2Path(cgroupPaths)
 		default:
 			err = fmt.Errorf("could not detect Cgroup Mode")
 		}
@@ -558,11 +555,11 @@ func findMigrationPath(pid uint32) (string, error) {
 		}
 	})
 
-	if cgrpMigrationPath == "" {
+	if cgrpCurrentPath == "" {
 		return "", fmt.Errorf("could not detect Cgroup migration path for pid=%d", pid)
 	}
 
-	return cgrpMigrationPath, nil
+	return cgrpCurrentPath, nil
 }
 
 func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
@@ -622,43 +619,26 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 	return cgroupMode, nil
 }
 
-func detectDeploymentMode() (DeploymentCode, error) {
-	mode := getDeploymentMode()
-	if mode != DEPLOY_UNKNOWN {
-		return mode, nil
-	}
-
-	// Let's call findMigrationPath in case to parse own cgroup
-	// paths and detect the deployment mode.
-	pid := os.Getpid()
-	_, err := findMigrationPath(uint32(pid))
-	if err != nil {
-		return DEPLOY_UNKNOWN, err
-	}
-
-	return getDeploymentMode(), nil
-}
-
 func DetectDeploymentMode() (DeploymentCode, error) {
 	detectDeploymentOnce.Do(func() {
-		mode, err := detectDeploymentMode()
+		_, err := detectCurrentCgrpPath()
 		if err != nil {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgroup.fs": cgroupFSPath,
 			}).WithError(err).Warn("Detection of deployment mode failed")
 			return
 		}
-
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs":       cgroupFSPath,
-			"deployment.mode": DeploymentCode(mode).String(),
-		}).Info("Deployment mode detection succeeded")
 	})
 
 	mode := getDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
 		return mode, fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
 	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":       cgroupFSPath,
+		"deployment.mode": mode.String(),
+	}).Info("Deployment mode detection succeeded")
 
 	return mode, nil
 }

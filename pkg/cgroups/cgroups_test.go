@@ -293,8 +293,7 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	err = DiscoverSubSysIds()
 	assert.NoError(t, err)
 
-	pid := os.Getpid()
-	path, err := findMigrationPath(uint32(pid))
+	path, err := detectCurrentCgrpPath()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, path)
 
