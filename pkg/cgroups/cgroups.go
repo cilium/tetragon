@@ -596,10 +596,10 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 		cgroupFSPath = defaultCgroupRoot
 		cgroupMode, err = detectCgroupMode(cgroupFSPath)
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("cgroup.fs", cgroupFSPath).Debug("Could not detect Cgroup Mode")
+			logger.GetLogger().WithError(err).WithField("cgroup.fs", cgroupFSPath).Info("Could not detect Cgroup Mode")
 			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("cgroup.fs", defaults.Cgroup2Dir).Debug("Could not detect Cgroup Mode")
+				logger.GetLogger().WithError(err).WithField("cgroup.fs", defaults.Cgroup2Dir).Info("Could not detect Cgroup Mode")
 			} else {
 				cgroupFSPath = defaults.Cgroup2Dir
 			}
@@ -615,6 +615,10 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 	if cgroupMode == CGROUP_UNDEF {
 		return CGROUP_UNDEF, fmt.Errorf("could not detect Cgroup Mode")
 	}
+	logger.GetLogger().WithFields(logrus.Fields{
+		"cgroup.fs":   cgroupFSPath,
+		"cgroup.mode": cgroupMode.String(),
+	}).Info("Cgroup mode detection succeeded")
 
 	return cgroupMode, nil
 }
@@ -657,10 +661,10 @@ func DetectCgroupFSMagic() (uint64, error) {
 		switch mode {
 		case CGROUP_LEGACY, CGROUP_HYBRID:
 			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in raw Cgroup mode")
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Info("Cgroup BPF helpers will run in raw Cgroup mode")
 			cgroupFSMagic = unix.CGROUP_SUPER_MAGIC
 		case CGROUP_UNIFIED:
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Info("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
 			cgroupFSMagic = unix.CGROUP2_SUPER_MAGIC
 		}
 	})
