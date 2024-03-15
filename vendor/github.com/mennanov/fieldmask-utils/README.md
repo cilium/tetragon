@@ -32,6 +32,7 @@ import fieldmask_utils "github.com/mennanov/fieldmask-utils"
 
 // A function that maps field mask field names to the names used in Go structs.
 // It has to be implemented according to your needs.
+// Scroll down for a reference on how to apply field masks to your gRPC services.
 func naming(s string) string {
 	if s == "foo" {
 		return "Foo"
@@ -79,6 +80,47 @@ func main() {
 	// Only the fields that are not mentioned in the field mask will be copied to userDst, other fields are left intact.
 }
 ```
+
+#### Naming function
+
+For developers that are looking for a mechanism to apply a mask field in their update endpoints using gRPC services,
+there are multiple options for the naming function described above:
+
+- Using the `CamelCase` function provided in
+  the [original protobuf repository](https://github.com/golang/protobuf/blob/master/protoc-gen-go/generator/generator.go#L2648).
+  This repository has been deprecated and it will potentially trigger lint errors.
+    - You can copy-paste the `CamelCase` function to your own project or,
+    - You can use an [Open Source alternative](https://github.com/gojaguar/jaguar) that provides the same functionality,
+      already took care of [copying the code](https://github.com/gojaguar/jaguar/blob/main/strings/pascal_case.go), and also added tests.
+
+```go
+func main() {
+    mask := &fieldmaskpb.FieldMask{Paths: []string{"username"}}
+    mask.Normalize()
+    req := &UpdateUserRequest{
+        User: &User{
+            Id:       1234,
+            Username: "Test",
+        },
+    }
+    if !mask.IsValid(req) {
+        return
+    }
+    protoMask, err := fieldmask_utils.MaskFromProtoFieldMask(mask, strings.PascalCase)
+    if err != nil {
+        return
+    }
+    m := make(map[string]any)
+    err = fieldmask_utils.StructToMap(protoMask, req, m)
+	if err != nil {
+		return
+    }
+	fmt.Println("Resulting map:", m)
+}
+```
+
+This will result in a map that contains the fields that need to be updated with their respective values.
+
 
 ### Limitations
 
