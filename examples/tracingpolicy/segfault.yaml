@@ -1,0 +1,19 @@
+---
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: segfault
+spec:
+  kprobes:
+  # int force_sig_fault(int sig, int code, void __user *addr)
+  - call: "force_sig_fault"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "11" # SIGSEGV
