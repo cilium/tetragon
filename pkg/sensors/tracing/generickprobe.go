@@ -1120,7 +1120,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			logger.GetLogger().Warnf("failed to retrieve kernel stacktrace: id equal to errno %d", m.KernelStackID)
 		}
 		if m.UserStackID < 0 {
-			logger.GetLogger().Warnf("failed to retrieve user stacktrace: id equal to errno %d", m.UserStackID)
+			logger.GetLogger().Debugf("failed to retrieve user stacktrace: id equal to errno %d", m.UserStackID)
 		}
 		if gk.data.stackTraceMap.MapHandle == nil {
 			logger.GetLogger().WithError(err).Warn("failed to load the stacktrace map")
