@@ -49,7 +49,14 @@ var (
 	//  - check that we only receive events from the first
 	podlblNamespace = "nslabel"
 
-	testNamespaces = []string{otherNamespace, policyNamespace, podlblNamespace}
+	// for the container field filter test, we:
+	//  - create a namespace
+	//  - install a namespaced policy with container field filter in that namespace (on sys_exit)
+	//  - create a pod with two containers, one that matches the policy and one that does not
+	//  - check that we only receive events from the matching container
+	containerSelectorNamespace = "nsfield"
+
+	testNamespaces = []string{otherNamespace, policyNamespace, podlblNamespace, containerSelectorNamespace}
 )
 
 func TestMain(m *testing.M) {
@@ -363,4 +370,148 @@ func (plc *podLabelChecker) FinalCheck(_ *logrus.Logger) error {
 		return nil
 	}
 	return fmt.Errorf("pod-label checker failed, had %d matches", plc.matches)
+}
+
+func TestContainerFieldFilters(t *testing.T) {
+	runner.SetupExport(t)
+
+	checker := containerSelectorChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
+
+	runEventChecker := features.New("Run Event Checks").
+		Assess("Run Event Checks", checker.CheckWithFilters(
+			30*time.Second,
+			// allow list
+			[]*tetragon.Filter{{
+				EventSet:  []tetragon.EventType{tetragon.EventType_PROCESS_TRACEPOINT},
+				Namespace: []string{containerSelectorNamespace},
+			}},
+			// deny list
+			[]*tetragon.Filter{},
+		)).Feature()
+
+	runWorkload := features.New("Container field filter test").
+		Assess("Install policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.LoadCRDString(containerSelectorNamespace, containerSelectorPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to install policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
+			if err := grpc.WaitForTracingPolicy(ctx, "ubuntu-container-syscalls"); err != nil {
+				klog.ErrorS(err, "failed to wait for policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Wait for Checker", checker.Wait(30*time.Second)).
+		Assess("Start pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			var err error
+			for _, pod := range []string{ubuntuPod_l3} {
+				ctx, err = helpers.LoadCRDString(containerSelectorNamespace, pod, true)(ctx, c)
+				if err != nil {
+					klog.ErrorS(err, "failed to load pod")
+					t.Fail()
+				}
+
+			}
+			return ctx
+		}).
+		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString(containerSelectorNamespace, containerSelectorPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to uninstall policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Feature()
+
+	runner.TestInParallel(t, runWorkload, runEventChecker)
+}
+
+const containerSelectorPolicy = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: "ubuntu-container-syscalls"
+spec:
+  containerSelector:
+    matchExpressions:
+    - key: name
+      operator: In
+      values:
+      - sidecar
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_exit"
+    args:
+    - index: 4
+      type: "int64"
+`
+
+const ubuntuPod_l3 = `
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ubuntu-l3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "ubuntu-l3"
+  template:
+    metadata:
+      labels:
+        app: "ubuntu-l3"
+    spec:
+      containers:
+      - name: main
+        image: ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
+      - name: sidecar
+        image: ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
+`
+
+func containerSelectorChecker() *checker.RPCChecker {
+	return checker.NewRPCChecker(&containerFieldChecker{}, "policyfilter-container-field-checker")
+}
+
+type containerFieldChecker struct {
+	matches int
+}
+
+func (cfc *containerFieldChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+	// ignore non-trace point events
+	ev, ok := event.(*tetragon.ProcessTracepoint)
+	if !ok {
+		return false, errors.New("not a tracepoint")
+	}
+
+	// ignore other tracepoints
+	if ev.GetSubsys() != "raw_syscalls" || ev.GetEvent() != "sys_exit" {
+		return false, fmt.Errorf("not raw_syscalls:sys_exit (%s:%s instead)", ev.GetSubsys(), ev.GetEvent())
+	}
+
+	container := ev.GetProcess().GetPod().GetContainer()
+
+	if container.Name != "sidecar" {
+		return true, fmt.Errorf("event %+v has wrong container", ev)
+	}
+
+	cfc.matches++
+	return false, nil
+}
+
+func (cfc *containerFieldChecker) FinalCheck(_ *logrus.Logger) error {
+	if cfc.matches > 0 {
+		return nil
+	}
+	return fmt.Errorf("container-field checker failed, had %d matches", cfc.matches)
 }
