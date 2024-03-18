@@ -2537,13 +2537,11 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		struct file *file;
 		probe_read(&file, sizeof(file), &arg);
 		path_arg = _(&file->f_path);
+		goto do_copy_path;
 	}
-		// fallthrough to copy_path
 	case path_ty: {
-		if (!path_arg)
-			probe_read(&path_arg, sizeof(path_arg), &arg);
-		size = copy_path(args, path_arg);
-		break;
+		probe_read(&path_arg, sizeof(path_arg), &arg);
+		goto do_copy_path;
 	}
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
@@ -2585,7 +2583,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		arg = (unsigned long)_(&bprm->file);
 		probe_read(&file, sizeof(file), (const void *)arg);
 		path_arg = _(&file->f_path);
-		size = copy_path(args, path_arg);
+		goto do_copy_path;
 	} break;
 #endif
 	case filename_ty: {
@@ -2698,6 +2696,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		break;
 	}
 	return size;
+
+do_copy_path:
+	return copy_path(args, path_arg);
 }
 
 #endif /* __BASIC_H__ */
