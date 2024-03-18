@@ -23,7 +23,8 @@ get_parent(struct task_struct *t)
 {
 	struct task_struct *task;
 
-	probe_read(&task, sizeof(task), _(&t->parent));
+	/* Read the real parent */
+	probe_read(&task, sizeof(task), _(&t->real_parent));
 	if (!task)
 		return 0;
 	return task;
@@ -115,7 +116,7 @@ __event_find_parent(struct task_struct *task)
 
 #pragma unroll
 	for (i = 0; i < 4; i++) {
-		probe_read(&task, sizeof(task), _(&task->parent));
+		probe_read(&task, sizeof(task), _(&task->real_parent));
 		if (!task)
 			break;
 		probe_read(&pid, sizeof(pid), _(&task->tgid));
@@ -165,7 +166,7 @@ event_find_curr(__u32 *ppid, bool *walked)
 			break;
 		value = 0;
 		*walked = 1;
-		probe_read(&task, sizeof(task), _(&task->parent));
+		probe_read(&task, sizeof(task), _(&task->real_parent));
 		if (!task)
 			break;
 		probe_read(&pid, sizeof(pid), _(&task->tgid));
