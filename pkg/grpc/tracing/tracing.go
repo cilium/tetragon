@@ -261,6 +261,30 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_LinuxBinprmArg{LinuxBinprmArg: lArg}
 		a.Label = e.Label
+	case api.MsgGenericKprobeArgKprobeType:
+		pArg := &tetragon.KernelProbe{
+			Symbol: e.Symbol,
+			Offset: &wrapperspb.UInt32Value{Value: e.Offset},
+		}
+		if pArg.Symbol == "" {
+			kernelSymbols, err := ksyms.KernelSymbols()
+			if err != nil {
+				logger.GetLogger().WithError(err).Warn("kprobe_arg: failed to read kernel symbols")
+			} else {
+				symOff, err := kernelSymbols.GetFnOffset(e.Addr)
+				if err != nil {
+					logger.GetLogger().Warn("kprobe_arg: failed to retrieve symbol and offset")
+				} else {
+					pArg.Symbol = symOff.SymName
+				}
+			}
+		}
+		// Should we expose kernel addresses
+		if option.Config.ExposeKernelAddresses {
+			pArg.Address = e.Addr
+		}
+		a.Arg = &tetragon.KprobeArgument_KprobeArg{KprobeArg: pArg}
+		a.Label = e.Label
 	default:
 		logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 	}

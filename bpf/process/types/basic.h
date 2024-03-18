@@ -15,6 +15,7 @@
 #include "perfevent.h"
 #include "bpfmap.h"
 #include "capabilities.h"
+#include "kprobes.h"
 #include "module.h"
 #include "../argfilter_maps.h"
 #include "../addr_lpm_maps.h"
@@ -79,6 +80,8 @@ enum {
 	data_loc_type = 38,
 
 	net_dev_ty = 39,
+
+	kprobe_ty = 40,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -629,6 +632,23 @@ copy_kernel_module(char *args, unsigned long arg)
 	 */
 
 	return sizeof(struct tg_kernel_module);
+}
+
+static inline __attribute__((always_inline)) long
+copy_kprobe(char *args, unsigned long arg)
+{
+	const char *symbol;
+	const struct kprobe *p = (struct kprobe *)arg;
+	struct msg_kprobe *info = (struct msg_kprobe *)args;
+
+	memset(info, 0, sizeof(struct msg_kprobe));
+
+	BPF_CORE_READ_INTO(&info->addr, p, addr);
+	BPF_CORE_READ_INTO(&info->offset, p, offset);
+	BPF_CORE_READ_INTO(&symbol, p, symbol_name);
+	probe_read_str(&info->symbol, KSYM_NAME_LEN - 1, symbol);
+
+	return sizeof(struct msg_kprobe);
 }
 
 #define ARGM_INDEX_MASK	 0xf
@@ -1628,6 +1648,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 		return sizeof(struct msg_linux_binprm);
 	case net_dev_ty:
 		return IFNAMSIZ;
+	case kprobe_ty:
+		return sizeof(struct msg_kprobe);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2690,6 +2712,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case cap_eff_ty:
 		probe_read(args, sizeof(__u64), (char *)arg);
 		size = sizeof(__u64);
+		break;
+	case kprobe_ty:
+		size = copy_kprobe(args, arg);
 		break;
 	default:
 		size = 0;

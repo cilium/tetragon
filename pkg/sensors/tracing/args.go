@@ -510,6 +510,26 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		}
 		arg.Label = a.label
 		return arg
+	case gt.GenericKprobeType:
+		var output api.MsgGenericKprobeKprobeType
+		var arg api.MsgGenericKprobeArgKprobeType
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("kprobe type error")
+		} else if output.Addr != 0 {
+			if output.Symbol[0] != 0x00 {
+				i := bytes.IndexByte(output.Symbol[:api.KSYM_NAME_LEN], 0)
+				if i == -1 {
+					i = api.KSYM_NAME_LEN
+				}
+				arg.Symbol = string(output.Symbol[:i])
+			}
+			arg.Addr = output.Addr
+			arg.Offset = output.Offset
+		}
+		arg.Label = a.label
+		return arg
 	default:
 		logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 	}

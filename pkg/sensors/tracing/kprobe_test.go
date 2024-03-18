@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -6574,6 +6575,252 @@ spec:
 	}
 	if len(output.String()) > 0 {
 		t.Logf("Test %s command '%s' stdout:\n%v\n", t.Name(), testSetCaps, output.String())
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func getArmKprobeSymb(kSymbols *ksyms.Ksyms) string {
+	if kSymbols.IsAvailable("arm_kprobe") == true {
+		return "arm_kprobe"
+	} else if kSymbols.IsAvailable("arm_kprobe_ftrace") == true {
+		// Are we optimized on top of arch ftrace?
+		return "arm_kprobe_ftrace"
+	} else if kSymbols.IsAvailable("__arm_kprobe") == true {
+		return "__arm_kprobe"
+	} else if kSymbols.IsAvailable("arch_arm_kprobe") == true {
+		// fallback to arch specific
+		return "arch_arm_kprobe"
+	}
+	return ""
+}
+
+func getDisarmKprobeSymb(kSymbols *ksyms.Ksyms) string {
+	if kSymbols.IsAvailable("disarm_kprobe") == true {
+		return "disarm_kprobe"
+	} else if kSymbols.IsAvailable("disarm_kprobe_ftrace") == true {
+		// Are we optimized on top of arch ftrace?
+		return "disarm_kprobe_ftrace"
+	} else if kSymbols.IsAvailable("__disarm_kprobe") == true {
+		return "__disarm_kprobe"
+	} else if kSymbols.IsAvailable("arch_disarm_kprobe") == true {
+		// fallback to arch specific
+		return "arch_disarm_kprobe"
+	}
+	return ""
+}
+
+func TestKprobeTracing(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	kSymbols, err := ksyms.KernelSymbols()
+	if err != nil {
+		t.Skipf("Skipping test could not fetch kernel symbols: %v", err)
+	}
+
+	arm_kprobe := getArmKprobeSymb(kSymbols)
+	if arm_kprobe == "" {
+		t.Skipf("Skipping test could not get appropriate symbol for tracing arm kprobes")
+	}
+
+	disarm_kprobe := getDisarmKprobeSymb(kSymbols)
+	if disarm_kprobe == "" {
+		t.Skipf("Skipping test could not get appropriate symbol for tracing disarm kprobes")
+	}
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes-tracing"
+  annotations:
+    description: "Detects kprobes operations"
+spec:
+  kprobes:
+  - call: ` + arm_kprobe + `
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Enable a kprobe (kernel probe)"
+  - call: ` + disarm_kprobe + `
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Disable a kprobe (kernel probe)"
+`
+
+	createCrdFile(t, tracingPolicy)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers1 := ec.NewProcessKprobeChecker("").
+		WithMessage(sm.Full("Enable a kprobe (kernel probe)")).
+		WithFunctionName(sm.Full(arm_kprobe)).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithKprobeArg(
+					ec.NewKernelProbeChecker().WithOffset(0).
+						WithSymbol(sm.Full("do_sys_open")),
+				),
+			))
+
+	kpCheckers2 := ec.NewProcessKprobeChecker("").
+		WithMessage(sm.Full("Disable a kprobe (kernel probe)")).
+		WithFunctionName(sm.Full(disarm_kprobe)).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithKprobeArg(
+					ec.NewKernelProbeChecker().WithOffset(0).
+						WithSymbol(sm.Full("do_sys_open")),
+				),
+			))
+
+	kprobeEvents, err := os.OpenFile("/sys/kernel/debug/tracing/kprobe_events", os.O_APPEND|os.O_WRONLY, 0640)
+	if err != nil {
+		t.Fatalf("open('/sys/kernel/debug/tracing/kprobe_events'): %v", err)
+	}
+	defer kprobeEvents.Close()
+
+	_, err = kprobeEvents.WriteString("p:tetragonkprobe do_sys_open")
+	if err != nil {
+		t.Fatalf("set Kprobe 'tetragonkprobe' error: %s", err)
+	}
+
+	enableKprobe := []byte("1")
+	err = os.WriteFile("/sys/kernel/debug/tracing/events/kprobes/tetragonkprobe/enable", enableKprobe, 0640)
+	if err != nil {
+		t.Fatalf("enable Kprobe error: %s", err)
+	}
+
+	disableKprobe := []byte("0")
+	err = os.WriteFile("/sys/kernel/debug/tracing/events/kprobes/tetragonkprobe/enable", disableKprobe, 0640)
+	if err != nil {
+		t.Fatalf("disable Kprobe 'tetragonkprobe' error: %s", err)
+	}
+
+	_, err = kprobeEvents.WriteString("-:tetragonkprobe")
+	if err != nil {
+		t.Fatalf("clear Kprobe 'tetragonkprobe' error: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeTracingKretprobe(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	kSymbols, err := ksyms.KernelSymbols()
+	if err != nil {
+		t.Skipf("Skipping test could not fetch kernel symbols: %v", err)
+	}
+
+	arm_kprobe := getArmKprobeSymb(kSymbols)
+	if arm_kprobe == "" {
+		t.Skipf("Skipping test could not get appropriate symbol for tracing arm kprobes")
+	}
+
+	disarm_kprobe := getDisarmKprobeSymb(kSymbols)
+	if disarm_kprobe == "" {
+		t.Skipf("Skipping test could not get appropriate symbol for tracing disarm kprobes")
+	}
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes-tracing"
+  annotations:
+    description: "Detects kprobes operations"
+spec:
+  kprobes:
+  - call: ` + arm_kprobe + `
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Enable a kprobe (kernel probe)"
+  - call: ` + disarm_kprobe + `
+    syscall: false
+    args:
+    - index: 0
+      type: "kprobe"
+    message: "Disable a kprobe (kernel probe)"
+`
+
+	createCrdFile(t, tracingPolicy)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers1 := ec.NewProcessKprobeChecker("").
+		WithMessage(sm.Full("Enable a kprobe (kernel probe)")).
+		WithFunctionName(sm.Full(arm_kprobe)).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithKprobeArg(
+					ec.NewKernelProbeChecker().WithOffset(0).
+						WithSymbol(sm.Full("do_sys_open")),
+				),
+			))
+
+	kpCheckers2 := ec.NewProcessKprobeChecker("").
+		WithMessage(sm.Full("Disable a kprobe (kernel probe)")).
+		WithFunctionName(sm.Full(disarm_kprobe)).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithKprobeArg(
+					ec.NewKernelProbeChecker().WithOffset(0).
+						WithSymbol(sm.Full("do_sys_open")),
+				),
+			))
+
+	kprobeEvents, err := os.OpenFile("/sys/kernel/debug/tracing/kprobe_events", os.O_APPEND|os.O_WRONLY, 0640)
+	if err != nil {
+		t.Fatalf("open('/sys/kernel/debug/tracing/kprobe_events'): %v", err)
+	}
+	defer kprobeEvents.Close()
+
+	_, err = kprobeEvents.WriteString("r:tetragonkretprobe do_sys_open")
+	if err != nil {
+		t.Fatalf("set Kretprobe 'tetragonkretprobe' error: %s", err)
+	}
+
+	enableKprobe := []byte("1")
+	err = os.WriteFile("/sys/kernel/debug/tracing/events/kprobes/tetragonkretprobe/enable", enableKprobe, 0640)
+	if err != nil {
+		t.Fatalf("enable Kretprobe error: %s", err)
+	}
+
+	disableKprobe := []byte("0")
+	err = os.WriteFile("/sys/kernel/debug/tracing/events/kprobes/tetragonkretprobe/enable", disableKprobe, 0640)
+	if err != nil {
+		t.Fatalf("disable Kretprobe 'tetragonkretprobe' error: %s", err)
+	}
+
+	_, err = kprobeEvents.WriteString("-:tetragonkretprobe")
+	if err != nil {
+		t.Fatalf("clear Kretprobe 'tetragonkretprobe' error: %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
