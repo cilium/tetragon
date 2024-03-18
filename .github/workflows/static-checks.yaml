@@ -17,6 +17,19 @@ permissions:
   contents: read
 
 jobs:
+  ensure-no-binary-checkin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      
+      - name: Ensure No Binary Files Checked In
+        run: |
+          echo "Checking for any checked in binary files not in allowlist..." 
+          outfile="$(mktemp)"
+          find . -type f -size +0 -not -wholename '**/vendor/**' -not -wholename '**/_vendor/**' -not -wholename '**/.git/**' -not -name '*.png' -not -name '*.jpg' -not -name '*.ico' | xargs -n 100 grep -IL '' | tee "$outfile"
+          test -z "$(cat $outfile)"
+
   golangci-lint:
     runs-on: ubuntu-latest
     steps:
