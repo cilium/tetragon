@@ -33,7 +33,7 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
     else make tetragon-image LOCAL_CLANG=1 VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH; fi
 
 # Third builder (cross-)compile a stripped gops
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.8-alpine@sha256:cd5189337d797eac9e2299dc07096c598cd4f4f73f068a033402f3ded7a51714 as gops
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.8-alpine@sha256:d7c6083c5400694f7a17b07c4fad8db9115c0e8e3cf62f781cb29cc890a64e8e as gops
 ARG TARGETARCH
 RUN apk add --no-cache binutils git \
  && git clone https://github.com/google/gops /go/src/github.com/google/gops \
