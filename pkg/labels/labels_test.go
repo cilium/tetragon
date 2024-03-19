@@ -156,6 +156,19 @@ func TestLabels(t *testing.T) {
 				{map[string]string{K8sPodNamespace: "tetragon"}, true, "tetragon"},
 				{map[string]string{}, true, ""},
 			},
+		}, {
+			labelSelector: &slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      "name",
+					Operator: "In",
+					Values:   []string{"main", "secondary"},
+				}},
+			},
+			tests: []testLabel{
+				{map[string]string{"name": "main"}, true, ""},
+				{map[string]string{"name": "secondary"}, true, ""},
+				{map[string]string{"name": "init"}, false, ""},
+			},
 		},
 	}
 
