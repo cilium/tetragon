@@ -47,7 +47,7 @@ var (
 
 func init() {
 	flag.StringVar(&clusterName, "cluster-name", "tetragon-ci", "Set the name of the k8s cluster being used")
-	flag.StringVar(&clusterImage, "cluster-image", "kindest/node:v1.24.7", "Set the node image for the kind cluster")
+	flag.StringVar(&clusterImage, "cluster-image", "kindest/node:v1.29.2", "Set the node image for the kind cluster")
 }
 
 // GetClusterName fetches the cluster name configured with -cluster-name or the temporary
