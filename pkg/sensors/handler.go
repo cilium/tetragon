@@ -64,10 +64,17 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 		namespace = tpNs.TpNamespace()
 	}
 
-	var selector *slimv1.LabelSelector
+	var podSelector *slimv1.LabelSelector
 	if ps := tp.TpSpec().PodSelector; ps != nil {
 		if len(ps.MatchLabels)+len(ps.MatchExpressions) > 0 {
-			selector = ps
+			podSelector = ps
+		}
+	}
+
+	var containerSelector *slimv1.LabelSelector
+	if ps := tp.TpSpec().ContainerSelector; ps != nil {
+		if len(ps.MatchLabels)+len(ps.MatchExpressions) > 0 {
+			containerSelector = ps
 		}
 	}
 
@@ -75,12 +82,12 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 	// means that if policyfilter is disabled
 	// (option.Config.EnablePolicyFilter is false) then loading the policy
 	// will only fail if filtering is required.
-	if namespace == "" && selector == nil {
+	if namespace == "" && podSelector == nil && containerSelector == nil {
 		return policyfilter.NoFilterID, nil
 	}
 
 	filterID := policyfilter.PolicyID(tpID)
-	if err := h.pfState.AddPolicy(filterID, namespace, selector); err != nil {
+	if err := h.pfState.AddPolicy(filterID, namespace, podSelector, containerSelector); err != nil {
 		return policyfilter.NoFilterID, err
 	}
 	return filterID, nil

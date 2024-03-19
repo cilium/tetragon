@@ -40,3 +40,11 @@ func podContainersIDs(pod *v1.Pod) []string {
 	})
 	return ret
 }
+
+func podContainersNames(pod *v1.Pod) []string {
+	ret := make([]string, 0)
+	podForAllContainers(pod, func(c *v1.ContainerStatus) {
+		ret = append(ret, c.Name)
+	})
+	return ret
+}

@@ -91,6 +91,13 @@ type TracingPolicySpec struct {
 	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// ContainerSelector selects containers that this policy applies to.
+	// A map of container fields will be constructed in the same way as a map of labels.
+	// The name of the field represents the label "key", and the value of the field - label "value".
+	// Currently, only the "name" field is supported.
+	ContainerSelector *slimv1.LabelSelector `json:"containerSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// A list of list specs.
 	Lists []ListSpec `json:"lists,omitempty"`
 
