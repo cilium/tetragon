@@ -27,6 +27,7 @@ import (
 // The pods that match a given policy are selected based on:
 //   (1) Namespaces
 //   (2) Label filters
+//   (3) Container field filters
 //
 // This package maintains the 'policy_filter_maps' bpf map. Bpf checks this map
 // to decide whether a policy is applied or not. The map is a hash-of-hashes:
@@ -40,13 +41,13 @@ import (
 // needs to be updated in the following conditions:
 //
 //  (A) Policy changes: when a new policy is added (or deleted), we need to add cgroup ids of
-//  matching pods. See {Add,Del}Policy.
+//  matching containers inside pods. See {Add,Del}Policy.
 //
 //  (B) Pod containers changes: when new containers are added (or deleted): we need to add the cgroup
-//  ids of matching policies. See AddPodContainer, DelPodContainer, DelPod.
+//  ids of matching policies. See AddPodContainer, DelPodContainer, DelPod, UpdatePod.
 //
 //  (C) Pod labels change: need to rescan policies because the result of pod label filters might have
-//  changed.
+//  changed. See UpdatePod.
 //
 // Todo:
 //  - use a goroutine and a queue
@@ -91,6 +92,7 @@ func (i PodID) String() string {
 type containerInfo struct {
 	id   string   // container id
 	cgID CgroupID // cgroup id
+	name string   // container name
 }
 
 // podInfo contains the necessary information for each pod
@@ -102,14 +104,6 @@ type podInfo struct {
 
 	// cache of matched policies
 	matchedPolicies []PolicyID
-}
-
-func (pod *podInfo) cgroupIDs() []CgroupID {
-	ret := make([]CgroupID, 0, len(pod.containers))
-	for i := range pod.containers {
-		ret = append(ret, pod.containers[i].cgID)
-	}
-	return ret
 }
 
 // delete containers from a pod based on their id, and return them
@@ -194,6 +188,8 @@ type policy struct {
 	// if namespace is "", policy applies to all namespaces
 	namespace string
 
+	containerSelector labels.Selector
+
 	podSelector labels.Selector
 
 	// polMap is the (inner) policy map for this policy
@@ -220,6 +216,25 @@ func (pol *policy) podMatches(podNs string, podLabels labels.Labels) bool {
 
 func (pol *policy) podInfoMatches(pod *podInfo) bool {
 	return pol.podMatches(pod.namespace, pod.labels)
+}
+
+func (pol *policy) containerMatches(container *containerInfo) bool {
+	containerFilterFields := labels.Labels{
+		"name": container.name,
+	}
+	return pol.containerSelector.Match(containerFilterFields)
+}
+
+// get a slice of container cgroupIDs that match the policy
+func (pol *policy) matchingContainersCgroupIDs(containers []containerInfo) []CgroupID {
+	var cgroupIDs []CgroupID
+	for i := range containers {
+		container := containers[i]
+		if pol.containerMatches(&container) {
+			cgroupIDs = append(cgroupIDs, container.cgID)
+		}
+	}
+	return cgroupIDs
 }
 
 // State holds the necessary state for policyfilter
@@ -271,6 +286,7 @@ func newState(
 
 func (m *state) updatePodHandler(pod *v1.Pod) error {
 	containerIDs := podContainersIDs(pod)
+	containerNames := podContainersNames(pod)
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
 		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
@@ -278,7 +294,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	}
 
 	namespace := pod.Namespace
-	err = m.UpdatePod(PodID(podID), namespace, pod.Labels, containerIDs)
+	err = m.UpdatePod(PodID(podID), namespace, pod.Labels, containerIDs, containerNames)
 	if err != nil {
 		m.log.WithError(err).WithFields(logrus.Fields{
 			"pod-id":        podID,
@@ -387,7 +403,8 @@ func (m *state) delPod(id PodID) *podInfo {
 }
 
 // AddPolicy adds a policy
-func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector) error {
+func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
+	containerLabelSelector *slimv1.LabelSelector) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -399,10 +416,17 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 	if err != nil {
 		return err
 	}
+
+	containerSelector, err := labels.SelectorFromLabelSelector(containerLabelSelector)
+	if err != nil {
+		return err
+	}
+
 	policy := policy{
-		id:          polID,
-		namespace:   namespace,
-		podSelector: podSelector,
+		id:                polID,
+		namespace:         namespace,
+		podSelector:       podSelector,
+		containerSelector: containerSelector,
 	}
 
 	cgroupIDs := make([]CgroupID, 0)
@@ -413,9 +437,10 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 		if !policy.podInfoMatches(pod) {
 			continue
 		}
-		for cIdx := range pod.containers {
-			cgroupIDs = append(cgroupIDs, pod.containers[cIdx].cgID)
-		}
+
+		matchedContainerCgroupIDs := policy.matchingContainersCgroupIDs(pod.containers)
+		cgroupIDs = append(cgroupIDs, matchedContainerCgroupIDs...)
+
 		matchedPods = append(matchedPods, pod)
 		pod.addCachedPolicy(policy.id)
 	}
@@ -434,7 +459,7 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 	return nil
 }
 
-// DelPolicy will destroly all information for the provided policy
+// DelPolicy will destroy all information for the provided policy
 func (m *state) DelPolicy(polID PolicyID) error {
 
 	if polID == NoFilterPolicyID {
@@ -474,16 +499,17 @@ func cgIDPointerStr(p *CgroupID) string {
 // It takes an optional argument of a list of cgroup ids (one per container). If this list is empty,
 // the function will try to figure out the cgroup id on its own.
 // Finally, it will scan over all the matching policies for the pod and update the policy maps.
-func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs []CgroupID) {
+func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
+	cgroupIDs []CgroupID, containerNames []string) {
 	// Find the containers that do not exist in our state, and for those find the cgroup id if
 	// one does not exist.
 	cinfo := make([]containerInfo, 0, len(containerIDs))
-	cgIDs := make([]CgroupID, 0, len(containerIDs))
 	for i, contID := range containerIDs {
 		var cgIDptr *CgroupID
 		if len(cgroupIDs) > i {
 			cgIDptr = &cgroupIDs[i]
 		}
+		containerName := containerNames[i]
 
 		if m.containerExists(pod, contID, cgIDptr) {
 			m.debugLogWithCallers(4).WithFields(logrus.Fields{
@@ -508,8 +534,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 			cgIDptr = &cgid
 		}
 
-		cinfo = append(cinfo, containerInfo{contID, *cgIDptr})
-		cgIDs = append(cgIDs, *cgIDptr)
+		cinfo = append(cinfo, containerInfo{contID, *cgIDptr, containerName})
 	}
 
 	if len(cinfo) == 0 {
@@ -541,11 +566,14 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string, cgroupIDs 
 			continue
 		}
 
-		if err := pol.polMap.addCgroupIDs(cgIDs); err != nil {
+		// cgroup IDs of containers that match the policy
+		matchingCgIDs := pol.matchingContainersCgroupIDs(pod.containers)
+
+		if err := pol.polMap.addCgroupIDs(matchingCgIDs); err != nil {
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  pol.id,
 				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
+				"cgroup-ids": matchingCgIDs,
 			}).Warn("failed to update policy map")
 		}
 	}
@@ -572,7 +600,8 @@ func (m *state) addNewPod(podID PodID, namespace string, podLabels labels.Labels
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
 // The pod might or might not have been encountered before.
-func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgID CgroupID) error {
+func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
+	containerID string, cgID CgroupID, containerName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -580,17 +609,18 @@ func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.
 	if pod == nil {
 		pod = m.addNewPod(podID, namespace, podLabels)
 		m.debugLogWithCallers(4).WithFields(logrus.Fields{
-			"pod-id":       podID,
-			"namespace":    namespace,
-			"container-id": containerID,
-			"cgroup-id":    cgID,
+			"pod-id":         podID,
+			"namespace":      namespace,
+			"container-id":   containerID,
+			"cgroup-id":      cgID,
+			"container-name": containerName,
 		}).Info("AddPodContainer: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
 		return &podNamespaceConflictErr{podID: podID, oldNs: pod.namespace, newNs: namespace}
 	}
 
-	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID})
+	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID}, []string{containerName})
 	return nil
 }
 
@@ -602,23 +632,20 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 		return
 	}
 
-	cgroupIDs := make([]CgroupID, 0, len(containers))
-	for i := range containers {
-		cgroupIDs = append(cgroupIDs, containers[i].cgID)
-	}
-
 	// check what policies match the pod, and delete the cgroup ids
 	for _, policyID := range pod.matchedPolicies {
 		pol := m.findPolicy(policyID)
 		if pol == nil {
 			m.log.WithFields(logrus.Fields{
-				"policy-id":  policyID,
-				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
+				"policy-id": policyID,
+				"pod-id":    pod.id,
 			}).Warn("delPodCgroupIDsFromPolicyMaps: unknown policy id found in pod. This should not happen, ignoring.")
 			continue
 		}
 
+		// try to find containers in the pod matching this policy
+		// this way, we only remove containers that are actually present in the policy
+		cgroupIDs := pol.matchingContainersCgroupIDs(containers)
 		if err := pol.polMap.delCgroupIDs(cgroupIDs); err != nil {
 			// NB: depending on the error, we might want to schedule some retries here
 			m.log.WithError(err).WithFields(logrus.Fields{
@@ -711,8 +738,9 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 		return
 	}
 
-	cgroupIDs := pod.cgroupIDs()
+	var cgroupIDs []CgroupID
 	for _, addPol := range polDiff.addedPolicies {
+		cgroupIDs = addPol.matchingContainersCgroupIDs(pod.containers)
 		if err := addPol.polMap.addCgroupIDs(cgroupIDs); err != nil {
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  addPol.id,
@@ -724,6 +752,7 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 	}
 
 	for _, delPol := range polDiff.deletedPolicies {
+		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
 		if err := delPol.polMap.delCgroupIDs(cgroupIDs); err != nil {
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  delPol.id,
@@ -768,18 +797,21 @@ func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string)
 // UpdatePod updates the pod state for a pod
 // containerIDs contains all the running container ids for the given pod.
 // This function will:
+//   - check if pod labels changed. Add/delete policies if this is the case
 //   - remove the containers that are not part of the containerIDs list
 //   - add the ones that do not exist in the current state
 //
 // It is intended to be used from k8s watchers (where no cgroup information is available)
-func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error {
+func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
+	containerIDs []string, containerNames []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	dlog := m.debugLogWithCallers(4).WithFields(logrus.Fields{
-		"pod-id":        podID,
-		"namespace":     namespace,
-		"container-ids": containerIDs,
+		"pod-id":          podID,
+		"namespace":       namespace,
+		"container-ids":   containerIDs,
+		"container-names": containerNames,
 	})
 
 	pod := m.findPod(podID)
@@ -818,6 +850,18 @@ func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels
 		m.delPodCgroupIDsFromPolicyMaps(pod, containers)
 	}
 
-	m.addPodContainers(pod, addIDs, nil)
+	// container names that are associated with addIDs
+	var addContainerNames []string
+
+	// find container names of the container IDs that should be added to pod
+	for addID := range addIDs {
+		for allID := range containerIDs {
+			if addIDs[addID] == containerIDs[allID] {
+				addContainerNames = append(addContainerNames, containerNames[allID])
+			}
+		}
+	}
+
+	m.addPodContainers(pod, addIDs, nil, addContainerNames)
 	return nil
 }
