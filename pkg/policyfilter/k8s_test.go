@@ -302,10 +302,46 @@ func (ts *testState) podsCgroupIDs(t *testing.T, podNames ...string) []uint64 {
 	return ret
 }
 
+// get cgroup IDs of containers from pods
+// podContainerMap is a map of podName -> [podContainerNames]
+func (ts *testState) containersCgroupIDs(t *testing.T, podContainerMap map[string][]string) []uint64 {
+	var ret []uint64
+	for podName, containerNames := range podContainerMap {
+		var p *testPod
+		for _, pod := range ts.pods {
+			if pod.name == podName {
+				p = &pod
+				break
+			}
+		}
+
+		if p == nil {
+			t.Fatalf("unknown pod name: %s", podName)
+		}
+
+		// we create the map to easily understand if the given container name
+		// exists. If not, we raise an exception
+		existingContainerIDNameMap := make(map[string]uint64)
+		for _, cont := range p.containers {
+			existingContainerIDNameMap[cont.name] = uint64(cont.cgID)
+		}
+
+		for i := range containerNames {
+			val, ok := existingContainerIDNameMap[containerNames[i]]
+			if !ok {
+				t.Fatalf("unknown container name: %s", containerNames[i])
+			}
+			ret = append(ret, val)
+		}
+	}
+
+	return ret
+}
+
 func testNamespacePods(t *testing.T, st *state, ts *testState) {
-	err := st.AddPolicy(PolicyID(1), "ns1", nil)
+	err := st.AddPolicy(PolicyID(1), "ns1", nil, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(2), "ns2", nil)
+	err = st.AddPolicy(PolicyID(2), "ns2", nil, nil)
 	require.NoError(t, err)
 
 	emptyLabels := labels.Labels{}
@@ -366,7 +402,7 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllID := uint32(1)
 	matchesWebID := uint32(2)
 	matchesAppsID := uint32(3)
-	err := st.AddPolicy(PolicyID(matchesAllID), "", nil)
+	err := st.AddPolicy(PolicyID(matchesAllID), "", nil, nil)
 	require.NoError(t, err)
 	err = st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
@@ -374,14 +410,14 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 			Operator: slimv1.LabelSelectorOpIn,
 			Values:   []string{"web"},
 		}},
-	})
+	}, nil)
 	require.NoError(t, err)
 	err = st.AddPolicy(PolicyID(matchesAppsID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpExists,
 		}},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	// create pods
@@ -451,6 +487,134 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	)
 }
 
+func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
+	// create policies
+	matchesAllContainers := uint32(1)
+	matchesWebContainers := uint32(2)
+	matchesNotInitContainers := uint32(3)
+	err := st.AddPolicy(PolicyID(matchesAllContainers), "", nil, nil)
+	require.NoError(t, err)
+	err = st.AddPolicy(PolicyID(matchesWebContainers), "", nil,
+		&slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "name",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"web-c1", "web-c2", "web-c3"},
+			}},
+		})
+	require.NoError(t, err)
+	err = st.AddPolicy(PolicyID(matchesNotInitContainers), "", &slimv1.LabelSelector{
+		MatchExpressions: []slimv1.LabelSelectorRequirement{{
+			Key:      "app",
+			Operator: slimv1.LabelSelectorOpIn,
+			Values:   []string{"web", "db", "log"},
+		}},
+	}, &slimv1.LabelSelector{
+		MatchExpressions: []slimv1.LabelSelectorRequirement{{
+			Key:      "name",
+			Operator: slimv1.LabelSelectorOpNotIn,
+			Values:   []string{"init"},
+		}},
+	})
+	require.NoError(t, err)
+
+	// create pods
+	ts.createPod(t, "web", "default", labels.Labels{"app": "web"}, "web-c1", "web-c2", "init")
+	ts.createPod(t, "db", "default", labels.Labels{"app": "db"}, "db-c1")
+	ts.createPod(t, "log", "default", labels.Labels{}, "log-c1", "init")
+
+	ts.waitForCallbacks(t)
+	requirePfmEqualTo(t, st.pfMap,
+		map[uint64][]uint64{
+			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c1", "web-c2", "init"},
+				"db":  {"db-c1"},
+				"log": {"log-c1", "init"},
+			}),
+			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c1", "web-c2"},
+			}),
+			// test policy state before we label the log with the matching label
+			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c1", "web-c2"},
+				"db":  {"db-c1"},
+				"log": {},
+			}),
+		},
+	)
+
+	// make sure adding this label will not add all cgroup IDs from the pod to the policy
+	ts.updatePodLabels(t, "log", labels.Labels{"app": "log"})
+	ts.updatePodContainers(t, "web", "web-c3", "app-c1")
+	ts.waitForCallbacks(t)
+	requirePfmEqualTo(t, st.pfMap,
+		map[uint64][]uint64{
+			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3", "app-c1"},
+				"db":  {"db-c1"},
+				"log": {"log-c1", "init"},
+			}),
+			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3"},
+			}),
+			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3", "app-c1"},
+				"db":  {"db-c1"},
+				"log": {"log-c1"},
+			}),
+		},
+	)
+
+	// make sure removing this label will not try to remove all cgroup IDs of this pod from the policy
+	// it will not raise an error but there will be a warning
+	ts.updatePodLabels(t, "log", labels.Labels{"app": "not-log"})
+	ts.updatePodContainers(t, "db", "db-c1", "init")
+	ts.waitForCallbacks(t)
+	requirePfmEqualTo(t, st.pfMap,
+		map[uint64][]uint64{
+			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3", "app-c1"},
+				"db":  {"db-c1", "init"},
+				"log": {"log-c1", "init"},
+			}),
+			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3"},
+			}),
+			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3", "app-c1"},
+				"db":  {"db-c1"},
+			}),
+		},
+	)
+
+	err = st.DelPolicy(PolicyID(matchesAllContainers))
+	require.NoError(t, err)
+	ts.deletePod(t, "log")
+	ts.waitForCallbacks(t)
+	requirePfmEqualTo(t, st.pfMap,
+		map[uint64][]uint64{
+			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3"},
+			}),
+			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
+				"web": {"web-c3", "app-c1"},
+				"db":  {"db-c1"},
+			}),
+		},
+	)
+
+	ts.deletePod(t, "web")
+	ts.deletePod(t, "db")
+	err = st.DelPolicy(PolicyID(matchesNotInitContainers))
+	require.NoError(t, err)
+	err = st.DelPolicy(PolicyID(matchesWebContainers))
+	require.NoError(t, err)
+	ts.waitForCallbacks(t)
+	requirePfmEqualTo(t, st.pfMap,
+		map[uint64][]uint64{},
+	)
+}
+
 func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 	// create pods
 	ts.createPod(t, "web", "default", labels.Labels{"app": "web"}, "web-c1", "web-c2")
@@ -465,9 +629,10 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 			Operator: slimv1.LabelSelectorOpIn,
 			Values:   []string{"web"},
 		}},
-	})
+	}, nil)
 	require.NoError(t, err)
 
+	require.Equal(t, len(ts.podsCgroupIDs(t, "web")), 2)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesWebID): ts.podsCgroupIDs(t, "web"),
@@ -487,15 +652,25 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 func testContainersChange(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "web", "default", nil, "web-c1", "web-c2")
 	ts.createPod(t, "db", "default", nil, "db-c1")
+	ts.createPod(t, "log", "default", nil, "log-c1")
 	ts.waitForCallbacks(t)
 
 	// create policy
 	policyID := uint32(2)
-	err := st.AddPolicy(PolicyID(policyID), "", &slimv1.LabelSelector{})
+	err := st.AddPolicy(PolicyID(policyID), "", &slimv1.LabelSelector{},
+		&slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{
+				{
+					Key:      "name",
+					Operator: slimv1.LabelSelectorOpNotIn,
+					Values:   []string{"log-c1"},
+				}},
+		})
 	require.NoError(t, err)
 
 	require.Equal(t, len(ts.podsCgroupIDs(t, "web")), 2)
 	require.Equal(t, len(ts.podsCgroupIDs(t, "db")), 1)
+	require.Equal(t, len(ts.containersCgroupIDs(t, map[string][]string{"log": {}})), 0)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(policyID): ts.podsCgroupIDs(t, "web", "db"),
@@ -515,6 +690,7 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 
 	ts.deletePod(t, "web")
 	ts.deletePod(t, "db")
+	ts.deletePod(t, "log")
 	err = st.DelPolicy(PolicyID(policyID))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
@@ -595,6 +771,10 @@ func TestK8s(t *testing.T) {
 
 	t.Run("pod labels", func(t *testing.T) {
 		testPodLabelFilters(t, st, ts)
+	})
+
+	t.Run("container fields", func(t *testing.T) {
+		testContainerFieldFilters(t, st, ts)
 	})
 
 	t.Run("pre-existing pods", func(t *testing.T) {

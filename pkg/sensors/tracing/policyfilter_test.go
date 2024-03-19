@@ -269,9 +269,11 @@ func TestNamespacedPolicies(t *testing.T) {
 	podId1 := uuid.New()
 	podId2 := uuid.New()
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", nil, "pod1-container1", cgID1)
+	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", nil,
+		"pod1-container1", cgID1, "container-name1")
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", nil, "pod1-container2", cgID2)
+	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", nil,
+		"pod1-container2", cgID2, "container-name2")
 	require.NoError(t, err)
 
 	// Hence, we expect one event with whence value of 4444
