@@ -423,7 +423,7 @@ docs:
 kind:
 	./contrib/localdev/bootstrap-kind-cluster.sh
 
-.PHONY: kind-install-tetragon 
+.PHONY: kind-install-tetragon
 kind-install-tetragon:
 	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
 
