@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -154,6 +155,14 @@ func mergeInBaseSensorMaps(t *testing.T, sensorMaps []SensorMap, sensorProgs []S
 		// event_execve and tg_kp_bprm_committing_creds
 		SensorMap{Name: "tg_execve_joined_info_map", Progs: []uint{0, 4}},
 		SensorMap{Name: "tg_execve_joined_info_map_stats", Progs: []uint{0, 4}},
+	}
+
+	if option.CgroupRateEnabled() {
+		/* 5: tg_cgroup_rmdir */
+		sensorProgs = append(sensorProgs, SensorProg{Name: "tg_cgroup_rmdir", Type: ebpf.RawTracepoint})
+
+		/* cgroup_rate_map */
+		baseMaps = append(baseMaps, SensorMap{Name: "cgroup_rate_map", Progs: []uint{1, 2, 5}})
 	}
 
 	return mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)

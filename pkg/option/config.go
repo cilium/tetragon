@@ -108,6 +108,10 @@ var (
 	}
 )
 
+func CgroupRateEnabled() bool {
+	return Config.CgroupRate.Events != 0 && Config.CgroupRate.Interval != 0
+}
+
 // ReadDirConfig reads the given directory and returns a map that maps the
 // filename to the contents of that file.
 func ReadDirConfig(dirName string) (map[string]interface{}, error) {
