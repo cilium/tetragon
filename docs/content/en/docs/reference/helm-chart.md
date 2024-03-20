@@ -72,7 +72,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.extraArgs | object | `{}` |  |
 | tetragon.extraEnv | list | `[]` |  |
 | tetragon.extraVolumeMounts | list | `[]` |  |
-| tetragon.fieldFilters | string | `"{}"` |  |
+| tetragon.fieldFilters | string | `""` |  |
 | tetragon.gops.address | string | `"localhost"` | The address at which to expose gops. |
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
 | tetragon.grpc.address | string | `"localhost:54321"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock |
@@ -95,6 +95,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the tetragon pods. |
 | tetragon.prometheus.serviceMonitor.labelsOverride | object | `{}` | The set of labels to place on the 'ServiceMonitor' resource. |
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
+| tetragon.redactionFilters | string | `""` |  |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
 | tetragonOperator | object | `{"affinity":{},"annotations":{},"enabled":true,"extraLabels":{},"extraPodLabels":{},"extraVolumeMounts":[],"extraVolumes":[],"forceUpdateCRDs":false,"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.0.2"},"nodeSelector":{},"podAnnotations":{},"podInfo":{"enabled":false},"podSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"priorityClassName":"","prometheus":{"address":"","enabled":true,"port":2113,"serviceMonitor":{"enabled":false,"labelsOverride":{},"scrapeInterval":"10s"}},"resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}},"securityContext":{},"serviceAccount":{"annotations":{},"create":true,"name":""},"skipCRDCreation":false,"strategy":{},"tolerations":[{"operator":"Exists"}],"tracingPolicy":{"enabled":true}}` | Tetragon Operator settings |

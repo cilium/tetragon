@@ -197,6 +197,49 @@ only `exec_id` and `parent_exec_id` in all event types except for
 {"fields":"process.exec_id,process.parent_exec_id", "event_set": ["PROCESS_EXEC"], "invert_event_set": true, "action": "INCLUDE"}
 ```
 
+#### Redacting Sensitive Information
+
+Since Tetragon traces the entire system, event exports might sometimes contain
+sensitive information (for example, a secret passed via a command line argument
+to a process). To prevent this information from being exfiltrated via Tetragon
+JSON export, Tetragon provides a mechanism called Redaction Filters which can be
+used to select events and string patterns to redact. These filters are written
+in JSON and passed to the Tetragon agent via the `--redaction-filters` command
+line flag or the `redactionFilters` Helm value.
+
+To perform redactions, redaction filters define regular expressions in the
+`redact` field. Any capture groups in these regular expressions are redacted and
+replaced with `"*****"`.
+
+{{< warning >}}
+When writing regular expressions in JSON, it is important to escape backslash
+characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpasswd\\W?"}`.
+{{< /warning >}}
+
+Redaction filters select events using the `match` field, which contains one or
+more filters (these filters are defined the same way as export filters). If no
+match filter is defined, all events are selected.
+
+As a concrete example, the following will redact all passwords passed to
+processes with the `"--password"` argument:
+
+```json
+{"redact": ["--password(?:\\s+|=)(\\S*)"]}
+```
+
+Now, an event that contains the string `"--password=foo"` would have that string
+replaced with `"--password=*****"`.
+
+Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo.
+We can also redact these as follows:
+
+```json
+{"match": [{"binary_regex": "(?:^|/)foo$"}], "redact": ["-p(?:\\s+|=)(\\S*)"]}
+```
+
+With both of the above redaction filters in place, we are now redacting all
+password arguments.
+
 ### `tetra` CLI
 
 A second way is to use the [`tetra`](https://github.com/cilium/tetragon/tree/main/cmd/tetra) CLI. This

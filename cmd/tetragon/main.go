@@ -108,6 +108,11 @@ func getFieldFilters() ([]*tetragon.FieldFilter, error) {
 	return filters, nil
 }
 
+func getRedactionFilters() (fieldfilters.RedactionFilterList, error) {
+	redactionFilters := viper.GetString(option.KeyRedactionFilters)
+	return fieldfilters.ParseRedactionFilterList(redactionFilters)
+}
+
 // Save daemon information so it is used by client cli but
 // also by bugtool
 func saveInitInfo() error {
@@ -401,11 +406,18 @@ func tetragonExecute() error {
 
 	hookRunner := rthooks.GlobalRunner().WithWatcher(k8sWatcher)
 
+	redactionFilters, err := getRedactionFilters()
+	if err != nil {
+		return err
+	}
+	log.WithFields(logrus.Fields{"redactionFilters": redactionFilters}).Info("Configured redaction filters")
+
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
 		observer.GetSensorManager(),
-		hookRunner)
+		hookRunner,
+		redactionFilters)
 	if err != nil {
 		return err
 	}
@@ -705,7 +717,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		}
 	}
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
-	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Debug("Configured field filters")
+	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Info("Configured field filters")
 	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
 	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 	return exporter.Start()
