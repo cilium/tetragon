@@ -86,6 +86,8 @@ type config struct {
 	EnableTracingPolicyCRD bool
 
 	ExposeStackAddresses bool
+
+	CgroupRate CgroupRate
 }
 
 var (
