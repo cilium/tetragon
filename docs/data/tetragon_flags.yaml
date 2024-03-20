@@ -8,6 +8,9 @@ options:
       usage: Location of Tetragon libs (btf and bpf files)
     - name: btf
       usage: Location of btf
+    - name: cgroup-rate
+      usage: |
+        Base sensor events cgroup rate <events,interval> disabled by default ('1000/1s' means rate 1000 events per second
     - name: config-dir
       usage: Configuration directory that contains a file for each option
     - name: cpuprofile
