@@ -160,6 +160,8 @@ options:
       default_value: "0"
       usage: |
         Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)
+    - name: redaction-filters
+      usage: Redaction filters for events
     - name: release-pinned-bpf
       default_value: "true"
       usage: |

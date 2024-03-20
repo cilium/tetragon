@@ -59,24 +59,26 @@ type hookRunner interface {
 }
 
 type Server struct {
-	ctx          context.Context
-	ctxCleanupWG *sync.WaitGroup
-	notifier     notifier
-	observer     observer
-	hookRunner   hookRunner
+	ctx              context.Context
+	ctxCleanupWG     *sync.WaitGroup
+	notifier         notifier
+	observer         observer
+	hookRunner       hookRunner
+	redactionFilters fieldfilters.RedactionFilterList
 }
 
 type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner, redactionFilters fieldfilters.RedactionFilterList) *Server {
 	return &Server{
-		ctx:          ctx,
-		ctxCleanupWG: cleanupWg,
-		notifier:     notifier,
-		observer:     observer,
-		hookRunner:   hookRunner,
+		ctx:              ctx,
+		ctxCleanupWG:     cleanupWg,
+		notifier:         notifier,
+		observer:         observer,
+		hookRunner:       hookRunner,
+		redactionFilters: redactionFilters,
 	}
 }
 
@@ -172,12 +174,13 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				continue
 			}
 
-			// Filter the GetEventsResponse fields
+			// Get field filters
 			filters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
 			if err != nil {
 				return fmt.Errorf("failed to create field filters: %w", err)
 			}
 
+			// Apply field filters
 			for _, filter := range filters {
 				ev, err := filter.Filter(event)
 				if err != nil {
@@ -186,6 +189,9 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				}
 				event = ev
 			}
+
+			// Apply redaction filters
+			s.redactionFilters.Redact(event)
 
 			if aggregator != nil {
 				// Send event to aggregator.

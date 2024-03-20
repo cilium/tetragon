@@ -111,7 +111,37 @@ tetragon:
   #   {"event_set": ["PROCESS_KPROBE"], "fields": "process", "action": "INCLUDE"}
   #
   fieldFilters: |-
-    {}
+
+  # Filters to redact secrets from string fields in Tetragon events.  To perform
+  # redactions, redaction filters define regular expressions in the `redact`
+  # field. Any capture groups in these regular expressions are redacted and
+  # replaced with "*****".
+  #
+  # Redaction filters select events using the `match` field, which contains one
+  # or more filters (these filters are defined the same way as export filters).
+  # If no match filter is defined, all events are selected.
+  #
+  # NOTE: When writing regular expressions in JSON, it is important to escape
+  # backslash characters. For instance `\Wpasswd\W?` would be written as
+  # `{"redact": "\\Wpasswd\\W?"}`.
+  #
+  # As a concrete example, the following will redact all passwords passed to
+  # processes with the "--password" argument:
+  #
+  #   {"redact": ["--password(?:\\s+|=)(\\S*)"]}
+  #
+  # Now, an event which contains the string "--password=foo" would have that
+  # string replaced with "--password=*****".
+  #
+  # Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo.
+  # We can also redact these as follows:
+  #
+  #   {"match": [{"binary_regex": "(?:^|/)foo$"}], "redact": ["-p(?:\\s+|=)(\\S*)"]}
+  #
+  # With both of the above redaction filters in place, we are now redacting all
+  # password arguments.
+  redactionFilters: |-
+
   # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
   # enableProcessCred enables Capabilities visibility in exec and kprobe events.
@@ -171,7 +201,7 @@ tetragon:
     installDir: "/opt/tetragon"
     # -- Security context for oci-hook-setup init container
     securityContext:
-       privileged: true
+      privileged: true
     # -- Extra volume mounts to add to the oci-hook-setup init container
     extraVolumeMounts: []
     # -- resources for the the oci-hook-setup init container

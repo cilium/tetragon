@@ -794,6 +794,15 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | ----- | ---- | ----- | ----------- |
 | number_of_dropped_process_events | [uint64](#uint64) |  |  |
 
+<a name="tetragon-RedactionFilter"></a>
+
+### RedactionFilter
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| match | [Filter](#tetragon-Filter) | repeated | Match events that the redaction filter will apply to. |
+| redact | [string](#string) | repeated | Regular expressions to use for redaction. Strings inside capture groups are redacted. |
+
 <a name="tetragon-EventType"></a>
 
 ### EventType
