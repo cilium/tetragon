@@ -27,6 +27,7 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
 	  bpf_generic_uprobe_v511.o \
 	  bpf_loader.o \
+	  bpf_cgroup.o \
 	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o

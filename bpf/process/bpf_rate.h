@@ -114,4 +114,10 @@ cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
 	return !val->throttled;
 }
 
+static inline __attribute__((always_inline)) void
+cgroup_rate_del(__u64 cgroupid)
+{
+	map_delete_elem(&cgroup_rate_map, &cgroupid);
+}
+
 #endif /* __RATE_H__ */
