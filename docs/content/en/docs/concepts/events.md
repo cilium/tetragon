@@ -118,7 +118,49 @@ A default deployment writes the JSON log to `/var/run/cilium/tetragon/tetragon.l
 be exported through normal log collection tooling, e.g. 'fluentd', logstash, etc.. The file will
 be rotated and compressed by default. See [Helm Options] for details on how to customize this location.
 
-#### `tetra` CLI
+#### Export Filtering
+
+Export filters restrict the JSON event output to a subset of desirable events.
+These export filters are configured as a line-separated list of JSON objects,
+where each object can contain one or more filter expressions. Filters are
+combined by taking the logical OR of each line-separated filter object and the
+logical AND of sibling expressions within a filter object. As a concrete
+example, suppose we had the following filter configuration:
+
+```json
+{"event_set": ["PROCESS_EXEC", "PROCESS_EXIT"], "namespace": "foo"}
+{"event_set": ["PROCESS_KPROBE"]}
+```
+
+The above filter configuration would result in a match if:
+
+- The event type is `PROCESS_EXEC` or `PROCESS_EXIT` AND the pod namespace is "foo"; OR
+- The event type is `PROCESS_KPROBE`
+
+Tetragon supports two groups of export filters: an allowlist and a denylist. If
+neither is configured, all events are exported. If only an allowlist is
+configured, event exports are considered default-deny, meaning only the events
+in the allowlist are exported. The denylist takes precedence over the allowlist
+in cases where two filter configurations match on the same event.
+
+You can configure export filters using the provided helm options, command line
+flags, or environment variables.
+
+##### List of Process Event Filters
+
+| Filter | Description | 
+| ------ | ----------- |
+| `event_set` | Filter process events by event types. Supported types include: `PROCESS_EXEC`, `PROCESS_EXIT`, `PROCESS_KPROBE`, `PROCESS_UPROBE`, `PROCESS_TRACAEPOINT`, `PROCESS_LOADER` |
+| `binary_regex` | Filter process events by a list of regular expressions of process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `health_check` | Filter process events if their binary names match Kubernetes liveness / readiness probe commands of their corresponding pods. | 
+| `namespace` | Filter by Kubernetes pod namespaces. An empty string (`""`) filters processes that do not belong to any pod namespace. | 
+| `pid` | Filter by process PID. | 
+| `pid_set` | Like `pid` but also includes processes that are descendants of the listed PIDs. | 
+| `pod_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `arguments_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `labels` | Filter events by pod labels using [Kubernetes label selector syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) Note that this filter never matches events without the pod field (i.e. host process events). | 
+
+### `tetra` CLI
 
 A second way is to use the [`tetra`](https://github.com/cilium/tetragon/tree/main/cmd/tetra) CLI. This
 has the advantage that it can also be used to filter and pretty print the output. The tool
