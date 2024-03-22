@@ -82,7 +82,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	if parent != nil {
-		parent.RefInc()
+		parent.RefInc("parent")
 	}
 
 	// Finalize the process event with extra fields
@@ -210,7 +210,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		if parent == nil {
 			return err
 		}
-		parent.RefInc()
+		parent.RefInc("parent")
 		ev.SetParent(parent.UnsafeGetProcess())
 	}
 
@@ -392,10 +392,10 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		return nil
 	}
 	if parent != nil {
-		parent.RefDec()
+		parent.RefDec("parent")
 	}
 	if proc != nil {
-		proc.RefDec()
+		proc.RefDec("process")
 	}
 	return tetragonEvent
 }
@@ -416,7 +416,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
 		if !msg.RefCntDone[ParentRefCnt] {
-			parent.RefDec()
+			parent.RefDec("parent")
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
@@ -428,7 +428,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 		// Use cached version of the process
 		ev.SetProcess(internal.UnsafeGetProcess())
 		if !msg.RefCntDone[ProcessRefCnt] {
-			internal.RefDec()
+			internal.RefDec("process")
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
@@ -482,7 +482,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 
 	if parent != nil {
 		if !msg.RefCntDone[ParentRefCnt] {
-			parent.RefDec()
+			parent.RefDec("parent")
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
@@ -492,7 +492,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 
 	if internal != nil {
 		if !msg.RefCntDone[ProcessRefCnt] {
-			internal.RefDec()
+			internal.RefDec("process")
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
@@ -513,8 +513,8 @@ func (msg *MsgProcessCleanupEventUnix) Retry(_ *process.ProcessInternal, _ notif
 func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	msg.RefCntDone = [2]bool{false, false}
 	if process, parent := process.GetParentProcessInternal(msg.PID, msg.Ktime); process != nil && parent != nil {
-		parent.RefDec()
-		process.RefDec()
+		parent.RefDec("parent")
+		process.RefDec("process")
 	} else {
 		if ec := eventcache.Get(); ec != nil {
 			ec.Add(nil, nil, msg.Ktime, msg.Ktime, msg)

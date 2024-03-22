@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Cache struct {
@@ -27,6 +28,13 @@ const (
 	deleteReady
 	deleted
 )
+
+var colorStr = map[int]string{
+	inUse:         "inUse",
+	deletePending: "deletePending",
+	deleteReady:   "deleteReady",
+	deleted:       "deleted",
+}
 
 // garbage collection run interval
 const (
@@ -109,14 +117,22 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 	pc.deleteChan <- process
 }
 
-func (pc *Cache) refDec(p *ProcessInternal) {
+func (pc *Cache) refDec(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
+	// count number of times refcnt is decremented for a specific reason (i.e. process, parent, etc.)
+	p.refcntOps[reason]++
+	p.refcntOpsLock.Unlock()
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
 }
 
-func (pc *Cache) refInc(p *ProcessInternal) {
+func (pc *Cache) refInc(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
+	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
+	p.refcntOps[reason]++
+	p.refcntOpsLock.Unlock()
 	atomic.AddUint32(&p.refcnt, 1)
 }
 
@@ -177,4 +193,20 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 
 func (pc *Cache) len() int {
 	return pc.cache.Len()
+}
+
+func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
+	var processes []*tetragon.ProcessInternal
+	for _, v := range pc.cache.Values() {
+		if opts.SkipZeroRefCnt && v.refcnt == 0 {
+			continue
+		}
+		processes = append(processes, &tetragon.ProcessInternal{
+			Process:   v.process,
+			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
+			RefcntOps: v.refcntOps,
+			Color:     colorStr[v.color],
+		})
+	}
+	return processes
 }
