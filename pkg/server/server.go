@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
@@ -393,6 +394,17 @@ func (s *Server) GetDebug(_ context.Context, req *tetragon.GetDebugRequest) (*te
 			Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 			Arg: &tetragon.GetDebugResponse_Level{
 				Level: tetragon.LogLevel(logger.GetLogLevel()),
+			},
+		}, nil
+	case tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE:
+		logger.GetLogger().Debug("Client requested dump of process cache")
+		res := tetragon.DumpProcessCacheResArgs{
+			Processes: process.DumpProcessCache(req.GetDump()),
+		}
+		return &tetragon.GetDebugResponse{
+			Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
+			Arg: &tetragon.GetDebugResponse_Processes{
+				Processes: &res,
 			},
 		}, nil
 	default:
