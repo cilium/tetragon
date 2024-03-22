@@ -34,7 +34,7 @@ func celUserExpr(expr string) (*celProg, error) {
 	return &celProg{
 		p: p,
 		values: map[string]interface{}{
-			"annotations_namespace_keys": *annotationsNamespaceKeys,
+			"annotations_namespace_keys": cliConf.AnnNamespaceKeys,
 		},
 	}, nil
 }
@@ -65,7 +65,7 @@ func celAllowNamespaces(vals []string) (*celProg, error) {
 		p: p,
 		values: map[string]interface{}{
 			"allow_labels":               vals,
-			"annotations_namespace_keys": *annotationsNamespaceKeys,
+			"annotations_namespace_keys": cliConf.AnnNamespaceKeys,
 		},
 	}, nil
 }

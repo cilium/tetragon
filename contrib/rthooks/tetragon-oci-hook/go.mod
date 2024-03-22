@@ -12,7 +12,6 @@ require (
 	github.com/opencontainers/runc v1.1.12
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.62.1
 )
@@ -24,7 +23,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
