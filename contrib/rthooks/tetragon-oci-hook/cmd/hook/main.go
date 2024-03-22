@@ -130,6 +130,20 @@ func getCgroupPath(spec *specs.Spec) (string, error) {
 	return "", fmt.Errorf("Unknown cgroup path: %s", cgroupPath)
 }
 
+func containerNameFromAnnotations(annotations map[string]string) string {
+	// containerd
+	if val, ok := annotations["io.kubernetes.cri.container-name"]; ok {
+		return val
+	}
+
+	// crio
+	if val, ok := annotations["io.kubernetes.container.name"]; ok {
+		return val
+	}
+
+	return ""
+}
+
 // NB: the second argument is only used in case of an error, so disable revive's complains
 // revive:disable:error-return
 func createContainerHook(log *slog.Logger) (error, map[string]string) {
@@ -176,12 +190,15 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		return fmt.Errorf("unable to determine either RootDir or cgroupPath, bailing out"), nil
 	}
 
+	containerName := containerNameFromAnnotations(spec.Annotations)
+
 	req := &tetragon.RuntimeHookRequest{
 		Event: &tetragon.RuntimeHookRequest_CreateContainer{
 			CreateContainer: &tetragon.CreateContainer{
-				CgroupsPath: cgroupPath,
-				RootDir:     rootDir,
-				Annotations: spec.Annotations,
+				CgroupsPath:   cgroupPath,
+				RootDir:       rootDir,
+				Annotations:   spec.Annotations,
+				ContainerName: containerName,
 			},
 		},
 	}
@@ -189,6 +206,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	log = log.With(
 		"req-cgroups", cgroupPath,
 		"req-rootdir", rootDir,
+		"req-containerName", containerName,
 	)
 	if log.Enabled(context.TODO(), slog.LevelDebug) {
 		// NB: only add annotations in debug level since they are too noisy
