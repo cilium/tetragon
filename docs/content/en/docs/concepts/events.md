@@ -160,6 +160,43 @@ flags, or environment variables.
 | `arguments_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 | `labels` | Filter events by pod labels using [Kubernetes label selector syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) Note that this filter never matches events without the pod field (i.e. host process events). | 
 
+#### Field Filtering 
+
+In some cases, it is not desirable to include all of the fields exported in
+Tetragon events by default. In these cases, you can use field filters to
+restrict the set of exported fields for a given event type. Field filters are
+configured similarly to export filters, as line-separated lists of JSON objects.
+
+Field filters select fields using the [protobuf field mask syntax](https://protobuf.dev/reference/protobuf/google.protobuf/#field-mask)
+under the `"fields"` key. You can define a path of fields using field
+names separated by period (`.`) characters. To define multiple paths in
+a single field filter, separate them with comma (`,`) characters. For
+example, `"fields":"process.binary,parent.binary,pod.name"` would select
+only the `process.binary`, `parent.binary`, and `pod.name` fields.
+
+By default, a field filter applies to all process events, although you
+can control this behaviour with the `"event_set"` key. For example, you
+can apply a field filter to `PROCESS_CONNECT` and `PROCESS_CLOSE` events
+by specifying `"event_set":["PROCESS_CONNECT","PROCESS_CLOSE"]` in the
+filter definition.
+
+Each field filter has an `"action"` that determines what the filter
+should do with the selected field. The supported action types are
+`"INCLUDE"` and `"EXCLUDE"`. A value of `"INCLUDE"` will cause the field
+to appear in an event, while a value of `"EXCLUDE"` will hide the field.
+In the absence of any field filter for a given event type, the export
+will include all fields by default. Defining one or more `"INCLUDE"`
+filters for a given event type changes that behaviour to exclude all
+other event types by default.
+
+As a simple example of the above, consider the case where we want to include
+only `exec_id` and `parent_exec_id` in all event types except for
+`PROCESS_EXEC`:
+
+```json
+{"fields":"process.exec_id,process.parent_exec_id", "event_set": ["PROCESS_EXEC"], "invert_event_set": true, "action": "INCLUDE"}
+```
+
 ### `tetra` CLI
 
 A second way is to use the [`tetra`](https://github.com/cilium/tetragon/tree/main/cmd/tetra) CLI. This
