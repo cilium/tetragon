@@ -36,6 +36,7 @@ import (
 var (
 	binDir                          = getBinaryDir()
 	defaultLogFname                 = filepath.Join(binDir, "tetragon-oci-hook.log")
+	defaultConfFile                 = filepath.Join(binDir, "tetragon-oci-hook.json")
 	defaultAgentAddress             = "unix:///var/run/cilium/tetragon/tetragon.sock"
 	defaultAnnotationsNamespaceKeys = "io.kubernetes.pod.namespace,io.kubernetes.cri.sandbox-namespace"
 	defaultAllowNamspaces           = "kube-system"
@@ -47,6 +48,7 @@ var cliConf struct {
 	AgentAddr           string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
 	GrpcTimeout         time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
 	DisableGrpc         bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
+	JustPrintConfig     bool          `name:"just-print-config" default:false help:"just print the config and exit"`
 	AnnNamespaceKeys    []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
 	FailCelUser         string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
 	FailAllowNamespaces []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
@@ -257,11 +259,17 @@ func main() {
 			"defAnnotationsNamespaceKeys": defaultAnnotationsNamespaceKeys,
 			"defAllowNamespaces":          defaultAllowNamspaces,
 		},
+		kong.Configuration(kong.JSON, defaultConfFile),
 	)
 
 	if kongCmd := ctx.Command(); kongCmd != "<hook>" {
 		fmt.Fprintf(os.Stderr, "unexpected parsing result: %s", kongCmd)
 		os.Exit(1)
+	}
+
+	if cliConf.JustPrintConfig {
+		fmt.Printf("%+v\n", cliConf)
+		os.Exit(0)
 	}
 
 	var logLevel slog.Level
