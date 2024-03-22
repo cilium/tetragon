@@ -92,6 +92,8 @@
     - [DisableSensorResponse](#tetragon-DisableSensorResponse)
     - [DisableTracingPolicyRequest](#tetragon-DisableTracingPolicyRequest)
     - [DisableTracingPolicyResponse](#tetragon-DisableTracingPolicyResponse)
+    - [DumpProcessCacheReqArgs](#tetragon-DumpProcessCacheReqArgs)
+    - [DumpProcessCacheResArgs](#tetragon-DumpProcessCacheResArgs)
     - [EnableSensorRequest](#tetragon-EnableSensorRequest)
     - [EnableSensorResponse](#tetragon-EnableSensorResponse)
     - [EnableTracingPolicyRequest](#tetragon-EnableTracingPolicyRequest)
@@ -106,6 +108,8 @@
     - [ListSensorsResponse](#tetragon-ListSensorsResponse)
     - [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest)
     - [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse)
+    - [ProcessInternal](#tetragon-ProcessInternal)
+    - [ProcessInternal.RefcntOpsEntry](#tetragon-ProcessInternal-RefcntOpsEntry)
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
     - [SensorStatus](#tetragon-SensorStatus)
@@ -1637,6 +1641,36 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-DumpProcessCacheReqArgs"></a>
+
+### DumpProcessCacheReqArgs
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| skipZeroRefCnt | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="tetragon-DumpProcessCacheResArgs"></a>
+
+### DumpProcessCacheResArgs
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| processes | [ProcessInternal](#tetragon-ProcessInternal) | repeated |  |
+
+
+
+
+
+
 <a name="tetragon-EnableSensorRequest"></a>
 
 ### EnableSensorRequest
@@ -1697,6 +1731,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
+| dump | [DumpProcessCacheReqArgs](#tetragon-DumpProcessCacheReqArgs) |  |  |
 
 
 
@@ -1713,6 +1748,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
 | level | [LogLevel](#tetragon-LogLevel) |  |  |
+| processes | [DumpProcessCacheResArgs](#tetragon-DumpProcessCacheResArgs) |  |  |
 
 
 
@@ -1818,6 +1854,40 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | policies | [TracingPolicyStatus](#tetragon-TracingPolicyStatus) | repeated |  |
+
+
+
+
+
+
+<a name="tetragon-ProcessInternal"></a>
+
+### ProcessInternal
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  |  |
+| color | [string](#string) |  |  |
+| refcnt | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| refcntOps | [ProcessInternal.RefcntOpsEntry](#tetragon-ProcessInternal-RefcntOpsEntry) | repeated | refcntOps is a map of operations to refcnt change keys can be: - &#34;process&#43;&#43;&#34;: process increased refcnt (i.e. this process starts) - &#34;process--&#34;: process decreased refcnt (i.e. this process exits) - &#34;parent&#43;&#43;&#34;: parent increased refcnt (i.e. a process starts that has this process as a parent) - &#34;parent--&#34;: parent decreased refcnt (i.e. a process exits that has this process as a parent) |
+
+
+
+
+
+
+<a name="tetragon-ProcessInternal-RefcntOpsEntry"></a>
+
+### ProcessInternal.RefcntOpsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [int32](#int32) |  |  |
 
 
 
@@ -1931,6 +2001,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | Name | Number | Description |
 | ---- | ------ | ----------- |
 | CONFIG_FLAG_LOG_LEVEL | 0 |  |
+| CONFIG_FLAG_DUMP_PROCESS_CACHE | 1 |  |
 
 
 
