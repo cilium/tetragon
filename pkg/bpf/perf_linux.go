@@ -5,12 +5,10 @@ package bpf
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
+	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
 )
 
@@ -28,63 +26,24 @@ type PerfEventConfig struct {
 	WakeupEvents int
 }
 
-// GetNumPossibleCPUs returns a total number of possible CPUS, i.e. CPUs that
-// have been allocated resources and can be brought online if they are present.
-// The number is retrieved by parsing /sys/device/system/cpu/possible.
-//
-// See https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/cpumask.h?h=v4.19#n50
-// for more details.
 func GetNumPossibleCPUs() int {
-	f, err := os.Open(PossibleCPUSysfsPath)
+	nCpus, err := ebpf.PossibleCPU()
 	if err != nil {
-		return 0
+		nCpus = runtime.NumCPU()
 	}
-	defer f.Close()
-
-	return getNumPossibleCPUsFromReader(f)
-}
-
-func getNumPossibleCPUsFromReader(r io.Reader) int {
-	out, err := io.ReadAll(r)
-	if err != nil {
-		return 0
-	}
-
-	var start, end int
-	count := 0
-	for _, s := range strings.Split(string(out), ",") {
-		// Go's scanf will return an error if a format cannot be fully matched.
-		// So, just ignore it, as a partial match (e.g. when there is only one
-		// CPU) is expected.
-		n, _ := fmt.Sscanf(s, "%d-%d", &start, &end)
-
-		switch n {
-		case 0:
-			return 0
-		case 1:
-			count++
-		default:
-			count += (end - start + 1)
-		}
-	}
-
-	return count
+	return nCpus
 }
 
 // DefaultPerfEventConfig returns the default perf event configuration. It
 // relies on the map root to be set.
 func DefaultPerfEventConfig() *PerfEventConfig {
-	numCpus := GetNumPossibleCPUs()
-	if numCpus == 0 {
-		numCpus = runtime.NumCPU()
-	}
 	return &PerfEventConfig{
 		MapName:      filepath.Join(MapPrefixPath(), eventsMapName),
 		Type:         PERF_TYPE_SOFTWARE,
 		Config:       PERF_COUNT_SW_BPF_OUTPUT,
 		SampleType:   PERF_SAMPLE_RAW,
 		WakeupEvents: 1,
-		NumCpus:      numCpus,
+		NumCpus:      GetNumPossibleCPUs(),
 		NumPages:     128,
 	}
 }
