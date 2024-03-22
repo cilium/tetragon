@@ -32,22 +32,15 @@ type Install struct {
 	} `embed:"" prefix:"oci-hooks."`
 }
 
-func (i *Install) ociHooksInstall(log *logrus.Logger) {
-
-	_, binBaseName := path.Split(i.LocalBinary)
-	binFname := filepath.Join(i.HostInstallDir, binBaseName)
-
-	logFname := filepath.Join(i.HostInstallDir, logBaseName)
+func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
 	yes := true
-	hook := ociHooks.Hook{
+	args := []string{binFname, "createContainer"}
+	args = append(args, binArgs...)
+	return &ociHooks.Hook{
 		Version: "1.0.0",
 		Hook: rspec.Hook{
-			Path: binFname,
-			Args: []string{
-				binFname,
-				"createContainer",
-				"--log-fname", logFname,
-			},
+			Path:    binFname,
+			Args:    args,
 			Env:     []string{},
 			Timeout: nil,
 		},
@@ -59,8 +52,16 @@ func (i *Install) ociHooksInstall(log *logrus.Logger) {
 		},
 		Stages: []string{"createRuntime"},
 	}
+}
 
-	data, err := json.MarshalIndent(&hook, "", "   ")
+func (i *Install) ociHooksInstall(log *logrus.Logger) {
+
+	_, binBaseName := path.Split(i.LocalBinary)
+	binFname := filepath.Join(i.HostInstallDir, binBaseName)
+
+	logFname := filepath.Join(i.HostInstallDir, logBaseName)
+	hook := ociHooksConfig(binFname, "--log-fname", logFname)
+	data, err := json.MarshalIndent(hook, "", "   ")
 	if err != nil {
 		log.WithError(err).Fatal("failed to unmarshall hook info")
 	}
@@ -153,9 +154,36 @@ func (u *Uninstall) Run(log *logrus.Logger) error {
 	return nil
 }
 
+type PrintConfig struct {
+	Binary    string `default:"/usr/bin/tetragon-oci-hook" help:"Binary path"`
+	Args      []string
+	Interface string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
+}
+
+func (c *PrintConfig) Run(log *logrus.Logger) error {
+	switch c.Interface {
+	case "oci-hooks":
+		hook := ociHooksConfig(c.Binary, c.Args...)
+		data, err := json.MarshalIndent(hook, "", "   ")
+		if err != nil {
+			log.WithError(err).Fatal("failed to unmarshall hook info")
+		}
+		_, err = os.Stdout.Write(data)
+		if err != nil {
+			log.WithError(err).Fatal("writing to stdout failed")
+		}
+		fmt.Println("")
+		return nil
+	default:
+		return fmt.Errorf("unknown interface: '%s'", c.Interface)
+	}
+
+}
+
 type CLI struct {
-	Install   Install   `cmd:"" help:"Install hook"`
-	Uninstall Uninstall `cmd:"" help:"Uninstall hook"`
+	Install     Install     `cmd:"" help:"Install hook"`
+	Uninstall   Uninstall   `cmd:"" help:"Uninstall hook"`
+	PrintConfig PrintConfig `cmd:"" help:"Print config"`
 }
 
 func main() {
