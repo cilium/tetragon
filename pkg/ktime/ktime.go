@@ -37,6 +37,16 @@ func NanoTimeSince(ktime int64) (time.Duration, error) {
 	diff := currentTime.Nano() - ktime
 	return time.Duration(diff), nil
 }
+
+func Monotonic() (time.Duration, error) {
+	clk := int32(unix.CLOCK_MONOTONIC)
+	currentTime := unix.Timespec{}
+	if err := unix.ClockGettime(clk, &currentTime); err != nil {
+		return 0, err
+	}
+	return time.Duration(currentTime.Nano()), nil
+}
+
 func DecodeKtime(ktime int64, monotonic bool) (time.Time, error) {
 	var clk int32
 	if monotonic {
