@@ -4,12 +4,15 @@
 package dump
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -29,6 +32,7 @@ func New() *cobra.Command {
 	ret.AddCommand(
 		execveMapCmd(),
 		policyfilterCmd(),
+		dumpProcessCache(),
 	)
 
 	return ret
@@ -99,6 +103,48 @@ func dumpExecveMap(fname string) {
 	for k, v := range data {
 		fmt.Printf("%d %+v\n", k, v)
 	}
+}
+
+func dumpProcessCache() *cobra.Command {
+	skipZeroRefCnt := false
+	ret := &cobra.Command{
+		Use:   "processCache",
+		Short: "dump process cache",
+		Args:  cobra.ExactArgs(0),
+		Run: func(_ *cobra.Command, _ []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				req := tetragon.GetDebugRequest{
+					Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
+					Arg: &tetragon.GetDebugRequest_Dump{
+						Dump: &tetragon.DumpProcessCacheReqArgs{
+							SkipZeroRefCnt: skipZeroRefCnt,
+						},
+					},
+				}
+				res, err := cli.GetDebug(ctx, &req)
+				if err != nil {
+					logger.GetLogger().WithError(err).Error("failed to get debug info")
+					return
+				}
+				if res.Flag == tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
+					for _, p := range res.GetProcesses().Processes {
+						if s, err := p.MarshalJSON(); err == nil {
+							fmt.Println(string(s))
+						} else {
+							logger.GetLogger().WithError(err).WithField("process", p).Error("failed to marshal process")
+						}
+					}
+				} else {
+					logger.GetLogger().WithField("flag", res.Flag).Error("unexpected response flag")
+				}
+			})
+		},
+	}
+
+	flags := ret.Flags()
+	flags.BoolVar(&skipZeroRefCnt, "skip-zero-refcnt", skipZeroRefCnt, "skip entries with zero refcnt")
+
+	return ret
 }
 
 func PolicyfilterState(fname string) {
