@@ -16,10 +16,10 @@ setup-image-debug:
 	docker build . -f dockerfiles/setup --build-arg BASE_IMAGE=ubuntu -t quay.io/isovalent/tetragon-oci-hook-setup:debug-latest
 
 tetragon-oci-hook-setup: FORCE
-	$(GO) build -o $@ ./cmd/setup
+	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/setup
 
 tetragon-oci-hook: FORCE
-	$(GO) build -o $@ ./cmd/hook
+	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/hook
 
 .PHONY: vendor
 vendor:
