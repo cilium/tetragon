@@ -607,6 +607,8 @@ message CreateContainer {
     // annotations are the run-time annotations for the container
     // see https://github.com/opencontainers/runtime-spec/blob/main/config.md#annotations
     map<string, string> annotations = 3;
+    // containerName is the name of the container
+    string containerName = 4;
 }
 
 message StackTraceEntry {
