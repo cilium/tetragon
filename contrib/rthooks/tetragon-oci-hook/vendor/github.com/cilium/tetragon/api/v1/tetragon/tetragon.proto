@@ -325,12 +325,14 @@ message KprobePath {
     string mount = 1;
     string path  = 2;
     string flags = 3;
+    string permission = 4;
 }
 
 message KprobeFile {
     string mount = 1;
     string path  = 2;
     string flags = 3;
+    string permission = 4;
 }
 
 message KprobeTruncatedBytes {
@@ -346,6 +348,8 @@ message KprobeCred {
 
 message KprobeLinuxBinprm {
     string path = 1;
+    string flags = 2;
+    string permission = 3;
 }
 
 message KprobeCapability {

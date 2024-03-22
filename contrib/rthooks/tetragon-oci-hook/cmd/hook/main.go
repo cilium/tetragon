@@ -18,40 +18,41 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/kong"
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
-	logFname                        = flag.String("log-fname", "/var/log/tetragon-oci-hook.log", "log output filename")
-	logLevelStr                     = flag.String("log-level", "info", "log level")
-	agentAddress                    = flag.String("grpc-address", "unix:///var/run/cilium/tetragon/tetragon.sock", "gRPC address for connecting to the tetragon agent")
-	grpcTimeout                     = flag.Duration("grpc-timeout", 10*time.Second, "timeout for connecting to agent via gRPC")
-	disableGrpc                     = flag.Bool("disable-grpc", false, "do not connect to gRPC address. Instead, write a message to log")
-	annotationsNamespaceDefaultKeys = []string{"io.kubernetes.pod.namespace", "io.kubernetes.cri.sandbox-namespace"}
-	annotationsNamespaceKeys        = flag.StringSlice(
-		"annotations-namespace-key",
-		annotationsNamespaceDefaultKeys,
-		"Runtime annotations  key for kubernetes namespace")
-	failCelUser = flag.String(
-		"fail-cel-expr",
-		"",
-		"CEL expression to decide whether to fail (and stop container from starting) or not.")
-	failAllowNamespaces = flag.StringSlice(
-		"fail-allow-namespaces",
-		[]string{"kube-system"},
-		"Command will not fail for specified namespaces. The namespace is determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set.")
+	binDir                          = getBinaryDir()
+	defaultLogFname                 = filepath.Join(binDir, "tetragon-oci-hook.log")
+	defaultAgentAddress             = "unix:///var/run/cilium/tetragon/tetragon.sock"
+	defaultAnnotationsNamespaceKeys = "io.kubernetes.pod.namespace,io.kubernetes.cri.sandbox-namespace"
+	defaultAllowNamspaces           = "kube-system"
 )
+
+var cliConf struct {
+	LogFname            string        `name:"log-fname" default:"${defLogFname}" help:"log output filename."`
+	LogLevel            string        `name:"log-level" default:"info" help:"log level"`
+	AgentAddr           string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
+	GrpcTimeout         time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
+	DisableGrpc         bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
+	AnnNamespaceKeys    []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
+	FailCelUser         string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
+	FailAllowNamespaces []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
+
+	HookName string `arg:"" name:"hook"`
+}
 
 func readJsonSpec(fname string) (*specs.Spec, error) {
 	data, err := os.ReadFile(fname)
@@ -76,11 +77,11 @@ func hookRequest(req *tetragon.RuntimeHookRequest) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, *grpcTimeout)
+	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
 	defer connCancel()
-	conn, err := grpc.DialContext(connCtx, *agentAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(connCtx, cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		return fmt.Errorf("connecting to agent (%s) failed: %s", err, *agentAddress)
+		return fmt.Errorf("connecting to agent (%s) failed: %s", err, cliConf.AgentAddr)
 	}
 	defer conn.Close()
 
@@ -192,7 +193,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		log = log.With("req-annotations", spec.Annotations)
 	}
 
-	if *disableGrpc {
+	if cliConf.DisableGrpc {
 		log.Info("gRPC was disabled, so will not be contacting the agent")
 		return nil, nil
 	}
@@ -227,10 +228,10 @@ func checkFail(log *slog.Logger, prog *celProg, annotations map[string]string) e
 func failTestProg() (*celProg, error) {
 	var ret *celProg
 	var err error
-	if expr := *failCelUser; expr != "" {
+	if expr := cliConf.FailCelUser; expr != "" {
 		ret, err = celUserExpr(expr)
 	} else {
-		ret, err = celAllowNamespaces(*failAllowNamespaces)
+		ret, err = celAllowNamespaces(cliConf.FailAllowNamespaces)
 	}
 	return ret, err
 }
@@ -248,18 +249,31 @@ func (lh *logHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func main() {
-	flag.Parse()
+
+	ctx := kong.Parse(&cliConf,
+		kong.Vars{
+			"defLogFname":                 defaultLogFname,
+			"defAgentAddress":             defaultAgentAddress,
+			"defAnnotationsNamespaceKeys": defaultAnnotationsNamespaceKeys,
+			"defAllowNamespaces":          defaultAllowNamspaces,
+		},
+	)
+
+	if kongCmd := ctx.Command(); kongCmd != "<hook>" {
+		fmt.Fprintf(os.Stderr, "unexpected parsing result: %s", kongCmd)
+		os.Exit(1)
+	}
 
 	var logLevel slog.Level
 	var logLevelArgError bool
-	if err := logLevel.UnmarshalText([]byte(*logLevelStr)); err != nil {
+	if err := logLevel.UnmarshalText([]byte(cliConf.LogLevel)); err != nil {
 		logLevel = slog.LevelInfo
 		logLevelArgError = true
 	}
 
 	log := slog.New(&logHandler{slog.NewJSONHandler(
 		&lumberjack.Logger{
-			Filename:   *logFname,
+			Filename:   cliConf.LogFname,
 			MaxSize:    50, // megabytes
 			MaxBackups: 3,
 			MaxAge:     7, //days
@@ -271,14 +285,8 @@ func main() {
 
 	if logLevelArgError {
 		log.Warn("was not able to parse logLevel, using default",
-			"arg", *logLevelStr,
+			"arg", cliConf.LogLevel,
 			"default", logLevel)
-	}
-
-	args := flag.Args()
-	if len(args) < 1 {
-		log.Warn("hook called without event, bailing out")
-		os.Exit(1)
 	}
 
 	failTestProg, err := failTestProg()
@@ -287,8 +295,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	hookName := args[0]
-	switch hookName {
+	switch cliConf.HookName {
 	case "createContainer":
 		log = log.With(
 			"hook", "create-container",
@@ -307,9 +314,25 @@ func main() {
 		// do nothing
 	default:
 		log.Warn("hook called with unknown hook",
-			"hook", hookName,
+			"hook", cliConf.HookName,
 		)
 	}
 
 	return
+}
+
+func getBinaryDir() string {
+	p, err := os.Executable()
+	if err != nil {
+		// if there is an error, use cwd
+		return "."
+	}
+
+	p, err = filepath.EvalSymlinks(p)
+	if err != nil {
+		// if there is an error, use cwd
+		return "."
+	}
+
+	return path.Dir(p)
 }
