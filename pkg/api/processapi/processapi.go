@@ -220,3 +220,20 @@ type MsgCgroupEvent struct {
 type KernelStats struct {
 	SentFailed [256]uint64 `align:"sent_failed"`
 }
+
+type CgroupRateKey struct {
+	Id uint64
+}
+
+type CgroupRateValue struct {
+	Curr      uint64
+	Prev      uint64
+	Time      uint64
+	Rate      uint64
+	Throttled uint64
+}
+
+type CgroupRateOptions struct {
+	Events   uint64
+	Interval uint64
+}
