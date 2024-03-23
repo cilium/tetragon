@@ -34,6 +34,8 @@ func ResponseTypeString(response *tetragon.GetEventsResponse) (string, error) {
 		return tetragon.EventType_PROCESS_LOADER.String(), nil
 	case *tetragon.GetEventsResponse_ProcessUprobe:
 		return tetragon.EventType_PROCESS_UPROBE.String(), nil
+	case *tetragon.GetEventsResponse_ProcessThrottle:
+		return tetragon.EventType_PROCESS_THROTTLE.String(), nil
 	case *tetragon.GetEventsResponse_Test:
 		return tetragon.EventType_TEST.String(), nil
 	case *tetragon.GetEventsResponse_RateLimitInfo:
