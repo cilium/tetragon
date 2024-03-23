@@ -92,15 +92,12 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
-	var containerFound bool
-	var container *corev1.ContainerStatus
 	namespace := pod.ObjectMeta.Namespace
-	pod, container, containerFound = arg.Watcher.FindContainer(containerID)
-	if !containerFound {
-		log.WithError(err).Warnf("failed to find container information %s, aborting hook.", containerID)
-	}
 
-	containerName := container.Name
+	containerName := arg.Req.ContainerName
+	if containerName == "" {
+		log.Warnf("failed to find container information for %s, but will continue", containerID)
+	}
 
 	log.WithFields(logrus.Fields{
 		"pod-id":         podID,
