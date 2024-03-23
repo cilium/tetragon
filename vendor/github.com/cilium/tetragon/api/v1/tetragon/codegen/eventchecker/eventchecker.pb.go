@@ -280,6 +280,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewProcessLoaderChecker("").FromProcessLoader(ev), nil
 	case *tetragon.RateLimitInfo:
 		return NewRateLimitInfoChecker("").FromRateLimitInfo(ev), nil
+	case *tetragon.ProcessThrottle:
+		return NewProcessThrottleChecker("").FromProcessThrottle(ev), nil
 
 	default:
 		return nil, fmt.Errorf("Unhandled event type %T", event)
@@ -340,6 +342,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.ProcessLoader, nil
 	case *tetragon.GetEventsResponse_RateLimitInfo:
 		return ev.RateLimitInfo, nil
+	case *tetragon.GetEventsResponse_ProcessThrottle:
+		return ev.ProcessThrottle, nil
 
 	default:
 		return nil, fmt.Errorf("Unknown event type %T", response.Event)
@@ -1956,6 +1960,93 @@ func (checker *RateLimitInfoChecker) FromRateLimitInfo(event *tetragon.RateLimit
 		val := event.NumberOfDroppedProcessEvents
 		checker.NumberOfDroppedProcessEvents = &val
 	}
+	return checker
+}
+
+// ProcessThrottleChecker implements a checker struct to check a ProcessThrottle event
+type ProcessThrottleChecker struct {
+	CheckerName string                       `json:"checkerName"`
+	Type        *ThrottleTypeChecker         `json:"type,omitempty"`
+	Cgroup      *stringmatcher.StringMatcher `json:"cgroup,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessThrottleChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessThrottle); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a ProcessThrottle event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessThrottleChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessThrottleChecker creates a new ProcessThrottleChecker
+func NewProcessThrottleChecker(name string) *ProcessThrottleChecker {
+	return &ProcessThrottleChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessThrottleChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessThrottleChecker) GetCheckerType() string {
+	return "ProcessThrottleChecker"
+}
+
+// Check checks a ProcessThrottle event
+func (checker *ProcessThrottleChecker) Check(event *tetragon.ProcessThrottle) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessThrottle event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Type != nil {
+			if err := checker.Type.Check(&event.Type); err != nil {
+				return fmt.Errorf("Type check failed: %w", err)
+			}
+		}
+		if checker.Cgroup != nil {
+			if err := checker.Cgroup.Match(event.Cgroup); err != nil {
+				return fmt.Errorf("Cgroup check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithType adds a Type check to the ProcessThrottleChecker
+func (checker *ProcessThrottleChecker) WithType(check tetragon.ThrottleType) *ProcessThrottleChecker {
+	wrappedCheck := ThrottleTypeChecker(check)
+	checker.Type = &wrappedCheck
+	return checker
+}
+
+// WithCgroup adds a Cgroup check to the ProcessThrottleChecker
+func (checker *ProcessThrottleChecker) WithCgroup(check *stringmatcher.StringMatcher) *ProcessThrottleChecker {
+	checker.Cgroup = check
+	return checker
+}
+
+//FromProcessThrottle populates the ProcessThrottleChecker using data from a ProcessThrottle event
+func (checker *ProcessThrottleChecker) FromProcessThrottle(event *tetragon.ProcessThrottle) *ProcessThrottleChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Type = NewThrottleTypeChecker(event.Type)
+	checker.Cgroup = stringmatcher.Full(event.Cgroup)
 	return checker
 }
 
@@ -6408,6 +6499,58 @@ func (enum *TaintedBitsTypeChecker) Check(val *tetragon.TaintedBitsType) error {
 	}
 	if *enum != TaintedBitsTypeChecker(*val) {
 		return fmt.Errorf("TaintedBitsTypeChecker: TaintedBitsType has value %s which does not match expected value %s", (*val), tetragon.TaintedBitsType(*enum))
+	}
+	return nil
+}
+
+// ThrottleTypeChecker checks a tetragon.ThrottleType
+type ThrottleTypeChecker tetragon.ThrottleType
+
+// MarshalJSON implements json.Marshaler interface
+func (enum ThrottleTypeChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.ThrottleType_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "THROTTLE_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown ThrottleType %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *ThrottleTypeChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.ThrottleType_value[str]; ok {
+		*enum = ThrottleTypeChecker(n)
+	} else if n, ok := tetragon.ThrottleType_value["THROTTLE_"+str]; ok {
+		*enum = ThrottleTypeChecker(n)
+	} else {
+		return fmt.Errorf("Unknown ThrottleType %s", str)
+	}
+
+	return nil
+}
+
+// NewThrottleTypeChecker creates a new ThrottleTypeChecker
+func NewThrottleTypeChecker(val tetragon.ThrottleType) *ThrottleTypeChecker {
+	enum := ThrottleTypeChecker(val)
+	return &enum
+}
+
+// Check checks a ThrottleType against the checker
+func (enum *ThrottleTypeChecker) Check(val *tetragon.ThrottleType) error {
+	if val == nil {
+		return fmt.Errorf("ThrottleTypeChecker: ThrottleType is nil and does not match expected value %s", tetragon.ThrottleType(*enum))
+	}
+	if *enum != ThrottleTypeChecker(*val) {
+		return fmt.Errorf("ThrottleTypeChecker: ThrottleType has value %s which does not match expected value %s", (*val), tetragon.ThrottleType(*enum))
 	}
 	return nil
 }
