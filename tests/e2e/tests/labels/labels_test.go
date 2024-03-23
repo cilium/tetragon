@@ -42,8 +42,8 @@ func installDemoApp(labelsChecker *checker.RPCChecker) features.Func {
 
 		for i := 0; i < demoAppRetry; i++ {
 			if err := manager.RunInstall(
-				helm.WithName("jobs-app"),
-				helm.WithChart("isovalent/jobs-app"),
+				helm.WithName("online-boutique"),
+				helm.WithChart("gcr.io/google-samples/microservices-demo"),
 				helm.WithVersion("v0.7.1"),
 				helm.WithNamespace(namespace),
 				helm.WithArgs("--create-namespace", "--wait"),
@@ -64,7 +64,7 @@ func uninstallDemoApp() features.Func {
 	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 		manager := helm.New(c.KubeconfigFile())
 		if err := manager.RunUninstall(
-			helm.WithName("jobs-app"),
+			helm.WithName("online-boutique"),
 			helm.WithNamespace(namespace),
 		); err != nil {
 			t.Fatalf("failed to uninstall demo app. run with `-args -v=4` for more context from helm: %s", err)
@@ -132,7 +132,7 @@ func labelsEventChecker() *checker.RPCChecker {
 			"app":                                *sm.Full("elasticsearch-master"),
 			"chart":                              *sm.Full("elasticsearch"),
 			"controller-revision-hash":           *sm.Regex("elasticsearch-master-[a-f0-9]+"),
-			"release":                            *sm.Full("jobs-app"),
+			"release":                            *sm.Full("online-boutique"),
 			"statefulset.kubernetes.io/pod-name": *sm.Prefix("elasticsearch-master"),
 		}))),
 		ec.NewProcessExecChecker("jobposting").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
@@ -140,30 +140,30 @@ func labelsEventChecker() *checker.RPCChecker {
 			"pod-template-hash": *sm.Regex("[a-f0-9]+"),
 		}))),
 		ec.NewProcessExecChecker("kafka").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
-			"app.kubernetes.io/instance":         *sm.Full("jobs-app"),
+			"app.kubernetes.io/instance":         *sm.Full("online-boutique"),
 			"app.kubernetes.io/managed-by":       *sm.Full("strimzi-cluster-operator"),
 			"app.kubernetes.io/name":             *sm.Full("kafka"),
-			"app.kubernetes.io/part-of":          *sm.Full("strimzi-jobs-app"),
-			"statefulset.kubernetes.io/pod-name": *sm.Prefix("jobs-app-kafka"),
+			"app.kubernetes.io/part-of":          *sm.Full("strimzi-online-boutique"),
+			"statefulset.kubernetes.io/pod-name": *sm.Prefix("online-boutique-kafka"),
 			"strimzi.io/controller":              *sm.Full("strimzipodset"),
-			"strimzi.io/controller-name":         *sm.Full("jobs-app-kafka"),
-			"strimzi.io/cluster":                 *sm.Full("jobs-app"),
+			"strimzi.io/controller-name":         *sm.Full("online-boutique-kafka"),
+			"strimzi.io/cluster":                 *sm.Full("online-boutique"),
 			"strimzi.io/kind":                    *sm.Full("Kafka"),
-			"strimzi.io/name":                    *sm.Full("jobs-app-kafka"),
-			"strimzi.io/pod-name":                *sm.Prefix("jobs-app-kafka"),
+			"strimzi.io/name":                    *sm.Full("online-boutique-kafka"),
+			"strimzi.io/pod-name":                *sm.Prefix("online-boutique-kafka"),
 		}))),
 		ec.NewProcessExecChecker("zookeeper").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
-			"app.kubernetes.io/instance":         *sm.Full("jobs-app"),
+			"app.kubernetes.io/instance":         *sm.Full("online-boutique"),
 			"app.kubernetes.io/managed-by":       *sm.Full("strimzi-cluster-operator"),
 			"app.kubernetes.io/name":             *sm.Full("zookeeper"),
-			"app.kubernetes.io/part-of":          *sm.Full("strimzi-jobs-app"),
-			"statefulset.kubernetes.io/pod-name": *sm.Prefix("jobs-app-zookeeper"),
-			"strimzi.io/cluster":                 *sm.Full("jobs-app"),
+			"app.kubernetes.io/part-of":          *sm.Full("strimzi-online-boutique"),
+			"statefulset.kubernetes.io/pod-name": *sm.Prefix("online-boutique-zookeeper"),
+			"strimzi.io/cluster":                 *sm.Full("online-boutique"),
 			"strimzi.io/controller":              *sm.Full("strimzipodset"),
-			"strimzi.io/controller-name":         *sm.Full("jobs-app-zookeeper"),
+			"strimzi.io/controller-name":         *sm.Full("online-boutique-zookeeper"),
 			"strimzi.io/kind":                    *sm.Full("Kafka"),
-			"strimzi.io/name":                    *sm.Full("jobs-app-zookeeper"),
-			"strimzi.io/pod-name":                *sm.Prefix("jobs-app-zookeeper"),
+			"strimzi.io/name":                    *sm.Full("online-boutique-zookeeper"),
+			"strimzi.io/pod-name":                *sm.Prefix("online-boutique-zookeeper"),
 		}))),
 		ec.NewProcessExecChecker("loader").WithProcess(ec.NewProcessChecker().WithPod(ec.NewPodChecker().WithPodLabels(map[string]sm.StringMatcher{
 			"app":               *sm.Full("loader"),
