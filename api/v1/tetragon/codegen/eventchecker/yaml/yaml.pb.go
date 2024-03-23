@@ -148,6 +148,7 @@ type eventCheckerHelper struct {
 	Test              *eventchecker.TestChecker              `json:"test,omitempty"`
 	ProcessLoader     *eventchecker.ProcessLoaderChecker     `json:"loader,omitempty"`
 	RateLimitInfo     *eventchecker.RateLimitInfoChecker     `json:"rateLimitInfo,omitempty"`
+	ProcessThrottle   *eventchecker.ProcessThrottleChecker   `json:"throttle,omitempty"`
 }
 
 // EventChecker is a wrapper around the EventChecker interface to help unmarshaling
@@ -210,6 +211,12 @@ func (checker *EventChecker) UnmarshalJSON(b []byte) error {
 		}
 		eventChecker = helper.RateLimitInfo
 	}
+	if helper.ProcessThrottle != nil {
+		if eventChecker != nil {
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessThrottle, eventChecker)
+		}
+		eventChecker = helper.ProcessThrottle
+	}
 	checker.EventChecker = eventChecker
 	return nil
 }
@@ -234,6 +241,8 @@ func (checker EventChecker) MarshalJSON() ([]byte, error) {
 		helper.ProcessLoader = c
 	case *eventchecker.RateLimitInfoChecker:
 		helper.RateLimitInfo = c
+	case *eventchecker.ProcessThrottleChecker:
+		helper.ProcessThrottle = c
 	default:
 		return nil, fmt.Errorf("EventChecker: unknown checker type %T", c)
 	}
