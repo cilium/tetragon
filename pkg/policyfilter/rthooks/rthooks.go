@@ -5,6 +5,7 @@ package rthooks
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -92,15 +93,14 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
-	var containerFound bool
-	var container *corev1.ContainerStatus
 	namespace := pod.ObjectMeta.Namespace
-	pod, container, containerFound = arg.Watcher.FindContainer(containerID)
-	if !containerFound {
-		log.WithError(err).Warnf("failed to find container information %s, aborting hook.", containerID)
-	}
 
-	containerName := container.Name
+	containerName := arg.Req.ContainerName
+	if containerName == "" {
+		err := fmt.Errorf("failed to find container information %s, aborting hook", containerID)
+		log.Warn(err)
+		return err
+	}
 
 	log.WithFields(logrus.Fields{
 		"pod-id":         podID,
