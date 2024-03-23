@@ -5,12 +5,15 @@ package cgrouprate
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -180,11 +183,19 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 
 	if !isThrottled && events >= r.opts.Events {
 		setThrottle(1)
+		r.Notify(&tracing.MsgProcessThrottleUnix{
+			Type:   tetragon.ThrottleType_THROTTLE_START,
+			Cgroup: fmt.Sprintf("%s-%d", rate.name, rate.key.Id),
+		})
 		return true
 	}
 
 	if isThrottled && events < r.opts.Events {
 		setThrottle(0)
+		r.Notify(&tracing.MsgProcessThrottleUnix{
+			Type:   tetragon.ThrottleType_THROTTLE_STOP,
+			Cgroup: fmt.Sprintf("%s-%d", rate.name, rate.key.Id),
+		})
 		return isAlive()
 	}
 
