@@ -545,14 +545,10 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 }
 
 /* Gather current task cgroup name */
-static inline __attribute__((always_inline)) void
-__event_get_current_cgroup_name(struct cgroup *cgrp,
-				struct msg_execve_event *msg)
+static inline __attribute__((always_inline)) __u32
+__event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
 {
 	const char *name;
-	struct msg_process *process;
-
-	process = &msg->process;
 
 	/* TODO: check if we have Tetragon cgroup configuration and that the
 	 *     tracking cgroup ID is set. If so then query the bpf map for
@@ -566,9 +562,9 @@ __event_get_current_cgroup_name(struct cgroup *cgrp,
 
 	name = get_cgroup_name(cgrp);
 	if (name)
-		probe_read_str(msg->kube.docker_id, KN_NAME_LENGTH, name);
-	else
-		process->flags |= EVENT_ERROR_CGROUP_NAME;
+		probe_read_str(kube->docker_id, KN_NAME_LENGTH, name);
+
+	return name ? 0 : EVENT_ERROR_CGROUP_NAME;
 }
 
 /**
@@ -580,20 +576,17 @@ __event_get_current_cgroup_name(struct cgroup *cgrp,
  * collects cgroup information from current task. This allows to operate on
  * different machines and workflows.
  */
-static inline __attribute__((always_inline)) void
-__event_get_cgroup_info(struct task_struct *task,
-			struct msg_execve_event *msg)
+static inline __attribute__((always_inline)) __u32
+__event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 {
 	__u64 cgrpfs_magic = 0;
 	int zero = 0, subsys_idx = 0;
 	struct cgroup *cgrp;
-	struct msg_process *process;
 	struct tetragon_conf *conf;
-
-	process = &msg->process;
+	__u32 flags = 0;
 
 	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
-	memset(&msg->kube, 0, sizeof(struct msg_k8s));
+	memset(kube, 0, sizeof(struct msg_k8s));
 
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	if (conf) {
@@ -602,16 +595,17 @@ __event_get_cgroup_info(struct task_struct *task,
 		subsys_idx = conf->tg_cgrp_subsys_idx;
 	}
 
-	cgrp = get_task_cgroup(task, subsys_idx, &process->flags);
+	cgrp = get_task_cgroup(task, subsys_idx, &flags);
 	if (!cgrp)
-		return;
+		return 0;
 
 	/* Collect event cgroup ID */
-	msg->kube.cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
-	if (!msg->kube.cgrpid)
-		process->flags |= EVENT_ERROR_CGROUP_ID;
+	kube->cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
+	if (!kube->cgrpid)
+		flags |= EVENT_ERROR_CGROUP_ID;
 
 	/* Get the cgroup name of this event. */
-	__event_get_current_cgroup_name(cgrp, msg);
+	flags |= __event_get_current_cgroup_name(cgrp, kube);
+	return flags;
 }
 #endif
