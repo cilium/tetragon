@@ -10,6 +10,8 @@
 #include "bpf_task.h"
 #include "environ_conf.h"
 #include "bpf_process_event.h"
+#include "process.h"
+#include "bpf_rate.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 #ifdef VMLINUX_KERNEL_VERSION
@@ -72,7 +74,12 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	msg.nspid = curr->nspid;
 	msg.flags = curr->flags;
 
-	perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map, BPF_F_CURRENT_CPU, &msg, msg_size);
+	__event_get_cgroup_info(task, &msg.kube);
+
+	if (cgroup_rate(msg.kube.cgrpid, msg.ktime)) {
+		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
+					 BPF_F_CURRENT_CPU, &msg, msg_size);
+	}
 
 	return 0;
 }

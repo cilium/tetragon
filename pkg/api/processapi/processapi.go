@@ -122,6 +122,7 @@ type MsgExecveEventUnix struct {
 
 type MsgCloneEvent struct {
 	Common MsgCommon
+	Kube   MsgK8s
 	Parent MsgExecveKey
 	PID    uint32
 	TID    uint32

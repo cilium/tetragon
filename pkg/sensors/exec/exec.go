@@ -212,6 +212,7 @@ func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	cgrouprate.Check(&m.Kube)
 	msgUnix := &exec.MsgCloneEventUnix{MsgCloneEvent: m}
 	return []observer.Event{msgUnix}, nil
 }

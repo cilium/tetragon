@@ -203,11 +203,19 @@ struct msg_process {
 	char *args;
 }; // All fields aligned so no 'packed' attribute.
 
+struct msg_k8s {
+	__u32 net_ns;
+	__u32 cid;
+	__u64 cgrpid;
+	char docker_id[DOCKER_ID_LENGTH];
+}; // All fields aligned so no 'packed' attribute.
+
 /* msg_clone_event holds only the necessary fields to construct a new entry from
  * the parent after a clone() event.
  */
 struct msg_clone_event {
 	struct msg_common common;
+	struct msg_k8s kube;
 	struct msg_execve_key parent;
 	__u32 tgid;
 	__u32 tid;
@@ -261,13 +269,6 @@ struct msg_ns {
 		};
 		__u32 inum[ns_max_types];
 	};
-}; // All fields aligned so no 'packed' attribute.
-
-struct msg_k8s {
-	__u32 net_ns;
-	__u32 cid;
-	__u64 cgrpid;
-	char docker_id[DOCKER_ID_LENGTH];
 }; // All fields aligned so no 'packed' attribute.
 
 #define BINARY_PATH_MAX_LEN 256
