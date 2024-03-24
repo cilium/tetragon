@@ -229,7 +229,7 @@ event_execve(struct sched_execve_args *ctx)
 	get_current_subj_caps(&event->caps, task);
 	get_current_subj_creds_uids(&event->creds, task);
 	get_namespaces(&event->ns, task);
-	__event_get_cgroup_info(task, event);
+	p->flags |= __event_get_cgroup_info(task, &event->kube);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
