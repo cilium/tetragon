@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -181,6 +182,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	cgrouprate.Check(&m.Kube)
 	msgUnix := msgToExecveUnix(&m)
 	msgUnix.Unix.Process, empty, err = execParse(r)
 	if err != nil && empty {
