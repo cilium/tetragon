@@ -14,7 +14,7 @@ Tetragon is configured via [TracingPolicies]({{< ref "/docs/concepts/tracing-pol
 speaking, TracingPolicies define _what_ situations Tetragon should react to and _how_. The _what_
 can be, for example, specific system calls with specific argument values. The _how_ defines what
 action the Tetragon agent should perform when the specified situation occurs. The most common action
-is generating an event, but there are others (e.g., returning an error without executing a function,
+is generating an event, but there are others (e.g., returning an error without executing the function,
 or killing the corresponding process).
 
 Here we discuss how to  apply tracing policies only on a subset of pods running on the system via
@@ -61,7 +61,6 @@ minikube ssh -- sudo mount bpffs -t bpf /sys/fs/bpf
 helm install --namespace kube-system \
 	--set tetragonOperator.image.override=cilium/tetragon-operator:latest \
 	--set tetragon.image.override=cilium/tetragon:latest  \
-	--set tetragon.enablePolicyFilter="true" \
 	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
 	tetragon ./install/kubernetes/tetragon
 ```
