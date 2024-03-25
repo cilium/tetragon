@@ -12,6 +12,8 @@ on:
 jobs:
   links-checker:
     runs-on: ubuntu-latest
+    env:
+      PATCH_FILE: "additions.patch"
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -24,22 +26,17 @@ jobs:
           hugo-version: '0.120.4'
           extended: true
 
-      - name: Replace GitHub main links with local branch
+      - name: Retrieve additions and replace GitHub main links with local branch
         shell: bash
         run: |
           REPO=${{ github.event.pull_request.head.repo.full_name }}
           BRANCH=${{ github.event.pull_request.head.ref }}
 
-          find docs/content/ -type f -name "*.md" -exec sed -i "s#/cilium/tetragon/tree/main#/$REPO/tree/$BRANCH#g" {} \;
-          sed -i "s#/cilium/tetragon/tree/main#/$REPO/tree/$BRANCH#g" README.md
+          git diff -U0 origin/${{ github.base_ref }} -- docs/content README.md | { grep ^\+[^+] || true; } > $PATCH_FILE
 
-          find docs/content/ -type f -name "*.md" -exec sed -i "s#/cilium/tetragon/blob/main#/$REPO/blob/$BRANCH#g" {} \;
-          sed -i "s#/cilium/tetragon/blob/main#/$REPO/blob/$BRANCH#g" README.md
-
-          find docs/content/ -type f -name "*.md" -exec sed -i "s#/cilium/tetragon/main#/$REPO/$BRANCH#g" {} \;
-          sed -i "s#/cilium/tetragon/main#/$REPO/$BRANCH#g" README.md
-
-          git diff -U0
+          sed -i "s#/cilium/tetragon/tree/main#/$REPO/tree/$BRANCH#g" $PATCH_FILE
+          sed -i "s#/cilium/tetragon/blob/main#/$REPO/blob/$BRANCH#g" $PATCH_FILE
+          sed -i "s#/cilium/tetragon/main#/$REPO/$BRANCH#g" $PATCH_FILE
 
       - name: Serve the Hugo website
         working-directory: docs
@@ -55,11 +52,11 @@ jobs:
             set -e
             curl -s http://localhost:1313 > /dev/null
 
-      - name: Links Checker
+      - name: Check new links
         id: lychee
         uses: lycheeverse/lychee-action@c053181aa0c3d17606addfe97a9075a32723548a # v1.9.3
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
-          args: --config .github/lychee.toml --base http://localhost:1313 docs/content README.md
+          args: --config .github/lychee.toml --base http://localhost:1313 $PATCH_FILE
           fail: true
