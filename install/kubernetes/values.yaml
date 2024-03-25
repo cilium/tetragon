@@ -49,7 +49,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.0.1
+    tag: v1.0.3
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -105,8 +105,7 @@ tetragon:
   #   {"fields": "parent", "action": "EXCLUDE"}
   #   {"event_set": ["PROCESS_KPROBE"], "fields": "process", "action": "INCLUDE"}
   #
-  fieldFilters: |-
-
+  fieldFilters: ""
   # Filters to redact secrets from string fields in Tetragon events.  To perform
   # redactions, redaction filters define regular expressions in the `redact`
   # field. Any capture groups in these regular expressions are redacted and
@@ -135,8 +134,7 @@ tetragon:
   #
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
-  redactionFilters: |-
-
+  redactionFilters: ""
   # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
   # enableProcessCred enables Capabilities visibility in exec and kprobe events.
@@ -191,7 +189,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.0.1
+    tag: v1.0.3
     # tetragon-operator image-digest
     suffix: ""
     pullPolicy: IfNotPresent
