@@ -6,9 +6,10 @@
 
 #include "bpf_tracing.h"
 #include "data_msg.h"
+#include "types/probe_read_kernel_or_user.h"
 
 static inline __attribute__((always_inline)) long
-__do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
+__do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes, bool userspace)
 {
 	int err;
 
@@ -22,31 +23,33 @@ __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
 a:
 	// < 5.3 verifier still requires value masking like 'val &= xxx'
 #ifndef __LARGE_BPF_PROG
-	asm volatile("%[bytes] &= 0x3fff;\n"
-		     :
-		     : [bytes] "+r"(bytes)
-		     :);
+	err = probe_read_kernel_or_user_masked(&msg->arg[0], bytes, 0x3fff, (char *)uptr, userspace);
+#else
+	err = probe_read_kernel_or_user_masked(&msg->arg[0], bytes, 0x7fff, (char *)uptr, userspace);
 #endif
-	err = probe_read(&msg->arg[0], bytes, (char *)uptr);
 	if (err < 0)
 		return err;
 
 	msg->common.size = offsetof(struct msg_data, arg) + bytes;
-	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size);
+#ifndef __LARGE_BPF_PROG
+	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size & 0x7fff);
+#else
+	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size & 0xffff);
+#endif
 	return bytes;
 b:
 	return -1;
 }
 
 static inline __attribute__((always_inline)) long
-do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
+do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes, bool userspace)
 {
 	size_t rd_bytes = 0;
 	int err, i __maybe_unused;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 10; i++) {
-		err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes);
+		err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes, userspace);
 		if (err < 0)
 			return err;
 		rd_bytes += err;
@@ -54,12 +57,12 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 			return rd_bytes;
 	}
 #else
-#define BYTES_COPY                                                    \
-	err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes); \
-	if (err < 0)                                                  \
-		return err;                                           \
-	rd_bytes += err;                                              \
-	if (rd_bytes == bytes)                                        \
+#define BYTES_COPY                                                               \
+	err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes, userspace); \
+	if (err < 0)                                                             \
+		return err;                                                      \
+	rd_bytes += err;                                                         \
+	if (rd_bytes == bytes)                                                   \
 		return rd_bytes;
 
 #define BYTES_COPY_5 BYTES_COPY BYTES_COPY BYTES_COPY BYTES_COPY BYTES_COPY
@@ -75,7 +78,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 }
 
 static inline __attribute__((always_inline)) long
-__do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
+__do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done, bool userspace)
 {
 	size_t size, max = sizeof(msg->arg) - 1;
 	long ret;
@@ -88,7 +91,8 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 		     : [max] "+r"(max)
 		     :);
 
-	ret = probe_read_str(&msg->arg[0], max, (char *)arg);
+	ret = probe_read_kernel_or_user_str(&msg->arg[0], max, (char *)arg, userspace);
+
 	if (ret < 0)
 		return ret;
 
@@ -111,7 +115,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 
 static inline __attribute__((always_inline)) long
 do_str(void *ctx, struct msg_data *msg, unsigned long arg,
-       size_t bytes __maybe_unused)
+       size_t bytes __maybe_unused, bool userspace)
 {
 	size_t rd_bytes = 0;
 	bool done = false;
@@ -121,7 +125,7 @@ do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 #define __CNT 2
 #pragma unroll
 	for (i = 0; i < __CNT; i++) {
-		ret = __do_str(ctx, msg, arg + rd_bytes, &done);
+		ret = __do_str(ctx, msg, arg + rd_bytes, &done, userspace);
 		if (ret < 0)
 			return ret;
 		rd_bytes += ret;
@@ -137,7 +141,8 @@ do_str(void *ctx, struct msg_data *msg, unsigned long arg,
 static inline __attribute__((always_inline)) size_t data_event(
 	void *ctx, struct data_event_desc *desc, unsigned long uptr,
 	size_t size, struct bpf_map_def *heap,
-	long (*do_data_event)(void *, struct msg_data *, unsigned long, size_t))
+	long (*do_data_event)(void *, struct msg_data *, unsigned long, size_t, bool),
+	bool userspace)
 {
 	struct msg_data *msg;
 	int zero = 0, err;
@@ -165,7 +170,7 @@ static inline __attribute__((always_inline)) size_t data_event(
 	 * Leftover for data_event_str is always 0, because we don't know
 	 * how much more was there to copy.
 	 */
-	err = do_data_event(ctx, msg, uptr, size);
+	err = do_data_event(ctx, msg, uptr, size, userspace);
 
 	if (err < 0) {
 		desc->error = err;
@@ -194,9 +199,9 @@ static inline __attribute__((always_inline)) size_t data_event(
  */
 static inline __attribute__((always_inline)) size_t
 data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
-		 size_t size, struct bpf_map_def *heap)
+		 size_t size, struct bpf_map_def *heap, bool userspace)
 {
-	return data_event(ctx, desc, uptr, size, heap, do_bytes);
+	return data_event(ctx, desc, uptr, size, heap, do_bytes, userspace);
 }
 
 /**
@@ -211,9 +216,9 @@ data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
  */
 static inline __attribute__((always_inline)) size_t
 data_event_str(void *ctx, struct data_event_desc *desc, unsigned long uptr,
-	       struct bpf_map_def *heap)
+	       struct bpf_map_def *heap, bool userspace)
 {
-	return data_event(ctx, desc, uptr, -1, heap, do_str);
+	return data_event(ctx, desc, uptr, -1, heap, do_str, userspace);
 }
 
 #endif /* __DATA_EVENT_H__ */

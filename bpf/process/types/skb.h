@@ -5,6 +5,7 @@
 #define __SKB_H__
 
 #include "tuple.h"
+#include "probe_read_kernel_or_user.h"
 
 struct skb_type {
 	struct tuple_type tuple;
@@ -57,7 +58,7 @@ struct {
 
 static inline __attribute__((always_inline)) u8
 get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
-		 void *skb_head)
+		 void *skb_head, bool userspace)
 {
 	struct ipv6extension *e;
 	int zero = 0;
@@ -70,7 +71,7 @@ get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
 	e->ip_off = network_header_off;
 	e->curr = 255;
 	e->len = 0;
-	if (probe_read(&e->next, sizeof(e->next), _(&ip->nexthdr)) < 0)
+	if (probe_read_kernel_or_user(&e->next, sizeof(e->next), _(&ip->nexthdr), userspace) < 0)
 		return 0;
 
 // Maximum 7 valid extensions.
@@ -105,8 +106,8 @@ get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
 		}
 		e->curr = e->next;
 		// Read next header and current length.
-		if (probe_read(&e->next, 2,
-			       skb_head + e->ip_off) < 0) {
+		if (probe_read_kernel_or_user(&e->next, 2,
+					      skb_head + e->ip_off, userspace) < 0) {
 			return 0;
 		}
 	}
@@ -120,40 +121,40 @@ get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
  * only supports IPv4 with TCP/UDP.
  */
 static inline __attribute__((unused)) int
-set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
+set_event_from_skb(struct skb_type *event, struct sk_buff *skb, bool userspace)
 {
 	unsigned char *skb_head = 0;
 	u16 l3_off;
 	typeof(skb->transport_header) l4_off;
 	u8 protocol;
 
-	probe_read(&skb_head, sizeof(skb_head), _(&skb->head));
-	probe_read(&l3_off, sizeof(l3_off), _(&skb->network_header));
+	probe_read_kernel_or_user(&skb_head, sizeof(skb_head), _(&skb->head), userspace);
+	probe_read_kernel_or_user(&l3_off, sizeof(l3_off), _(&skb->network_header), userspace);
 
 	struct iphdr *ip = (struct iphdr *)(skb_head + l3_off);
 	u8 iphdr_byte0;
-	probe_read(&iphdr_byte0, 1, _(ip));
+	probe_read_kernel_or_user(&iphdr_byte0, 1, _(ip), userspace);
 
 	u8 ip_ver = iphdr_byte0 >> 4;
 	if (ip_ver == 4) { // IPv4
-		probe_read(&protocol, 1, _(&ip->protocol));
+		probe_read_kernel_or_user(&protocol, 1, _(&ip->protocol), userspace);
 		event->tuple.protocol = protocol;
 		event->tuple.family = AF_INET;
 		event->tuple.saddr[0] = 0;
 		event->tuple.saddr[1] = 0;
 		event->tuple.daddr[0] = 0;
 		event->tuple.daddr[1] = 0;
-		probe_read(&event->tuple.saddr, IPV4LEN, _(&ip->saddr));
-		probe_read(&event->tuple.daddr, IPV4LEN, _(&ip->daddr));
-		probe_read(&l4_off, sizeof(l4_off), _(&skb->transport_header));
+		probe_read_kernel_or_user(&event->tuple.saddr, IPV4LEN, _(&ip->saddr), userspace);
+		probe_read_kernel_or_user(&event->tuple.daddr, IPV4LEN, _(&ip->daddr), userspace);
+		probe_read_kernel_or_user(&l4_off, sizeof(l4_off), _(&skb->transport_header), userspace);
 	} else if (ip_ver == 6) {
 		struct ipv6hdr *ip6 = (struct ipv6hdr *)(skb_head + l3_off);
 
-		protocol = get_ip6_protocol(&l4_off, ip6, l3_off, skb_head);
+		protocol = get_ip6_protocol(&l4_off, ip6, l3_off, skb_head, userspace);
 		event->tuple.protocol = protocol;
 		event->tuple.family = AF_INET6;
-		probe_read(&event->tuple.saddr, IPV6LEN, _(&ip6->saddr));
-		probe_read(&event->tuple.daddr, IPV6LEN, _(&ip6->daddr));
+		probe_read_kernel_or_user(&event->tuple.saddr, IPV6LEN, _(&ip6->saddr), userspace);
+		probe_read_kernel_or_user(&event->tuple.daddr, IPV6LEN, _(&ip6->daddr), userspace);
 	} else {
 		// This is not IP, so we don't know how to parse further.
 		return -22;
@@ -162,17 +163,17 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 	if (protocol == IPPROTO_TCP) { // TCP
 		struct tcphdr *tcp =
 			(struct tcphdr *)(skb_head + l4_off);
-		probe_read(&event->tuple.sport, sizeof(event->tuple.sport),
-			   _(&tcp->source));
-		probe_read(&event->tuple.dport, sizeof(event->tuple.dport),
-			   _(&tcp->dest));
+		probe_read_kernel_or_user(&event->tuple.sport, sizeof(event->tuple.sport),
+					  _(&tcp->source), userspace);
+		probe_read_kernel_or_user(&event->tuple.dport, sizeof(event->tuple.dport),
+					  _(&tcp->dest), userspace);
 	} else if (protocol == IPPROTO_UDP) { // UDP
 		struct udphdr *udp =
 			(struct udphdr *)(skb_head + l4_off);
-		probe_read(&event->tuple.sport, sizeof(event->tuple.sport),
-			   _(&udp->source));
-		probe_read(&event->tuple.dport, sizeof(event->tuple.dport),
-			   _(&udp->dest));
+		probe_read_kernel_or_user(&event->tuple.sport, sizeof(event->tuple.sport),
+					  _(&udp->source), userspace);
+		probe_read_kernel_or_user(&event->tuple.dport, sizeof(event->tuple.dport),
+					  _(&udp->dest), userspace);
 	} else {
 		event->tuple.sport = 0;
 		event->tuple.dport = 0;
@@ -186,18 +187,18 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 		u64 offset;
 
 #define SKB_EXT_SEC_PATH 1 // TBD do this with BTF
-		probe_read(&ext, sizeof(ext), _(&skb->extensions));
+		probe_read_kernel_or_user(&ext, sizeof(ext), _(&skb->extensions), userspace);
 		if (ext) {
-			probe_read(&offset, sizeof(offset),
-				   _(&ext->offset[SKB_EXT_SEC_PATH]));
+			probe_read_kernel_or_user(&offset, sizeof(offset),
+						  _(&ext->offset[SKB_EXT_SEC_PATH]), userspace);
 			sp = (void *)ext + (offset << 3);
 
-			probe_read(&event->secpath_len,
-				   sizeof(event->secpath_len),
-				   _(&sp->len));
-			probe_read(&event->secpath_olen,
-				   sizeof(event->secpath_olen),
-				   _(&sp->olen));
+			probe_read_kernel_or_user(&event->secpath_len,
+						  sizeof(event->secpath_len),
+						  _(&sp->len), userspace);
+			probe_read_kernel_or_user(&event->secpath_olen,
+						  sizeof(event->secpath_olen),
+						  _(&sp->olen), userspace);
 		}
 	}
 	return 0;

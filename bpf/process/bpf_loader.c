@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "api.h"
+#include "types/probe_read_kernel_or_user.h"
 #include "bpf_tracing.h"
 #include "bpf_helpers.h"
 #include "bpf_event.h"
@@ -115,11 +116,11 @@ loader_kprobe(struct pt_regs *ctx)
 	if (!msg->buildid_size)
 		return 0;
 
-	probe_read(&msg->buildid[0], sizeof(msg->buildid),
-		   _(&mmap_event->build_id[0]));
+	probe_read_kernel(&msg->buildid[0], sizeof(msg->buildid),
+			  _(&mmap_event->build_id[0]));
 
 	path = BPF_CORE_READ(mmap_event, file_name);
-	len = probe_read_str(&msg->path, sizeof(msg->path), path);
+	len = probe_read_kernel_str(&msg->path, sizeof(msg->path), path);
 	msg->path_size = (__u32)len;
 
 	msg->pid = tgid;

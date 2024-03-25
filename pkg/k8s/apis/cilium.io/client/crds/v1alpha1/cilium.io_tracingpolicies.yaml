@@ -61,6 +61,11 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          isUserspaceData:
+                            description: Specifies if the argument is userspace data
+                              or not. This defaults to true for uprobes and syscalls,
+                              and false for non-syscall tracepoints and kprobes.
+                            type: boolean
                           label:
                             description: Label to output in the JSON
                             type: string
@@ -160,6 +165,11 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
+                        isUserspaceData:
+                          description: Specifies if the argument is userspace data
+                            or not. This defaults to true for uprobes and syscalls,
+                            and false for non-syscall tracepoints and kprobes.
+                          type: boolean
                         label:
                           description: Label to output in the JSON
                           type: string
@@ -810,6 +820,11 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          isUserspaceData:
+                            description: Specifies if the argument is userspace data
+                              or not. This defaults to true for uprobes and syscalls,
+                              and false for non-syscall tracepoints and kprobes.
+                            type: boolean
                           label:
                             description: Label to output in the JSON
                             type: string
@@ -1367,6 +1382,11 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          isUserspaceData:
+                            description: Specifies if the argument is userspace data
+                              or not. This defaults to true for uprobes and syscalls,
+                              and false for non-syscall tracepoints and kprobes.
+                            type: boolean
                           label:
                             description: Label to output in the JSON
                             type: string

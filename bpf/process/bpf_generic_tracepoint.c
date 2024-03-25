@@ -69,14 +69,14 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case u64_ty: {
 		u64 ret;
 
-		probe_read(&ret, sizeof(u64), src);
+		probe_read_kernel(&ret, sizeof(u64), src);
 		return ret;
 	}
 
 	case size_type: {
 		size_t ret;
 
-		probe_read(&ret, sizeof(size_t), src);
+		probe_read_kernel(&ret, sizeof(size_t), src);
 		return (unsigned long)ret;
 	}
 
@@ -84,7 +84,7 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case s32_ty: {
 		s32 ret;
 
-		probe_read(&ret, sizeof(u32), src);
+		probe_read_kernel(&ret, sizeof(u32), src);
 		return ret;
 	}
 
@@ -92,21 +92,21 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case u32_ty: {
 		u32 ret;
 
-		probe_read(&ret, sizeof(u32), src);
+		probe_read_kernel(&ret, sizeof(u32), src);
 		return ret;
 	}
 
 	case char_buf:
 	case string_type: {
 		char *buff;
-		probe_read(&buff, sizeof(char *), src);
+		probe_read_kernel(&buff, sizeof(char *), src);
 		return (unsigned long)buff;
 	}
 
 	case data_loc_type: {
 		u32 ret;
 
-		probe_read(&ret, sizeof(ret), src);
+		probe_read_kernel(&ret, sizeof(ret), src);
 		return ret;
 	}
 
@@ -117,14 +117,14 @@ static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
 	case skb_type: {
 		struct sk_buff *skb;
 
-		probe_read(&skb, sizeof(struct sk_buff *), src);
+		probe_read_kernel(&skb, sizeof(struct sk_buff *), src);
 		return (unsigned long)skb;
 	}
 
 	case sock_type: {
 		struct sock *sk;
 
-		probe_read(&sk, sizeof(struct sock *), src);
+		probe_read_kernel(&sk, sizeof(struct sock *), src);
 		return (unsigned long)sk;
 	}
 

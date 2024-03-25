@@ -51,7 +51,7 @@
  * Now we want to read this with call 45 aka probe_read_str as follows,
  * where 'kernel_struct_arg' is the kernel data struct we are reading.
  *
- *   probe_read_str(args[offset], size, kernel_struct_arg)
+ *   probe_read_kernel_str(args[offset], size, kernel_struct_arg)
  *
  * But we have a bit of a problem determining if 'size' is out of array
  * range. The math would be,
