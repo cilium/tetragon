@@ -50,8 +50,10 @@ type ProcessInternal struct {
 	// about the binary during the corresponding ProcessExec only.
 	apiBinaryProp *tetragon.BinaryProperties
 	// garbage collector metadata
-	color  int // Writes should happen only inside gc select channel
-	refcnt uint32
+	color         int // Writes should happen only inside gc select channel
+	refcnt        uint32
+	refcntOps     map[string]int
+	refcntOpsLock sync.Mutex
 }
 
 var (
@@ -115,6 +117,7 @@ func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 		apiBinaryProp: pi.apiBinaryProp,
 		namespaces:    pi.namespaces,
 		refcnt:        1, // Explicitly initialize refcnt to 1
+		refcntOps:     map[string]int{"process++": 1},
 	}
 }
 
@@ -218,12 +221,12 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	return nil
 }
 
-func (pi *ProcessInternal) RefDec() {
-	procCache.refDec(pi)
+func (pi *ProcessInternal) RefDec(reason string) {
+	procCache.refDec(pi, fmt.Sprintf("%s--", reason))
 }
 
-func (pi *ProcessInternal) RefInc() {
-	procCache.refInc(pi)
+func (pi *ProcessInternal) RefInc(reason string) {
+	procCache.refInc(pi, fmt.Sprintf("%s++", reason))
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
@@ -372,6 +375,7 @@ func initProcessInternalExec(
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
 		refcnt:        1,
+		refcntOps:     map[string]int{"process++": 1},
 	}
 }
 
@@ -485,7 +489,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 		return err
 	}
 
-	parent.RefInc()
+	parent.RefInc("parent")
 	procCache.add(proc)
 	ProcessCacheTotal.Inc()
 	return nil
@@ -499,4 +503,8 @@ func Get(execId string) (*ProcessInternal, error) {
 // that k8s has been initialized.
 func GetK8s() watcher.K8sResourceWatcher {
 	return k8s
+}
+
+func DumpProcessLRU(opts *tetragon.DumpProcessLRURequest) []*tetragon.ProcessInternal {
+	return procCache.dump(opts)
 }

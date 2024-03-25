@@ -36,6 +36,7 @@ const (
 	FineGuidanceSensors_GetStackTraceTree_FullMethodName    = "/tetragon.FineGuidanceSensors/GetStackTraceTree"
 	FineGuidanceSensors_GetVersion_FullMethodName           = "/tetragon.FineGuidanceSensors/GetVersion"
 	FineGuidanceSensors_RuntimeHook_FullMethodName          = "/tetragon.FineGuidanceSensors/RuntimeHook"
+	FineGuidanceSensors_DumpProcessLRU_FullMethodName       = "/tetragon.FineGuidanceSensors/DumpProcessLRU"
 )
 
 // FineGuidanceSensorsClient is the client API for FineGuidanceSensors service.
@@ -56,6 +57,7 @@ type FineGuidanceSensorsClient interface {
 	GetStackTraceTree(ctx context.Context, in *GetStackTraceTreeRequest, opts ...grpc.CallOption) (*GetStackTraceTreeResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error)
+	DumpProcessLRU(ctx context.Context, in *DumpProcessLRURequest, opts ...grpc.CallOption) (*DumpProcessLRUResponse, error)
 }
 
 type fineGuidanceSensorsClient struct {
@@ -215,6 +217,15 @@ func (c *fineGuidanceSensorsClient) RuntimeHook(ctx context.Context, in *Runtime
 	return out, nil
 }
 
+func (c *fineGuidanceSensorsClient) DumpProcessLRU(ctx context.Context, in *DumpProcessLRURequest, opts ...grpc.CallOption) (*DumpProcessLRUResponse, error) {
+	out := new(DumpProcessLRUResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_DumpProcessLRU_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FineGuidanceSensorsServer is the server API for FineGuidanceSensors service.
 // All implementations should embed UnimplementedFineGuidanceSensorsServer
 // for forward compatibility
@@ -233,6 +244,7 @@ type FineGuidanceSensorsServer interface {
 	GetStackTraceTree(context.Context, *GetStackTraceTreeRequest) (*GetStackTraceTreeResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error)
+	DumpProcessLRU(context.Context, *DumpProcessLRURequest) (*DumpProcessLRUResponse, error)
 }
 
 // UnimplementedFineGuidanceSensorsServer should be embedded to have forward compatible implementations.
@@ -280,6 +292,9 @@ func (UnimplementedFineGuidanceSensorsServer) GetVersion(context.Context, *GetVe
 }
 func (UnimplementedFineGuidanceSensorsServer) RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RuntimeHook not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) DumpProcessLRU(context.Context, *DumpProcessLRURequest) (*DumpProcessLRUResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DumpProcessLRU not implemented")
 }
 
 // UnsafeFineGuidanceSensorsServer may be embedded to opt out of forward compatibility for this service.
@@ -548,6 +563,24 @@ func _FineGuidanceSensors_RuntimeHook_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FineGuidanceSensors_DumpProcessLRU_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DumpProcessLRURequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).DumpProcessLRU(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FineGuidanceSensors_DumpProcessLRU_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).DumpProcessLRU(ctx, req.(*DumpProcessLRURequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FineGuidanceSensors_ServiceDesc is the grpc.ServiceDesc for FineGuidanceSensors service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -606,6 +639,10 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RuntimeHook",
 			Handler:    _FineGuidanceSensors_RuntimeHook_Handler,
+		},
+		{
+			MethodName: "DumpProcessLRU",
+			Handler:    _FineGuidanceSensors_DumpProcessLRU_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

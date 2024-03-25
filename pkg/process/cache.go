@@ -5,6 +5,7 @@ package process
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Cache struct {
@@ -28,6 +30,13 @@ const (
 	deleteReady
 	deleted
 )
+
+var colorStr = map[int]string{
+	inUse:         "inUse",
+	deletePending: "deletePending",
+	deleteReady:   "deleteReady",
+	deleted:       "deleted",
+}
 
 // garbage collection run interval
 const (
@@ -110,14 +119,28 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 	pc.deleteChan <- process
 }
 
-func (pc *Cache) refDec(p *ProcessInternal) {
+func (pc *Cache) refDec(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
+	if val, ok := p.refcntOps[reason]; ok {
+		p.refcntOps[reason] = val + 1
+	} else {
+		p.refcntOps[reason] = 1
+	}
+	p.refcntOpsLock.Unlock()
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
 }
 
-func (pc *Cache) refInc(p *ProcessInternal) {
+func (pc *Cache) refInc(p *ProcessInternal, reason string) {
+	p.refcntOpsLock.Lock()
+	if val, ok := p.refcntOps[reason]; ok {
+		p.refcntOps[reason] = val + 1
+	} else {
+		p.refcntOps[reason] = 1
+	}
+	p.refcntOpsLock.Unlock()
 	atomic.AddUint32(&p.refcnt, 1)
 }
 
@@ -172,4 +195,24 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 
 func (pc *Cache) len() int {
 	return pc.cache.Len()
+}
+
+func (pc *Cache) dump(opts *tetragon.DumpProcessLRURequest) []*tetragon.ProcessInternal {
+	var processes []*tetragon.ProcessInternal
+	for _, v := range pc.cache.Values() {
+		if opts.SkipZeroRefCnt && v.refcnt == 0 {
+			continue
+		}
+		var ops []string
+		for k, v := range v.refcntOps {
+			ops = append(ops, fmt.Sprintf("{%s:%d}", k, v))
+		}
+		processes = append(processes, &tetragon.ProcessInternal{
+			Process:   v.process,
+			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
+			RefcntOps: strings.Join(ops, "|"),
+			Color:     colorStr[v.color],
+		})
+	}
+	return processes
 }

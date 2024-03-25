@@ -3,6 +3,9 @@
 
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
 package tetragon;
 
 import "tetragon/tetragon.proto";
@@ -118,6 +121,20 @@ message GetVersionResponse{
 	string version = 1;
 }
 
+message ProcessInternal {
+	Process process = 1;
+	string color = 2;
+	google.protobuf.UInt32Value refcnt = 3;
+	string refcntOps = 4;
+}
+
+message DumpProcessLRURequest {
+	bool skipZeroRefCnt = 1;
+}
+message DumpProcessLRUResponse {
+	repeated ProcessInternal processes = 1;
+}
+
 service FineGuidanceSensors {
     rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
     rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
@@ -138,4 +155,6 @@ service FineGuidanceSensors {
     rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
 
     rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
+
+    rpc DumpProcessLRU(DumpProcessLRURequest) returns (DumpProcessLRUResponse) {}
 }

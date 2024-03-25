@@ -19,6 +19,7 @@ import (
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
@@ -376,4 +377,10 @@ func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookReque
 		logger.GetLogger().WithField("request", req).WithError(err).Warn("Server RuntimeHook failed")
 	}
 	return &tetragon.RuntimeHookResponse{}, nil
+}
+
+func (s *Server) DumpProcessLRU(_ context.Context, req *tetragon.DumpProcessLRURequest) (*tetragon.DumpProcessLRUResponse, error) {
+	return &tetragon.DumpProcessLRUResponse{
+		Processes: process.DumpProcessLRU(req),
+	}, nil
 }
