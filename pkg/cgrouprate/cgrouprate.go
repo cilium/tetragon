@@ -97,6 +97,13 @@ func NewCgroupRate(ctx context.Context,
 	go handle.process(ctx)
 }
 
+func NewTestCgroupRate(listener observer.Listener,
+	hash *program.Map,
+	opts *option.CgroupRate) {
+
+	handle = newCgroupRate(listener, hash, opts)
+}
+
 func (r *CgroupRate) notify(msg notify.Message) {
 	if err := r.listener.Notify(msg); err != nil {
 		r.log.WithError(err).Warn("failed to notify listener")
