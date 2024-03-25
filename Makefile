@@ -32,6 +32,9 @@ endif
 ifeq ($(UNAME_M),aarch64)
 	TARGET_ARCH ?= arm64
 endif
+ifeq ($(UNAME_M),arm64)
+	TARGET_ARCH ?= arm64
+endif
 TARGET_ARCH ?= amd64
 
 # Set GOARCH to TARGET_ARCH only if it's not set so that we can still use both
