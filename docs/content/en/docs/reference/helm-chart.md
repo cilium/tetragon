@@ -89,7 +89,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.hostProcPath | string | `"/proc"` | Location of the host proc filesystem in the runtime environment. If the runtime runs in the host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself does not run on the host. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v1.0.1"` |  |
+| tetragon.image.tag | string | `"v1.0.3"` |  |
 | tetragon.processCacheSize | int | `65536` |  |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
@@ -101,7 +101,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.redactionFilters | string | `""` |  |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v1.0.1"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","suffix":"","tag":"v1.0.3"}` | tetragon-operator image. |
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
 | tetragonOperator.skipCRDCreation | bool | `false` |  |
 | tolerations[0].operator | string | `"Exists"` |  |
