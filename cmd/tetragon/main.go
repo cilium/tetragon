@@ -274,7 +274,7 @@ func tetragonExecute() error {
 	}
 
 	// Get observer from configFile
-	obs := observer.NewObserver(option.Config.TracingPolicy)
+	obs := observer.NewObserver()
 	defer func() {
 		obs.PrintStats()
 	}()
