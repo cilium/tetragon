@@ -309,9 +309,6 @@ type Observer struct {
 	filterDrop uint64
 	/* Filters */
 	log logrus.FieldLogger
-
-	/* YAML Configuration File */
-	configFile string
 }
 
 // UpdateRuntimeConf() Gathers information about Tetragon runtime environment and
@@ -357,11 +354,10 @@ func (k *Observer) InitSensorManager(waitChan chan struct{}) error {
 	return SetSensorManager(mgr)
 }
 
-func NewObserver(configFile string) *Observer {
+func NewObserver() *Observer {
 	o := &Observer{
-		listeners:  make(map[Listener]struct{}),
-		log:        logger.GetLogger(),
-		configFile: configFile,
+		listeners: make(map[Listener]struct{}),
+		log:       logger.GetLogger(),
 	}
 	observerList = append(observerList, o)
 	return o

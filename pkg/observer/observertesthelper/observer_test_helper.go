@@ -206,9 +206,9 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	return options
 }
 
-func newDefaultObserver(oo *testObserverOptions) *observer.Observer {
+func newDefaultObserver() *observer.Observer {
 	option.Config.BpfDir = bpf.MapPrefixPath()
-	return observer.NewObserver(oo.config)
+	return observer.NewObserver()
 }
 
 func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
@@ -225,7 +225,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor
 		option.Config.ProcFS = procfs
 	}
 
-	obs := newDefaultObserver(&o.observer)
+	obs := newDefaultObserver()
 	if testing.Verbose() {
 		option.Config.Verbosity = 1
 	}
