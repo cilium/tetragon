@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
@@ -247,6 +248,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 		return nil, err
 	}
 
+	cgrouprate.Config(base.CgroupRateOptionsMap)
+
 	exportFname, err := testutils.GetExportFilename(tb)
 	if err != nil {
 		return nil, err
@@ -430,6 +433,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	tb.Cleanup(func() {
 		obs.RemoveListener(processManager)
 	})
+
+	rate := cgrouprate.NewCgroupRate(ctx, base.CgroupRateMap, &option.Config.CgroupRate)
+	if rate != nil {
+		rate.AddListener(processManager)
+	}
 	return nil
 }
 
