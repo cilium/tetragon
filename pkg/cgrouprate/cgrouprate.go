@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -128,6 +129,8 @@ func (r *CgroupRate) checkRates() {
 }
 
 func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
+	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.CheckRate)
+
 	values := make([]processapi.CgroupRateValue, bpf.GetNumPossibleCPUs())
 
 	if r.hash.MapHandle == nil {
@@ -137,6 +140,7 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 	hash := r.hash.MapHandle
 
 	if err := hash.Lookup(rate.key, &values); err != nil {
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.LookupFail)
 		return false
 	}
 
@@ -164,8 +168,7 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 			values[idx].Throttle = throttle
 		}
 		if err := hash.Update(rate.key, values, 0); err != nil {
-			r.log.WithError(err).Warnf("failed to update throttle for cgroup %d",
-				rate.key.Id)
+			cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.UpdateFail)
 		}
 	}
 
@@ -173,8 +176,7 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 		if events == 0 {
 			r.delFlag(rate.key)
 			if err := hash.Delete(rate.key); err != nil {
-				r.log.WithError(err).Warnf("failed to remove cgroup rate data for cgroup %d",
-					rate.key.Id)
+				cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.DeleteFail)
 			}
 			return false
 		}
@@ -187,6 +189,7 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 			Type:   tetragon.ThrottleType_THROTTLE_START,
 			Cgroup: fmt.Sprintf("%s-%d", rate.name, rate.key.Id),
 		})
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.ThrottleStart)
 		return true
 	}
 
@@ -196,6 +199,7 @@ func (r *CgroupRate) checkRate(rate *cgroupRate, last uint64) bool {
 			Type:   tetragon.ThrottleType_THROTTLE_STOP,
 			Cgroup: fmt.Sprintf("%s-%d", rate.name, rate.key.Id),
 		})
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.ThrottleStop)
 		return isAlive()
 	}
 
@@ -209,6 +213,7 @@ func (r *CgroupRate) addFlag(key processapi.CgroupRateKey) bool {
 	var ok bool
 	if _, ok = r.flag[key]; !ok {
 		r.flag[key] = true
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.FlagAdd)
 	}
 	return ok
 }
@@ -218,6 +223,7 @@ func (r *CgroupRate) delFlag(key processapi.CgroupRateKey) {
 	defer r.flagLock.Unlock()
 
 	delete(r.flag, key)
+	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.FlagDel)
 }
 
 func Check(kube *processapi.MsgK8s) {
