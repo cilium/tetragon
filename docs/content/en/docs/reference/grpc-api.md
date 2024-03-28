@@ -532,6 +532,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | policy_name | [string](#string) |  | Name of the Tracing Policy that created that kprobe. |
 | return_action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the return kprobe executed. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 
 <a name="tetragon-ProcessLoader"></a>
 
@@ -558,6 +559,7 @@ loader sensor event triggered for loaded binary/library
 | policy_name | [string](#string) |  | Name of the policy that created that tracepoint. |
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the tracepoint matched. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 
 <a name="tetragon-ProcessUprobe"></a>
 
@@ -572,6 +574,7 @@ loader sensor event triggered for loaded binary/library
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 
 <a name="tetragon-RuntimeHookRequest"></a>
 
