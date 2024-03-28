@@ -310,7 +310,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%d functions", len(multiIDs)),
+		fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
 		"kprobe.multi/generic_kprobe",
 		pinPath,
 		"generic_kprobe").
