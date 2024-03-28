@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
@@ -59,9 +60,10 @@ var (
 )
 
 type testObserverOptions struct {
-	crd    bool
-	config string
-	lib    string
+	crd        bool
+	config     string
+	lib        string
+	cgroupRate string
 }
 
 type testExporterOptions struct {
@@ -120,6 +122,12 @@ func withCiliumState(s *hubbleCilium.State) TestOption {
 func WithLib(lib string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.lib = lib
+	}
+}
+
+func WithCgroupRate(rate string) TestOption {
+	return func(o *TestOptions) {
+		o.observer.cgroupRate = rate
 	}
 }
 
@@ -225,6 +233,10 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 		option.Config.ProcFS = procfs
 	}
 
+	if o.observer.cgroupRate != "" {
+		option.Config.CgroupRate = option.ParseCgroupRate(o.observer.cgroupRate)
+	}
+
 	obs := newDefaultObserver()
 	if testing.Verbose() {
 		option.Config.Verbosity = 1
@@ -246,6 +258,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	if err := loadObserver(tb, ctx, initialSensor, tp); err != nil {
 		return nil, err
 	}
+
+	cgrouprate.Config(base.CgroupRateOptionsMap)
 
 	exportFname, err := testutils.GetExportFilename(tb)
 	if err != nil {
@@ -430,6 +444,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	tb.Cleanup(func() {
 		obs.RemoveListener(processManager)
 	})
+
+	rate := cgrouprate.NewCgroupRate(ctx, base.CgroupRateMap, &option.Config.CgroupRate)
+	if rate != nil {
+		rate.AddListener(processManager)
+	}
 	return nil
 }
 

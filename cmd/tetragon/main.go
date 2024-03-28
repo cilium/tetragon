@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/checkprocfs"
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -439,6 +440,12 @@ func tetragonExecute() error {
 	defer func() {
 		initialSensor.Unload()
 	}()
+
+	rate := cgrouprate.NewCgroupRate(ctx, base.CgroupRateMap, &option.Config.CgroupRate)
+	if rate != nil {
+		cgrouprate.Config(base.CgroupRateOptionsMap)
+		rate.AddListener(pm)
+	}
 
 	// now that the base sensor was loaded, we can start the sensor manager
 	close(sensorMgWait)

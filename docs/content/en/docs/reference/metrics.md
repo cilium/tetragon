@@ -55,7 +55,7 @@ The total of errors encountered while fetching process exec information from the
 | label | values |
 | ----- | ------ |
 | `error` | `nil_process_pid` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_parent_info_errors_total`
 
@@ -63,7 +63,7 @@ The total of times we failed to fetch cached parent info for a given event type.
 
 | label | values |
 | ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_pod_info_errors_total`
 
@@ -71,7 +71,7 @@ The total of times we failed to fetch cached pod info for a given event type.
 
 | label | values |
 | ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_process_info_errors_total`
 
@@ -79,7 +79,7 @@ The total of times we failed to fetch cached process info for a given event type
 
 | label | values |
 | ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_retries_total`
 
@@ -389,7 +389,7 @@ The total number of Tetragon events
 | `binary` | `example-binary` |
 | `namespace` | `example-namespace` |
 | `pod  ` | `example-pod` |
-| `type ` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
+| `type ` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 | `workload` | `example-workload` |
 
 ### `tetragon_policy_events_total`

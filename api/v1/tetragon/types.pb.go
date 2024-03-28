@@ -159,6 +159,14 @@ func (event *RateLimitInfo) Encapsulate() IsGetEventsResponse_Event {
 	}
 }
 
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessThrottle) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessThrottle{
+		ProcessThrottle: event,
+	}
+}
+
 // UnwrapGetEventsResponse gets the inner event type from a GetEventsResponse
 func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 	event := response.GetEvent()
@@ -182,6 +190,8 @@ func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 		return ev.ProcessLoader
 	case *GetEventsResponse_RateLimitInfo:
 		return ev.RateLimitInfo
+	case *GetEventsResponse_ProcessThrottle:
+		return ev.ProcessThrottle
 	}
 	return nil
 }

@@ -67,10 +67,12 @@
     - [Filter](#tetragon-Filter)
     - [GetEventsRequest](#tetragon-GetEventsRequest)
     - [GetEventsResponse](#tetragon-GetEventsResponse)
+    - [ProcessThrottle](#tetragon-ProcessThrottle)
     - [RateLimitInfo](#tetragon-RateLimitInfo)
   
     - [EventType](#tetragon-EventType)
     - [FieldFilterAction](#tetragon-FieldFilterAction)
+    - [ThrottleType](#tetragon-ThrottleType)
   
 - [tetragon/stack.proto](#tetragon_stack-proto)
     - [StackAddress](#tetragon-StackAddress)
@@ -1265,11 +1267,28 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  | ProcessTracepoint contains information about the pre-defined tracepoint and the process that invoked them. |
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
+| process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
 | aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+
+
+
+
+
+
+<a name="tetragon-ProcessThrottle"></a>
+
+### ProcessThrottle
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| type | [ThrottleType](#tetragon-ThrottleType) |  | Throttle type |
+| cgroup | [string](#string) |  | Cgroup name |
 
 
 
@@ -1310,6 +1329,7 @@ GetEventsResponse event oneof.
 | PROCESS_TRACEPOINT | 10 |  |
 | PROCESS_LOADER | 11 |  |
 | PROCESS_UPROBE | 12 |  |
+| PROCESS_THROTTLE | 13 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 
@@ -1324,6 +1344,19 @@ Determines the behavior of a field filter
 | ---- | ------ | ----------- |
 | INCLUDE | 0 |  |
 | EXCLUDE | 1 |  |
+
+
+
+<a name="tetragon-ThrottleType"></a>
+
+### ThrottleType
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| THROTTLE_UNKNOWN | 0 |  |
+| THROTTLE_START | 1 |  |
+| THROTTLE_STOP | 2 |  |
 
 
  
