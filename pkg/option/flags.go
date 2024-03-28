@@ -63,7 +63,8 @@ const (
 	KeyExportAllowlist = "export-allowlist"
 	KeyExportDenylist  = "export-denylist"
 
-	KeyFieldFilters = "field-filters"
+	KeyFieldFilters     = "field-filters"
+	KeyRedactionFilters = "redaction-filters"
 
 	KeyNetnsDir = "netns-dir"
 
@@ -237,6 +238,9 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	// Field filters options for export
 	flags.String(KeyFieldFilters, "", "Field filters for event exports")
+
+	// Redaction filters
+	flags.String(KeyRedactionFilters, "", "Redaction filters for events")
 
 	// Network namespace options
 	flags.String(KeyNetnsDir, "/var/run/docker/netns/", "Network namespace dir")

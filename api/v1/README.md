@@ -61,6 +61,7 @@
     - [GetEventsRequest](#tetragon-GetEventsRequest)
     - [GetEventsResponse](#tetragon-GetEventsResponse)
     - [RateLimitInfo](#tetragon-RateLimitInfo)
+    - [RedactionFilter](#tetragon-RedactionFilter)
   
     - [EventType](#tetragon-EventType)
     - [FieldFilterAction](#tetragon-FieldFilterAction)
@@ -1143,6 +1144,22 @@ AggregationOptions defines configuration options for aggregating events.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | number_of_dropped_process_events | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="tetragon-RedactionFilter"></a>
+
+### RedactionFilter
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| match | [Filter](#tetragon-Filter) | repeated | Match events that the redaction filter will apply to. |
+| redact | [string](#string) | repeated | Regular expressions to use for redaction. Strings inside capture groups are redacted. |
 
 
 
