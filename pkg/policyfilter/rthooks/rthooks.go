@@ -5,6 +5,7 @@ package rthooks
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -93,14 +94,23 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	namespace := pod.ObjectMeta.Namespace
+
+	containerName := arg.Req.ContainerName
+	if containerName == "" {
+		err := fmt.Errorf("failed to find container information %s, aborting hook", containerID)
+		log.Warn(err)
+		return err
+	}
+
 	log.WithFields(logrus.Fields{
-		"pod-id":       podID,
-		"namespace":    namespace,
-		"container-id": containerID,
-		"cgroup-id":    cgID,
+		"pod-id":         podID,
+		"namespace":      namespace,
+		"container-id":   containerID,
+		"cgroup-id":      cgID,
+		"container-name": containerName,
 	}).Trace("policyfilter: add pod container")
 	cgid := policyfilter.CgroupID(cgID)
-	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid); err != nil {
+	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid, containerName); err != nil {
 		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
 	}
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation)

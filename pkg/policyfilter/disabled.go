@@ -19,7 +19,8 @@ func DisabledState() State {
 type disabled struct {
 }
 
-func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector) error {
+func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
+	containerSelector *slimv1.LabelSelector) error {
 	return fmt.Errorf("policyfilter is disabled")
 }
 
@@ -30,11 +31,13 @@ func (s *disabled) DelPolicy(polID PolicyID) error {
 	return fmt.Errorf("policyfilter is disabled")
 }
 
-func (s *disabled) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgIDp CgroupID) error {
+func (s *disabled) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
+	containerID string, cgID CgroupID, containerName string) error {
 	return nil
 }
 
-func (s *disabled) UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error {
+func (s *disabled) UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
+	containerIDs []string, containerNames []string) error {
 	return nil
 }
 

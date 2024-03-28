@@ -88,7 +88,9 @@ type State interface {
 	// pods are matched with:
 	//  - namespace for namespaced pilicies (if namespace == "", then policy is not namespaced)
 	//  - label selector
-	AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector) error
+	//  - container field selector
+	AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
+		containerSelector *slimv1.LabelSelector) error
 
 	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error
@@ -96,11 +98,13 @@ type State interface {
 	// AddPodContainer informs policyfilter about a new container and its cgroup id in a pod.
 	// The pod might or might not have been encountered before.
 	// This method is intended to update policyfilter state from container hooks
-	AddPodContainer(podID PodID, namespace string, podLabels labels.Labels, containerID string, cgID CgroupID) error
+	AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
+		containerID string, cgID CgroupID, containerName string) error
 
 	// UpdatePod updates the pod state for a pod, where containerIDs contains all the container ids for the given pod.
 	// This method is intended to be used from k8s watchers (where no cgroup information is available)
-	UpdatePod(podID PodID, namespace string, podLabels labels.Labels, containerIDs []string) error
+	UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
+		containerIDs []string, containerNames []string) error
 
 	// DelPodContainer informs policyfilter that a container was deleted from a pod
 	DelPodContainer(podID PodID, containerID string) error
