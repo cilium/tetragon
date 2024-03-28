@@ -133,14 +133,14 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		{
 			Index: 0,
 			Name:  "config_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		},
 		{
 			Index: 0,
 			Name:  "filter_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		},
@@ -206,9 +206,10 @@ func createGenericUprobeSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:  name,
-		Progs: progs,
-		Maps:  maps,
+		Name:   name,
+		Progs:  progs,
+		Maps:   maps,
+		Policy: policyName,
 	}, nil
 }
 
@@ -331,9 +332,6 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 
-	pinPath := uprobeEntry.pinPathPrefix
-	pinProg := sensors.PathJoin(pinPath, "prog")
-
 	attachData := &program.UprobeAttachData{
 		Path:   uprobeEntry.path,
 		Symbol: uprobeEntry.symbol,
@@ -343,17 +341,17 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		path.Join(option.Config.HubbleLib, loadProgName),
 		"",
 		"uprobe/generic_uprobe",
-		pinProg,
+		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetAttachData(attachData).
 		SetLoaderData(uprobeEntry)
 
 	progs = append(progs, load)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-	tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	configMap := program.MapBuilderType("config_map", load, program.MapTypeProgram)
+	tailCalls := program.MapBuilderType("uprobe_calls", load, program.MapTypeProgram)
+	filterMap := program.MapBuilderType("filter_map", load, program.MapTypeProgram)
+	selMatchBinariesMap := program.MapBuilderType("tg_mb_sel_opts", load, program.MapTypeProgram)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 	return progs, maps
 }

@@ -385,8 +385,7 @@ func createGenericTracepointSensor(
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
-		pinPath := tp.pinPathPrefix
-		pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s:%s_prog", tp.Info.Subsys, tp.Info.Event))
+		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
 		prog0 := program.Builder(
 			path.Join(option.Config.HubbleLib, progName),
@@ -404,16 +403,16 @@ func createGenericTracepointSensor(
 		prog0.LoaderData = tp.tableIdx
 		progs = append(progs, prog0)
 
-		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(pinPath, "fdinstall_map"), prog0)
+		fdinstall := program.MapBuilderType("fdinstall_map", prog0, program.MapTypeSensor)
 		maps = append(maps, fdinstall)
 
-		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
+		tailCalls := program.MapBuilderType("tp_calls", prog0, program.MapTypeProgram)
 		maps = append(maps, tailCalls)
 
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), prog0)
+		filterMap := program.MapBuilderType("filter_map", prog0, program.MapTypeProgram)
 		maps = append(maps, filterMap)
 
-		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), prog0)
+		argFilterMaps := program.MapBuilderType("argfilter_maps", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -422,7 +421,7 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, argFilterMaps)
 
-		addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), prog0)
+		addr4FilterMaps := program.MapBuilderType("addr4lpm_maps", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -431,7 +430,7 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, addr4FilterMaps)
 
-		addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), prog0)
+		addr6FilterMaps := program.MapBuilderType("addr6lpm_maps", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -445,8 +444,8 @@ func createGenericTracepointSensor(
 			numSubMaps = selectors.StringMapsNumSubMapsSmall
 		}
 		for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
-			stringFilterMap := program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
-				sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), prog0)
+			stringFilterMap := program.MapBuilderType(fmt.Sprintf("string_maps_%d", string_map_index),
+				prog0, program.MapTypeProgram)
 			if !kernels.MinKernelVersion("5.9") {
 				// Versions before 5.9 do not allow inner maps to have different sizes.
 				// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -456,7 +455,7 @@ func createGenericTracepointSensor(
 			maps = append(maps, stringFilterMap)
 		}
 
-		stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), prog0)
+		stringPrefixFilterMaps := program.MapBuilderType("string_prefix_maps", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -465,7 +464,7 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, stringPrefixFilterMaps)
 
-		stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), prog0)
+		stringPostfixFilterMaps := program.MapBuilderType("string_postfix_maps", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -474,7 +473,7 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, stringPostfixFilterMaps)
 
-		matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), prog0)
+		matchBinariesPaths := program.MapBuilderType("tg_mb_paths", prog0, program.MapTypeProgram)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -482,17 +481,18 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, matchBinariesPaths)
 
-		enforcerDataMap := enforcerMap(policyName, prog0)
+		enforcerDataMap := enforcerMap(prog0)
 		maps = append(maps, enforcerDataMap)
 
-		selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), prog0)
+		selMatchBinariesMap := program.MapBuilderType("tg_mb_sel_opts", prog0, program.MapTypeProgram)
 		maps = append(maps, selMatchBinariesMap)
 	}
 
 	return &sensors.Sensor{
-		Name:  name,
-		Progs: progs,
-		Maps:  maps,
+		Name:   name,
+		Progs:  progs,
+		Maps:   maps,
+		Policy: policyName,
 	}, nil
 }
 
@@ -594,7 +594,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, verbose i
 		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
-	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, tp.pinPathPrefix, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, 0)...)
 
 	config, err := tp.EventConfig()
 	if err != nil {
@@ -605,7 +605,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, verbose i
 	cfg := &program.MapLoad{
 		Index: 0,
 		Name:  "config_map",
-		Load: func(m *ebpf.Map, index uint32) error {
+		Load: func(m *ebpf.Map, _ string, index uint32) error {
 			return m.Update(index, binBuf.Bytes()[:], ebpf.UpdateAny)
 		},
 	}

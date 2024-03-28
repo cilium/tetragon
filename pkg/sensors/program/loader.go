@@ -31,7 +31,7 @@ type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebp
 type OpenFunc func(*ebpf.CollectionSpec) error
 
 type customInstall struct {
-	mapName   string
+	m         *Map
 	secPrefix string
 }
 
@@ -432,9 +432,9 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
-	for mName, mPath := range load.PinMap {
+	for mName, m := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			ci = &customInstall{mPath, "tracepoint"}
+			ci = &customInstall{m, "tracepoint"}
 			break
 		}
 	}
@@ -454,9 +454,9 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 
 func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
-	for mName, mPath := range load.PinMap {
+	for mName, m := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			ci = &customInstall{m, "kprobe"}
 			break
 		}
 	}
@@ -499,9 +499,9 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ve
 
 func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
-	for mName, mPath := range load.PinMap {
+	for mName, m := range load.PinMap {
 		if mName == "uprobe_calls" {
-			ci = &customInstall{mPath, "uprobe"}
+			ci = &customInstall{m, "uprobe"}
 			break
 		}
 	}
@@ -514,9 +514,9 @@ func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 
 func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	var ci *customInstall
-	for mName, mPath := range load.PinMap {
+	for mName, m := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			ci = &customInstall{m, "kprobe"}
 			break
 		}
 	}
@@ -621,8 +621,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		secToProgName[prog.SectionName] = name
 	}
 
-	install := func(mapName string, secPrefix string) error {
-		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, mapName), nil)
+	install := func(pinPath string, secPrefix string) error {
+		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, pinPath), nil)
 		if err != nil {
 			return nil
 		}
@@ -634,7 +634,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 				if prog, ok := coll.Programs[progName]; ok {
 					err := tailCallsMap.Update(uint32(i), uint32(prog.FD()), ebpf.UpdateAny)
 					if err != nil {
-						return fmt.Errorf("update of tail-call map '%s' failed: %w", mapName, err)
+						return fmt.Errorf("update of tail-call map '%s' failed: %w", pinPath, err)
 					}
 				}
 			}
@@ -652,7 +652,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return err
 	}
 	if ci != nil {
-		if err := install(ci.mapName, ci.secPrefix); err != nil {
+		if err := install(ci.m.PinPath, ci.secPrefix); err != nil {
 			return err
 		}
 	}
@@ -731,8 +731,9 @@ func doLoadProgram(
 		var m *ebpf.Map
 		var err error
 		var mapPath string
-		if pinName, ok := load.PinMap[name]; ok {
-			mapPath = filepath.Join(bpfDir, pinName)
+
+		if pm, ok := load.PinMap[name]; ok {
+			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
@@ -797,8 +798,12 @@ func doLoadProgram(
 	}
 
 	for _, mapLoad := range load.MapLoad {
+		pinPath := ""
+		if pm, ok := load.PinMap[mapLoad.Name]; ok {
+			pinPath = pm.PinPath
+		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
+			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
 				return nil, err
 			}
 		} else {
@@ -811,7 +816,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath)
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
 		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)

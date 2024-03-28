@@ -51,7 +51,7 @@ var (
 	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
 	/* Networking and Process Monitoring maps */
 	ExecveMap          = program.MapBuilder("execve_map", Execve)
-	ExecveTailCallsMap = program.MapBuilderPin("execve_calls", "execve_calls", Execve)
+	ExecveTailCallsMap = program.MapBuilderType("execve_calls", Execve, program.MapTypeProgram)
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
 

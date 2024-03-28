@@ -13,26 +13,41 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type MapType int
+
+const (
+	MapTypeGlobal MapType = iota
+	MapTypePolicy
+	MapTypeSensor
+	MapTypeProgram
+)
+
 // Map represents BPF maps.
 type Map struct {
 	Name      string
-	PinName   string
+	PinPath   string
 	Prog      *Program
 	PinState  State
 	MapHandle *ebpf.Map
+	Type      MapType
+}
+
+func mapBuilder(name string, ld *Program, ty MapType) *Map {
+	m := &Map{name, "", ld, Idle(), nil, ty}
+	ld.PinMap[name] = m
+	return m
 }
 
 func MapBuilder(name string, ld *Program) *Map {
-	return &Map{name, name, ld, Idle(), nil}
+	return mapBuilder(name, ld, MapTypeGlobal)
 }
 
-func MapBuilderPin(name, pin string, ld *Program) *Map {
-	ld.PinMap[name] = pin
-	return &Map{name, pin, ld, Idle(), nil}
+func MapBuilderType(name string, ld *Program, ty MapType) *Map {
+	return mapBuilder(name, ld, ty)
 }
 
 func (m *Map) Unload() error {
-	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinName)
+	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.Name)
 	if !m.PinState.IsLoaded() {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
