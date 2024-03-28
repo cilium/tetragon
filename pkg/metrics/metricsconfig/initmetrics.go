@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/metrics/policystatemetrics"
+	"github.com/cilium/tetragon/pkg/metrics/probemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ratelimitmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/ringbufqueuemetrics"
@@ -55,6 +56,7 @@ func initAllHealthMetrics(registry *prometheus.Registry) {
 		observer.NewBPFCollector(),
 	))
 	registry.MustRegister(eventmetrics.NewBPFCollector())
+	registry.MustRegister(probemetrics.NewBPFCollector())
 }
 
 func InitHealthMetricsForDocs(registry *prometheus.Registry) {

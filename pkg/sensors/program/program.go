@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/link"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -30,6 +31,7 @@ func Builder(
 		PinMap:             make(map[string]string),
 		MaxEntriesMap:      make(map[string]uint32),
 		MaxEntriesInnerMap: make(map[string]uint32),
+		Link:               nil,
 	}
 }
 
@@ -102,6 +104,8 @@ type Program struct {
 
 	MaxEntriesMap      map[string]uint32
 	MaxEntriesInnerMap map[string]uint32
+
+	Link link.Link
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
