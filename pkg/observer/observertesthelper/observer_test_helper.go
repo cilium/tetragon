@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/encoder"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -68,6 +69,7 @@ type testExporterOptions struct {
 	ciliumState *hubbleCilium.State
 	allowList   []*tetragon.Filter
 	denyList    []*tetragon.Filter
+	redactions  []*tetragon.RedactionFilter
 }
 
 type TestOptions struct {
@@ -95,6 +97,12 @@ func WithAllowList(allowList *tetragon.Filter) TestOption {
 func WithDenyList(denyList *tetragon.Filter) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.denyList = append(o.exporter.denyList, denyList)
+	}
+}
+
+func WithRedactions(redactions *tetragon.RedactionFilter) TestOption {
+	return func(o *TestOptions) {
+		o.exporter.redactions = append(o.exporter.redactions, redactions)
 	}
 }
 
@@ -402,6 +410,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	// use an empty hooks runner
 	hookRunner := (&rthooks.Runner{}).WithWatcher(watcher)
 
+	redactions, err := fieldfilters.RedactionFilterListFromProto(opts.redactions)
+	if err != nil {
+		return err
+	}
+
 	// For testing we disable the eventcache and cilium cache by default. If we
 	// enable these then every tests would need to wait for the 1.5 mimutes needed
 	// to bounce events through the cache waiting for Cilium to reply with endpoints
@@ -410,7 +423,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
 	option.Config.EnableCilium = false
-	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner, redactions)
 	if err != nil {
 		return err
 	}
