@@ -62,6 +62,12 @@ func GetObjNamespaceName(obj NamespaceNameGetter) string {
 	return ns + "/" + obj.GetName()
 }
 
+// EnvoyConfigConfiguration is the required configuration for GetServiceAndEndpointListOptionsModifier
+type EnvoyConfigConfiguration interface {
+	// K8sEnvoyConfigEnabled returns true if CiliumEnvoyConfig feature is enabled in Cilium
+	K8sEnvoyConfigEnabled() bool
+}
+
 // IngressConfiguration is the required configuration for GetServiceAndEndpointListOptionsModifier
 type IngressConfiguration interface {
 	// K8sIngressControllerEnabled returns true if ingress controller feature is enabled in Cilium
@@ -216,13 +222,23 @@ func GetClusterIPByFamily(ipFamily slim_corev1.IPFamily, service *slim_corev1.Se
 	return ""
 }
 
-// SanitizePodLabels makes sure that no important pod labels were overridden manually
-func SanitizePodLabels(labels map[string]string, namespace *slim_corev1.Namespace, serviceAccount, clusterName string) map[string]string {
-	sanitizedLabels := make(map[string]string)
-
+// filterPodLabels returns a copy of the given labels map, without the labels owned by Cilium.
+func filterPodLabels(labels map[string]string) map[string]string {
+	res := map[string]string{}
 	for k, v := range labels {
-		sanitizedLabels[k] = v
+		if strings.HasPrefix(k, k8sconst.LabelPrefix) {
+			continue
+		}
+		res[k] = v
 	}
+	return res
+}
+
+// SanitizePodLabels makes sure that no important pod labels were overridden manually on k8s pod
+// object creation.
+func SanitizePodLabels(podLabels map[string]string, namespace *slim_corev1.Namespace, serviceAccount, clusterName string) map[string]string {
+	sanitizedLabels := filterPodLabels(podLabels)
+
 	// Sanitize namespace labels
 	for k, v := range namespace.GetLabels() {
 		sanitizedLabels[joinPath(k8sconst.PodNamespaceMetaLabels, k)] = v
@@ -241,25 +257,17 @@ func SanitizePodLabels(labels map[string]string, namespace *slim_corev1.Namespac
 	return sanitizedLabels
 }
 
-// StripPodSpecialLabels strips labels that are not supposed to be coming from a k8s pod object
+// StripPodSpecialLabels strips labels that are not supposed to be coming from a k8s pod object update.
 func StripPodSpecialLabels(labels map[string]string) map[string]string {
 	sanitizedLabels := make(map[string]string)
-	forbiddenKeys := map[string]struct{}{
-		k8sconst.PodNamespaceMetaLabels:    {},
-		k8sconst.PolicyLabelServiceAccount: {},
-		k8sconst.PolicyLabelCluster:        {},
-		k8sconst.PodNamespaceLabel:         {},
-	}
-	for k, v := range labels {
+	for k, v := range filterPodLabels(labels) {
 		// If the key contains the prefix for namespace labels then we will
 		// ignore it.
 		if strings.HasPrefix(k, k8sconst.PodNamespaceMetaLabels) {
 			continue
 		}
-		// If the key belongs to any of the forbiddenKeys then we will ignore
-		// it.
-		_, ok := forbiddenKeys[k]
-		if ok {
+		// Also ignore it if the key is a kubernetes namespace label.
+		if k == k8sconst.PodNamespaceLabel {
 			continue
 		}
 		sanitizedLabels[k] = v

@@ -5,7 +5,7 @@ go 1.22.0
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.15.2
+	github.com/cilium/cilium v1.15.3
 	github.com/cilium/ebpf v0.13.2
 	github.com/cilium/little-vm-helper v0.0.16
 	github.com/cilium/lumberjack/v2 v2.3.0
@@ -52,10 +52,10 @@ require (
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
 	k8s.io/code-generator v0.29.3
-	k8s.io/klog/v2 v2.110.1
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
+	k8s.io/klog/v2 v2.120.0
+	k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910
 	sigs.k8s.io/controller-runtime v0.16.5
-	sigs.k8s.io/controller-tools v0.13.0
+	sigs.k8s.io/controller-tools v0.14.0
 	sigs.k8s.io/e2e-framework v0.2.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -85,7 +85,7 @@ require (
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.0.4 // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.7.0 // indirect
@@ -96,12 +96,12 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
-	github.com/go-openapi/jsonpointer v0.20.0 // indirect
-	github.com/go-openapi/jsonreference v0.20.2 // indirect
+	github.com/go-openapi/jsonpointer v0.20.2 // indirect
+	github.com/go-openapi/jsonreference v0.20.4 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/runtime v0.26.2 // indirect
 	github.com/go-openapi/spec v0.20.11 // indirect
-	github.com/go-openapi/swag v0.22.4 // indirect
+	github.com/go-openapi/swag v0.22.7 // indirect
 	github.com/go-openapi/validate v0.22.3 // indirect
 	github.com/gobuffalo/flect v1.0.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5 // indirect
 	github.com/hashicorp/consul/api v1.26.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -200,7 +200,7 @@ require (
 	k8s.io/apiserver v0.29.3 // indirect
 	k8s.io/component-base v0.29.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+	k8s.io/utils v0.0.0-20240102154912-e7106e64919e // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
