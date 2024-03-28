@@ -53,6 +53,13 @@ message Filter {
     repeated string labels = 9;
 }
 
+message RedactionFilter {
+    // Match events that the redaction filter will apply to.
+    repeated Filter match = 1;
+    // Regular expressions to use for redaction. Strings inside capture groups are redacted.
+    repeated string redact = 2;
+}
+
 // Determins the behaviour of a field filter
 enum FieldFilterAction {
     INCLUDE = 0;
