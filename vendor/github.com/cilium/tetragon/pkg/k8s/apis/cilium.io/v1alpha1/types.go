@@ -130,6 +130,9 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// IDs for capabilities changes
 	MatchCapabilityChanges []CapabilitiesSelector `json:"matchCapabilityChanges,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of login uid filters.
+	MatchLoginUids []LoginUidSelector `json:"matchLoginUids,omitempty"`
 }
 
 type NamespaceChangesSelector struct {
@@ -166,6 +169,14 @@ type CapabilitiesSelector struct {
 	IsNamespaceCapability bool `json:"isNamespaceCapability"`
 	// Capabilities to match.
 	Values []string `json:"values"`
+}
+
+type LoginUidSelector struct {
+	// +kubebuilder:validation:Enum=Equal;NotEqual;GreaterThan;LessThan
+	// LoginUid selector operator.
+	Operator string `json:"operator"`
+	// LoginUid to match.
+	Values []uint32 `json:"values"`
 }
 
 type PIDSelector struct {

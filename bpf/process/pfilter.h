@@ -136,6 +136,52 @@ process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 }
 
 static inline __attribute__((always_inline)) int
+__process_filter_loginuid(__u32 ty, __u32 sel, struct execve_map_value *enter)
+{
+	__u32 auid;
+
+	auid = enter->key.auid;
+
+	switch (ty) {
+	case op_filter_lt:
+		if (sel > auid)
+			return PFILTER_ACCEPT;
+		break;
+	case op_filter_gt:
+		if (sel < auid)
+			return PFILTER_ACCEPT;
+		break;
+	case op_filter_eq:
+		if (sel == auid)
+			return PFILTER_ACCEPT;
+		break;
+	case op_filter_neq:
+		if (sel != auid)
+			return PFILTER_ACCEPT;
+		break;
+	default:
+		return PFILTER_REJECT;
+	}
+	return PFILTER_REJECT;
+}
+
+static inline __attribute__((always_inline)) int
+process_filter_loginuid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
+			struct execve_map_value *enter, struct msg_ns *n,
+			struct msg_capabilities *c)
+{
+	__u32 sel;
+	__u32 o = off;
+
+	o = o / 4;
+	asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
+		     :);
+	sel = f[o];
+
+	return __process_filter_loginuid(ty, sel, enter);
+}
+
+static inline __attribute__((always_inline)) int
 process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 			 struct execve_map_value *enter, struct msg_ns *n,
 			 struct msg_capabilities *c)
@@ -310,7 +356,7 @@ selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
 	int res1 = 0, res2 = 0, res3 = 0, res4 = 0;
 
 	/* For NotIn op we AND results so default to 1 so we fallthru open */
-	if (ty == op_filter_notin)
+	if (ty == op_filter_notin || ty == op_filter_neq)
 		res1 = res2 = res3 = res4 = 1;
 
 	/* Unrolling this loop was problematic for clang so rather
@@ -342,7 +388,7 @@ one:
 	res1 = process_filter(0, index, f, ty, flags, enter, n, c);
 	index = next_pid_value(index, f, ty);
 
-	if (ty == op_filter_notin)
+	if (ty == op_filter_notin || ty == op_filter_neq)
 		return res1 & res2 & res3 & res4;
 	else
 		return res1 | res2 | res3 | res4;
@@ -374,12 +420,60 @@ struct nc_filter {
 	u32 value; /* contains all namespaces to monitor (i.e. bit 0 is for ns_uts, bit 1 for ns_ipc etc.) */
 } __attribute__((packed));
 
+struct loginuid_filter {
+	u32 op;
+	u32 len; /* number of values */
+	u32 val[]; /* values */
+} __attribute__((packed));
+
 #define VALUES_MASK 0x1f /* max 4 values with 4 bytes each | 0x1f == 31 */
 
 /* If you update the value of NUM_NS_FILTERS_SMALL below you should
  * also update parseMatchNamespaces() in kernel.go
  */
 #define NUM_NS_FILTERS_SMALL 4
+
+static inline __attribute__((always_inline)) int
+__process_filter_loginuids(__u32 *f, __u32 *index, struct execve_map_value *enter)
+{
+	int res = PFILTER_ACCEPT;
+	struct loginuid_filter *loginuid;
+
+	loginuid = (struct loginuid_filter *)((u64)f + (*index & INDEX_MASK));
+	*index += sizeof(struct loginuid_filter); /* 4: op */
+	res = selector_match(f, *index, loginuid->op, 0, loginuid->len,
+			     enter, NULL, NULL, &process_filter_loginuid);
+
+	*index += ((loginuid->len * sizeof(loginuid->val[0])) & VALUES_MASK);
+
+	if (res == PFILTER_REJECT)
+		return res;
+
+	return res;
+}
+
+static inline __attribute__((always_inline)) int
+process_filter_loginuids(__u32 *f, __u32 index, struct execve_map_value *enter, int len)
+{
+	int i = 0;
+	int loginuid_len = 0;
+	int res = PFILTER_ACCEPT;
+	struct loginuid_filter *loginuid;
+
+#pragma unroll
+	for (i = 0; i < 4; i++) {
+		loginuid = (struct loginuid_filter *)((u64)f + (index & INDEX_MASK));
+		index += sizeof(struct loginuid_filter); /* 4: op */
+		res = selector_match(f, index, loginuid->op, 0, loginuid->len, enter, NULL, NULL, &process_filter_loginuid);
+
+		index += ((loginuid->len * sizeof(loginuid->val[0])) & VALUES_MASK);
+		loginuid_len += sizeof(struct loginuid_filter) + ((loginuid->len * sizeof(loginuid->val[0])) & VALUES_MASK);
+
+		if (res == PFILTER_REJECT || loginuid_len >= len)
+			return res;
+	}
+	return res;
+}
 
 static inline __attribute__((always_inline)) int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
@@ -408,6 +502,10 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	/* selector section offset by reading the relative offset in the array */
 	index += *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index &= INDEX_MASK;
+
+	len = *(__u32 *)((__u64)f +
+			 (index &
+			  INDEX_MASK));
 	index += 4; /* skip selector size field */
 
 	/* matchPid */
@@ -513,6 +611,22 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		return res;
 #endif
 
+	/* matchLoginuids */
+	len = *(__u32 *)((__u64)f +
+			 (index &
+			  INDEX_MASK)); /* (sizeof(LoginUid1) + sizeof(LoginUid2) + ... + 4) */
+	index += 4; /* 4: LoginUid1 header */
+	len -= 4;
+
+	if (len > 0) {
+		res = process_filter_loginuids(f, index, enter, len);
+		if (res == PFILTER_REJECT)
+			return res;
+
+		index += (len & VALUES_MASK);
+	}
+	if (res == PFILTER_REJECT)
+		return res;
 	return res;
 }
 

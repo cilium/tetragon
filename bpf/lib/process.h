@@ -151,7 +151,7 @@
 
 struct msg_execve_key {
 	__u32 pid; // Process TGID
-	__u8 pad[4];
+	__u32 auid; // loginuid
 	__u64 ktime;
 }; // All fields aligned so no 'packed' attribute.
 
