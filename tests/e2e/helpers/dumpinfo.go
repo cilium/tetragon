@@ -58,7 +58,7 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	if err = r.List(
 		ctx,
 		podList,
-		resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/name=%s", opts.DaemonSetName)),
+		resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/instance=%s", opts.DaemonSetName)),
 	); err != nil {
 		return ctx, err
 	}
