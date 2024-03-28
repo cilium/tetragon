@@ -201,12 +201,23 @@ func PrintNS(ns int32) string {
 func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) string {
 	out := new(strings.Builder)
 	if ev, ok := response.Event.(*tetragon.GetEventsResponse_ProcessKprobe); ok {
-		if ev.ProcessKprobe.StackTrace != nil {
-			for _, st := range ev.ProcessKprobe.StackTrace {
+		if ev.ProcessKprobe.KernelStackTrace != nil {
+			fmt.Fprintf(out, "Kernel:\n")
+			for _, st := range ev.ProcessKprobe.KernelStackTrace {
 				colorer.Green.Fprintf(out, "   0x%x:", st.Address)
 				colorer.Blue.Fprintf(out, " %s", st.Symbol)
 				fmt.Fprintf(out, "+")
 				colorer.Yellow.Fprintf(out, "0x%x\n", st.Offset)
+			}
+		}
+		if ev.ProcessKprobe.UserStackTrace != nil {
+			fmt.Fprintf(out, "User:\n")
+			for _, st := range ev.ProcessKprobe.UserStackTrace {
+				colorer.Green.Fprintf(out, "   0x%x:", st.Address)
+				if st.Symbol != "" {
+					colorer.Blue.Fprintf(out, " %s", st.Symbol)
+				}
+				colorer.Yellow.Fprintf(out, " (%s+0x%x)\n", st.Module, st.Offset)
 			}
 		}
 	}

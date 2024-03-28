@@ -15,4 +15,5 @@ spec:
       selectors:
         - matchActions:
           - action: Post
-            stackTrace: true
+            kernelStackTrace: true
+            userStackTrace: true

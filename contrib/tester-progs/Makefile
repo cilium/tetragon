@@ -22,7 +22,8 @@ PROGS = sigkill-tester \
 	drop-privileges \
 	getcpu \
 	direct-write-tester \
-	change-capabilities
+	change-capabilities \
+	user-stacktrace
 
 # For now enforcer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
@@ -87,6 +88,9 @@ lseek-pipe: FORCE
 
 getcpu: FORCE
 	go build -o getcpu ./go/getcpu
+
+user-stacktrace: FORCE
+	go build -o user-stacktrace ./go/user-stacktrace
 
 .PHONY: clean
 clean:
