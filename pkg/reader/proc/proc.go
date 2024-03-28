@@ -277,11 +277,30 @@ func LogCurrentSecurityContext() {
 		}
 	}
 
+	lockdown := ""
+	data, err := os.ReadFile("/sys/kernel/security/lockdown")
+	if err == nil && len(data) > 0 {
+		values := strings.TrimSpace(string(data))
+		i := strings.Index(values, "[")
+		j := strings.Index(values, "]")
+		if i >= 0 && j > i {
+			lockdown = values[i+1 : j]
+			logLSM = true
+		}
+		if lockdown == "confidentiality" {
+			logger.GetLogger().Warn("Kernel Lockdown is in 'confidentiality' mode, Tetragon will fail to load BPF programs")
+		}
+	}
+
 	if logLSM {
+		/* Now log all LSM security so we can debug later in
+		 * case some operations fail.
+		 */
 		logger.GetLogger().WithFields(logrus.Fields{
 			"SELinux":  lsms["selinux"],
 			"AppArmor": lsms["apparmor"],
 			"Smack":    lsms["smack"],
+			"Lockdown": lockdown,
 		}).Info("Tetragon current security context")
 	}
 }
