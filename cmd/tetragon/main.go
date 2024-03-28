@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/checkprocfs"
 	"github.com/cilium/tetragon/pkg/cilium"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/exporter"
@@ -451,6 +452,12 @@ func tetragonExecute() error {
 	defer func() {
 		initialSensor.Unload()
 	}()
+
+	cfg := config.NewConfig(option.Config.ConfigFile, 5*time.Second,
+		func(_ uint64, spec config.Spec) {
+			config.OptionsReconfig(spec)
+		})
+	defer cfg.Stop()
 
 	// now that the base sensor was loaded, we can start the sensor manager
 	close(sensorMgWait)
