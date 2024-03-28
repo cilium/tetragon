@@ -119,7 +119,129 @@ A default deployment writes the JSON log to `/var/run/cilium/tetragon/tetragon.l
 be exported through normal log collection tooling, e.g. 'fluentd', logstash, etc.. The file will
 be rotated and compressed by default. See [Helm Options] for details on how to customize this location.
 
-#### `tetra` CLI
+#### Export Filtering
+
+Export filters restrict the JSON event output to a subset of desirable events.
+These export filters are configured as a line-separated list of JSON objects,
+where each object can contain one or more filter expressions. Filters are
+combined by taking the logical OR of each line-separated filter object and the
+logical AND of sibling expressions within a filter object. As a concrete
+example, suppose we had the following filter configuration:
+
+```json
+{"event_set": ["PROCESS_EXEC", "PROCESS_EXIT"], "namespace": "foo"}
+{"event_set": ["PROCESS_KPROBE"]}
+```
+
+The above filter configuration would result in a match if:
+
+- The event type is `PROCESS_EXEC` or `PROCESS_EXIT` AND the pod namespace is "foo"; OR
+- The event type is `PROCESS_KPROBE`
+
+Tetragon supports two groups of export filters: an allowlist and a denylist. If
+neither is configured, all events are exported. If only an allowlist is
+configured, event exports are considered default-deny, meaning only the events
+in the allowlist are exported. The denylist takes precedence over the allowlist
+in cases where two filter configurations match on the same event.
+
+You can configure export filters using the provided helm options, command line
+flags, or environment variables.
+
+##### List of Process Event Filters
+
+| Filter | Description | 
+| ------ | ----------- |
+| `event_set` | Filter process events by event types. Supported types include: `PROCESS_EXEC`, `PROCESS_EXIT`, `PROCESS_KPROBE`, `PROCESS_UPROBE`, `PROCESS_TRACAEPOINT`, `PROCESS_LOADER` |
+| `binary_regex` | Filter process events by a list of regular expressions of process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `health_check` | Filter process events if their binary names match Kubernetes liveness / readiness probe commands of their corresponding pods. | 
+| `namespace` | Filter by Kubernetes pod namespaces. An empty string (`""`) filters processes that do not belong to any pod namespace. | 
+| `pid` | Filter by process PID. | 
+| `pid_set` | Like `pid` but also includes processes that are descendants of the listed PIDs. | 
+| `pod_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `arguments_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `labels` | Filter events by pod labels using [Kubernetes label selector syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) Note that this filter never matches events without the pod field (i.e. host process events). | 
+
+#### Field Filtering 
+
+In some cases, it is not desirable to include all of the fields exported in
+Tetragon events by default. In these cases, you can use field filters to
+restrict the set of exported fields for a given event type. Field filters are
+configured similarly to export filters, as line-separated lists of JSON objects.
+
+Field filters select fields using the [protobuf field mask syntax](https://protobuf.dev/reference/protobuf/google.protobuf/#field-mask)
+under the `"fields"` key. You can define a path of fields using field
+names separated by period (`.`) characters. To define multiple paths in
+a single field filter, separate them with comma (`,`) characters. For
+example, `"fields":"process.binary,parent.binary,pod.name"` would select
+only the `process.binary`, `parent.binary`, and `pod.name` fields.
+
+By default, a field filter applies to all process events, although you
+can control this behaviour with the `"event_set"` key. For example, you
+can apply a field filter to `PROCESS_CONNECT` and `PROCESS_CLOSE` events
+by specifying `"event_set":["PROCESS_CONNECT","PROCESS_CLOSE"]` in the
+filter definition.
+
+Each field filter has an `"action"` that determines what the filter
+should do with the selected field. The supported action types are
+`"INCLUDE"` and `"EXCLUDE"`. A value of `"INCLUDE"` will cause the field
+to appear in an event, while a value of `"EXCLUDE"` will hide the field.
+In the absence of any field filter for a given event type, the export
+will include all fields by default. Defining one or more `"INCLUDE"`
+filters for a given event type changes that behaviour to exclude all
+other event types by default.
+
+As a simple example of the above, consider the case where we want to include
+only `exec_id` and `parent_exec_id` in all event types except for
+`PROCESS_EXEC`:
+
+```json
+{"fields":"process.exec_id,process.parent_exec_id", "event_set": ["PROCESS_EXEC"], "invert_event_set": true, "action": "INCLUDE"}
+```
+
+#### Redacting Sensitive Information
+
+Since Tetragon traces the entire system, event exports might sometimes contain
+sensitive information (for example, a secret passed via a command line argument
+to a process). To prevent this information from being exfiltrated via Tetragon
+JSON export, Tetragon provides a mechanism called Redaction Filters which can be
+used to select events and string patterns to redact. These filters are written
+in JSON and passed to the Tetragon agent via the `--redaction-filters` command
+line flag or the `redactionFilters` Helm value.
+
+To perform redactions, redaction filters define regular expressions in the
+`redact` field. Any capture groups in these regular expressions are redacted and
+replaced with `"*****"`.
+
+{{< warning >}}
+When writing regular expressions in JSON, it is important to escape backslash
+characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpasswd\\W?"}`.
+{{< /warning >}}
+
+Redaction filters select events using the `match` field, which contains one or
+more filters (these filters are defined the same way as export filters). If no
+match filter is defined, all events are selected.
+
+As a concrete example, the following will redact all passwords passed to
+processes with the `"--password"` argument:
+
+```json
+{"redact": ["--password(?:\\s+|=)(\\S*)"]}
+```
+
+Now, an event that contains the string `"--password=foo"` would have that string
+replaced with `"--password=*****"`.
+
+Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo.
+We can also redact these as follows:
+
+```json
+{"match": [{"binary_regex": "(?:^|/)foo$"}], "redact": ["-p(?:\\s+|=)(\\S*)"]}
+```
+
+With both of the above redaction filters in place, we are now redacting all
+password arguments.
+
+### `tetra` CLI
 
 A second way is to use the [`tetra`](https://github.com/cilium/tetragon/tree/main/cmd/tetra) CLI. This
 has the advantage that it can also be used to filter and pretty print the output. The tool

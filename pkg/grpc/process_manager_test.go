@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/option"
 
@@ -165,7 +166,8 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		context.Background(),
 		&wg,
 		nil,
-		&rthooks.Runner{})
+		&rthooks.Runner{},
+		fieldfilters.RedactionFilterList{})
 	assert.NoError(t, err)
 	pi := &exec.MsgExecveEventUnix{MsgExecveEventUnix: processapi.MsgExecveEventUnix{
 		Common: processapi.MsgCommon{

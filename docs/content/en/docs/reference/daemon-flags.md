@@ -51,6 +51,7 @@ Flags:
       --rb-queue-size string                      Set size of channel between ring buffer and sensor go routines (default 65k, allows K/M/G suffix) (default "65535")
       --rb-size string                            Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix) (default "0")
       --rb-size-total string                      Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix) (default "0")
+      --redaction-filters string                  Redaction filters for events
       --release-pinned-bpf                        Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable (default true)
       --server-address string                     gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock' (default "localhost:54321")
       --tracing-policy string                     Tracing policy file to load at startup
