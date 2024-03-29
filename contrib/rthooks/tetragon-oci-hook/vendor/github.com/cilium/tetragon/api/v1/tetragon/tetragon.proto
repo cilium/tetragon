@@ -470,6 +470,8 @@ message ProcessKprobe {
     KprobeAction return_action = 9;
     // Short message of the Tracing Policy to inform users what is going on.
     string message = 10;
+    // Tags of the Tracing Policy to categorize the event.
+    repeated string tags = 11;
 }
 
 message ProcessTracepoint {
@@ -490,6 +492,8 @@ message ProcessTracepoint {
     KprobeAction action = 8;
     // Short message of the Tracing Policy to inform users what is going on.
     string message = 9;
+    // Tags of the Tracing Policy to categorize the event.
+    repeated string tags = 10;
 }
 
 message ProcessUprobe {
@@ -503,6 +507,8 @@ message ProcessUprobe {
     string message = 6;
     // Arguments definition of the observed uprobe.
     repeated KprobeArgument args = 7;
+    // Tags of the Tracing Policy to categorize the event.
+    repeated string tags = 8;
 }
 
 message KernelModule {

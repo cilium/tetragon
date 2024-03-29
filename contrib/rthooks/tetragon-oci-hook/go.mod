@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/containers/common v0.58.0
+	github.com/containers/common v0.58.1
 	github.com/google/cel-go v0.20.1
 	github.com/opencontainers/runc v1.1.12
 	github.com/opencontainers/runtime-spec v1.2.0
