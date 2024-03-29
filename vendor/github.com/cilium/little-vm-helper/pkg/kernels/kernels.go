@@ -163,7 +163,7 @@ func FetchKernel(ctx context.Context, log *logrus.Logger, dir, kname string) err
 	return kurl.fetch(ctx, log, kd.Dir, kc.Name)
 }
 
-func BuildKernel(ctx context.Context, log *logrus.Logger, dir, kname string, fetch bool) error {
+func BuildKernel(ctx context.Context, log *logrus.Logger, dir, kname string, fetch bool, arch string) error {
 	kd, kc, kurl, err := getKernelInfo(dir, kname)
 	if err != nil {
 		return err
@@ -176,5 +176,5 @@ func BuildKernel(ctx context.Context, log *logrus.Logger, dir, kname string, fet
 
 	}
 
-	return kd.buildKernel(ctx, log, kc)
+	return kd.buildKernel(ctx, log, kc, arch)
 }

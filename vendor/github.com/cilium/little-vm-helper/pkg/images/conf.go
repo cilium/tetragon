@@ -11,6 +11,9 @@ type ImgConf struct {
 	Parent string `json:"parent,omitempty"`
 	// ImageSize is the size of the image (defaults to images.DefaultImageSize)
 	ImageSize string `json:"image_size,omitempty"`
+	// Bootable indicates if the image should be bootable, i.e. contain a kernel
+	// and a bootloader.
+	Bootable *bool `json:"bootable,omitempty"`
 	// Packages is the list of packages contained in the image
 	Packages []string `json:"packages"`
 	// Actions is a list of additional actions for building the image.
