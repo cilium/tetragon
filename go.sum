@@ -59,8 +59,8 @@ github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3 h1:3PErIjIq4DlOwNsQN
 github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3/go.mod h1:/7LC2GOgyXJ7maupZlaVIumYQiGPIgllSf6mA9sg6RU=
 github.com/cilium/ebpf v0.14.0 h1:0PsxAjO6EjI1rcT+rkp6WcCnE0ZvfkXBYiMedJtrSUs=
 github.com/cilium/ebpf v0.14.0/go.mod h1:DHp1WyrLeiBh19Cf/tfiSMhqheEiK8fXFZ4No0P1Hso=
-github.com/cilium/little-vm-helper v0.0.16 h1:ebw5hT4RVz1oqYWNJgQbK3TskyPQ0DgsAmWLBjSghLg=
-github.com/cilium/little-vm-helper v0.0.16/go.mod h1:BBnQ5i6fWBpO9L9BbZwMzVqPGRC8X2CN0BIH5gYav8A=
+github.com/cilium/little-vm-helper v0.0.17 h1:uKS/wQSPeFqgZk6fFRhnreGvhuQCnWsZvqhkF/PS/OM=
+github.com/cilium/little-vm-helper v0.0.17/go.mod h1:2q3DGb/ptNd+jnenMpx0l++PX6r85FzvaTvZG31pGAQ=
 github.com/cilium/lumberjack/v2 v2.3.0 h1:IhVJMvPpqDYmQzC0KDhAoy7KlaRsyOsZnT97Nsa3u0o=
 github.com/cilium/lumberjack/v2 v2.3.0/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
 github.com/cilium/proxy v0.0.0-20231031145409-f19708f3d018 h1:R/QlThqx099hS6req1k2Q87fvLSRgCEicQGate9vxO4=
@@ -842,8 +842,8 @@ k8s.io/component-base v0.29.3/go.mod h1:Yuj33XXjuOk2BAaHsIGHhCKZQAgYKhqIxIjIr2UX
 k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 h1:pWEwq4Asjm4vjW7vcsmijwBhOr1/shsbSYiWXmNGlks=
 k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01/go.mod h1:FiNAH4ZV3gBg2Kwh89tzAEV2be7d5xI0vBa/VySYy3E=
 k8s.io/klog/v2 v2.2.0/go.mod h1:Od+F08eJP+W3HUb4pSrPpgp9DGU4GzlpG/TmITuYh/Y=
-k8s.io/klog/v2 v2.120.0 h1:z+q5mfovBj1fKFxiRzsa2DsJLPIVMk/KFL81LMOfK+8=
-k8s.io/klog/v2 v2.120.0/go.mod h1:3Jpz1GvMt720eyJH1ckRHK1EDfpxISzJ7I9OYgaDtPE=
+k8s.io/klog/v2 v2.120.1 h1:QXU6cPEOIslTGvZaXvFWiP9VKyeet3sawzTOvdXb4Vw=
+k8s.io/klog/v2 v2.120.1/go.mod h1:3Jpz1GvMt720eyJH1ckRHK1EDfpxISzJ7I9OYgaDtPE=
 k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910 h1:1Rp/XEKP5uxPs6QrsngEHAxBjaAR78iJRiJq5Fi7LSU=
 k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910/go.mod h1:Pa1PvrP7ACSkuX6I7KYomY6cmMA0Tx86waBhDUgoKPw=
 k8s.io/utils v0.0.0-20240102154912-e7106e64919e h1:eQ/4ljkx21sObifjzXwlPKpdGLrCfRziVtos3ofG/sQ=

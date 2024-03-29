@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 
+	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
 	"github.com/sirupsen/logrus"
 )
@@ -45,28 +46,37 @@ func (kd *KernelsDir) RemoveKernelConfig(name string) *KernelConf {
 	return nil
 }
 
-func (kd *KernelsDir) ConfigureKernel(ctx context.Context, log *logrus.Logger, kernName string) error {
+func (kd *KernelsDir) ConfigureKernel(ctx context.Context, log *logrus.Logger, kernName string, targetArch string) error {
 	kc := kd.KernelConfig(kernName)
 	if kc == nil {
 		return fmt.Errorf("kernel '%s' not found", kernName)
 	}
-	return kd.configureKernel(ctx, log, kc)
+	return kd.configureKernel(ctx, log, kc, targetArch)
 }
 
-func (kd *KernelsDir) RawConfigure(ctx context.Context, log *logrus.Logger, kernDir, kernName string) error {
+func (kd *KernelsDir) RawConfigure(ctx context.Context, log *logrus.Logger, kernDir, kernName string, targetArch string) error {
 	kc := kd.KernelConfig(kernName)
-	return kd.rawConfigureKernel(ctx, log, kc, kernDir)
+	return kd.rawConfigureKernel(ctx, log, kc, kernDir, targetArch)
 }
 
-func kcfonfigValidate(opts []ConfigOption) error {
+func kConfigValidate(opts []ConfigOption) error {
 
 	var ret error
 	// we want to check that:
 	//  - what is supposed to be enabled, is enabled
 	//  - what is supposed to be disabled, is not enabled
+	//  - what is supposed to be configured as module, is configured as a module
+
+	type configState string
+
+	const (
+		enabledState  configState = "y"
+		disabledState configState = "n"
+		moduleState   configState = "m"
+	)
 
 	type OptMapVal struct {
-		enabled bool
+		state   configState
 		checked bool
 	}
 
@@ -74,9 +84,11 @@ func kcfonfigValidate(opts []ConfigOption) error {
 	for _, opt := range opts {
 		switch opt[0] {
 		case "--enable":
-			optMap[opt[1]] = OptMapVal{enabled: true}
+			optMap[opt[1]] = OptMapVal{state: enabledState}
 		case "--disable":
-			optMap[opt[1]] = OptMapVal{enabled: false}
+			optMap[opt[1]] = OptMapVal{state: disabledState}
+		case "--module":
+			optMap[opt[1]] = OptMapVal{state: moduleState}
 		default:
 			return fmt.Errorf("Unknown option: %s", opt[0])
 		}
@@ -89,18 +101,20 @@ func kcfonfigValidate(opts []ConfigOption) error {
 	}
 	defer kcfg.Close()
 
-	enabledRe := regexp.MustCompile(`([a-zA-Z0-9_]+)=y`)
+	enabledOrModuleRe := regexp.MustCompile(`([a-zA-Z0-9_]+)=(y|m)`)
 	disabledRe := regexp.MustCompile(`# ([a-zA-Z0-9_]+) is not set`)
 	s := bufio.NewScanner(kcfg)
 	for s.Scan() {
 		txt := s.Text()
 		var opt string
-		optEnabled := false
-		if match := enabledRe.FindStringSubmatch(txt); len(match) > 0 {
+		var optState configState
+		if match := enabledOrModuleRe.FindStringSubmatch(txt); len(match) > 2 {
 			opt = match[1]
-			optEnabled = true
-		} else if match := disabledRe.FindStringSubmatch(txt); len(match) > 0 {
+			// the regex can only match 'y' or 'm' so this should be correct
+			optState = configState(match[2])
+		} else if match := disabledRe.FindStringSubmatch(txt); len(match) > 1 {
 			opt = match[1]
+			optState = disabledState
 		} else {
 			continue
 		}
@@ -113,10 +127,10 @@ func kcfonfigValidate(opts []ConfigOption) error {
 		mapVal.checked = true
 		optMap[opt] = mapVal
 
-		if mapVal.enabled != optEnabled {
+		if mapVal.state != optState {
 			ret = errors.Join(ret,
-				fmt.Errorf("value %s misconfigured: expected: %t but seems to be %t based on '%s'",
-					opt, mapVal.enabled, optEnabled, txt))
+				fmt.Errorf("value %s misconfigured: expected: %q but seems to be %q based on %q",
+					opt, mapVal.state, optState, txt))
 		}
 
 	}
@@ -126,8 +140,11 @@ func kcfonfigValidate(opts []ConfigOption) error {
 	}
 
 	for i, v := range optMap {
-		if v.enabled && !v.checked {
+		if v.state == enabledState && !v.checked {
 			ret = errors.Join(ret, fmt.Errorf("value %s enabled but not found", i))
+		}
+		if v.state == moduleState && !v.checked {
+			ret = errors.Join(ret, fmt.Errorf("value %s configured as module but not found", i))
 		}
 	}
 
@@ -148,7 +165,7 @@ func runAndLogMake(
 
 func (kd *KernelsDir) rawConfigureKernel(
 	ctx context.Context, log *logrus.Logger,
-	kc *KernelConf, srcDir string,
+	kc *KernelConf, srcDir string, targetArch string,
 	makePrepareArgs ...string,
 ) error {
 	oldPath, err := os.Getwd()
@@ -177,7 +194,7 @@ func (kd *KernelsDir) rawConfigureKernel(
 		}
 
 		if false {
-			if err := kcfonfigValidate(configOptions[:i+1]); err != nil {
+			if err := kConfigValidate(configOptions[:i+1]); err != nil {
 				return fmt.Errorf("failed to validate config after applying %v: %w", opts, err)
 			}
 		}
@@ -185,19 +202,27 @@ func (kd *KernelsDir) rawConfigureKernel(
 	}
 
 	if false {
-		if err := kcfonfigValidate(configOptions); err != nil {
+		if err := kConfigValidate(configOptions); err != nil {
 			return fmt.Errorf("failed to validate config after scripts: %w", err)
 		}
 	}
 
+	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
+	}
+
+	olddefconfigMakeArgs := []string{"olddefconfig"}
+	olddefconfigMakeArgs = append(olddefconfigMakeArgs, crossCompilationArgs...)
+
 	// run make olddefconfig to clean up the config file, and ensure that everything is in order
-	if err := runAndLogMake(ctx, log, kc, "olddefconfig"); err != nil {
+	if err := runAndLogMake(ctx, log, kc, olddefconfigMakeArgs...); err != nil {
 		return err
 	}
 
 	// NB: some configuration options are only available in certain
 	// kernels. We have no way of dealing with this currently.
-	if err := kcfonfigValidate(configOptions); err != nil {
+	if err := kConfigValidate(configOptions); err != nil {
 		log.Warnf("discrepancies in generated config: %s", err)
 	}
 
@@ -205,13 +230,21 @@ func (kd *KernelsDir) rawConfigureKernel(
 	return nil
 }
 
-func (kd *KernelsDir) configureKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf) error {
+func (kd *KernelsDir) configureKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf, targetArch string) error {
 	srcDir := filepath.Join(kd.Dir, kc.Name)
-	return kd.rawConfigureKernel(ctx, log, kc, srcDir, "defconfig", "prepare")
+	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
+	}
+
+	configureMakeArgs := []string{"defconfig", "prepare"}
+	configureMakeArgs = append(configureMakeArgs, crossCompilationArgs...)
+
+	return kd.rawConfigureKernel(ctx, log, kc, srcDir, targetArch, configureMakeArgs...)
 
 }
 
-func (kd *KernelsDir) buildKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf) error {
+func (kd *KernelsDir) buildKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf, targetArch string) error {
 	if err := CheckEnvironment(); err != nil {
 		return err
 	}
@@ -223,18 +256,35 @@ func (kd *KernelsDir) buildKernel(ctx context.Context, log *logrus.Logger, kc *K
 		return err
 	} else if !exists {
 		log.Info("Configuring kernel")
-		err = kd.configureKernel(ctx, log, kc)
+		err = kd.configureKernel(ctx, log, kc, targetArch)
 		if err != nil {
 			return fmt.Errorf("failed to configure kernel: %w", err)
 		}
 	}
 
 	ncpus := fmt.Sprintf("%d", runtime.NumCPU())
-	if err := runAndLogMake(ctx, log, kc, "-C", srcDir, "-j", ncpus, "bzImage", "modules"); err != nil {
+
+	target, err := arch.Target(targetArch)
+	if err != nil {
+		return fmt.Errorf("failed to get make target: %w", err)
+	}
+
+	buildMakeArgs := []string{"-C", srcDir, "-j", ncpus, target, "modules"}
+
+	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
+	}
+	buildMakeArgs = append(buildMakeArgs, crossCompilationArgs...)
+
+	if err := runAndLogMake(ctx, log, kc, buildMakeArgs...); err != nil {
 		return fmt.Errorf("buiding bzImage && modules failed: %w", err)
 	}
 
-	if err := runAndLogMake(ctx, log, kc, "-C", srcDir, "tar-pkg"); err != nil {
+	archiveMakeArgs := []string{"-C", srcDir, "tar-pkg"}
+	archiveMakeArgs = append(archiveMakeArgs, crossCompilationArgs...)
+
+	if err := runAndLogMake(ctx, log, kc, archiveMakeArgs...); err != nil {
 		return fmt.Errorf("build dir failed: %w", err)
 	}
 

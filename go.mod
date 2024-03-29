@@ -7,7 +7,7 @@ require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.15.3
 	github.com/cilium/ebpf v0.14.0
-	github.com/cilium/little-vm-helper v0.0.16
+	github.com/cilium/little-vm-helper v0.0.17
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -52,7 +52,7 @@ require (
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
 	k8s.io/code-generator v0.29.3
-	k8s.io/klog/v2 v2.120.0
+	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910
 	sigs.k8s.io/controller-runtime v0.16.5
 	sigs.k8s.io/controller-tools v0.14.0
