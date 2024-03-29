@@ -360,7 +360,7 @@ protoc-gen-go-tetragon:
 	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
 
 # renovate: datasource=docker
-GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.57.1@sha256:023d70680e20894e9ee6714baf27d2dc267b4e6f427250056a1177a69bfa1826
+GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.57.2@sha256:8f3a60a00a83bb7d599d2e028ac0c3573dc2b9ec0842590f1c2e59781c821da7
 GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 .PHONY: check
