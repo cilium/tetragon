@@ -271,21 +271,6 @@ func (m MsgGenericKprobeArgNetDev) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericCred struct {
-	Uid        uint32
-	Gid        uint32
-	Suid       uint32
-	Sgid       uint32
-	Euid       uint32
-	Egid       uint32
-	FSuid      uint32
-	FSgid      uint32
-	SecureBits uint32
-	Pad        uint32
-	Cap        processapi.MsgCapabilities
-	UserNs     processapi.MsgUserNamespace
-}
-
 type MsgGenericKprobeArgCred struct {
 	Index      uint64
 	Uid        uint32

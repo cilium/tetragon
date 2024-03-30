@@ -90,6 +90,21 @@ type MsgK8sUnix struct {
 	Docker string
 }
 
+type MsgGenericCred struct {
+	Uid        uint32
+	Gid        uint32
+	Suid       uint32
+	Sgid       uint32
+	Euid       uint32
+	Egid       uint32
+	FSuid      uint32
+	FSgid      uint32
+	SecureBits uint32
+	Pad        uint32
+	Cap        MsgCapabilities
+	UserNs     MsgUserNamespace
+}
+
 type MsgGenericCredMinimal struct {
 	Uid        uint32
 	Gid        uint32
