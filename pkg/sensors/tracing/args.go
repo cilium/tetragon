@@ -11,7 +11,7 @@ import (
 	"io"
 
 	"github.com/cilium/tetragon/pkg/api/dataapi"
-	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -74,7 +74,7 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
-func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
+func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
 
 	switch a.ty {
@@ -176,7 +176,7 @@ func getArg(r *bytes.Reader, a argPrinter) tracingapi.MsgGenericKprobeArg {
 		arg.Label = a.label
 		return arg
 	case gt.GenericCredType:
-		var cred api.MsgGenericCred
+		var cred processapi.MsgGenericCred
 		var arg api.MsgGenericKprobeArgCred
 
 		err := binary.Read(r, binary.LittleEndian, &cred)

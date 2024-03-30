@@ -32,7 +32,7 @@ func CheckStructAlignments(pathToObj string) error {
 		"msg_execve_key":   {processapi.MsgExecveKey{}},
 		"execve_map_value": {execvemap.ExecveValue{}},
 		"msg_cgroup_event": {processapi.MsgCgroupEvent{}},
-		"msg_cred":         {tracingapi.MsgGenericCred{}},
+		"msg_cred":         {processapi.MsgGenericCred{}},
 		"msg_cred_minimal": {processapi.MsgGenericCredMinimal{}},
 
 		// configuration
