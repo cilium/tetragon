@@ -175,16 +175,16 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 				Common: processapi.MsgCommon{
 					Ktime: 1234,
 				},
-				Creds: processapi.MsgGenericCredMinimal{
+				Creds: processapi.MsgGenericCred{
 					Uid:  1000,
 					Gid:  1000,
 					Euid: 10000,
 					Egid: 10000,
-				},
-				Capabilities: processapi.MsgCapabilities{
-					Permitted:   1,
-					Effective:   1,
-					Inheritable: 1,
+					Cap: processapi.MsgCapabilities{
+						Permitted:   1,
+						Effective:   1,
+						Inheritable: 1,
+					},
 				},
 			},
 			Process: processapi.MsgProcess{

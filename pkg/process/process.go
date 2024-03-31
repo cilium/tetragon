@@ -278,9 +278,10 @@ func initProcessInternalExec(
 	} else {
 		parentExecID = GetProcessID(0, 1)
 	}
+	creds := &event.Msg.Creds
 	execID := GetExecID(&process)
 	protoPod := GetPodInfo(containerID, process.Filename, args, process.NSPID)
-	apiCaps := caps.GetMsgCapabilities(event.Msg.Capabilities)
+	apiCaps := caps.GetMsgCapabilities(event.Msg.Creds.Cap)
 	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
 	apiNs, err := namespace.GetMsgNamespaces(event.Msg.Namespaces)
 	if err != nil {
@@ -294,7 +295,6 @@ func initProcessInternalExec(
 		}).Warn("ExecveEvent: parsing namespaces failed")
 	}
 
-	creds := &event.Msg.Creds
 	apiCreds := &tetragon.ProcessCredentials{
 		Uid:        &wrapperspb.UInt32Value{Value: creds.Uid},
 		Gid:        &wrapperspb.UInt32Value{Value: creds.Gid},

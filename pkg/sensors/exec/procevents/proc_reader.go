@@ -208,7 +208,7 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Parent.Pid = p.ppid
 		m.Unix.Msg.Parent.Ktime = p.pktime
 
-		m.Unix.Msg.Capabilities = processapi.MsgCapabilities{}
+		m.Unix.Msg.Creds.Cap = processapi.MsgCapabilities{}
 		m.Unix.Msg.Namespaces = processapi.MsgNamespaces{}
 
 		m.Unix.Process.Size = p.size
@@ -244,9 +244,11 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Parent.Pid = p.ppid
 		m.Unix.Msg.Parent.Ktime = p.pktime
 
-		m.Unix.Msg.Capabilities.Permitted = p.permitted
-		m.Unix.Msg.Capabilities.Effective = p.effective
-		m.Unix.Msg.Capabilities.Inheritable = p.inheritable
+		caps := processapi.MsgCapabilities{
+			Permitted:   p.permitted,
+			Effective:   p.effective,
+			Inheritable: p.inheritable,
+		}
 
 		m.Unix.Msg.Namespaces.UtsInum = p.uts_ns
 		m.Unix.Msg.Namespaces.IpcInum = p.ipc_ns
@@ -266,9 +268,10 @@ func pushExecveEvents(p procs) {
 		// use euid to be compatible with ps
 		m.Unix.Process.UID = p.uids[1]
 		m.Unix.Process.AUID = p.auid
-		m.Unix.Msg.Creds = processapi.MsgGenericCredMinimal{
+		m.Unix.Msg.Creds = processapi.MsgGenericCred{
 			Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
 			Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
+			Cap: caps,
 		}
 		m.Unix.Process.Flags = p.flags | flags
 		m.Unix.Process.Ktime = p.ktime
