@@ -33,7 +33,6 @@ func CheckStructAlignments(pathToObj string) error {
 		"execve_map_value": {execvemap.ExecveValue{}},
 		"msg_cgroup_event": {processapi.MsgCgroupEvent{}},
 		"msg_cred":         {processapi.MsgGenericCred{}},
-		"msg_cred_minimal": {processapi.MsgGenericCredMinimal{}},
 
 		// configuration
 		"event_config":  {tracingapi.EventConfig{}},

@@ -288,9 +288,7 @@ struct msg_execve_event {
 	struct msg_k8s kube;
 	struct msg_execve_key parent;
 	__u64 parent_flags;
-	struct msg_capabilities caps;
-	/* TODO: convert this msg_cred_minimal to msg_cred and include caps above inside */
-	struct msg_cred_minimal creds;
+	struct msg_cred creds;
 	struct msg_ns ns;
 	struct msg_execve_key cleanup_key;
 	/* if add anything above please also update the args of

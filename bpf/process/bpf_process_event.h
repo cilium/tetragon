@@ -468,7 +468,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 }
 
 static inline __attribute__((always_inline)) void
-get_current_subj_creds_uids(struct msg_cred_minimal *info, struct task_struct *task)
+get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 {
 	const struct cred *cred;
 
@@ -484,6 +484,9 @@ get_current_subj_creds_uids(struct msg_cred_minimal *info, struct task_struct *t
 	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
 	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
 	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
+
+	/* Get capabilities */
+	__get_caps(&info->caps, cred);
 }
 
 static inline __attribute__((always_inline)) void
