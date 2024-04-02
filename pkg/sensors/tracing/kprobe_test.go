@@ -6173,11 +6173,15 @@ spec:
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	test_cmd := exec.Command(testUserStacktrace)
+	testProgram := exec.Command(testUserStacktrace)
 
-	if err := test_cmd.Start(); err != nil {
+	if err := testProgram.Start(); err != nil {
 		t.Fatalf("failed to run %s: %s", testUserStacktrace, err)
 	}
+	t.Cleanup(func() {
+		testProgram.Process.Kill()
+		fmt.Println("*******Killed********")
+	})
 
 	fmt.Println("*******Test started********")
 	stackTraceChecker := ec.NewProcessKprobeChecker("user-stack-trace").
@@ -6200,8 +6204,8 @@ spec:
 	fmt.Println("*******checked********")
 
 	// Kill test because of endless loop in the test for stable stack trace extraction
-	test_cmd.Process.Kill()
-	fmt.Println("*******Killed********")
+	// test_cmd.Process.Kill()
+	// fmt.Println("*******Killed********")
 
 	assert.NoError(t, err)
 }

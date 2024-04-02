@@ -5,6 +5,7 @@ package main
 
 import (
 	"os"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -25,5 +26,6 @@ func main() {
 		os.Exit(int(err))
 	}
 	for {
+		time.Sleep(time.Minute)
 	}
 }
