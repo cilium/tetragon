@@ -28,7 +28,7 @@ jobs:
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d # v4.0.0
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@16361eb4acea8698b220b76c0d4e84e1fd22c61d # v2.6.0
