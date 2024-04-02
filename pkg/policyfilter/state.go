@@ -300,7 +300,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, ErrorLabel(err))
 		},
 		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
@@ -309,7 +309,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				return
 			}
 			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, ErrorLabel(err))
 		},
 		DeleteFunc: func(obj interface{}) {
 			// Remove all containers for this pod
@@ -332,7 +332,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 					"namespace": namespace,
 				}).Warn("policyfilter, delete-pod handler: DelPod failed")
 			}
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, err)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, ErrorLabel(err))
 		},
 	}
 }
@@ -587,7 +587,7 @@ func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.
 		}).Info("AddPodContainer: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
-		return fmt.Errorf("conflicting namespaces for pod with id %s: old='%s' vs new='%s'", podID, pod.namespace, namespace)
+		return &podNamespaceConflictErr{podID: podID, oldNs: pod.namespace, newNs: namespace}
 	}
 
 	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID})
@@ -788,7 +788,7 @@ func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels
 		dlog.Info("UpdatePod: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
-		return fmt.Errorf("conflicting namespaces for pod with id %s: old='%s' vs new='%s'", podID, pod.namespace, namespace)
+		return &podNamespaceConflictErr{podID: podID, oldNs: pod.namespace, newNs: namespace}
 	}
 
 	// labels changed: check if there are policies ads that:

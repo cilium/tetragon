@@ -176,6 +176,7 @@ Policy filter metrics. For internal use only.
 
 | label | values |
 | ----- | ------ |
+| `error` | `generic-error, pod-namespace-conflict` |
 | `op   ` | `add, add-container, delete, update` |
 | `subsys` | `pod-handlers, rthooks` |
 

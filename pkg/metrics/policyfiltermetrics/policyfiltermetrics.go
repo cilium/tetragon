@@ -4,11 +4,7 @@
 package policyfiltermetrics
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/cilium/tetragon/pkg/metrics/consts"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -48,33 +44,52 @@ func (s Operation) String() string {
 	return operationLabelValues[s]
 }
 
+type OperationErr int
+
+const (
+	NoErr OperationErr = iota
+	GenericErr
+	PodNamespaceConflictErr
+)
+
+var operationErrLabels = map[OperationErr]string{
+	NoErr:                   "",
+	GenericErr:              "generic-error",
+	PodNamespaceConflictErr: "pod-namespace-conflict",
+}
+
+func (s OperationErr) String() string {
+	return operationErrLabels[s]
+}
+
 var (
 	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policyfilter_metrics_total",
 		Help:        "Policy filter metrics. For internal use only.",
 		ConstLabels: nil,
-	}, []string{"subsys", "op", "error_type"})
+	}, []string{"subsys", "op", "error"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(PolicyFilterOpMetrics)
 
 	// Initialize metrics with labels
-	PolicyFilterOpMetrics.WithLabelValues(RTHooksSubsys.String(), AddContainerOperation.String()).Add(0)
-	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), AddPodOperation.String()).Add(0)
-	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), UpdatePodOperation.String()).Add(0)
-	PolicyFilterOpMetrics.WithLabelValues(PodHandlersSubsys.String(), DeletePodOperation.String()).Add(0)
+	for _, subsys := range subsysLabelValues {
+		for _, op := range operationLabelValues {
+			for _, err := range operationErrLabels {
+				PolicyFilterOpMetrics.WithLabelValues(
+					subsys, op, err,
+				).Add(0)
+			}
+		}
+	}
 
 	// NOTES:
-	// * error, error_type, type - standardize on a label
 	// * Don't confuse op in policyfilter_metrics_total with ops.OpCode
 	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
-func OpInc(subsys Subsys, op Operation, err error) {
-	PolicyFilterOpMetrics.WithLabelValues(
-		subsys.String(), op.String(),
-		strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""),
-	).Inc()
+func OpInc(subsys Subsys, op Operation, err string) {
+	PolicyFilterOpMetrics.WithLabelValues(subsys.String(), op.String(), err).Inc()
 }
