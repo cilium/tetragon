@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/observer"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,9 +31,16 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	}
 
 	reg := prometheus.NewRegistry()
-	manager := tus.GetTestSensorManager(context.TODO(), t).Manager
 
-	collector := newPolicyStateCollector(manager)
+	// NB(kkourt): the policy state collector uses observer.GetSensorManager() to get the sensor
+	// manager because in the observer tests we only initialize metrics while the observer
+	// changes for every test (see:
+	// https://github.com/cilium/tetragon/blob/22eb995b19207ac0ced2dd83950ec8e8aedd122d/pkg/observer/observertesthelper/observer_test_helper.go#L272-L276)
+	manager := tus.GetTestSensorManager(context.TODO(), t).Manager
+	observer.SetSensorManager(manager)
+	t.Cleanup(observer.ResetSensorManager)
+
+	collector := newPolicyStateCollector()
 	reg.Register(collector)
 
 	err := manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
