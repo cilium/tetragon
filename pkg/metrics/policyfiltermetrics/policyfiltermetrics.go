@@ -4,7 +4,11 @@
 package policyfiltermetrics
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -50,7 +54,7 @@ var (
 		Name:        "policyfilter_metrics_total",
 		Help:        "Policy filter metrics. For internal use only.",
 		ConstLabels: nil,
-	}, []string{"subsys", "op"})
+	}, []string{"subsys", "op", "error_type"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
@@ -68,8 +72,9 @@ func InitMetrics(registry *prometheus.Registry) {
 	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
-func OpInc(subsys Subsys, op Operation) {
+func OpInc(subsys Subsys, op Operation, err error) {
 	PolicyFilterOpMetrics.WithLabelValues(
 		subsys.String(), op.String(),
+		strings.ReplaceAll(fmt.Sprintf("%T", errors.Cause(err)), "*", ""),
 	).Inc()
 }

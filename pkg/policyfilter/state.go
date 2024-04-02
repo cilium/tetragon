@@ -284,7 +284,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 			"pod-id":        podID,
 			"container-ids": containerIDs,
 			"namespace":     namespace,
-		}).Warn("policyfilter: UpdatePod failed")
+		}).Warn("policyfilter, add pod-handler: AddPodContainer failed")
 		return err
 	}
 
@@ -299,17 +299,17 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 				logger.GetLogger().Warn("policyfilter, add-pod handler: unexpected object type: %T", pod)
 				return
 			}
-			m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation)
+			err := m.updatePodHandler(pod)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, err)
 		},
 		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
 			if !ok {
-				logger.GetLogger().Warn("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod)
+				logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)
 				return
 			}
-			m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation)
+			err := m.updatePodHandler(pod)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, err)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// Remove all containers for this pod
@@ -332,7 +332,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 					"namespace": namespace,
 				}).Warn("policyfilter, delete-pod handler: DelPod failed")
 			}
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation)
+			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, err)
 		},
 	}
 }
