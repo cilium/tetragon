@@ -6,6 +6,7 @@ package policystatemetrics
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -49,7 +50,10 @@ func (c *policyStateCollector) Collect(ch chan<- prometheus.Metric) {
 		logger.GetLogger().Debug("failed retrieving the sensor manager: manager is nil")
 		return
 	}
-	list, err := sm.ListTracingPolicies(context.Background())
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 900*time.Millisecond)
+	defer cancel()
+	list, err := sm.ListTracingPolicies(ctx)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warn("error listing tracing policies to collect policies state")
 		return
