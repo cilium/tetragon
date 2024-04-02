@@ -249,9 +249,15 @@ func (h *Manager) ListTracingPolicies(ctx context.Context) (*tetragon.ListTracin
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-	return op.result, err
+	select {
+	case h.sensorCtl <- op:
+		err := <-retc
+		return op.result, err
+
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 }
 
 func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
