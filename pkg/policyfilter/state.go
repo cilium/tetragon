@@ -284,7 +284,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 			"pod-id":        podID,
 			"container-ids": containerIDs,
 			"namespace":     namespace,
-		}).Warn("policyfilter, add pod-handler: AddPodContainer failed")
+		}).Warn("policyfilter, UpdatePod failed")
 		return err
 	}
 
@@ -305,7 +305,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
 			if !ok {
-				logger.GetLogger().Warn("policyfilter, update-pod: unexpected object type(s): new:%T", pod)
+				logger.GetLogger().Warn("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod)
 				return
 			}
 			err := m.updatePodHandler(pod)
