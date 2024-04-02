@@ -6179,6 +6179,7 @@ spec:
 		t.Fatalf("failed to run %s: %s", testUserStacktrace, err)
 	}
 
+	fmt.Println("*******Test started********")
 	stackTraceChecker := ec.NewProcessKprobeChecker("user-stack-trace").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testUserStacktrace))).
 		WithUserStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
@@ -6192,12 +6193,15 @@ spec:
 			//   0x0: runtime.main (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x3313d)
 			//   0x0: runtime.goexit.abi0 (/home/user/go/src/github.com/cilium/tetragon/contrib/tester-progs/user-stacktrace+0x5e661)
 		))
-
+	fmt.Println("*******StacktraceChecker********")
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
+	fmt.Println("*******checker********")
 	err = jsonchecker.JsonTestCheck(t, checker)
+	fmt.Println("*******checked********")
 
 	// Kill test because of endless loop in the test for stable stack trace extraction
 	test_cmd.Process.Kill()
+	fmt.Println("*******Killed********")
 
 	assert.NoError(t, err)
 }
