@@ -186,25 +186,18 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 	__u64 i;
 
 	pid = (get_current_pid_tgid() >> 32);
-	init = execve_map_get_noinit(
-		pid); // reject for processes that are not in the execve_map yet
+	init = execve_map_get_noinit(pid); // reject for processes that are not in the execve_map yet
 	if (!init)
 		return PFILTER_REJECT;
 
 	if (ty == op_filter_in) { // For the op_filter_in
-		for (i = 0; i < ns_max_types;
-		     i++) { // ... check all possible namespaces
-			if (val &
-			    (1
-			     << i)) { // ... if the appropriate bit is set (bit positions defined in ns_* enum)
-				if (init->ns.inum[i] ==
-				    0) { // namespace not set so just ignore
-					sel->match_ns =
-						1; // ... but need to setup the correct values at the end
+		for (i = 0; i < ns_max_types; i++) { // ... check all possible namespaces
+			if (val & (1 << i)) { // ... if the appropriate bit is set (bit positions defined in ns_* enum)
+				if (init->ns.inum[i] == 0) { // namespace not set so just ignore
+					sel->match_ns = 1; // ... but need to setup the correct values at the end
 					continue;
 				}
-				if (init->ns.inum[i] !=
-				    n->inum[i]) { // does the namespace value changed?
+				if (init->ns.inum[i] != n->inum[i]) { // does the namespace value changed?
 					sel->match_ns = 1;
 					return PFILTER_ACCEPT;
 				}
@@ -213,16 +206,12 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 	} else if (ty == op_filter_notin) { // For the op_filter_notin
 		for (i = 0; i < ns_max_types;
 		     i++) { // ... check all possible namespaces
-			if ((val & (1 << i)) ==
-			    0) { // ... if the appropriate bit is *NOT* set (bit positions defined in ns_* enum)
-				if (init->ns.inum[i] ==
-				    0) { // namespace not set so just ignore
-					sel->match_ns =
-						1; // ... but need to setup the correct values at the end
+			if ((val & (1 << i)) == 0) { // ... if the appropriate bit is *NOT* set (bit positions defined in ns_* enum)
+				if (init->ns.inum[i] == 0) { // namespace not set so just ignore
+					sel->match_ns = 1; // ... but need to setup the correct values at the end
 					continue;
 				}
-				if (init->ns.inum[i] !=
-				    n->inum[i]) { // does the namespace value changed?
+				if (init->ns.inum[i] != n->inum[i]) { // does the namespace value changed?
 					sel->match_ns = 1;
 					return PFILTER_ACCEPT;
 				}
@@ -244,15 +233,16 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 	if (ns != 0 && n->user_inum == ns)
 		return PFILTER_REJECT;
 
-	if (ty >
-	    caps_inheritable) /* We should not reach that. Userspace checks that. */
+	/* We should not reach that. Userspace checks that. */
+	if (ty > caps_inheritable)
 		return PFILTER_REJECT;
 
 	caps = c->c[ty];
 
 	if (op == op_filter_in)
 		return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
-	return (caps & val) ? PFILTER_REJECT : PFILTER_ACCEPT; /* op_filter_notin */
+	/* op_filter_notin */
+	return (caps & val) ? PFILTER_REJECT : PFILTER_ACCEPT;
 }
 
 #ifdef __CAP_CHANGES_FILTER
@@ -411,27 +401,26 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	index += 4; /* skip selector size field */
 
 	/* matchPid */
-	len = *(__u32 *)((__u64)f +
-			 (index &
-			  INDEX_MASK)); /* (sizeof(pid1) + sizeof(pid2) + ... + 4) */
+	/* (sizeof(pid1) + sizeof(pid2) + ... + 4) */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: pid header */
 
-	if (len > 4) { /* we can have only matchNamespace */
+	/* we can have only matchNamespace */
+	if (len > 4) {
 		pid = (struct pid_filter *)((u64)f + index);
-		index += sizeof(struct pid_filter); /* 12: op, flags, length */
+		/* 12: op, flags, length */
+		index += sizeof(struct pid_filter);
 		res = selector_match(f, index, pid->op, pid->flags, pid->len,
 				     enter, n, c, &process_filter_pid);
-		index +=
-			((pid->len * sizeof(pid->val[0])) &
-			 VALUES_MASK); /* now index points at the end of PID filter */
+		/* now index points at the end of PID filter */
+		index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
 
 	/* matchNamespace */
-	len = *(__u32 *)((__u64)f +
-			 (index &
-			  INDEX_MASK)); /* (sizeof(ns1) + sizeof(ns2) + ... + 4) */
+	/* (sizeof(ns1) + sizeof(ns2) + ... + 4) */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: ns header */
 	len -= 4;
 
@@ -439,31 +428,27 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	for (i = 0; i < ns_max_types; i++) {
 #else
 #pragma unroll
-	for (i = 0; i < NUM_NS_FILTERS_SMALL;
-	     i++) { /* with more than 4 iterations it results in too big programs */
+	/* with more than 4 iterations it results in too big programs */
+	for (i = 0; i < NUM_NS_FILTERS_SMALL; i++) {
 #endif
 		if (len > 0) {
-			ns = (struct ns_filter *)((u64)f +
-						  (index & INDEX_MASK));
-			index += sizeof(
-				struct ns_filter); /* 12: namespace, op, length */
+			ns = (struct ns_filter *)((u64)f + (index & INDEX_MASK));
+			/* 12: namespace, op, length */
+			index += sizeof(struct ns_filter);
 			res = selector_match(f, index, ns->op, ns->ty, ns->len,
 					     enter, n, c,
 					     &process_filter_namespace);
-			index +=
-				((ns->len * sizeof(ns->val[0])) &
-				 VALUES_MASK); /* now index points at the end of namespace filter */
-			len -= (sizeof(struct ns_filter) +
-				(ns->len * sizeof(ns->val[0])));
+			/* now index points at the end of namespace filter */
+			index += ((ns->len * sizeof(ns->val[0])) & VALUES_MASK);
+			len -= (sizeof(struct ns_filter) + (ns->len * sizeof(ns->val[0])));
 		}
 		if (res == PFILTER_REJECT)
 			return res;
 	}
 
 	/* matchCapabilities */
-	len = *(__u32 *)((__u64)f +
-			 (index &
-			  INDEX_MASK)); /* (sizeof(cap1) + sizeof(cap2) + ... + 4) */
+	/* (sizeof(cap1) + sizeof(cap2) + ... + 4) */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: caps header */
 	len -= 4;
 
@@ -478,9 +463,8 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 
 #ifdef __NS_CHANGES_FILTER
 	/* matchNamespaceChanges */
-	len = *(__u32 *)((__u64)f +
-			 (index &
-			  INDEX_MASK)); /* (sizeof(nc1) + sizeof(nc2) + ... + 4) */
+	/* (sizeof(nc1) + sizeof(nc2) + ... + 4) */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: nc header */
 	len -= 4;
 
