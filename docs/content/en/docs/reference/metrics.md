@@ -148,7 +148,6 @@ The total number of in-use entries per map.
 | label | values |
 | ----- | ------ |
 | `map  ` | `execve_map, tg_execve_joined_info_map` |
-| `total` | `    0` |
 
 ### `tetragon_map_errors_total`
 
