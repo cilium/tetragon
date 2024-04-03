@@ -175,6 +175,10 @@ func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheck
 		return err
 	}
 
+	// NB: some tests will run JsonTestCheckExpect multiple times. Reset any previous
+	// DoneWithExportFile from previous invocations.
+	testutils.KeepExportFile(t)
+
 	// attempt to open the export file
 	t.Logf("jsonTestCheck: opening: %s\n", jsonFname)
 	jsonFile, err := os.Open(jsonFname)

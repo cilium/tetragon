@@ -111,3 +111,17 @@ func DoneWithExportFile(t testing.TB) error {
 	exportFiles[testName] = ef
 	return nil
 }
+
+// KeepExportFile: marks the export file to be kept
+func KeepExportFile(t testing.TB) error {
+	exportFilesLock.Lock()
+	defer exportFilesLock.Unlock()
+	testName := fixupTestName(t)
+	ef, ok := exportFiles[testName]
+	if !ok {
+		return fmt.Errorf("file for test %s does not exist", testName)
+	}
+	ef.deleteFile = false
+	exportFiles[testName] = ef
+	return nil
+}
