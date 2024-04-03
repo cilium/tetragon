@@ -97,6 +97,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	containerName := arg.Req.ContainerName
 	if containerName == "" {
 		log.Warnf("failed to find container information for %s, but will continue", containerID)
+		policyfiltermetrics.ContNameMissInc()
 	}
 
 	log.WithFields(logrus.Fields{
@@ -107,10 +108,13 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		"container-name": containerName,
 	}).Trace("policyfilter: add pod container")
 	cgid := policyfilter.CgroupID(cgID)
-	if err := pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid, containerName); err != nil {
-		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
-	}
+	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid, containerName)
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation, policyfilter.ErrorLabel(err))
+
+	if err != nil {
+		log.WithError(err).Warn("failed to update policy filter, aborting hook.")
+		return err
+	}
 
 	return nil
 }
