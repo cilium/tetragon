@@ -326,7 +326,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 			Offset: fnOffset.Offset,
 			Symbol: fnOffset.SymName,
 		}
-		if option.Config.ExposeKernelAddresses {
+		if option.Config.ExposeStackAddresses {
 			entry.Address = addr
 		}
 		kernelStackTrace = append(kernelStackTrace, entry)
@@ -347,7 +347,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		entry.Offset = fsym.Offset
 		entry.Module = fsym.Module
 		entry.Symbol = fsym.Name
-		if option.Config.ExposeKernelAddresses {
+		if option.Config.ExposeStackAddresses {
 			entry.Address = addr
 		}
 		userStackTrace = append(userStackTrace, entry)

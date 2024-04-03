@@ -91,6 +91,7 @@ const (
 	KeyEnablePodInfo          = "enable-pod-info"
 	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
 
+	KeyExposeStackAddresses  = "expose-stack-addresses"
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 
 	KeyGenerateDocs = "generate-docs"
@@ -172,7 +173,15 @@ func ReadAndSetFlags() error {
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
-	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
+	// manually handle the deprecation of --expose-kernel-addresses
+	if viper.IsSet(KeyExposeKernelAddresses) {
+		log.Warnf("Flag --%s has been deprecated, please use --%s instead", KeyExposeKernelAddresses, KeyExposeStackAddresses)
+		Config.ExposeStackAddresses = viper.GetBool(KeyExposeKernelAddresses)
+	}
+	// if both --expose-kernel-addresses and --expose-stack-addresses are set, the latter takes priority
+	if viper.IsSet(KeyExposeStackAddresses) {
+		Config.ExposeStackAddresses = viper.GetBool(KeyExposeStackAddresses)
+	}
 
 	return nil
 }
@@ -281,6 +290,9 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+	flags.Bool(KeyExposeStackAddresses, false, "Expose real linear addresses in events stack traces")
+	flags.MarkHidden(KeyExposeKernelAddresses)
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
+
 }
