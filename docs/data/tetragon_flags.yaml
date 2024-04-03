@@ -97,6 +97,9 @@ options:
     - name: expose-kernel-addresses
       default_value: "false"
       usage: Expose real kernel addresses in events stack traces
+    - name: expose-stack-addresses
+      default_value: "false"
+      usage: Expose real linear addresses in events stack traces
     - name: field-filters
       usage: Field filters for event exports
     - name: force-large-progs
