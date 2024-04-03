@@ -15,6 +15,11 @@ var (
 		"The total number of in-use entries per map.",
 		[]string{"map", "total"}, nil,
 	))
+	MapCapacity = metrics.NewBPFGauge(prometheus.NewDesc(
+		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_capacity"),
+		"Capacity of a BPF map. Expected to be constant.",
+		[]string{"map"}, nil,
+	))
 	MapErrors = metrics.NewBPFCounter(prometheus.NewDesc(
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_errors_total"),
 		"The number of errors per map.",
