@@ -26,6 +26,7 @@ func NewBPFCollector() prometheus.Collector {
 
 func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- mapmetrics.MapSize.Desc()
+	ch <- mapmetrics.MapCapacity.Desc()
 	ch <- mapmetrics.MapErrors.Desc()
 }
 
@@ -73,6 +74,10 @@ func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
 		defer mapLink.Close()
 
 		updateMapSize(ch, mapLinkStats, int(mapLink.MaxEntries()), name)
+		ch <- mapmetrics.MapCapacity.MustMetric(
+			float64(mapLink.MaxEntries()),
+			name,
+		)
 		updateMapErrors(ch, mapLinkStats, name)
 	}
 }
@@ -138,6 +143,10 @@ func (c *bpfZeroCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- mapmetrics.MapSize.MustMetric(
 			0,
 			m, fmt.Sprint(0),
+		)
+		ch <- mapmetrics.MapCapacity.MustMetric(
+			0,
+			m,
 		)
 		ch <- mapmetrics.MapErrors.MustMetric(
 			0,

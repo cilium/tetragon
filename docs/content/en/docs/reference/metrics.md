@@ -133,6 +133,14 @@ The latency of handling messages in us.
 | ----- | ------ |
 | `op   ` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
 
+### `tetragon_map_capacity`
+
+Capacity of a BPF map. Expected to be constant.
+
+| label | values |
+| ----- | ------ |
+| `map  ` | `execve_map, tg_execve_joined_info_map` |
+
 ### `tetragon_map_entries`
 
 The total number of in-use entries per map.
