@@ -11,7 +11,7 @@ import (
 
 var (
 	MapSize = metrics.NewBPFGauge(prometheus.NewDesc(
-		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_in_use_gauge"),
+		prometheus.BuildFQName(consts.MetricsNamespace, "", "map_entries"),
 		"The total number of in-use entries per map.",
 		[]string{"map", "total"}, nil,
 	))

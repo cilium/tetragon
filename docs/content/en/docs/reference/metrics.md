@@ -133,15 +133,7 @@ The latency of handling messages in us.
 | ----- | ------ |
 | `op   ` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
 
-### `tetragon_map_errors_total`
-
-The number of errors per map.
-
-| label | values |
-| ----- | ------ |
-| `map  ` | `execve_map, tg_execve_joined_info_map` |
-
-### `tetragon_map_in_use_gauge`
+### `tetragon_map_entries`
 
 The total number of in-use entries per map.
 
@@ -149,6 +141,14 @@ The total number of in-use entries per map.
 | ----- | ------ |
 | `map  ` | `execve_map, tg_execve_joined_info_map` |
 | `total` | `    0` |
+
+### `tetragon_map_errors_total`
+
+The number of errors per map.
+
+| label | values |
+| ----- | ------ |
+| `map  ` | `execve_map, tg_execve_joined_info_map` |
 
 ### `tetragon_missed_events_total`
 
