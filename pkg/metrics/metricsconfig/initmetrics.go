@@ -4,6 +4,7 @@
 package metricsconfig
 
 import (
+	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
@@ -29,6 +30,7 @@ func initHealthMetrics(registry *prometheus.Registry) {
 	version.InitMetrics(registry)
 	errormetrics.InitMetrics(registry)
 	eventcachemetrics.InitMetrics(registry)
+	registry.MustRegister(eventcache.NewCacheCollector())
 	eventmetrics.InitHealthMetrics(registry)
 	mapmetrics.InitMetrics(registry)
 	opcodemetrics.InitMetrics(registry)

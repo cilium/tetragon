@@ -48,6 +48,10 @@ The total number of Tetragon errors. For internal use only.
 
 The total number of Tetragon event cache accesses. For internal use only.
 
+### `tetragon_event_cache_entries`
+
+The number of entries in the event cache.
+
 ### `tetragon_event_cache_errors_total`
 
 The total of errors encountered while fetching process exec information from the cache.
