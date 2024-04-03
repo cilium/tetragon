@@ -15,6 +15,37 @@ var ProcessCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
 	ConstLabels: nil,
 })
 
+type cacheCapacityMetric struct {
+	desc *prometheus.Desc
+}
+
+func (m *cacheCapacityMetric) Describe(ch chan<- *prometheus.Desc) {
+	ch <- m.desc
+}
+
+func (m *cacheCapacityMetric) Collect(ch chan<- prometheus.Metric) {
+	capacity := 0
+	if procCache != nil {
+		capacity = procCache.size
+	}
+	ch <- prometheus.MustNewConstMetric(
+		m.desc,
+		prometheus.GaugeValue,
+		float64(capacity),
+	)
+}
+
+func NewCacheCollector() prometheus.Collector {
+	return &cacheCapacityMetric{
+		prometheus.NewDesc(
+			prometheus.BuildFQName(consts.MetricsNamespace, "", "process_cache_capacity"),
+			"The capacity of the process cache. Expected to be constant.",
+			nil, nil,
+		),
+	}
+}
+
 func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(ProcessCacheTotal)
+	registry.MustRegister(NewCacheCollector())
 }

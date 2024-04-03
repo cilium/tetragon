@@ -195,6 +195,10 @@ Policy filter metrics. For internal use only.
 | `op   ` | `add, add-container, delete, update` |
 | `subsys` | `pod-handlers, rthooks` |
 
+### `tetragon_process_cache_capacity`
+
+The capacity of the process cache. Expected to be constant.
+
 ### `tetragon_process_cache_size`
 
 The size of the process cache
