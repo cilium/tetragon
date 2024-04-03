@@ -51,9 +51,7 @@ func initAllHealthMetrics(registry *prometheus.Registry) {
 	policystatemetrics.InitMetrics(registry)
 
 	// register custom collectors
-	registry.MustRegister(mapmetrics.NewBPFCollector(
-		observer.NewBPFCollector(),
-	))
+	registry.MustRegister(observer.NewBPFCollector())
 	registry.MustRegister(eventmetrics.NewBPFCollector())
 }
 
