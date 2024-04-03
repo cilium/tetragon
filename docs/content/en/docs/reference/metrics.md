@@ -190,6 +190,10 @@ Policy filter metrics. For internal use only.
 | `op   ` | `add, add-container, delete, update` |
 | `subsys` | `pod-handlers, rthooks` |
 
+### `tetragon_process_cache_size`
+
+The size of the process cache
+
 ### `tetragon_process_loader_stats`
 
 Process Loader event statistics. For internal use only.

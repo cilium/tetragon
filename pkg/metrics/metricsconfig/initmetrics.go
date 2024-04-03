@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/version"
 	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,6 +36,7 @@ func initHealthMetrics(registry *prometheus.Registry) {
 	mapmetrics.InitMetrics(registry)
 	opcodemetrics.InitMetrics(registry)
 	policyfiltermetrics.InitMetrics(registry)
+	process.InitMetrics(registry)
 	ringbufmetrics.InitMetrics(registry)
 	ringbufqueuemetrics.InitMetrics(registry)
 	watchermetrics.InitMetrics(registry)
