@@ -170,6 +170,10 @@ The total number of times we encounter a given message opcode. For internal use 
 
 The total number of events dropped because listener buffer was full
 
+### `tetragon_policyfilter_hook_container_name_missing_total`
+
+The total number of operations when the container name was missing in the OCI hook
+
 ### `tetragon_policyfilter_metrics_total`
 
 Policy filter metrics. For internal use only.

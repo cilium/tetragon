@@ -71,8 +71,17 @@ var (
 	}, []string{"subsys", "op", "error"})
 )
 
+var (
+	PolicyFilterHookContainerNameMissingMetrics = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "policyfilter_hook_container_name_missing_total",
+		Help:        "The total number of operations when the container name was missing in the OCI hook",
+		ConstLabels: nil,
+	})
+)
+
 func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(PolicyFilterOpMetrics)
+	registry.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics)
 
 	// Initialize metrics with labels
 	for _, subsys := range subsysLabelValues {
@@ -92,4 +101,8 @@ func InitMetrics(registry *prometheus.Registry) {
 
 func OpInc(subsys Subsys, op Operation, err string) {
 	PolicyFilterOpMetrics.WithLabelValues(subsys.String(), op.String(), err).Inc()
+}
+
+func ContNameMissInc() {
+	PolicyFilterHookContainerNameMissingMetrics.Inc()
 }
