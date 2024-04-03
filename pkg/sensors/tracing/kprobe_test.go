@@ -6100,7 +6100,7 @@ spec:
       selectors:
       - matchActions:
         - action: Post
-          stackTrace: true`
+          kernelStackTrace: true`
 
 	createCrdFile(t, tracingPolicy)
 
@@ -6117,9 +6117,9 @@ spec:
 		t.Fatalf("failed to run %s: %s", unameBin, err)
 	}
 
-	stackTraceChecker := ec.NewProcessKprobeChecker("stack-trace").
+	stackTraceChecker := ec.NewProcessKprobeChecker("kernel-stack-trace").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(unameBin))).
-		WithStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+		WithKernelStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
 			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("sys_newuname"))),
 			// we could technically check for more but stack traces look
 			// different on different archs, at least we check that the stack

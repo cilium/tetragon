@@ -300,6 +300,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -318,9 +322,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -608,6 +612,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -626,9 +634,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -963,6 +971,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -981,9 +993,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1271,6 +1283,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -1289,9 +1305,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1527,6 +1543,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -1545,9 +1565,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
@@ -1835,6 +1855,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
                                 rateLimit:
                                   description: A time period within which repeated
                                     messages will not be posted. Can be specified
@@ -1853,9 +1877,9 @@ spec:
                                     process or thread caused the action. Only valid
                                     with the post action and with a rateLimit specified.
                                   type: string
-                                stackTrace:
-                                  description: Enable stack trace export. Only valid
-                                    with the post action.
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
                                   type: boolean
                               required:
                               - action
