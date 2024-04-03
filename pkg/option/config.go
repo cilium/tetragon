@@ -85,7 +85,7 @@ type config struct {
 	EnablePodInfo          bool
 	EnableTracingPolicyCRD bool
 
-	ExposeKernelAddresses bool
+	ExposeStackAddresses bool
 }
 
 var (
