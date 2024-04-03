@@ -4,8 +4,9 @@
 #define _MSG_COMMON__
 
 /* msg_common internal flags */
-#define MSG_COMMON_FLAG_RETURN	   BIT(0)
-#define MSG_COMMON_FLAG_STACKTRACE BIT(1)
+#define MSG_COMMON_FLAG_RETURN		  BIT(0)
+#define MSG_COMMON_FLAG_KERNEL_STACKTRACE BIT(1)
+#define MSG_COMMON_FLAG_USER_STACKTRACE	  BIT(2)
 
 /* Msg Layout */
 struct msg_common {
