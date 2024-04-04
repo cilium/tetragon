@@ -120,8 +120,7 @@ docker run --name tetragon \
    --rm -it -d --pid=host \
    --cgroupns=host --privileged \
    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
-   cilium/tetragon:latest \
-   bash -c "/usr/bin/tetragon"
+   cilium/tetragon:latest
 ```
 
 Run the `tetra` binary to get Tetragon events:
