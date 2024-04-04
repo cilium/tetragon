@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/runners"
+	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"sigs.k8s.io/e2e-framework/third_party/helm"
@@ -60,16 +61,22 @@ func installDemoApp(labelsChecker *checker.RPCChecker) features.Func {
 	}
 }
 
-func uninstallDemoApp() features.Func {
-	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-		manager := helm.New(c.KubeconfigFile())
+func uninstallDemoApp() env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		manager := helm.New(cfg.KubeconfigFile())
 		if err := manager.RunUninstall(
 			helm.WithName("jobs-app"),
 			helm.WithNamespace(namespace),
 		); err != nil {
-			t.Fatalf("failed to uninstall demo app. run with `-args -v=4` for more context from helm: %s", err)
+			return ctx, fmt.Errorf("failed to uninstall demo app. run with `-args -v=4` for more context from helm: %s", err)
 		}
-		return ctx
+
+		ctx, err := helpers.DeleteNamespace(namespace, true)(ctx, cfg)
+		if err != nil {
+			return ctx, err
+		}
+
+		return ctx, nil
 	}
 }
 
@@ -87,6 +94,8 @@ func TestMain(m *testing.M) {
 
 		return ctx, nil
 	})
+
+	runner.Finish(uninstallDemoApp())
 
 	// Run the tests using the test runner.
 	runner.Run(m)
@@ -110,12 +119,8 @@ func TestLabelsDemoApp(t *testing.T) {
 		Assess("Run Workload", installDemoApp(labelsChecker)).
 		Feature()
 
-	uninstall := features.New("Uninstall Demo App").
-		Assess("Uninstall", uninstallDemoApp()).Feature()
-
 	// Spawn workload and run checker
 	runner.TestInParallel(t, runEventChecker, runWorkload)
-	runner.Test(t, uninstall)
 }
 
 func labelsEventChecker() *checker.RPCChecker {
