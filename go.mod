@@ -12,7 +12,7 @@ require (
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.14
+	github.com/containerd/containerd v1.7.15
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/fatih/color v1.16.0
 	github.com/go-openapi/strfmt v0.23.0
