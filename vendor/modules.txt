@@ -284,7 +284,7 @@ github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
 github.com/containerd/cgroups/v2
 github.com/containerd/cgroups/v2/stats
-# github.com/containerd/containerd v1.7.14
+# github.com/containerd/containerd v1.7.15
 ## explicit; go 1.21
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
