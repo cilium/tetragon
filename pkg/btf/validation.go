@@ -45,7 +45,19 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 
 	err := bspec.TypeByName(call, &fn)
 	if err != nil {
-		return &ValidationFailed{s: fmt.Sprintf("call %q not found", call)}
+		if !kspec.Syscall {
+			return &ValidationFailed{s: fmt.Sprintf("call %q not found", call)}
+		}
+		origCall := call
+		call, err = arch.AddSyscallPrefix(call)
+		if err == nil {
+			err = bspec.TypeByName(call, &fn)
+		}
+		if err != nil {
+			return &ValidationFailed{
+				s: fmt.Sprintf("syscall %q (or %q) not found.", origCall, call),
+			}
+		}
 	}
 
 	proto, ok := fn.Type.(*btf.FuncProto)
