@@ -138,7 +138,6 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 func getKernelType(arg btf.Type) string {
 	suffix := ""
 	ptr, ok := arg.(*btf.Pointer)
-
 	if ok {
 		arg = ptr.Target
 		_, ok = arg.(*btf.Void)
@@ -155,6 +154,25 @@ func getKernelType(arg btf.Type) string {
 	if ok {
 		return "struct " + strct.Name + suffix
 	}
+
+	union, ok := arg.(*btf.Union)
+	if ok {
+		return "union " + union.Name + suffix
+	}
+
+	cnst, ok := arg.(*btf.Const)
+	if ok {
+		// NB: ignore const
+		ty := cnst.Type
+		if ptr != nil {
+			// NB: if this was a pointer, reconstruct the type without const
+			ty = &btf.Pointer{
+				Target: ty,
+			}
+		}
+		return getKernelType(ty)
+	}
+
 	// TODO - add more types, above is enough to make validation_test pass
 	return arg.TypeName() + suffix
 }
