@@ -114,7 +114,7 @@ github_project_repo = "https://github.com/cilium/tetragon"
 github_subdir = "docs"
 
 # URL of the Star Wars demo app.
-demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.0-pre.1/examples/minikube/http-sw-app.yaml"
+demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.3/examples/minikube/http-sw-app.yaml"
 
 # The version number for the version of the docs represented in this doc set.
 # Used in the "version-banner" partial to display a version number for the
