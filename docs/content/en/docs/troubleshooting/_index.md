@@ -58,7 +58,7 @@ single node using `tetra bugtool`.
 3. Retrieve the created archive from the Pod's filesystem:
 
    ```bash
-   kubectl cp -c tetragon <tetragon-namespace>/<tetragon-pod-name>:tetragon-bugtool.tar.gz tetragon-bugtool-tar.gz
+   kubectl cp -c tetragon <tetragon-namespace>/<tetragon-pod-name>:tetragon-bugtool.tar.gz tetragon-bugtool.tar.gz
    ```
 
 #### Container installation
