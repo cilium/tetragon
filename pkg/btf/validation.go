@@ -127,6 +127,9 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 
 	if kspec.Return {
 		retTyStr := getKernelType(proto.Return)
+		if kspec.ReturnArg == nil {
+			return &ValidationWarn{s: "return is set to true, but there is no return arg specified"}
+		}
 		if !typesCompatible(kspec.ReturnArg.Type, retTyStr) {
 			return &ValidationWarn{s: fmt.Sprintf("return type (%s) does not match spec return type (%s)\n", retTyStr, kspec.ReturnArg.Type)}
 		}
