@@ -453,7 +453,7 @@ copy_path(char *args, const struct path *arg)
 
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
 		     :);
-	probe_read(curr, size, buffer);
+	probe_read_kernel(curr, size, buffer);
 	*s = size;
 	size += 4;
 
@@ -885,11 +885,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 	if (index <= 5)
-		probe_read(&heap[1], len, arg_str);
+		probe_read_kernel(&heap[1], len, arg_str);
 	else
-		probe_read(&heap[2], len, arg_str);
+		probe_read_kernel(&heap[2], len, arg_str);
 #else
-	probe_read(&heap[1], len, arg_str);
+	probe_read_kernel(&heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -899,11 +899,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 			     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 		if (index <= 5)
-			probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			probe_read_kernel(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 		else
-			probe_read(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			probe_read_kernel(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		probe_read_kernel(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
@@ -945,7 +945,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 		     : [arg_len] "+r"(arg_len)
 		     : [mask] "i"(STRING_PREFIX_MAX_LENGTH - 1));
 
-	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
+	probe_read_kernel(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
 
 	__u8 *pass = map_lookup_elem(addrmap, arg);
 
@@ -1726,7 +1726,7 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 			// prepare the key on the stack to perform lookup in the LPM_TRIE
 			memset(&prefix_key, 0, sizeof(prefix_key));
 			prefix_key.prefixlen = current->bin.path_length * 8; // prefixlen is in bits
-			ret = probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
+			ret = probe_read_kernel(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
 			if (ret < 0)
 				return 0;
 			found_key = map_lookup_elem(path_map, &prefix_key);
@@ -1957,8 +1957,8 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     : [size] "+r"(size)
 			     :);
 
-		probe_read(&val.file[0], size + 4 /* size */ + 4 /* flags */,
-			   &e->args[nameoff]);
+		probe_read_kernel(&val.file[0], size + 4 /* size */ + 4 /* flags */,
+				  &e->args[nameoff]);
 		map_update_elem(&fdinstall_map, &key, &val, BPF_ANY);
 	} else {
 		err = map_delete_elem(&fdinstall_map, &key);
@@ -2105,7 +2105,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	}
 
 	// Clean the heap
-	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
+	probe_read_kernel(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
@@ -2122,7 +2122,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
 				     : [arg_size] "+r"(arg_size)
 				     :);
-			probe_read(&dst[index], arg_size, &e->args[key_index]);
+			probe_read_kernel(&dst[index], arg_size, &e->args[key_index]);
 			index += arg_size;
 		}
 	}
@@ -2527,9 +2527,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	      struct bpf_map_def *data_heap)
 {
 	size_t min_size = type_to_min_size(type, argm);
+	const struct path *path_arg = 0;
 	char *args = e->args;
 	long size = -1;
-	const struct path *path_arg = 0;
 
 	if (orig_off >= 16383 - min_size) {
 		return 0;
@@ -2554,38 +2554,34 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	}
 		// fallthrough to file_ty
 	case file_ty: {
-		struct file *file;
-		probe_read(&file, sizeof(file), &arg);
+		struct file *file = (struct file *)arg;
 		path_arg = _(&file->f_path);
 		goto do_copy_path;
 	}
 	case path_ty: {
-		probe_read(&path_arg, sizeof(path_arg), &arg);
+		path_arg = (struct path *)arg;
 		goto do_copy_path;
 	}
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;
-		__u32 fd;
 
 		key.tid = get_current_pid_tgid() >> 32;
-		probe_read(&fd, sizeof(__u32), &arg);
-		key.fd = fd;
-
+		key.fd = arg;
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
 			__u32 bytes = (__u32)val->file[0];
 
-			probe_read(&args[0], sizeof(__u32), &fd);
+			*(__u32 *)args = key.fd;
 			asm volatile("%[bytes] &= 0xff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			probe_read_kernel(&args[4], bytes + 4, (char *)&val->file[0]);
 			size = bytes + 4 + 4;
 
 			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
+			probe_read_kernel(&args[size], 4,
+					  (char *)&val->file[size - 4]);
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
@@ -2607,8 +2603,8 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	} break;
 #endif
 	case filename_ty: {
-		struct filename *file;
-		probe_read(&file, sizeof(file), &arg);
+		struct filename *file = (struct filename *)arg;
+
 		probe_read(&arg, sizeof(arg), &file->name);
 	}
 		// fallthrough to copy_string
@@ -2631,26 +2627,26 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case size_type:
 	case s64_ty:
 	case u64_ty:
-		probe_read(args, sizeof(__u64), &arg);
+		*(__u64 *)args = arg;
 		size = sizeof(__u64);
 		break;
 	/* Consolidate all the types to save instructions */
 	case int_type:
 	case s32_ty:
 	case u32_ty:
-		probe_read(args, sizeof(__u32), &arg);
+		*(__u32 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case s16_ty:
 	case u16_ty:
 		/* read 2 bytes, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u16), &arg);
+		*(__u16 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case s8_ty:
 	case u8_ty:
 		/* read 1 byte, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u8), &arg);
+		*(__u8 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case skb_type:
