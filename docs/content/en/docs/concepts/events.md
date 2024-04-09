@@ -205,7 +205,7 @@ Since Tetragon traces the entire system, event exports might sometimes contain
 sensitive information (for example, a secret passed via a command line argument
 to a process). To prevent this information from being exfiltrated via Tetragon
 JSON export, Tetragon provides a mechanism called Redaction Filters which can be
-used to select events and string patterns to redact. These filters are written
+used to string patterns to redact from exported process arguments. These filters are written
 in JSON and passed to the Tetragon agent via the `--redaction-filters` command
 line flag or the `redactionFilters` Helm value.
 
@@ -218,9 +218,8 @@ When writing regular expressions in JSON, it is important to escape backslash
 characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpasswd\\W?"}`.
 {{< /warning >}}
 
-Redaction filters select events using the `match` field, which contains one or
-more filters (these filters are defined the same way as export filters). If no
-match filter is defined, all events are selected.
+For more control, you can select which binary or binaries should have their
+arguments redacted with the `binary_regex` field.
 
 As a concrete example, the following will redact all passwords passed to
 processes with the `"--password"` argument:
@@ -236,7 +235,7 @@ Suppose we also see some passwords passed via the -p shorthand for a specific bi
 We can also redact these as follows:
 
 ```json
-{"match": [{"binary_regex": "(?:^|/)foo$"}], "redact": ["-p(?:\\s+|=)(\\S*)"]}
+{"binary_regex": ["(?:^|/)foo$"], "redact": ["-p(?:\\s+|=)(\\S*)"]}
 ```
 
 With both of the above redaction filters in place, we are now redacting all
