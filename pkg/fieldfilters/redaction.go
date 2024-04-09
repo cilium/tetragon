@@ -4,7 +4,6 @@
 package fieldfilters
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,24 +11,22 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/filters"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
-	"google.golang.org/protobuf/reflect/protopath"
-	"google.golang.org/protobuf/reflect/protorange"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const REDACTION_STR = "*****"
 
 type RedactionFilter struct {
-	match  hubbleFilters.FilterFuncs
-	redact []*regexp.Regexp
+	binaryRegex []*regexp.Regexp
+	redact      []*regexp.Regexp
 }
 
-type RedactionFilterList []*RedactionFilter
+type RedactionFilterList struct {
+	list []*RedactionFilter
+}
 
-func ParseRedactionFilterList(filters string) (RedactionFilterList, error) {
+var RedactionFilters *RedactionFilterList
+
+func ParseRedactionFilterList(filters string) (*RedactionFilterList, error) {
 	if filters == "" {
 		return nil, nil
 	}
@@ -49,7 +46,9 @@ func ParseRedactionFilterList(filters string) (RedactionFilterList, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiled, nil
+	return &RedactionFilterList{
+		list: compiled,
+	}, nil
 }
 
 func RedactionFilterListFromProto(protoFilters []*tetragon.RedactionFilter) ([]*RedactionFilter, error) {
@@ -67,17 +66,14 @@ func RedactionFilterListFromProto(protoFilters []*tetragon.RedactionFilter) ([]*
 
 // redactionFilterFromProto constructs a new RedactionFilter from a Tetragon API redaction filter.
 func redactionFilterFromProto(protoFilter *tetragon.RedactionFilter) (*RedactionFilter, error) {
-	var err error
 	filter := &RedactionFilter{}
 
-	// Construct match funcs
-	filter.match, err = filters.BuildFilterList(context.TODO(), protoFilter.Match, filters.Filters)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct match for redaction filter: %w", err)
-	}
-
-	if len(protoFilter.Redact) == 0 {
-		return nil, fmt.Errorf("refusing to construct redaction filter with no redactions")
+	for _, re := range protoFilter.BinaryRegex {
+		compiled, err := regexp.Compile(re)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile binary regex `%s`: %w", re, err)
+		}
+		filter.binaryRegex = append(filter.binaryRegex, compiled)
 	}
 
 	// Compile regex
@@ -92,74 +88,38 @@ func redactionFilterFromProto(protoFilter *tetragon.RedactionFilter) (*Redaction
 	return filter, nil
 }
 
-// Redact resursively checks any string fields in the event for matches to
-// redaction regexes and replaces any capture groups with `*****`.
-func (f RedactionFilterList) Redact(event *tetragon.GetEventsResponse) {
-	// We need to do this in two batch stages: match and redact.
-	// This is necessary to handle the case where we have a redaction filter
-	// earlier in the list that would redact a field used in a match statement
-	// of another redaction filter later in the list. If we don't do the
-	// matching first, the second redaction filter would never match.
-	doesMatch := []bool{}
-	ev := &v1.Event{Event: event}
-	for _, filter := range f {
-		doesMatch = append(doesMatch, filter.match.MatchOne(ev))
+// Redact redacts a string based on redaction filters.
+func (f RedactionFilterList) Redact(binary, args string) string {
+	for _, filter := range f.list {
+		args = filter.Redact(binary, args)
 	}
-
-	for i := range f {
-		if !doesMatch[i] {
-			continue
-		}
-		f[i].doRedact(event.ProtoReflect())
-	}
+	return args
 }
 
 // Redact resursively checks any string fields in the event for matches to
 // redaction regexes and replaces any capture groups with `*****`.
 //
 // NOTE: If you're using multiple redaction filters, reach for RedactionFilterList.Redact() instead.
-func (f RedactionFilter) Redact(event *tetragon.GetEventsResponse) {
-	ev := &v1.Event{Event: event}
-	if !f.match.MatchOne(ev) {
-		return
+func (f RedactionFilter) Redact(binary, args string) string {
+	// Default match to true if we have no binary regexes
+	binaryMatch := len(f.binaryRegex) == 0
+	for _, re := range f.binaryRegex {
+		if re.MatchString(binary) {
+			binaryMatch = true
+		}
 	}
-	f.doRedact(event.ProtoReflect())
+	if !binaryMatch {
+		return args
+	}
+	for _, re := range f.redact {
+		args, _ = redactString(re, args)
+	}
+	return args
 }
 
-func (f *RedactionFilter) doRedact(msg protoreflect.Message) {
-	protorange.Range(msg, func(p protopath.Values) error {
-		last := p.Index(-1)
-		s, ok := last.Value.Interface().(string)
-		if !ok {
-			return nil
-		}
-
-		for _, re := range f.redact {
-			s = redactString(re, s)
-		}
-
-		beforeLast := p.Index(-2)
-		switch last.Step.Kind() {
-		case protopath.FieldAccessStep:
-			m := beforeLast.Value.Message()
-			fd := last.Step.FieldDescriptor()
-			m.Set(fd, protoreflect.ValueOfString(s))
-		case protopath.ListIndexStep:
-			ls := beforeLast.Value.List()
-			i := last.Step.ListIndex()
-			ls.Set(i, protoreflect.ValueOfString(s))
-		case protopath.MapIndexStep:
-			ms := beforeLast.Value.Map()
-			k := last.Step.MapIndex()
-			ms.Set(k, protoreflect.ValueOfString(s))
-		}
-
-		return nil
-	})
-}
-
-func redactString(re *regexp.Regexp, s string) string {
-	s = re.ReplaceAllStringFunc(s, func(s string) string {
+func redactString(re *regexp.Regexp, s string) (string, bool) {
+	modified := false
+	res := re.ReplaceAllStringFunc(s, func(s string) string {
 		var redacted strings.Builder
 
 		idx := re.FindStringSubmatchIndex(s)
@@ -174,6 +134,7 @@ func redactString(re *regexp.Regexp, s string) string {
 			if idx[i] < lastOffset {
 				continue
 			}
+			modified = true
 			redacted.WriteString(s[lastOffset:idx[i]])
 			redacted.WriteString(REDACTION_STR)
 			lastOffset = idx[i+1]
@@ -183,5 +144,5 @@ func redactString(re *regexp.Regexp, s string) string {
 
 		return redacted.String()
 	})
-	return s
+	return res, modified
 }

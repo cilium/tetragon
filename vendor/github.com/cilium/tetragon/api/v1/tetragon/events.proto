@@ -84,10 +84,12 @@ message CapFilterSet {
 }
 
 message RedactionFilter {
-    // Match events that the redaction filter will apply to.
-    repeated Filter match = 1;
+    // Deprecated, do not use.
+    repeated Filter match = 1 [deprecated=true];
     // Regular expressions to use for redaction. Strings inside capture groups are redacted.
     repeated string redact = 2;
+    // Regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
+    repeated string binary_regex = 3;
 }
 
 // Determines the behavior of a field filter

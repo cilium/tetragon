@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
@@ -350,6 +351,11 @@ func initProcessInternalExec(
 		process.TID = process.PID
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
+
+	if fieldfilters.RedactionFilters != nil {
+		args = fieldfilters.RedactionFilters.Redact(binary, args)
+	}
+
 	return &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},

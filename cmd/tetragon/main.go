@@ -109,9 +109,16 @@ func getFieldFilters() ([]*tetragon.FieldFilter, error) {
 	return filters, nil
 }
 
-func getRedactionFilters() (fieldfilters.RedactionFilterList, error) {
+func setRedactionFilters() error {
+	var err error
 	redactionFilters := viper.GetString(option.KeyRedactionFilters)
-	return fieldfilters.ParseRedactionFilterList(redactionFilters)
+	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(redactionFilters)
+	if err != nil {
+		log.WithFields(logrus.Fields{"redactionFilters": redactionFilters}).Info("Configured redaction filters")
+	} else {
+		log.WithError(err).Error("Error configuring redaction filters")
+	}
+	return err
 }
 
 // Save daemon information so it is used by client cli but
@@ -410,18 +417,16 @@ func tetragonExecute() error {
 
 	hookRunner := rthooks.GlobalRunner().WithWatcher(k8sWatcher)
 
-	redactionFilters, err := getRedactionFilters()
+	err = setRedactionFilters()
 	if err != nil {
 		return err
 	}
-	log.WithFields(logrus.Fields{"redactionFilters": redactionFilters}).Info("Configured redaction filters")
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
 		observer.GetSensorManager(),
-		hookRunner,
-		redactionFilters)
+		hookRunner)
 	if err != nil {
 		return err
 	}
