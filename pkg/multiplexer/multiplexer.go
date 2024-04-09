@@ -75,18 +75,15 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 		klog.V(2).InfoS("Connecting to gRPC server...", "addr", addr)
 		go func(addr string) {
 			defer wg.Done()
-
-			conn, err := grpc.DialContext(
-				connCtx,
-				addr,
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
-
+			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, err)}
 				return
 			}
-
+			if !conn.WaitForStateChange(connCtx, conn.GetState()) {
+				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, connCtx.Err())}
+				return
+			}
 			queue <- connResult{conn, nil}
 			logger.GetLogger().WithField("addr", addr).Info("Connected to gRPC server")
 		}(addr)

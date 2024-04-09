@@ -31,12 +31,12 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 		// context, but we keep things simple for now.
 		connCtx, connCancel := context.WithTimeout(ctx, 2*time.Second)
 		defer connCancel()
-		conn, err := grpc.DialContext(
-			connCtx, addr,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithBlock())
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			return fmt.Errorf("failed to connect to tetragon (%s) grpc forwarded port (%d): %w", podName, grpcPort, err)
+			return fmt.Errorf("failed to create client to tetragon (%s) grpc forwarded port (%d): %w", podName, grpcPort, err)
+		}
+		if !conn.WaitForStateChange(connCtx, conn.GetState()) {
+			return fmt.Errorf("failed to connect to tetragon (%s) grpc forwarded port (%d): %w", podName, grpcPort, connCtx.Err())
 		}
 		defer conn.Close()
 		client := tetragon.NewFineGuidanceSensorsClient(conn)

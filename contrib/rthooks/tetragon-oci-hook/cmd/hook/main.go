@@ -81,9 +81,12 @@ func hookRequest(req *tetragon.RuntimeHookRequest) error {
 
 	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
 	defer connCancel()
-	conn, err := grpc.DialContext(connCtx, cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.NewClient(cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("connecting to agent (%s) failed: %s", err, cliConf.AgentAddr)
+		return fmt.Errorf("creating a gRPC client to agent (%s) failed: %s", cliConf.AgentAddr, err.Error())
+	}
+	if !conn.WaitForStateChange(connCtx, conn.GetState()) {
+		return fmt.Errorf("connecting to agent (%s) failed: %s", cliConf.AgentAddr, connCtx.Err().Error())
 	}
 	defer conn.Close()
 

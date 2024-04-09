@@ -59,8 +59,14 @@ func connect(ctx context.Context) (*grpc.ClientConn, string, error) {
 		}
 	}
 
-	conn, err := grpc.DialContext(connCtx, ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	return conn, ServerAddress, err
+	conn, err := grpc.NewClient(ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, ServerAddress, err
+	}
+	if !conn.WaitForStateChange(connCtx, conn.GetState()) {
+		return nil, ServerAddress, connCtx.Err()
+	}
+	return conn, ServerAddress, nil
 }
 
 func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {

@@ -587,14 +587,13 @@ func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
 func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	conn, err := grpc.DialContext(
-		ctx,
-		s.info.ServerAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	conn, err := grpc.NewClient(s.info.ServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		s.multiLog.Warnf("failed to connect to %s: %v", s.info.ServerAddr, err)
+		s.multiLog.Warnf("failed to create a client to %s: %v", s.info.ServerAddr, err)
+		return
+	}
+	if !conn.WaitForStateChange(ctx, conn.GetState()) {
+		s.multiLog.Warnf("failed to connect to %s: %v", s.info.ServerAddr, ctx.Err())
 		return
 	}
 	defer conn.Close()
