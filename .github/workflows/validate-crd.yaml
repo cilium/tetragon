@@ -22,7 +22,7 @@ jobs:
           version_changed=0
 
           # Check for CRD changes
-          crd_changes=$(git diff --name-only origin/${{ github.base_ref }} origin/${{ github.head_ref }} -- pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml)
+          crd_changes=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml)
           if [ -n "$crd_changes" ]; then
             crd_changed=1
           fi
