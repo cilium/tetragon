@@ -6,6 +6,7 @@
 
 #include "bpf_tracing.h"
 #include "data_msg.h"
+#include "types/probe_read_kernel_or_user.h"
 
 static inline __attribute__((always_inline)) long
 __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)

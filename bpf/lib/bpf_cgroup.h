@@ -9,6 +9,8 @@
 #include "environ_conf.h"
 #include "common.h"
 #include "process.h"
+#include "../process/types/probe_read_kernel_or_user.h"
+#include "bpf_tracing.h"
 
 #define NULL ((void *)0)
 

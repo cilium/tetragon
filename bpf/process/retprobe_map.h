@@ -4,6 +4,9 @@
 #ifndef __RETPROBE_MAP_H__
 #define __RETPROBE_MAP_H__
 
+#include "vmlinux.h"
+#include "api.h"
+#include "types/probe_read_kernel_or_user.h"
 #include "bpf_tracing.h"
 
 struct retprobe_key {

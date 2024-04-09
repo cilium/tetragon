@@ -22,6 +22,7 @@
 #include "common.h"
 #include "process/data_event.h"
 #include "process/bpf_enforcer.h"
+#include "probe_read_kernel_or_user.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
