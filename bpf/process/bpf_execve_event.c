@@ -8,12 +8,13 @@
 #include "bpf_task.h"
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
+#include "bpf_rate.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 1);
+	__uint(max_entries, 2);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
 } execve_calls SEC(".maps");
@@ -233,6 +234,21 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	return 0;
 }
 
+__attribute__((section("tracepoint/0"), used)) int
+execve_rate(void *ctx)
+{
+	struct msg_execve_event *msg;
+	__u32 zero = 0;
+
+	msg = map_lookup_elem(&execve_msg_heap_map, &zero);
+	if (!msg)
+		return 0;
+
+	if (cgroup_rate(ctx, &msg->kube, msg->common.ktime))
+		tail_call(ctx, &execve_calls, 1);
+	return 0;
+}
+
 /**
  * execve_send() sends the collected execve event data.
  *
@@ -240,7 +256,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
  * is to update the pid execve_map entry to reflect the new execve event that
  * has already been collected, then send it to the perf buffer.
  */
-__attribute__((section("tracepoint/0"), used)) int
+__attribute__((section("tracepoint/1"), used)) int
 execve_send(void *ctx)
 {
 	struct msg_execve_event *event;
