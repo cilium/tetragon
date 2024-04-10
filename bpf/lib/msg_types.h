@@ -31,6 +31,8 @@ enum msg_ops {
 
 	MSG_OP_LOADER = 26,
 
+	MSG_OP_THROTTLE = 27,
+
 	MSG_OP_MAX,
 };
 

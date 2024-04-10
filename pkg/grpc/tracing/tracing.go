@@ -814,3 +814,38 @@ func (msg *MsgGenericUprobeUnix) Cast(o interface{}) notify.Message {
 	t := o.(MsgGenericUprobeUnix)
 	return &t
 }
+
+type MsgProcessThrottleUnix struct {
+	Type   tetragon.ThrottleType
+	Cgroup string
+	Ktime  uint64
+}
+
+func (msg *MsgProcessThrottleUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgProcessThrottleUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
+	return nil, fmt.Errorf("Unreachable state: MsgProcessThrottleUnix RetryInternal() was called")
+}
+
+func (msg *MsgProcessThrottleUnix) Retry(_ *process.ProcessInternal, _ notify.Event) error {
+	return fmt.Errorf("Unreachable state: MsgProcessThrottleUnix Retry() was called")
+}
+
+func (msg *MsgProcessThrottleUnix) HandleMessage() *tetragon.GetEventsResponse {
+	event := &tetragon.ProcessThrottle{
+		Type:   msg.Type,
+		Cgroup: msg.Cgroup,
+	}
+	return &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessThrottle{ProcessThrottle: event},
+		NodeName: nodeName,
+		Time:     ktime.ToProto(msg.Ktime),
+	}
+}
+
+func (msg *MsgProcessThrottleUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgProcessThrottleUnix)
+	return &t
+}

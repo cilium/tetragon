@@ -26,8 +26,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -127,6 +129,11 @@ func (r *CgroupRate) updateCgroups(cq *cgroupQueue) {
 	r.cgroups[cq.id] = cq.name
 
 	// start throttle event
+	r.notify(&tracing.MsgProcessThrottleUnix{
+		Type:   tetragon.ThrottleType_THROTTLE_START,
+		Cgroup: cq.name,
+		Ktime:  cq.ktime,
+	})
 }
 
 func (r *CgroupRate) processCgroups() {
@@ -192,6 +199,11 @@ func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 			handle.log.WithError(err).Warn("failed to update cgroup rate values")
 		}
 		// stop throttle event
+		r.notify(&tracing.MsgProcessThrottleUnix{
+			Type:   tetragon.ThrottleType_THROTTLE_STOP,
+			Cgroup: cgroup,
+			Ktime:  last,
+		})
 		return true
 	}
 
