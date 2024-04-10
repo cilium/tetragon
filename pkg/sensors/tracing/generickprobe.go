@@ -711,6 +711,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
 		config.ArgReturn = int32(argType)
+		argMValue, err := getMetaValue(f.ReturnArg, f.Syscall, false)
+		if err != nil {
+			return errFn(err)
+		}
+		config.ArgMReturn = uint32(argMValue)
 		argsBTFSet[api.ReturnArgIndex] = true
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
@@ -724,6 +729,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
 		config.ArgReturnCopy = int32(argType)
+		argMValue, err := getMetaValue(argRetprobe, f.Syscall, false)
+		if err != nil {
+			return errFn(err)
+		}
+		config.ArgMReturnCopy = uint32(argMValue)
 
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)

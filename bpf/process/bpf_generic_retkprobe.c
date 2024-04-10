@@ -71,14 +71,15 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
-	struct retprobe_info info;
 	struct event_config *config;
+	struct retprobe_info info;
 	bool walker = false;
-	int zero = 0;
-	__u32 ppid;
-	long size = 0;
-	long ty_arg, do_copy;
+	bool userspace;
 	__u64 pid_tgid;
+	long size = 0;
+	int zero = 0;
+	long ty_arg;
+	__u32 ppid;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -102,9 +103,8 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	size += sizeof(info.ktime_enter);
 
 	ty_arg = config->argreturn;
-	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap_ptr);
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, config->argmreturn, (struct bpf_map_def *)data_heap_ptr);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 		switch (config->argreturnaction) {
@@ -128,12 +128,13 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	asm volatile("%[size] &= 0x1fff;\n" ::[size] "+r"(size)
 		     :);
 
-	switch (do_copy) {
+	userspace = is_userspace_data(info.meta);
+	switch (config->argreturncopy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr, false);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr, userspace);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e, false);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e, userspace);
 	default:
 		break;
 	}

@@ -44,9 +44,6 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		int am;
 
 		am = (&config->arg0m)[index];
-		asm volatile("%[am] &= 0xffff;\n" ::[am] "+r"(am)
-			     :);
-
 		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap);
 		if (errv > 0)
 			total += errv;
@@ -169,7 +166,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	/* If return arg is needed mark retprobe */
 	ty = config->argreturn;
 	if (ty > 0)
-		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1, config->argmreturn);
 #endif
 
 #ifdef GENERIC_UPROBE

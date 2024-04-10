@@ -576,7 +576,9 @@ type EventConfig struct {
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`
 	Syscall         uint32                     `align:"syscall"`
 	ArgReturnCopy   int32                      `align:"argreturncopy"`
+	ArgMReturnCopy  uint32                     `align:"argmreturncopy"`
 	ArgReturn       int32                      `align:"argreturn"`
+	ArgMReturn      uint32                     `align:"argmreturn"`
 	ArgReturnAction int32                      `align:"argreturnaction"`
 	PolicyID        uint32                     `align:"policy_id"`
 	Flags           uint32                     `align:"flags"`

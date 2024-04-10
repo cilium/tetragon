@@ -162,7 +162,9 @@ struct event_config {
 	__u32 t_arg4_ctx_off;
 	__u32 syscall;
 	__s32 argreturncopy;
+	__u32 argmreturncopy;
 	__s32 argreturn;
+	__u32 argmreturn;
 	/* arg return action specifies to act on the return value; currently
 	 * supported actions include: TrackSock and UntrackSock.
 	 */
@@ -747,7 +749,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	if (hasReturnCopy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
 
-		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
+		retprobe_map_set(e->func_id, retid, e->common.ktime, arg, argm);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
@@ -1273,7 +1275,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	if (hasReturnCopy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
 
-		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
+		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta, argm);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e, is_userspace_data(argm));

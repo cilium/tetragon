@@ -18,6 +18,8 @@ struct retprobe_info {
 	unsigned long ktime_enter;
 	unsigned long ptr;
 	unsigned long cnt;
+	unsigned int meta;
+	unsigned int pad;
 };
 
 struct {
@@ -59,11 +61,12 @@ static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 id,
 }
 
 static inline __attribute__((always_inline)) void
-retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
+retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr, __u32 meta)
 {
 	struct retprobe_info info = {
 		.ktime_enter = ktime,
 		.ptr = ptr,
+		.meta = meta,
 	};
 	struct retprobe_key key = {
 		.id = id,
@@ -75,12 +78,13 @@ retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 
 static inline __attribute__((always_inline)) void
 retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
-		       unsigned long cnt)
+		       unsigned long cnt, __u32 meta)
 {
 	struct retprobe_info info = {
 		.ktime_enter = ktime,
 		.ptr = ptr,
 		.cnt = cnt,
+		.meta = meta,
 	};
 	struct retprobe_key key = {
 		.id = id,
