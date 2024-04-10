@@ -4,8 +4,6 @@
 package syscallmetrics
 
 import (
-	"slices"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
@@ -14,7 +12,7 @@ import (
 )
 
 var (
-	syscallStats = metrics.MustNewGranularCounter(prometheus.CounterOpts{
+	syscallStats = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "syscalls_total",
 		Help:        "System calls observed.",
@@ -33,7 +31,8 @@ func InitMetricsForDocs(registry *prometheus.Registry) {
 	InitMetrics(registry)
 
 	// Initialize metrics with example labels
-	syscallStats.WithLabelValues(slices.Concat([]string{consts.ExampleSyscallLabel}, consts.ExampleProcessLabels)...).Inc()
+	processLabels := metrics.NewProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
+	syscallStats.WithLabelValues(processLabels, consts.ExampleSyscallLabel).Inc()
 }
 
 func Handle(event interface{}) {
@@ -42,25 +41,24 @@ func Handle(event interface{}) {
 		return
 	}
 
-	var syscall, namespace, workload, pod, binary string
+	var syscall string
+	var processLabels metrics.ProcessLabels
 	if tpEvent := ev.GetProcessTracepoint(); tpEvent != nil {
 		if tpEvent.Subsys == "raw_syscalls" && tpEvent.Event == "sys_enter" {
 			syscall = rawSyscallName(tpEvent)
 			if tpEvent.Process != nil {
 				if tpEvent.Process.Pod != nil {
-					namespace = tpEvent.Process.Pod.Namespace
-					workload = tpEvent.Process.Pod.Workload
-					pod = tpEvent.Process.Pod.Name
+					processLabels.Namespace = tpEvent.Process.Pod.Namespace
+					processLabels.Workload = tpEvent.Process.Pod.Workload
+					processLabels.Pod = tpEvent.Process.Pod.Name
 				}
-				binary = tpEvent.Process.Binary
+				processLabels.Binary = tpEvent.Process.Binary
 			}
 		}
 	}
 
 	if syscall != "" {
-		syscallStats.
-			WithLabelValues(syscall, namespace, workload, pod, binary).
-			Inc()
+		syscallStats.WithLabelValues(&processLabels, syscall).Inc()
 	}
 }
 

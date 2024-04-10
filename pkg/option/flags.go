@@ -5,7 +5,6 @@ package option
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -136,7 +135,7 @@ func ReadAndSetFlags() error {
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
-	Config.MetricsLabelFilter = ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter))
+	Config.MetricsLabelFilter = parseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter))
 	Config.ServerAddress = viper.GetString(KeyServerAddress)
 
 	Config.ExportFilename = viper.GetString(KeyExportFilename)
@@ -184,14 +183,6 @@ func ReadAndSetFlags() error {
 	}
 
 	return nil
-}
-
-func ParseMetricsLabelFilter(labels string) map[string]interface{} {
-	result := make(map[string]interface{})
-	for _, label := range strings.Split(labels, ",") {
-		result[label] = nil
-	}
-	return result
 }
 
 func AddFlags(flags *pflag.FlagSet) {
