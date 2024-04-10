@@ -464,11 +464,11 @@ spec:
       type: "int64"
     selectors:
     - matchArgs:
-      - index: 0
+      - index: 4
         operator: "InMap"
         values:
         - "list:prctl"
-      - index: 1
+      - index: 5
         operator: "Equal"
         values:
         - 0xffff
@@ -506,11 +506,11 @@ spec:
       type: "int64"
     selectors:
     - matchArgs:
-      - index: 0
+      - index: 4
         operator: "InMap"
         values:
         - "list:prctl"
-      - index: 1
+      - index: 5
         operator: "Equal"
         values:
         - 0xfffe

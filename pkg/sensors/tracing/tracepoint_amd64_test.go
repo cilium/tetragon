@@ -51,9 +51,9 @@ func testListSyscallsDups(t *testing.T, checker *eventchecker.UnorderedEventChec
 	assert.NoError(t, err)
 }
 
-func TestTracepointListSyscallDups(t *testing.T) {
+func TestTracepointListSyscallDupsEqual(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestTracepointListSyscallDupsEqual requires at least 5.3.0 version")
 	}
 
 	myPid := observertesthelper.GetMyPid()
@@ -87,11 +87,11 @@ spec:
         values:
         - ` + pidStr + `
       matchArgs:
-      - index: 0
+      - index: 4
         operator: "InMap"
         values:
         - "list:test"
-      - index: 1
+      - index: 5
         operator: "Equal"
         values:
         - 9999

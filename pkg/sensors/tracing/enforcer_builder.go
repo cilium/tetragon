@@ -184,7 +184,7 @@ func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 				}},
 				Selectors: []v1alpha1.KProbeSelector{{
 					MatchArgs: []v1alpha1.ArgSelector{{
-						Index:    0,
+						Index:    4,
 						Operator: operator,
 						Values:   listNames,
 					}},
