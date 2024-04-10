@@ -6,6 +6,7 @@ package option
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,7 +48,7 @@ type config struct {
 	DataCacheSize    int
 
 	MetricsServer      string
-	MetricsLabelFilter map[string]interface{}
+	MetricsLabelFilter map[string]bool
 	ServerAddress      string
 	TracingPolicy      string
 	TracingPolicyDir   string
@@ -101,14 +102,8 @@ var (
 		// LogOpts contains logger parameters
 		LogOpts: make(map[string]string),
 
-		// Default to logging metrics with the greatest granularity.
-		MetricsLabelFilter: func() map[string]interface{} {
-			result := make(map[string]interface{})
-			for _, label := range consts.KnownMetricLabelFilters {
-				result[label] = nil
-			}
-			return result
-		}(),
+		// Enable all metrics labels by default
+		MetricsLabelFilter: maps.Clone(consts.DefaultLabelsFilter),
 	}
 )
 

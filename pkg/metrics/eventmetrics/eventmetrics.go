@@ -4,8 +4,6 @@
 package eventmetrics
 
 import (
-	"slices"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -22,7 +20,7 @@ import (
 )
 
 var (
-	EventsProcessed = metrics.MustNewGranularCounter(prometheus.CounterOpts{
+	EventsProcessed = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "events_total",
 		Help:        "The total number of Tetragon events",
@@ -46,7 +44,7 @@ var (
 		ConstLabels: nil,
 	})
 
-	policyStats = metrics.MustNewGranularCounter(prometheus.CounterOpts{
+	policyStats = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policy_events_total",
 		Help:        "Policy events calls observed.",
@@ -78,12 +76,13 @@ func InitEventsMetricsForDocs(registry *prometheus.Registry) {
 	InitEventsMetrics(registry)
 
 	// Initialize metrics with example labels
+	processLabels := metrics.NewProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
 	for ev, evString := range tetragon.EventType_name {
 		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
-			EventsProcessed.WithLabelValues(slices.Concat([]string{evString}, consts.ExampleProcessLabels)...).Add(0)
+			EventsProcessed.WithLabelValues(processLabels, evString).Add(0)
 		}
 	}
-	policyStats.WithLabelValues(slices.Concat([]string{consts.ExamplePolicyLabel, consts.ExampleKprobeLabel}, consts.ExampleProcessLabels)...).Add(0)
+	policyStats.WithLabelValues(processLabels, consts.ExamplePolicyLabel, consts.ExampleKprobeLabel).Add(0)
 }
 
 func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace string) {
@@ -125,11 +124,11 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	EventsProcessed.WithLabelValues(eventType, namespace, workload, pod, binary).Inc()
+	processLabels := metrics.NewProcessLabels(namespace, workload, pod, binary)
+	EventsProcessed.WithLabelValues(processLabels, eventType).Inc()
 	if pInfo != nil && pInfo.Name != "" {
 		policyStats.
-			WithLabelValues(pInfo.Name, pInfo.Hook, namespace, workload, pod, binary).
-			Inc()
+			WithLabelValues(processLabels, pInfo.Name, pInfo.Hook).Inc()
 	}
 }
 
