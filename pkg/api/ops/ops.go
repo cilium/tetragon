@@ -33,6 +33,8 @@ const (
 
 	MSG_OP_LOADER = 26
 
+	MSG_OP_THROTTLE = 27
+
 	// just for testing
 	MSG_OP_TEST = 254
 )

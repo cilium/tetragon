@@ -6,6 +6,7 @@
 
 #include "bpf_tracing.h"
 #include "bpf_helpers.h"
+#include "msg_types.h"
 
 struct cgroup_rate_key {
 	__u64 id;
@@ -37,6 +38,39 @@ struct {
 	__type(key, __u32);
 	__type(value, struct cgroup_rate_options);
 } cgroup_rate_options_map SEC(".maps");
+
+struct msg_throttle {
+	struct msg_common common;
+	struct msg_k8s kube;
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_throttle);
+} throttle_heap_map SEC(".maps");
+
+static inline __attribute__((always_inline)) void
+send_throttle(void *ctx, struct msg_k8s *kube, __u64 time)
+{
+	struct msg_throttle *msg;
+	size_t size = sizeof(*msg);
+
+	msg = map_lookup_elem(&throttle_heap_map, &(__u32){ 0 });
+	if (!msg)
+		return;
+
+	msg->common.size = size;
+	msg->common.ktime = time;
+	msg->common.op = MSG_OP_THROTTLE;
+	msg->common.flags = 0;
+
+	__builtin_memcpy(&msg->kube, kube, sizeof(*kube));
+
+	perf_event_output_metric(ctx, MSG_OP_THROTTLE, &tcpmon_map,
+				 BPF_F_CURRENT_CPU, msg, size);
+}
 
 static inline __attribute__((always_inline)) bool
 cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
@@ -108,8 +142,10 @@ cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
 	slide = interval - (time - val->time);
 	val->rate = (slide * val->prev) / interval + val->curr;
 
-	if (!val->throttled && val->rate >= opt->events)
+	if (!val->throttled && val->rate >= opt->events) {
 		val->throttled = time;
+		send_throttle(ctx, kube, time);
+	}
 
 	return !val->throttled;
 }
