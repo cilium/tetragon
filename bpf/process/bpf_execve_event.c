@@ -87,7 +87,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 		size = data_event_bytes(ctx, (struct data_event_desc *)args,
 					(unsigned long)start_stack,
 					args_size,
-					(struct bpf_map_def *)&data_heap);
+					(struct bpf_map_def *)&data_heap, true);
 		if (size > 0)
 			p->flags |= EVENT_DATA_ARGS;
 	}
@@ -111,7 +111,7 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	} else if (size == MAXARGLENGTH - 1) {
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename,
-				      (struct bpf_map_def *)&data_heap);
+				      (struct bpf_map_def *)&data_heap, false);
 		if (size == 0)
 			flags |= EVENT_ERROR_FILENAME;
 		else

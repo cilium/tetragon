@@ -130,10 +130,10 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr, false);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e, false);
 	default:
 		break;
 	}
