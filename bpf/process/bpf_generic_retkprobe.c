@@ -69,17 +69,13 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	struct retprobe_info info;
-	bool walker = false;
-	bool userspace;
 	__u64 pid_tgid;
 	long size = 0;
 	int zero = 0;
 	long ty_arg;
-	__u32 ppid;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -96,10 +92,6 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	pid_tgid = get_current_pid_tgid();
 	e->tid = (__u32)pid_tgid;
 
-	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
-		return 0;
-
-	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
 	ty_arg = config->argreturn;
@@ -120,6 +112,43 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 		}
 #endif
 	}
+
+	e->ret = ret;
+	e->common.size = size;
+	e->common.ktime = ktime_get_ns();
+
+	tail_call(ctx, &retkprobe_calls, TAIL_CALL_FILTER);
+	return 1;
+}
+
+__attribute__((section("kprobe/2"), used)) int
+BPF_KRETPROBE(generic_retkprobe_copy_arg)
+{
+	struct execve_map_value *enter;
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	struct retprobe_info info;
+	bool walker = false;
+	unsigned long ret;
+	bool userspace;
+	long size = 0;
+	int zero = 0;
+	__u32 ppid;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return 0;
+
+	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
+		return 0;
+
+	*(unsigned long *)e->args = info.ktime_enter;
+	size = e->common.size;
+	ret = e->ret;
 
 	/*
 	 * 0x1000 should be maximum argument length, so masking
@@ -147,7 +176,6 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = size;
-	e->common.ktime = ktime_get_ns();
 
 	if (enter) {
 		e->current.pid = enter->key.pid;
