@@ -238,7 +238,8 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	nfields := uint32(len(info.Format.Fields))
-	syscall := info.Subsys == "syscalls" || info.Subsys == "raw_syscalls"
+	rawSyscalls := info.Subsys == "raw_syscalls"
+	syscall := rawSyscalls || info.Subsys == "syscalls"
 
 	for argIdx := range specArgs {
 		specArg := &specArgs[argIdx]
@@ -247,7 +248,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 		}
 		field := info.Format.Fields[specArg.Index]
 		// Syscall tracepoint arguments are in userspace memory.
-		metaTp, err := getMetaValue(specArg, syscall)
+		metaTp, err := getMetaValue(specArg, syscall, rawSyscalls && specArg.Index == 5 && (specArg.Type == ""))
 		if err != nil {
 			return nil, fmt.Errorf("tracepoint %s/%s getMetaValue error: %w", info.Subsys, info.Event, err)
 		}

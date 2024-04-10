@@ -339,7 +339,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
 		// For uprobes, args default to userspace memory.
-		argMValue, err := getMetaValue(&a, true)
+		argMValue, err := getMetaValue(&a, true, false)
 		if err != nil {
 			return nil, err
 		}

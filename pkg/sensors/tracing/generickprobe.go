@@ -671,7 +671,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 			}
 		}
 		// For kprobes, args default to userspace memory for syscalls, and kernel memory otherwise.
-		argMValue, err := getMetaValue(&a, f.Syscall)
+		argMValue, err := getMetaValue(&a, f.Syscall, false)
 		if err != nil {
 			return errFn(err)
 		}
