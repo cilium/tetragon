@@ -1878,15 +1878,16 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
+static inline __attribute__((always_inline)) int filter_args_reject(void *ctx, u64 id)
 {
-	u64 tid = get_current_pid_tgid();
-	retprobe_map_clear(id, tid);
+	u64 retid = retprobe_map_get_key(ctx);
+
+	retprobe_map_clear(id, retid);
 	return 0;
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
+filter_args(void *ctx, struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	    bool is_entry)
 {
 	__u8 *f;
@@ -1906,7 +1907,7 @@ filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	 * have their arg filters run.
 	 */
 	if (selidx > SELECTORS_ACTIVE)
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(ctx, e->func_id);
 
 	if (e->sel.active[selidx]) {
 		int pass = selector_arg_offset(f, e, selidx, is_entry);
@@ -2412,7 +2413,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
+	pass = filter_args(ctx, e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
 		selidx++;
 		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
@@ -2420,7 +2421,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(ctx, e->func_id);
 	}
 
 	// If pass >1 then we need to consult the selector actions

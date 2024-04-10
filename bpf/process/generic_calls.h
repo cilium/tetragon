@@ -56,7 +56,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		 * do it where it makes most sense.
 		 */
 		if (errv < 0)
-			return filter_args_reject(e->func_id);
+			return filter_args_reject(ctx, e->func_id);
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
