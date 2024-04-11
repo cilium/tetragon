@@ -177,3 +177,26 @@ func BenchmarkSerialize_FieldFilters_NoProcesInfoKeepExecid(b *testing.B) {
 		assert.NoError(b, err, "event must encode")
 	}
 }
+
+// Apply a redaction filter to the event. This doesn't exactly capture how it's done in the real code path but it's a close approximation.
+func BenchmarkSerialize_RedactionFilters(b *testing.B) {
+	b.StopTimer()
+	gen := newRandomEventGenerator(b, Seed)
+	encoder := getEncoder()
+	evs := gen.GenerateN(b)
+	filterList := `{"redact": ["(a)"]}`
+	ff, err := ParseRedactionFilterList(filterList)
+	require.NoError(b, err)
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		ev := evs[i]
+		getProcess, ok := ev.Event.(interface{ GetProcess() *tetragon.Process })
+		if ok {
+			process := getProcess.GetProcess()
+			process.Arguments = ff.Redact(process.Binary, process.Arguments)
+		}
+		err := encoder.Encode(ev)
+		assert.NoError(b, err, "event must encode")
+	}
+}

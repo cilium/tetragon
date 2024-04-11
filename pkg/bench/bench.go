@@ -24,7 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
-	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -229,8 +228,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 		ctx,
 		&wg,
 		observer.GetSensorManager(),
-		hookRunner,
-		fieldfilters.RedactionFilterList{})
+		hookRunner)
 	if err != nil {
 		return err
 	}
