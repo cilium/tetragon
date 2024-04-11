@@ -113,7 +113,7 @@ func setRedactionFilters() error {
 	var err error
 	redactionFilters := viper.GetString(option.KeyRedactionFilters)
 	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(redactionFilters)
-	if err != nil {
+	if err == nil {
 		log.WithFields(logrus.Fields{"redactionFilters": redactionFilters}).Info("Configured redaction filters")
 	} else {
 		log.WithError(err).Error("Error configuring redaction filters")
