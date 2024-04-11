@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,121 +15,90 @@ func TestRedactString_Simple(t *testing.T) {
 	re := regexp.MustCompile(`(ab)cd`)
 
 	s := "abcd"
-	assert.Equal(t, REDACTION_STR+"cd", redactString(re, s))
+	res, modified := redactString(re, s)
+	assert.Equal(t, REDACTION_STR+"cd", res)
+	assert.True(t, modified)
 
 	s = "cdef"
-	assert.Equal(t, "cdef", redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "cdef", res)
+	assert.False(t, modified)
 
 	s = "abef"
-	assert.Equal(t, "abef", redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "abef", res)
+	assert.False(t, modified)
 
 	s = "innocent"
-	assert.Equal(t, "innocent", redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "innocent", res)
+	assert.False(t, modified)
 }
 
 func TestRedactString_NonCapturing(t *testing.T) {
 	re := regexp.MustCompile(`(?:--password|-p)\s+(\S+)`)
 
 	s := "--password fooBarQuxBaz!"
-	assert.Equal(t, "--password "+REDACTION_STR, redactString(re, s))
+	res, modified := redactString(re, s)
+	assert.Equal(t, "--password "+REDACTION_STR, res)
+	assert.True(t, modified)
 
 	s = "-p fooBarQuxBaz!"
-	assert.Equal(t, "-p "+REDACTION_STR, redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "-p "+REDACTION_STR, res)
+	assert.True(t, modified)
 
 	s = "innocent"
-	assert.Equal(t, "innocent", redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "innocent", res)
+	assert.False(t, modified)
 }
 
 func TestRedactString_Nested(t *testing.T) {
 	re := regexp.MustCompile(`(foo(bar))qux`)
 
 	s := "foobarqux"
-	assert.Equal(t, REDACTION_STR+"qux", redactString(re, s))
+	res, modified := redactString(re, s)
+	assert.Equal(t, REDACTION_STR+"qux", res)
+	assert.True(t, modified)
 
 	s = "innocent"
-	assert.Equal(t, "innocent", redactString(re, s))
+	res, modified = redactString(re, s)
+	assert.Equal(t, "innocent", res)
+	assert.False(t, modified)
 }
 
-func TestRedact_ExecFilter(t *testing.T) {
-	event := &tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessExec{
-			ProcessExec: &tetragon.ProcessExec{
-				Process: &tetragon.Process{
-					Arguments: "--verbsose=true --password ybx511!ackt544 --username foobar",
-				},
-			},
-		},
-	}
+func TestRedact_Simple(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar"
 
 	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)"]}`
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	filters.Redact(event)
-	assert.Equal(t, "--verbsose=true --password "+REDACTION_STR+" --username foobar", event.GetProcessExec().Process.Arguments)
+	redacted := filters.Redact("", args)
+	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted)
 }
+func TestRedact_BinaryFilter(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar"
 
-func TestRedact_NoFilter(t *testing.T) {
-	event := &tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessExec{
-			ProcessExec: &tetragon.ProcessExec{
-				Process: &tetragon.Process{
-					Arguments: "--verbsose=true --password ybx511!ackt544 --username foobar",
-				},
-			},
-		},
-	}
-
-	filterList := `{"match": [{"event_set": ["PROCESS_EXEC"]}], "redact": ["(?:--password|-p)[\\s=]+(\\S+)"]}`
+	filterList := `{"binary_regex": ["mysql$"], "redact": ["(?:--password|-p)[\\s=]+(\\S+)"]}`
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	filters.Redact(event)
-	assert.Equal(t, "--verbsose=true --password "+REDACTION_STR+" --username foobar", event.GetProcessExec().Process.Arguments)
+	redacted := filters.Redact("", args)
+	assert.Equal(t, args, redacted, "redaction without binary match")
+
+	redacted = filters.Redact("/bin/mysql", args)
+	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted, "redaction with binary match")
 }
 
 func TestRedact_Multi(t *testing.T) {
-	event := &tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessExec{
-			ProcessExec: &tetragon.ProcessExec{
-				Process: &tetragon.Process{
-					Arguments: "--verbsose=true --password ybx511!ackt544 --username foobar",
-				},
-				Parent: &tetragon.Process{
-					Arguments: "cheesecake TOPSECRET innocent",
-				},
-			},
-		},
-	}
+	args := "--verbose=true --password ybx511!ackt544 --username foobar cheesecake TOPSECRET innocent"
 
-	filterList := `{"match": [{"event_set": ["PROCESS_EXEC"]}], "redact": ["(?:--password|-p)[\\s=]+(\\S+)", "\\W(TOPSECRET)\\W", "(cheese)cake"]}`
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)", "\\W(TOPSECRET)\\W", "(cheese)cake"]}`
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	filters.Redact(event)
-	assert.Equal(t, "--verbsose=true --password "+REDACTION_STR+" --username foobar", event.GetProcessExec().Process.Arguments)
-	assert.Equal(t, REDACTION_STR+"cake "+REDACTION_STR+" innocent", event.GetProcessExec().Parent.Arguments)
-}
-
-func TestRedact_ParsedMultiStep(t *testing.T) {
-	filterList := `{"match": [{"event_set": ["PROCESS_EXEC"]}], "redact": ["\\W(passwd)\\W?"]}
-	{"match": [{"binary_regex": ["passwd"]}], "redact": ["(?:-p|--password)(?:\\s+|=)(\\S*)"]}`
-	filters, err := ParseRedactionFilterList(filterList)
-	require.NoError(t, err)
-
-	event := &tetragon.GetEventsResponse{
-		Event: &tetragon.GetEventsResponse_ProcessExec{
-			ProcessExec: &tetragon.ProcessExec{
-				Process: &tetragon.Process{
-					Binary:    "/bin/passwd",
-					Arguments: "-p foobarQux1337",
-				},
-			},
-		},
-	}
-
-	filters.Redact(event)
-
-	assert.Equal(t, "/bin/"+REDACTION_STR, event.GetProcessExec().Process.Binary)
-	assert.Equal(t, "-p "+REDACTION_STR, event.GetProcessExec().Process.Arguments)
+	redacted := filters.Redact("", args)
+	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", redacted)
 }

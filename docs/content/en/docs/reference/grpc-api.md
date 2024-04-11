@@ -705,8 +705,9 @@ AggregationOptions defines configuration options for aggregating events.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| match | [Filter](#tetragon-Filter) | repeated | Match events that the redaction filter will apply to. |
+| match | [Filter](#tetragon-Filter) | repeated | **Deprecated.** Deprecated, do not use. |
 | redact | [string](#string) | repeated | Regular expressions to use for redaction. Strings inside capture groups are redacted. |
+| binary_regex | [string](#string) | repeated | Regular expression to match binary name. If supplied, redactions will only be applied to matching processes. |
 
 <a name="tetragon-EventType"></a>
 

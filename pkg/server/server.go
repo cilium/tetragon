@@ -59,26 +59,24 @@ type hookRunner interface {
 }
 
 type Server struct {
-	ctx              context.Context
-	ctxCleanupWG     *sync.WaitGroup
-	notifier         notifier
-	observer         observer
-	hookRunner       hookRunner
-	redactionFilters fieldfilters.RedactionFilterList
+	ctx          context.Context
+	ctxCleanupWG *sync.WaitGroup
+	notifier     notifier
+	observer     observer
+	hookRunner   hookRunner
 }
 
 type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner, redactionFilters fieldfilters.RedactionFilterList) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner) *Server {
 	return &Server{
-		ctx:              ctx,
-		ctxCleanupWG:     cleanupWg,
-		notifier:         notifier,
-		observer:         observer,
-		hookRunner:       hookRunner,
-		redactionFilters: redactionFilters,
+		ctx:          ctx,
+		ctxCleanupWG: cleanupWg,
+		notifier:     notifier,
+		observer:     observer,
+		hookRunner:   hookRunner,
 	}
 }
 
@@ -189,9 +187,6 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				}
 				event = ev
 			}
-
-			// Apply redaction filters
-			s.redactionFilters.Redact(event)
 
 			if aggregator != nil {
 				// Send event to aggregator.
