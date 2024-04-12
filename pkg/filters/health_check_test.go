@@ -54,6 +54,8 @@ func Test_maybeExecProbe(t *testing.T) {
 	assert.False(t, MaybeExecProbe("/some/other/path/to/grpc_health_probe", "-addr=:5050", []string{"/bin/grpc_health_probe", "-addr=:5050"}))
 	assert.True(t, MaybeExecProbe("/bin/grpc_health_probe", "-addr=:5050", []string{"grpc_health_probe", "-addr=:5050"}))
 	assert.False(t, MaybeExecProbe("/bin/grpc_health_probe", "-addr=:5050", []string{}))
+	assert.True(t, MaybeExecProbe("/bin/bash_health_probe.sh", "/bin/bash_health_probe.sh test arguments", []string{"/bin/bash_health_probe.sh", "test", "arguments"}))
+	assert.False(t, MaybeExecProbe("/bin/bash_health_probe_no_ext", "/bin/bash_health_probe_no_ext test arguments", []string{"/bin/bash_health_probe", "test", "arguments"}))
 }
 
 func Test_healthCheckFilter(t *testing.T) {
