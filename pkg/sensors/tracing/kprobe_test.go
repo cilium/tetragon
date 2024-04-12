@@ -6119,7 +6119,7 @@ spec:
 
 	stackTraceChecker := ec.NewProcessKprobeChecker("kernel-stack-trace").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(unameBin))).
-		WithKernelStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+		WithStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
 			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("sys_newuname"))),
 			// we could technically check for more but stack traces look
 			// different on different archs, at least we check that the stack

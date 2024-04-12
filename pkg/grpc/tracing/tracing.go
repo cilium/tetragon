@@ -354,18 +354,18 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	tetragonEvent := &tetragon.ProcessKprobe{
-		Process:          tetragonProcess,
-		Parent:           tetragonParent,
-		FunctionName:     event.FuncName,
-		Args:             tetragonArgs,
-		Return:           tetragonReturnArg,
-		Action:           kprobeAction(event.Msg.ActionId),
-		ReturnAction:     kprobeAction(event.ReturnAction),
-		KernelStackTrace: kernelStackTrace,
-		UserStackTrace:   userStackTrace,
-		PolicyName:       event.PolicyName,
-		Message:          event.Message,
-		Tags:             event.Tags,
+		Process:        tetragonProcess,
+		Parent:         tetragonParent,
+		FunctionName:   event.FuncName,
+		Args:           tetragonArgs,
+		Return:         tetragonReturnArg,
+		Action:         kprobeAction(event.Msg.ActionId),
+		ReturnAction:   kprobeAction(event.ReturnAction),
+		StackTrace:     kernelStackTrace,
+		UserStackTrace: userStackTrace,
+		PolicyName:     event.PolicyName,
+		Message:        event.Message,
+		Tags:           event.Tags,
 	}
 
 	if tetragonProcess.Pid == nil {
