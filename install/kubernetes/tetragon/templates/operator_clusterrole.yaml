@@ -26,12 +26,14 @@ rules:
       - patch
       - update
       - watch
+  {{- if eq .Values.crds.installMethod "operator" }}
   - apiGroups:
       - apiextensions.k8s.io
     resources:
       - customresourcedefinitions
     verbs:
       - create
+  {{- end }}
   - apiGroups:
       - apiextensions.k8s.io
     resources:
