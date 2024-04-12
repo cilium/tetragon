@@ -22,10 +22,23 @@ func MaybeExecProbe(binary string, args string, execProbe []string) bool {
 	if err != nil {
 		return false
 	}
+
+	// Exec will append a script name to argument list if a sh/bash script is executed with a shebang,
+	// so we need to remove the first argument so that we can compare it to execProbe.
+	// e.g.
+	// "binary": "/health/ping_liveness_local.sh",
+	// "arguments": "/health/ping_liveness_local.sh 5"
+	// concatenated together will be ["/health/ping_liveness_local.sh", "/health/ping_liveness_local.sh", "5"],
+	// but execProbe will have only ["/health/ping_liveness_local.sh", "5"].
+	if execProbe[0] == binary && len(argList) > 0 && argList[0] == binary {
+		argList = argList[1:]
+	}
+
 	processCommand := append([]string{binary}, argList...)
 	if len(execProbe) != len(processCommand) {
 		return false
 	}
+
 	if path.IsAbs(execProbe[0]) {
 		// exec probe path is absolute. Compare the full paths.
 		if processCommand[0] != execProbe[0] {
