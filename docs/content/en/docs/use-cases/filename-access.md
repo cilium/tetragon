@@ -79,38 +79,35 @@ well as appropriate filtering:
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring.yaml
 ```
 
-Next, you can start monitoring the events from the `xwing` pod:
+Next, we deploy a `file-access` Pod with an interactive bash session:
 
 ```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --namespace default --pod xwing
+kubectl run --rm -it file-access -n default --image=busybox --restart=Never
 ```
 
-In another terminal, `kubectl exec` into the `xwing` pod:
+In another terminal, you can start monitoring the events from the `file-access` Pod:
 
 ```bash
-kubectl exec -it xwing -- /bin/bash
+kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespace default --pod file-access
 ```
 
-and edit the `/etc/passwd` file:
+In the interactive bash session, edit the `/etc/passwd` file:
 
 ```bash
 vi /etc/passwd
 ```
 
-If you observe, the output in the first terminal should be:
+If you observe, the output in the second terminal should be:
 
 ```bash
-🚀 process default/xwing /bin/bash
-📚 read    default/xwing /bin/bash /etc/passwd
-📚 read    default/xwing /bin/bash /etc/passwd
-💥 exit    default/xwing /bin/bash  127
-🚀 process default/xwing /usr/bin/vi /etc/passwd
-📚 read    default/xwing /usr/bin/vi /etc/passwd
-📚 read    default/xwing /usr/bin/vi /etc/passwd
-📝 write   default/xwing /usr/bin/vi /etc/passwd
-📝 write   default/xwing /usr/bin/vi /etc/passwd
-📝 trunc   default/xwing /usr/bin/vi /etc/passwd
-💥 exit    default/xwing /usr/bin/vi /etc/passwd 0
+🚀 process default/file-access /bin/sh
+🚀 process default/file-access /bin/vi /etc/passwd
+📚 read    default/file-access /bin/vi /etc/passwd
+📚 read    default/file-access /bin/vi /etc/passwd
+📚 read    default/file-access /bin/vi /etc/passwd
+📝 write   default/file-access /bin/vi /etc/passwd
+📝 truncate default/file-access /bin/vi /etc/passwd
+💥 exit    default/file-access /bin/vi /etc/passwd 0
 ```
 
 Note, that read and writes are only generated for `/etc/` files based on BPF in-kernel filtering
@@ -124,77 +121,77 @@ Similarly to the previous example, reviewing the JSON events provides additional
 {
   "process_kprobe": {
     "process": {
-      "exec_id": "a2luZC1jb250cm9sLXBsYW5lOjMyMDY2OTEyNDkyMTA4MToyMDk3ODM=",
-      "pid": 209783,
+      "exec_id": "dGV0cmFnb24tZGV2LWNvbnRyb2wtcGxhbmU6MTY4MTc3MDUwMTI1NDI6NjQ3NDY=",
+      "pid": 64746,
       "uid": 0,
       "cwd": "/",
-      "binary": "/usr/bin/vi",
+      "binary": "/bin/vi",
       "arguments": "/etc/passwd",
       "flags": "execve rootcwd clone",
-      "start_time": "2023-06-26T11:23:43.774969054Z",
+      "start_time": "2024-04-14T02:18:02.240856427Z",
       "auid": 4294967295,
       "pod": {
         "namespace": "default",
-        "name": "xwing",
+        "name": "file-access",
         "container": {
-          "id": "containerd://1f1d1ed09d56f04c17857cc5154f11d22d738b04b28941accd08569183caa4b5",
-          "name": "spaceship",
+          "id": "containerd://6b742e38ee3a212239e6d48b2954435a407af44b9a354bdf540db22f460ab40e",
+          "name": "file-access",
           "image": {
-            "id": "docker.io/tgraf/netperf@sha256:8e86f744bfea165fd4ce68caa05abc96500f40130b857773186401926af7e9e6",
-            "name": "docker.io/tgraf/netperf:latest"
+            "id": "docker.io/library/busybox@sha256:c3839dd800b9eb7603340509769c43e146a74c63dca3045a8e7dc8ee07e53966",
+            "name": "docker.io/library/busybox:latest"
           },
-          "start_time": "2023-06-26T11:11:01Z",
-          "pid": 37
+          "start_time": "2024-04-14T02:17:46Z",
+          "pid": 12
         },
         "pod_labels": {
-          "app.kubernetes.io/name": "xwing",
-          "class": "xwing",
-          "org": "alliance"
-        }
+          "run": "file-access"
+        },
+        "workload": "file-access",
+        "workload_kind": "Pod"
       },
-      "docker": "1f1d1ed09d56f04c17857cc5154f11d",
-      "parent_exec_id": "a2luZC1jb250cm9sLXBsYW5lOjMyMDY2MDM3OTEzODY1MzoyMDk3NTE=",
+      "docker": "6b742e38ee3a212239e6d48b2954435",
+      "parent_exec_id": "dGV0cmFnb24tZGV2LWNvbnRyb2wtcGxhbmU6MTY4MDE3MDQ3OTQyOTg6NjQ2MTU=",
       "refcnt": 1,
-      "tid": 209783
+      "tid": 64746
     },
     "parent": {
-      "exec_id": "a2luZC1jb250cm9sLXBsYW5lOjMyMDY2MDM3OTEzODY1MzoyMDk3NTE=",
-      "pid": 209751,
+      "exec_id": "dGV0cmFnb24tZGV2LWNvbnRyb2wtcGxhbmU6MTY4MDE3MDQ3OTQyOTg6NjQ2MTU=",
+      "pid": 64615,
       "uid": 0,
       "cwd": "/",
-      "binary": "/bin/bash",
+      "binary": "/bin/sh",
       "flags": "execve rootcwd clone",
-      "start_time": "2023-06-26T11:23:35.029187062Z",
+      "start_time": "2024-04-14T02:17:46.240638141Z",
       "auid": 4294967295,
       "pod": {
         "namespace": "default",
-        "name": "xwing",
+        "name": "file-access",
         "container": {
-          "id": "containerd://1f1d1ed09d56f04c17857cc5154f11d22d738b04b28941accd08569183caa4b5",
-          "name": "spaceship",
+          "id": "containerd://6b742e38ee3a212239e6d48b2954435a407af44b9a354bdf540db22f460ab40e",
+          "name": "file-access",
           "image": {
-            "id": "docker.io/tgraf/netperf@sha256:8e86f744bfea165fd4ce68caa05abc96500f40130b857773186401926af7e9e6",
-            "name": "docker.io/tgraf/netperf:latest"
+            "id": "docker.io/library/busybox@sha256:c3839dd800b9eb7603340509769c43e146a74c63dca3045a8e7dc8ee07e53966",
+            "name": "docker.io/library/busybox:latest"
           },
-          "start_time": "2023-06-26T11:11:01Z",
-          "pid": 28
+          "start_time": "2024-04-14T02:17:46Z",
+          "pid": 1
         },
         "pod_labels": {
-          "app.kubernetes.io/name": "xwing",
-          "class": "xwing",
-          "org": "alliance"
-        }
+          "run": "file-access"
+        },
+        "workload": "file-access",
+        "workload_kind": "Pod"
       },
-      "docker": "1f1d1ed09d56f04c17857cc5154f11d",
-      "parent_exec_id": "a2luZC1jb250cm9sLXBsYW5lOjMyMDY2MDM0NTk5MzM2NToyMDk3NDE=",
-      "refcnt": 2,
-      "tid": 209751
+      "docker": "6b742e38ee3a212239e6d48b2954435",
+      "parent_exec_id": "dGV0cmFnb24tZGV2LWNvbnRyb2wtcGxhbmU6MTY3OTgyOTA2MDc3NTc6NjQ1NjQ=",
+      "tid": 64615
     },
     "function_name": "security_file_permission",
     "args": [
       {
         "file_arg": {
-          "path": "/etc/passwd"
+          "path": "/etc/passwd",
+          "permission": "-rw-r--r--"
         }
       },
       {
@@ -204,10 +201,12 @@ Similarly to the previous example, reviewing the JSON events provides additional
     "return": {
       "int_arg": 0
     },
-    "action": "KPROBE_ACTION_POST"
+    "action": "KPROBE_ACTION_POST",
+    "policy_name": "file-monitoring",
+    "return_action": "KPROBE_ACTION_POST"
   },
-  "node_name": "kind-control-plane",
-  "time": "2023-06-26T11:23:49.019160599Z"
+  "node_name": "tetragon-dev-control-plane",
+  "time": "2024-04-14T02:18:14.376304204Z"
 }
 ```
 
@@ -223,6 +222,12 @@ To disable the `TracingPolicy` run:
 
 ```bash
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring.yaml
+```
+
+To delete the `file-access` Pod from the interactive bash session, type:
+
+```bash
+exit
 ```
 
 Another example of a [similar
