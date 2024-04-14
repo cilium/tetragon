@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -134,6 +135,7 @@ func (r *CgroupRate) updateCgroups(cq *cgroupQueue) {
 		Cgroup: cq.name,
 		Ktime:  cq.ktime,
 	})
+	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.ThrottleStart)
 }
 
 func (r *CgroupRate) processCgroups() {
@@ -166,8 +168,10 @@ func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 	values := make([]processapi.CgroupRateValue, bpf.GetNumPossibleCPUs())
 
 	hash := r.hash.MapHandle
+	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.Process)
 
 	if err := hash.Lookup(key, &values); err != nil {
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.LookupFail)
 		// cgroup got likely removed, remove it as well
 		return true
 	}
@@ -196,7 +200,7 @@ func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 			values[idx].Throttled = 0
 		}
 		if err := hash.Put(key, values); err != nil {
-			handle.log.WithError(err).Warn("failed to update cgroup rate values")
+			cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.UpdateFail)
 		}
 		// stop throttle event
 		r.notify(&tracing.MsgProcessThrottleUnix{
@@ -204,6 +208,7 @@ func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 			Cgroup: cgroup,
 			Ktime:  last,
 		})
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.ThrottleStop)
 		return true
 	}
 
@@ -231,6 +236,7 @@ func Check(kube *processapi.MsgK8s, ktime uint64) {
 	}
 
 	handle.ch <- cq
+	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.Check)
 }
 
 func Config(optsMap *program.Map) {
@@ -250,6 +256,6 @@ func Config(optsMap *program.Map) {
 	}
 
 	if err := optsMap.MapHandle.Put(key, opts); err != nil {
-		handle.log.WithError(err).Warn("failed to update cgroup rate options map")
+		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.UpdateFail)
 	}
 }

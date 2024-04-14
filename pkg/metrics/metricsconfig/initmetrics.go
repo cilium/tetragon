@@ -7,6 +7,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
@@ -45,6 +46,7 @@ func initHealthMetrics(registry *prometheus.Registry) {
 	tracing.InitMetrics(registry)
 	ratelimitmetrics.InitMetrics(registry)
 	exporter.InitMetrics(registry)
+	cgroupratemetrics.InitMetrics(registry)
 
 	// register common third-party collectors
 	registry.MustRegister(grpcmetrics.NewServerMetrics())
