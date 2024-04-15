@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -30,7 +31,7 @@ func main() {
 			t0 := time.Now()
 
 			var err error
-			rcnf.portForwards, err = runner.ParsePortForward(ports)
+			rcnf.ForwardedPorts, err = runner.ParsePortForward(ports)
 			if err != nil {
 				return fmt.Errorf("error parseing ports: %w", err)
 			}
@@ -75,19 +76,19 @@ func main() {
 				return fmt.Errorf("failed to get cwd: %w", err)
 			}
 
-			if ext := filepath.Ext(rcnf.testImage); ext == "" {
-				rcnf.testImage = fmt.Sprintf("%s.qcow2", rcnf.testImage)
-			}
-
 			err = buildTestImage(log, &rcnf)
 			if err != nil || rcnf.justBuildImage {
 				return err
 			}
 
-			qemuBin := "qemu-system-x86_64"
-			qemuArgs, err := buildQemuArgs(log, &rcnf)
+			qemuBin, err := arch.QemuBinary()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get qemu binary: %w", err)
+			}
+
+			qemuArgs, err := buildQemuArgs(log, rcnf)
+			if err != nil {
+				return fmt.Errorf("failed to build qemu args: %w", err)
 			}
 
 			if rcnf.qemuPrint {
@@ -141,15 +142,14 @@ func main() {
 		},
 	}
 
-	cmd.Flags().StringVar(&rcnf.baseFname, "base", "", "base image filename")
+	cmd.Flags().StringVar(&rcnf.baseImageFilename, "base", "", "base image filename")
 	cmd.MarkFlagRequired("base")
-	cmd.Flags().StringVar(&rcnf.testImage, "name", "tetragon", "new vm (and basis for the image name). New vm image will be in the directory of the base image")
-	cmd.Flags().StringVar(&rcnf.kernelFname, "kernel", "", "kernel filename to boot with. (if empty no -kernel option will be passed to qemu)")
+	cmd.Flags().StringVar(&rcnf.vmName, "name", "tetragon", "new vm (and basis for the image name). New vm image will be in the directory of the base image")
+	cmd.Flags().StringVar(&rcnf.KernelFname, "kernel", "", "kernel filename to boot with. (if empty no -kernel option will be passed to qemu)")
 	cmd.Flags().BoolVar(&rcnf.dontRebuildImage, "dont-rebuild-image", false, "dont rebuild image")
 	cmd.Flags().BoolVar(&rcnf.useTetragonTesterInit, "use-tetragon-init", false, "use tetragon-vmtests-init as init process in the VM")
 	cmd.Flags().BoolVar(&rcnf.qemuPrint, "qemu-cmd-print", false, "Do not run the qemu command, just print it")
-	cmd.Flags().BoolVar(&rcnf.disableKVM, "qemu-disable-kvm", false, "Do not use KVM acceleration, even if /dev/kvm exists")
-	cmd.Flags().BoolVar(&rcnf.enableHVF, "qemu-enable-hvf", false, "Use hvf acceleration")
+	cmd.Flags().BoolVar(&rcnf.DisableKVM, "qemu-disable-kvm", false, "Do not use KVM acceleration, even if /dev/kvm exists")
 	cmd.Flags().BoolVar(&rcnf.justBoot, "just-boot", false, "Do not actually run any tests. Just setup everything and start the VM. User will be able to login to the VM.")
 	cmd.Flags().BoolVar(&rcnf.justBuildImage, "just-build-image", false, "Just build an image. Do not actually run any tests or boot the VM.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
@@ -161,7 +161,7 @@ func main() {
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")
-	cmd.Flags().StringVar(&rcnf.rootDev, "root-dev", "vda", "type of root device (hda or vda)")
+	cmd.Flags().StringVar(&rcnf.RootDev, "root-dev", "vda", "type of root device (hda or vda)")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

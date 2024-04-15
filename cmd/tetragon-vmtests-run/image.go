@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/images"
 	"github.com/cilium/tetragon/pkg/vmtests"
@@ -201,8 +200,7 @@ func buildNetActions(tmpDir string) ([]images.Action, error) {
 
 func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 
-	imagesDir, baseImage := filepath.Split(rcnf.baseFname)
-	hostname := strings.TrimSuffix(rcnf.testImage, filepath.Ext(rcnf.testImage))
+	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
 
 	tmpDir, err := os.MkdirTemp("", "tetragon-vmtests-")
 	if err != nil {
@@ -226,7 +224,7 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 	}
 
 	actions := []images.Action{
-		{Op: &images.SetHostnameCommand{Hostname: hostname}},
+		{Op: &images.SetHostnameCommand{Hostname: rcnf.vmName}},
 		{Op: &images.AppendLineCommand{
 			File: "/etc/sysctl.d/local.conf",
 			Line: "kernel.panic_on_rcu_stall=1",
@@ -241,7 +239,7 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 		// TODO: might be useful to modify the images builder so that
 		// we can build this image using qemu-img -b
 		Images: []images.ImgConf{{
-			Name:    rcnf.testImage,
+			Name:    rcnf.testImageFilename(),
 			Parent:  baseImage,
 			Actions: actions,
 		}},
