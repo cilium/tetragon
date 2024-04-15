@@ -4,7 +4,7 @@ set -eu -o pipefail
 
 
 OCIORG=quay.io/lvh-images
-ROOTIMG=$OCIORG/root-images
+ROOTIMG=$OCIORG/root-images:20240415.162748@sha256:2637beacabbb48e2ee89a8f296a123142257ae10616308f81e7210ac85b92789
 KERNIMG=$OCIORG/kernel-images
 CONTAINER_ENGINE=${CONTAINER_ENGINE:-docker}
 KERNEL_VERS="$@"
