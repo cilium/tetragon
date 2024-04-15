@@ -136,8 +136,9 @@ options:
     - name: memprofile
       usage: Store MEM profile into provided file
     - name: metrics-label-filter
+      default_value: namespace,workload,pod,binary
       usage: |
-        Comma-separated list of enabled metric labels. (e.g. "namespace,workload,pod,binary") By default all labels are enabled.
+        Comma-separated list of enabled metrics labels. Unknown labels will be ignored.
     - name: metrics-server
       usage: Metrics server address (e.g. ':2112'). Disabled by default
     - name: netns-dir

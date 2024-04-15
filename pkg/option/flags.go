@@ -211,7 +211,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
 	flags.Bool(KeyEnableProcessAncestors, true, "Include ancestors in process exec events")
 	flags.String(KeyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
-	flags.String(KeyMetricsLabelFilter, "", "Comma-separated list of enabled metric labels. (e.g. \"namespace,workload,pod,binary\") By default all labels are enabled.")
+	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'")
 	flags.String(KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
