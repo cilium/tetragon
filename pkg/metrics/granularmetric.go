@@ -48,8 +48,12 @@ func MustNewGranularCounter[L FilteredLabels](opts prometheus.CounterOpts, extra
 	return result
 }
 
-func (m *GranularCounter[L]) ToProm() *prometheus.CounterVec {
-	return m.metric
+func (m *GranularCounter[L]) Describe(ch chan<- *prometheus.Desc) {
+	m.metric.Describe(ch)
+}
+
+func (m *GranularCounter[L]) Collect(ch chan<- prometheus.Metric) {
+	m.metric.Collect(ch)
 }
 
 func (m *GranularCounter[L]) WithLabelValues(commonLvs *L, extraLvs ...string) prometheus.Counter {
@@ -86,8 +90,12 @@ func MustNewGranularGauge[L FilteredLabels](opts prometheus.GaugeOpts, extraLabe
 	return result
 }
 
-func (m *GranularGauge[L]) ToProm() *prometheus.GaugeVec {
-	return m.metric
+func (m *GranularGauge[L]) Describe(ch chan<- *prometheus.Desc) {
+	m.metric.Describe(ch)
+}
+
+func (m *GranularGauge[L]) Collect(ch chan<- prometheus.Metric) {
+	m.metric.Collect(ch)
 }
 
 func (m *GranularGauge[L]) WithLabelValues(commonLvs *L, extraLvs ...string) prometheus.Gauge {
@@ -124,8 +132,12 @@ func MustNewGranularHistogram[L FilteredLabels](opts prometheus.HistogramOpts, e
 	return result
 }
 
-func (m *GranularHistogram[L]) ToProm() *prometheus.HistogramVec {
-	return m.metric
+func (m *GranularHistogram[L]) Describe(ch chan<- *prometheus.Desc) {
+	m.metric.Describe(ch)
+}
+
+func (m *GranularHistogram[L]) Collect(ch chan<- prometheus.Metric) {
+	m.metric.Collect(ch)
 }
 
 func (m *GranularHistogram[L]) WithLabelValues(commonLvs *L, extraLvs ...string) prometheus.Observer {
