@@ -42,23 +42,24 @@ func Handle(event interface{}) {
 	}
 
 	var syscall string
-	var processLabels metrics.ProcessLabels
+	var namespace, workload, pod, binary string
 	if tpEvent := ev.GetProcessTracepoint(); tpEvent != nil {
 		if tpEvent.Subsys == "raw_syscalls" && tpEvent.Event == "sys_enter" {
 			syscall = rawSyscallName(tpEvent)
 			if tpEvent.Process != nil {
 				if tpEvent.Process.Pod != nil {
-					processLabels.Namespace = tpEvent.Process.Pod.Namespace
-					processLabels.Workload = tpEvent.Process.Pod.Workload
-					processLabels.Pod = tpEvent.Process.Pod.Name
+					namespace = tpEvent.Process.Pod.Namespace
+					workload = tpEvent.Process.Pod.Workload
+					pod = tpEvent.Process.Pod.Name
 				}
-				processLabels.Binary = tpEvent.Process.Binary
+				binary = tpEvent.Process.Binary
 			}
 		}
 	}
 
 	if syscall != "" {
-		syscallStats.WithLabelValues(&processLabels, syscall).Inc()
+		processLabels := metrics.NewProcessLabels(namespace, workload, pod, binary)
+		syscallStats.WithLabelValues(processLabels, syscall).Inc()
 	}
 }
 
