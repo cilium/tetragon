@@ -12,10 +12,18 @@ on:
 jobs:
   build:
     name: Build tetragon
-    runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - name: "ubuntu-latest"
+            arch: "amd64"
+          - name: "actuated-arm64-4cpu-8gb"
+            arch: "arm64"
+    runs-on: ${{ matrix.runner.name }}
     concurrency:
-      group: ${{ github.ref }}-vmtest-build
+      group: ${{ github.ref }}-vmtest-build-${{ matrix.runner.arch }}
       cancel-in-progress: true
     steps:
     - name: Checkout code
@@ -32,7 +40,9 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386
+        sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc
+        # for killer tests on 32 bits syscall values
+        if [ "$(uname -m)" = "x86_64" ]; then sudo apt-get install -y libc6-dev-i386; fi
         echo `which clang`
         echo `which llc`
         echo `clang --version`
@@ -58,45 +68,53 @@ jobs:
     - name: upload build
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
       with:
-         name: tetragon-build
+         name: tetragon-build-${{ matrix.runner.arch }}
          path: /tmp/tetragon.tar
          retention-days: 5
   test:
     strategy:
-        fail-fast: false
-        matrix:
-           kernel:
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'rhel8-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'bpf-next-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.6-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.1-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.15-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.10-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.4-20240415.162748'
-              # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '4.19-20240415.162748'
-           group:
-              - 0
+      fail-fast: false
+      matrix:
+        runner:
+          - name: "ubuntu-latest-4cores-16gb"
+            arch: "amd64"
+          - name: "actuated-arm64-4cpu-16gb"
+            arch: "arm64"
+        kernel:
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - 'rhel8-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - 'bpf-next-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '6.6-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '6.1-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '5.15-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '5.10-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '5.4-20240415.162748'
+          # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
+          - '4.19-20240415.162748'
+        group:
+          - 0
+        exclude:
+          - kernel: 'rhel8-20240415.162748'
+            runner: { arch: "arm64" }
     concurrency:
-      group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
+      group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.runner.arch }}-${{ matrix.group }}
       cancel-in-progress: true
     needs: build
-    name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
-    runs-on: ubuntu-latest-4cores-16gb
-    timeout-minutes: 60
+    name: Test kernel ${{ matrix.kernel }} / ${{ matrix.runner.arch }} / test group ${{ matrix.group }}
+    runs-on: ${{ matrix.runner.name }}
+    timeout-minutes: 180
     steps:
     - name: Install VM test dependencies
       run: |
         sudo apt-get update
         sudo apt-cache search qemu
-        sudo apt-get install -y mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
+        sudo apt-get install -y mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 qemu-system-aarch64 cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
 
     - name: Make kernel accessible
       run: |
@@ -105,7 +123,7 @@ jobs:
     - name: download build data
       uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
       with:
-         name: tetragon-build
+         name: tetragon-build-${{ matrix.runner.arch }}
 
     - name: extract build data
       # NB: currently, due to how tests work, we need to extract to the same path.
@@ -118,6 +136,7 @@ jobs:
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        if [ "$(uname -m)" = "aarch64" ]; then export LIBGUESTFS_BACKEND_SETTINGS=force_tcg; fi
         kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
         echo "Using: kernel:$kimage"
         sudo ./tests/vmtests/tetragon-vmtests-run \
@@ -132,6 +151,7 @@ jobs:
       run: |
         cd go/src/github.com/cilium/tetragon
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
+        if [ "$(uname -m)" = "aarch64" ]; then export LIBGUESTFS_BACKEND_SETTINGS=force_tcg; fi
         kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
         btf=$(find tests/vmtests/test-data/kernels -path "*btf*" -type f)
         echo "Using: kernel:$kimage bptf:$btf"
@@ -152,7 +172,7 @@ jobs:
       if: failure() || cancelled()
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
       with:
-        name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
+        name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.runner.arch }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
         retention-days: 5
 
