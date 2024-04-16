@@ -68,8 +68,8 @@ func InitHealthMetrics(registry *prometheus.Registry) {
 }
 
 func InitEventsMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(EventsProcessed.ToProm())
-	registry.MustRegister(policyStats.ToProm())
+	registry.MustRegister(EventsProcessed)
+	registry.MustRegister(policyStats)
 }
 
 func InitEventsMetricsForDocs(registry *prometheus.Registry) {
