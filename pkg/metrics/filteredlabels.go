@@ -13,10 +13,10 @@ type FilteredLabels interface {
 }
 
 type ProcessLabels struct {
-	Namespace string
-	Workload  string
-	Pod       string
-	Binary    string
+	namespace string
+	workload  string
+	pod       string
+	binary    string
 }
 
 func NewProcessLabels(namespace, workload, pod, binary string) *ProcessLabels {
@@ -33,10 +33,10 @@ func NewProcessLabels(namespace, workload, pod, binary string) *ProcessLabels {
 		binary = ""
 	}
 	return &ProcessLabels{
-		Namespace: namespace,
-		Workload:  workload,
-		Pod:       pod,
-		Binary:    binary,
+		namespace: namespace,
+		workload:  workload,
+		pod:       pod,
+		binary:    binary,
 	}
 }
 
@@ -45,5 +45,5 @@ func (l ProcessLabels) Keys() []string {
 }
 
 func (l ProcessLabels) Values() []string {
-	return []string{l.Namespace, l.Workload, l.Pod, l.Binary}
+	return []string{l.namespace, l.workload, l.pod, l.binary}
 }
