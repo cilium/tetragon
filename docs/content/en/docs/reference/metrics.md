@@ -93,6 +93,18 @@ The total number of retries for event caching per entry type.
 | ----- | ------ |
 | `entry_type` | `parent_info, pod_info, process_info` |
 
+### `tetragon_events_exported_bytes_total`
+
+Number of bytes exported for events
+
+### `tetragon_events_exported_total`
+
+Total number of events exported
+
+### `tetragon_events_last_exported_timestamp`
+
+Timestamp of the most recent event to be exported
+
 ### `tetragon_flags_total`
 
 The total number of Tetragon flags. For internal use only.
