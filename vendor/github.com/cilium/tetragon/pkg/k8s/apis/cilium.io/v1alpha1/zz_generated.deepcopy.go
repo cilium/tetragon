@@ -231,6 +231,11 @@ func (in *KProbeSpec) DeepCopyInto(out *KProbeSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -480,6 +485,11 @@ func (in *TracepointSpec) DeepCopyInto(out *TracepointSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -642,6 +652,11 @@ func (in *TracingPolicySpec) DeepCopyInto(out *TracingPolicySpec) {
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ContainerSelector != nil {
+		in, out := &in.ContainerSelector, &out.ContainerSelector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Lists != nil {
 		in, out := &in.Lists, &out.Lists
 		*out = make([]ListSpec, len(*in))
@@ -692,6 +707,11 @@ func (in *UProbeSpec) DeepCopyInto(out *UProbeSpec) {
 	if in.Args != nil {
 		in, out := &in.Args, &out.Args
 		*out = make([]KProbeArg, len(*in))
+		copy(*out, *in)
+	}
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 	return
