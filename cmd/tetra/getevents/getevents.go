@@ -21,22 +21,6 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-// DocLong documents the commands with some examples
-const DocLong = `This command prints and filter events by connecting to the server or via
-redirection of events to the stdin. Examples:
-
-  # Connect, print and filter by process events
-  %[1]s getevents --process netserver
-
-  # Redirect events and filter by namespace from stdin
-  cat events.json | %[1]s getevents -o compact --namespace default
-
-  # Exclude parent field
-  %[1]s getevents -F parent
-
-  # Include only process and parent.pod fields
-  %[1]s getevents -f process,parent.pod`
-
 type Opts struct {
 	Output        string
 	Color         string
@@ -157,7 +141,20 @@ func New() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "getevents",
 		Short: "Print events",
-		Long:  fmt.Sprintf(DocLong, "tetra"),
+		Long: `This command prints and filter events by connecting to the server or via
+redirection of events to the stdin. Examples:
+
+  # Connect, print and filter by process events
+  tetra getevents --process netserver
+
+  # Redirect events and filter by namespace from stdin
+  cat events.json | tetra getevents -o compact --namespace default
+
+  # Exclude parent field
+  tetra getevents -F parent
+
+  # Include only process and parent.pod fields
+  tetra getevents -f process,parent.pod`,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if Options.Output != "json" && Options.Output != "compact" {
 				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, Options.Output)
