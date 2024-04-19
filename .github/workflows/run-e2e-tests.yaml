@@ -40,7 +40,7 @@ jobs:
   run-e2e-test:
     needs: list-e2e-pkg
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 20
     name: ${{matrix.os}} / ${{ matrix.package.s }}
     strategy:
       fail-fast: false
