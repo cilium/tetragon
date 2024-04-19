@@ -37,6 +37,7 @@
     "contrib/rthooks/tetragon-oci-hook/go.mod",
     "contrib/rthooks/tetragon-oci-hook/go.sum",
     "*Dockerfile*",
+    "docs/hugo.toml",
     "install/kubernetes/tetragon/values.yaml",
     "**/*Makefile*"
   ],
@@ -413,7 +414,8 @@
     {
       "customType": "regex",
       "fileMatch": [
-        "^\\.github/workflows/[^/]+\\.ya?ml$"
+        "^\\.github/workflows/[^/]+\\.ya?ml$",
+        "^docs/hugo.toml$",
       ],
       "matchStrings": [
         // this regex is used to match both:
