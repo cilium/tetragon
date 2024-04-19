@@ -4,12 +4,12 @@
 package stringmatcher
 
 import (
-	json "encoding/json"
-	fmt "fmt"
-	regexp "regexp"
-	strings "strings"
+	"encoding/json"
+	"fmt"
+	"regexp"
+	"strings"
 
-	yaml "sigs.k8s.io/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // Operator is en enum over types of StringMatcher
