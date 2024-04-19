@@ -38,7 +38,8 @@
     "contrib/rthooks/tetragon-oci-hook/go.sum",
     "*Dockerfile*",
     "install/kubernetes/tetragon/values.yaml",
-    "**/*Makefile*"
+    "**/*Makefile*",
+    "contrib/update-helm-chart.sh",
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -430,9 +431,10 @@
       "customType": "regex",
       // explicitely not writing ^Makefile$ to match files with Makefile.extension
       "fileMatch": [
-        "Makefile"
+        "Makefile",
+        "^contrib/update-helm-chart.sh$",
       ],
-      // This regex is for upgrading docker image full reference in Makefiles, for examples:
+      // This regex is for upgrading docker image full reference in Makefiles or scripts, for examples:
       //
       // # renovate: datasource=docker
       // GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.55.2@sha256:e699df940be1810b08ba6ec050bfc34cc1931027283b5a7f607fb6a67b503876
