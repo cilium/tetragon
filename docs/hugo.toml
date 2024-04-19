@@ -119,6 +119,7 @@ demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.3/examples
 # The version number for the version of the docs represented in this doc set.
 # Used in the "version-banner" partial to display a version number for the
 # current doc set.
+# renovate: datasource=docker depName=quay.io/cilium/tetragon
 version = "v1.0.0"
 
 [params.search.algolia]
