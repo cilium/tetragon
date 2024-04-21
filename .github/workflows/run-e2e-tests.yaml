@@ -18,13 +18,35 @@ env:
   ciliumCliVersion: v0.15.0
 
 jobs:
-  e2e-test:
+  list-e2e-pkg:
+    runs-on: ubuntu-22.04
+    outputs:
+      packages: ${{ steps.set-packages.outputs.packages }}
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Install Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        go-version-file: go.mod
+
+    - id: set-packages
+      name: Listing e2e tests packages
+      shell: bash
+      run: |
+        echo PACKAGES=$(make ls-e2e-test | jq -Rnc '[inputs | {"s": split("/")[-1], "f":.}]') | tee -a $GITHUB_STEP_SUMMARY | tee -a $GITHUB_OUTPUT
+
+  run-e2e-test:
+    needs: list-e2e-pkg
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
+    name: ${{matrix.os}} / ${{ matrix.package.s }}
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04, actuated-arm64-4cpu-16gb ]
+        package: ${{fromJson(needs.list-e2e-pkg.outputs.packages)}}
     steps:
     - name: Checkout Code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -78,7 +100,7 @@ jobs:
       run: |
         cd go/src/github.com/cilium/tetragon
 
-        make e2e-test E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
+        make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
 
     - name: Upload Tetragon Logs
       if: failure() || cancelled()

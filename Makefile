@@ -247,6 +247,11 @@ endif
 E2E_BUILD_IMAGES ?= 1
 E2E_TESTS ?= ./tests/e2e/tests/...
 
+# List e2e-test packages that can run in parallel
+.PHONY: ls-e2e-test
+ls-e2e-test:
+	@$(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' $(E2E_TESTS)
+
 # Run an e2e-test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
