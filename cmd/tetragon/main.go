@@ -209,8 +209,6 @@ func tetragonExecute() error {
 	}
 	defer pidfile.Delete()
 
-	log.Info("BPF detected features: ", bpf.LogFeatures())
-
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
 		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
 	}
@@ -351,6 +349,9 @@ func tetragonExecute() error {
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF); err != nil {
 		return err
 	}
+
+	// needs BTF, so caling it after InitCachedBTF
+	log.Info("BPF detected features: ", bpf.LogFeatures())
 
 	if err := observer.InitDataCache(option.Config.DataCacheSize); err != nil {
 		return err
