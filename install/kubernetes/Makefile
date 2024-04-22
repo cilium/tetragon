@@ -5,7 +5,7 @@ HELM_IMAGE=docker.io/alpine/helm:3.3.4@sha256:fc745f290a5671dbd0eb3e162b03bb3652
 # renovate: datasource=docker
 KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.4-alpine@sha256:e68a0b638c6e9b76f1b7d58b4ec94340ef3b6601db25b2e40b29e3ac2d68e4bf
 # renovate: datasource=docker
-HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.11.0@sha256:66c8f4164dec860fa5c1528239c4aa826a12485305b7b224594b1a73f7e6879a
+HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.11.3@sha256:c9b1a275ddc60ea1de290ced305dcc1412543e0624123d8b5182758880b12499
 
 SCRIPT_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
 TETRAGON_CHART := $(SCRIPT_DIR)/tetragon
