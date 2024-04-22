@@ -1,7 +1,7 @@
 # Variables
 
 # renovate: datasource=docker
-HELM_IMAGE=docker.io/alpine/helm:3.3.4@sha256:fc745f290a5671dbd0eb3e162b03bb3652b9f5604fdc28bf3e34bca3fd7ad633
+HELM_IMAGE=docker.io/alpine/helm:3.14.4@sha256:599abc4bc6fc6a7aae894fa726008d78061e8d109f0cc49e16445757d0034cfa
 # renovate: datasource=docker
 KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.4-alpine@sha256:e68a0b638c6e9b76f1b7d58b4ec94340ef3b6601db25b2e40b29e3ac2d68e4bf
 # renovate: datasource=docker
