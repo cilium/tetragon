@@ -284,9 +284,6 @@ func tetragonExecute() error {
 		return fmt.Errorf("Failed to move old tetragon base directory: %w", err)
 	}
 
-	// we need file system mounts setup above before we detect features
-	log.Info("BPF detected features: ", bpf.LogFeatures())
-
 	if option.Config.PprofAddr != "" {
 		go func() {
 			if err := servePprof(option.Config.PprofAddr); err != nil {
@@ -392,6 +389,9 @@ func tetragonExecute() error {
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, option.Config.BTF); err != nil {
 		return err
 	}
+
+	// needs BTF, so caling it after InitCachedBTF
+	log.Info("BPF detected features: ", bpf.LogFeatures())
 
 	if err := observer.InitDataCache(option.Config.DataCacheSize); err != nil {
 		return err

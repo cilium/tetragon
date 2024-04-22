@@ -17,9 +17,11 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
+	ebtf "github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"golang.org/x/sys/unix"
 )
@@ -30,13 +32,15 @@ type Feature struct {
 }
 
 var (
-	kprobeMulti         Feature
-	uprobeMulti         Feature
-	buildid             Feature
-	modifyReturn        Feature
-	modifyReturnSyscall Feature
-	linkPin             Feature
-	lsm                 Feature
+	kprobeMulti            Feature
+	uprobeMulti            Feature
+	buildid                Feature
+	modifyReturn           Feature
+	modifyReturnSyscall    Feature
+	linkPin                Feature
+	lsm                    Feature
+	missedStatsKprobe      Feature
+	missedStatsKprobeMulti Feature
 )
 
 func HasOverrideHelper() bool {
@@ -311,9 +315,115 @@ func HasLinkPin() bool {
 	return linkPin.detected
 }
 
+func detectMissedStats() (bool, bool) {
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return false, false
+	}
+
+	// bpf_link_info
+	var linkInfo *ebtf.Struct
+	if err := spec.TypeByName("bpf_link_info", &linkInfo); err != nil {
+		return false, false
+	}
+
+	if len(linkInfo.Members) < 4 {
+		return false, false
+	}
+
+	// bpf_link_info::union
+	m := linkInfo.Members[3]
+	union, ok := m.Type.(*ebtf.Union)
+	if !ok {
+		return false, false
+	}
+
+	kprobe := false
+	kprobeMulti := false
+
+	hasField := func(st *ebtf.Struct, name string) bool {
+		for _, m := range st.Members {
+			if m.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+
+	detectKprobeMulti := func(m ebtf.Member) bool {
+		// bpf_link_info::kprobe_multi
+		st, ok := m.Type.(*ebtf.Struct)
+		if !ok {
+			return false
+		}
+		// bpf_link_info::kprobe_multi::missed
+		return hasField(st, "missed")
+	}
+
+	detectKprobe := func(m ebtf.Member) bool {
+		// bpf_link_info::perf_event
+		st, ok := m.Type.(*ebtf.Struct)
+		if !ok {
+			return false
+		}
+
+		if len(st.Members) < 2 {
+			return false
+		}
+
+		// bpf_link_info::perf_event::union
+		tm := st.Members[1]
+		un, ok := tm.Type.(*ebtf.Union)
+		if !ok {
+			return false
+		}
+
+		for _, mu := range un.Members {
+			// bpf_link_info::perf_event::kprobe
+			if mu.Name == "kprobe" {
+				st2, ok := mu.Type.(*ebtf.Struct)
+				if !ok {
+					return false
+				}
+				// bpf_link_info::perf_event::kprobe::missed
+				return hasField(st2, "missed")
+			}
+		}
+		return false
+	}
+
+	for _, m := range union.Members {
+		if m.Name == "kprobe_multi" {
+			kprobeMulti = detectKprobeMulti(m)
+		} else if m.Name == "perf_event" {
+			kprobe = detectKprobe(m)
+		}
+	}
+
+	return kprobe, kprobeMulti
+}
+
+func detectMissedStatsOnce() {
+	missedStatsKprobe.init.Do(func() {
+		kprobe, kprobeMulti := detectMissedStats()
+		missedStatsKprobe.detected = kprobe
+		missedStatsKprobeMulti.detected = kprobeMulti
+	})
+}
+
+func HasMissedStatsPerfEvent() bool {
+	detectMissedStatsOnce()
+	return missedStatsKprobe.detected
+}
+
+func HasMissedStatsKprobeMulti() bool {
+	detectMissedStatsOnce()
+	return missedStatsKprobeMulti.detected
+}
+
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
-		HasLinkPin(), HasLSMPrograms())
+		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent())
 }
