@@ -238,6 +238,7 @@
       "groupName": "Helm chart",
       "matchFileNames": [
         "install/kubernetes/tetragon/values.yaml",
+        "install/kubernetes/Makefile",
       ],
       // lint and generate files for helm chart
       "postUpgradeTasks": {
