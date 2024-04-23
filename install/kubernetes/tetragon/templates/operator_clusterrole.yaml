@@ -40,6 +40,7 @@ rules:
       - tracingpolicies.cilium.io
       - tracingpoliciesnamespaced.cilium.io
       - podinfo.cilium.io
+      - runtimesecuritypolicies.cilium.io
     verbs:
       - update
       - get
