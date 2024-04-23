@@ -89,8 +89,9 @@ const (
 
 	KeyKmods = "kmods"
 
-	KeyEnablePodInfo          = "enable-pod-info"
-	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
+	KeyEnablePodInfo                  = "enable-pod-info"
+	KeyEnableTracingPolicyCRD         = "enable-tracing-policy-crd"
+	KeyEnableRuntimeSecurityPolicyCRD = "enable-runtime-security-policy-crd"
 
 	KeyExposeStackAddresses  = "expose-stack-addresses"
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
@@ -193,6 +194,7 @@ func ReadAndSetFlags() error {
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
 	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
+	Config.EnableRuntimeSecurityPolicyCRD = viper.GetBool(KeyEnableRuntimeSecurityPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
@@ -357,6 +359,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
+	flags.Bool(KeyEnableRuntimeSecurityPolicyCRD, true, "Enable RuntimeSecurityPolicy custom resources")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 	flags.Bool(KeyExposeStackAddresses, false, "Expose real linear addresses in events stack traces")
