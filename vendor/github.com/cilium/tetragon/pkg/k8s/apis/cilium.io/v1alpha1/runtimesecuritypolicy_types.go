@@ -5,7 +5,22 @@ package v1alpha1
 
 import (
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// RuntimeSecurityPolicyPluralName is the plural name of the Runtime Security Policy
+	RuntimeSecurityPolicyPluralName = "runtimesecuritypolicies"
+
+	// RuntimeSecurityPolicyKindDefinition is the kind name of Runtime Security Policy
+	RuntimeSecurityPolicyKindDefinition = "RuntimeSecurityPolicy"
+
+	// RuntimeSecurityPolicyName is the full name of the Runtime Security Policy
+	RuntimeSecurityPolicyName = RuntimeSecurityPolicyPluralName + "." + ciliumio.GroupName
+
+	// RuntimeSecurityPolicyCRDName is the full name of the Runtime Security Policy CRD.
+	RuntimeSecurityPolicyCRDName = RuntimeSecurityPolicyKindDefinition + "/" + CRDVersion
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

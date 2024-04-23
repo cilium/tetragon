@@ -54,6 +54,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TracingPolicyNamespacedList{},
 		&PodInfo{},
 		&PodInfoList{},
+		&RuntimeSecurityPolicy{},
+		&RuntimeSecurityPolicyList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

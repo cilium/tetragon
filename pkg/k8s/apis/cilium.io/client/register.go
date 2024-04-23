@@ -35,9 +35,19 @@ var (
 		v1alpha1.PIName,
 		crdsv1Alpha1PodInfo)
 
+	//go:embed crds/v1alpha1/cilium.io_runtimesecuritypolicies.yaml
+	crdsv1Alpha1RuntimeSecurityPolicies []byte
+
+	RuntimeSecurityPolicyCRD = crdutils.NewCRDBytes(
+		v1alpha1.RuntimeSecurityPolicyCRDName,
+		v1alpha1.RuntimeSecurityPolicyName,
+		crdsv1Alpha1RuntimeSecurityPolicies,
+	)
+
 	AllCRDs = []crdutils.CRD{
 		TracingPolicyCRD,
 		TracingPolicyNamespacedCRD,
 		PodInfoCRD,
+		RuntimeSecurityPolicyCRD,
 	}
 )
