@@ -498,6 +498,9 @@ func waitCRDs(config *rest.Config) error {
 	if option.Config.EnablePodInfo {
 		crds[v1alpha1.PIName] = struct{}{}
 	}
+	if option.Config.EnableRuntimeSecurityPolicyCRD {
+		crds[v1alpha1.RuntimeSecurityPolicyName] = struct{}{}
+	}
 
 	if len(crds) == 0 {
 		log.Info("No CRDs are enabled")
