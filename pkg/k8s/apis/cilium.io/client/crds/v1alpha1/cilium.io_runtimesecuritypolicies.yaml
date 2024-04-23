@@ -1,0 +1,174 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: runtimesecuritypolicies.cilium.io
+spec:
+  group: cilium.io
+  names:
+    kind: RuntimeSecurityPolicy
+    listKind: RuntimeSecurityPolicyList
+    plural: runtimesecuritypolicies
+    shortNames:
+    - rsp
+    singular: runtimesecuritypolicy
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Runtime security policy specification.
+            properties:
+              rules:
+                description: Runtime security policy rules to apply.
+                items:
+                  oneOf:
+                  - properties:
+                      executionConfig: {}
+                    required:
+                    - executionConfig
+                  properties:
+                    executionConfig:
+                      description: Configuration for a rule of type Execution.
+                      properties:
+                        action:
+                          description: A rule execution config action is the set of
+                            actions that can be used in an rule execution config.
+                          enum:
+                          - Audit
+                          - Block
+                          type: string
+                      required:
+                      - action
+                      type: object
+                    type:
+                      description: Rule type.
+                      enum:
+                      - Execution
+                      type: string
+                  required:
+                  - type
+                  type: object
+                minItems: 1
+                type: array
+              selectors:
+                description: Selectors to select on which object applying the runtime
+                  security policy.
+                properties:
+                  executableSelector:
+                    properties:
+                      matchPaths:
+                        items:
+                          properties:
+                            operator:
+                              description: A match paths operator is the set of available
+                                operator that can be used in a match paths selector.
+                              enum:
+                              - In
+                              - NotIn
+                              type: string
+                            pattern:
+                              description: A match paths pattern is the set of available
+                                pattern that can be used in a match paths selector.
+                              enum:
+                              - Full
+                              - Prefix
+                              - Postfix
+                              type: string
+                            values:
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - operator
+                          - pattern
+                          type: object
+                        type: array
+                    type: object
+                  podSelector:
+                    description: PodSelector selects pods that this policy applies
+                      to
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: A label selector requirement is a selector
+                            that contains values, a key, and an operator that relates
+                            the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship
+                                to a set of values. Valid operators are In, NotIn,
+                                Exists and DoesNotExist.
+                              enum:
+                              - In
+                              - NotIn
+                              - Exists
+                              - DoesNotExist
+                              type: string
+                            values:
+                              description: values is an array of string values. If
+                                the operator is In or NotIn, the values array must
+                                be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced
+                                during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      matchLabels:
+                        additionalProperties:
+                          description: MatchLabelsValue represents the value from
+                            the MatchLabels {key,value} pair.
+                          maxLength: 63
+                          pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                          type: string
+                        description: matchLabels is a map of {key,value} pairs. A
+                          single {key,value} in the matchLabels map is equivalent
+                          to an element of matchExpressions, whose key field is "key",
+                          the operator is "In", and the values array contains only
+                          "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                type: object
+            required:
+            - rules
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
