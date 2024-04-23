@@ -23,6 +23,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
 	struct msg_capabilities caps;
+	struct msg_ns ns;
 	u64 msg_size = sizeof(struct msg_clone_event);
 	u32 tgid = 0;
 
@@ -65,6 +66,12 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	curr->caps.permitted = caps.permitted;
 	curr->caps.effective = caps.effective;
 	curr->caps.inheritable = caps.inheritable;
+
+	/* Store the thread leader namespaces so we can check later
+	 * before the execve hook point if they changed or not.
+	 */
+	get_namespaces(&ns, task);
+	memcpy(&curr->ns, &ns, sizeof(struct msg_ns));
 
 	/* Setup the msg_clone_event and sent to the user. */
 	msg.common.op = MSG_OP_CLONE;
