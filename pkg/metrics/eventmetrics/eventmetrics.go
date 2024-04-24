@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
@@ -76,7 +77,7 @@ func InitEventsMetricsForDocs(registry *prometheus.Registry) {
 	InitEventsMetrics(registry)
 
 	// Initialize metrics with example labels
-	processLabels := metrics.NewProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
+	processLabels := option.CreateProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
 	for ev, evString := range tetragon.EventType_name {
 		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
 			EventsProcessed.WithLabelValues(processLabels, evString).Add(0)
@@ -124,7 +125,7 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	default:
 		eventType = "unknown"
 	}
-	processLabels := metrics.NewProcessLabels(namespace, workload, pod, binary)
+	processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
 	EventsProcessed.WithLabelValues(processLabels, eventType).Inc()
 	if pInfo != nil && pInfo.Name != "" {
 		policyStats.

@@ -5,13 +5,6 @@ package consts
 
 const MetricsNamespace = "tetragon"
 
-var DefaultLabelsFilter = map[string]bool{
-	"namespace": true,
-	"workload":  true,
-	"pod":       true,
-	"binary":    true,
-}
-
 var (
 	ExamplePolicyLabel   = "example-tracingpolicy"
 	ExampleKprobeLabel   = "example_kprobe"
