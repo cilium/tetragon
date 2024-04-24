@@ -135,7 +135,7 @@ func ReadAndSetFlags() error {
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
-	Config.MetricsLabelFilter = parseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter))
+	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
 	Config.ServerAddress = viper.GetString(KeyServerAddress)
 
 	Config.ExportFilename = viper.GetString(KeyExportFilename)

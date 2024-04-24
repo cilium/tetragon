@@ -7,6 +7,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -31,7 +32,7 @@ func InitMetricsForDocs(registry *prometheus.Registry) {
 	InitMetrics(registry)
 
 	// Initialize metrics with example labels
-	processLabels := metrics.NewProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
+	processLabels := option.CreateProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
 	syscallStats.WithLabelValues(processLabels, consts.ExampleSyscallLabel).Inc()
 }
 
@@ -58,7 +59,7 @@ func Handle(event interface{}) {
 	}
 
 	if syscall != "" {
-		processLabels := metrics.NewProcessLabels(namespace, workload, pod, binary)
+		processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
 		syscallStats.WithLabelValues(processLabels, syscall).Inc()
 	}
 }

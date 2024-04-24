@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package metrics
+package metrics_test
 
 import (
-	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
 func TestProcessLabels(t *testing.T) {
 	t.Cleanup(func() {
 		// reset global config back to the default
-		option.Config.MetricsLabelFilter = maps.Clone(consts.DefaultLabelsFilter)
+		option.Config.MetricsLabelFilter = option.DefaultLabelFilter()
 	})
 
 	namespace := "test-namespace"
@@ -25,29 +24,30 @@ func TestProcessLabels(t *testing.T) {
 	binary := "test-binary"
 
 	// by default all labels should be enabled
-	processLabels := NewProcessLabels(namespace, workload, pod, binary)
+	processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
 	assert.Equal(t, processLabels.Values(), []string{namespace, workload, pod, binary})
 
 	// disable workload and pod
 	option.Config.MetricsLabelFilter["workload"] = false
 	option.Config.MetricsLabelFilter["pod"] = false
-	processLabels = NewProcessLabels(namespace, workload, pod, binary)
+	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
 	assert.Equal(t, processLabels.Values(), []string{namespace, "", "", binary})
 
 	// delete binary (this shouldn't really happen, we set the values to false instead)
 	delete(option.Config.MetricsLabelFilter, "binary")
-	processLabels = NewProcessLabels(namespace, workload, pod, binary)
+	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
 	assert.Equal(t, processLabels.Values(), []string{namespace, "", "", ""})
 
 	// disable all
-	for l := range consts.DefaultLabelsFilter {
+	option.Config.MetricsLabelFilter = option.DefaultLabelFilter()
+	for l := range option.Config.MetricsLabelFilter {
 		option.Config.MetricsLabelFilter[l] = false
 	}
-	processLabels = NewProcessLabels(namespace, workload, pod, binary)
+	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
 	assert.Equal(t, processLabels.Values(), []string{"", "", "", ""})
 
 	// clear label filter (this shouldn't really happen, we set the values to false instead)
-	option.Config.MetricsLabelFilter = map[string]bool{}
-	processLabels = NewProcessLabels(namespace, workload, pod, binary)
+	option.Config.MetricsLabelFilter = metrics.LabelFilter{}
+	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
 	assert.Equal(t, processLabels.Values(), []string{"", "", "", ""})
 }

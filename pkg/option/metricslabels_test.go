@@ -6,8 +6,6 @@ package option
 import (
 	"maps"
 	"testing"
-
-	"github.com/cilium/tetragon/pkg/metrics/consts"
 )
 
 func TestParseMetricsLabelFilter(t *testing.T) {
@@ -19,7 +17,7 @@ func TestParseMetricsLabelFilter(t *testing.T) {
 		{
 			name:     "all labels (default)",
 			input:    "namespace,workload,pod,binary",
-			expected: consts.DefaultLabelsFilter,
+			expected: DefaultLabelFilter(),
 		},
 		{
 			name:     "no labels",
@@ -45,9 +43,9 @@ func TestParseMetricsLabelFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := parseMetricsLabelFilter(tt.input)
+			actual := DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(tt.input))
 			if !maps.Equal(actual, tt.expected) {
-				t.Errorf("parseMetricsLabelFilter(%q) = %v, want %v", tt.input, actual, tt.expected)
+				t.Errorf("%q got parsed as %v, want %v", tt.input, actual, tt.expected)
 			}
 		})
 	}

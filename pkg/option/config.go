@@ -6,13 +6,12 @@ package option
 import (
 	"bytes"
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/spf13/viper"
 )
 
@@ -48,7 +47,7 @@ type config struct {
 	DataCacheSize    int
 
 	MetricsServer      string
-	MetricsLabelFilter map[string]bool
+	MetricsLabelFilter metrics.LabelFilter
 	ServerAddress      string
 	TracingPolicy      string
 	TracingPolicyDir   string
@@ -103,7 +102,7 @@ var (
 		LogOpts: make(map[string]string),
 
 		// Enable all metrics labels by default
-		MetricsLabelFilter: maps.Clone(consts.DefaultLabelsFilter),
+		MetricsLabelFilter: DefaultLabelFilter(),
 	}
 )
 
