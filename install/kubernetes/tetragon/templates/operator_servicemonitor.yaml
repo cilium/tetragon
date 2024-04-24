@@ -6,9 +6,9 @@ metadata:
     {{- with .Values.tetragonOperator.prometheus.serviceMonitor.labelsOverride}}
     {{- toYaml . | nindent 4 }}
     {{- else }}
-    {{- include "tetragon.labels" . | nindent 4 }}
+    {{- include "tetragon-operator.labels" . | nindent 4 }}
     {{- end }}
-  name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-operator
   namespace: {{ .Release.Namespace }}
 spec:
   endpoints:
@@ -26,9 +26,5 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      {{- with .Values.serviceLabelsOverride}}
-      {{- toYaml . | nindent 6 }}
-      {{- else }}
-      {{- include "tetragon.labels" . | nindent 6 }}
-      {{- end }}
+      {{- include "tetragon-operator.labels" . | nindent 6 }}
 {{- end }}
