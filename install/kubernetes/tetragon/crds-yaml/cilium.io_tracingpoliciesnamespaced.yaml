@@ -1,0 +1,2029 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: tracingpoliciesnamespaced.cilium.io
+spec:
+  group: cilium.io
+  names:
+    kind: TracingPolicyNamespaced
+    listKind: TracingPolicyNamespacedList
+    plural: tracingpoliciesnamespaced
+    singular: tracingpolicynamespaced
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Tracing policy specification.
+            properties:
+              containerSelector:
+                description: ContainerSelector selects containers that this policy
+                  applies to. A map of container fields will be constructed in the
+                  same way as a map of labels. The name of the field represents the
+                  label "key", and the value of the field - label "value". Currently,
+                  only the "name" field is supported.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          enum:
+                          - In
+                          - NotIn
+                          - Exists
+                          - DoesNotExist
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      description: MatchLabelsValue represents the value from the
+                        MatchLabels {key,value} pair.
+                      maxLength: 63
+                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              enforcers:
+                description: A killer spec.
+                items:
+                  properties:
+                    calls:
+                      description: Calls where enforcer is executed in
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - calls
+                  type: object
+                type: array
+              kprobes:
+                description: A list of kprobe specs.
+                items:
+                  properties:
+                    args:
+                      description: A list of function arguments to include in the
+                        trace output.
+                      items:
+                        properties:
+                          index:
+                            description: Position of the argument.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
+                          maxData:
+                            default: false
+                            description: Read maximum possible data (currently 327360).
+                              This field is only used for char_buff data. When this
+                              value is false (default), the bpf program will fetch
+                              at most 4096 bytes. In later kernels (>=5.4) tetragon
+                              supports fetching up to 327360 bytes if this flag is
+                              turned on
+                            type: boolean
+                          returnCopy:
+                            default: false
+                            description: This field is used only for char_buf and
+                              char_iovec types. It indicates that this argument should
+                              be read later (when the kretprobe for the symbol is
+                              triggered) because it might not be populated when the
+                              kprobe is triggered at the entrance of the function.
+                              For example, a buffer supplied to read(2) won't have
+                              content until kretprobe is triggered.
+                            type: boolean
+                          sizeArgIndex:
+                            description: Specifies the position of the corresponding
+                              size argument for this argument. This field is used
+                              only for char_buf and char_iovec types.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          type:
+                            default: auto
+                            description: Argument type.
+                            enum:
+                            - auto
+                            - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
+                            - uint32
+                            - int32
+                            - uint64
+                            - int64
+                            - char_buf
+                            - char_iovec
+                            - size_t
+                            - skb
+                            - sock
+                            - string
+                            - fd
+                            - file
+                            - filename
+                            - path
+                            - nop
+                            - bpf_attr
+                            - perf_event
+                            - bpf_map
+                            - user_namespace
+                            - capability
+                            - kiocb
+                            - iov_iter
+                            - cred
+                            - load_info
+                            - module
+                            - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
+                            - linux_binprm
+                            - data_loc
+                            - net_device
+                            type: string
+                        required:
+                        - index
+                        - type
+                        type: object
+                      type: array
+                    call:
+                      description: Name of the function to apply the kprobe spec to.
+                      type: string
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
+                    return:
+                      default: false
+                      description: Indicates whether to collect return value of the
+                        traced function.
+                      type: boolean
+                    returnArg:
+                      description: A return argument to include in the trace output.
+                      properties:
+                        index:
+                          description: Position of the argument.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        label:
+                          description: Label to output in the JSON
+                          type: string
+                        maxData:
+                          default: false
+                          description: Read maximum possible data (currently 327360).
+                            This field is only used for char_buff data. When this
+                            value is false (default), the bpf program will fetch at
+                            most 4096 bytes. In later kernels (>=5.4) tetragon supports
+                            fetching up to 327360 bytes if this flag is turned on
+                          type: boolean
+                        returnCopy:
+                          default: false
+                          description: This field is used only for char_buf and char_iovec
+                            types. It indicates that this argument should be read
+                            later (when the kretprobe for the symbol is triggered)
+                            because it might not be populated when the kprobe is triggered
+                            at the entrance of the function. For example, a buffer
+                            supplied to read(2) won't have content until kretprobe
+                            is triggered.
+                          type: boolean
+                        sizeArgIndex:
+                          description: Specifies the position of the corresponding
+                            size argument for this argument. This field is used only
+                            for char_buf and char_iovec types.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        type:
+                          default: auto
+                          description: Argument type.
+                          enum:
+                          - auto
+                          - int
+                          - int8
+                          - uint8
+                          - int16
+                          - uint16
+                          - uint32
+                          - int32
+                          - uint64
+                          - int64
+                          - char_buf
+                          - char_iovec
+                          - size_t
+                          - skb
+                          - sock
+                          - string
+                          - fd
+                          - file
+                          - filename
+                          - path
+                          - nop
+                          - bpf_attr
+                          - perf_event
+                          - bpf_map
+                          - user_namespace
+                          - capability
+                          - kiocb
+                          - iov_iter
+                          - cred
+                          - load_info
+                          - module
+                          - syscall64
+                          - kernel_cap_t
+                          - cap_inheritable
+                          - cap_permitted
+                          - cap_effective
+                          - linux_binprm
+                          - data_loc
+                          - net_device
+                          type: string
+                      required:
+                      - index
+                      - type
+                      type: object
+                    returnArgAction:
+                      description: 'An action to perform on the return argument. Available
+                        actions are: Post;TrackSock;UntrackSock'
+                      type: string
+                    selectors:
+                      description: Selectors to apply before producing trace output.
+                        Selectors are ORed.
+                      items:
+                        description: KProbeSelector selects function calls for kprobe
+                          based on PIDs and function arguments. The results of MatchPIDs
+                          and MatchArgs are ANDed.
+                        properties:
+                          matchActions:
+                            description: A list of actions to execute when this selector
+                              matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                          matchBinaries:
+                            description: A list of binary exec name filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - Prefix
+                                  - NotPrefix
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilities:
+                            description: A list of capabilities and IDs
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilityChanges:
+                            description: IDs for capabilities changes
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaceChanges:
+                            description: IDs for namespace changes
+                            items:
+                              properties:
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaces:
+                            description: A list of namespaces and IDs
+                            items:
+                              properties:
+                                namespace:
+                                  description: Namespace selector name.
+                                  enum:
+                                  - Uts
+                                  - Ipc
+                                  - Mnt
+                                  - Pid
+                                  - PidForChildren
+                                  - Net
+                                  - Time
+                                  - TimeForChildren
+                                  - Cgroup
+                                  - User
+                                  type: string
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - namespace
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchPIDs:
+                            description: A list of process ID filters. MatchPIDs are
+                              ANDed.
+                            items:
+                              properties:
+                                followForks:
+                                  default: false
+                                  description: Matches any descendant processes of
+                                    the matching PIDs.
+                                  type: boolean
+                                isNamespacePID:
+                                  default: false
+                                  description: Indicates whether PIDs are namespace
+                                    PIDs.
+                                  type: boolean
+                                operator:
+                                  description: PID selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Process IDs to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchReturnArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                        type: object
+                      type: array
+                    syscall:
+                      default: true
+                      description: Indicates whether the traced function is a syscall.
+                      type: boolean
+                    tags:
+                      description: Tags to categorize the event, will be include in
+                        the event output. Maximum of 16 Tags are supported.
+                      items:
+                        type: string
+                      maxItems: 16
+                      type: array
+                  required:
+                  - call
+                  type: object
+                type: array
+              lists:
+                description: A list of list specs.
+                items:
+                  properties:
+                    name:
+                      description: Name of the list
+                      type: string
+                    pattern:
+                      description: Pattern for 'generated' lists.
+                      type: string
+                    type:
+                      description: Indicates the type of the list values.
+                      enum:
+                      - syscalls
+                      - generated_syscalls
+                      - generated_ftrace
+                      type: string
+                    validated:
+                      description: List was validated
+                      type: boolean
+                    values:
+                      description: Values of the list
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  type: object
+                type: array
+              loader:
+                description: Enable loader events
+                type: boolean
+              options:
+                description: A list of overloaded options
+                items:
+                  properties:
+                    name:
+                      description: Name of the option
+                      type: string
+                    value:
+                      description: Value of the option
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              podSelector:
+                description: PodSelector selects pods that this policy applies to
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          enum:
+                          - In
+                          - NotIn
+                          - Exists
+                          - DoesNotExist
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      description: MatchLabelsValue represents the value from the
+                        MatchLabels {key,value} pair.
+                      maxLength: 63
+                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              tracepoints:
+                description: A list of tracepoint specs.
+                items:
+                  properties:
+                    args:
+                      description: A list of function arguments to include in the
+                        trace output.
+                      items:
+                        properties:
+                          index:
+                            description: Position of the argument.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
+                          maxData:
+                            default: false
+                            description: Read maximum possible data (currently 327360).
+                              This field is only used for char_buff data. When this
+                              value is false (default), the bpf program will fetch
+                              at most 4096 bytes. In later kernels (>=5.4) tetragon
+                              supports fetching up to 327360 bytes if this flag is
+                              turned on
+                            type: boolean
+                          returnCopy:
+                            default: false
+                            description: This field is used only for char_buf and
+                              char_iovec types. It indicates that this argument should
+                              be read later (when the kretprobe for the symbol is
+                              triggered) because it might not be populated when the
+                              kprobe is triggered at the entrance of the function.
+                              For example, a buffer supplied to read(2) won't have
+                              content until kretprobe is triggered.
+                            type: boolean
+                          sizeArgIndex:
+                            description: Specifies the position of the corresponding
+                              size argument for this argument. This field is used
+                              only for char_buf and char_iovec types.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          type:
+                            default: auto
+                            description: Argument type.
+                            enum:
+                            - auto
+                            - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
+                            - uint32
+                            - int32
+                            - uint64
+                            - int64
+                            - char_buf
+                            - char_iovec
+                            - size_t
+                            - skb
+                            - sock
+                            - string
+                            - fd
+                            - file
+                            - filename
+                            - path
+                            - nop
+                            - bpf_attr
+                            - perf_event
+                            - bpf_map
+                            - user_namespace
+                            - capability
+                            - kiocb
+                            - iov_iter
+                            - cred
+                            - load_info
+                            - module
+                            - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
+                            - linux_binprm
+                            - data_loc
+                            - net_device
+                            type: string
+                        required:
+                        - index
+                        - type
+                        type: object
+                      type: array
+                    event:
+                      description: Tracepoint event
+                      type: string
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
+                    selectors:
+                      description: Selectors to apply before producing trace output.
+                        Selectors are ORed.
+                      items:
+                        description: KProbeSelector selects function calls for kprobe
+                          based on PIDs and function arguments. The results of MatchPIDs
+                          and MatchArgs are ANDed.
+                        properties:
+                          matchActions:
+                            description: A list of actions to execute when this selector
+                              matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                          matchBinaries:
+                            description: A list of binary exec name filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - Prefix
+                                  - NotPrefix
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilities:
+                            description: A list of capabilities and IDs
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilityChanges:
+                            description: IDs for capabilities changes
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaceChanges:
+                            description: IDs for namespace changes
+                            items:
+                              properties:
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaces:
+                            description: A list of namespaces and IDs
+                            items:
+                              properties:
+                                namespace:
+                                  description: Namespace selector name.
+                                  enum:
+                                  - Uts
+                                  - Ipc
+                                  - Mnt
+                                  - Pid
+                                  - PidForChildren
+                                  - Net
+                                  - Time
+                                  - TimeForChildren
+                                  - Cgroup
+                                  - User
+                                  type: string
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - namespace
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchPIDs:
+                            description: A list of process ID filters. MatchPIDs are
+                              ANDed.
+                            items:
+                              properties:
+                                followForks:
+                                  default: false
+                                  description: Matches any descendant processes of
+                                    the matching PIDs.
+                                  type: boolean
+                                isNamespacePID:
+                                  default: false
+                                  description: Indicates whether PIDs are namespace
+                                    PIDs.
+                                  type: boolean
+                                operator:
+                                  description: PID selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Process IDs to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchReturnArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                        type: object
+                      type: array
+                    subsystem:
+                      description: Tracepoint subsystem
+                      type: string
+                    tags:
+                      description: Tags to categorize the event, will be include in
+                        the event output. Maximum of 16 Tags are supported.
+                      items:
+                        type: string
+                      maxItems: 16
+                      type: array
+                  required:
+                  - event
+                  - subsystem
+                  type: object
+                type: array
+              uprobes:
+                description: A list of uprobe specs.
+                items:
+                  properties:
+                    args:
+                      description: A list of function arguments to include in the
+                        trace output.
+                      items:
+                        properties:
+                          index:
+                            description: Position of the argument.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
+                          maxData:
+                            default: false
+                            description: Read maximum possible data (currently 327360).
+                              This field is only used for char_buff data. When this
+                              value is false (default), the bpf program will fetch
+                              at most 4096 bytes. In later kernels (>=5.4) tetragon
+                              supports fetching up to 327360 bytes if this flag is
+                              turned on
+                            type: boolean
+                          returnCopy:
+                            default: false
+                            description: This field is used only for char_buf and
+                              char_iovec types. It indicates that this argument should
+                              be read later (when the kretprobe for the symbol is
+                              triggered) because it might not be populated when the
+                              kprobe is triggered at the entrance of the function.
+                              For example, a buffer supplied to read(2) won't have
+                              content until kretprobe is triggered.
+                            type: boolean
+                          sizeArgIndex:
+                            description: Specifies the position of the corresponding
+                              size argument for this argument. This field is used
+                              only for char_buf and char_iovec types.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          type:
+                            default: auto
+                            description: Argument type.
+                            enum:
+                            - auto
+                            - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
+                            - uint32
+                            - int32
+                            - uint64
+                            - int64
+                            - char_buf
+                            - char_iovec
+                            - size_t
+                            - skb
+                            - sock
+                            - string
+                            - fd
+                            - file
+                            - filename
+                            - path
+                            - nop
+                            - bpf_attr
+                            - perf_event
+                            - bpf_map
+                            - user_namespace
+                            - capability
+                            - kiocb
+                            - iov_iter
+                            - cred
+                            - load_info
+                            - module
+                            - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
+                            - linux_binprm
+                            - data_loc
+                            - net_device
+                            type: string
+                        required:
+                        - index
+                        - type
+                        type: object
+                      type: array
+                    message:
+                      description: A short message of 256 characters max that will
+                        be included in the event output to inform users what is going
+                        on.
+                      type: string
+                    path:
+                      description: Name of the traced binary
+                      type: string
+                    selectors:
+                      description: Selectors to apply before producing trace output.
+                        Selectors are ORed.
+                      items:
+                        description: KProbeSelector selects function calls for kprobe
+                          based on PIDs and function arguments. The results of MatchPIDs
+                          and MatchArgs are ANDed.
+                        properties:
+                          matchActions:
+                            description: A list of actions to execute when this selector
+                              matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                          matchBinaries:
+                            description: A list of binary exec name filters.
+                            items:
+                              properties:
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - Prefix
+                                  - NotPrefix
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilities:
+                            description: A list of capabilities and IDs
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilityChanges:
+                            description: IDs for capabilities changes
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaceChanges:
+                            description: IDs for namespace changes
+                            items:
+                              properties:
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaces:
+                            description: A list of namespaces and IDs
+                            items:
+                              properties:
+                                namespace:
+                                  description: Namespace selector name.
+                                  enum:
+                                  - Uts
+                                  - Ipc
+                                  - Mnt
+                                  - Pid
+                                  - PidForChildren
+                                  - Net
+                                  - Time
+                                  - TimeForChildren
+                                  - Cgroup
+                                  - User
+                                  type: string
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - namespace
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchPIDs:
+                            description: A list of process ID filters. MatchPIDs are
+                              ANDed.
+                            items:
+                              properties:
+                                followForks:
+                                  default: false
+                                  description: Matches any descendant processes of
+                                    the matching PIDs.
+                                  type: boolean
+                                isNamespacePID:
+                                  default: false
+                                  description: Indicates whether PIDs are namespace
+                                    PIDs.
+                                  type: boolean
+                                operator:
+                                  description: PID selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Process IDs to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: Action to execute.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: A time period within which repeated
+                                    messages will not be posted. Can be specified
+                                    in seconds (default or with 's' suffix), minutes
+                                    ('m' suffix) or hours ('h' suffix). Only valid
+                                    with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: The scope of the provided rate limit
+                                    argument. Can be "thread" (default), "process"
+                                    (all threads for the same process), or "global".
+                                    If "thread" is selected then rate limiting applies
+                                    per thread; if "process" is selected then rate
+                                    limiting applies per process; if "global" is selected
+                                    then rate limiting applies regardless of which
+                                    process or thread caused the action. Only valid
+                                    with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchReturnArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                index:
+                                  description: Position of the argument to apply fhe
+                                    filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                        type: object
+                      type: array
+                    symbols:
+                      description: List of the traced symbols
+                      items:
+                        type: string
+                      type: array
+                    tags:
+                      description: Tags to categorize the event, will be include in
+                        the event output. Maximum of 16 Tags are supported.
+                      items:
+                        type: string
+                      maxItems: 16
+                      type: array
+                  required:
+                  - path
+                  - symbols
+                  type: object
+                type: array
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

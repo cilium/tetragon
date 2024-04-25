@@ -1,5 +1,6 @@
 # helm chart
 /install/kubernetes/tetragon/README.md linguist-generated
+/install/kubernetes/tetragon/crds-yaml/* linguist-vendored
 
 # api
 /api/v1/README.md linguist-generated
