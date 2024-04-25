@@ -7,7 +7,11 @@ metadata:
   labels:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
 data:
+  {{- if eq .Values.crds.installMethod "operator" }}
   skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}
+  {{- else }}
+  skip-crd-creation: "true"
+  {{- end }}
   skip-pod-info-crd: {{ not .Values.tetragonOperator.podInfo.enabled | quote }}
   skip-tracing-policy-crd: {{ not .Values.tetragonOperator.tracingPolicy.enabled | quote }}
   force-update-crds: {{ .Values.tetragonOperator.forceUpdateCRDs | quote }}
