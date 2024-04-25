@@ -10,10 +10,12 @@ HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.13.1@sha256:717bd8f770bd1d25ccf79
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TETRAGON_CHART := tetragon
+CRDS := $(REPO_ROOT)/pkg/k8s/apis/cilium.io/client/crds/v1alpha1
+
 HELM ?= docker run --rm -v ./$(TETRAGON_CHART):/apps $(HELM_IMAGE)
 
 .PHONY: all
-all: deps lint docs
+all: deps $(TETRAGON_CHART)/crds-yaml lint docs
 
 .PHONY: deps
 deps: 
@@ -28,3 +30,13 @@ lint:
 docs:
 	docker run --rm -v ./$(TETRAGON_CHART):/helm-docs -u $$(id -u) $(HELMDOCS_IMAGE)
 	./export-doc.sh $(REPO_ROOT)/docs/content/en/docs/reference/helm-chart.md
+
+# NB: Helm has an "official" way to install CRDs which requires simply putting
+# them in the crds directory. This method doesn't prevents accidental deletion
+# of custom resources, because it doesn't delete CRDs when the chart is
+# uninstalled. However, it doesn't support CRD upgrades, which is why we opt to
+# install CRDs alongside other resources. This means we can't put them in the
+# crds directory, so we name in crds-yaml instead.
+.PHONY: $(TETRAGON_CHART)/crds-yaml
+$(TETRAGON_CHART)/crds-yaml: $(CRDS)
+	cp -rf $(CRDS)/. $(TETRAGON_CHART)/crds-yaml
