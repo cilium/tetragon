@@ -441,9 +441,9 @@ type RedactionFilter struct {
 	//
 	// Deprecated: Marked as deprecated in tetragon/events.proto.
 	Match []*Filter `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
-	// Regular expressions to use for redaction. Strings inside capture groups are redacted.
+	// RE2 regular expressions to use for redaction. Strings inside capture groups are redacted.
 	Redact []string `protobuf:"bytes,2,rep,name=redact,proto3" json:"redact,omitempty"`
-	// Regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
+	// RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
 	BinaryRegex []string `protobuf:"bytes,3,rep,name=binary_regex,json=binaryRegex,proto3" json:"binary_regex,omitempty"`
 }
 

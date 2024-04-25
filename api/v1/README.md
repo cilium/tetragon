@@ -1306,8 +1306,8 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | match | [Filter](#tetragon-Filter) | repeated | **Deprecated.** Deprecated, do not use. |
-| redact | [string](#string) | repeated | Regular expressions to use for redaction. Strings inside capture groups are redacted. |
-| binary_regex | [string](#string) | repeated | Regular expression to match binary name. If supplied, redactions will only be applied to matching processes. |
+| redact | [string](#string) | repeated | RE2 regular expressions to use for redaction. Strings inside capture groups are redacted. |
+| binary_regex | [string](#string) | repeated | RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes. |
 
 
 
