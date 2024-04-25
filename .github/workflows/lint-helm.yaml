@@ -6,9 +6,11 @@ on:
       - v*
     paths:
     - 'install/kubernetes/**'
+    - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
   pull_request:
     paths:
     - 'install/kubernetes/**'
+    - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
 
 jobs:
   generated-files:
