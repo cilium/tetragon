@@ -1,4 +1,5 @@
-# Variables
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of Tetragon
 
 # renovate: datasource=docker
 HELM_IMAGE=docker.io/alpine/helm:3.14.4@sha256:599abc4bc6fc6a7aae894fa726008d78061e8d109f0cc49e16445757d0034cfa
@@ -7,21 +8,23 @@ KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.4-alpine@sha256:051e9bc943ff03d
 # renovate: datasource=docker
 HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.13.1@sha256:717bd8f770bd1d25ccf79c876f1420e105832f2d6bbde12170405f58f540cb2d
 
-SCRIPT_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
-TETRAGON_CHART := $(SCRIPT_DIR)/tetragon
-HELM ?= docker run --rm -v $(TETRAGON_CHART):/apps $(HELM_IMAGE)
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
+TETRAGON_CHART := tetragon
+HELM ?= docker run --rm -v ./$(TETRAGON_CHART):/apps $(HELM_IMAGE)
 
-# Targets
-.PHONY: all lint docs
+.PHONY: all
 all: deps lint docs
 
+.PHONY: deps
 deps: 
 	$(HELM) dependency update .
 
+.PHONY: lint
 lint:
 	$(HELM) lint . --with-subcharts
 	$(HELM) template tetragon . | docker run --rm -i $(KUBECONFORM_IMAGE) --strict --schema-location default
 
+.PHONY: docs
 docs:
-	docker run --rm -v $(TETRAGON_CHART):/helm-docs -u $$(id -u) $(HELMDOCS_IMAGE)
-	$(SCRIPT_DIR)/export-doc.sh $(SCRIPT_DIR)/../../docs/content/en/docs/reference/helm-chart.md
+	docker run --rm -v ./$(TETRAGON_CHART):/helm-docs -u $$(id -u) $(HELMDOCS_IMAGE)
+	./export-doc.sh $(REPO_ROOT)/docs/content/en/docs/reference/helm-chart.md
