@@ -1,0 +1,152 @@
+.cards {
+  position: relative;
+  margin-top: 4rem;
+
+  @media (max-width: $desktop) {
+    margin-top: 3.4rem;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 2rem;
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin: 0;
+
+    @media (max-width: $desktop) {
+      gap: 28px;
+    }
+
+    @media (max-width: $tablet) {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  &__item {
+
+
+    @media (max-width: $desktop) {
+      gap: 15px;
+    }
+
+    @media (max-width: $tablet) {
+      gap: 32px;
+    }
+
+    @media (max-width: $mobile) {
+      gap: 0;
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 100%;
+    border: 1px solid #E0E6F0;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+
+    .button {
+      margin-top: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      color: #253737;
+    }
+
+    &:focus,
+    &:hover {
+      box-shadow: 0 3px 8px 0 rgba(201,206,207,0.8);
+
+      .button {
+        color: #5C6D70 !important;
+      }
+    }
+
+    @media (max-width: $desktop) {
+      margin-top: 17px;
+    }
+
+    @media (max-width: $tablet) {
+      margin-top: 12px;
+    }
+  }
+
+  &__text-wrapper {
+    display: flex;
+    flex-direction: column;
+    padding-right: 1rem;
+
+    @media (max-width: $desktop) {
+      padding-top: 26px;
+      padding-bottom: 26px;
+    }
+
+    @media (max-width: $tablet) {
+      padding-bottom: 19px;
+    }
+
+    @media (max-width: $mobile) {
+      padding: 18px;
+    }
+  }
+
+  &__title {
+    margin-bottom: 0;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1.375;
+    color: #253737;
+
+    @media (max-width: $desktop) {
+      font-size: 20px;
+    }
+
+    @media (max-width: $tablet) {
+      font-size: 18px;
+    }
+
+    @media (max-width: $mobile) {
+      font-size: 16px;
+    }
+  }
+
+  &__description {
+    margin-top: 7px;
+    margin-bottom: 0;
+    font-size: 16px;
+    line-height: 1.375;
+    color: #5E636E;
+
+    @media (max-width: $mobile) {
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+  }
+
+  &__img {
+    z-index: -1;
+    position: relative;
+    flex-shrink: 0;
+    height: auto;
+
+    @media (max-width: $desktop) {
+      max-width: 32%;
+    }
+
+    @media (max-width: $tablet) {
+      max-width: 21%;
+    }
+
+    @media (max-width: $mobile) {
+      display: none;
+    }
+  }
+
+}

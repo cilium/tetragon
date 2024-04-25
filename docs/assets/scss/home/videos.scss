@@ -1,0 +1,139 @@
+.videos {
+  margin-top: 130px;
+
+  @media (max-width: $desktop) {
+    margin-top: 113px;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 96px;
+  }
+
+  @media (max-width: $mobile) {
+    margin-top: 85px;
+  }
+
+  &__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+
+    @media (max-width: $desktop) {
+      font-size: 36px;
+    }
+
+    @media (max-width: $tablet) {
+      font-size: 28px;
+    }
+
+    @media (max-width: $mobile) {
+      justify-content: center;
+    }
+
+    > .button {
+      font-size: 16px;
+      font-weight: 700;
+
+      @media (max-width: $tablet) {
+        font-size: 15px;
+      }
+
+      @media (max-width: $mobile) {
+        display: none;
+      }
+    }
+  }
+
+  &__button {
+    display: none;
+
+    @media (max-width: $mobile) {
+      display: block;
+      text-align: center;
+    }
+  }
+
+  &__list {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1.75rem;
+
+    @media (max-width: $tablet) {
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: $mobile) {
+      max-width: 384px;
+      margin-top: 2rem;
+      flex-direction: column;
+      margin-left: auto;
+      margin-right: auto;
+      gap: 1rem;
+    }
+
+    li {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+
+      a {
+        color: #253737;
+
+        &:hover {
+          h3 {
+            opacity: 60%;
+          }
+        }
+      }
+
+      h3 {
+        margin-top: 1.5rem;
+        line-height: 1.25;
+        font-size: 20px;
+        font-weight: 600;
+        transition: opacity 0.2s;
+
+        @media (max-width: $desktop) {
+          margin-top: 1.25rem;
+          font-size: 18px;
+        }
+
+        @media (max-width: $tablet) {
+          margin-top: 1rem;
+          line-height: 1.25;
+          font-size: 16px;
+        }
+
+        @media (max-width: $mobile) {
+          margin-top: 0.88rem;
+        }
+      }
+
+      p {
+        line-height: 1.5;
+        font-size: 14px;
+        margin-top: 0.5rem;
+        color: #5E636E;
+      }
+
+      img {
+        width: 100%;
+        height: auto;
+      }
+    }
+  }
+
+  .button-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 3.5rem;
+    margin-top: 3.5rem;
+  }
+
+  .video-button {
+    border: 1px solid black;
+  }
+}

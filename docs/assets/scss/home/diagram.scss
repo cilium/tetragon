@@ -1,0 +1,58 @@
+.diagram {
+  margin-top: 8rem;
+  text-align: center;
+
+  @media (max-width: $desktop) {
+    margin-top: 7rem;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 3rem;
+  }
+
+  @media (max-width: $mobile) {
+    margin-top: 5rem;
+  }
+
+  p {
+    max-width: 600px;
+    margin: 0 auto;
+    margin-top: 0.75rem;
+
+    @media (max-width: $desktop) {
+      max-width: 615px;
+    }
+
+    @media (max-width: $tablet) {
+      max-width: 589px;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: $mobile) {
+      max-width: 328px;
+    }
+  }
+
+  &__title {
+    @media (max-width: $mobile) {
+      font-size: 28px;
+    }
+  }
+
+  &__image {
+    margin-top: 2.75rem;
+    width: 100%;
+
+    @media (max-width: $tablet) {
+      margin-top: 2.5rem;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 2rem;
+      max-width: 440px;
+      display: block;
+      margin-right: auto;
+      margin-left: auto;
+    }
+  }
+}

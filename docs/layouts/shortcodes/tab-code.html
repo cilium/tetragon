@@ -1,0 +1,15 @@
+{{ $lang := default "" ($.Get "lang") -}}
+{{ $highlight := default "" (.Get "highlight") -}}
+
+<div class="code">
+    {{ with $.Get "header" -}}
+    <h4 class="code-header">
+        {{ . | markdownify -}}
+    </h4>
+    {{ end -}}
+    <div class="code-body p-0 m-0 td-content">
+        {{ with $.Inner -}}
+        {{ highlight . $lang $highlight -}}
+        {{ end -}}
+    </div>
+</div>

@@ -5,33 +5,95 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  padding: 38px 80px;
+  padding: 53px 0 22px 0;
   min-height: auto;
-  background-color: #FAFAFA;
+  background-color: #fff;
 
-  @media screen and (max-width: 767px) {
-    padding: 38px 30px;
+  @media (max-width: $desktop) {
+    padding-top: 48px;
+    padding-bottom: 18px;
   }
 
-  &__inner {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .td-home & {
+    font-family: "Manrope", sans-serif;
 
-    @media screen and (max-width: 767px) {
-      flex-direction: column;
-      gap: 20px;
+    .container-fluid {
+      max-width: 1238px;
     }
   }
 
-  p {
+  &__inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+
+    @media (max-width: $tablet) {
+      row-gap: 30px;
+    }
+
+    @media (max-width: $mobile) {
+      grid-template-columns: 1fr;
+      text-align: center;
+      row-gap: 26px;
+    }
+  }
+
+  &__logo {
+    &-name {
+      font-size: 0;
+    }
+
+    svg {
+      height: 48px;
+    }
+
+    @media (max-width: $mobile) {
+      grid-row: 1 / 1;
+    }
+  }
+
+  &__nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin: 0;
-    color: #253737;
+    padding: 0;
+    column-gap: 45px;
+    list-style: none;
+
+    @media (max-width: $tablet) {
+      grid-row: 2 / 3;
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: $mobile) {
+      grid-row: 2 / 2;
+      flex-direction: column;
+      row-gap: 22px;
+    }
+
+    &-item {
+      font-size: 15px;
+      font-weight: 500;
+
+      a {
+        color: #253737;
+
+        &:hover,
+        &:focus {
+          color: #5c6d70;
+        }
+      }
+
+      &:last-of-type {
+        display: none;
+      }
+    }
   }
 
   &__socials {
     display: flex;
-    gap: 1.25rem;
+    column-gap: 20px;
 
     a {
       display: flex;
@@ -40,7 +102,7 @@
       border-radius: 100%;
       width: 40px;
       height: 40px;
-      background-color: #2b383b;
+      background-color: #253737;
       transition: all 0.2s ease;
 
       svg {
@@ -49,16 +111,46 @@
 
       &:hover,
       &:focus {
-        background-color: #415559;
+        background-color: #5c6d70;
       }
+    }
+
+    @media (max-width: $tablet) {
+      justify-content: right;
+    }
+
+    @media (max-width: $mobile) {
+      grid-row: 3 / 3;
+      justify-content: center;
+      column-gap: 12px;
     }
   }
 
   &__copyright {
-	  p {
-	   font-size: small;
-	   color: gray;
-	   margin-top: 1em;
-	  }
+    margin-top: 52px;
+    padding-top: 19px;
+    color: #253737;
+    opacity: 0.7;
+    border-top: 1px solid #e6e6e6;
+
+    @media (max-width: $desktop) {
+      margin-top: 45px;
+      padding-top: 16px;
+    }
+
+    @media (max-width: $tablet) {
+      margin-top: 42px;
+      padding-top: 18px;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 40px;
+      padding: 30px 4px 0 4px;
+    }
+
+    p {
+      margin: 10px 0;
+      font-size: 14px;
+    }
   }
 }
