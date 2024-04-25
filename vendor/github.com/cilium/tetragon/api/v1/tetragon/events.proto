@@ -86,9 +86,9 @@ message CapFilterSet {
 message RedactionFilter {
     // Deprecated, do not use.
     repeated Filter match = 1 [deprecated=true];
-    // Regular expressions to use for redaction. Strings inside capture groups are redacted.
+    // RE2 regular expressions to use for redaction. Strings inside capture groups are redacted.
     repeated string redact = 2;
-    // Regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
+    // RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
     repeated string binary_regex = 3;
 }
 

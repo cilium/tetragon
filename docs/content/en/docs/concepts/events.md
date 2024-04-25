@@ -209,9 +209,15 @@ used to string patterns to redact from exported process arguments. These filters
 in JSON and passed to the Tetragon agent via the `--redaction-filters` command
 line flag or the `redactionFilters` Helm value.
 
-To perform redactions, redaction filters define regular expressions in the
-`redact` field. Any capture groups in these regular expressions are redacted and
+To perform redactions, redaction filters define RE2 regular expressions in the
+`redact` field. Any capture groups in these RE2 regular expressions are redacted and
 replaced with `"*****"`.
+
+{{< note >}}
+This feature uses RE2 as its regular expression library. Make sure that you follow
+RE2 regular expression guidelines as you may observe unexpected results otherwise.
+More information on RE2 syntax can be found [here](https://github.com/google/re2/wiki/Syntax).
+{{< /note >}}
 
 {{< warning >}}
 When writing regular expressions in JSON, it is important to escape backslash
