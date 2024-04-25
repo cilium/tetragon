@@ -1,0 +1,51 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 1.75rem;
+  border-radius: 9999px;
+
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  background-color: #253737;
+
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: none;
+  border: none;
+  transition: all 0.33s ease;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-appearance: button;
+
+  @media (max-width: $mobile) {
+    padding: 1rem 1.5rem;
+  }
+
+  &--text {
+    gap: 8px;
+    padding: 0;
+    background-color: transparent;
+    color: #253737;
+
+    &:focus,
+    &:hover,
+    &:active {
+      color: #5C6D70 !important;
+      background-color: transparent !important;
+    }
+  }
+
+  &:focus,
+  &:hover,
+  &:active {
+    color: #fff;
+    background-color: #415559;
+    text-decoration: none;
+    outline: 0;
+  }
+}

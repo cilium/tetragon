@@ -1,0 +1,35 @@
+.title {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.125;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  @media (max-width: $desktop) {
+    font-size: 40px;
+  }
+
+  @media (max-width: $tablet) {
+    font-size: 32px;
+  }
+
+  @media (max-width: $mobile) {
+    font-size: 24px;
+  }
+
+  &--xl {
+    font-size: 52px;
+
+    @media (max-width: $desktop) {
+      font-size: 44px;
+    }
+
+    @media (max-width: $tablet) {
+      font-size: 36px;
+    }
+
+    @media (max-width: $mobile) {
+      font-size: 28px;
+    }
+  }
+}

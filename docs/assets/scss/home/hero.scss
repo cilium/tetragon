@@ -1,0 +1,226 @@
+.hero {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: #f7fdfd;
+
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "intro logo" "users users";
+
+    padding: 3rem 0;
+    padding-bottom: 104px;
+
+    @media (max-width: $desktop) {
+      padding-top: 2.5rem !important;
+      padding-bottom: 2.5rem !important;
+    }
+
+    @media (max-width: $tablet) {
+      grid-template-columns: 1fr;
+      grid-template-areas: "intro" "logo" "users";
+    }
+
+    @media (max-width: $mobile) {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 54px;
+    padding: 5px 10px;
+    font-size: 14px;
+    line-height: 1.375;
+    color: #58595E;
+    background: #fff;
+    box-shadow: 0 3px 6px rgba(0, 102, 102, 0.12);
+    border-radius: 6px;
+
+    img {
+      margin: 0 6px 0 -4px;
+    }
+
+    @media (max-width: $desktop) {
+      margin-top: 32px;
+      font-size: 13px;
+    }
+
+    @media (max-width: $tablet) {
+      margin-top: 22px;
+      font-size: 12px;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 18px;
+      padding: 5px;
+
+      img {
+        max-width: 20px;
+        margin: 0 2px 0 -2px;
+      }
+    }
+  }
+
+  &__intro {
+    grid-area: intro;
+    padding-right: 4rem;
+
+    .title {
+      margin-top: 22px;
+      margin-bottom: 0;
+    }
+
+    p {
+      margin-top: 1rem;
+      color: #2B383B;
+    }
+
+    @media (max-width: $desktop) {
+      padding-right: 0;
+
+      .title {
+        margin-top: 1.5rem;
+      }
+    }
+
+    @media (max-width: $tablet) {
+      text-align: center;
+
+      .title, p {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .title {
+        max-width: 590px;
+      }
+
+      p {
+        max-width: 470px;
+      }
+    }
+
+    @media (max-width: $mobile) {
+      .title {
+        margin-top: 20px;
+      }
+    }
+  }
+
+  &__links {
+    display: flex;
+    align-items: center;
+    column-gap: 1.25rem;
+    margin-top: 1.75rem;
+
+    @media (max-width: $desktop) {
+      margin-top: 2.25rem;
+    }
+
+    @media (max-width: $tablet) {
+      justify-content: center;
+      margin-top: 1rem;
+    }
+  }
+
+  &__logo {
+    grid-area: logo;
+    margin-top: 14px;
+    margin-left: 20px;
+
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+
+      @media (max-width: $desktop) {
+        max-width: 460px;
+      }
+
+      @media (max-width: $tablet) {
+        max-width: 368px;
+        margin: 2rem auto;
+      }
+
+      @media (max-width: $mobile) {
+        max-width: 100%;
+        margin: 1.5rem auto 0 auto;
+      }
+    }
+
+    @media (max-width: $desktop) {
+      margin: -5px 0 0 12px;
+    }
+
+    @media (max-width: $tablet) {
+      margin: 0;
+    }
+  }
+
+  &__users {
+    grid-area: users;
+    margin-top: -21px;
+
+    @media (max-width: $desktop) {
+      margin-top: 40px;
+    }
+
+    @media (max-width: $tablet) {
+      margin-top: 2rem;
+      text-align: center;
+    }
+  }
+
+  &__users-title {
+    margin: 0;
+    letter-spacing: 0.05em;
+    font-weight: 400;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  &__users-list {
+    margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    column-gap: 31px;
+
+    img {
+      max-width: 100%;
+      height: auto;
+
+      @media (max-width: $desktop) {
+        height: 36px;
+      }
+
+      @media (max-width: $mobile) {
+        height: 32px;
+      }
+    }
+
+    @media (max-width: $desktop) {
+      margin: 1rem 0;
+      column-gap: 24px;
+    }
+
+    @media (max-width: $tablet) {
+      justify-content: center;
+      margin: 0.5rem 0;
+    }
+
+    @media (max-width: $mobile) {
+      margin: 1rem 0 0.25rem 0;
+      justify-content: center;
+      flex-wrap: wrap;
+      row-gap: 12px;
+      column-gap: 15px;
+    }
+  }
+}

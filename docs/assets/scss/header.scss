@@ -1,8 +1,18 @@
 .td-navbar {
   height: 64px;
-  padding: 20px;
+  padding: 20px 0;
   background-color: #fff;
   border-bottom: 1px solid #E5E7E7;
+
+  .td-home & {
+    font-family: "Manrope", sans-serif;
+    background-color: #f7fdfd;
+    border-bottom-color: #f7fdfd;
+
+    .container-fluid {
+      max-width: 1254px;
+    }
+  }
 
   @media screen and (max-width: 991.98px) {
     .td-navbar-nav-scroll {
@@ -16,6 +26,7 @@
 
   @media screen and (max-width: 767px) {
     height: auto;
+    padding: 8px 0;
 
     .td-navbar-nav-scroll {
       width: 100%;
@@ -23,18 +34,16 @@
 
       .navbar-nav {
         width: 100%;
-        display:flex;
+        display: flex;
         justify-content: space-evenly;
+        column-gap: 12px;
+        overflow-x: auto;
 
-        // only display "documentation" and "Github" links
-        .nav-item {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
           display: none;
-        }
-        .nav-item:first-child {
-          display: block;
-        }
-        .nav-item:last-child {
-          display: block;
         }
       }
     }
@@ -44,7 +53,7 @@
     height: 48px;
 
     @media screen and (max-width: 767px) {
-      height: 72px;
+      height: 36px;
     }
   }
 
@@ -77,6 +86,11 @@
       &:focus {
         color: #5C6D70;
         border-color: #5C6D70;
+      }
+
+      @media screen and (max-width: 767px) {
+        font-size: 14px;
+        padding: 14px 2px;
       }
     }
   }

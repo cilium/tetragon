@@ -1,0 +1,63 @@
+.share {
+  margin-top: 138px;
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 1072px;
+
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+
+  @media (max-width: $desktop) {
+    margin-top: 113px;
+    gap: 36px;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 77px;
+    gap: 33px;
+  }
+
+  @media (max-width: $mobile) {
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .title {
+    font-size: 36px;
+
+    @media (max-width: $tablet) {
+      font-size: 32px;
+    }
+
+    @media (max-width: $mobile) {
+      font-size: 28px;
+    }
+  }
+
+  &__image {
+    width: 50%;
+    height: auto;
+    flex-shrink: 0;
+
+    @media (max-width: $mobile) {
+      width: 100%;
+    }
+  }
+
+  &__inner {
+    width: 50%;
+
+    @media (max-width: $mobile) {
+      width: 100%;
+
+      > a {
+        margin-top: 14px;
+      }
+    }
+  }
+
+  &__description {
+    margin-top: 14px;
+  }
+}

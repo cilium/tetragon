@@ -1,0 +1,336 @@
+.tabs {
+  margin-top: 125px;
+
+  @media (max-width: $desktop) {
+    margin-top: 110px;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 100px;
+  }
+
+  @media (max-width: $mobile) {
+    margin-top: 75px;
+  }
+
+  &__title {
+    text-align: center;
+
+    @media (max-width: $mobile) {
+      font-size: 28px;
+    }
+  }
+
+  &__list {
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: 472px 1fr;
+    column-gap: 48px;
+    row-gap: 36px;
+    margin-top: 56px;
+
+    @media (max-width: $desktop) {
+      grid-template-columns: 40% 57%;
+      column-gap: 3%;
+      row-gap: 32px;
+      margin-top: 40px;
+    }
+
+    @media (max-width: $tablet) {
+      margin-top: 32px;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 12px;
+      grid-template-columns: 100%;
+      row-gap: 20px;
+    }
+  }
+
+  &__button-list {
+    display: flex;
+    flex-direction: column;
+    row-gap: 5px;
+
+    @media (max-width: $mobile) {
+      grid-column: 1 / 2;
+      grid-row: 1;
+      flex-direction: row;
+      overflow-x: auto;
+
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
+
+  &__content-list {
+    position: relative;
+    grid-row: 1 / 3;
+    grid-column: 2;
+
+    &:after {
+      z-index: -1;
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 92%;
+      height: 92%;
+      background: linear-gradient(91.98deg, #84E1A3 6.29%, #74E2E2 92.66%);
+      filter: blur(22px);
+      border-radius: 8px;
+      transform: translate(-50%, -50%);
+    }
+
+    @media (max-width: $tablet) {
+      grid-row: 1 / 2;
+    }
+
+    @media (max-width: $mobile) {
+      grid-column: 1 / 2;
+      grid-row: 2;
+
+      &:after {
+        top: 53%;
+        width: 88%;
+        height: 88%;
+        filter: blur(12px);
+        border-radius: 7px;
+      }
+    }
+  }
+
+  &__links {
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    column-gap: 25px;
+
+    @media (max-width: $desktop) {
+      column-gap: 21px;
+    }
+
+    @media (max-width: $tablet) {
+      grid-column: 1 / 3;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 12px;
+      grid-column: 1 / 2;
+      grid-row: 3;
+      flex-direction: column;
+      row-gap: 13px;
+    }
+  }
+
+  &__button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 20px 40px 20px 20px;
+    border: none;
+    border-radius: 4px;
+    border-bottom: 1px solid #E0E6F0;
+    color: #7E8490;
+    text-align: left;
+    text-decoration: none;
+    box-shadow: none;
+    background-color: transparent;
+    transition: all 0.33s ease;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-appearance: button;
+
+    @media (max-width: $mobile) {
+      &:after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 1px;
+        width: 100%;
+        height: 1px;
+        background-color: #e0e6f0;
+        transition: all 0.3s ease;
+      }
+    }
+
+    &:not(.tabs__button--active):hover {
+      opacity: 0.7;
+    }
+
+    &-mobile {
+      display: none;
+      white-space: nowrap;
+
+      @media (max-width: $mobile) {
+        display: inline;
+        box-shadow: none;
+      }
+    }
+
+    &--active {
+      color: #2B383B;
+      border-color: transparent;
+      box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.15);
+
+      @media (max-width: $mobile) {
+        box-shadow: none;
+
+        &.tabs__button:after {
+          bottom: 0;
+          height: 3px;
+          background-color: #84e194;
+        }
+      }
+    }
+
+    @media (max-width: $desktop) {
+      padding: 20px 20px 12px 18px;
+    }
+
+    @media (max-width: $mobile) {
+      padding: 20px 13px 7px 13px;
+      align-items: center;
+      border: none;
+
+      .tabs__tab-title,
+      .tabs__tab-text {
+        display: none;
+      }
+    }
+  }
+
+  &__tab-title {
+    font-size: 18px;
+    font-weight: 700;
+
+    @media (max-width: $desktop) {
+      font-size: 16px;
+    }
+  }
+
+  &__tab-text {
+    margin-top: 6px;
+    font-size: 16px;
+    line-height: 1.375;
+
+    @media (max-width: $desktop) {
+      font-size: 14px;
+    }
+  }
+
+  &__content {
+    position: relative;
+    max-width: 696px;
+    height: 100%;
+    padding: 12px;
+    background-color: #fff;
+    box-shadow: 0px 9px 22px rgba(0, 102, 102, 0.04);
+    border-radius: 12px;
+    border: 1px solid #eaeef5;
+
+    @media (max-width: $desktop) {
+      padding: 10px;
+      max-width: 100%;
+    }
+
+    @media (max-width: $mobile) {
+      padding: 4px;
+      border: none;
+      box-shadow: 0px 7.65px 18.7px rgba(0, 102, 102, 0.04);
+    }
+
+    .code {
+      height: 100%;
+      border-radius: 4px;
+      border: 1px solid #deeded;
+
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      @media (max-width: $mobile) {
+        height: auto;
+        margin: 40px 9px 0 9px;
+      }
+    }
+
+    .code-header {
+      margin: 0;
+      padding: 18px 16px;
+      font-size: 16px;
+      font-weight: 700;
+
+      @media (max-width: $desktop) {
+        font-size: 14px;
+      }
+    }
+
+    .code-body {
+      max-width: 100%;
+      height: calc(100% - 60px);
+
+      .highlight {
+        margin: 0;
+        padding: 1rem;
+        max-width: 100%;
+        height: 100%;
+        border: none;
+        border-top: 1px solid #deeded;
+
+        pre {
+          height: 100%;
+          padding: 0;
+          font-size: 16px;
+          line-height: 1.5;
+          background-color: #fff !important;
+
+          // FIXME: code left spacing
+          > code > span {
+            margin-left: -165px;
+
+            @media (max-width: $desktop) {
+              margin-left: -150px;
+            }
+          }
+
+          @media (max-width: $desktop) {
+            font-size: 14px;
+          }
+        }
+
+        button.td-click-to-copy {
+          top: -46px;
+          right: 14px;
+          width: 32px;
+          height: 32px;
+          box-shadow: none;
+          border: 1px solid #DEEDED;
+          border-radius: 2.63069px;
+
+          &:before {
+            content: "\f24d";
+          }
+        }
+      }
+    }
+  }
+
+  .tabs__content-mobile {
+    display: none;
+
+    @media (max-width: $mobile) {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}

@@ -4,150 +4,827 @@ linkTitle = "Tetragon - eBPF-based Security Observability and Runtime Enforcemen
 +++
 
 <div class="home">
-  <div class="navbar-placeholder"></div>
 
-  <div class="hero">
-    <div class="intro">
-      <h1>
-        eBPF-based Security Observability and Runtime Enforcement
-      </h1>
-      <p>
-        Tetragon is a flexible Kubernetes-aware security observability
-        and runtime enforcement tool that applies policy and filtering
-        directly with eBPF, allowing for reduced observation overhead,
-        tracking of any process, and real-time enforcement of policies.
-      </p>
-      <div class="getting-started-container">
-        <a href="/docs/getting-started/" class="button getting-started-button">Getting started</a>
-      </div>
+    <div class="hero">
+        <div class="container">
+            <div class="hero__intro">
+                <span class="hero__label">
+                    <img src="/svgs/logos/cncf-logo.svg" width="26" height="26" loading="eager" alt="" />
+                    <span>
+                        We are a proud <b>CNCF project</b>
+                    </span>
+                </span>
+                <h1 class="title title--xl">
+                    eBPF-based Security Observability and Runtime Enforcement
+                </h1>
+                <p>
+                    Tetragon is a flexible Kubernetes-aware security observability
+                    and runtime enforcement tool that applies policy and filtering
+                    directly with eBPF, allowing for reduced observation overhead,
+                    tracking of any process, and real-time enforcement of policies.
+                </p>
+                <div class="hero__links">
+                    <a class="button" href="/docs/getting-started/">Try Tetragon</a>
+                    <a class="button button--text" href="https://www.youtube.com/watch?v=kTGU-Nc2Db0" target="_blank" rel="noopener noreferrer">
+                        Watch video
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"
+                             aria-hidden="true">
+                            <path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"
+                                  d="M6.5 13C10.0899 13 13 10.0899 13 6.5C13 2.91015 10.0899 0 6.5 0C2.91015 0 0 2.91015 0 6.5C0 10.0899 2.91015 13 6.5 13ZM4.875 4.25558V8.74911C4.875 8.90456 5.04459 9.00059 5.1779 8.9206L8.9225 6.67384C9.05197 6.59616 9.05197 6.40853 8.9225 6.33085L5.1779 4.08408C5.04459 4.0041 4.875 4.10012 4.875 4.25558Z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero__logo">
+                <img src="/images/home/hero-illustration.png" width="592" height="560" loading="eager" alt="Tetragon">
+            </div>
+
+            <div class="hero__users">
+                <h2 class="hero__users-title">
+                    Tech leaders use Tetragon
+                </h2>
+                <ul class="hero__users-list">
+                    <li>
+                        <img src="/svgs/logos/palantir-logo.svg" width="104" height="40" loading="eager"
+                             alt="Palantir Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/frsca-logo.svg" width="81" height="40" loading="eager" alt="FRSCA Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/github-logo.svg" width="76" height="40" loading="eager" alt="GitHub Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/bell-logo.svg" width="40" height="40" loading="eager" alt="Bell Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/g-research-logo.svg" width="29" height="40" loading="eager"
+                             alt="G Research Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/ripple-logo.svg" width="93" height="40" loading="eager" alt="Ripple Logo">
+                    </li>
+                    <li>
+                        <img src="/svgs/logos/nationwide-logo.svg" width="104" height="40" loading="eager"
+                             alt="Nationwide Logo">
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
 
-    <div class="main-logo">
-      <img src="svgs/tetragon-shield.svg" alt="Tetragon logo illustration" width="100%">
+    <div class="features">
+        <h2 class="title features__title">
+            Why Tetragon
+        </h2>
+        <ul class="features__list">
+            <li>
+                <img src="/svgs/icons/monitor-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Minimal Overhead
+                </h3>
+                <p>
+                    eBPF enables deep observability with low performance overhead mitigating risks without the latency
+                    introduced by user-space processing.
+                </p>
+            </li>
+            <li>
+                <img src="/svgs/icons/server-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Kubernetes-Aware
+                </h3>
+                <p>
+                    Tetragon extends Cilium's design by recognizing workload identities like namespace and pod metadata,
+                    surpassing traditional observability.
+                </p>
+            </li>
+            <li>
+                <img src="/svgs/icons/folder-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Simplified Operation
+                </h3>
+                <p>
+                    Tetragon offers pre-defined policy libraries for rapid deployment and operational insight, reducing
+                    setup time and complexity at scale.
+                </p>
+            </li>
+            <li>
+                <img src="/svgs/icons/privacy-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Kernel-level enforcement
+                </h3>
+                <p>
+                    Tetragon blocks malicious activities at the kernel level, closing the window for exploitation
+                    without succumbing to TOCTOU attack vectors.
+                </p>
+            </li>
+            <li>
+                <img src="/svgs/icons/loop-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Real-time Policy Engine
+                </h3>
+                <p>
+                    Synchronous monitoring, filtering, and enforcement are performed entirely within the kernel using
+                    eBPF.
+                </p>
+            </li>
+            <li>
+                <img src="/svgs/icons/table-icon.svg" width="72" height="72" loading="lazy" alt="">
+                <h3>
+                    Advanced Application Insights
+                </h3>
+                <p>
+                    Tetragon goes beyond traditional monitoring, capturing events like process execution, network
+                    communications, and file access.
+                </p>
+            </li>
+        </ul>
     </div>
 
-    <div class="users">
-      <h2 class="users-title">
-        TECH LEADERS USE TETRAGON
-      </h2>
-      <ul>
-        <li>
-          <img src="svgs/palantir-logo.svg" alt="Palantir Logo">
-        </li>
-        <li>
-          <img src="svgs/frsca-logo.svg" alt="FRSCA Logo">
-        </li>
-        <li>
-          <img src="svgs/github-logo.svg" alt="GitHub Logo">
-        </li>
-        <li>
-          <img src="svgs/bell-logo.svg" alt="Bell Logo">
-        </li>
-        <li>
-          <img src="svgs/g-research-logo.svg" alt="G Research Logo">
-        </li>
-        <li>
-          <img src="svgs/ripple-logo.svg" alt="Ripple Logo">
-        </li>
-        <li>
-          <img src="svgs/nationwide-logo.svg" alt="Nationwide Logo">
-        </li>
-      </ul>
+    <div class="cta-banner">
+        <div class="cta-banner__inner">
+            <div class="cta-banner__wrapper">
+                <h2 class="title cta-banner__title">What can Tetragon do?</h2>
+                <p class="cta-banner__description">Cilium Tetragon is a flexible Kubernetes-aware security observability
+                    and runtime</p>
+                <a class="button cta-banner__button" href="/docs/use-cases/">Read the documentation</a>
+            </div>
+            <ul class="cta-banner__list">
+                <li>Controlling binary execution (e.g. disallow binary execution from /tmp or allow binaries to be
+                    executed)
+                </li>
+                <li>Detect Linux Namespace & Privilege Changes</li>
+                <li>Kubernetes Data Exfiltration</li>
+                <li>File Integrity Monitoring</li>
+                <li>And more!</li>
+            </ul>
+            <a class="button cta-banner__button-mobile" href="/docs/use-cases/" aria-hidden="true">Read the
+                documentation</a>
+            <img class="cta-banner__img cta-banner__img--jedi" src="/images/home/jedi-bee.png" width="316" height="245"
+                 alt="Jedi-Bee illustration"/>
+        </div>
     </div>
-  </div>
 
-  <div class="feature section">
-    <h2 class="section-title">
-      Revolutionize Your Observability and Security
-    </h2>
-    <ul>
-      <li>
-        <img src="svgs/monitor-feature.svg" alt="logo for monitor process execution">
-        <h3>
-          Monitor Process Execution
-        </h3>
+    <div class="diagram">
+        <h2 class="title diagram__title">
+            How does Tetragon work
+        </h2>
         <p>
-          Observe the complete lifecycle of every process on your machine
-          with Kubernetes context awareness
+            Tetragon monitors processes, syscalls, file and network activity in the kernel, correlating threats with
+            network data to identify responsible binaries. It shares insights via JSON logs and a gRPC endpoint.
         </p>
-      </li>
-      <li>
-        <img src="svgs/runtime-feature.svg" alt="logo for runtime security policies">
-        <h3>
-          Runtime Security Policies
-        </h3>
-        <p>
-          Translate high level policies for file monitoring, network
-          observability, container security, and more into low overhead
-          eBPF programs
-        </p>
-      </li>
-      <li>
-        <img src="svgs/real-time-feature.svg" alt="logo for real time enforcement">
-        <h3>
-          Real Time Enforcement
-        </h3>
-        <p>
-          Synchronous monitoring, filtering, and enforcement completely in
-          the kernel with eBPF
-        </p>
-      </li>
-    </ul>
-  </div>
-
-  <div class="diagram section">
-    <h2 class="section-title">
-      How does Tetragon work
-    </h2>
-    <picture>
-      <source srcset="images/diagram-illustration.png"
-          media="(min-width: 767px)">
-      <img src="images/diagram-illustration-mobile.png" alt="diagram showing Tetragon architecture and interfaces" />
-    </picture>
-  </div>
-
-  <div class="videos section">
-    <h2 class="section-title">
-      Watch videos on Tetragon
-    </h2>
-    <!-- find a way to generate that -->
-    <ul>
-      <li>
-        <a href="https://www.youtube.com/watch?v=u8HKg5pENj4">
-          <img src="images/cover-log4shell.jpg" alt="youtube video cover of log4shell presentation">
-          <h3>
-            The Next Log4jshell?! Preparing for CVEs with eBPF!
-          </h3>
-          <p>
-            John Fastabend & Natalia Reka Ivanko • Apr, 2023
-          </p>
-        </a>
-      </li>
-      <li>
-        <a href="https://www.youtube.com/watch?v=kTGU-Nc2Db0">
-          <img src="images/cover-workshop.jpg" alt="youtube video cover of Tetragon workshop presentation">
-          <h3>
-            Tutorial: Getting Familiar with Security Observability Using eBPF & Cilium Tetragon
-          </h3>
-          <p>
-            Duffie Cooley & Raphaël Pinson • Apr, 2023
-          </p>
-        </a>
-      </li>
-      <li>
-        <a href="https://www.youtube.com/watch?v=UBVTJ0LeXxc">
-          <img src="images/cover-securing-bpf.jpg" alt="youtube video cover of eBPF presentation">
-          <h3>
-            Securing the Superpowers: Who Loaded That EBPF Program?
-          </h3>
-          <p>
-            John Fastabend & Natalia Reka Ivanko • Feb, 2023
-          </p>
-        </a>
-      </li>
-    </ul>
-    <div class="button-container">
-      <a href="/docs/resources/" class="button video-button">See more videos</a>
+        <picture>
+            <source srcset="/svgs/diagram-illustration.svg" media="(min-width: 767px)">
+            <img class="diagram__image" src="/svgs/diagram-illustration-mobile.svg"
+                 alt="diagram showing Tetragon architecture and interfaces"/>
+        </picture>
     </div>
-  </div>
+
+    <div class="cards">
+        <ul class="cards__list">
+            <li class="cards__item">
+                <a class="cards__link" href="/docs/policy-library/">
+                    <img class="cards__img" src="/svgs/policies-illustration.svg" width="190" height="180" loading="lazy" alt="Tetragon Policy illustration"/>
+                    <div class="cards__text-wrapper">
+                        <h3 class="cards__title">Tetragon Policy Library</h3>
+                        <p class="cards__description">Catalog of vetted Tetragon policies for various use cases,
+                            implementing observability and runtime enforcement mechanisms.</p>
+                        <span class="button button--text">
+                            Read more
+                            <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                 aria-hidden="true">
+                                <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                                      fill="currentColor"/>
+                                <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="cards__item">
+                <a class="cards__link"
+                   href="https://github.com/cilium/cilium/blob/main/CODE_OF_CONDUCT.md"
+                   target="_blank" rel="noopener noreferrer">
+                    <img class="cards__img" src="/images/home/code-of-conduct-illustration.jpg" style="top:8px" width="196"
+                         height="183" loading="lazy" alt="Become a member!"/>
+                    <div class="cards__text-wrapper">
+                        <h3 class="cards__title">Code of Conduct</h3>
+                        <p class="cards__description">To make Tetragon a welcoming and harassment-free experience for
+                            everyone, we follow the Cilium Code of Conduct.</p>
+                        <span class="button button--text">
+                            Read more
+                            <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                 aria-hidden="true">
+                                <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                                      fill="currentColor"/>
+                                <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tabs">
+        <h2 class="title tabs__title">How to Install Tetragon</h2>
+        <ul class="tabs__list">
+            <li class="tabs__button-list">
+                <button class="tabs__button tabs__button--active" type="button">
+                    <span class="tabs__tab-title">Install Tetragon on Kubernetes</span>
+                    <span class="tabs__tab-text">Download via helm chart</span>
+                    <span class="tabs__button-mobile" aria-hidden="true">Kubernetes</span>
+                </button>
+                <button class="tabs__button" type="button">
+                    <span class="tabs__tab-title">Install on any Linux system</span>
+                    <span class="tabs__tab-text">Install and manage Tetragon via released packages</span>
+                    <span class="tabs__button-mobile" aria-hidden="true">Linux</span>
+                </button>
+                <button class="tabs__button" type="button">
+                    <span class="tabs__tab-title">Deploy as a container</span>
+                    <span class="tabs__tab-text">Run the Tetragon image from the Tetragon quay repository</span>
+                    <span class="tabs__button-mobile" aria-hidden="true">Container</span>
+                </button>
+            </li>
+            <li class="tabs__content-list">
+                <div class="tabs__content">
+                    <div class="tabs__content-mobile">
+                        <span class="tabs__tab-title">Install Tetragon on Kubernetes</span>
+                        <span class="tabs__tab-text">Download via helm chart</span>
+                    </div>
+                    {{< tab-code header="Kubernetes" lang="shell" >}}
+                    helm repo add cilium https://helm.cilium.io
+                    helm repo update
+                    helm install tetragon cilium/tetragon -n kube-system
+                    kubectl rollout status -n kube-system ds/tetragon -w
+                    {{< /tab-code >}}
+                </div>
+                <div class="tabs__content" style="display: none">
+                    <div class="tabs__content-mobile">
+                        <span class="tabs__tab-title">Install on any Linux system</span>
+                        <span class="tabs__tab-text">Install and manage Tetragon via released packages</span>
+                    </div>
+                    {{< tab-code header="Linux" lang="shell" >}}
+                    curl -LO https://github.com/cilium/tetragon/releases/download/{{< latest-version >}}/tetragon-{{< latest-version >}}-amd64.tar.gz
+                    tar -xvf tetragon-{{< latest-version >}}-amd64.tar.gz
+                    cd tetragon-{{< latest-version >}}-amd64/
+                    sudo ./install.sh
+                    sudo systemctl status tetragon
+                    {{< /tab-code >}}
+                </div>
+                <div class="tabs__content" style="display: none">
+                    <div class="tabs__content-mobile">
+                        <span class="tabs__tab-title">Deploy as a container</span>
+                        <span class="tabs__tab-text">Run the Tetragon image from the Tetragon quay repository</span>
+                    </div>
+                    {{< tab-code header="Container" lang="shell" >}}
+                    docker run --name tetragon --rm -d
+                    --pid=host --cgroupns=host --privileged
+                    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf
+                    quay.io/cilium/tetragon:{{< latest-version >}}
+                    {{< /tab-code >}}
+                </div>
+            </li>
+            <li class="tabs__links">
+                <a class="button" href="/docs/getting-started/">Read the documentation</a>
+                <a class="button button--text" href="https://www.youtube.com/watch?v=VAk9W4Hc5iE" target="_blank" rel="noopener noreferrer">
+                    Watch tutorial
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"
+                         aria-hidden="true">
+                        <path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"
+                              d="M6.5 13C10.0899 13 13 10.0899 13 6.5C13 2.91015 10.0899 0 6.5 0C2.91015 0 0 2.91015 0 6.5C0 10.0899 2.91015 13 6.5 13ZM4.875 4.25558V8.74911C4.875 8.90456 5.04459 9.00059 5.1779 8.9206L8.9225 6.67384C9.05197 6.59616 9.05197 6.40853 8.9225 6.33085L5.1779 4.08408C5.04459 4.0041 4.875 4.10012 4.875 4.25558Z"/>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="updates">
+        <h2 class="title updates__title">Exciting Updates and Announcements</h2>
+        <div class="updates__list-wrapper">
+            <a class="updates__column" href="https://www.cncf.io/announcements/2024/05/08/cloudnativesecuritycon-north-america-2024-schedule-highlights-innovations-in-modern-security-approaches/" target="_blank" rel="noreferrer noopener">
+                <div class="updates__hero-item">
+                    <p class="updates__column-title">Highlights Innovations in Modern Security Approaches</p>
+                    <p class="updates__column-description"></p>
+                </div>
+                <div>
+                    <ul class="updates__inner-list">
+                        <li class="updates__inner-item updates__inner-item--turquoise">Conference</li>
+                        <li class="updates__inner-item updates__inner-item--decor">External</li>
+                    </ul>
+                    <h3 class="updates__column-title-sm">CloudNativeSecurityCon North America 2024 Schedule</h3>
+                    <time class="updates__datetime" datetime="2024-05-02">08 May, 2024</time>
+                </div>
+            </a>
+            <ul class="updates__list">
+                <li class="updates__item">
+                    <a href="https://www.youtube.com/watch?v=VGQT8DVxAGo" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--cornflower">eCHO episode</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">eCHO Episode 134: Tetragon in Action</h3>
+                        <time class="updates__datetime" datetime="2024-05-03">03 May, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://github.com/cilium/tetragon/releases/tag/v1.1.0" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--turquoise">Article</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">Tetragon v1.1.0 release</h3>
+                        <time class="updates__datetime" datetime="2024-05-02">02 May, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://www.youtube.com/watch?v=1vRxYRmPDko" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--green-grass">Talk</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">Lightning Talk: Falco, Tracee and Tetragon: eBPF Runtime Observability and Security</h3>
+                        <time class="updates__datetime" datetime="2024-03-28">28 Mar, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://www.youtube.com/watch?v=SiQm6N3ucyc" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--green-grass">Tutorial</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">Restrict Access to Secure Files with Tetragon | eBPF Runtime Enforcement</h3>
+                        <time class="updates__datetime" datetime="2024-02-22">22 Feb, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://www.youtube.com/watch?v=MObLmvBeu00" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--cornflower">Tutorial</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">eBPF for Runtime Enforcement | Tetragon Introduction and Overview</h3>
+                        <time class="updates__datetime" datetime="2024-02-21">21 Feb, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://docs.google.com/document/d/1BFMJLdtisiCSLfMct0GHof_ioL-5QVNLEaeMSlk_7Eo/edit?usp=sharing" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--cornflower">Article</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">Tetragon community Call</h3>
+                        <time class="updates__datetime" datetime="2024-02-20">20 Feb, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://cilium.io/blog/2024/02/02/cilium-at-kube-con-eu-2024/" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--cornflower">Conference</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">Tetragon related talks at Kubecon 2024</h3>
+                        <time class="updates__datetime" datetime="2024-02-02">02 Feb, 2024</time>
+                    </a>
+                </li>
+                <li class="updates__item">
+                    <a href="https://www.youtube.com/watch?v=WZXC5MLo7HI" target="_blank" rel="noreferrer noopener">
+                        <ul class="updates__inner-list">
+                            <li class="updates__inner-item updates__inner-item--cornflower">eCHO episode</li>
+                            <li class="updates__inner-item updates__inner-item--decor">External</li>
+                        </ul>
+                        <h3 class="updates__list-title">eCHO Episode 116: Revealing Security Blindspots with Tetragon</h3>
+                        <time class="updates__datetime" datetime="2023-11-24">24 Nov, 2023</time>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="tools">
+        <div class="tools__wrapper">
+            <div class="tools__column">
+                <h2 class="tools__title">Get hands-on with Tetragon</h2>
+                <p class="tools__description">Practice using Tetragon labs to detect and respond to system activity
+                    events, such as process executions, file access, network I/O</p>
+            </div>
+            <ul class="tools__list">
+                <li class="tools__item">
+                    <a class="tools__link" href="https://labs.iximiuz.com/tutorials/introduction-to-tetragon" target="_blank" rel="noopener noreferrer">
+                        <img src="/svgs/promo-lab.svg" width="64" height="64" loading="lazy" alt="Test tube">
+                        <h3 class="tools__item-title">Tetragon lab</h3>
+                        <p class="tools__item-description">Try out the Introduction to Tetragon lab</p>
+                        <span class="button button--text">
+                            Try now
+                            <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                 aria-hidden="true">
+                                <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                                      fill="currentColor"/>
+                                <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </a>
+                </li>
+                <li class="tools__item">
+                    <a class="tools__link" href="/docs/getting-started/">
+                        <img src="/svgs/promo-astronomy.svg" width="64" height="64" loading="lazy" alt="telescope"/>
+                        <h3 class="tools__item-title">Exploring Tetragon</h3>
+                        <p class="tools__item-description">A Security Observability Tool for Kubernetes, Docker, and
+                            Linux</p>
+                        <span class="button button--text">
+                            Try now
+                            <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                 aria-hidden="true">
+                                <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                                      fill="currentColor"/>
+                                <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="videos">
+        <h2 class="title videos__title">
+            Watch videos on Tetragon technology
+            <a class="button button--text" href="/docs/resources#conference-talks">
+                Show all videos
+                <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                     aria-hidden="true">
+                    <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                          fill="currentColor"/>
+                    <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </h2>
+        <!-- find a way to generate that -->
+        <ul class="videos__list">
+            <li>
+                <a href="https://www.youtube.com/watch?v=u8HKg5pENj4" target="_blank" rel="noopener noreferrer">
+                    <img src="/images/cover-log4shell.jpg" width="640" height="360" loading="lazy" alt="youtube video cover of log4shell presentation">
+                    <h3>
+                        The Next Log4jshell?! Preparing for CVEs with eBPF!
+                    </h3>
+                    <p>
+                        John Fastabend & Natalia Reka Ivanko •
+                        <time datetime="2022-05-01">May 1, 2023</time>
+                    </p>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.youtube.com/watch?v=kTGU-Nc2Db0" target="_blank" rel="noopener noreferrer">
+                    <img src="/images/cover-workshop.jpg" width="640" height="360" loading="lazy" alt="youtube video cover of Tetragon workshop presentation">
+                    <h3>
+                        Tutorial: Getting Familiar with Security Observability Using eBPF & Cilium Tetragon
+                    </h3>
+                    <p>
+                        Duffie Cooley & Raphaël Pinson •
+                        <time datetime="2022-04-30">Apr 30, 2023</time>
+                    </p>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.youtube.com/watch?v=UBVTJ0LeXxc" target="_blank" rel="noopener noreferrer">
+                    <img src="/images/cover-securing-bpf.jpg" width="384" height="215" loading="lazy" alt="youtube video cover of eBPF presentation">
+                    <h3>
+                        Securing the Superpowers: Who Loaded That EBPF Program?
+                    </h3>
+                    <p>
+                        John Fastabend & Natalia Reka Ivanko •
+                        <time datetime="2023-02-03">Feb 3, 2023</time>
+                    </p>
+                </a>
+            </li>
+        </ul>
+        <a class="button button--text videos__button" href="/docs/resources#conference-talks">
+            Show all videos
+        </a>
+    </div>
+
+    <div class="cta-banner cta-banner__security">
+        <div class="cta-banner__inner">
+            <div class="cta-banner__wrapper">
+                <h2 class="title cta-banner__title">Security Bugs</h2>
+                <p class="cta-banner__description">We strongly encourage you to report security vulnerabilities to our
+                    private security mailing list: <a href="mailto:security@cilium.io">security@cilium.io</a> - first,
+                    before disclosing them in any public forums. This is a private mailing list where only members of
+                    the Cilium security team are subscribed to, and is treated as top priority.</p>
+                <a class="button cta-banner__button cta-banner__button--bug" href="mailto:security@cilium.io">Report a
+                    bug</a>
+            </div>
+            <img class="cta-banner__img cta-banner__img--bug" src="/images/home/jedi-bee-sherlock.png" width="289"
+                 height="271" loading="lazy" alt="Jedi Bee sherlock illustration"/>
+        </div>
+    </div>
+
+    <div class="share">
+        <img class="share__image" src="/images/home/share.jpg" width="546" height="517" loading="lazy" alt=""/>
+        <div class="share__inner">
+            <h2 class="title">Event in a box</h2>
+            <p class="share__description">All you need for a successful Tetragon talk. Are you passionate about Tetragon
+                and want to share your experience with the broader community? We want to help you tell your story!
+                Whether writing a blog post, creating a YouTube or Twitch video, or speaking at a conference, we will
+                help you deliver your Tetragon story to a broad audience.</p>
+            <a class="button button--text" href="https://cilium.io/telling-story/" target="_blank"
+               rel="noopener noreferrer">
+                Request event help
+                <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                     aria-hidden="true">
+                    <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                          fill="currentColor"/>
+                    <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <div class="social">
+        <h2 class="title social__title">Welcome to community!</h2>
+        <ul class="social__list">
+            <li class="social__item social__item--green">
+                <a class="social__link" href="https://github.com/cilium/tetragon/" target="_blank"
+                   rel="noopener noreferrer">
+                    <img src="/svgs/github-icon.svg" width="76" height="76" loading="lazy" alt="Git Logo"/>
+                    <div class="social__item-wrapper">
+                        <h3 class="social__item-title">Github</h3>
+                        <p class="social__item-description">Join the Tetragon Github page - welcome!</p>
+                        <span class="button button--text">
+              Join on Github
+              <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                   aria-hidden="true">
+                  <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                        fill="currentColor"/>
+                  <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+                    </div>
+                </a>
+            </li>
+            <li class="social__item social__item--blue">
+                <a class="social__link"
+                   href="https://cilium.slack.com/join/shared_invite/zt-2fofar18z-~IbPR9AIO3iJufu95FQm2w#/shared-invite/email"
+                   target="_blank" rel="noopener noreferrer">
+                    <img src="/svgs/slack-icon.svg" width="76" height="76" loading="lazy" alt="Slack Logo"/>
+                    <div class="social__item-wrapper">
+                        <h3 class="social__item-title">Slack</h3>
+                        <p class="social__item-description">Join the Tetragon slack channel in the Cilium community
+                            slack</p>
+                        <span class="button button--text">
+                  Join on Slack
+                  <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                       aria-hidden="true">
+                    <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                          fill="currentColor"/>
+                    <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                    </div>
+                </a>
+            </li>
+            <li class="social__item social__item--violet">
+                <a class="social__link" href="https://twitter.com/ciliumproject" target="_blank"
+                   rel="noopener noreferrer">
+                    <img src="/svgs/x-icon.svg" width="76" height="76" loading="lazy" alt="X Logo"/>
+                    <div class="social__item-wrapper">
+                        <h3 class="social__item-title">Twitter</h3>
+                        <p class="social__item-description">Join us in the Tetragon Twitter. We're excited to have you
+                            here!</p>
+                        <span class="button button--text">
+                      Join on Twitter
+                  <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg"
+                       aria-hidden="true">
+                    <path d="M1 5.12939C0.585787 5.12939 0.25 5.46518 0.25 5.87939C0.25 6.29361 0.585787 6.62939 1 6.62939V5.12939ZM12 5.12939L1 5.12939V6.62939L12 6.62939V5.12939Z"
+                          fill="currentColor"/>
+                    <path d="M7.11108 1L12 5.7735L7.11108 10.7444" stroke="currentColor" stroke-width="1.5"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="contact">
+        <div class="container">
+            <div class="contact__column">
+                <h2 class="title contact__title">Telling the Tetragon Story</h2>
+                <p>Creating an abstract, putting a presentation together, or writing a blog post doesn’t come naturally
+                    to
+                    everyone. If you are eager to tell your Cilium story and need help, we’re here for you.</p>
+                <p>Not a native speaker and/or not confident about your writing skills? No worries. Bring the story and
+                    we’ll help you tell it in an engaging way.</p>
+            </div>
+            <form id="contact-form" class="contact__form" method="post" action="https://formspree.io/f/xbjnwnjb" novalidate>
+                <label>
+                    <span>Name</span>
+                    <input id="firstName" type="text" name="firstName" autocomplete="given-name" required>
+                </label>
+                <label>
+                    <span>Email</span>
+                    <input id="email" type="email" name="email" autocomplete="email" required>
+                </label>
+                <label>
+                    <span>Cilium Slack Username</span>
+                    <input id="ciliumSlackUsername" type="text" name="ciliumSlackUsername" required>
+                </label>
+                <label>
+                    <span>How are you using Tetragon?</span>
+                    <input id="howAreYouUsingTetragon" type="text" name="howAreYouUsingTetragon" required>
+                </label>
+                <label class="contact__full-width">
+                    <span>Message</span>
+                    <textarea id="message" rows="3" cols="50" name="message"></textarea>
+                </label>
+                <p class="contact__full-width">What do you need help with?</p>
+                <ul class="contact__form-column">
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="reviewAbstract" type="checkbox" name="reviewAbstract" value="Reviewing an Abstract">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="reviewAbstract">Reviewing an abstract</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="polishPresentation" type="checkbox" name="polishPresentation" value="Polish a presentation">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="polishPresentation">Polish a presentation</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="findSpeaker" type="checkbox" name="findSpeaker" value="Finding a speaker for an event or livestream">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="findSpeaker">Finding a speaker for an event or livestream</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="getRetweet" type="checkbox" name="getRetweet" value="Getting a Retweet">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="getRetweet">Getting a Retweet</label>
+                    </li>
+                </ul>
+                <ul class="contact__form-column">
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="writePost" type="checkbox" name="writePost" value="Writing a blog post">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="writePost">Writing a blog post</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="writeCaseStudy" type="checkbox" name="writeCaseStudy" value="Writing a case study">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="writeCaseStudy">Writing a case study</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="echoNews" type="checkbox" name="echoNews" value="Submitting to eCHO News">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="echoNews">Submitting to eCHO News</label>
+                    </li>
+                    <li>
+                        <div class="contact__checkbox">
+                            <input id="other" type="checkbox" name="other" value="Other">
+                            <span aria-hidden="true"></span>
+                        </div>
+                        <label for="other">Other</label>
+                    </li>
+                </ul>
+                <span class="contact__full-width contact__separator"></span>
+                <button class="button" type="submit">Send story</button>
+                <p id="contact-form-status" class="contact__message"></p>
+            </form>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    const form = document.getElementById("contact-form");
+    const fields = Array.from(form.elements);
+
+    fields.forEach(field => {
+        field.setAttribute("aria-invalid", false);
+
+        const errorBox = document.createElement("span");
+        errorBox.classList.add("error");
+        const errorId = field.id + "-error";
+        errorBox.setAttribute("id", errorId);
+        field.setAttribute("aria-describedBy", errorId);
+        field.insertAdjacentElement("afterend", errorBox);
+
+        field.addEventListener("invalid", () => {
+            field.setAttribute("aria-invalid", true);
+            const message = getMessage(field);
+            errorBox.textContent = message || field.validationMessage;
+        })
+
+        field.addEventListener("blur", () => {
+            field.checkValidity();
+        })
+
+        field.addEventListener("input", () => {
+            const valid = field.checkValidity();
+            if (valid) {
+                field.setAttribute("aria-invalid", false);
+                errorBox.textContent = "";
+            }
+        });
+    })
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        const allValid = form.checkValidity();
+
+        if (!allValid) return;
+
+        const status = document.getElementById("contact-form-status");
+        const formData = new FormData(event.target);
+
+        fields.forEach(field => {
+            field.setAttribute("disabled", true);
+        });
+
+        fetch(event.target.action, {
+            method: form.method,
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then(response => {
+            fields.forEach(field => {
+                field.removeAttribute("disabled");
+            });
+            if (response.ok) {
+                status.innerHTML = "Thanks for your submission!";
+                form.reset();
+            } else {
+                response.json().then(data => {
+                    if (Object.hasOwn(data, "errors")) {
+                        status.innerHTML = data["errors"].map(error => error["message"]).join(", ");
+                    } else {
+                        status.innerHTML = "Oops! There was a problem submitting your form";
+                    }
+                })
+            }
+        }).catch(error => {
+            fields.forEach(field => {
+                field.removeAttribute("disabled");
+            });
+            status.innerHTML = "Oops! There was a problem submitting your form";
+        });
+    }
+
+    function getMessage(field) {
+        const validity = field.validity;
+
+        if (validity.valueMissing) return "Please fill this field";
+        if (validity.typeMismatch) return `Please enter a valid ${field.type}`;
+    }
+
+    form.addEventListener("submit", handleSubmit);
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const tabButtons = document.querySelectorAll('.tabs__button');
+        const tabContents = document.querySelectorAll('.tabs__content');
+
+        tabButtons.forEach((button, index) => {
+            button.addEventListener('click', () => {
+                tabContents.forEach(content => {
+                    content.style.display = 'none';
+                });
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('tabs__button--active');
+                    btn.style.borderBottomColor = '#E0E6F0';
+                });
+
+                tabContents[index].style.display = 'block';
+                button.classList.add('tabs__button--active');
+
+                const container = button.closest('.tabs__button-list');
+                const prevButton = button.previousElementSibling;
+                if (prevButton && container.contains(prevButton)) {
+                    prevButton.style.borderBottomColor = 'transparent';
+                }
+            });
+        });
+    });
+</script>

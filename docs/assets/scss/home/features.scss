@@ -1,0 +1,88 @@
+.features {
+  margin: 152px 0 0 0;
+
+  @media (max-width: $desktop) {
+    margin-top: 6rem;
+  }
+
+  @media (max-width: $tablet) {
+    margin-top: 5.6rem;
+  }
+
+  @media (max-width: $mobile) {
+    margin-top: 5rem;
+  }
+
+  &__title {
+    text-align: center;
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 2.5rem 2rem;
+    margin-top: 3.5rem;
+
+    @media (max-width: $desktop) {
+      grid-gap: 50px 28px;
+      margin-top: 2.6rem;
+    }
+
+    @media (max-width: $tablet) {
+      grid-gap: 26px 20px;
+      margin-top: 2.3rem;
+    }
+
+    @media (max-width: $mobile) {
+      margin-top: 2rem;
+      grid-template-columns: 1fr;
+      grid-gap: 11px;
+    }
+
+    li {
+      h3 {
+        margin: 18px 0 0 0;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+
+        @media (max-width: $desktop) {
+          margin: 16px 0 0 0;
+          font-size: 20px;
+          letter-spacing: -0.02em;
+        }
+
+        @media (max-width: $tablet) {
+          margin: 12px 0 0 0;
+          font-size: 18px;
+          line-height: 1.375;
+          letter-spacing: -0.03em;
+        }
+
+        @media (max-width: $mobile) {
+          margin: 15px 0 0 0;
+          letter-spacing: 0;
+        }
+      }
+
+      p {
+        padding-right: 1.5rem;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: $desktop) {
+        img {
+          width: 64px;
+          height: 64px;
+        }
+      }
+
+      @media (max-width: $tablet) {
+        img {
+          width: 52px;
+          height: 52px;
+        }
+      }
+    }
+  }
+}
