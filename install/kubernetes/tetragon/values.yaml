@@ -259,6 +259,7 @@ tetragonOperator:
   extraVolumes: []
   extraVolumeMounts: []
   forceUpdateCRDs: false
+  # -- DEPRECATED. This value will be removed in Tetragon v1.2 release. Use crds.installMethod instead.
   # Skip CRD creation.
   skipCRDCreation: false
   podInfo:
@@ -320,3 +321,9 @@ export:
       override: ~
       repository: quay.io/cilium/hubble-export-stdout
       tag: v1.0.4
+crds:
+  # -- Method for installing CRDs. Supported values are: "operator", "helm" and "none".
+  # The "operator" method allows for fine-grained control over which CRDs are installed and by
+  # default doesn't perform CRD downgrades. These can be configured in tetragonOperator section.
+  # The "helm" method always installs all CRDs for the chart version.
+  installMethod: "operator"

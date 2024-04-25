@@ -27,6 +27,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| crds.installMethod | string | `"operator"` | Method for installing CRDs. Supported values are: "operator", "helm" and "none". The "operator" method allows for fine-grained control over which CRDs are installed and by default doesn't perform CRD downgrades. These can be configured in tetragonOperator section. The "helm" method always installs all CRDs for the chart version. |
 | daemonSetAnnotations | object | `{}` |  |
 | daemonSetLabelsOverride | object | `{}` |  |
 | dnsPolicy | string | `"Default"` |  |
@@ -120,6 +121,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | resources for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
+| tetragonOperator.skipCRDCreation | bool | `false` | DEPRECATED. This value will be removed in Tetragon v1.2 release. Use crds.installMethod instead. Skip CRD creation. |
 | tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
 | tetragonOperator.tracingPolicy.enabled | bool | `true` | Enables the TracingPolicy and TracingPolicyNamespaced CRD creation. |
 | tolerations[0].operator | string | `"Exists"` |  |
