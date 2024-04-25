@@ -443,6 +443,7 @@ func tetragonExecute() error {
 	saveInitInfo()
 	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
 		go crd.WatchTracePolicy(ctx, observer.GetSensorManager())
+		go crd.WatchRuntimeSecurityPolicy(ctx, observer.GetSensorManager())
 	}
 
 	obs.LogPinnedBpf(observerDir)
