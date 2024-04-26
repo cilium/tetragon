@@ -5,6 +5,7 @@ package sensors
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -17,8 +18,10 @@ import (
 )
 
 var (
-	// AllPrograms are all the loaded programs. For use with Unload().
-	AllPrograms = []*program.Program{}
+	// allPrograms are all the loaded programs. For use with Unload().
+	allPrograms = []*program.Program{}
+	// allPrograms lock
+	allProgramsMutex sync.Mutex
 	// AllMaps are all the loaded programs. For use with Unload().
 	AllMaps = []*program.Map{}
 )
@@ -166,4 +169,30 @@ func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (SensorIfac
 	}
 
 	return SensorCombine(tp.TpName(), sensors...), nil
+}
+
+func progsAdd(progs []*program.Program) {
+	allProgramsMutex.Lock()
+	defer allProgramsMutex.Unlock()
+
+	allPrograms = append(allPrograms, progs...)
+}
+
+func progsCleanup() {
+	allProgramsMutex.Lock()
+	defer allProgramsMutex.Unlock()
+
+	progs := []*program.Program{}
+
+	for _, p := range allPrograms {
+		if p.LoadState.IsLoaded() {
+			progs = append(progs, p)
+		}
+	}
+
+	allPrograms = progs
+}
+
+func AllPrograms() []*program.Program {
+	return append([]*program.Program{}, allPrograms...)
 }
