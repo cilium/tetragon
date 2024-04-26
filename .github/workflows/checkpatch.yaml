@@ -6,6 +6,12 @@ on:
 jobs:
   checkpatch:
     runs-on: ubuntu-latest
+    # Skip the workflow for Renovate PRs.
+    # One issue checkpatch checks is whether the commit subject is not too long. Renovate commits tend to have long
+    # subjects for a reason (e.g. including the digest). Other checkpatch checks are either ignored or relevant only
+    # for BPF code, so it's fine to skip the entire workflow for Renovate PRs. If there are more checks added then we
+    # should revisit it (and maybe update cilium-checkpatch).
+    if: ${{ github.event.pull_request.user.login != 'cilium-renovate[bot]' }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
