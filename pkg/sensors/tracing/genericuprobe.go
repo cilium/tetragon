@@ -144,8 +144,6 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
-	sensors.AllPrograms = append(sensors.AllPrograms, load)
-
 	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Verbose); err != nil {
 		return err
 	}
@@ -156,8 +154,6 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
-	sensors.AllPrograms = append(sensors.AllPrograms, load)
-
 	data := &program.MultiUprobeAttachData{}
 	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
 
