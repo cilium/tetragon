@@ -72,10 +72,6 @@ func (s *Sensor) Load(bpfDir string) error {
 		return fmt.Errorf("sensor %s has been previously destroyed, please recreate it before loading", s.Name)
 	}
 
-	// Add the loaded programs and maps to All* so they can be unloaded on shutdown.
-	AllPrograms = append(AllPrograms, s.Progs...)
-	AllMaps = append(AllMaps, s.Maps...)
-
 	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
 	if _, err := observerMinReqs(); err != nil {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
@@ -114,6 +110,11 @@ func (s *Sensor) Load(bpfDir string) error {
 		p.LoadState.RefInc()
 		l.WithField("prog", p.Name).WithField("label", p.Label).Debugf("BPF prog was loaded")
 	}
+
+	// Add the *loaded* programs and maps, so they can be unloaded later
+	progsAdd(s.Progs)
+	AllMaps = append(AllMaps, s.Maps...)
+
 	l.WithField("sensor", s.Name).Infof("Loaded BPF maps and events for sensor successfully")
 	s.Loaded = true
 	return nil
@@ -149,6 +150,7 @@ func (s *Sensor) Unload() error {
 		}
 	}
 
+	progsCleanup()
 	return nil
 }
 
