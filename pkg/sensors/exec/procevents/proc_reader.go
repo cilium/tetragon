@@ -107,7 +107,7 @@ func procKernel() procs {
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
-		auid:        0,
+		auid:        proc.InvalidUid,
 		flags:       api.EventProcFS,
 		ktime:       1,
 		exe:         kernelArgs,
