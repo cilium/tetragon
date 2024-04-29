@@ -37,6 +37,7 @@ assignees: ''
 - If release is `X.Y.0`:
 
   - [ ] Create `vX.Y` branch.
+  - [ ] Add this stable branch to [renovate.json5]()https://github.com/cilium/tetragon/blob/main/.github/renovate.json5
   - [ ] Create a "Starting `X.Y+1` development" PR on the master branch with the following changes:
     - Update [CustomResourceDefinitionSchemaVersion](https://github.com/cilium/tetragon/blob/6f2809c51b3fbd35b1de0a178f1e3d0b18c52bcc/pkg/k8s/apis/cilium.io/v1alpha1/register.go#L18) to `X.Y+1.0`.
   - [ ] Once PR is merged, tag the first commit in master which is not in the `X.Y` branch as `vX.Y+1.0-pre.0`. The high level view of the status after this tag is shown in the following figure (RELEASE is `v0.10.0` in this example):
