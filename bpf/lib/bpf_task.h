@@ -7,6 +7,7 @@
 #include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "generic.h"
+#include "bpf_tracing.h"
 
 /* __d_path_local flags */
 // #define UNRESOLVED_MOUNT_POINTS	   0x01 // (deprecated)
@@ -27,7 +28,7 @@ get_parent(struct task_struct *t)
 	struct task_struct *task;
 
 	/* Read the real parent */
-	probe_read(&task, sizeof(task), _(&t->real_parent));
+	probe_read_kernel(&task, sizeof(task), _(&t->real_parent));
 	if (!task)
 		return 0;
 	return task;
@@ -47,7 +48,7 @@ get_task_from_pid(__u32 pid)
 			i = TASK_PID_LOOP;
 			continue;
 		}
-		probe_read(&cpid, sizeof(cpid), _(&task->tgid));
+		probe_read_kernel(&cpid, sizeof(cpid), _(&task->tgid));
 		if (cpid == pid) {
 			i = TASK_PID_LOOP;
 			continue;
@@ -70,7 +71,7 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 
 	thread_pid_exists = bpf_core_field_exists(task->thread_pid);
 	if (thread_pid_exists) {
-		probe_read(&pid, sizeof(pid), _(&task->thread_pid));
+		probe_read_kernel(&pid, sizeof(pid), _(&task->thread_pid));
 		if (!pid)
 			return 0;
 	} else {
@@ -85,16 +86,16 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 		if (!thread_pid_exists)
 			link_sz =
 				24; // voodoo magic, hard-code 24 to init stack
-		probe_read(&link, link_sz,
-			   (void *)_(&task->pids) + (PIDTYPE_PID * link_sz));
+		probe_read_kernel(&link, link_sz,
+				  (void *)_(&task->pids) + (PIDTYPE_PID * link_sz));
 		pid = link.pid;
 	}
 	upid_sz = bpf_core_field_size(pid->numbers[0]);
-	probe_read(&level, sizeof(level), _(&pid->level));
+	probe_read_kernel(&level, sizeof(level), _(&pid->level));
 	if (level < 1)
 		return 0;
-	probe_read(&upid, upid_sz,
-		   (void *)_(&pid->numbers) + (level * upid_sz));
+	probe_read_kernel(&upid, upid_sz,
+			  (void *)_(&pid->numbers) + (level * upid_sz));
 	return upid.nr;
 }
 
@@ -106,7 +107,7 @@ event_find_parent_pid(struct task_struct *t)
 
 	if (!task)
 		return 0;
-	probe_read(&pid, sizeof(pid), _(&task->tgid));
+	probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
 	return pid;
 }
 
@@ -119,10 +120,10 @@ __event_find_parent(struct task_struct *task)
 
 #pragma unroll
 	for (i = 0; i < 4; i++) {
-		probe_read(&task, sizeof(task), _(&task->real_parent));
+		probe_read_kernel(&task, sizeof(task), _(&task->real_parent));
 		if (!task)
 			break;
-		probe_read(&pid, sizeof(pid), _(&task->tgid));
+		probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
 		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			return value;
@@ -164,13 +165,13 @@ event_find_curr(__u32 *ppid, bool *walked)
 
 #pragma unroll
 	for (i = 0; i < 4; i++) {
-		probe_read(&pid, sizeof(pid), _(&task->tgid));
+		probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
 		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
 			break;
 		value = 0;
 		*walked = 1;
-		probe_read(&task, sizeof(task), _(&task->real_parent));
+		probe_read_kernel(&task, sizeof(task), _(&task->real_parent));
 		if (!task)
 			break;
 	}

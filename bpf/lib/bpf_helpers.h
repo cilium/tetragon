@@ -43,7 +43,7 @@
  * Following define is to assist VSCode Intellisense so that it treats
  * __builtin_preserve_access_index() as a const void * instead of a
  * simple void (because it doesn't have a definition for it). This stops
- * Intellisense marking all _(P) macros (used in probe_read()) as errors.
+ * Intellisense marking all _(P) macros (used in probe_read_kernel()) as errors.
  * To use this, just define VSCODE in 'C/C++: Edit Configurations (JSON)'
  * in the Command Palette in VSCODE (F1 or View->Command Palette...):
  *    "defines": ["VSCODE"]
@@ -53,15 +53,6 @@
 const void *__builtin_preserve_access_index(void *);
 #endif
 #define _(P) (__builtin_preserve_access_index(P))
-
-/*
- * Convenience macro to check that field actually exists in target kernel's.
- * Returns:
- *    1, if matching field is present in target kernel;
- *    0, if no matching field found.
- */
-#define bpf_core_field_exists(field) \
-	__builtin_preserve_field_info(field, BPF_FIELD_EXISTS)
 
 /* second argument to __builtin_preserve_enum_value() built-in */
 enum bpf_enum_value_kind {

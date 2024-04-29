@@ -824,11 +824,11 @@ spec:
         values:
         - ` + pidStr + `
       matchArgs:
-      - index: 0
+      - index: 4
         operator: "InMap"
         values:
         - "list:test"
-      - index: 1
+      - index: 5
         operator: "InMap"
         values:
         - 9910:9920

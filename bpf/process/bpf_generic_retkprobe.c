@@ -69,16 +69,13 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
-	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
-	struct retprobe_info info;
 	struct event_config *config;
-	bool walker = false;
-	int zero = 0;
-	__u32 ppid;
-	long size = 0;
-	long ty_arg, do_copy;
+	struct retprobe_info info;
 	__u64 pid_tgid;
+	long size = 0;
+	int zero = 0;
+	long ty_arg;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -95,16 +92,11 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	pid_tgid = get_current_pid_tgid();
 	e->tid = (__u32)pid_tgid;
 
-	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
-		return 0;
-
-	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
 	ty_arg = config->argreturn;
-	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap_ptr);
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, config->argmreturn, (struct bpf_map_def *)data_heap_ptr);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 		switch (config->argreturnaction) {
@@ -121,6 +113,43 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 #endif
 	}
 
+	e->ret = ret;
+	e->common.size = size;
+	e->common.ktime = ktime_get_ns();
+
+	tail_call(ctx, &retkprobe_calls, TAIL_CALL_FILTER);
+	return 1;
+}
+
+__attribute__((section("kprobe/2"), used)) int
+BPF_KRETPROBE(generic_retkprobe_copy_arg)
+{
+	struct execve_map_value *enter;
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	struct retprobe_info info;
+	bool walker = false;
+	unsigned long ret;
+	bool userspace;
+	long size = 0;
+	int zero = 0;
+	__u32 ppid;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return 0;
+
+	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
+		return 0;
+
+	*(unsigned long *)e->args = info.ktime_enter;
+	size = e->common.size;
+	ret = e->ret;
+
 	/*
 	 * 0x1000 should be maximum argument length, so masking
 	 * with 0x1fff is safe and verifier will be happy.
@@ -128,12 +157,13 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	asm volatile("%[size] &= 0x1fff;\n" ::[size] "+r"(size)
 		     :);
 
-	switch (do_copy) {
+	userspace = is_userspace_data(info.meta);
+	switch (config->argreturncopy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap_ptr, userspace);
 		break;
 	case char_iovec:
-		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e, userspace);
 	default:
 		break;
 	}
@@ -146,7 +176,6 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = size;
-	e->common.ktime = ktime_get_ns();
 
 	if (enter) {
 		e->current.pid = enter->key.pid;

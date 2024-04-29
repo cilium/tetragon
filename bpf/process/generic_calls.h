@@ -44,9 +44,6 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		int am;
 
 		am = (&config->arg0m)[index];
-		asm volatile("%[am] &= 0xffff;\n" ::[am] "+r"(am)
-			     :);
-
 		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap);
 		if (errv > 0)
 			total += errv;
@@ -56,7 +53,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		 * do it where it makes most sense.
 		 */
 		if (errv < 0)
-			return filter_args_reject(e->func_id);
+			return filter_args_reject(ctx, e->func_id);
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
@@ -84,7 +81,7 @@ generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
 	case MSG_OP_GENERIC_TRACEPOINT:
 	case MSG_OP_GENERIC_KPROBE:
 		info = (struct thread_info *)get_current_task();
-		probe_read(&status, sizeof(status), _(&info->status));
+		probe_read_kernel(&status, sizeof(status), _(&info->status));
 		e->sel.is32BitSyscall = status & TS_COMPAT;
 	default:
 		break;
@@ -169,7 +166,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	/* If return arg is needed mark retprobe */
 	ty = config->argreturn;
 	if (ty > 0)
-		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1, config->argmreturn);
 #endif
 
 #ifdef GENERIC_UPROBE

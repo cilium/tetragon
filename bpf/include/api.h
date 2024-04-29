@@ -204,6 +204,9 @@ static int BPF_FUNC(fib_lookup, void *ctx, struct bpf_fib_lookup *params, uint32
 static int BPF_FUNC(probe_read, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_read_str, void *dst, int size, const void *src);
 static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src);
+static int BPF_FUNC(probe_read_kernel_str, void *dst, int size, const void *src);
+static int BPF_FUNC(probe_read_user, void *dst, uint32_t size, const void *src);
+static int BPF_FUNC(probe_read_user_str, void *dst, int size, const void *src);
 
 static uint64_t BPF_FUNC(get_current_task);
 

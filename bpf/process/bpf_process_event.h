@@ -39,15 +39,15 @@ __get_auid(struct task_struct *task)
 		return auid;
 
 	if (bpf_core_field_exists(task->loginuid)) {
-		probe_read(&auid, sizeof(auid), _(&task->loginuid.val));
+		probe_read_kernel(&auid, sizeof(auid), _(&task->loginuid.val));
 	} else {
 		struct audit_task_info *audit;
 
 		if (bpf_core_field_exists(task->audit)) {
-			probe_read(&audit, sizeof(audit), _(&task->audit));
+			probe_read_kernel(&audit, sizeof(audit), _(&task->audit));
 			if (audit) {
-				probe_read(&auid, sizeof(__u32),
-					   _(&audit->loginuid));
+				probe_read_kernel(&auid, sizeof(__u32),
+						  _(&audit->loginuid));
 			}
 		}
 	}
@@ -88,7 +88,7 @@ static inline __attribute__((always_inline)) bool IS_ROOT(struct dentry *dentry)
 {
 	struct dentry *d_parent;
 
-	probe_read(&d_parent, sizeof(d_parent), _(&dentry->d_parent));
+	probe_read_kernel(&d_parent, sizeof(d_parent), _(&dentry->d_parent));
 	return (dentry == d_parent);
 }
 
@@ -97,7 +97,7 @@ hlist_bl_unhashed(const struct hlist_bl_node *h)
 {
 	struct hlist_bl_node **pprev;
 
-	probe_read(&pprev, sizeof(pprev), _(&h->pprev));
+	probe_read_kernel(&pprev, sizeof(pprev), _(&h->pprev));
 	return !pprev;
 }
 
@@ -153,7 +153,7 @@ prepend_name(char *buf, char **bufptr, int *buflen, const char *name, u32 namele
 	// Needed to bound that for probe_read call.
 	asm volatile("%[namelen] &= 0xff;\n" ::[namelen] "+r"(namelen)
 		     :);
-	probe_read(buf + buffer_offset + write_slash, namelen * sizeof(char), name);
+	probe_read_kernel(buf + buffer_offset + write_slash, namelen * sizeof(char), name);
 
 	*bufptr = buf + buffer_offset;
 	return write_slash ? 0 : -ENAMETOOLONG;
@@ -204,28 +204,28 @@ cwd_read(struct cwd_read_data *data)
 		return 1;
 	}
 
-	probe_read(&vfsmnt_mnt_root, sizeof(vfsmnt_mnt_root),
-		   _(&vfsmnt->mnt_root));
+	probe_read_kernel(&vfsmnt_mnt_root, sizeof(vfsmnt_mnt_root),
+			  _(&vfsmnt->mnt_root));
 	if (dentry == vfsmnt_mnt_root || IS_ROOT(dentry)) {
 		struct mount *parent;
 
-		probe_read(&parent, sizeof(parent), _(&mnt->mnt_parent));
+		probe_read_kernel(&parent, sizeof(parent), _(&mnt->mnt_parent));
 
 		/* Global root? */
 		if (data->mnt != parent) {
-			probe_read(&data->dentry, sizeof(data->dentry),
-				   _(&mnt->mnt_mountpoint));
+			probe_read_kernel(&data->dentry, sizeof(data->dentry),
+					  _(&mnt->mnt_mountpoint));
 			data->mnt = parent;
-			probe_read(&data->vfsmnt, sizeof(data->vfsmnt),
-				   _(&mnt->mnt));
+			probe_read_kernel(&data->vfsmnt, sizeof(data->vfsmnt),
+					  _(&mnt->mnt));
 			return 0;
 		}
 		// resolved all path components successfully
 		data->resolved = true;
 		return 1;
 	}
-	probe_read(&parent, sizeof(parent), _(&dentry->d_parent));
-	probe_read(&d_name, sizeof(d_name), _(&dentry->d_name));
+	probe_read_kernel(&parent, sizeof(parent), _(&dentry->d_parent));
+	probe_read_kernel(&d_name, sizeof(d_name), _(&dentry->d_name));
 	error = prepend_name(data->bf, &data->bptr, &data->blen,
 			     (const char *)d_name.name, d_name.len);
 	// This will happen where the dentry name does not fit in the buffer.
@@ -256,11 +256,11 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	};
 	int error = 0;
 
-	probe_read(&data.root_dentry, sizeof(data.root_dentry),
-		   _(&root->dentry));
-	probe_read(&data.root_mnt, sizeof(data.root_mnt), _(&root->mnt));
-	probe_read(&data.dentry, sizeof(data.dentry), _(&path->dentry));
-	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
+	probe_read_kernel(&data.root_dentry, sizeof(data.root_dentry),
+			  _(&root->dentry));
+	probe_read_kernel(&data.root_mnt, sizeof(data.root_mnt), _(&root->mnt));
+	probe_read_kernel(&data.dentry, sizeof(data.dentry), _(&path->dentry));
+	probe_read_kernel(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
 	data.mnt = real_mount(data.vfsmnt);
 
 #ifndef __V61_BPF_PROG
@@ -290,7 +290,7 @@ path_with_deleted(const struct path *path, const struct path *root, char *bf,
 {
 	struct dentry *dentry;
 
-	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+	probe_read_kernel(&dentry, sizeof(dentry), _(&path->dentry));
 	if (d_unlinked(dentry)) {
 		int error = prepend(buf, buflen, " (deleted)", 10);
 		if (error) // will never happen as prepend will never return a value != 0
@@ -342,7 +342,7 @@ __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
 	struct fs_struct *fs;
 
 	task = (struct task_struct *)get_current_task();
-	probe_read(&fs, sizeof(fs), _(&task->fs));
+	probe_read_kernel(&fs, sizeof(fs), _(&task->fs));
 	*error = path_with_deleted(path, _(&fs->root), buf, &res, buflen);
 	return res;
 }
@@ -386,7 +386,7 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 	int flags = 0, size;
 	char *buffer;
 
-	probe_read(&fs, sizeof(fs), _(&task->fs));
+	probe_read_kernel(&fs, sizeof(fs), _(&task->fs));
 	if (!fs) {
 		curr->flags |= EVENT_ERROR_CWD;
 		return 0;
@@ -400,7 +400,7 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 		     :);
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
 		     :);
-	probe_read((char *)curr + offset, size, buffer);
+	probe_read_kernel((char *)curr + offset, size, buffer);
 
 	// Unfortunate special case for '/' where nothing was added we need
 	// to truncate with '\n' for parser.
@@ -421,9 +421,9 @@ event_set_clone(struct msg_process *pid)
 static inline __attribute__((always_inline)) void
 __get_caps(struct msg_capabilities *msg, const struct cred *cred)
 {
-	probe_read(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
-	probe_read(&msg->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
-	probe_read(&msg->permitted, sizeof(__u64), _(&cred->cap_permitted));
+	probe_read_kernel(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
+	probe_read_kernel(&msg->inheritable, sizeof(__u64), _(&cred->cap_inheritable));
+	probe_read_kernel(&msg->permitted, sizeof(__u64), _(&cred->cap_permitted));
 }
 
 /* @get_current_subj_caps:
@@ -463,7 +463,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 	const struct cred *cred;
 
 	/* Get the task's subjective creds */
-	probe_read(&cred, sizeof(cred), _(&task->cred));
+	probe_read_kernel(&cred, sizeof(cred), _(&task->cred));
 	__get_caps(msg, cred);
 }
 
@@ -473,17 +473,17 @@ get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 	const struct cred *cred;
 
 	/* Get the task's subjective creds */
-	probe_read(&cred, sizeof(cred), _(&task->cred));
+	probe_read_kernel(&cred, sizeof(cred), _(&task->cred));
 
-	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
-	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
-	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
-	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
-	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
-	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
-	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
-	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
-	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
+	probe_read_kernel(&info->uid, sizeof(__u32), _(&cred->uid));
+	probe_read_kernel(&info->gid, sizeof(__u32), _(&cred->gid));
+	probe_read_kernel(&info->euid, sizeof(__u32), _(&cred->euid));
+	probe_read_kernel(&info->egid, sizeof(__u32), _(&cred->egid));
+	probe_read_kernel(&info->suid, sizeof(__u32), _(&cred->suid));
+	probe_read_kernel(&info->sgid, sizeof(__u32), _(&cred->sgid));
+	probe_read_kernel(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
+	probe_read_kernel(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
+	probe_read_kernel(&info->securebits, sizeof(__u32), _(&cred->securebits));
 
 	/* Get capabilities */
 	__get_caps(&info->caps, cred);
@@ -495,55 +495,55 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	struct nsproxy *nsproxy;
 	struct nsproxy nsp;
 
-	probe_read(&nsproxy, sizeof(nsproxy), _(&task->nsproxy));
-	probe_read(&nsp, sizeof(nsp), _(nsproxy));
+	probe_read_kernel(&nsproxy, sizeof(nsproxy), _(&task->nsproxy));
+	probe_read_kernel(&nsp, sizeof(nsp), _(nsproxy));
 
-	probe_read(&msg->uts_inum, sizeof(msg->uts_inum),
-		   _(&nsp.uts_ns->ns.inum));
-	probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
-		   _(&nsp.ipc_ns->ns.inum));
-	probe_read(&msg->mnt_inum, sizeof(msg->mnt_inum),
-		   _(&nsp.mnt_ns->ns.inum));
+	probe_read_kernel(&msg->uts_inum, sizeof(msg->uts_inum),
+			  _(&nsp.uts_ns->ns.inum));
+	probe_read_kernel(&msg->ipc_inum, sizeof(msg->ipc_inum),
+			  _(&nsp.ipc_ns->ns.inum));
+	probe_read_kernel(&msg->mnt_inum, sizeof(msg->mnt_inum),
+			  _(&nsp.mnt_ns->ns.inum));
 	{
 		struct pid *p = 0;
 
-		probe_read(&p, sizeof(p), _(&task->thread_pid));
+		probe_read_kernel(&p, sizeof(p), _(&task->thread_pid));
 		if (p) {
 			int level = 0;
 			struct upid up;
 
-			probe_read(&level, sizeof(level), _(&p->level));
-			probe_read(&up, sizeof(up), _(&p->numbers[level]));
-			probe_read(&msg->pid_inum, sizeof(msg->pid_inum),
-				   _(&up.ns->ns.inum));
+			probe_read_kernel(&level, sizeof(level), _(&p->level));
+			probe_read_kernel(&up, sizeof(up), _(&p->numbers[level]));
+			probe_read_kernel(&msg->pid_inum, sizeof(msg->pid_inum),
+					  _(&up.ns->ns.inum));
 		} else
 			msg->pid_inum = 0;
 	}
-	probe_read(&msg->pid_for_children_inum,
-		   sizeof(msg->pid_for_children_inum),
-		   _(&nsp.pid_ns_for_children->ns.inum));
-	probe_read(&msg->net_inum, sizeof(msg->net_inum),
-		   _(&nsp.net_ns->ns.inum));
+	probe_read_kernel(&msg->pid_for_children_inum,
+			  sizeof(msg->pid_for_children_inum),
+			  _(&nsp.pid_ns_for_children->ns.inum));
+	probe_read_kernel(&msg->net_inum, sizeof(msg->net_inum),
+			  _(&nsp.net_ns->ns.inum));
 
 	// this also includes time_ns_for_children
 	if (bpf_core_field_exists(nsproxy->time_ns)) {
-		probe_read(&msg->time_inum, sizeof(msg->time_inum),
-			   _(&nsp.time_ns->ns.inum));
-		probe_read(&msg->time_for_children_inum,
-			   sizeof(msg->time_for_children_inum),
-			   _(&nsp.time_ns_for_children->ns.inum));
+		probe_read_kernel(&msg->time_inum, sizeof(msg->time_inum),
+				  _(&nsp.time_ns->ns.inum));
+		probe_read_kernel(&msg->time_for_children_inum,
+				  sizeof(msg->time_for_children_inum),
+				  _(&nsp.time_ns_for_children->ns.inum));
 	}
 
-	probe_read(&msg->cgroup_inum, sizeof(msg->cgroup_inum),
-		   _(&nsp.cgroup_ns->ns.inum));
+	probe_read_kernel(&msg->cgroup_inum, sizeof(msg->cgroup_inum),
+			  _(&nsp.cgroup_ns->ns.inum));
 	{
 		struct mm_struct *mm;
 		struct user_namespace *user_ns;
 
-		probe_read(&mm, sizeof(mm), _(&task->mm));
-		probe_read(&user_ns, sizeof(user_ns), _(&mm->user_ns));
-		probe_read(&msg->user_inum, sizeof(msg->user_inum),
-			   _(&user_ns->ns.inum));
+		probe_read_kernel(&mm, sizeof(mm), _(&task->mm));
+		probe_read_kernel(&user_ns, sizeof(user_ns), _(&mm->user_ns));
+		probe_read_kernel(&msg->user_inum, sizeof(msg->user_inum),
+				  _(&user_ns->ns.inum));
 	}
 }
 
@@ -565,7 +565,7 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
 
 	name = get_cgroup_name(cgrp);
 	if (name)
-		probe_read_str(kube->docker_id, KN_NAME_LENGTH, name);
+		probe_read_kernel_str(kube->docker_id, KN_NAME_LENGTH, name);
 
 	return name ? 0 : EVENT_ERROR_CGROUP_NAME;
 }

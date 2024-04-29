@@ -41,13 +41,13 @@ read_args(void *ctx, struct msg_execve_event *event)
 	long off;
 	int err;
 
-	probe_read(&mm, sizeof(mm), _(&task->mm));
+	probe_read_kernel(&mm, sizeof(mm), _(&task->mm));
 	if (!mm)
 		return 0;
 
-	probe_read(&start_stack, sizeof(start_stack),
-		   _(&mm->arg_start));
-	probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
+	probe_read_kernel(&start_stack, sizeof(start_stack),
+			  _(&mm->arg_start));
+	probe_read_kernel(&end_stack, sizeof(start_stack), _(&mm->arg_end));
 
 	if (!start_stack || !end_stack)
 		return 0;
@@ -58,7 +58,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 		return 0;
 
 	/* poor man's strlen */
-	off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
+	off = probe_read_user_str(&heap->maxpath, 4096, (char *)start_stack);
 	if (off < 0)
 		return 0;
 
@@ -78,7 +78,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 
 	if (args_size < BUFFER && args_size < free_size) {
 		size = args_size & 0x3ff /* BUFFER - 1 */;
-		err = probe_read(args, size, (char *)start_stack);
+		err = probe_read_user(args, size, (char *)start_stack);
 		if (err < 0) {
 			p->flags |= EVENT_ERROR_ARGS;
 			size = 0;
@@ -87,7 +87,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 		size = data_event_bytes(ctx, (struct data_event_desc *)args,
 					(unsigned long)start_stack,
 					args_size,
-					(struct bpf_map_def *)&data_heap);
+					(struct bpf_map_def *)&data_heap, true);
 		if (size > 0)
 			p->flags |= EVENT_DATA_ARGS;
 	}
@@ -104,14 +104,14 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 
 	earg = (void *)p + offsetof(struct msg_process, args);
 
-	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
+	size = probe_read_kernel_str(earg, MAXARGLENGTH - 1, filename);
 	if (size < 0) {
 		flags |= EVENT_ERROR_FILENAME;
 		size = 0;
 	} else if (size == MAXARGLENGTH - 1) {
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename,
-				      (struct bpf_map_def *)&data_heap);
+				      (struct bpf_map_def *)&data_heap, false);
 		if (size == 0)
 			flags |= EVENT_ERROR_FILENAME;
 		else
@@ -305,7 +305,7 @@ execve_send(struct sched_execve_args *ctx)
 #ifdef __LARGE_BPF_PROG
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
-			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.off);
+			curr->bin.path_length = probe_read_kernel(curr->bin.path, event->exe.len, event->exe.off);
 			if (curr->bin.path_length == 0)
 				curr->bin.path_length = event->exe.len;
 		}
@@ -313,7 +313,7 @@ execve_send(struct sched_execve_args *ctx)
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)
 		// which is okay because we need the 256 first bytes.
-		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, &p->args);
+		curr->bin.path_length = probe_read_kernel_str(curr->bin.path, BINARY_PATH_MAX_LEN, &p->args);
 		if (curr->bin.path_length > 1) {
 			// don't include the NULL byte in the length
 			curr->bin.path_length--;

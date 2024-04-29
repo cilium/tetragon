@@ -22,6 +22,7 @@
 #include "common.h"
 #include "process/data_event.h"
 #include "process/bpf_enforcer.h"
+#include "probe_read_kernel_or_user.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -47,7 +48,7 @@ enum {
 	fd_ty = 17,
 
 	/* const_buf_type is a type for buffers with static size that is passed
-	 * in the meta argument
+	 * in the meta argument's upper 16 bits
 	 */
 	const_buf_type = 18,
 	bpf_attr_type = 19,
@@ -161,7 +162,9 @@ struct event_config {
 	__u32 t_arg4_ctx_off;
 	__u32 syscall;
 	__s32 argreturncopy;
+	__u32 argmreturncopy;
 	__s32 argreturn;
+	__u32 argmreturn;
 	/* arg return action specifies to act on the return value; currently
 	 * supported actions include: TrackSock and UntrackSock.
 	 */
@@ -276,7 +279,7 @@ return_stack_error(char *args, int orig, int err)
 
 static inline __attribute__((always_inline)) int
 parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
-		  struct msg_generic_kprobe *e)
+		  struct msg_generic_kprobe *e, bool userspace)
 {
 	struct iovec
 		iov; // limit is 1024 using a hack now. For 5.4 kernel we should loop over 1024
@@ -284,7 +287,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 	__u64 size;
 	int err;
 
-	err = probe_read(&iov, sizeof(iov), (struct iovec *)(arg + index));
+	err = probe_read_kernel_or_user(&iov, sizeof(iov), (struct iovec *)(arg + index), userspace);
 	if (err < 0)
 		return char_buf_pagefault;
 	size = iov.iov_len;
@@ -292,9 +295,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		size = max;
 	if (size > 4094)
 		return char_buf_toolarge;
-	asm volatile("%[size] &= 0xfff;\n" ::[size] "+r"(size)
-		     :);
-	err = probe_read(args_off(e, off), size, (char *)iov.iov_base);
+	err = probe_read_kernel_or_user_masked(args_off(e, off), size, 0xfff, (char *)iov.iov_base, userspace);
 	if (err < 0)
 		return char_buf_pagefault;
 	return size;
@@ -307,7 +308,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		/* embedding this in the loop counter breaks verifier */ \
 		if (i >= cnt)                                            \
 			goto char_iovec_done;                            \
-		c = parse_iovec_array(off, arg, i, max, e);              \
+		c = parse_iovec_array(off, arg, i, max, e, userspace);   \
 		if (c < 0) {                                             \
 			char *args = args_off(e, off_orig);              \
 			return return_stack_error(args, 0, c);           \
@@ -453,7 +454,7 @@ copy_path(char *args, const struct path *arg)
 
 	asm volatile("%[size] &= 0xff;\n" ::[size] "+r"(size)
 		     :);
-	probe_read(curr, size, buffer);
+	probe_read_kernel(curr, size, buffer);
 	*s = size;
 	size += 4;
 
@@ -488,15 +489,15 @@ a:
 }
 
 static inline __attribute__((always_inline)) long
-copy_strings(char *args, char *arg, int max_size)
+copy_strings(char *args, char *arg, int max_size, bool userspace)
 {
 	int *s = (int *)args;
 	long size;
 
-	// probe_read_str() always nul-terminates the string.
+	// probe_read_kernel_or_user_str() always nul-terminates the string.
 	// So add one to the length to allow for it. This should
 	// result in us honouring our max_size correctly.
-	size = probe_read_str(&args[4], max_size + 1, arg);
+	size = probe_read_kernel_or_user_str(&args[4], max_size + 1, arg, userspace);
 	if (size <= 1)
 		return invalid_ty;
 	// Remove the nul character from end.
@@ -507,51 +508,54 @@ copy_strings(char *args, char *arg, int max_size)
 }
 
 static inline __attribute__((always_inline)) long copy_skb(char *args,
-							   unsigned long arg)
+							   unsigned long arg,
+							   bool userspace)
 {
 	struct sk_buff *skb = (struct sk_buff *)arg;
 	struct skb_type *skb_event = (struct skb_type *)args;
 
 	/* struct values */
-	probe_read(&skb_event->hash, sizeof(__u32), _(&skb->hash));
-	probe_read(&skb_event->len, sizeof(__u32), _(&skb->len));
-	probe_read(&skb_event->priority, sizeof(__u32), _(&skb->priority));
-	probe_read(&skb_event->mark, sizeof(__u32), _(&skb->mark));
+	probe_read_kernel_or_user(&skb_event->hash, sizeof(__u32), _(&skb->hash), userspace);
+	probe_read_kernel_or_user(&skb_event->len, sizeof(__u32), _(&skb->len), userspace);
+	probe_read_kernel_or_user(&skb_event->priority, sizeof(__u32), _(&skb->priority), userspace);
+	probe_read_kernel_or_user(&skb_event->mark, sizeof(__u32), _(&skb->mark), userspace);
 
 	/* socket data */
-	set_event_from_skb(skb_event, skb);
+	set_event_from_skb(skb_event, skb, userspace);
 
 	return sizeof(struct skb_type);
 }
 
 static inline __attribute__((always_inline)) long copy_sock(char *args,
-							    unsigned long arg)
+							    unsigned long arg,
+							    bool userspace)
 {
 	struct sock *sk = (struct sock *)arg;
 	struct sk_type *sk_event = (struct sk_type *)args;
 
-	set_event_from_sock(sk_event, sk);
+	set_event_from_sock(sk_event, sk, userspace);
 
 	return sizeof(struct sk_type);
 }
 
 static inline __attribute__((always_inline)) long
-copy_user_ns(char *args, unsigned long arg)
+copy_user_ns(char *args, unsigned long arg, bool userspace)
 {
 	struct user_namespace *ns = (struct user_namespace *)arg;
 	struct msg_user_namespace *u_ns_info =
 		(struct msg_user_namespace *)args;
 
-	probe_read(&u_ns_info->level, sizeof(__s32), _(&ns->level));
-	probe_read(&u_ns_info->uid, sizeof(__u32), _(&ns->owner));
-	probe_read(&u_ns_info->gid, sizeof(__u32), _(&ns->group));
-	probe_read(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum));
+	probe_read_kernel_or_user(&u_ns_info->level, sizeof(__s32), _(&ns->level), userspace);
+	probe_read_kernel_or_user(&u_ns_info->uid, sizeof(__u32), _(&ns->owner), userspace);
+	probe_read_kernel_or_user(&u_ns_info->gid, sizeof(__u32), _(&ns->group), userspace);
+	probe_read_kernel_or_user(&u_ns_info->ns_inum, sizeof(__u32), _(&ns->ns.inum), userspace);
 
 	return sizeof(struct msg_user_namespace);
 }
 
 static inline __attribute__((always_inline)) long copy_cred(char *args,
-							    unsigned long arg)
+							    unsigned long arg,
+							    bool userspace)
 {
 	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
@@ -559,21 +563,21 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	struct msg_capabilities *caps = &info->caps;
 	struct msg_user_namespace *user_ns_info = &info->user_ns;
 
-	probe_read(&info->uid, sizeof(__u32), _(&cred->uid));
-	probe_read(&info->gid, sizeof(__u32), _(&cred->gid));
-	probe_read(&info->euid, sizeof(__u32), _(&cred->euid));
-	probe_read(&info->egid, sizeof(__u32), _(&cred->egid));
-	probe_read(&info->suid, sizeof(__u32), _(&cred->suid));
-	probe_read(&info->sgid, sizeof(__u32), _(&cred->sgid));
-	probe_read(&info->fsuid, sizeof(__u32), _(&cred->fsuid));
-	probe_read(&info->fsgid, sizeof(__u32), _(&cred->fsgid));
+	probe_read_kernel_or_user(&info->uid, sizeof(__u32), _(&cred->uid), userspace);
+	probe_read_kernel_or_user(&info->gid, sizeof(__u32), _(&cred->gid), userspace);
+	probe_read_kernel_or_user(&info->euid, sizeof(__u32), _(&cred->euid), userspace);
+	probe_read_kernel_or_user(&info->egid, sizeof(__u32), _(&cred->egid), userspace);
+	probe_read_kernel_or_user(&info->suid, sizeof(__u32), _(&cred->suid), userspace);
+	probe_read_kernel_or_user(&info->sgid, sizeof(__u32), _(&cred->sgid), userspace);
+	probe_read_kernel_or_user(&info->fsuid, sizeof(__u32), _(&cred->fsuid), userspace);
+	probe_read_kernel_or_user(&info->fsgid, sizeof(__u32), _(&cred->fsgid), userspace);
 	info->pad = 0;
-	probe_read(&info->securebits, sizeof(__u32), _(&cred->securebits));
+	probe_read_kernel_or_user(&info->securebits, sizeof(__u32), _(&cred->securebits), userspace);
 
 	__get_caps(caps, cred);
 
-	probe_read(&ns, sizeof(ns), _(&cred->user_ns));
-	copy_user_ns((char *)user_ns_info, (unsigned long)ns);
+	probe_read_kernel_or_user(&ns, sizeof(ns), _(&cred->user_ns), userspace);
+	copy_user_ns((char *)user_ns_info, (unsigned long)ns, userspace);
 
 	return sizeof(struct msg_cred);
 }
@@ -591,7 +595,7 @@ copy_capability(char *args, unsigned long arg)
 }
 
 static inline __attribute__((always_inline)) long
-copy_load_module(char *args, unsigned long arg)
+copy_load_module(char *args, unsigned long arg, bool userspace)
 {
 	int ok;
 	const char *name;
@@ -600,32 +604,44 @@ copy_load_module(char *args, unsigned long arg)
 
 	memset(info, 0, sizeof(struct tg_kernel_module));
 
-	if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
+	if (userspace) {
+		if (BPF_CORE_READ_USER_INTO(&name, mod, name) != 0)
+			return 0;
+	} else {
+		if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
+			return 0;
+	}
+	if (probe_read_kernel_or_user_str(&info->name, TG_MODULE_NAME_LEN - 1, name, userspace) < 0)
 		return 0;
 
-	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, name) < 0)
-		return 0;
-
-	BPF_CORE_READ_INTO(&info->taints, mod, mod, taints);
-
-	if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
-		info->sig_ok = !!ok;
+	if (userspace) {
+		BPF_CORE_READ_USER_INTO(&info->taints, mod, mod, taints);
+		if (BPF_CORE_READ_USER_INTO(&ok, mod, sig_ok) == 0)
+			info->sig_ok = !!ok;
+	} else {
+		BPF_CORE_READ_INTO(&info->taints, mod, mod, taints);
+		if (BPF_CORE_READ_INTO(&ok, mod, sig_ok) == 0)
+			info->sig_ok = !!ok;
+	}
 
 	return sizeof(struct tg_kernel_module);
 }
 
 static inline __attribute__((always_inline)) long
-copy_kernel_module(char *args, unsigned long arg)
+copy_kernel_module(char *args, unsigned long arg, bool userspace)
 {
 	const struct module *mod = (struct module *)arg;
 	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
 
 	memset(info, 0, sizeof(struct tg_kernel_module));
 
-	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, mod->name) < 0)
+	if (probe_read_kernel_or_user_str(&info->name, TG_MODULE_NAME_LEN - 1, mod->name, userspace) < 0)
 		return 0;
 
-	BPF_CORE_READ_INTO(&info->taints, mod, taints);
+	if (userspace)
+		BPF_CORE_READ_USER_INTO(&info->taints, mod, taints);
+	else
+		BPF_CORE_READ_INTO(&info->taints, mod, taints);
 
 	/*
 	 * Todo: allow to check if module is signed here too.
@@ -636,9 +652,11 @@ copy_kernel_module(char *args, unsigned long arg)
 	return sizeof(struct tg_kernel_module);
 }
 
-#define ARGM_INDEX_MASK	 0xf
-#define ARGM_RETURN_COPY BIT(4)
-#define ARGM_MAX_DATA	 BIT(5)
+#define ARGM_INDEX_MASK	    0xf
+#define ARGM_RETURN_COPY    BIT(4)
+#define ARGM_MAX_DATA	    BIT(5)
+#define ARGM_USERSPACE_DATA BIT(6)
+#define ARGM_RAW_SYSCALLS   BIT(7)
 
 static inline __attribute__((always_inline)) bool
 hasReturnCopy(unsigned long argm)
@@ -650,6 +668,18 @@ static inline __attribute__((always_inline)) bool
 has_max_data(unsigned long argm)
 {
 	return (argm & ARGM_MAX_DATA) != 0;
+}
+
+static inline __attribute__((always_inline)) bool
+is_userspace_data(unsigned long argm)
+{
+	return (argm & ARGM_USERSPACE_DATA) != 0;
+}
+
+static inline __attribute__((always_inline)) bool
+is_raw_syscalls(unsigned long argm)
+{
+	return (argm & ARGM_RAW_SYSCALLS) != 0;
 }
 
 static inline __attribute__((always_inline)) unsigned long
@@ -673,7 +703,7 @@ get_arg_meta(int meta, struct msg_generic_kprobe *e)
 static inline __attribute__((always_inline)) long
 __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 		bool max_data, struct msg_generic_kprobe *e,
-		struct bpf_map_def *data_heap)
+		struct bpf_map_def *data_heap, bool userspace)
 {
 	int *s = (int *)args_off(e, off);
 	size_t rd_bytes, extra = 8;
@@ -688,7 +718,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 			s[0] = 1;
 			return data_event_bytes(ctx,
 						(struct data_event_desc *)&s[1],
-						arg, bytes, data_heap) +
+						arg, bytes, data_heap, userspace) +
 			       4;
 		}
 		s[0] = 0;
@@ -699,9 +729,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 
 	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
 	rd_bytes = bytes < 0x1000 ? bytes : 0xfff;
-	asm volatile("%[rd_bytes] &= 0xfff;\n" ::[rd_bytes] "+r"(rd_bytes)
-		     :);
-	err = probe_read(&s[2], rd_bytes, (char *)arg);
+	err = probe_read_kernel_or_user_masked(&s[2], rd_bytes, 0xfff, (char *)arg, userspace);
 	if (err < 0)
 		return return_error(s, char_buf_pagefault);
 	s[0] = (int)bytes;
@@ -712,7 +740,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 static inline __attribute__((always_inline)) long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e,
-	      struct bpf_map_def *data_heap)
+	      struct bpf_map_def *data_heap, bool userspace)
 {
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
@@ -721,12 +749,12 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	if (hasReturnCopy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
 
-		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
+		retprobe_map_set(e->func_id, retid, e->common.ktime, arg, argm);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
-	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e, data_heap);
+	bytes = meta;
+	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e, data_heap, userspace);
 }
 
 static inline __attribute__((always_inline)) u16
@@ -878,11 +906,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 	if (index <= 5)
-		probe_read(&heap[1], len, arg_str);
+		probe_read_kernel(&heap[1], len, arg_str);
 	else
-		probe_read(&heap[2], len, arg_str);
+		probe_read_kernel(&heap[2], len, arg_str);
 #else
-	probe_read(&heap[1], len, arg_str);
+	probe_read_kernel(&heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -892,11 +920,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 			     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 		if (index <= 5)
-			probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			probe_read_kernel(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 		else
-			probe_read(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			probe_read_kernel(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		probe_read_kernel(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
@@ -938,7 +966,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 		     : [arg_len] "+r"(arg_len)
 		     : [mask] "i"(STRING_PREFIX_MAX_LENGTH - 1));
 
-	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
+	probe_read_kernel(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
 
 	__u8 *pass = map_lookup_elem(addrmap, arg);
 
@@ -1216,7 +1244,8 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 
 static inline __attribute__((always_inline)) long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
-		  unsigned long max, struct msg_generic_kprobe *e)
+		  unsigned long max, struct msg_generic_kprobe *e,
+		  bool userspace)
 {
 	long size, off_orig = off;
 	unsigned long i = 0;
@@ -1246,28 +1275,28 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	if (hasReturnCopy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
 
-		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
+		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta, argm);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	return __copy_char_iovec(off, arg, meta, 0, e);
+	return __copy_char_iovec(off, arg, meta, 0, e, is_userspace_data(argm));
 }
 
 static inline __attribute__((always_inline)) long
-copy_bpf_attr(char *args, unsigned long arg)
+copy_bpf_attr(char *args, unsigned long arg, bool userspace)
 {
 	union bpf_attr *ba = (union bpf_attr *)arg;
 	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
 
 	/* struct values */
-	probe_read(&bpf_info->prog_type, sizeof(__u32), _(&ba->prog_type));
-	probe_read(&bpf_info->insn_cnt, sizeof(__u32), _(&ba->insn_cnt));
-	probe_read(&bpf_info->prog_name, BPF_OBJ_NAME_LEN, _(&ba->prog_name));
+	probe_read_kernel_or_user(&bpf_info->prog_type, sizeof(__u32), _(&ba->prog_type), userspace);
+	probe_read_kernel_or_user(&bpf_info->insn_cnt, sizeof(__u32), _(&ba->insn_cnt), userspace);
+	probe_read_kernel_or_user(&bpf_info->prog_name, BPF_OBJ_NAME_LEN, _(&ba->prog_name), userspace);
 
 	return sizeof(struct bpf_info_type);
 }
 
 static inline __attribute__((always_inline)) long
-copy_perf_event(char *args, unsigned long arg)
+copy_perf_event(char *args, unsigned long arg, bool userspace)
 {
 	struct perf_event *p_event = (struct perf_event *)arg;
 	struct perf_event_info_type *event_info =
@@ -1276,34 +1305,34 @@ copy_perf_event(char *args, unsigned long arg)
 	/* struct values */
 	__u64 kprobe_func_addr = 0;
 
-	probe_read(&kprobe_func_addr, sizeof(__u64),
-		   _(&p_event->attr.kprobe_func));
-	probe_read_str(&event_info->kprobe_func, KSYM_NAME_LEN,
-		       (char *)kprobe_func_addr);
+	probe_read_kernel_or_user(&kprobe_func_addr, sizeof(__u64),
+				  _(&p_event->attr.kprobe_func), userspace);
+	probe_read_kernel_or_user_str(&event_info->kprobe_func, KSYM_NAME_LEN,
+				      (char *)kprobe_func_addr, userspace);
 
-	probe_read(&event_info->type, sizeof(__u32), _(&p_event->attr.type));
-	probe_read(&event_info->config, sizeof(__u64),
-		   _(&p_event->attr.config));
-	probe_read(&event_info->probe_offset, sizeof(__u64),
-		   _(&p_event->attr.probe_offset));
+	probe_read_kernel_or_user(&event_info->type, sizeof(__u32), _(&p_event->attr.type), userspace);
+	probe_read_kernel_or_user(&event_info->config, sizeof(__u64),
+				  _(&p_event->attr.config), userspace);
+	probe_read_kernel_or_user(&event_info->probe_offset, sizeof(__u64),
+				  _(&p_event->attr.probe_offset), userspace);
 
 	return sizeof(struct perf_event_info_type);
 }
 
 static inline __attribute__((always_inline)) long
-copy_bpf_map(char *args, unsigned long arg)
+copy_bpf_map(char *args, unsigned long arg, bool userspace)
 {
 	struct bpf_map *bpfmap = (struct bpf_map *)arg;
 	struct bpf_map_info_type *map_info = (struct bpf_map_info_type *)args;
 
 	/* struct values */
-	probe_read(&map_info->map_type, sizeof(__u32), _(&bpfmap->map_type));
-	probe_read(&map_info->key_size, sizeof(__u32), _(&bpfmap->key_size));
-	probe_read(&map_info->value_size, sizeof(__u32),
-		   _(&bpfmap->value_size));
-	probe_read(&map_info->max_entries, sizeof(__u32),
-		   _(&bpfmap->max_entries));
-	probe_read(&map_info->map_name, BPF_OBJ_NAME_LEN, _(&bpfmap->name));
+	probe_read_kernel_or_user(&map_info->map_type, sizeof(__u32), _(&bpfmap->map_type), userspace);
+	probe_read_kernel_or_user(&map_info->key_size, sizeof(__u32), _(&bpfmap->key_size), userspace);
+	probe_read_kernel_or_user(&map_info->value_size, sizeof(__u32),
+				  _(&bpfmap->value_size), userspace);
+	probe_read_kernel_or_user(&map_info->max_entries, sizeof(__u32),
+				  _(&bpfmap->max_entries), userspace);
+	probe_read_kernel_or_user(&map_info->map_name, BPF_OBJ_NAME_LEN, _(&bpfmap->name), userspace);
 
 	return sizeof(struct bpf_map_info_type);
 }
@@ -1311,7 +1340,7 @@ copy_bpf_map(char *args, unsigned long arg)
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) long
 copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
-	      struct bpf_map_def *data_heap)
+	      struct bpf_map_def *data_heap, bool userspace)
 {
 	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
@@ -1326,7 +1355,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		goto nodata;
 
 	tmp = _(&iov_iter->iter_type);
-	probe_read(&iter_type, sizeof(iter_type), tmp);
+	probe_read_kernel_or_user(&iter_type, sizeof(iter_type), tmp, userspace);
 
 	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
 		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
@@ -1338,28 +1367,28 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 
 	if (iter_type == iter_iovec) {
 		tmp = _(&iov_iter->kvec);
-		probe_read(&kvec, sizeof(kvec), tmp);
+		probe_read_kernel_or_user(&kvec, sizeof(kvec), tmp, userspace);
 
 		tmp = _(&kvec->iov_base);
-		probe_read(&buf, sizeof(buf), tmp);
+		probe_read_kernel_or_user(&buf, sizeof(buf), tmp, userspace);
 
 		tmp = _(&kvec->iov_len);
-		probe_read(&count, sizeof(count), tmp);
+		probe_read_kernel_or_user(&count, sizeof(count), tmp, userspace);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
-				       has_max_data(argm), e, data_heap);
+				       has_max_data(argm), e, data_heap, userspace);
 	}
 
 #ifdef __V61_BPF_PROG
 	if (iter_type == iter_ubuf) {
 		tmp = _(&iov_iter->ubuf);
-		probe_read(&buf, sizeof(buf), tmp);
+		probe_read_kernel_or_user(&buf, sizeof(buf), tmp, userspace);
 
 		tmp = _(&iov_iter->count);
-		probe_read(&count, sizeof(count), tmp);
+		probe_read_kernel_or_user(&count, sizeof(count), tmp, userspace);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
-				       has_max_data(argm), e, data_heap);
+				       has_max_data(argm), e, data_heap, userspace);
 	}
 #endif
 
@@ -1370,7 +1399,7 @@ nodata:
 	return 8;
 }
 #else
-#define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap) 0
+#define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap, userspace) 0
 #endif /* __LARGE_BPF_PROG */
 
 static inline __attribute__((always_inline)) bool is_signed_type(int type)
@@ -1414,7 +1443,6 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u64 *)args == w);
-
 			if (filter->op == op_filter_eq && res)
 				return 1;
 			if (filter->op == op_filter_neq && !res)
@@ -1614,7 +1642,8 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case char_iovec:
 		return 4;
 	case const_buf_type:
-		return argm;
+		// For const_buf_type, the size is in the upper 16 bits of the meta argument.
+		return argm >> 16;
 	case bpf_attr_type:
 		return sizeof(struct bpf_info_type);
 	case perf_event_type:
@@ -1718,7 +1747,7 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 			// prepare the key on the stack to perform lookup in the LPM_TRIE
 			memset(&prefix_key, 0, sizeof(prefix_key));
 			prefix_key.prefixlen = current->bin.path_length * 8; // prefixlen is in bits
-			ret = probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
+			ret = probe_read_kernel(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
 			if (ret < 0)
 				return 0;
 			found_key = map_lookup_elem(path_map, &prefix_key);
@@ -1851,15 +1880,16 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
+static inline __attribute__((always_inline)) int filter_args_reject(void *ctx, u64 id)
 {
-	u64 tid = get_current_pid_tgid();
-	retprobe_map_clear(id, tid);
+	u64 retid = retprobe_map_get_key(ctx);
+
+	retprobe_map_clear(id, retid);
 	return 0;
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
+filter_args(void *ctx, struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	    bool is_entry)
 {
 	__u8 *f;
@@ -1879,7 +1909,7 @@ filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	 * have their arg filters run.
 	 */
 	if (selidx > SELECTORS_ACTIVE)
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(ctx, e->func_id);
 
 	if (e->sel.active[selidx]) {
 		int pass = selector_arg_offset(f, e, selidx, is_entry);
@@ -1949,8 +1979,8 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     : [size] "+r"(size)
 			     :);
 
-		probe_read(&val.file[0], size + 4 /* size */ + 4 /* flags */,
-			   &e->args[nameoff]);
+		probe_read_kernel(&val.file[0], size + 4 /* size */ + 4 /* flags */,
+				  &e->args[nameoff]);
 		map_update_elem(&fdinstall_map, &key, &val, BPF_ANY);
 	} else {
 		err = map_delete_elem(&fdinstall_map, &key);
@@ -2097,7 +2127,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	}
 
 	// Clean the heap
-	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
+	probe_read_kernel(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
@@ -2114,7 +2144,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
 				     : [arg_size] "+r"(arg_size)
 				     :);
-			probe_read(&dst[index], arg_size, &e->args[key_index]);
+			probe_read_kernel(&dst[index], arg_size, &e->args[key_index]);
 			index += arg_size;
 		}
 	}
@@ -2385,7 +2415,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
+	pass = filter_args(ctx, e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
 		selidx++;
 		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
@@ -2393,7 +2423,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
-		return filter_args_reject(e->func_id);
+		return filter_args_reject(ctx, e->func_id);
 	}
 
 	// If pass >1 then we need to consult the selector actions
@@ -2519,9 +2549,11 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	      struct bpf_map_def *data_heap)
 {
 	size_t min_size = type_to_min_size(type, argm);
+	bool raw_syscalls = is_raw_syscalls(argm);
+	bool userspace = is_userspace_data(argm);
+	const struct path *path_arg = 0;
 	char *args = e->args;
 	long size = -1;
-	const struct path *path_arg = 0;
 
 	if (orig_off >= 16383 - min_size) {
 		return 0;
@@ -2534,50 +2566,46 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 
 	switch (type) {
 	case iov_iter_type:
-		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
+		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap, userspace);
 		break;
 	case kiocb_type: {
 		struct kiocb *kiocb = (struct kiocb *)arg;
 		struct file *file;
 
 		arg = (unsigned long)_(&kiocb->ki_filp);
-		probe_read(&file, sizeof(file), (const void *)arg);
+		probe_read_kernel_or_user(&file, sizeof(file), (const void *)arg, userspace);
 		arg = (unsigned long)file;
 	}
 		// fallthrough to file_ty
 	case file_ty: {
-		struct file *file;
-		probe_read(&file, sizeof(file), &arg);
+		struct file *file = (struct file *)arg;
 		path_arg = _(&file->f_path);
 		goto do_copy_path;
 	}
 	case path_ty: {
-		probe_read(&path_arg, sizeof(path_arg), &arg);
+		path_arg = (struct path *)arg;
 		goto do_copy_path;
 	}
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;
-		__u32 fd;
 
 		key.tid = get_current_pid_tgid() >> 32;
-		probe_read(&fd, sizeof(__u32), &arg);
-		key.fd = fd;
-
+		key.fd = arg;
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
 			__u32 bytes = (__u32)val->file[0];
 
-			probe_read(&args[0], sizeof(__u32), &fd);
+			*(__u32 *)args = key.fd;
 			asm volatile("%[bytes] &= 0xff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			probe_read_kernel(&args[4], bytes + 4, (char *)&val->file[0]);
 			size = bytes + 4 + 4;
 
 			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
+			probe_read_kernel(&args[size], 4,
+					  (char *)&val->file[size - 4]);
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
@@ -2593,95 +2621,101 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		struct file *file;
 
 		arg = (unsigned long)_(&bprm->file);
-		probe_read(&file, sizeof(file), (const void *)arg);
+		probe_read_kernel_or_user(&file, sizeof(file), (const void *)arg, userspace);
 		path_arg = _(&file->f_path);
 		goto do_copy_path;
 	} break;
 #endif
 	case filename_ty: {
-		struct filename *file;
-		probe_read(&file, sizeof(file), &arg);
-		probe_read(&arg, sizeof(arg), &file->name);
+		struct filename *file = (struct filename *)arg;
+
+		probe_read_kernel_or_user(&arg, sizeof(arg), &file->name, userspace);
 	}
 		// fallthrough to copy_string
 	case string_type:
-		size = copy_strings(args, (char *)arg, MAX_STRING);
+		size = copy_strings(args, (char *)arg, MAX_STRING, userspace);
 		break;
 	case net_dev_ty: {
 		struct net_device *dev = (struct net_device *)arg;
 
-		size = copy_strings(args, dev->name, IFNAMSIZ);
+		size = copy_strings(args, dev->name, IFNAMSIZ, userspace);
 	} break;
 	case data_loc_type: {
 		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
 		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
 		char *dl_loc = ctx + (arg & 0xffff);
-
-		size = copy_strings(args, dl_loc, dl_len);
+		// data_loc will always be a kernel type
+		size = copy_strings(args, dl_loc, dl_len, false);
 	} break;
 	case syscall64_type:
 	case size_type:
 	case s64_ty:
 	case u64_ty:
-		probe_read(args, sizeof(__u64), &arg);
+		*(__u64 *)args = arg;
 		size = sizeof(__u64);
 		break;
 	/* Consolidate all the types to save instructions */
 	case int_type:
 	case s32_ty:
 	case u32_ty:
-		probe_read(args, sizeof(__u32), &arg);
+		*(__u32 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case s16_ty:
 	case u16_ty:
 		/* read 2 bytes, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u16), &arg);
+		*(__u16 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case s8_ty:
 	case u8_ty:
 		/* read 1 byte, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u8), &arg);
+		*(__u8 *)args = arg;
 		size = sizeof(__u32);
 		break;
 	case skb_type:
-		size = copy_skb(args, arg);
+		size = copy_skb(args, arg, userspace);
 		break;
 	case sock_type:
-		size = copy_sock(args, arg);
+		size = copy_sock(args, arg, userspace);
 		// Look up socket in our sock->pid_tgid map
 		update_pid_tid_from_sock(e, arg);
 		break;
 	case cred_type:
-		size = copy_cred(args, arg);
+		size = copy_cred(args, arg, userspace);
 		break;
 	case char_buf:
-		size = copy_char_buf(ctx, orig_off, arg, argm, e, data_heap);
+		size = copy_char_buf(ctx, orig_off, arg, argm, e, data_heap, userspace);
 		break;
 	case char_iovec:
 		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	case const_buf_type: {
+		// for const_buf_type the size is in the upper 16 bits of the meta argument
 		// bound size to 1023 to help the verifier out
-		size = argm & 0x03ff;
-		probe_read(args, size, (char *)arg);
+		size = (argm >> 16) & 0x03ff;
+		// the const_buf_type that represents an array of arguments for raw_syscalls
+		// is special, as the array contents are in kernel memory, but they point
+		// to userspace memory. In this case, they will be marked as userspace, but
+		// we actually want to read kernel memory. The raw_syscalls bit of the meta
+		// value indicates when the arg is special in this way.
+		probe_read_kernel_or_user_masked(args, size, 0x3ff, (char *)arg, userspace && !raw_syscalls);
 		break;
 	}
 	case bpf_attr_type: {
-		size = copy_bpf_attr(args, arg);
+		size = copy_bpf_attr(args, arg, userspace);
 		break;
 	}
 	case perf_event_type: {
-		size = copy_perf_event(args, arg);
+		size = copy_perf_event(args, arg, userspace);
 		break;
 	}
 	case bpf_map_type: {
-		size = copy_bpf_map(args, arg);
+		size = copy_bpf_map(args, arg, userspace);
 		break;
 	}
 	case user_namespace_type: {
-		size = copy_user_ns(args, arg);
+		size = copy_user_ns(args, arg, userspace);
 		break;
 	}
 	case capability_type: {
@@ -2689,18 +2723,18 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		break;
 	}
 	case load_module_type: {
-		size = copy_load_module(args, arg);
+		size = copy_load_module(args, arg, userspace);
 		break;
 	}
 	case kernel_module_type: {
-		size = copy_kernel_module(args, arg);
+		size = copy_kernel_module(args, arg, userspace);
 		break;
 	}
 	case kernel_cap_ty:
 	case cap_inh_ty:
 	case cap_prm_ty:
 	case cap_eff_ty:
-		probe_read(args, sizeof(__u64), (char *)arg);
+		probe_read_kernel_or_user(args, sizeof(__u64), (char *)arg, userspace);
 		size = sizeof(__u64);
 		break;
 	default:

@@ -17,7 +17,7 @@ spec:
       type: "uint64"
     selectors:
     - matchArgs:
-      - index: 0
+      - index: 4
         operator: "InMap"
         values:
         - "list:dups"

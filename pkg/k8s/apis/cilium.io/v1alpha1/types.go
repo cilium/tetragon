@@ -65,6 +65,10 @@ type KProbeArg struct {
 	// Argument type.
 	Type string `json:"type"`
 	// +kubebuilder:validation:Optional
+	// Specifies if the argument is userspace data or not. This defaults to true
+	// for uprobes and syscalls, and false for non-syscall tracepoints and kprobes.
+	IsUserspaceData *bool `json:"isUserspaceData,omitempty"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
