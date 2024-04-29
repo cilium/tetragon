@@ -176,10 +176,10 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 #endif
 
 __attribute__((section("tracepoint/sys_execve"), used)) int
-event_execve(struct sched_execve_args *ctx)
+event_execve(struct trace_event_raw_sched_process_exec *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	char *filename = (char *)ctx + (ctx->filename & 0xFFFF);
+	char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
@@ -241,7 +241,7 @@ event_execve(struct sched_execve_args *ctx)
  * has already been collected, then send it to the perf buffer.
  */
 __attribute__((section("tracepoint/0"), used)) int
-execve_send(struct sched_execve_args *ctx)
+execve_send(void *ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
