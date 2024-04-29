@@ -62,15 +62,4 @@ static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()
 	return offsetof(struct msg_generic_kprobe, args);
 }
 
-/* tracepoint args */
-struct sched_execve_args {
-	unsigned short common_type;
-	unsigned char common_flags;
-	unsigned char common_preempt_count;
-	int common_pid;
-	int filename;
-	int pid;
-	int old_pid;
-};
-
 #endif // _GENERIC__
