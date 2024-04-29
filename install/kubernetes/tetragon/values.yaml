@@ -1,7 +1,6 @@
 # -- Global settings
 enabled: true
 imagePullSecrets: []
-
 # -- Tetragon agent settings
 priorityClassName: ""
 imagePullPolicy: IfNotPresent
@@ -54,7 +53,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.0.3
+    tag: v1.1.0
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -110,8 +109,7 @@ tetragon:
   #   {"fields": "parent", "action": "EXCLUDE"}
   #   {"event_set": ["PROCESS_KPROBE"], "fields": "process", "action": "INCLUDE"}
   #
-  fieldFilters: |-
-
+  fieldFilters: ""
   # Filters to redact secrets from the args fields in Tetragon events. To perform
   # redactions, redaction filters define RE2 regular expressions in the `redact`
   # field. Any capture groups in these RE2 regular expressions are redacted and
@@ -143,8 +141,7 @@ tetragon:
   #
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
-  redactionFilters: |-
-
+  redactionFilters: ""
   # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
   # enableProcessCred enables Capabilities visibility in exec and kprobe events.
@@ -210,7 +207,6 @@ tetragon:
     extraVolumeMounts: []
     # -- resources for the the oci-hook-setup init container
     resources: {}
-
 # -- Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
@@ -257,7 +253,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.0.3
+    tag: v1.1.0
     pullPolicy: IfNotPresent
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
