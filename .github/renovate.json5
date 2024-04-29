@@ -54,6 +54,7 @@
   "baseBranches": [
     "main",
     "v1.0",
+    "v1.1",
   ],
   "vulnerabilityAlerts": {
     "enabled": true
