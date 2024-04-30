@@ -1449,3 +1449,55 @@ func TestExecDeletedBinary(t *testing.T) {
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func testThrottle(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	throttleStartChecker := ec.NewProcessThrottleChecker("THROTTLE").
+		WithType(tetragon.ThrottleType_THROTTLE_START)
+
+	throttleStopChecker := ec.NewProcessThrottleChecker("THROTTLE").
+		WithType(tetragon.ThrottleType_THROTTLE_STOP)
+
+	checker := ec.NewUnorderedEventChecker(throttleStartChecker, throttleStopChecker)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.CgroupRate = option.ParseCgroupRate("10,2s")
+	t.Cleanup(func() {
+		option.Config.CgroupRate = option.CgroupRate{}
+	})
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// create the load 40 fork/exec per sec for 4 seconds
+	// to get THROTTLE START
+	for cnt := 0; cnt < 40; cnt++ {
+		if err := exec.Command("taskset", "-c", "1", "sleep", "0.1s").Run(); err != nil {
+			t.Fatalf("Failed to execute test binary: %s\n", err)
+		}
+	}
+
+	// and calm down to get THROTTLE STOP
+	time.Sleep(8 * time.Second)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestThrottle1(t *testing.T) {
+	testThrottle(t)
+}
+
+// Run throttle twice to test the CgroupRate setup code
+func TestThrottle2(t *testing.T) {
+	testThrottle(t)
+}
