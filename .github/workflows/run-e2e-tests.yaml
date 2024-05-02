@@ -18,10 +18,12 @@ env:
   ciliumCliVersion: v0.15.0
 
 jobs:
-  list-e2e-pkg:
+  prepare:
     runs-on: ubuntu-22.04
     outputs:
       packages: ${{ steps.set-packages.outputs.packages }}
+      agentImage: ${{ steps.vars.outputs.agentImage }}
+      operatorImage: ${{ steps.vars.outputs.operatorImage }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -37,28 +39,6 @@ jobs:
       run: |
         echo PACKAGES=$(make ls-e2e-test | jq -Rnc '[inputs | {"s": split("/")[-1], "f":.}]') | tee -a $GITHUB_STEP_SUMMARY | tee -a $GITHUB_OUTPUT
 
-  run-e2e-test:
-    needs: list-e2e-pkg
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    name: ${{matrix.os}} / ${{ matrix.package.s }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-22.04, actuated-arm64-4cpu-16gb ]
-        package: ${{fromJson(needs.list-e2e-pkg.outputs.packages)}}
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
-
-    - name: Install Go
-      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
-      with:
-        # renovate: datasource=golang-version depName=go
-        go-version: '1.22.2'
-
     - name: Set Up Job Variables
       id: vars
       run: |
@@ -71,9 +51,43 @@ jobs:
         else
           SHA=${{ github.sha }}
         fi
-        echo "sha=${SHA}" >> $GITHUB_OUTPUT
         echo "agentImage=quay.io/cilium/tetragon-ci:${SHA}" >> $GITHUB_OUTPUT
         echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
+
+    - name: Wait Tetragon Images
+      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      with:
+        timeout_minutes: 2
+        max_attempts: 30
+        retry_wait_seconds: 30
+        warning_on_retry: false
+        command: |
+          set -e
+          docker pull ${{ steps.vars.outputs.agentImage }}
+          docker pull ${{ steps.vars.outputs.operatorImage }}
+          docker rmi ${{ steps.vars.outputs.agentImage }} ${{ steps.vars.outputs.operatorImage }}
+
+  run-e2e-test:
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    name: ${{matrix.os}} / ${{ matrix.package.s }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04, actuated-arm64-4cpu-16gb ]
+        package: ${{fromJson(needs.prepare.outputs.packages)}}
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.22.2'
 
     - name: Install kubectl, kind and cilium CLI
       uses: alexellis/arkade-get@master
@@ -93,19 +107,19 @@ jobs:
         warning_on_retry: false
         command: |
           set -e
-          docker pull ${{ steps.vars.outputs.agentImage }}
-          docker pull ${{ steps.vars.outputs.operatorImage }}
+          docker pull ${{ needs.prepare.outputs.agentImage }}
+          docker pull ${{ needs.prepare.outputs.operatorImage }}
 
     - name: Run e2e Tests
       run: |
         cd go/src/github.com/cilium/tetragon
 
-        make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ steps.vars.outputs.agentImage }} E2E_OPERATOR=${{ steps.vars.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
+        make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ needs.prepare.outputs.agentImage }} E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
 
     - name: Upload Tetragon Logs
       if: failure() || cancelled()
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
       with:
-        name: tetragon-logs-${{ matrix.os }}
+        name: tetragon-logs-${{ matrix.os }}-${{ matrix.package.s }}
         path: /tmp/tetragon.e2e.*
         retention-days: 5
