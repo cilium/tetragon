@@ -1,7 +1,7 @@
 ---
 title: "Configure Tetragon"
 linkTitle: "Configuration"
-weight: 5
+weight: 6
 ---
 
 Depending on your deployment mode, Tetragon configuration can be changed by:
