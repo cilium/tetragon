@@ -185,9 +185,14 @@ type TracingPolicy interface {
 // treated as a namespaced policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
 	retc := make(chan error)
+	var namespace string
+	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpNs.TpNamespace()
+	}
+	ck := collectionKey{tp.TpName(), namespace}
 	op := &tracingPolicyAdd{
 		ctx:     ctx,
-		name:    tp.TpName(),
+		ck:      ck,
 		tp:      tp,
 		retChan: retc,
 	}
@@ -199,11 +204,12 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 }
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
-func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string) error {
+func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string) error {
 	retc := make(chan error)
+	ck := collectionKey{name, namespace}
 	op := &tracingPolicyDelete{
 		ctx:     ctx,
-		name:    name,
+		ck:      ck,
 		retChan: retc,
 	}
 
@@ -213,11 +219,12 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string) error {
 	return err
 }
 
-func (h *Manager) EnableTracingPolicy(ctx context.Context, name string) error {
+func (h *Manager) EnableTracingPolicy(ctx context.Context, name, namespace string) error {
+	ck := collectionKey{name, namespace}
 	retc := make(chan error)
 	op := &tracingPolicyEnable{
 		ctx:     ctx,
-		name:    name,
+		ck:      ck,
 		retChan: retc,
 	}
 
@@ -227,11 +234,12 @@ func (h *Manager) EnableTracingPolicy(ctx context.Context, name string) error {
 	return err
 }
 
-func (h *Manager) DisableTracingPolicy(ctx context.Context, name string) error {
+func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace string) error {
+	ck := collectionKey{name, namespace}
 	retc := make(chan error)
 	op := &tracingPolicyDisable{
 		ctx:     ctx,
-		name:    name,
+		ck:      ck,
 		retChan: retc,
 	}
 
@@ -343,14 +351,14 @@ type Manager struct {
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
 type tracingPolicyAdd struct {
 	ctx     context.Context
-	name    string
+	ck      collectionKey
 	tp      tracingpolicy.TracingPolicy
 	retChan chan error
 }
 
 type tracingPolicyDelete struct {
 	ctx     context.Context
-	name    string
+	ck      collectionKey
 	retChan chan error
 }
 
@@ -362,13 +370,13 @@ type tracingPolicyList struct {
 
 type tracingPolicyDisable struct {
 	ctx     context.Context
-	name    string
+	ck      collectionKey
 	retChan chan error
 }
 
 type tracingPolicyEnable struct {
 	ctx     context.Context
-	name    string
+	ck      collectionKey
 	retChan chan error
 }
 

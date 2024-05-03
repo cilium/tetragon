@@ -52,7 +52,7 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 1, 0, 0))
 	assert.NoError(t, err)
 
-	err = manager.DisableTracingPolicy(context.TODO(), "pizza")
+	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "")
 	assert.NoError(t, err)
 	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 0, 0, 0))
 	assert.NoError(t, err)
