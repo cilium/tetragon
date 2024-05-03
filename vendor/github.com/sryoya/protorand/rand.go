@@ -22,6 +22,10 @@ var (
 type ProtoRand struct {
 	rand                  *rand.Rand
 	MaxCollectionElements int
+
+	// MaxDepth is the maximum stack depth for recursion, which prevents stack overflows if a message is (directly or
+	// transitively) self-referential.
+	MaxDepth int
 }
 
 // New creates a new ProtoRand.
@@ -29,6 +33,7 @@ func New() *ProtoRand {
 	return &ProtoRand{
 		rand:                  rand.New(rand.NewSource(time.Now().UnixNano())),
 		MaxCollectionElements: 10,
+		MaxDepth:              5,
 	}
 }
 
@@ -37,7 +42,7 @@ func (p *ProtoRand) Seed(seed int64) {
 	p.rand = rand.New(rand.NewSource(seed))
 }
 
-// Gen generates a new proto.Message having randoms value in its fields.
+// Gen generates a new proto.Message having random values in its fields.
 // The input is used to specify the type of the generated message.
 // The input itself is immutable.
 func (p *ProtoRand) Gen(in proto.Message) (proto.Message, error) {
@@ -52,8 +57,12 @@ func (p *ProtoRand) Gen(in proto.Message) (proto.Message, error) {
 	return out, nil
 }
 
-// NewDynamicProtoRand creates dynamicpb with assiging random value to proto.
+// NewDynamicProtoRand creates dynamicpb with assigning random values to a proto.
 func (p *ProtoRand) NewDynamicProtoRand(mds protoreflect.MessageDescriptor) (*dynamicpb.Message, error) {
+	return p.newDynamicProtoRand(mds, p.MaxDepth)
+}
+
+func (p *ProtoRand) newDynamicProtoRand(mds protoreflect.MessageDescriptor, allowedDepth int) (*dynamicpb.Message, error) {
 	getRandValue := func(fd protoreflect.FieldDescriptor) (protoreflect.Value, error) {
 		switch fd.FullName() {
 		case "google.protobuf.Timestamp":
@@ -148,12 +157,16 @@ func (p *ProtoRand) NewDynamicProtoRand(mds protoreflect.MessageDescriptor) (*dy
 				}
 				return protoreflect.ValueOf(d.ProtoReflect()), nil
 			}
-			// process recursively
-			rm, err := p.NewDynamicProtoRand(msg)
-			if err != nil {
-				return protoreflect.Value{}, err
+			// process recursively (if we have more stacks to give...)
+			if allowedDepth > 0 {
+				rm, err := p.newDynamicProtoRand(msg, allowedDepth-1)
+				if err != nil {
+					return protoreflect.Value{}, err
+				}
+				return protoreflect.ValueOfMessage(rm), nil
 			}
-			return protoreflect.ValueOfMessage(rm), nil
+			// recursed too deep; just return nil
+			return protoreflect.Value{}, nil
 		default:
 			return protoreflect.Value{}, fmt.Errorf("unexpected type: %v", fd.Kind())
 		}
@@ -188,7 +201,9 @@ func (p *ProtoRand) NewDynamicProtoRand(mds protoreflect.MessageDescriptor) (*dy
 				if err != nil {
 					return nil, err
 				}
-				list.Append(value)
+				if value.Interface() != nil {
+					list.Append(value)
+				}
 			}
 			dm.Set(fd, protoreflect.ValueOfList(list))
 			continue
@@ -205,7 +220,9 @@ func (p *ProtoRand) NewDynamicProtoRand(mds protoreflect.MessageDescriptor) (*dy
 				if err != nil {
 					return nil, err
 				}
-				mp.Set(protoreflect.MapKey(key), protoreflect.Value(value))
+				if key.Interface() != nil && value.Interface() != nil {
+					mp.Set(protoreflect.MapKey(key), protoreflect.Value(value))
+				}
 			}
 			dm.Set(fd, protoreflect.ValueOfMap(mp))
 			continue
@@ -215,7 +232,9 @@ func (p *ProtoRand) NewDynamicProtoRand(mds protoreflect.MessageDescriptor) (*dy
 		if err != nil {
 			return nil, err
 		}
-		dm.Set(fd, value)
+		if value.Interface() != nil {
+			dm.Set(fd, value)
+		}
 	}
 
 	return dm, nil
