@@ -36,6 +36,19 @@ func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
 	}
 }
 
+// collectionKey is the unique key for sensors
+// this enables policies with the same name for different namespaces
+type collectionKey struct {
+	name, namespace string
+}
+
+func (ck *collectionKey) String() string {
+	if ck.namespace != "" {
+		return fmt.Sprintf("%s/%s", ck.namespace, ck.name)
+	}
+	return ck.name
+}
+
 // collection is a collection of sensors
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.

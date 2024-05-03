@@ -164,14 +164,15 @@ func TestPolicyFilterDisabled(t *testing.T) {
 
 	// normal policy should succeed
 	policyName := "test-policy"
+	policyNamespace := ""
 	policy.ObjectMeta.Name = policyName
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err, fmt.Sprintf("Add tracing policy failed with error: %v", err))
-	err = mgr.DeleteTracingPolicy(ctx, policyName)
+	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
 	require.NoError(t, err)
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err)
-	err = mgr.DeleteTracingPolicy(ctx, policyName)
+	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
 	require.NoError(t, err)
 
 	// namespaced policy with disabled state should fail
@@ -248,7 +249,7 @@ func TestPolicyStates(t *testing.T) {
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 
-		err = mgr.DisableTracingPolicy(ctx, policy.ObjectMeta.Name)
+		err = mgr.DisableTracingPolicy(ctx, policy.ObjectMeta.Name, policy.Namespace)
 		assert.NoError(t, err)
 		l, err = mgr.ListTracingPolicies(ctx)
 		assert.NoError(t, err)

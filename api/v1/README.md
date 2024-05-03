@@ -1479,6 +1479,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 
 
@@ -1529,6 +1530,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 
 
@@ -1579,6 +1581,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 
 

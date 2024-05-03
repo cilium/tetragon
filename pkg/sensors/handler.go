@@ -13,8 +13,8 @@ import (
 )
 
 type handler struct {
-	// map of sensor collections: name -> collection
-	collections map[string]collection
+	// map of sensor collections: name, namespace -> collection
+	collections map[collectionKey]collection
 	bpfDir      string
 
 	nextPolicyID uint64
@@ -25,7 +25,7 @@ func newHandler(
 	pfState policyfilter.State,
 	bpfDir string) (*handler, error) {
 	return &handler{
-		collections: map[string]collection{},
+		collections: map[collectionKey]collection{},
 		bpfDir:      bpfDir,
 		pfState:     pfState,
 		// NB: we are using policy ids for filtering, so we start with
@@ -96,13 +96,13 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	// allow overriding existing policy collection that resulted in an error
 	// during the loading state
-	if col, exists := h.collections[op.name]; exists && col.state != LoadErrorState {
-		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the name already exists", op.name)
+	if col, exists := h.collections[op.ck]; exists && col.state != LoadErrorState {
+		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
 	}
 	tpID := h.allocPolicyID()
 
 	col := collection{
-		name:            op.name,
+		name:            op.ck.name,
 		tracingpolicy:   op.tp,
 		tracingpolicyID: uint64(tpID),
 	}
@@ -120,7 +120,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.name] = col
+		h.collections[op.ck] = col
 		return err
 	}
 	col.policyfilterID = uint64(filterID)
@@ -129,7 +129,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.name] = col
+		h.collections[op.ck] = col
 		return err
 	}
 	col.sensors = sensors
@@ -137,21 +137,21 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err := col.load(h.bpfDir); err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.name] = col
+		h.collections[op.ck] = col
 		return err
 	}
 	col.state = EnabledState
 
-	h.collections[op.name] = col
+	h.collections[op.ck] = col
 	return nil
 }
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
-	col, exists := h.collections[op.name]
+	col, exists := h.collections[op.ck]
 	if !exists {
-		return fmt.Errorf("tracing policy %s does not exist", op.name)
+		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
-	defer delete(h.collections, op.name)
+	defer delete(h.collections, op.ck)
 
 	col.destroy()
 
@@ -166,14 +166,14 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 
 func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 	ret := tetragon.ListTracingPoliciesResponse{}
-	for name, col := range h.collections {
+	for ck, col := range h.collections {
 		if col.tracingpolicy == nil {
 			continue
 		}
 
 		pol := tetragon.TracingPolicyStatus{
 			Id:       col.tracingpolicyID,
-			Name:     name,
+			Name:     ck.name,
 			Enabled:  col.state == EnabledState,
 			FilterId: col.policyfilterID,
 			State:    col.state.ToTetragonState(),
@@ -200,13 +200,13 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 }
 
 func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
-	col, exists := h.collections[op.name]
+	col, exists := h.collections[op.ck]
 	if !exists {
-		return fmt.Errorf("tracing policy %s does not exist", op.name)
+		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
 
 	if col.state == DisabledState {
-		return fmt.Errorf("tracing policy %s is already disabled", op.name)
+		return fmt.Errorf("tracing policy %s is already disabled", op.ck)
 	}
 
 	err := col.unload()
@@ -215,42 +215,44 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		// collection is not currently loaded, which should be impossible
 		col.err = fmt.Errorf("failed to unload tracing policy %q: %w", col.name, err)
 		col.state = ErrorState
-		h.collections[op.name] = col
+		h.collections[op.ck] = col
 		return col.err
 	}
 
 	col.state = DisabledState
-	h.collections[op.name] = col
+	h.collections[op.ck] = col
 	return nil
 }
 
 func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
-	col, exists := h.collections[op.name]
+	col, exists := h.collections[op.ck]
 	if !exists {
-		return fmt.Errorf("tracing policy %s does not exist", op.name)
+		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
 
 	if col.state == EnabledState {
-		return fmt.Errorf("tracing policy %s is already enabled", op.name)
+		return fmt.Errorf("tracing policy %s is already enabled", op.ck)
 	}
 
 	if err := col.load(h.bpfDir); err != nil {
 		col.state = LoadErrorState
 		col.err = fmt.Errorf("failed to load tracing policy %q: %w", col.name, err)
-		h.collections[op.name] = col
+		h.collections[op.ck] = col
 		return col.err
 	}
 
 	col.state = EnabledState
-	h.collections[op.name] = col
+	h.collections[op.ck] = col
 	return nil
 }
 
 func (h *handler) addSensor(op *sensorAdd) error {
-	if _, exists := h.collections[op.name]; exists {
-		return fmt.Errorf("sensor %s already exists", op.name)
+	// Treat sensors as cluster-wide operations
+	ck := collectionKey{op.name, ""}
+	if _, exists := h.collections[ck]; exists {
+		return fmt.Errorf("sensor %s already exists", ck)
 	}
-	h.collections[op.name] = collection{
+	h.collections[ck] = collection{
 		sensors: []*Sensor{op.sensor},
 		name:    op.name,
 	}
@@ -258,9 +260,9 @@ func (h *handler) addSensor(op *sensorAdd) error {
 }
 
 func removeAllSensors(h *handler) {
-	for _, col := range h.collections {
+	for ck, col := range h.collections {
 		col.destroy()
-		delete(h.collections, col.name)
+		delete(h.collections, ck)
 	}
 }
 
@@ -273,29 +275,35 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 		removeAllSensors(h)
 		return nil
 	}
-	col, exists := h.collections[op.name]
+	// Treat sensors as cluster-wide operations
+	ck := collectionKey{op.name, ""}
+	col, exists := h.collections[ck]
 	if !exists {
-		return fmt.Errorf("sensor %s does not exist", op.name)
+		return fmt.Errorf("sensor %s does not exist", ck)
 	}
 
 	col.destroy()
-	delete(h.collections, op.name)
+	delete(h.collections, ck)
 	return nil
 }
 
 func (h *handler) enableSensor(op *sensorEnable) error {
-	col, exists := h.collections[op.name]
+	// Treat sensors as cluster-wide operations
+	ck := collectionKey{op.name, ""}
+	col, exists := h.collections[ck]
 	if !exists {
-		return fmt.Errorf("sensor %s does not exist", op.name)
+		return fmt.Errorf("sensor %s does not exist", ck)
 	}
 
 	return col.load(h.bpfDir)
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {
-	col, exists := h.collections[op.name]
+	// Treat sensors as cluster-wide operations
+	ck := collectionKey{op.name, ""}
+	col, exists := h.collections[ck]
 	if !exists {
-		return fmt.Errorf("sensor %s does not exist", op.name)
+		return fmt.Errorf("sensor %s does not exist", ck)
 	}
 
 	return col.unload()

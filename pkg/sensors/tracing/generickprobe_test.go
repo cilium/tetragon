@@ -132,6 +132,7 @@ func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
 	})
 
 	const policyName = "test"
+	const policyNamespace = ""
 	policy := v1alpha1.TracingPolicy{
 		ObjectMeta: v1.ObjectMeta{
 			Name: policyName,
@@ -150,7 +151,7 @@ func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &policy)
 		assert.NoError(t, err)
 		t.Cleanup(func() {
-			err = mgr.DeleteTracingPolicy(ctx, policyName)
+			err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
 			assert.NoError(t, err)
 		})
 
@@ -164,13 +165,13 @@ func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &policy)
 		assert.NoError(t, err)
 		t.Cleanup(func() {
-			err = mgr.DeleteTracingPolicy(ctx, policyName)
+			err = mgr.DeleteTracingPolicy(ctx, policyName, policy.Namespace)
 			assert.NoError(t, err)
 		})
 
-		err = mgr.DisableTracingPolicy(ctx, policyName)
+		err = mgr.DisableTracingPolicy(ctx, policyName, policyNamespace)
 		assert.NoError(t, err)
-		err = mgr.EnableTracingPolicy(ctx, policyName)
+		err = mgr.EnableTracingPolicy(ctx, policyName, policyNamespace)
 		assert.NoError(t, err)
 	})
 }

@@ -900,6 +900,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 <a name="tetragon-DeleteTracingPolicyResponse"></a>
 
@@ -924,6 +925,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 <a name="tetragon-DisableTracingPolicyResponse"></a>
 
@@ -948,6 +950,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
 
 <a name="tetragon-EnableTracingPolicyResponse"></a>
 

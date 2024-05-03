@@ -40,11 +40,11 @@ type observer interface {
 	AddTracingPolicy(ctx context.Context, policy tracingpolicy.TracingPolicy) error
 	// DeleteTracingPolicy deletes a tracing policy that was added with
 	// AddTracingPolicy as defined by its name (policy.TpName()).
-	DeleteTracingPolicy(ctx context.Context, name string) error
+	DeleteTracingPolicy(ctx context.Context, name string, namespace string) error
 	// ListTracingPolicies lists active traing policies
 	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
-	DisableTracingPolicy(ctx context.Context, name string) error
-	EnableTracingPolicy(ctx context.Context, name string) error
+	DisableTracingPolicy(ctx context.Context, name string, namespace string) error
+	EnableTracingPolicy(ctx context.Context, name string, namespace string) error
 	// ListTracingPolicies lists active traing policies
 	// ListTracingPolicies lists active traing policies
 
@@ -276,7 +276,7 @@ func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTr
 		"name": req.GetName(),
 	}).Debug("Received a DeleteTracingPolicy request")
 
-	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName()); err != nil {
+	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"name": req.GetName(),
 		}).WithError(err).Warn("Server DeleteTracingPolicy request failed")
@@ -290,7 +290,7 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 		"name": req.GetName(),
 	}).Debug("Received a EnableTracingPolicy request")
 
-	if err := s.observer.EnableTracingPolicy(ctx, req.GetName()); err != nil {
+	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"name": req.GetName(),
 		}).WithError(err).Warn("Server EnableTracingPolicy request failed")
@@ -304,7 +304,7 @@ func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.Disable
 		"name": req.GetName(),
 	}).Debug("Received a DisableTracingPolicy request")
 
-	if err := s.observer.DisableTracingPolicy(ctx, req.GetName()); err != nil {
+	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
 		logger.GetLogger().WithFields(logrus.Fields{
 			"name": req.GetName(),
 		}).WithError(err).Warn("Server DisableTracingPolicy request failed")
