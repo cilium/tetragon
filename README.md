@@ -56,7 +56,7 @@ and generates events enriched with Linux and Kubernetes metadata:
 
 See further resources:
 - [Conference Talks, Books, Blog Posts, and Labs](https://tetragon.io/docs/resources/)
-- [Frequently Asked Question](https://tetragon.io/docs/faq/)
+- [Frequently Asked Question](https://tetragon.io/docs/installation/faq/)
 - [References](https://tetragon.io/docs/reference/)
 
 ## Join the community

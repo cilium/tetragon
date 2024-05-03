@@ -66,7 +66,7 @@ Notes:
    exist"`, then make sure that your kernel support [BTF](#btf-requirement),
    otherwise place a BTF file where Tetragon can read it and specify its path
    with the `--btf` flag. See more about that
-   [in the FAQ]({{< ref "/docs/faq/#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}}).
+   [in the FAQ]({{< ref "/docs/installation/faq#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}}).
 
 ## Running code generation
 

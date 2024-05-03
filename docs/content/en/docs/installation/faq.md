@@ -1,7 +1,8 @@
 ---
 title: "FAQ"
-weight: 10
+weight: 99
 description: "List of frequently asked questions"
+aliases: ["/docs/faq"]
 ---
 
 ### What is the minimum Linux kernel version to run Tetragon?
@@ -14,7 +15,7 @@ for up to date information. Not all Tetragon features work with older kernel
 versions. BPF evolves rapidly and we recommend you use the most recent stable
 kernel possible to get the most out of Tetragon's features.
 
-Note that Tetragon needs [BTF support]({{< ref "/docs/faq/_index.md#tetragon-failed-to-start-complaining-about-a-missing-btf-file">}})
+Note that Tetragon needs [BTF support]({{< ref "/docs/installation/faq#tetragon-failed-to-start-complaining-about-a-missing-btf-file">}})
 which might take some work on older kernels.
 
 ### What are the Linux kernel configuration options needed to run Tetragon?
@@ -132,23 +133,14 @@ to [can I run Tetragon on Mac computers](#can-i-run-tetragon-on-mac-computers).
 
 ### Can I install and use Tetragon in standalone mode (outside of k8s)?
 
-Yes! TBD docs
+Yes! Refer to the [Container]({{< ref "/docs/installation/container">}}) or
+[Package]({{< ref "/docs/installation/package">}}) installation guides.
 
 Otherwise you can build Tetragon from source by running `make` to generate standalone
 binaries.
 Make sure to take a look at the [Development Setup](/docs/contribution-guide/development-setup/)
 guide for the build requirements. Then use `sudo ./tetragon --bpf-lib bpf/objs`
 to run Tetragon.
-
-### CI is complaining about Go module vendoring, what do I do?
-
-You can run `make vendor` then add and commit your changes.
-
-### CI is complaining about a missing "signed-off-by" line. What do I do?
-
-You need to add a signed-off-by line to your commit messages. The easiest way
-to do this is with `git fetch origin/main && git rebase --signoff origin/main`.
-Then push your changes.
 
 ### Can I run Tetragon on Mac computers?
 
