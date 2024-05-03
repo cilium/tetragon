@@ -36,7 +36,7 @@ docker run --name tetragon --rm -d                  \
 
 {{< note >}}
 If Tetragon does not start due to BTF issues, please refer to the
-[corresponding question in the FAQ]({{< ref "/docs/faq/#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}})
+[corresponding question in the FAQ]({{< ref "/docs/installation/faq#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}})
 for details and solutions.
 {{< /note >}}
 

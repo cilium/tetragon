@@ -10,11 +10,11 @@ This guide has been tested on Ubuntu 22.04 and 22.10 with respectively kernel
 `5.15.0` and `5.19.0` on amd64 and arm64 but
 [any recent distribution](https://github.com/libbpf/libbpf#bpf-co-re-compile-once--run-everywhere)
 shipping with a relatively recent kernel should work. See the FAQ for further details on
-the [recommended kernel versions]({{< ref "/docs/faq#what-is-the-minimum-linux-kernel-version-to-run-tetragon" >}}).
+the [recommended kernel versions]({{< ref "/docs/installation/faq#what-is-the-minimum-linux-kernel-version-to-run-tetragon" >}}).
 
 Note that you cannot run Tetragon using Docker Desktop on macOS because of a
 limitation of the Docker Desktop Linux virtual machine. Learn more about this issue
-and how to run Tetragon on a Mac computer in [this section of the FAQ page](/docs/faq/#can-i-run-tetragon-on-mac-computers).
+and how to run Tetragon on a Mac computer in [this section of the FAQ page](/docs/installation/faq#can-i-run-tetragon-on-mac-computers).
 {{< /note >}}
 
 ## Start Tetragon

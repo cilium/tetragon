@@ -57,3 +57,14 @@ requirements have been met:
 
 6. All important steps in [Making changes]({{< ref "/docs/contribution-guide/making-changes" >}}) have been followed.
 
+### Frequently Asked Questions
+
+#### CI is complaining about Go module vendoring, what do I do?
+
+You can run `make vendor` then add and commit your changes.
+
+#### CI is complaining about a missing "signed-off-by" line. What do I do?
+
+You need to add a signed-off-by line to your commit messages. The easiest way
+to do this is with `git fetch origin/main && git rebase --signoff origin/main`.
+Then push your changes.

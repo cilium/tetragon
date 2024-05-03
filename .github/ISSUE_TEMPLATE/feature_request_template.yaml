@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for taking the time to request a new feature! 
 
-        If you have usage questions, please join the [Cilium Slack](https://slack.cilium.io/) and ask questions in the [Tetragon channel](https://cilium.slack.com/archives/C03EV7KJPJ9). Please also consult the [FAQ](https://tetragon.cilium.io/docs/faq/) first.
+        If you have usage questions, please join the [Cilium Slack](https://slack.cilium.io/) and ask questions in the [Tetragon channel](https://cilium.slack.com/archives/C03EV7KJPJ9). Please also consult the [FAQ](https://tetragon.cilium.io/docs/installation/faq/) first.
   - type: checkboxes
     attributes:
       label: Is there an existing issue for this?
