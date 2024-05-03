@@ -1,3 +1,6 @@
+$VM_MEMORY = (ENV['VM_MEMORY'] || 8912)
+$VM_CPUS = (ENV['VM_CPUS'] || 2)
+
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
   config.vm.disk :disk, size: "50GB"
@@ -6,8 +9,8 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/home/vagrant/go/src/github.com/cilium/tetragon", create: true
   config.ssh.extra_args = ["-t", "cd /home/vagrant/go/src/github.com/cilium/tetragon; bash --login"]
   config.vm.provider "virtualbox" do |v|
-    v.memory = 8192
-    v.cpus = 2
+    v.memory = $VM_MEMORY
+    v.cpus = $VM_CPUS
   end
 
   # Mostly copied from .github/workflows/gotests.yml to install dependencies
