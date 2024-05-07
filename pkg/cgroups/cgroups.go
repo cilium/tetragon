@@ -300,12 +300,8 @@ func setDeploymentMode(cgroupPath string) error {
 	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
 }
 
-func getDeploymentMode() DeploymentCode {
+func GetDeploymentMode() DeploymentCode {
 	return deploymentMode
-}
-
-func GetDeploymentMode() uint32 {
-	return uint32(getDeploymentMode())
 }
 
 func GetCgroupMode() CgroupModeCode {
@@ -370,7 +366,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 					// Probably namespaced... run the deployment mode detection
 					err = setDeploymentMode(path)
 					if err == nil {
-						mode := getDeploymentMode()
+						mode := GetDeploymentMode()
 						if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 							// Cgroups are namespaced let's try again
 							cgroupPath = filepath.Join(cgroupFSPath, controller.Name)
@@ -463,7 +459,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 				// Namespaced ? let's force the check
 				err = setDeploymentMode(path)
 				if err == nil {
-					mode := getDeploymentMode()
+					mode := GetDeploymentMode()
 					if mode == DEPLOY_K8S || mode == DEPLOY_CONTAINER {
 						// Cgroups are namespaced let's try again
 						cgroupPath = cgroupFSPath
@@ -623,7 +619,7 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 }
 
 func detectDeploymentMode() (DeploymentCode, error) {
-	mode := getDeploymentMode()
+	mode := GetDeploymentMode()
 	if mode != DEPLOY_UNKNOWN {
 		return mode, nil
 	}
@@ -636,7 +632,7 @@ func detectDeploymentMode() (DeploymentCode, error) {
 		return DEPLOY_UNKNOWN, err
 	}
 
-	return getDeploymentMode(), nil
+	return GetDeploymentMode(), nil
 }
 
 func DetectDeploymentMode() (uint32, error) {
@@ -655,7 +651,7 @@ func DetectDeploymentMode() (uint32, error) {
 		}).Info("Deployment mode detection succeeded")
 	})
 
-	mode := getDeploymentMode()
+	mode := GetDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
 		return uint32(mode), fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
 	}

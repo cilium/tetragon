@@ -52,6 +52,7 @@
     - [StackTraceEntry](#tetragon-StackTraceEntry)
     - [Test](#tetragon-Test)
     - [UserNamespace](#tetragon-UserNamespace)
+    - [UserRecord](#tetragon-UserRecord)
   
     - [HealthStatusResult](#tetragon-HealthStatusResult)
     - [HealthStatusType](#tetragon-HealthStatusType)
@@ -810,6 +811,9 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
 | process_credentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials |
 | binary_properties | [BinaryProperties](#tetragon-BinaryProperties) |  | Executed binary properties. This field is only available on ProcessExec events. |
+| user | [UserRecord](#tetragon-UserRecord) |  | UserRecord contains user information about the event.
+
+UserRecord is only supported when i) Tetragon is running as a systemd service or directly on the host, and ii) when `--username-metadata` is set to &#34;unix&#34;. In this case, the information is retrieved from the traditional user database `/etc/passwd` and no name services lookups are performed. The resolution will only be attempted for processes in the host namespace. Note that this resolution happens in user-space, which means that mapping might have changed between the in-kernel BPF hook being executed and the username resolution. |
 
 
 
@@ -1038,6 +1042,21 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The owner user ID of the namespace |
 | gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The owner group ID of the namepace. |
 | ns | [Namespace](#tetragon-Namespace) |  | The user namespace details that include the inode number of the namespace. |
+
+
+
+
+
+
+<a name="tetragon-UserRecord"></a>
+
+### UserRecord
+User records
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | The UNIX username for this record. Corresponds to `pw_name` field of [struct passwd](https://man7.org/linux/man-pages/man3/getpwnam.3.html) and the `sp_namp` field of [struct spwd](https://man7.org/linux/man-pages/man3/getspnam.3.html). |
 
 
 
