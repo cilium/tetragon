@@ -3640,6 +3640,56 @@ nextCheck:
 	return nil
 }
 
+// UserRecordChecker implements a checker struct to check a UserRecord field
+type UserRecordChecker struct {
+	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
+}
+
+// NewUserRecordChecker creates a new UserRecordChecker
+func NewUserRecordChecker() *UserRecordChecker {
+	return &UserRecordChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *UserRecordChecker) GetCheckerType() string {
+	return "UserRecordChecker"
+}
+
+// Check checks a UserRecord field
+func (checker *UserRecordChecker) Check(event *tetragon.UserRecord) error {
+	if event == nil {
+		return fmt.Errorf("%s: UserRecord field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithName adds a Name check to the UserRecordChecker
+func (checker *UserRecordChecker) WithName(check *stringmatcher.StringMatcher) *UserRecordChecker {
+	checker.Name = check
+	return checker
+}
+
+//FromUserRecord populates the UserRecordChecker using data from a UserRecord field
+func (checker *UserRecordChecker) FromUserRecord(event *tetragon.UserRecord) *UserRecordChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	return checker
+}
+
 // ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
 	ExecId             *stringmatcher.StringMatcher       `json:"execId,omitempty"`
@@ -3660,6 +3710,7 @@ type ProcessChecker struct {
 	Tid                *uint32                            `json:"tid,omitempty"`
 	ProcessCredentials *ProcessCredentialsChecker         `json:"processCredentials,omitempty"`
 	BinaryProperties   *BinaryPropertiesChecker           `json:"binaryProperties,omitempty"`
+	User               *UserRecordChecker                 `json:"user,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -3781,6 +3832,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 				return fmt.Errorf("BinaryProperties check failed: %w", err)
 			}
 		}
+		if checker.User != nil {
+			if err := checker.User.Check(event.User); err != nil {
+				return fmt.Errorf("User check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -3897,6 +3953,12 @@ func (checker *ProcessChecker) WithBinaryProperties(check *BinaryPropertiesCheck
 	return checker
 }
 
+// WithUser adds a User check to the ProcessChecker
+func (checker *ProcessChecker) WithUser(check *UserRecordChecker) *ProcessChecker {
+	checker.User = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -3945,6 +4007,9 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 	}
 	if event.BinaryProperties != nil {
 		checker.BinaryProperties = NewBinaryPropertiesChecker().FromBinaryProperties(event.BinaryProperties)
+	}
+	if event.User != nil {
+		checker.User = NewUserRecordChecker().FromUserRecord(event.User)
 	}
 	return checker
 }

@@ -163,6 +163,10 @@ type MsgUserNamespace struct {
 	NsInum uint32
 }
 
+type MsgUserRecord struct {
+	Name string
+}
+
 // API between Userspace tetragon Golang agent and Unix domain socket listener
 type MsgProcess struct {
 	Size       uint32
@@ -178,6 +182,7 @@ type MsgProcess struct {
 	Ktime      uint64
 	Filename   string
 	Args       string
+	User       MsgUserRecord
 }
 
 type MsgExitInfo struct {

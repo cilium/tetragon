@@ -88,6 +88,8 @@ type config struct {
 	ExposeStackAddresses bool
 
 	CgroupRate CgroupRate
+
+	UsernameMetadata int
 }
 
 var (
