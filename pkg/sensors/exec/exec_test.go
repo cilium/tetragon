@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -37,6 +38,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/strutils"
@@ -45,6 +47,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -263,7 +266,6 @@ func TestEventExecve(t *testing.T) {
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
 	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
-
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop)).
 		WithArguments(sm.Full("arg1 arg2 arg3")).
@@ -272,6 +274,55 @@ func TestEventExecve(t *testing.T) {
 
 	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestEventExecveWithUsername(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+	option.Config.UsernameMetadata = int(option.USERNAME_METADATA_UNIX)
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	err := confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
+	require.NoError(t, err)
+	mode := cgroups.GetDeploymentMode()
+	ns := namespace.GetCurrentNamespace()
+	if (mode != cgroups.DEPLOY_SD_SERVICE && mode != cgroups.DEPLOY_SD_USER) ||
+		!ns.Mnt.IsHost || !ns.User.IsHost {
+		t.Skip()
+	}
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
+	rootAccount := ec.NewUserRecordChecker().FromUserRecord(&tetragon.UserRecord{
+		Name: "root",
+	})
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithUser(rootAccount).
+		WithArguments(sm.Full("arg1 arg2 arg3")).
+		WithCap(myCaps).
+		WithNs(myNs)
+
+	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procChecker)
+	exitChecker := ec.NewProcessExitChecker("exit").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
 
 	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
