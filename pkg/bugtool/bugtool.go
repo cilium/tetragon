@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -38,15 +39,19 @@ import (
 
 // InitInfo contains information about how Tetragon was initialized.
 type InitInfo struct {
-	ExportFname string `json:"export_fname"`
-	LibDir      string `json:"lib_dir"`
-	BtfFname    string `json:"btf_fname"`
-	ServerAddr  string `json:"server_address"`
-	MetricsAddr string `json:"metrics_address"`
-	GopsAddr    string `json:"gops_address"`
-	MapDir      string `json:"map_dir"`
-	BpfToolPath string `json:"bpftool_path"`
-	GopsPath    string `json:"gops_path"`
+	ExportFname               string `json:"export_fname"`
+	LibDir                    string `json:"lib_dir"`
+	BtfFname                  string `json:"btf_fname"`
+	ServerAddr                string `json:"server_address"`
+	MetricsAddr               string `json:"metrics_address"`
+	GopsAddr                  string `json:"gops_address"`
+	MapDir                    string `json:"map_dir"`
+	BpfToolPath               string `json:"bpftool_path"`
+	GopsPath                  string `json:"gops_path"`
+	CgrpMode                  string `json:"cgroup.mode"`
+	CgrpControllerName        string `json:"cgroup.controller.name"`
+	CgrpControllerHierarchyID uint32 `json:"cgroup.controller.hierarchyID"`
+	DeploymentMode            string `json:"deployment_mode"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -77,7 +82,7 @@ func doLoadInitInfo(fname string) (*InitInfo, error) {
 }
 
 func doSaveInitInfo(fname string, info *InitInfo) error {
-	// Complete InitInfo here
+	// Complete InitInfo here and do not fail on environment detection
 	bpftool, err := exec.LookPath("bpftool")
 	if err != nil {
 		logger.GetLogger().Warn("failed to locate bpftool binary, on bugtool debugging ensure you have bpftool installed")
@@ -93,6 +98,19 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 		info.GopsPath = gops
 		logger.GetLogger().WithField("gops", info.GopsPath).Info("Successfully detected gops path")
 	}
+
+	info.CgrpMode = cgroups.GetCgroupMode().String()
+	info.CgrpControllerName = cgroups.GetCgrpControllerName()
+	info.CgrpControllerHierarchyID = cgroups.GetCgrpHierarchyID()
+
+	mode, err := cgroups.DetectDeploymentMode()
+	if err != nil {
+		logger.GetLogger().WithField("infoFile", fname).WithError(err).Warn("Failed to detect and save deployment mode")
+	} else {
+		info.DeploymentMode = mode.String()
+	}
+
+	// From here if saving information fails then we error out
 
 	// Create DefaultRunDir if it does not already exist
 	if err := os.MkdirAll(defaults.DefaultRunDir, 0755); err != nil {
