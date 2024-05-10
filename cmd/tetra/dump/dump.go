@@ -4,12 +4,15 @@
 package dump
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -29,6 +32,7 @@ func New() *cobra.Command {
 	ret.AddCommand(
 		execveMapCmd(),
 		policyfilterCmd(),
+		dumpProcessLRU(),
 	)
 
 	return ret
@@ -99,6 +103,31 @@ func dumpExecveMap(fname string) {
 	for k, v := range data {
 		fmt.Printf("%d %+v\n", k, v)
 	}
+}
+
+func dumpProcessLRU() *cobra.Command {
+	skipZeroRefCnt := false
+	ret := &cobra.Command{
+		Use:   "processlru",
+		Short: "dump processLRU cache",
+		Args:  cobra.ExactArgs(0),
+		Run: func(_ *cobra.Command, _ []string) {
+			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
+				req := tetragon.DumpProcessLRURequest{
+					SkipZeroRefCnt: skipZeroRefCnt,
+				}
+				res, _ := cli.DumpProcessLRU(ctx, &req)
+				for _, p := range res.Processes {
+					fmt.Println(p)
+				}
+			})
+		},
+	}
+
+	flags := ret.Flags()
+	flags.BoolVar(&skipZeroRefCnt, "skip-zero-refcnt", skipZeroRefCnt, "skip entries with zero refcnt")
+
+	return ret
 }
 
 func PolicyfilterState(fname string) {

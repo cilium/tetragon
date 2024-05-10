@@ -950,6 +950,22 @@ Determines the behavior of a field filter
 
 ### DisableTracingPolicyResponse
 
+<a name="tetragon-DumpProcessLRURequest"></a>
+
+### DumpProcessLRURequest
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| skipZeroRefCnt | [bool](#bool) |  |  |
+
+<a name="tetragon-DumpProcessLRUResponse"></a>
+
+### DumpProcessLRUResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| processes | [ProcessInternal](#tetragon-ProcessInternal) | repeated |  |
+
 <a name="tetragon-EnableSensorRequest"></a>
 
 ### EnableSensorRequest
@@ -1026,6 +1042,17 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | policies | [TracingPolicyStatus](#tetragon-TracingPolicyStatus) | repeated |  |
 
+<a name="tetragon-ProcessInternal"></a>
+
+### ProcessInternal
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  |  |
+| color | [string](#string) |  |  |
+| refcnt | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
+| refcntOps | [string](#string) |  |  |
+
 <a name="tetragon-RemoveSensorRequest"></a>
 
 ### RemoveSensorRequest
@@ -1096,6 +1123,7 @@ Determines the behavior of a field filter
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
+| DumpProcessLRU | [DumpProcessLRURequest](#tetragon-DumpProcessLRURequest) | [DumpProcessLRUResponse](#tetragon-DumpProcessLRUResponse) |  |
 
 ## Scalar Value Types
 
