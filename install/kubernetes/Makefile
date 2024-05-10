@@ -4,7 +4,7 @@
 # renovate: datasource=docker
 HELM_IMAGE=docker.io/alpine/helm:3.14.4@sha256:599abc4bc6fc6a7aae894fa726008d78061e8d109f0cc49e16445757d0034cfa
 # renovate: datasource=docker
-KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.4-alpine@sha256:051e9bc943ff03de140e85522b5adb8f8d014b67f98582df80b29d3303fec75d
+KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.6-alpine@sha256:47141997365b1f6aa914b2e801cb9772b94c2696c279e2046a4517d5bfd8a09a
 # renovate: datasource=docker
 HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.13.1@sha256:717bd8f770bd1d25ccf79c876f1420e105832f2d6bbde12170405f58f540cb2d
 
