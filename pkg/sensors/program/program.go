@@ -111,6 +111,7 @@ type Program struct {
 	LC *LoadedCollection
 
 	Link link.Link
+	Prog *ebpf.Program
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
