@@ -31,6 +31,7 @@ func Builder(
 		unloader:   nil,
 		PinMap:     make(map[string]*Map),
 		Link:       nil,
+		Prog:       nil,
 	}
 }
 
@@ -124,6 +125,7 @@ type Program struct {
 	TcMap    *Map
 
 	Link link.Link
+	Prog *ebpf.Program
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
