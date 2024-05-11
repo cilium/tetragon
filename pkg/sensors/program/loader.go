@@ -911,6 +911,8 @@ func doLoadProgram(
 		return nil, err
 	}
 
+	load.Prog = prog
+
 	// Copy the loaded collection before it's destroyed
 	if KeepCollection {
 		return copyLoadedCollection(coll)
