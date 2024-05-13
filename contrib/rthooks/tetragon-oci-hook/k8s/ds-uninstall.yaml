@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: tetragon-oci-hook-uninstall
-  namespace: kube-system
   labels:
     k8s-app: tetragon-oci-hook-setup-test
 spec:

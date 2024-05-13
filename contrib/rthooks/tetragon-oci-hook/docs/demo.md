@@ -29,7 +29,7 @@ helm install --namespace kube-system \
         --set tetragon.image.override=localhost/cilium/tetragon:latest  \
         --set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
         --set tetragon.ociHookSetup.enabled=true \
-        tetragon ./install/kubernetes
+        tetragon ./install/kubernetes/tetragon
 ...
 kubectl logs -n kube-system tetragon-289tf  -c oci-hook-setup
 time="2023-12-05T09:28:50Z" level=info msg="written binary" hook-dst-path=/hostInstall/tetragon-oci-hook
