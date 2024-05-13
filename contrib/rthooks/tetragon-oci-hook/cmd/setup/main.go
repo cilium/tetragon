@@ -28,7 +28,8 @@ type Install struct {
 	HostInstallDir  string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
 
 	OciHooks struct {
-		LocalDir string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
+		LocalDir            string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
+		FailAllowNamespaces string `help:"Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent."`
 	} `embed:"" prefix:"oci-hooks."`
 }
 
@@ -60,7 +61,7 @@ func (i *Install) ociHooksInstall(log *logrus.Logger) {
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
 
 	logFname := filepath.Join(i.HostInstallDir, logBaseName)
-	hook := ociHooksConfig(binFname, "--log-fname", logFname)
+	hook := ociHooksConfig(binFname, "--log-fname", logFname, "--fail-allow-namespaces", i.OciHooks.FailAllowNamespaces)
 	data, err := json.MarshalIndent(hook, "", "   ")
 	if err != nil {
 		log.WithError(err).Fatal("failed to unmarshall hook info")
