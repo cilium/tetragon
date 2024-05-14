@@ -43,6 +43,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// Pod is deleted. Nothing to reconcile.
 		return ctrl.Result{}, nil
 	}
+	if pod.GetDeletionTimestamp() != nil {
+		// Pod is being deleted. Nothing to reconcile.
+		return ctrl.Result{}, nil
+	}
 
 	// Wait until the necessary pod fields are available.
 	if !hasAllRequiredFields(pod) {

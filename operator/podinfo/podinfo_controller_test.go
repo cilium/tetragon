@@ -4,6 +4,7 @@
 package podinfo
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -14,8 +15,14 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
@@ -274,4 +281,37 @@ func TestEqual(t *testing.T) {
 			assert.False(t, equal(pod, podInfo), "Pod spec hostNetwork changed, still returning pod not changed")
 		})
 	})
+}
+
+func TestReconcile(t *testing.T) {
+	pod := randomPodGenerator()
+	client := getClientBuilder().WithObjects(pod).Build()
+	reconciler := Reconciler{client}
+	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
+	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
+	assert.NoError(t, err)
+	assert.False(t, res.Requeue)
+	assert.NoError(t, client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{}))
+}
+
+func TestReconcileWithDeletionTimestamp(t *testing.T) {
+	pod := randomPodGenerator()
+	pod.SetFinalizers([]string{"finalize-it"})
+	deletionTimestamp := metav1.Now()
+	pod.SetDeletionTimestamp(&deletionTimestamp)
+	client := getClientBuilder().WithObjects(pod).Build()
+	reconciler := Reconciler{client}
+	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
+	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
+	assert.NoError(t, err)
+	assert.False(t, res.Requeue)
+	err = client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{})
+	assert.True(t, errors.IsNotFound(err))
+}
+
+func getClientBuilder() *fake.ClientBuilder {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(ciliumv1alpha1.AddToScheme(scheme))
+	return fake.NewClientBuilder().WithScheme(scheme)
 }
