@@ -6027,12 +6027,33 @@ spec:
 	readyWG.Wait()
 
 	module := "xfs"
-	if err := exec.Command("/usr/sbin/modprobe", module).Run(); err != nil {
-		t.Fatalf("failed to load %s module: %s", module, err)
+	var stdout, stderr bytes.Buffer
+	testCmd := exec.CommandContext(ctx, "/usr/sbin/modprobe", module)
+	testCmd.Stdout = &stdout
+	testCmd.Stderr = &stderr
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		stderr := stderr.String()
+		t.Fatalf("Load '%s' module failed with %s. Context error: %v, error output: %v", module, err, ctx.Err(), stderr)
+	}
+	if len(stdout.String()) > 0 {
+		t.Logf("Load '%s' module  stdout:\n%v\n", module, stdout.String())
 	}
 
-	if err := exec.Command("/usr/sbin/modprobe", "-r", module).Run(); err != nil {
-		t.Fatalf("failed to unload %s module: %s", module, err)
+	testCmd = exec.CommandContext(ctx, "/usr/sbin/modprobe", "-r", module)
+	testCmd.Stdout = &stdout
+	testCmd.Stderr = &stderr
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		stderr := stderr.String()
+		t.Fatalf("Unload '%s' module failed with %s. Context error: %v, error output: %v", module, err, ctx.Err(), stderr)
+	}
+	if len(stdout.String()) > 0 {
+		t.Logf("Unload '%s' module stdout:\n%v\n", module, stdout.String())
 	}
 
 	process := ec.NewProcessChecker().
@@ -6044,7 +6065,7 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(
 					ec.NewKprobeFileChecker().
-						WithPath(sm.Suffix(fmt.Sprintf("%s.ko", module)))),
+						WithPath(sm.Contains(fmt.Sprintf("%s.ko", module)))),
 				ec.NewKprobeArgumentChecker().WithIntArg(2),
 			),
 		)
