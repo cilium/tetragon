@@ -6026,7 +6026,7 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	module := "xfs"
+	module := "nfsv4"
 	var stdout, stderr bytes.Buffer
 	testCmd := exec.CommandContext(ctx, "/usr/sbin/modprobe", module)
 	testCmd.Stdout = &stdout
