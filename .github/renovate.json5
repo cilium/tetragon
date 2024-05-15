@@ -282,6 +282,7 @@
       "matchPackagePatterns": ["*"],
       "matchBaseBranches": [
         "v1.0",
+        "v1.1",
       ]
     },
     {
@@ -290,6 +291,7 @@
       "matchPackageNames": ["docker.io/library/alpine"],
       "matchBaseBranches": [
         "v1.0",
+        "v1.1",
       ]
     },
     {
@@ -301,7 +303,8 @@
       ],
       "allowedVersions": "/^1\\.21\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
-        "v1.0"
+        "v1.0",
+        "v1.1",
       ]
     },
     // ignore deps section
@@ -324,10 +327,6 @@
       "matchUpdateTypes": [
         "patch"
       ],
-      matchBaseBranches: [
-        "main",
-        "v1.0"
-      ]
     },
     {
       // do not allow any updates for major.minor for LVH, they will be done by maintainers
