@@ -2,6 +2,7 @@
 /* Copyright Authors of Cilium */
 
 #include "vmlinux.h"
+#include "compiler.h"
 #include "bpf_cgroup.h"
 #include "bpf_rate.h"
 

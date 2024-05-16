@@ -6,6 +6,7 @@
 
 #define GENERIC_KPROBE
 
+#include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
 #include "retprobe_map.h"

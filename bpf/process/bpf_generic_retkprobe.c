@@ -6,6 +6,7 @@
 
 #define GENERIC_KRETPROBE
 
+#include "compiler.h"
 #include "bpf_tracing.h"
 #include "bpf_event.h"
 #include "bpf_task.h"

@@ -5,6 +5,7 @@
 #include "api.h"
 #include "bpf_tracing.h"
 
+#include "compiler.h"
 #include "common.h"
 #include "process.h"
 
