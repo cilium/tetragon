@@ -229,21 +229,6 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 static inline __attribute__((always_inline)) long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
 
-static inline __attribute__((always_inline)) bool ty_is_nop(int ty)
-{
-	switch (ty) {
-	case nop_ty:
-	case nop_s64_ty:
-	case nop_u64_ty:
-	case nop_s32_ty:
-	case nop_u32_ty:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
 static inline __attribute__((always_inline)) int return_error(int *s, int err)
 {
 	*s = err;
