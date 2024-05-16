@@ -2,6 +2,7 @@
 
 #include "include/vmlinux.h"
 #include "include/api.h"
+#include "func.h"
 #include "lib/bpf_event.h"
 #include "lib/bpf_cred.h"
 #include "process/retprobe_map.h"

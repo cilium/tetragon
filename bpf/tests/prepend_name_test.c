@@ -5,6 +5,7 @@
 
 #include "vmlinux.h"
 
+#include "func.h"
 #include "bpf_tracing.h" // bpf_printk
 
 #include "bpf_task.h"

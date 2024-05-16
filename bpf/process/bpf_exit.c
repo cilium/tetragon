@@ -2,6 +2,7 @@
 /* Copyright Authors of Cilium */
 
 #include "vmlinux.h"
+#include "func.h"
 #include "bpf_exit.h"
 #include "bpf_tracing.h"
 

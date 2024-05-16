@@ -3,6 +3,7 @@
 
 #include "vmlinux.h"
 #include "api.h"
+#include "func.h"
 #include "bpf_tracing.h"
 #include "bpf_helpers.h"
 #include "bpf_event.h"

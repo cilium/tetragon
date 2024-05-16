@@ -1,3 +1,4 @@
+#include "func.h"
 #include "bpf_enforcer.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
