@@ -5,6 +5,7 @@
 #define __BPF_HELPERS_
 
 #include "api.h"
+#include "compiler.h"
 
 #ifndef PATH_MAP_SIZE
 #define PATH_MAP_SIZE 4096

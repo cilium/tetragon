@@ -5,6 +5,7 @@
 #include "api.h"
 #include "bpf_tracing.h"
 
+#include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_cgroup.h"
 #include "bpf_task.h"

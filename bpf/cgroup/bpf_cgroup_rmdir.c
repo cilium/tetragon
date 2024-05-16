@@ -4,6 +4,7 @@
 #include "vmlinux.h"
 #include "api.h"
 
+#include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_cgroup.h"
 #include "bpf_task.h"
