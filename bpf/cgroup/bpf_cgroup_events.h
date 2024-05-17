@@ -9,7 +9,7 @@
 #include "environ_conf.h"
 
 /* This function will send the cgroup events to the ring buffer */
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 		struct cgroup_tracking_value *cgrp_track, __u64 cgrpid,
 		__u32 op)
