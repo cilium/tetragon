@@ -55,7 +55,7 @@ struct {
 	__uint(max_entries, 1);
 } tg_ipv6_ext_heap SEC(".maps");
 
-static inline __attribute__((always_inline)) u8
+FUNC_INLINE u8
 get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
 		 void *skb_head)
 {
@@ -119,7 +119,7 @@ get_ip6_protocol(u16 *payload_off, struct ipv6hdr *ip, u16 network_header_off,
  * Populate the event args with the SKB 5-tuple when supported. Currently,
  * only supports IPv4 with TCP/UDP.
  */
-static inline __attribute__((unused)) int
+FUNC_INLINE int
 set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 {
 	unsigned char *skb_head = 0;
