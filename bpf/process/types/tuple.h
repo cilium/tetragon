@@ -19,22 +19,19 @@ struct tuple_type {
 	__u16 family;
 };
 
-static inline __attribute__((always_inline)) void
-write_ipv6_addr_from_ipv4(u64 *dest, u32 src)
+FUNC_INLINE void write_ipv6_addr_from_ipv4(u64 *dest, u32 src)
 {
 	dest[0] = src;
 	dest[1] = 0;
 }
 
-static inline __attribute__((always_inline)) void
-write_ipv6_addr(u64 *dest, u64 *src)
+FUNC_INLINE void write_ipv6_addr(u64 *dest, u64 *src)
 {
 	dest[0] = src[0];
 	dest[1] = src[1];
 }
 
-static inline __attribute__((always_inline)) void
-write_ipv6_addr32(u32 *dest, u32 *src)
+FUNC_INLINE void write_ipv6_addr32(u32 *dest, u32 *src)
 {
 	dest[0] = src[0];
 	dest[1] = src[1];
