@@ -163,6 +163,24 @@ func getKernelType(arg btf.Type) string {
 		return "union " + union.Name + suffix
 	}
 
+	enum, ok := arg.(*btf.Enum)
+	if ok {
+		prefix := "u"
+		if enum.Signed {
+			prefix = "s"
+		}
+		switch enum.Size {
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		default:
+			// Not sure what to do here, so just dump the type name
+			return arg.TypeName() + suffix
+		}
+		return fmt.Sprintf("%s%d%s", prefix, 8*enum.Size, suffix)
+	}
+
 	cnst, ok := arg.(*btf.Const)
 	if ok {
 		// NB: ignore const
