@@ -23,8 +23,8 @@ struct {
 
 // policy_filter_check checks whether the policy applies on the current process.
 // Returns true if it does, false otherwise.
-static inline __attribute__((always_inline)) bool
-policy_filter_check(u32 policy_id)
+
+FUNC_INLINE bool policy_filter_check(u32 policy_id)
 {
 	void *policy_map;
 	__u64 cgroupid;
