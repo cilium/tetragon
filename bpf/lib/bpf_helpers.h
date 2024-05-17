@@ -75,7 +75,7 @@ enum bpf_enum_value_kind {
 /* relax_verifier is a dummy helper call to introduce a pruning checkpoint
  * to help relax the verifier to avoid reaching complexity limits.
  */
-static inline __attribute__((always_inline)) void relax_verifier(void)
+FUNC_INLINE void relax_verifier(void)
 {
 	/* Calling get_smp_processor_id() in asm saves an instruction as we
 	 * don't have to store the result to ensure the call takes place.
@@ -87,7 +87,7 @@ static inline __attribute__((always_inline)) void relax_verifier(void)
 			     : "r0", "r1", "r2", "r3", "r4", "r5");
 }
 
-static inline void compiler_barrier(void)
+FUNC_INLINE void compiler_barrier(void)
 {
 	asm volatile("" ::
 			     : "memory");
