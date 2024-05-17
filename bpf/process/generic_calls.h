@@ -10,7 +10,7 @@
 
 #define MAX_TOTAL 9000
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
 		      struct bpf_map_def *data_heap)
@@ -74,7 +74,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 #define TS_COMPAT 0x0002
 
 #ifdef __TARGET_ARCH_x86
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
 {
 	struct thread_info *info;
@@ -94,7 +94,7 @@ generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
 #define generic_setup_32bit_syscall(e, op)
 #endif
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *config)
 {
 	e->common.op = op;
@@ -122,7 +122,7 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	generic_setup_32bit_syscall(e, op);
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 generic_process_event_and_setup(struct pt_regs *ctx,
 				struct bpf_map_def *heap_map,
 				struct bpf_map_def *tailcals,
