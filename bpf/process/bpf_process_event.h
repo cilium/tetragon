@@ -28,8 +28,7 @@ struct {
 	__type(value, struct buffer_heap_map_value);
 } buffer_heap_map SEC(".maps");
 
-static inline __attribute__((always_inline)) __u64
-__get_auid(struct task_struct *task)
+FUNC_INLINE __u64 __get_auid(struct task_struct *task)
 {
 	// u64 to convince compiler to do 64bit loads early kernels do not
 	// support 32bit loads from stack, e.g. r1 = *(u32 *)(r10 -8).
@@ -55,7 +54,7 @@ __get_auid(struct task_struct *task)
 	return auid;
 }
 
-static inline __attribute__((always_inline)) __u32 get_auid(void)
+FUNC_INLINE __u32 get_auid(void)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 
@@ -70,13 +69,12 @@ static inline __attribute__((always_inline)) __u32 get_auid(void)
 		((type *)(__mptr - offsetof_btf(type, member))); \
 	})
 
-static inline __attribute__((always_inline)) struct mount *
-real_mount(struct vfsmount *mnt)
+FUNC_INLINE struct mount *real_mount(struct vfsmount *mnt)
 {
 	return container_of_btf(mnt, struct mount, mnt);
 }
 
-static inline __attribute__((always_inline)) bool IS_ROOT(struct dentry *dentry)
+FUNC_INLINE bool IS_ROOT(struct dentry *dentry)
 {
 	struct dentry *d_parent;
 
@@ -84,8 +82,7 @@ static inline __attribute__((always_inline)) bool IS_ROOT(struct dentry *dentry)
 	return (dentry == d_parent);
 }
 
-static inline __attribute__((always_inline)) bool
-hlist_bl_unhashed(const struct hlist_bl_node *h)
+FUNC_INLINE bool hlist_bl_unhashed(const struct hlist_bl_node *h)
 {
 	struct hlist_bl_node **pprev;
 
@@ -93,19 +90,17 @@ hlist_bl_unhashed(const struct hlist_bl_node *h)
 	return !pprev;
 }
 
-static inline __attribute__((always_inline)) int
-d_unhashed(struct dentry *dentry)
+FUNC_INLINE int d_unhashed(struct dentry *dentry)
 {
 	return hlist_bl_unhashed(_(&dentry->d_hash));
 }
 
-static inline __attribute__((always_inline)) int
-d_unlinked(struct dentry *dentry)
+FUNC_INLINE int d_unlinked(struct dentry *dentry)
 {
 	return d_unhashed(dentry) && !IS_ROOT(dentry);
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 prepend_name(char *buf, char **bufptr, int *buflen, const char *name, u32 namelen)
 {
 	// contains 1 if the buffer is large enough to contain the whole name and a slash prefix
@@ -156,7 +151,7 @@ prepend_name(char *buf, char **bufptr, int *buflen, const char *name, u32 namele
  * In the current scenarios, always buflen will be 256 and namelen 10.
  * For this reason I will never return -ENAMETOOLONG.
  */
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 prepend(char **buffer, int *buflen, const char *str, int namelen)
 {
 	*buflen -= namelen;
@@ -179,8 +174,7 @@ struct cwd_read_data {
 	bool resolved;
 };
 
-static inline __attribute__((always_inline)) long
-cwd_read(struct cwd_read_data *data)
+FUNC_INLINE long cwd_read(struct cwd_read_data *data)
 {
 	struct qstr d_name;
 	struct dentry *parent;
@@ -236,8 +230,7 @@ static long cwd_read_v61(__u32 index, void *data)
 	return cwd_read(data);
 }
 #endif
-
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 prepend_path(const struct path *path, const struct path *root, char *bf,
 	     char **buffer, int *buflen)
 {
@@ -276,7 +269,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	return error;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 path_with_deleted(const struct path *path, const struct path *root, char *bf,
 		  char **buf, int *buflen)
 {
@@ -326,7 +319,7 @@ path_with_deleted(const struct path *path, const struct path *root, char *bf,
  *
  * ps. The size of the path will be (initial value of buflen) - (return value of buflen) if (buflen != 0)
  */
-static inline __attribute__((always_inline)) char *
+FUNC_INLINE char *
 __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
 {
 	char *res = buf + *buflen;
@@ -352,7 +345,7 @@ __d_path_local(const struct path *path, char *buf, int *buflen, int *error)
  * 'error' is 0 in case of success or UNRESOLVED_PATH_COMPONENTS in the case
  * where the path is larger than the provided buffer.
  */
-static inline __attribute__((always_inline)) char *
+FUNC_INLINE char *
 d_path_local(const struct path *path, int *buflen, int *error)
 {
 	int zero = 0;
@@ -370,7 +363,7 @@ d_path_local(const struct path *path, int *buflen, int *error)
 	return buffer;
 }
 
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 {
 	struct task_struct *task = get_task_from_pid(proc_pid);
@@ -404,13 +397,12 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 	return (__u32)size;
 }
 
-static inline __attribute__((always_inline)) void
-event_set_clone(struct msg_process *pid)
+FUNC_INLINE void event_set_clone(struct msg_process *pid)
 {
 	pid->flags |= EVENT_CLONE;
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 __get_caps(struct msg_capabilities *msg, const struct cred *cred)
 {
 	probe_read(&msg->effective, sizeof(__u64), _(&cred->cap_effective));
@@ -449,7 +441,7 @@ __get_caps(struct msg_capabilities *msg, const struct cred *cred)
  * same context as task->real_cred.
  * "
  */
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 {
 	const struct cred *cred;
@@ -459,7 +451,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 	__get_caps(msg, cred);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 {
 	const struct cred *cred;
@@ -481,7 +473,7 @@ get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 	__get_caps(&info->caps, cred);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 get_namespaces(struct msg_ns *msg, struct task_struct *task)
 {
 	struct nsproxy *nsproxy;
@@ -540,7 +532,7 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 }
 
 /* Gather current task cgroup name */
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
 {
 	const char *name;
@@ -571,7 +563,7 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
  * collects cgroup information from current task. This allows to operate on
  * different machines and workflows.
  */
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 {
 	__u64 cgrpfs_magic = 0;
