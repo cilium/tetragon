@@ -44,7 +44,7 @@
 		FIND_PIDSET10(VAL) \
 	}
 
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 filter_pidset(__u64 sel, __u64 isns, struct execve_map_value *enter)
 {
 	struct execve_map_value *filter = enter;
@@ -58,7 +58,7 @@ accept:
 #define PID_SELECTOR_FLAG_NSPID	 0x1
 #define PID_SELECTOR_FLAG_FOLLOW 0x2
 
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 filter_pidsets(__u64 ty, __u64 flags, __u64 sel, struct execve_map_value *enter)
 {
 	bool found;
@@ -84,7 +84,7 @@ enum {
 	PFILTER_CURR_NOT_FOUND = 0, // event_find_curr() failed
 };
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 __process_filter_pid(__u64 ty, __u64 flags, __u64 sel, __u64 pid,
 		     struct execve_map_value *enter)
 {
@@ -103,13 +103,12 @@ __process_filter_pid(__u64 ty, __u64 flags, __u64 sel, __u64 pid,
 	}
 }
 
-static inline __attribute__((always_inline)) int
-next_pid_value(__u32 off, __u32 *f, __u32 ty)
+FUNC_INLINE int next_pid_value(__u32 off, __u32 *f, __u32 ty)
 {
 	return off + 4;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 		   struct execve_map_value *enter, struct msg_ns *n,
 		   struct msg_capabilities *c)
@@ -135,7 +134,7 @@ process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 	return __process_filter_pid(ty, flags, sel, pid, enter);
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
 			 struct execve_map_value *enter, struct msg_ns *n,
 			 struct msg_capabilities *c)
@@ -175,7 +174,7 @@ process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
  * If 'ty == op_filter_notin' variable 'val' is the mask of the namespaces that we do *NOT* want to check.
  * (namespace bits are defined in the ns_* enum in process.h)
  */
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_namespace_change(__u64 ty, __u64 val,
 				struct execve_map_value *enter,
 				struct msg_ns *n, struct msg_capabilities *c,
@@ -223,7 +222,7 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 }
 #endif
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 			    struct msg_ns *n, struct msg_capabilities *c)
 {
@@ -246,7 +245,7 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 }
 
 #ifdef __CAP_CHANGES_FILTER
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 				 struct msg_ns *n, struct msg_capabilities *c,
 				 struct msg_selector_data *sel)
@@ -289,7 +288,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 
 #define MAX_SELECTOR_VALUES 4
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
 	       struct execve_map_value *enter, struct msg_ns *n,
 	       struct msg_capabilities *c,
@@ -371,7 +370,7 @@ struct nc_filter {
  */
 #define NUM_NS_FILTERS_SMALL 4
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			struct msg_selector_data *sel, struct msg_ns *n,
 			struct msg_capabilities *c)
@@ -500,7 +499,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	return res;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 process_filter_done(struct msg_selector_data *sel,
 		    struct execve_map_value *enter,
 		    struct msg_execve_key *current)
@@ -521,7 +520,7 @@ process_filter_done(struct msg_selector_data *sel,
 //    current->ktime
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 generic_process_filter(struct msg_selector_data *sel,
 		       struct msg_execve_key *current, struct msg_ns *ns,
 		       struct msg_capabilities *caps, void *fmap, int idx)
