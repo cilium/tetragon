@@ -23,7 +23,7 @@ struct sk_type {
  *
  * Populate the event args with the sock info.
  */
-static inline __attribute__((unused)) void
+FUNC_INLINE void
 set_event_from_sock(struct sk_type *event, struct sock *sk)
 {
 	struct sock_common *common = (struct sock_common *)sk;
