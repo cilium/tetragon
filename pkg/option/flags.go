@@ -94,7 +94,24 @@ const (
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 
 	KeyGenerateDocs = "generate-docs"
+
+	KeyUsernameMetadata = "username-metadata"
 )
+
+type UsernameMetadaCode int
+
+const (
+	// Username metadata collection modes
+	USERNAME_METADATA_DISABLED UsernameMetadaCode = iota
+	USERNAME_METADATA_UNIX     UsernameMetadaCode = 1 // Username from /etc/passwd
+)
+
+func (op UsernameMetadaCode) String() string {
+	return [...]string{
+		USERNAME_METADATA_DISABLED: "disabled",
+		USERNAME_METADATA_UNIX:     "unix",
+	}[op]
+}
 
 func ReadAndSetFlags() error {
 	Config.HubbleLib = viper.GetString(KeyHubbleLib)
@@ -171,6 +188,13 @@ func ReadAndSetFlags() error {
 	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
+
+	switch viper.GetString(KeyUsernameMetadata) {
+	case "unix":
+		Config.UsernameMetadata = int(USERNAME_METADATA_UNIX)
+	default:
+		Config.UsernameMetadata = int(USERNAME_METADATA_DISABLED)
+	}
 
 	// manually handle the deprecation of --expose-kernel-addresses
 	if viper.IsSet(KeyExposeKernelAddresses) {
@@ -285,5 +309,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.MarkHidden(KeyExposeKernelAddresses)
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
+
+	flags.String(KeyUsernameMetadata, "disabled", "Resolve UIDs to user names for processes running in host namespace")
 
 }

@@ -95,6 +95,17 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
+	mode := cgroups.DeploymentCode(deployMode)
+
+	if option.Config.UsernameMetadata == int(option.USERNAME_METADATA_UNIX) &&
+		mode != cgroups.DEPLOY_SD_SERVICE && mode != cgroups.DEPLOY_SD_USER {
+		option.Config.UsernameMetadata = int(option.USERNAME_METADATA_DISABLED)
+		log.WithFields(logrus.Fields{
+			"confmap-update":  configMapName,
+			"deployment.mode": mode.String(),
+		}).Warn("Username resolution is not available for given deployment mode")
+	}
+
 	v := &TetragonConfValue{
 		LogLevel:        uint32(logger.GetLogLevel()),
 		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
@@ -110,7 +121,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 
 	log.WithFields(logrus.Fields{
 		"confmap-update":                configMapName,
-		"deployment.mode":               cgroups.DeploymentCode(deployMode).String(),
+		"deployment.mode":               mode.String(),
 		"log.level":                     logrus.Level(v.LogLevel).String(),
 		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
 		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),

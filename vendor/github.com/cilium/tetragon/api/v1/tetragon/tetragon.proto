@@ -166,6 +166,13 @@ message BinaryProperties {
 	FileProperties file = 4;
 }
 
+// User records
+message UserRecord {
+    // The UNIX username for this record. Corresponds to `pw_name` field of [struct passwd](https://man7.org/linux/man-pages/man3/getpwnam.3.html)
+    // and the `sp_namp` field of [struct spwd](https://man7.org/linux/man-pages/man3/getspnam.3.html).
+    string name = 1;
+}
+
 message Process {
     // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
     string exec_id = 1;
@@ -259,6 +266,15 @@ message Process {
     ProcessCredentials process_credentials = 17;
     // Executed binary properties. This field is only available on ProcessExec events.
     BinaryProperties binary_properties = 18;
+    // UserRecord contains user information about the event.
+    //
+    // UserRecord is only supported when i) Tetragon is running as a systemd service or directly on the host, and
+    //  ii) when  `--username-metadata` is set to "unix". In this case, the information is retrieved from
+    // the traditional user database `/etc/passwd` and no name services lookups are performed.
+    // The resolution will only be attempted for processes in the host namespace.
+    // Note that this resolution happens in user-space, which means that mapping might have changed
+    // between the in-kernel BPF hook being executed and the username resolution.
+    UserRecord user = 19;
 }
 
 message ProcessExec {

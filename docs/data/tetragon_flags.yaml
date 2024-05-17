@@ -179,6 +179,10 @@ options:
     - name: tracing-policy-dir
       default_value: /etc/tetragon/tetragon.tp.d
       usage: Directory from where to load Tracing Policies
+    - name: username-metadata
+      default_value: disabled
+      usage: |
+        Resolve UIDs to user names for processes running in host namespace
     - name: verbose
       default_value: "0"
       usage: |
