@@ -356,6 +356,14 @@ func initProcessInternalExec(
 		args = fieldfilters.RedactionFilters.Redact(binary, args)
 	}
 
+	var user *tetragon.UserRecord
+
+	if len(process.User.Name) != 0 {
+		user = &tetragon.UserRecord{
+			Name: process.User.Name,
+		}
+	}
+
 	return &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
@@ -372,6 +380,7 @@ func initProcessInternalExec(
 			Docker:       containerID,
 			ParentExecId: parentExecID,
 			Refcnt:       0,
+			User:         user,
 		},
 		capabilities:  apiCaps,
 		apiCreds:      apiCreds,
