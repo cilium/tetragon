@@ -182,6 +182,9 @@ func getKernelType(arg btf.Type) string {
 
 func typesCompatible(specTy string, kernelTy string) bool {
 	switch specTy {
+	case "nop":
+		return true
+
 	case "uint64":
 		switch kernelTy {
 		case "u64", "void *", "long unsigned int":
