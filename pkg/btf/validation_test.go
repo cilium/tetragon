@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/stretchr/testify/require"
 )
 
 func expectError(t *testing.T, err error) error {
@@ -78,4 +79,17 @@ func TestSpecs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEnum(t *testing.T) {
+	require.Equal(t,
+		getKernelType(&btf.Enum{
+			Size:   2,
+			Signed: false,
+		}), "u16")
+	require.Equal(t,
+		getKernelType(&btf.Enum{
+			Size:   4,
+			Signed: true,
+		}), "s32")
 }
