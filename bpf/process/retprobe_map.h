@@ -24,7 +24,7 @@ struct {
 	__type(value, struct retprobe_info);
 } retprobe_map SEC(".maps");
 
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 retprobe_map_get(__u64 id, __u64 tid, struct retprobe_info *bufp)
 {
 	struct retprobe_info *info;
@@ -42,8 +42,7 @@ retprobe_map_get(__u64 id, __u64 tid, struct retprobe_info *bufp)
 	return true;
 }
 
-static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 id,
-								     __u64 tid)
+FUNC_INLINE void retprobe_map_clear(__u64 id, __u64 tid)
 {
 	struct retprobe_key key = {
 		.id = id,
@@ -55,7 +54,7 @@ static inline __attribute__((always_inline)) void retprobe_map_clear(__u64 id,
 		map_delete_elem(&retprobe_map, &key);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 {
 	struct retprobe_info info = {
@@ -70,7 +69,7 @@ retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
 		       unsigned long cnt)
 {
@@ -117,8 +116,7 @@ retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
  * this issue by checking first the thread id, and if there is none, we use
  * ctx->bp.
  */
-static inline __attribute__((always_inline)) __u64
-retprobe_map_get_key(struct pt_regs *ctx)
+FUNC_INLINE __u64 retprobe_map_get_key(struct pt_regs *ctx)
 {
 	__u64 ret = get_current_pid_tgid();
 	if (ret == (__u64)-22) { // -EINVAL -- current == NULL
