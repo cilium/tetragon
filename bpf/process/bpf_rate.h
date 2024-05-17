@@ -51,8 +51,7 @@ struct {
 	__type(value, struct msg_throttle);
 } throttle_heap_map SEC(".maps");
 
-static inline __attribute__((always_inline)) void
-send_throttle(void *ctx, struct msg_k8s *kube, __u64 time)
+FUNC_INLINE void send_throttle(void *ctx, struct msg_k8s *kube, __u64 time)
 {
 	struct msg_throttle *msg;
 	size_t size = sizeof(*msg);
@@ -72,8 +71,7 @@ send_throttle(void *ctx, struct msg_k8s *kube, __u64 time)
 				 BPF_F_CURRENT_CPU, msg, size);
 }
 
-static inline __attribute__((always_inline)) bool
-cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
+FUNC_INLINE bool cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
 {
 	struct cgroup_rate_options *opt;
 	struct cgroup_rate_key key = {
@@ -150,8 +148,7 @@ cgroup_rate(void *ctx, struct msg_k8s *kube, __u64 time)
 	return !val->throttled;
 }
 
-static inline __attribute__((always_inline)) void
-cgroup_rate_del(__u64 cgroupid)
+FUNC_INLINE void cgroup_rate_del(__u64 cgroupid)
 {
 	map_delete_elem(&cgroup_rate_map, &cgroupid);
 }
