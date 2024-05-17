@@ -21,8 +21,7 @@
 #define PROBE_CWD_READ_ITERATIONS 11
 #endif
 
-static inline __attribute__((always_inline)) struct task_struct *
-get_parent(struct task_struct *t)
+FUNC_INLINE struct task_struct *get_parent(struct task_struct *t)
 {
 	struct task_struct *task;
 
@@ -33,8 +32,7 @@ get_parent(struct task_struct *t)
 	return task;
 }
 
-static inline __attribute__((always_inline)) struct task_struct *
-get_task_from_pid(__u32 pid)
+FUNC_INLINE struct task_struct *get_task_from_pid(__u32 pid)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	__u32 cpid = 0;
@@ -59,7 +57,7 @@ get_task_from_pid(__u32 pid)
 	return task;
 }
 
-static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
+FUNC_INLINE __u32 get_task_pid_vnr(void)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	int thread_pid_exists;
@@ -98,8 +96,7 @@ static inline __attribute__((always_inline)) __u32 get_task_pid_vnr(void)
 	return upid.nr;
 }
 
-static inline __attribute__((always_inline)) __u32
-event_find_parent_pid(struct task_struct *t)
+FUNC_INLINE __u32 event_find_parent_pid(struct task_struct *t)
 {
 	struct task_struct *task = get_parent(t);
 	__u32 pid;
@@ -110,7 +107,7 @@ event_find_parent_pid(struct task_struct *t)
 	return pid;
 }
 
-static inline __attribute__((always_inline)) struct execve_map_value *
+FUNC_INLINE struct execve_map_value *
 __event_find_parent(struct task_struct *task)
 {
 	__u32 pid;
@@ -130,15 +127,14 @@ __event_find_parent(struct task_struct *task)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) struct execve_map_value *
-event_find_parent(void)
+FUNC_INLINE struct execve_map_value *event_find_parent(void)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 
 	return __event_find_parent(task);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 event_minimal_parent(struct msg_execve_event *event, struct task_struct *task)
 {
 	event->parent.pid = event_find_parent_pid(task);
@@ -146,16 +142,14 @@ event_minimal_parent(struct msg_execve_event *event, struct task_struct *task)
 	event->parent_flags = EVENT_MISS;
 }
 
-static inline __attribute__((always_inline)) void
-event_minimal_curr(struct execve_map_value *event)
+FUNC_INLINE void event_minimal_curr(struct execve_map_value *event)
 {
 	event->key.pid = (get_current_pid_tgid() >> 32);
 	event->key.ktime = 0; // should we insert a time?
 	event->flags = EVENT_MISS;
 }
 
-static inline __attribute__((always_inline)) struct execve_map_value *
-event_find_curr(__u32 *ppid, bool *walked)
+FUNC_INLINE struct execve_map_value *event_find_curr(__u32 *ppid, bool *walked)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct execve_map_value *value = 0;
