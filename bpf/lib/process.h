@@ -415,8 +415,7 @@ struct {
 	__type(value, __s64);
 } tg_execve_joined_info_map_stats SEC(".maps");
 
-static inline __attribute__((always_inline)) int64_t
-validate_msg_execve_size(int64_t size)
+FUNC_INLINE int64_t validate_msg_execve_size(int64_t size)
 {
 	size_t max = sizeof(struct msg_execve_event);
 
@@ -438,7 +437,7 @@ validate_msg_execve_size(int64_t size)
 }
 
 // execve_map_error() will increment the map error counter
-static inline __attribute__((always_inline)) void execve_map_error(void)
+FUNC_INLINE void execve_map_error(void)
 {
 	int one = MAP_STATS_ERROR;
 	__s64 *cntr;
@@ -450,8 +449,7 @@ static inline __attribute__((always_inline)) void execve_map_error(void)
 
 // execve_map_get will look up if pid exists and return it if it does. If it
 // does not, it will create a new one and return it.
-static inline __attribute__((always_inline)) struct execve_map_value *
-execve_map_get(__u32 pid)
+FUNC_INLINE struct execve_map_value *execve_map_get(__u32 pid)
 {
 	struct execve_map_value *event;
 
@@ -479,13 +477,12 @@ execve_map_get(__u32 pid)
 	return event;
 }
 
-static inline __attribute__((always_inline)) struct execve_map_value *
-execve_map_get_noinit(__u32 pid)
+FUNC_INLINE struct execve_map_value *execve_map_get_noinit(__u32 pid)
 {
 	return map_lookup_elem(&execve_map, &pid);
 }
 
-static inline __attribute__((always_inline)) void execve_map_delete(__u32 pid)
+FUNC_INLINE void execve_map_delete(__u32 pid)
 {
 	int err = map_delete_elem(&execve_map, &pid);
 	int zero = MAP_STATS_COUNT;
@@ -501,7 +498,7 @@ static inline __attribute__((always_inline)) void execve_map_delete(__u32 pid)
 }
 
 // execve_joined_info_map_error() will increment the map error counter
-static inline __attribute__((always_inline)) void execve_joined_info_map_error(void)
+FUNC_INLINE void execve_joined_info_map_error(void)
 {
 	int one = MAP_STATS_ERROR;
 	__s64 *cntr;
@@ -511,8 +508,7 @@ static inline __attribute__((always_inline)) void execve_joined_info_map_error(v
 		*cntr = *cntr + 1;
 }
 
-static inline __attribute__((always_inline)) void
-execve_joined_info_map_set(__u64 tid, struct execve_info *info)
+FUNC_INLINE void execve_joined_info_map_set(__u64 tid, struct execve_info *info)
 {
 	int err, zero = MAP_STATS_COUNT;
 	__s64 *cntr;
@@ -534,8 +530,7 @@ execve_joined_info_map_set(__u64 tid, struct execve_info *info)
 }
 
 /* Clear up some space for next threads */
-static inline __attribute__((always_inline)) void
-execve_joined_info_map_clear(__u64 tid)
+FUNC_INLINE void execve_joined_info_map_clear(__u64 tid)
 {
 	int err, zero = MAP_STATS_COUNT;
 	__s64 *cntr;
@@ -554,8 +549,7 @@ execve_joined_info_map_clear(__u64 tid)
 /* Returns an execve_info if found. A missing entry is perfectly fine as it
  * could mean we are not interested into storing more information about this task.
  */
-static inline __attribute__((always_inline)) struct execve_info *
-execve_joined_info_map_get(__u64 tid)
+FUNC_INLINE struct execve_info *execve_joined_info_map_get(__u64 tid)
 {
 	return map_lookup_elem(&tg_execve_joined_info_map, &tid);
 }
@@ -574,7 +568,8 @@ struct {
 	__uint(max_entries, 1);
 } tg_stats_map SEC(".maps");
 
-static inline __attribute__((always_inline)) void perf_event_output_metric(void *ctx, u8 metric, void *map, u64 flags, void *data, u64 size)
+FUNC_INLINE void
+perf_event_output_metric(void *ctx, u8 metric, void *map, u64 flags, void *data, u64 size)
 {
 	struct kernel_stats *valp;
 	__u32 zero = 0;
