@@ -20,7 +20,7 @@ struct {
 	__type(value, struct msg_exit);
 } exit_heap_map SEC(".maps");
 
-static inline __attribute__((always_inline)) void event_exit_send(void *ctx, __u32 tgid)
+FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 {
 	struct execve_map_value *enter;
 
