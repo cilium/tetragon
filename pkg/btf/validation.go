@@ -195,6 +195,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "s64":
 			return true
 		}
+	case "int32":
+		switch kernelTy {
+		case "s32", "int":
+			return true
+		}
 	case "int16":
 		switch kernelTy {
 		case "s16", "short int":
@@ -225,9 +230,14 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "const struct iovec *", "struct iovec *":
 			return true
 		}
-	case "int", "fd":
+	case "fd":
 		switch kernelTy {
 		case "unsigned int", "int", "unsigned long", "long":
+			return true
+		}
+	case "int":
+		switch kernelTy {
+		case "unsigned int", "int", "unsigned long", "long", "uid_t", "gid_t", "u32", "s32":
 			return true
 		}
 	case "filename":
