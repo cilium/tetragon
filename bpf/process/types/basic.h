@@ -214,7 +214,7 @@ struct msg_linux_binprm {
 } __attribute__((packed));
 
 #ifdef __MULTI_KPROBE
-static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
+FUNC_INLINE __u32 get_index(void *ctx)
 {
 	return (__u32)get_attach_cookie(ctx);
 }
@@ -226,16 +226,16 @@ static inline __attribute__((always_inline)) __u32 get_index(void *ctx)
 #define MAX_SELECTORS	   5
 #define MAX_SELECTORS_MASK 7
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
 
-static inline __attribute__((always_inline)) int return_error(int *s, int err)
+FUNC_INLINE int return_error(int *s, int err)
 {
 	*s = err;
 	return sizeof(int);
 }
 
-static inline __attribute__((always_inline)) char *
+FUNC_INLINE char *
 args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
 	asm volatile("%[off] &= 0x3fff;\n" ::[off] "+r"(off)
@@ -247,7 +247,7 @@ args_off(struct msg_generic_kprobe *e, unsigned long off)
  * be recoved with known bounds. We had to push this via asm to stop
  * clang from omitting some checks and applying code motion on us.
  */
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 return_stack_error(char *args, int orig, int err)
 {
 	asm volatile("%[orig] &= 0xfff;\n"
@@ -259,7 +259,7 @@ return_stack_error(char *args, int orig, int err)
 	return sizeof(int);
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		  struct msg_generic_kprobe *e)
 {
@@ -326,8 +326,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 #define MAX_STRING_FILTER 32
 #endif
 
-static inline __attribute__((always_inline)) long
-copy_path(char *args, const struct path *arg)
+FUNC_INLINE long copy_path(char *args, const struct path *arg)
 {
 	int *s = (int *)args;
 	int size = 0, flags = 0;
@@ -375,8 +374,7 @@ a:
 	return size;
 }
 
-static inline __attribute__((always_inline)) long
-copy_strings(char *args, char *arg, int max_size)
+FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 {
 	int *s = (int *)args;
 	long size;
@@ -394,8 +392,7 @@ copy_strings(char *args, char *arg, int max_size)
 	return size + 4;
 }
 
-static inline __attribute__((always_inline)) long copy_skb(char *args,
-							   unsigned long arg)
+FUNC_INLINE long copy_skb(char *args, unsigned long arg)
 {
 	struct sk_buff *skb = (struct sk_buff *)arg;
 	struct skb_type *skb_event = (struct skb_type *)args;
@@ -412,8 +409,7 @@ static inline __attribute__((always_inline)) long copy_skb(char *args,
 	return sizeof(struct skb_type);
 }
 
-static inline __attribute__((always_inline)) long copy_sock(char *args,
-							    unsigned long arg)
+FUNC_INLINE long copy_sock(char *args, unsigned long arg)
 {
 	struct sock *sk = (struct sock *)arg;
 	struct sk_type *sk_event = (struct sk_type *)args;
@@ -423,8 +419,7 @@ static inline __attribute__((always_inline)) long copy_sock(char *args,
 	return sizeof(struct sk_type);
 }
 
-static inline __attribute__((always_inline)) long
-copy_user_ns(char *args, unsigned long arg)
+FUNC_INLINE long copy_user_ns(char *args, unsigned long arg)
 {
 	struct user_namespace *ns = (struct user_namespace *)arg;
 	struct msg_user_namespace *u_ns_info =
@@ -438,8 +433,7 @@ copy_user_ns(char *args, unsigned long arg)
 	return sizeof(struct msg_user_namespace);
 }
 
-static inline __attribute__((always_inline)) long copy_cred(char *args,
-							    unsigned long arg)
+FUNC_INLINE long copy_cred(char *args, unsigned long arg)
 {
 	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
@@ -466,8 +460,7 @@ static inline __attribute__((always_inline)) long copy_cred(char *args,
 	return sizeof(struct msg_cred);
 }
 
-static inline __attribute__((always_inline)) long
-copy_capability(char *args, unsigned long arg)
+FUNC_INLINE long copy_capability(char *args, unsigned long arg)
 {
 	int cap = (int)arg;
 	struct capability_info_type *info = (struct capability_info_type *)args;
@@ -478,8 +471,7 @@ copy_capability(char *args, unsigned long arg)
 	return sizeof(struct capability_info_type);
 }
 
-static inline __attribute__((always_inline)) long
-copy_load_module(char *args, unsigned long arg)
+FUNC_INLINE long copy_load_module(char *args, unsigned long arg)
 {
 	int ok;
 	const char *name;
@@ -502,8 +494,7 @@ copy_load_module(char *args, unsigned long arg)
 	return sizeof(struct tg_kernel_module);
 }
 
-static inline __attribute__((always_inline)) long
-copy_kernel_module(char *args, unsigned long arg)
+FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 {
 	const struct module *mod = (struct module *)arg;
 	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
@@ -528,20 +519,17 @@ copy_kernel_module(char *args, unsigned long arg)
 #define ARGM_RETURN_COPY BIT(4)
 #define ARGM_MAX_DATA	 BIT(5)
 
-static inline __attribute__((always_inline)) bool
-hasReturnCopy(unsigned long argm)
+FUNC_INLINE bool hasReturnCopy(unsigned long argm)
 {
 	return (argm & ARGM_RETURN_COPY) != 0;
 }
 
-static inline __attribute__((always_inline)) bool
-has_max_data(unsigned long argm)
+FUNC_INLINE bool has_max_data(unsigned long argm)
 {
 	return (argm & ARGM_MAX_DATA) != 0;
 }
 
-static inline __attribute__((always_inline)) unsigned long
-get_arg_meta(int meta, struct msg_generic_kprobe *e)
+FUNC_INLINE unsigned long get_arg_meta(int meta, struct msg_generic_kprobe *e)
 {
 	switch (meta & ARGM_INDEX_MASK) {
 	case 1:
@@ -558,7 +546,7 @@ get_arg_meta(int meta, struct msg_generic_kprobe *e)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 		bool max_data, struct msg_generic_kprobe *e,
 		struct bpf_map_def *data_heap)
@@ -597,7 +585,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 	return rd_bytes + extra;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e,
 	      struct bpf_map_def *data_heap)
@@ -617,8 +605,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e, data_heap);
 }
 
-static inline __attribute__((always_inline)) u16
-string_padded_len(u16 len)
+FUNC_INLINE u16 string_padded_len(u16 len)
 {
 	u16 padded_len = len;
 
@@ -646,8 +633,7 @@ string_padded_len(u16 len)
 #endif
 }
 
-static inline __attribute__((always_inline)) int
-string_map_index(u16 padded_len)
+FUNC_INLINE int string_map_index(u16 padded_len)
 {
 	if (padded_len < STRING_MAPS_SIZE_5)
 		return (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
@@ -675,8 +661,7 @@ string_map_index(u16 padded_len)
 #endif
 }
 
-static inline __attribute__((always_inline)) void *
-get_string_map(int index, __u32 map_idx)
+FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 {
 	switch (index) {
 	case 0:
@@ -709,7 +694,7 @@ get_string_map(int index, __u32 map_idx)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
 {
 	__u32 *map_ids = (__u32 *)&filter->value;
@@ -798,7 +783,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	return !!pass;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
 {
 	void *addrmap;
@@ -836,8 +821,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 // Define a mask for the maximum path length on Linux.
 #define PATH_MASK (4096 - 1)
 
-static inline __attribute__((always_inline)) void
-copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
+FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 {
 	uint i;
 
@@ -862,7 +846,7 @@ copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 	}
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
 {
 	void *addrmap;
@@ -890,12 +874,12 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	return !!pass;
 }
 
-static inline __attribute__((always_inline)) bool is_not_operator(__u32 op)
+FUNC_INLINE bool is_not_operator(__u32 op)
 {
 	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin);
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	long match = 0;
@@ -931,7 +915,7 @@ struct string_buf {
  * and the filter file path in the normal order. For the 'postfix' operator we do
  * a reverse search.
  */
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 {
 	long match = 0;
@@ -967,7 +951,7 @@ struct ip_ver {
 
 // use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
 // is in the defined set.
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 {
 	void *addrmap;
@@ -1017,7 +1001,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 /* filter_inet: runs a comparison between the IPv4/6 addresses and ports in
  * the sock or skb in the args aginst the filter parameters.
  */
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_inet(struct selector_arg_filter *filter, char *args)
 {
 	__u64 addr[2] = { 0, 0 };
@@ -1102,7 +1086,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
 {
@@ -1122,7 +1106,7 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 	return size + 8;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
@@ -1140,8 +1124,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
-static inline __attribute__((always_inline)) long
-copy_bpf_attr(char *args, unsigned long arg)
+FUNC_INLINE long copy_bpf_attr(char *args, unsigned long arg)
 {
 	union bpf_attr *ba = (union bpf_attr *)arg;
 	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
@@ -1154,8 +1137,7 @@ copy_bpf_attr(char *args, unsigned long arg)
 	return sizeof(struct bpf_info_type);
 }
 
-static inline __attribute__((always_inline)) long
-copy_perf_event(char *args, unsigned long arg)
+FUNC_INLINE long copy_perf_event(char *args, unsigned long arg)
 {
 	struct perf_event *p_event = (struct perf_event *)arg;
 	struct perf_event_info_type *event_info =
@@ -1178,8 +1160,7 @@ copy_perf_event(char *args, unsigned long arg)
 	return sizeof(struct perf_event_info_type);
 }
 
-static inline __attribute__((always_inline)) long
-copy_bpf_map(char *args, unsigned long arg)
+FUNC_INLINE long copy_bpf_map(char *args, unsigned long arg)
 {
 	struct bpf_map *bpfmap = (struct bpf_map *)arg;
 	struct bpf_map_info_type *map_info = (struct bpf_map_info_type *)args;
@@ -1197,7 +1178,7 @@ copy_bpf_map(char *args, unsigned long arg)
 }
 
 #ifdef __LARGE_BPF_PROG
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
 	      struct bpf_map_def *data_heap)
 {
@@ -1261,13 +1242,13 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap) 0
 #endif /* __LARGE_BPF_PROG */
 
-static inline __attribute__((always_inline)) bool is_signed_type(int type)
+FUNC_INLINE bool is_signed_type(int type)
 {
 	return type == s32_ty || type == s64_ty || type == int_type;
 }
 
 // filter on values provided in the selector itself
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
@@ -1323,7 +1304,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	void *argmap;
@@ -1349,7 +1330,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	switch (filter->op) {
@@ -1367,7 +1348,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u32 *v = (__u32 *)&filter->value;
@@ -1424,7 +1405,7 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_32ty_map(struct selector_arg_filter *filter, char *args)
 {
 	void *argmap;
@@ -1453,7 +1434,7 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_32ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
@@ -1471,8 +1452,7 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
-								     int argm)
+FUNC_INLINE size_t type_to_min_size(int type, int argm)
 {
 	switch (type) {
 	case fd_ty:
@@ -1557,7 +1537,7 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
+FUNC_INLINE int match_binaries(__u32 selidx)
 {
 	struct execve_map_value *current;
 	__u32 ppid;
@@ -1625,7 +1605,7 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 	return 1;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		    bool is_entry)
 {
@@ -1739,14 +1719,14 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	return pass ? seloff : 0;
 }
 
-static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
+FUNC_INLINE int filter_args_reject(u64 id)
 {
 	u64 tid = get_current_pid_tgid();
 	retprobe_map_clear(id, tid);
 	return 0;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
 	    bool is_entry)
 {
@@ -1794,7 +1774,7 @@ struct {
 	__type(value, struct fdinstall_value);
 } fdinstall_map SEC(".maps");
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 {
 	struct fdinstall_value val = { 0 };
@@ -1846,7 +1826,7 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	return err;
 }
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 {
 	struct fdinstall_key key = { 0 };
@@ -1889,8 +1869,7 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 }
 
 #ifdef __LARGE_BPF_PROG
-static inline __attribute__((always_inline)) void
-do_action_signal(int signal)
+FUNC_INLINE void do_action_signal(int signal)
 {
 	send_signal(signal);
 }
@@ -1946,7 +1925,7 @@ struct {
 } ratelimit_ro_heap SEC(".maps");
 
 #ifdef __LARGE_BPF_PROG
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
 	__u64 curr_time = ktime_get_ns();
@@ -2036,7 +2015,7 @@ struct {
 	__type(value, struct socket_owner);
 } socktrack_map SEC(".maps");
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 {
 	long sockoff;
@@ -2083,7 +2062,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
  *
  * Look up the socket in the map and populate the pid and tid.
  */
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
 	struct socket_owner *owner;
@@ -2097,13 +2076,13 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 	e->tid = owner->tid;
 }
 #else
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 {
 	return 0;
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
 }
@@ -2119,8 +2098,7 @@ struct {
 } stack_trace_map SEC(".maps");
 
 #if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
-static inline __attribute__((always_inline)) void
-do_action_notify_enforcer(int error, int signal)
+FUNC_INLINE void do_action_notify_enforcer(int error, int signal)
 {
 	do_enforcer_action(error, signal);
 }
@@ -2128,7 +2106,7 @@ do_action_notify_enforcer(int error, int signal)
 #define do_action_notify_enforcer(error, signal)
 #endif
 
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 	  struct selector_action *actions, struct bpf_map_def *override_tasks, bool *post)
 {
@@ -2233,7 +2211,7 @@ do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 	return 0;
 }
 
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 has_action(struct selector_action *actions, __u32 idx)
 {
 	__u32 offset = idx * sizeof(__u32) + sizeof(*actions);
@@ -2242,7 +2220,7 @@ has_action(struct selector_action *actions, __u32 idx)
 }
 
 /* Currently supporting 2 actions for selector. */
-static inline __attribute__((always_inline)) bool
+FUNC_INLINE bool
 do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *actions,
 	   struct bpf_map_def *override_tasks)
 {
@@ -2261,7 +2239,7 @@ do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *acti
 	return post;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
 		struct bpf_map_def *config_map, bool is_entry)
@@ -2295,7 +2273,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 generic_actions(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *filter,
 		struct bpf_map_def *tailcalls,
@@ -2337,7 +2315,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 	return 0;
 }
 
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
 {
 	struct msg_generic_kprobe *e;
@@ -2401,7 +2379,7 @@ generic_output(void *ctx, struct bpf_map_def *heap, u8 op)
  *
  * Returns the size of data appended to @args.
  */
-static inline __attribute__((always_inline)) long
+FUNC_INLINE long
 read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	      long orig_off, unsigned long arg, int argm,
 	      struct bpf_map_def *data_heap)
