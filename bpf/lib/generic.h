@@ -57,7 +57,7 @@ struct msg_generic_kprobe {
 	int pass;
 };
 
-static inline __attribute__((always_inline)) size_t generic_kprobe_common_size()
+FUNC_INLINE size_t generic_kprobe_common_size(void)
 {
 	return offsetof(struct msg_generic_kprobe, args);
 }
