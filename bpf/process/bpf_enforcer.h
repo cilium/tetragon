@@ -19,8 +19,7 @@ struct {
 	__type(value, struct enforcer_data);
 } enforcer_data SEC(".maps");
 
-static inline __attribute__((always_inline)) void
-do_enforcer_action(int error, int signal)
+FUNC_INLINE void do_enforcer_action(int error, int signal)
 {
 	__u64 id = get_current_pid_tgid();
 	struct enforcer_data *ptr, data = {
