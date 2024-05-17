@@ -4,7 +4,7 @@ set -ex
 
 shopt -s expand_aliases
 # renovate: datasource=docker
-YQ_IMAGE=docker.io/mikefarah/yq:4.43.1@sha256:a7df369b3129dc6e1343b86e5e2f5bdee0853631b5de8221deaffd59358237ee
+YQ_IMAGE=docker.io/mikefarah/yq:4.44.1@sha256:bcb889a1f9bdb0613c8a054542d02360c2b1b35521041be3e1bd8fbd0534d411
 alias yq="docker run --rm -v \"${PWD}\":/workdir --user \"$(id -u):$(id -g)\" $YQ_IMAGE"
 
 if [ -z "$1" ] || [[ ! $1 =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
