@@ -5,7 +5,7 @@ go 1.22.0
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.15.4
+	github.com/cilium/cilium v1.15.5
 	github.com/cilium/ebpf v0.15.0
 	github.com/cilium/little-vm-helper v0.0.17
 	github.com/cilium/lumberjack/v2 v2.3.0
@@ -71,7 +71,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3 // indirect
+	github.com/cilium/dns v1.1.51-0.20240416134107-d47d0dd702a1 // indirect
 	github.com/cilium/proxy v0.0.0-20231031145409-f19708f3d018 // indirect
 	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa // indirect
 	github.com/containerd/log v0.1.0 // indirect
