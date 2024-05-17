@@ -62,14 +62,6 @@ static inline __attribute__((always_inline)) __u32 get_auid(void)
 	return __get_auid(task);
 }
 
-static inline __attribute__((always_inline)) __u64
-get_parent_auid(struct task_struct *t)
-{
-	struct task_struct *task = get_parent(t);
-
-	return __get_auid(task);
-}
-
 #define offsetof_btf(s, memb) ((size_t)((char *)_(&((s *)0)->memb) - (char *)0))
 
 #define container_of_btf(ptr, type, member)                      \
