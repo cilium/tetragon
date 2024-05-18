@@ -122,6 +122,14 @@ enum {
 	TAIL_CALL_SEND = 5,
 };
 
+struct generic_maps {
+	struct bpf_map_def *heap;
+	struct bpf_map_def *calls;
+	struct bpf_map_def *config;
+	struct bpf_map_def *filter;
+	struct bpf_map_def *override;
+};
+
 struct selector_action {
 	__u32 actionlen;
 	__u32 act[];
@@ -2274,10 +2282,7 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 }
 
 FUNC_INLINE long
-generic_actions(void *ctx, struct bpf_map_def *heap,
-		struct bpf_map_def *filter,
-		struct bpf_map_def *tailcalls,
-		struct bpf_map_def *override_tasks)
+generic_actions(void *ctx, struct generic_maps *maps)
 {
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
@@ -2286,7 +2291,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 	bool postit;
 	__u8 *f;
 
-	e = map_lookup_elem(heap, &zero);
+	e = map_lookup_elem(maps->heap, &zero);
 	if (!e)
 		return 0;
 
@@ -2294,7 +2299,7 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 	if (pass <= 1)
 		return 0;
 
-	f = map_lookup_elem(filter, &e->idx);
+	f = map_lookup_elem(maps->filter, &e->idx);
 	if (!f)
 		return 0;
 
@@ -2309,9 +2314,9 @@ generic_actions(void *ctx, struct bpf_map_def *heap,
 		     :);
 	actions = (struct selector_action *)&f[actoff];
 
-	postit = do_actions(ctx, e, actions, override_tasks);
+	postit = do_actions(ctx, e, actions, maps->override);
 	if (postit)
-		tail_call(ctx, tailcalls, TAIL_CALL_SEND);
+		tail_call(ctx, maps->calls, TAIL_CALL_SEND);
 	return 0;
 }
 

@@ -50,6 +50,12 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+static struct generic_maps maps = {
+	.heap = (struct bpf_map_def *)&tp_heap,
+	.calls = (struct bpf_map_def *)&tp_calls,
+	.filter = (struct bpf_map_def *)&filter_map,
+};
+
 struct generic_tracepoint_event_arg {
 	/* common header */
 	__u16 common_type;
@@ -267,10 +273,7 @@ generic_tracepoint_arg(void *ctx)
 __attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
-	return generic_actions(ctx, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (void *)0);
+	return generic_actions(ctx, &maps);
 }
 
 __attribute__((section("tracepoint/5"), used)) int
