@@ -59,8 +59,7 @@ struct msg_cred {
  * return false if any of the capabilities in "a" are not in "set"
  *	__cap_issubset(1111, 0100) will return false
  */
-static inline __attribute__((always_inline)) bool
-__cap_issubset(const __u64 a, const __u64 set)
+FUNC_INLINE bool __cap_issubset(const __u64 a, const __u64 set)
 {
 	return !(a & ~set);
 }
@@ -73,8 +72,7 @@ __cap_issubset(const __u64 a, const __u64 set)
  * support per user namespace translation, example checking if
  * root in user namespace.
  */
-static inline __attribute__((always_inline)) bool
-__is_uid_global_root(__u32 uid)
+FUNC_INLINE bool __is_uid_global_root(__u32 uid)
 {
 	return uid == 0;
 }
