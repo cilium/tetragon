@@ -67,6 +67,12 @@ struct {
 #define MAIN "kprobe/generic_retkprobe"
 #endif
 
+static struct generic_maps maps = {
+	.heap = (struct bpf_map_def *)&process_call_heap,
+	.calls = (struct bpf_map_def *)&retkprobe_calls,
+	.filter = (struct bpf_map_def *)&filter_map,
+};
+
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
@@ -178,10 +184,7 @@ BPF_KRETPROBE(generic_retkprobe_filter_arg)
 __attribute__((section("kprobe/4"), used)) int
 BPF_KRETPROBE(generic_retkprobe_actions)
 {
-	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&retkprobe_calls,
-			       NULL);
+	return generic_actions(ctx, &maps);
 }
 
 __attribute__((section("kprobe/5"), used)) int

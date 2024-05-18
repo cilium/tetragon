@@ -70,6 +70,13 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+static struct generic_maps maps = {
+	.heap = (struct bpf_map_def *)&process_call_heap,
+	.calls = (struct bpf_map_def *)&kprobe_calls,
+	.filter = (struct bpf_map_def *)&filter_map,
+	.override = (struct bpf_map_def *)&override_tasks,
+};
+
 static inline __attribute__((always_inline)) int
 generic_kprobe_start_process_filter(void *ctx)
 {
@@ -209,10 +216,7 @@ generic_kprobe_filter_arg(void *ctx)
 __attribute__((section("kprobe/4"), used)) int
 generic_kprobe_actions(void *ctx)
 {
-	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&kprobe_calls,
-			       (struct bpf_map_def *)&override_tasks);
+	return generic_actions(ctx, &maps);
 }
 
 __attribute__((section("kprobe/5"), used)) int

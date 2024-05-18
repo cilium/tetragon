@@ -50,6 +50,12 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+static struct generic_maps maps = {
+	.heap = (struct bpf_map_def *)&process_call_heap,
+	.calls = (struct bpf_map_def *)&uprobe_calls,
+	.filter = (struct bpf_map_def *)&filter_map,
+};
+
 static inline __attribute__((always_inline)) int
 generic_uprobe_start_process_filter(void *ctx)
 {
@@ -158,10 +164,7 @@ generic_uprobe_filter_arg(void *ctx)
 __attribute__((section("uprobe/4"), used)) int
 generic_uprobe_actions(void *ctx)
 {
-	return generic_actions(ctx, (struct bpf_map_def *)&process_call_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&uprobe_calls,
-			       (void *)0);
+	return generic_actions(ctx, &maps);
 }
 
 __attribute__((section("uprobe/5"), used)) int
