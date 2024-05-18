@@ -7,7 +7,7 @@
 #include "bpf_tracing.h"
 #include "data_msg.h"
 
-FUNC_INLINE long
+FUNC_LOCAL long
 __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
 {
 	int err;
@@ -38,7 +38,7 @@ b:
 	return -1;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 {
 	size_t rd_bytes = 0;
@@ -74,7 +74,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 	return rd_bytes;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 {
 	size_t size, max = sizeof(msg->arg) - 1;
@@ -109,7 +109,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	return ret;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 do_str(void *ctx, struct msg_data *msg, unsigned long arg,
        size_t bytes __maybe_unused)
 {
@@ -192,7 +192,7 @@ FUNC_INLINE size_t data_event(
  *
  * Returns size of struct @desc object or 0 in case of error.
  */
-FUNC_INLINE size_t
+FUNC_LOCAL size_t
 data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 		 size_t size, struct bpf_map_def *heap)
 {
@@ -209,7 +209,7 @@ data_event_bytes(void *ctx, struct data_event_desc *desc, unsigned long uptr,
  *
  * Returns size of struct @desc object or 0 in case of error.
  */
-FUNC_INLINE size_t
+FUNC_LOCAL size_t
 data_event_str(void *ctx, struct data_event_desc *desc, unsigned long uptr,
 	       struct bpf_map_def *heap)
 {
