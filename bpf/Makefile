@@ -129,7 +129,7 @@ objs/bpf_multi_kprobe_v61.ll objs/bpf_multi_retkprobe_v61.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
 objs/bpf_multi_uprobe_v61.ll:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V60_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
 
 objs/%_v61.ll:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -c $< -o $@
