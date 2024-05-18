@@ -59,8 +59,7 @@ struct generic_tracepoint_event_arg {
 	/* tracepoint specific fields ... */
 };
 
-static inline __attribute__((always_inline)) unsigned long get_ctx_ul(void *src,
-								      int type)
+FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 {
 	switch (type) {
 	case syscall64_type:
