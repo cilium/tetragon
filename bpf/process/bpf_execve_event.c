@@ -29,7 +29,7 @@ struct {
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
 
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 read_args(void *ctx, struct msg_execve_event *event)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
@@ -96,7 +96,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 	return size;
 }
 
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
@@ -124,7 +124,7 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	return size;
 }
 
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 read_cwd(void *ctx, struct msg_process *p)
 {
 	if (p->flags & EVENT_ERROR_CWD)
@@ -132,7 +132,7 @@ read_cwd(void *ctx, struct msg_process *p)
 	return getcwd(p, p->size, p->pid);
 }
 
-static inline __attribute__((always_inline)) void
+FUNC_INLINE void
 read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 {
 	struct execve_info *info;
@@ -161,7 +161,7 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
  * one remaining thread at its exit path.
  */
 #ifdef __LARGE_BPF_PROG
-static inline __attribute__((always_inline)) __u32
+FUNC_INLINE __u32
 read_exe(struct task_struct *task, struct heap_exe *exe)
 {
 	struct file *file = BPF_CORE_READ(task, mm, exe_file);

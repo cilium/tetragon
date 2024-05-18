@@ -3,8 +3,7 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-static inline __attribute__((always_inline)) int
-do_enforcer(void *ctx)
+FUNC_INLINE int do_enforcer(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
 	struct enforcer_data *data;

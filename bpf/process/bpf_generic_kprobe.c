@@ -70,7 +70,7 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
-static inline __attribute__((always_inline)) int
+FUNC_INLINE int
 generic_kprobe_start_process_filter(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
