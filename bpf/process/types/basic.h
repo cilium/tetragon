@@ -2114,18 +2114,25 @@ FUNC_INLINE void do_action_notify_enforcer(int error, int signal)
 #define do_action_notify_enforcer(error, signal)
 #endif
 
-FUNC_INLINE __u32
-do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
-	  struct selector_action *actions, struct bpf_map_def *override_tasks, bool *post)
+FUNC_LOCAL __u32
+do_action(void *ctx, __u32 i, struct selector_action *actions,
+	  struct generic_maps *maps, bool *post)
 {
+	struct bpf_map_def *override_tasks = maps->override;
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
+	struct msg_generic_kprobe *e;
 	__s32 error, *error_p;
 	int fdi, namei;
 	int newfdi, oldfdi;
 	int socki;
 	int err = 0;
+	int zero = 0;
 	__u64 id;
+
+	e = map_lookup_elem(maps->heap, &zero);
+	if (!e)
+		return 0;
 
 	switch (action) {
 	case ACTION_NOPOST:
@@ -2229,8 +2236,7 @@ has_action(struct selector_action *actions, __u32 idx)
 
 /* Currently supporting 2 actions for selector. */
 FUNC_INLINE bool
-do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *actions,
-	   struct bpf_map_def *override_tasks)
+do_actions(void *ctx, struct selector_action *actions, struct generic_maps *maps)
 {
 	bool post = true;
 	__u32 l, i = 0;
@@ -2241,7 +2247,7 @@ do_actions(void *ctx, struct msg_generic_kprobe *e, struct selector_action *acti
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(ctx, i, e, actions, override_tasks, &post);
+		i = do_action(ctx, i, actions, maps, &post);
 	}
 
 	return post;
@@ -2314,7 +2320,7 @@ generic_actions(void *ctx, struct generic_maps *maps)
 		     :);
 	actions = (struct selector_action *)&f[actoff];
 
-	postit = do_actions(ctx, e, actions, maps->override);
+	postit = do_actions(ctx, actions, maps);
 	if (postit)
 		tail_call(ctx, maps->calls, TAIL_CALL_SEND);
 	return 0;
