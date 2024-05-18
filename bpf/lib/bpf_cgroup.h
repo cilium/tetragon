@@ -103,8 +103,7 @@ struct {
  *
  * Returns a pointer to the kernfs node name on success, NULL on failures.
  */
-static inline __attribute__((always_inline)) const char *
-__get_cgroup_kn_name(const struct kernfs_node *kn)
+FUNC_INLINE const char *__get_cgroup_kn_name(const struct kernfs_node *kn)
 {
 	const char *name = NULL;
 
@@ -120,8 +119,7 @@ __get_cgroup_kn_name(const struct kernfs_node *kn)
  *
  * Returns the kernfs node id on success, zero on failures.
  */
-static inline __attribute__((always_inline)) __u64
-__get_cgroup_kn_id(const struct kernfs_node *kn)
+FUNC_INLINE __u64 __get_cgroup_kn_id(const struct kernfs_node *kn)
 {
 	__u64 id = 0;
 
@@ -151,8 +149,7 @@ __get_cgroup_kn_id(const struct kernfs_node *kn)
  *
  * Returns the kernfs_node of the cgroup on success, NULL on failures.
  */
-static inline __attribute__((always_inline)) struct kernfs_node *
-__get_cgroup_kn(const struct cgroup *cgrp)
+FUNC_INLINE struct kernfs_node *__get_cgroup_kn(const struct cgroup *cgrp)
 {
 	struct kernfs_node *kn = NULL;
 
@@ -172,8 +169,7 @@ __get_cgroup_kn(const struct cgroup *cgrp)
  * Returning zero means the cgroup is running on the default
  * hierarchy.
  */
-static inline __attribute__((always_inline)) __u32
-get_cgroup_hierarchy_id(const struct cgroup *cgrp)
+FUNC_INLINE __u32 get_cgroup_hierarchy_id(const struct cgroup *cgrp)
 {
 	__u32 id;
 
@@ -189,8 +185,7 @@ get_cgroup_hierarchy_id(const struct cgroup *cgrp)
  * Returns a pointer to the cgroup node name on success that can
  * be read with probe_read(). NULL on failures.
  */
-static inline __attribute__((always_inline)) const char *
-get_cgroup_name(const struct cgroup *cgrp)
+FUNC_INLINE const char *get_cgroup_name(const struct cgroup *cgrp)
 {
 	const char *name;
 
@@ -209,8 +204,7 @@ get_cgroup_name(const struct cgroup *cgrp)
  *
  * Returns the cgroup level, or 0 if it can not be retrieved.
  */
-static inline __attribute__((always_inline)) __u32
-get_cgroup_level(const struct cgroup *cgrp)
+FUNC_INLINE __u32 get_cgroup_level(const struct cgroup *cgrp)
 {
 	__u32 level = 0;
 
@@ -224,8 +218,7 @@ get_cgroup_level(const struct cgroup *cgrp)
  *
  * Returns the cgroup id of the target cgroup on success, zero on failures.
  */
-static inline __attribute__((always_inline)) __u64
-get_cgroup_id(const struct cgroup *cgrp)
+FUNC_INLINE __u64 get_cgroup_id(const struct cgroup *cgrp)
 {
 	struct kernfs_node *kn;
 
@@ -257,7 +250,7 @@ get_cgroup_id(const struct cgroup *cgrp)
  * file where each line number is the index starting from zero without
  * counting first comment line.
  */
-static inline __attribute__((always_inline)) struct cgroup *
+FUNC_INLINE struct cgroup *
 get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
 {
 	struct cgroup_subsys_state *subsys;
@@ -322,7 +315,7 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
  *
  * Returns the cgroup id of current task on success, zero on failures.
  */
-static inline __attribute__((always_inline)) __u64
+FUNC_INLINE __u64
 __tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
 {
 	/*
@@ -344,8 +337,7 @@ __tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
  * It works similar to __tg_get_current_cgroup_id, but computes the cgrp if it is needed.
  * Returns the cgroup id of current task on success, zero on failures.
  */
-static inline __attribute__((always_inline)) __u64
-tg_get_current_cgroup_id()
+FUNC_INLINE __u64 tg_get_current_cgroup_id(void)
 {
 	__u32 error_flags;
 	struct cgroup *cgrp;
@@ -385,7 +377,7 @@ tg_get_current_cgroup_id()
  * __get_cgrp_tracking_val_heap() Get a cgroup_tracking_val from the
  * tg_cgrps_tracking_heap map while setting its fields.
  */
-static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+FUNC_INLINE struct cgroup_tracking_value *
 __get_cgrp_tracking_val_heap(cgroup_state state, __u32 hierarchy_id,
 			     __u32 level)
 {
@@ -409,7 +401,7 @@ __get_cgrp_tracking_val_heap(cgroup_state state, __u32 hierarchy_id,
  * obtained with __get_cgrp_tracking_val_heap(). It will initialize and
  * set the cgroup name too.
  */
-static inline __attribute__((always_inline)) struct cgroup_tracking_value *
+FUNC_INLINE struct cgroup_tracking_value *
 __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 {
 	const char *name;
