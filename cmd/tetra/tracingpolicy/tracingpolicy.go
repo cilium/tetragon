@@ -47,6 +47,7 @@ func New() *cobra.Command {
 		},
 	}
 
+	var tpDelNamespaceFlag string
 	tpDelCmd := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "delete a tracing policy",
@@ -56,7 +57,8 @@ func New() *cobra.Command {
 			defer c.Close()
 
 			_, err := c.Client.DeleteTracingPolicy(c.Ctx, &tetragon.DeleteTracingPolicyRequest{
-				Name: args[0],
+				Name:      args[0],
+				Namespace: tpDelNamespaceFlag,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to delete tracing policy: %w", err)
@@ -67,6 +69,7 @@ func New() *cobra.Command {
 		},
 	}
 
+	var tpEnableNamespaceFlag string
 	tpEnableCmd := &cobra.Command{
 		Use:   "enable <name>",
 		Short: "enable a tracing policy",
@@ -77,7 +80,8 @@ func New() *cobra.Command {
 			defer c.Close()
 
 			_, err := c.Client.EnableTracingPolicy(c.Ctx, &tetragon.EnableTracingPolicyRequest{
-				Name: args[0],
+				Name:      args[0],
+				Namespace: tpEnableNamespaceFlag,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to enable tracing policy: %w", err)
@@ -88,6 +92,7 @@ func New() *cobra.Command {
 		},
 	}
 
+	var tpDisableNamespaceFlag string
 	tpDisableCmd := &cobra.Command{
 		Use:   "disable <name>",
 		Short: "disable a tracing policy",
@@ -98,7 +103,8 @@ func New() *cobra.Command {
 			defer c.Close()
 
 			_, err := c.Client.DisableTracingPolicy(c.Ctx, &tetragon.DisableTracingPolicyRequest{
-				Name: args[0],
+				Name:      args[0],
+				Namespace: tpDisableNamespaceFlag,
 			})
 
 			if err != nil {
@@ -191,6 +197,12 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
+	tpDelFlags := tpDelCmd.Flags()
+	tpDelFlags.StringVarP(&tpDelNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	tpEnableFlags := tpEnableCmd.Flags()
+	tpEnableFlags.StringVarP(&tpEnableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	tpDisableFlags := tpDisableCmd.Flags()
+	tpDisableFlags.StringVarP(&tpDisableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
