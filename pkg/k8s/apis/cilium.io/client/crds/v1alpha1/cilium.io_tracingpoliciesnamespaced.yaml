@@ -122,6 +122,10 @@ spec:
                             - cred
                             - load_info
                             - module
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
                             type: string
                         required:
                         - index
@@ -203,6 +207,10 @@ spec:
                           - cred
                           - load_info
                           - module
+                          - kernel_cap_t
+                          - cap_inheritable
+                          - cap_permitted
+                          - cap_effective
                           type: string
                       required:
                       - index
@@ -751,6 +759,10 @@ spec:
                             - cred
                             - load_info
                             - module
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
                             type: string
                         required:
                         - index
