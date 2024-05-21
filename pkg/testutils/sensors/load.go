@@ -53,7 +53,9 @@ type prog struct {
 	mark bool
 }
 
-func findProgram(cache []*prog, name string, typ ebpf.ProgramType, match ProgMatch) *prog {
+func findProgram(cache []*prog, name string, typ ebpf.ProgramType, match ProgMatch) []*prog {
+	var p []*prog
+
 	for _, c := range cache {
 		if c.prog.Type != typ {
 			continue
@@ -61,15 +63,15 @@ func findProgram(cache []*prog, name string, typ ebpf.ProgramType, match ProgMat
 		switch match {
 		case ProgMatchPartial:
 			if strings.Contains(c.name, name) {
-				return c
+				p = append(p, c)
 			}
 		case ProgMatchFull:
 			if c.name == name {
-				return c
+				p = append(p, c)
 			}
 		}
 	}
-	return nil
+	return p
 }
 
 func mergeSensorMaps(t *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []SensorProg) ([]SensorMap, []SensorProg) {
@@ -188,12 +190,14 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 
 	// check that we loaded expected programs
 	for _, tp := range sensorProgs {
-		c := findProgram(cache, tp.Name, tp.Type, tp.Match)
-		if c == nil {
+		cs := findProgram(cache, tp.Name, tp.Type, tp.Match)
+		if len(cs) == 0 {
 			t.Fatalf("could not find program %v in sensor", tp.Name)
 		}
-		c.mark = true
-		t.Logf("Found prog %v type %s\n", c.name, c.prog.Type)
+		for _, c := range cs {
+			c.mark = true
+			t.Logf("Found prog %v type %s\n", c.name, c.prog.Type)
+		}
 	}
 
 	var extra bool
@@ -224,26 +228,28 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		for _, idx := range tm.Progs {
 			tp := sensorProgs[idx]
 
-			c := findProgram(cache, tp.Name, tp.Type, tp.Match)
-			if c == nil {
+			cs := findProgram(cache, tp.Name, tp.Type, tp.Match)
+			if len(cs) == 0 {
 				t.Fatalf("could not find program %v in sensor\n", tp.Name)
 			}
 
-			m := findMapForProg(c.coll, tm.Name, c.prog)
-			if m == nil {
-				t.Fatalf("could not find map %v in program %v\n", tm.Name, tp.Name)
-			}
+			for _, c := range cs {
+				m := findMapForProg(c.coll, tm.Name, c.prog)
+				if m == nil {
+					t.Fatalf("could not find map %v in program %v\n", tm.Name, tp.Name)
+				}
 
-			t.Logf("\tFound map %v id %v in prog %v\n", tm.Name, m.ID, tp.Name)
+				t.Logf("\tFound map %v id %v in prog %v\n", tm.Name, m.ID, tp.Name)
 
-			if sharedId == 0 {
-				sharedId = m.ID
-			}
+				if sharedId == 0 {
+					sharedId = m.ID
+				}
 
-			if m.ID != sharedId {
-				t.Fatalf("map %v has wrong shared id %v != %v\n", tm.Name, m.ID, sharedId)
+				if m.ID != sharedId {
+					t.Fatalf("map %v has wrong shared id %v != %v\n", tm.Name, m.ID, sharedId)
+				}
+				c.mark = true
 			}
-			c.mark = true
 		}
 
 		// check that rest of the loaded programs DO NOT share the map
