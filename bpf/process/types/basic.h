@@ -1583,6 +1583,20 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+static inline __attribute__((always_inline)) long
+filter_kernel_cap(struct selector_arg_filter *filter, char *args)
+{
+	__u64 val = 0;
+
+	if (bpf_core_field_exists(((kernel_cap_t *)0)->val)) {
+		kernel_cap_t *n = (kernel_cap_t *)args;
+		probe_read(&val, sizeof(__u64), _(&n->val));
+		return filter_64ty(filter, (char *)&val, false);
+	}
+
+	return 0;
+}
+
 static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 								     int argm)
 {
@@ -1828,11 +1842,13 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			set32bit = e->sel.is32BitSyscall;
 		case s64_ty:
 		case u64_ty:
+			pass &= filter_64ty(filter, args, set32bit);
+			break;
 		case kernel_cap_ty:
 		case cap_inh_ty:
 		case cap_prm_ty:
 		case cap_eff_ty:
-			pass &= filter_64ty(filter, args, set32bit);
+			pass &= filter_kernel_cap(filter, args);
 			break;
 		case size_type:
 		case int_type:
