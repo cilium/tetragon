@@ -37,6 +37,11 @@ const (
 	GenericLoadModule   = 26
 	GenericKernelModule = 27
 
+	GenericKernelCap      = 33
+	GenericCapInheritable = 34
+	GenericCapPermitted   = 35
+	GenericCapEffective   = 36
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -97,6 +102,14 @@ func GenericTypeFromString(arg string) int {
 		return GenericLoadModule
 	case "module":
 		return GenericKernelModule
+	case "kernel_cap_t":
+		return GenericKernelCap
+	case "cap_inheritable":
+		return GenericCapInheritable
+	case "cap_permitted":
+		return GenericCapPermitted
+	case "cap_effective":
+		return GenericCapEffective
 	default:
 		return GenericInvalidType
 	}
