@@ -16,3 +16,4 @@ lseek-pipe
 threads-tester
 bench-reader
 threads-exit
+change-capabilities

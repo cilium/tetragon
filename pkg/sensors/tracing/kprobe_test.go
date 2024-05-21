@@ -5,6 +5,7 @@ package tracing
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -36,6 +37,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
@@ -5748,6 +5750,120 @@ spec:
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+// Detect changing capabilities
+func TestProcessSetCap(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "privileges-raise"
+  annotations:
+    description: "Detects privileges change operations"
+spec:
+  kprobes:
+  - call: "security_capset"
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    - index: 1
+      type: "cred"
+    - index: 2
+      type: "cap_effective"
+    - index: 3
+      type: "cap_inheritable"
+    - index: 4
+      type: "cap_permitted"
+`
+
+	createCrdFile(t, tracingPolicy)
+
+	fullSet := caps.GetCapsFullSet()
+	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
+	secondChange := fullSet&0xffffffff00000000 | uint64(0xffdffffe) // removes CAP_SYS_ADMIN and CAP_CHOWN
+
+	_, currentPermitted, currentEffective, _ := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, fmt.Sprint(os.Getpid()), "status"))
+
+	if currentPermitted == 0 || currentPermitted != currentEffective {
+		t.Skip("Skipping test since current Permitted or Effective capabilities are zero or do not match")
+	}
+
+	// Now we ensure at least that we have the full capabilities set active
+	if caps.AreSubset(fullSet, currentPermitted) == false ||
+		caps.AreSubset(fullSet, currentEffective) == false {
+		// full capabilities set is not set in current permitted
+		t.Skipf("Skipping test since current Permitted or Effective capabilities are not a full capabilities set %s - %s",
+			caps.GetCapabilitiesHex(currentPermitted), caps.GetCapabilitiesHex(currentEffective))
+	}
+
+	lastCap, _ := caps.GetCapability(caps.GetLastCap())
+	t.Logf("Test %s running with last capability:%d  %s", t.Name(), caps.GetLastCap(), lastCap)
+	t.Logf("Test %s running with cap_permitted:%s  -  cap_effective:%s",
+		t.Name(), caps.GetCapabilitiesHex(currentPermitted), caps.GetCapabilitiesHex(currentEffective))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testSetCaps := testutils.RepoRootPath("contrib/tester-progs/change-capabilities")
+
+	t.Logf("Test %s Matching cap_permitted:%s - cap_inheritable:%s - cap_effective:%s",
+		t.Name(), caps.GetCapabilitiesHex(fullSet), fmt.Sprintf("%016x", 0), caps.GetCapabilitiesHex(firstChange))
+	kpCheckers1 := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_capset")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				// effective caps
+				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(caps.GetCapabilitiesHex(firstChange))),
+				// inheritable
+				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(fmt.Sprintf("%016x", 0))),
+				// permitted
+				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(caps.GetCapabilitiesHex(fullSet))),
+			))
+
+	t.Logf("Test %s Matching cap_permitted:%s - cap_inheritable:%s - cap_effective:%s",
+		t.Name(), caps.GetCapabilitiesHex(fullSet), fmt.Sprintf("%016x", 0), caps.GetCapabilitiesHex(secondChange))
+	kpCheckers2 := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_capset")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				// effective caps
+				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(caps.GetCapabilitiesHex(secondChange))),
+				// inheritable
+				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(fmt.Sprintf("%016x", 0))),
+				// permitted
+				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(caps.GetCapabilitiesHex(fullSet))),
+			))
+
+	testCmd := exec.CommandContext(ctx, testSetCaps)
+	var output, errput bytes.Buffer
+	testCmd.Stdout = &output
+	testCmd.Stderr = &errput
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		stderr := errput.String()
+		t.Fatalf("command failed with %s. Context error: %v, error output: %v", err, ctx.Err(), stderr)
+	}
+	if len(output.String()) > 0 {
+		t.Logf("Test %s command '%s' stdout:\n%v\n", t.Name(), testSetCaps, output.String())
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
