@@ -1579,6 +1579,62 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			}
 			arg.Label = a.label
 			unix.Args = append(unix.Args, arg)
+		case gt.GenericKernelCap:
+			var output uint64
+			var arg api.MsgGenericKprobeArgKernelCapType
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kernel_cap_t type error")
+			} else {
+				arg.Caps = output
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericCapInheritable:
+			var output uint64
+			var arg api.MsgGenericKprobeArgCapInheritable
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_inheritable type error")
+			} else {
+				arg.Caps = output
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericCapPermitted:
+			var output uint64
+			var arg api.MsgGenericKprobeArgCapPermitted
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_permitted type error")
+			} else {
+				arg.Caps = output
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
+		case gt.GenericCapEffective:
+			var output uint64
+			var arg api.MsgGenericKprobeArgCapEffective
+
+			err := binary.Read(r, binary.LittleEndian, &output)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_effective type error")
+			} else {
+				arg.Caps = output
+			}
+
+			arg.Index = uint64(a.index)
+			arg.Label = a.label
+			unix.Args = append(unix.Args, arg)
 		default:
 			logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
 		}

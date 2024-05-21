@@ -61,6 +61,11 @@ enum {
 	load_module_type = 26,
 	kernel_module_type = 27,
 
+	kernel_cap_ty = 33,
+	cap_inh_ty = 34,
+	cap_prm_ty = 35,
+	cap_eff_ty = 36,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -1408,6 +1413,10 @@ static inline __attribute__((always_inline)) size_t type_to_min_size(int type,
 	case size_type:
 	case s64_ty:
 	case u64_ty:
+	case kernel_cap_ty:
+	case cap_inh_ty:
+	case cap_prm_ty:
+	case cap_eff_ty:
 		return 8;
 	case char_buf:
 	case char_iovec:
@@ -2403,6 +2412,13 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_kernel_module(args, arg);
 		break;
 	}
+	case kernel_cap_ty:
+	case cap_inh_ty:
+	case cap_prm_ty:
+	case cap_eff_ty:
+		probe_read(args, sizeof(__u64), (char *)arg);
+		size = sizeof(__u64);
+		break;
 	default:
 		size = 0;
 		break;
