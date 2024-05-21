@@ -6553,6 +6553,29 @@ func TestProcessSetCap(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	fullSet := caps.GetCapsFullSet()
+	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
+	secondChange := fullSet&0xffffffff00000000 | uint64(0xffdffffe) // removes CAP_SYS_ADMIN and CAP_CHOWN
+
+	_, currentPermitted, currentEffective, currentInheritable := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, fmt.Sprint(os.Getpid()), "status"))
+	matchedInheritable := fullSet & currentInheritable
+
+	if currentPermitted == 0 || currentPermitted != currentEffective {
+		t.Skip("Skipping test since current Permitted or Effective capabilities are zero or do not match")
+	}
+
+	// Now we ensure at least that we have the full capabilities set active
+	if caps.AreSubset(fullSet, currentPermitted) == false ||
+		caps.AreSubset(fullSet, currentEffective) == false {
+		// full capabilities set is not set in current permitted
+		t.Skipf("Skipping test since current Permitted or Effective capabilities are not a full capabilities set %s - %s",
+			caps.GetCapabilitiesHex(currentPermitted), caps.GetCapabilitiesHex(currentEffective))
+	}
+
+	strEffective := caps.GetCapabilitiesHex(firstChange)
+	strInheritable := caps.GetCapabilitiesHex(matchedInheritable)
+	strFullSet := caps.GetCapabilitiesHex(fullSet)
+
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -6579,35 +6602,22 @@ spec:
     selectors:
     - matchArgs:
       - index: 2
-        operator: "NotEqual"
+        # Ensure we match the mask fullSet&0xffffffff00000000 | uint64(0xffdffffe) -> removes CAP_SYS_ADMIN and CAP_CHOWN
+        operator: "Mask"
         values:
-        - "0"
-    - matchArgs:
+        - ` + fmt.Sprintf("0x%s", caps.GetCapabilitiesHex(secondChange)) + `
+      - index: 3
+        # Ensure we match the cleared inheritable set
+        operator: "Equal"
+        values:
+        - ` + fmt.Sprintf("0x%s", strInheritable) + `
       - index: 4
-        operator: "NotEqual"
+        # Ensure we match the full capability set
+        operator: "Equal"
         values:
-        - "0"
+        - ` + fmt.Sprintf("0x%s", strFullSet) + `
 `
-
 	createCrdFile(t, tracingPolicy)
-
-	fullSet := caps.GetCapsFullSet()
-	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
-	secondChange := fullSet&0xffffffff00000000 | uint64(0xffdffffe) // removes CAP_SYS_ADMIN and CAP_CHOWN
-
-	_, currentPermitted, currentEffective, _ := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, fmt.Sprint(os.Getpid()), "status"))
-
-	if currentPermitted == 0 || currentPermitted != currentEffective {
-		t.Skip("Skipping test since current Permitted or Effective capabilities are zero or do not match")
-	}
-
-	// Now we ensure at least that we have the full capabilities set active
-	if caps.AreSubset(fullSet, currentPermitted) == false ||
-		caps.AreSubset(fullSet, currentEffective) == false {
-		// full capabilities set is not set in current permitted
-		t.Skipf("Skipping test since current Permitted or Effective capabilities are not a full capabilities set %s - %s",
-			caps.GetCapabilitiesHex(currentPermitted), caps.GetCapabilitiesHex(currentEffective))
-	}
 
 	lastCap, _ := caps.GetCapability(caps.GetLastCap())
 	t.Logf("Test %s running with last capability:%d  %s", t.Name(), caps.GetLastCap(), lastCap)
@@ -6624,33 +6634,34 @@ spec:
 	testSetCaps := testutils.RepoRootPath("contrib/tester-progs/change-capabilities")
 
 	t.Logf("Test %s Matching cap_permitted:%s - cap_inheritable:%s - cap_effective:%s",
-		t.Name(), caps.GetCapabilitiesHex(fullSet), fmt.Sprintf("%016x", 0), caps.GetCapabilitiesHex(firstChange))
+		t.Name(), strFullSet, strInheritable, strEffective)
 	kpCheckers1 := ec.NewProcessKprobeChecker("").
 		WithMessage(sm.Full("Process changed its capabilities with capset system call")).
 		WithFunctionName(sm.Full("security_capset")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
 				// effective caps
-				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(caps.GetCapabilitiesHex(firstChange))),
+				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(strEffective)),
 				// inheritable
-				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(fmt.Sprintf("%016x", 0))),
+				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(strInheritable)),
 				// permitted
-				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(caps.GetCapabilitiesHex(fullSet))),
+				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(strFullSet)),
 			))
 
+	strEffective = caps.GetCapabilitiesHex(secondChange)
 	t.Logf("Test %s Matching cap_permitted:%s - cap_inheritable:%s - cap_effective:%s",
-		t.Name(), caps.GetCapabilitiesHex(fullSet), fmt.Sprintf("%016x", 0), caps.GetCapabilitiesHex(secondChange))
+		t.Name(), strFullSet, caps.GetCapabilitiesHex(matchedInheritable), strEffective)
 	kpCheckers2 := ec.NewProcessKprobeChecker("").
 		WithMessage(sm.Full("Process changed its capabilities with capset system call")).
 		WithFunctionName(sm.Full("security_capset")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
 				// effective caps
-				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(caps.GetCapabilitiesHex(secondChange))),
+				ec.NewKprobeArgumentChecker().WithCapEffectiveArg(sm.Full(strEffective)),
 				// inheritable
-				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(fmt.Sprintf("%016x", 0))),
+				ec.NewKprobeArgumentChecker().WithCapInheritableArg(sm.Full(strInheritable)),
 				// permitted
-				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(caps.GetCapabilitiesHex(fullSet))),
+				ec.NewKprobeArgumentChecker().WithCapPermittedArg(sm.Full(strFullSet)),
 			))
 
 	testCmd := exec.CommandContext(ctx, testSetCaps)
