@@ -42,3 +42,10 @@ func TestGetCapability(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, str)
 }
+
+func TestCapsAreSubset(t *testing.T) {
+	assert.Equal(t, true, AreSubset(0x000001ffffffffff, 0x000001ffffffffff))
+	assert.Equal(t, true, AreSubset(0x000001fffffffffe, 0x000001ffffffffff))
+	assert.Equal(t, false, AreSubset(0x000001ffffffffff, 0x000001fffffffffe))
+	assert.Equal(t, true, AreSubset(0x0, 0x0))
+}

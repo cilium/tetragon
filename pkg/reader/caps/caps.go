@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -18,12 +19,61 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var (
+	// Set default last capability based on upstream unix go library
+	cap_last_cap = int32(unix.CAP_LAST_CAP)
+	lastCapOnce  sync.Once
+)
+
+// GetLastCap() Returns unix.CAP_LAST_CAP unless the kernel
+// defines another last cap which is the case for old kernels.
+func GetLastCap() int32 {
+	lastCapOnce.Do(func() {
+		d, err := os.ReadFile(filepath.Join(option.Config.ProcFS, "/sys/kernel/cap_last_cap"))
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Could not read kernel cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap)
+		}
+		val, err := strconv.ParseInt(strings.TrimRight(string(d), "\n"), 10, 32)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Could not parse cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap)
+			return
+		}
+		// just silence some CodeQL
+		if val >= 0 && val < unix.CAP_LAST_CAP {
+			cap_last_cap = int32(val)
+		}
+	})
+	return cap_last_cap
+}
+
 func isCapValid(capInt int32) bool {
 	if capInt >= 0 && capInt <= unix.CAP_LAST_CAP {
 		return true
 	}
 
 	return false
+}
+
+// AreSubset() Checks if "a" is a subset of "set"
+// Rerturns true if all "a" capabilities are also in "set", otherwise
+// false.
+func AreSubset(a uint64, set uint64) bool {
+	return (!((a & ^uint64(set)) != 0))
+}
+
+// capToMask() returns the mask of the corresponding u32
+func capToMask(cap int32) uint32 {
+	return uint32(1 << ((cap) & 31))
+}
+
+// GetCapsFullSet() Returns up to date (go unix library) full set.
+func GetCapsFullSet() uint64 {
+	// Get last u32 bits
+	caps := uint64(capToMask(GetLastCap()+1)-1) << 32
+	// Get first u32 bits
+	caps |= uint64(^uint32(0))
+
+	return caps
 }
 
 func GetCapability(capInt int32) (string, error) {
