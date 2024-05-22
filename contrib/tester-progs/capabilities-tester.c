@@ -46,8 +46,8 @@ void clear_my_cap(cap_value_t c, cap_flag_t ty)
    cap_t cap;
    cap_value_t cap_list[CAP_LAST_CAP+1];
 
-  	cap = cap_get_proc();
-	if (cap == NULL)
+   cap = cap_get_proc();
+   if (cap == NULL)
       errExit("cap_get_proc"); 
 
    cap_list[0] = c;
