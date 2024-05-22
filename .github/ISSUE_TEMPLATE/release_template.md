@@ -32,6 +32,7 @@ assignees: ''
       git checkout main
       git pull origin main
       git tag -a $RELEASE -m "$RELEASE release" -s
+      git tag -a api/$RELEASE -m "api/$RELEASE release" -s
       git push origin $RELEASE
 
 - If release is `X.Y.0`:
