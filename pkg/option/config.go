@@ -46,11 +46,12 @@ type config struct {
 	ProcessCacheSize int
 	DataCacheSize    int
 
-	MetricsServer      string
-	MetricsLabelFilter metrics.LabelFilter
-	ServerAddress      string
-	TracingPolicy      string
-	TracingPolicyDir   string
+	MetricsServer         string
+	MetricsLabelFilter    metrics.LabelFilter
+	ServerAddress         string
+	TracingPolicy         string
+	TracingPolicyDir      string
+	RuntimeSecurityPolicy string
 
 	ExportFilename             string
 	ExportFileMaxSizeMB        int

@@ -2,6 +2,7 @@ package runtimesecuritypolicy
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
@@ -107,6 +108,26 @@ func FromYAMLToTracingPolicy(data []byte) (*RuntimeSecurityTracingPolicy, error)
 		return nil, err
 	}
 
+	return ToTracingPolicy(*rsp)
+}
+
+func FromFile(path string) (*v1alpha1.RuntimeSecurityPolicy, error) {
+	policy, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	tp, err := FromYAML(policy)
+	if err != nil {
+		return nil, fmt.Errorf("failed loading runtime security policy file %q: %w", path, err)
+	}
+	return tp, nil
+}
+
+func FromFileToTracingPolicy(path string) (*RuntimeSecurityTracingPolicy, error) {
+	rsp, err := FromFile(path)
+	if err != nil {
+		return nil, err
+	}
 	return ToTracingPolicy(*rsp)
 }
 

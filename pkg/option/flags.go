@@ -36,14 +36,15 @@ const (
 	KeyK8sKubeConfigPath      = "k8s-kubeconfig-path"
 	KeyEnableProcessAncestors = "enable-process-ancestors"
 
-	KeyMetricsServer      = "metrics-server"
-	KeyMetricsLabelFilter = "metrics-label-filter"
-	KeyServerAddress      = "server-address"
-	KeyGopsAddr           = "gops-address"
-	KeyEnableProcessCred  = "enable-process-cred"
-	KeyEnableProcessNs    = "enable-process-ns"
-	KeyTracingPolicy      = "tracing-policy"
-	KeyTracingPolicyDir   = "tracing-policy-dir"
+	KeyMetricsServer         = "metrics-server"
+	KeyMetricsLabelFilter    = "metrics-label-filter"
+	KeyServerAddress         = "server-address"
+	KeyGopsAddr              = "gops-address"
+	KeyEnableProcessCred     = "enable-process-cred"
+	KeyEnableProcessNs       = "enable-process-ns"
+	KeyTracingPolicy         = "tracing-policy"
+	KeyTracingPolicyDir      = "tracing-policy-dir"
+	KeyRuntimeSecurityPolicy = "runtime-security-policy"
 
 	KeyCpuProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
@@ -197,6 +198,7 @@ func ReadAndSetFlags() error {
 	Config.EnableRuntimeSecurityPolicyCRD = viper.GetBool(KeyEnableRuntimeSecurityPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
+	Config.RuntimeSecurityPolicy = viper.GetString(KeyRuntimeSecurityPolicy)
 
 	switch viper.GetString(KeyUsernameMetadata) {
 	case "unix":
@@ -302,6 +304,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
 
 	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
+
+	flags.String(KeyRuntimeSecurityPolicy, "", "Runtime security policy file to load at startup")
 
 	// Options for debugging/development, not visible to users
 	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")

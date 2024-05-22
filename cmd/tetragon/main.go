@@ -48,6 +48,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/rthooks"
+	"github.com/cilium/tetragon/pkg/runtimesecuritypolicy"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
@@ -481,6 +482,13 @@ func tetragonExecute() error {
 		}
 	}
 
+	if len(option.Config.RuntimeSecurityPolicy) > 0 {
+		err = addRuntimeSecurityPolicy(ctx, option.Config.RuntimeSecurityPolicy)
+		if err != nil {
+			return err
+		}
+	}
+
 	// k8s should have metrics, so periodically log only in a non k8s
 	if !option.Config.EnableK8s {
 		go logStatus(ctx, obs)
@@ -582,6 +590,25 @@ func loadTpFromDir(ctx context.Context, dir string) error {
 	})
 
 	return err
+}
+
+func addRuntimeSecurityPolicy(ctx context.Context, file string) error {
+	tp, err := runtimesecuritypolicy.FromFileToTracingPolicy(file)
+	if err != nil {
+		return err
+	}
+
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	if err != nil {
+		return err
+	}
+
+	logger.GetLogger().WithFields(logrus.Fields{
+		"RuntimeSecurityPolicy": file,
+		"metadata.name":         tp.Name,
+	}).Info("Added RuntimeSecurityPolicy with success")
+
+	return nil
 }
 
 func addTracingPolicy(ctx context.Context, file string) error {
