@@ -46,7 +46,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 	err := bspec.TypeByName(call, &fn)
 	if err != nil {
 		if !kspec.Syscall {
-			return &ValidationFailed{s: fmt.Sprintf("call %q not found", call)}
+			return &ValidationFailed{s: fmt.Sprintf("call %q %v", call, err)}
 		}
 		origCall := call
 		call, err = arch.AddSyscallPrefix(call)
@@ -55,7 +55,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 		}
 		if err != nil {
 			return &ValidationFailed{
-				s: fmt.Sprintf("syscall %q (or %q) not found.", origCall, call),
+				s: fmt.Sprintf("syscall %q (or %q) %v", origCall, call, err),
 			}
 		}
 	}
