@@ -108,6 +108,13 @@ FUNC_INLINE int next_pid_value(__u32 off, __u32 *f, __u32 ty)
 	return off + 4;
 }
 
+struct selector_filter {
+	__u64 ty;
+	__u64 flags;
+	__u64 len;
+	__u32 index;
+};
+
 FUNC_INLINE int
 process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 		   struct execve_map_value *enter, struct msg_ns *n,
@@ -289,7 +296,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 #define MAX_SELECTOR_VALUES 4
 
 FUNC_INLINE int
-selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
+selector_match(__u32 *f, struct selector_filter *sel,
 	       struct execve_map_value *enter, struct msg_ns *n,
 	       struct msg_capabilities *c,
 	       int (*process_filter)(__u32, __u32, __u32 *, __u64, __u64,
@@ -297,6 +304,10 @@ selector_match(__u32 *f, __u32 index, __u64 ty, __u64 flags, __u64 len,
 				     struct msg_capabilities *))
 {
 	int res1 = 0, res2 = 0, res3 = 0, res4 = 0;
+	__u32 index = sel->index;
+	__u64 flags = sel->flags;
+	__u64 len = sel->len;
+	__u64 ty = sel->ty;
 
 	/* For NotIn op we AND results so default to 1 so we fallthru open */
 	if (ty == op_filter_notin)
@@ -408,7 +419,13 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		pid = (struct pid_filter *)((u64)f + index);
 		/* 12: op, flags, length */
 		index += sizeof(struct pid_filter);
-		res = selector_match(f, index, pid->op, pid->flags, pid->len,
+		struct selector_filter sel = {
+			.index = index,
+			.ty = pid->op,
+			.flags = pid->flags,
+			.len = pid->len,
+		};
+		res = selector_match(f, &sel,
 				     enter, &msg->ns, &msg->caps, &process_filter_pid);
 		/* now index points at the end of PID filter */
 		index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
@@ -433,7 +450,13 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			ns = (struct ns_filter *)((u64)f + (index & INDEX_MASK));
 			/* 12: namespace, op, length */
 			index += sizeof(struct ns_filter);
-			res = selector_match(f, index, ns->op, ns->ty, ns->len,
+			struct selector_filter sel = {
+				.index = index,
+				.ty = ns->op,
+				.flags = ns->ty,
+				.len = ns->len,
+			};
+			res = selector_match(f, &sel,
 					     enter, &msg->ns, &msg->caps,
 					     &process_filter_namespace);
 			/* now index points at the end of namespace filter */
