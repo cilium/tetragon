@@ -372,8 +372,7 @@ struct nc_filter {
 
 FUNC_INLINE int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
-			struct msg_selector_data *sel, struct msg_ns *n,
-			struct msg_capabilities *c)
+			struct msg_generic_kprobe *msg)
 {
 	int res = PFILTER_ACCEPT;
 	struct pid_filter *pid;
@@ -410,7 +409,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		/* 12: op, flags, length */
 		index += sizeof(struct pid_filter);
 		res = selector_match(f, index, pid->op, pid->flags, pid->len,
-				     enter, n, c, &process_filter_pid);
+				     enter, &msg->ns, &msg->caps, &process_filter_pid);
 		/* now index points at the end of PID filter */
 		index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
 	}
@@ -435,7 +434,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			/* 12: namespace, op, length */
 			index += sizeof(struct ns_filter);
 			res = selector_match(f, index, ns->op, ns->ty, ns->len,
-					     enter, n, c,
+					     enter, &msg->ns, &msg->caps,
 					     &process_filter_namespace);
 			/* now index points at the end of namespace filter */
 			index += ((ns->len * sizeof(ns->val[0])) & VALUES_MASK);
@@ -455,7 +454,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
 		res = process_filter_capabilities(caps->ty, caps->op, caps->ns,
-						  caps->val, n, c);
+						  caps->val, &msg->ns, &msg->caps);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
@@ -471,7 +470,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		nc = (struct nc_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct nc_filter); /* 8: op, val */
 		res = process_filter_namespace_change(nc->op, nc->value, enter,
-						      n, c, sel);
+						      &msg->ns, &msg->caps, &msg->sel);
 		/* now index points at the end of namespace change filter */
 	}
 	if (res == PFILTER_REJECT)
@@ -490,7 +489,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
 		res = process_filter_capability_change(
-			caps->ty, caps->op, caps->ns, caps->val, n, c, sel);
+			caps->ty, caps->op, caps->ns, caps->val, &msg->ns, &msg->caps, &msg->sel);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
@@ -561,9 +560,7 @@ generic_process_filter(struct bpf_map_def *heap, struct bpf_map_def *fmap)
 		if (selectors <= curr)
 			return process_filter_done(sel, enter, current);
 
-		pass = selector_process_filter(
-			f, curr, enter, sel, &msg->ns,
-			&msg->caps); /* matches the PID and Namespace */
+		pass = selector_process_filter(f, curr, enter, msg);
 		if (pass) {
 			/* Verify lost that msg is not null here so recheck */
 			asm volatile("%[curr] &= 0x1f;\n" ::[curr] "r+"(curr)
