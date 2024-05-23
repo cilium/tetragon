@@ -521,22 +521,30 @@ process_filter_done(struct msg_selector_data *sel,
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
 FUNC_INLINE int
-generic_process_filter(struct msg_selector_data *sel,
-		       struct msg_execve_key *current, struct msg_ns *ns,
-		       struct msg_capabilities *caps, void *fmap, int idx)
+generic_process_filter(struct bpf_map_def *heap, struct bpf_map_def *fmap)
 {
 	struct execve_map_value *enter;
+	struct msg_generic_kprobe *msg;
+	struct msg_execve_key *current;
+	struct msg_selector_data *sel;
+	int curr, zero = 0;
 	bool walker = 0;
 	__u32 ppid;
-	int curr;
+
+	msg = map_lookup_elem(heap, &zero);
+	if (!msg)
+		return 0;
 
 	enter = event_find_curr(&ppid, &walker);
 	if (enter) {
 		int selectors, pass;
-		__u32 *f = map_lookup_elem(fmap, &idx);
+		__u32 *f = map_lookup_elem(fmap, &msg->idx);
 
 		if (!f)
 			return PFILTER_ERROR;
+
+		sel = &msg->sel;
+		current = &msg->current;
 
 		curr = sel->curr;
 		if (curr > MAX_SELECTORS)
@@ -554,8 +562,8 @@ generic_process_filter(struct msg_selector_data *sel,
 			return process_filter_done(sel, enter, current);
 
 		pass = selector_process_filter(
-			f, curr, enter, sel, ns,
-			caps); /* matches the PID and Namespace */
+			f, curr, enter, sel, &msg->ns,
+			&msg->caps); /* matches the PID and Namespace */
 		if (pass) {
 			/* Verify lost that msg is not null here so recheck */
 			asm volatile("%[curr] &= 0x1f;\n" ::[curr] "r+"(curr)

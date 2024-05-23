@@ -184,15 +184,10 @@ generic_kprobe_process_event(void *ctx)
 __attribute__((section("kprobe/2"), used)) int
 generic_kprobe_process_filter(void *ctx)
 {
-	struct msg_generic_kprobe *msg;
-	int ret, zero = 0;
+	int ret;
 
-	msg = map_lookup_elem(&process_call_heap, &zero);
-	if (!msg)
-		return 0;
-
-	ret = generic_process_filter(&msg->sel, &msg->current, &msg->ns,
-				     &msg->caps, &filter_map, msg->idx);
+	ret = generic_process_filter((struct bpf_map_def *)&process_call_heap,
+				     (struct bpf_map_def *)&filter_map);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
