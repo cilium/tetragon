@@ -116,7 +116,7 @@ struct selector_filter {
 };
 
 FUNC_INLINE int
-process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
+process_filter_pid(__u32 off, __u32 *f, __u64 ty, __u64 flags,
 		   struct execve_map_value *enter, struct msg_ns *n,
 		   struct msg_capabilities *c)
 {
@@ -142,7 +142,7 @@ process_filter_pid(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 flags,
 }
 
 FUNC_INLINE int
-process_filter_namespace(__u32 i, __u32 off, __u32 *f, __u64 ty, __u64 nsid,
+process_filter_namespace(__u32 off, __u32 *f, __u64 ty, __u64 nsid,
 			 struct execve_map_value *enter, struct msg_ns *n,
 			 struct msg_capabilities *c)
 {
@@ -299,7 +299,7 @@ FUNC_INLINE int
 selector_match(__u32 *f, struct selector_filter *sel,
 	       struct execve_map_value *enter,
 	       struct msg_generic_kprobe *msg,
-	       int (*process_filter)(__u32, __u32, __u32 *, __u64, __u64,
+	       int (*process_filter)(__u32, __u32 *, __u64, __u64,
 				     struct execve_map_value *, struct msg_ns *,
 				     struct msg_capabilities *))
 {
@@ -330,16 +330,16 @@ selector_match(__u32 *f, struct selector_filter *sel,
 	else if (len == 1)
 		goto one;
 four:
-	res4 = process_filter(3, index, f, ty, flags, enter, &msg->ns, &msg->caps);
+	res4 = process_filter(index, f, ty, flags, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 three:
-	res3 = process_filter(2, index, f, ty, flags, enter, &msg->ns, &msg->caps);
+	res3 = process_filter(index, f, ty, flags, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 two:
-	res2 = process_filter(1, index, f, ty, flags, enter, &msg->ns, &msg->caps);
+	res2 = process_filter(index, f, ty, flags, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 one:
-	res1 = process_filter(0, index, f, ty, flags, enter, &msg->ns, &msg->caps);
+	res1 = process_filter(index, f, ty, flags, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 
 	if (ty == op_filter_notin)
