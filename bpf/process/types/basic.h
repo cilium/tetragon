@@ -702,7 +702,7 @@ FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 	return 0;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
 {
 	__u32 *map_ids = (__u32 *)&filter->value;
@@ -791,7 +791,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	return !!pass;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
 {
 	void *addrmap;
@@ -854,7 +854,7 @@ FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 	}
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
 {
 	void *addrmap;
@@ -887,7 +887,7 @@ FUNC_INLINE bool is_not_operator(__u32 op)
 	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin);
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	long match = 0;
@@ -923,7 +923,7 @@ struct string_buf {
  * and the filter file path in the normal order. For the 'postfix' operator we do
  * a reverse search.
  */
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 {
 	long match = 0;
@@ -1009,7 +1009,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 /* filter_inet: runs a comparison between the IPv4/6 addresses and ports in
  * the sock or skb in the args aginst the filter parameters.
  */
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_inet(struct selector_arg_filter *filter, char *args)
 {
 	__u64 addr[2] = { 0, 0 };
@@ -1256,7 +1256,7 @@ FUNC_INLINE bool is_signed_type(int type)
 }
 
 // filter on values provided in the selector itself
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
@@ -1312,7 +1312,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	void *argmap;
@@ -1338,7 +1338,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 	return 0;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	switch (filter->op) {
@@ -1356,7 +1356,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 	return 0;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u32 *v = (__u32 *)&filter->value;
@@ -1413,7 +1413,7 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_32ty_map(struct selector_arg_filter *filter, char *args)
 {
 	void *argmap;
@@ -1442,7 +1442,7 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 filter_32ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
