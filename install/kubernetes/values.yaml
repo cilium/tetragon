@@ -59,6 +59,11 @@ tetragon:
   extraVolumeMounts: []
   securityContext:
     privileged: true
+  # -- Overrides the default livenessProbe for the tetragon container.
+  livenessProbe: {}
+  #  grpc:
+  #    port: 54321
+
   # Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed
   # processes.
   processCacheSize: 65536

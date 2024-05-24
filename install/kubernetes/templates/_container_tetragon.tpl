@@ -66,7 +66,10 @@
   resources:
     {{- toYaml . | nindent 4 }}
 {{- end }}
-{{- if .Values.tetragon.grpc.enabled }}
+{{- if .Values.tetragon.livenessProbe }}
+  livenessProbe:
+  {{- toYaml .Values.tetragon.livenessProbe | nindent 4 }}
+{{- else if .Values.tetragon.grpc.enabled }}
   livenessProbe:
      timeoutSeconds: 60
      exec:
