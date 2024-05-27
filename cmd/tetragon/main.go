@@ -36,6 +36,7 @@ import (
 	"github.com/cilium/tetragon/pkg/fileutils"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
+	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
@@ -244,6 +245,19 @@ func tetragonExecute() error {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
+
+	// start liveness probe http endpoint
+	go func() {
+		http.HandleFunc("/liveness", func(w http.ResponseWriter, _ *http.Request) {
+			resp, err := health.GetHealth()
+			if err == nil && len(resp.HealthStatus) == 1 && resp.HealthStatus[0].Status == tetragon.HealthStatusResult_HEALTH_STATUS_RUNNING {
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusServiceUnavailable)
+			}
+		})
+		http.ListenAndServe(":6789", nil)
+	}()
 
 	if option.Config.PprofAddr != "" {
 		go func() {
