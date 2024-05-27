@@ -138,7 +138,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	}
 
 	<-ctx.Done()
-	obs.RemovePrograms()
+	sensors.UnloadSensors([]*sensors.Sensor{benchSensors, baseSensors})
 }
 
 func sigHandler(ctx context.Context, cancel context.CancelFunc) {
