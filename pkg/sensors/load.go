@@ -374,21 +374,6 @@ func unloadProgram(prog *program.Program) {
 	log.Info("BPF prog was unloaded")
 }
 
-func UnloadAll() {
-	for _, l := range AllPrograms {
-		unloadProgram(l)
-	}
-
-	for _, m := range AllMaps {
-		if err := m.Unload(); err != nil {
-			logger.GetLogger().Warnf("Failed to unload map %s: %s", m.Name, err)
-		}
-	}
-
-	AllPrograms = []*program.Program{}
-	AllMaps = []*program.Map{}
-}
-
 func UnloadSensors(sens []*Sensor) {
 	for i := range sens {
 		if err := sens[i].Unload(); err != nil {
