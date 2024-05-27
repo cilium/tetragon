@@ -403,10 +403,6 @@ func (k *Observer) PrintStats() {
 	}).Info("Observer events statistics")
 }
 
-func (k *Observer) RemovePrograms() {
-	RemovePrograms(option.Config.BpfDir)
-}
-
 func RemoveSensors(ctx context.Context) {
 	if mgr := GetSensorManager(); mgr != nil {
 		mgr.RemoveAllSensors(ctx)
