@@ -69,17 +69,12 @@
 {{- if .Values.tetragon.livenessProbe }}
   livenessProbe:
   {{- toYaml .Values.tetragon.livenessProbe | nindent 4 }}
-{{- else if .Values.tetragon.grpc.enabled }}
+{{- else if .Values.tetragon.healthGrpc.enabled }}
   livenessProbe:
      timeoutSeconds: 60
-     exec:
-       command:
-       - tetra
-       - status
-       - --server-address
-       - {{ .Values.tetragon.grpc.address }}
-       - --retries
-       - "5"
+     grpc:
+      port: {{ .Values.tetragon.healthGrpc.port }}
+      service: "liveness"
 {{- end -}}
 {{- end -}}
 
