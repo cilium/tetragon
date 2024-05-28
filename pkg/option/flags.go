@@ -100,6 +100,9 @@ const (
 	KeyCgroupRate = "cgroup-rate"
 
 	KeyUsernameMetadata = "username-metadata"
+
+	KeyHealthServerAddress = "health-server-address"
+	KeyHealthTimeInterval  = "health-server-interval"
 )
 
 type UsernameMetadaCode int
@@ -211,6 +214,8 @@ func ReadAndSetFlags() error {
 	}
 
 	Config.CgroupRate = ParseCgroupRate(viper.GetString(KeyCgroupRate))
+	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
+	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 	return nil
 }
 
@@ -362,4 +367,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyUsernameMetadata, "disabled", "Resolve UIDs to user names for processes running in host namespace")
 
 	flags.String(KeyCgroupRate, "", "Base sensor events cgroup rate <events,interval> disabled by default ('1000/1s' means rate 1000 events per second")
+
+	flags.String(KeyHealthServerAddress, ":6789", "Health server address (e.g. ':6789')(use '' to disabled it)")
+	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
 }

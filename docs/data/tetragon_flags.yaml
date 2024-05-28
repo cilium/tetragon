@@ -119,6 +119,12 @@ options:
     - name: gops-address
       usage: |
         gops server address (e.g. 'localhost:8118'). Disabled by default
+    - name: health-server-address
+      default_value: :6789
+      usage: Health server address (e.g. ':6789')(use '' to disabled it)
+    - name: health-server-interval
+      default_value: "10"
+      usage: Health server interval in seconds
     - name: help
       shorthand: h
       default_value: "false"
