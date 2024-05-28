@@ -162,7 +162,10 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 			Name:     name,
 			Enabled:  col.enabled,
 			FilterId: col.policyfilterID,
-			Error:    fmt.Sprint(col.err),
+		}
+
+		if col.err != nil {
+			pol.Error = col.err.Error()
 		}
 
 		pol.Namespace = ""
