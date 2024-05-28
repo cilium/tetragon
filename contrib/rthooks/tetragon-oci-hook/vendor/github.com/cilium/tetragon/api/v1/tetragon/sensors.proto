@@ -40,6 +40,10 @@ enum TracingPolicyState {
 	TP_STATE_LOAD_ERROR = 3;
 	// failed during lifetime
 	TP_STATE_ERROR = 4;
+	// in the process of loading
+	TP_STATE_LOADING = 5;
+	// in the process of unloading
+	TP_STATE_UNLOADING = 6;
 }
 
 message TracingPolicyStatus {
