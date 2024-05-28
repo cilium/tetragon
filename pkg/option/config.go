@@ -90,6 +90,9 @@ type config struct {
 	CgroupRate CgroupRate
 
 	UsernameMetadata int
+
+	HealthServerAddress  string
+	HealthServerInterval int
 }
 
 var (

@@ -44,6 +44,12 @@ data:
   server-address: {{ .Values.tetragon.grpc.address }}
 {{- else }}
 {{- end }}
+{{- if .Values.tetragon.healthGrpc.enabled }}
+  health-server-address: :{{ .Values.tetragon.healthGrpc.port }}
+  health-server-interval: {{ .Values.tetragon.healthGrpc.interval | quote }}
+{{- else }}
+  health-server-address: ""
+{{- end }}
 {{- if .Values.tetragon.tcpStatsSampleSegs }}
   tcp-stats-sample-segs: {{ .Values.tetragon.tcpStatsSampleSegs | quote }}
 {{- end }}
