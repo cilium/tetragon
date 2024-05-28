@@ -14,7 +14,7 @@ import (
 
 type handler struct {
 	// map of sensor collections: name, namespace -> collection
-	collections map[collectionKey]collection
+	collections map[collectionKey]*collection
 	bpfDir      string
 
 	nextPolicyID uint64
@@ -25,7 +25,7 @@ func newHandler(
 	pfState policyfilter.State,
 	bpfDir string) (*handler, error) {
 	return &handler{
-		collections: map[collectionKey]collection{},
+		collections: map[collectionKey]*collection{},
 		bpfDir:      bpfDir,
 		pfState:     pfState,
 		// NB: we are using policy ids for filtering, so we start with
@@ -120,7 +120,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = col
+		h.collections[op.ck] = &col
 		return err
 	}
 	col.policyfilterID = uint64(filterID)
@@ -129,7 +129,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = col
+		h.collections[op.ck] = &col
 		return err
 	}
 	col.sensors = sensors
@@ -137,12 +137,12 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err := col.load(h.bpfDir); err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = col
+		h.collections[op.ck] = &col
 		return err
 	}
 	col.state = EnabledState
 
-	h.collections[op.ck] = col
+	h.collections[op.ck] = &col
 	return nil
 }
 
@@ -252,7 +252,7 @@ func (h *handler) addSensor(op *sensorAdd) error {
 	if _, exists := h.collections[ck]; exists {
 		return fmt.Errorf("sensor %s already exists", ck)
 	}
-	h.collections[ck] = collection{
+	h.collections[ck] = &collection{
 		sensors: []*Sensor{op.sensor},
 		name:    op.name,
 	}
