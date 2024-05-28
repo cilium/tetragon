@@ -60,6 +60,9 @@ Helm chart for Tetragon
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
 | tetragon.grpc.address | string | `"localhost:54321"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock |
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
+| tetragon.healthGrpc.enabled | bool | `true` | Whether to enable health gRPC server. |
+| tetragon.healthGrpc.interval | int | `10` | The interval at which to check the health of the agent. |
+| tetragon.healthGrpc.port | int | `6789` | The port at which to expose health gRPC. |
 | tetragon.hostProcPath | string | `"/proc"` | Location of the host proc filesystem in the runtime environment. If the runtime runs in the host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself does not run on the host. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |

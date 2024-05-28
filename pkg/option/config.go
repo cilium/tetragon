@@ -88,6 +88,9 @@ type config struct {
 	ExposeStackAddresses bool
 
 	UsernameMetadata int
+
+	HealthServerAddress  string
+	HealthServerInterval int
 }
 
 var (

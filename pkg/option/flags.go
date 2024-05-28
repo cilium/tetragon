@@ -96,6 +96,9 @@ const (
 	KeyGenerateDocs = "generate-docs"
 
 	KeyUsernameMetadata = "username-metadata"
+
+	KeyHealthServerAddress = "health-server-address"
+	KeyHealthTimeInterval  = "health-server-interval"
 )
 
 type UsernameMetadaCode int
@@ -206,6 +209,8 @@ func ReadAndSetFlags() error {
 		Config.ExposeStackAddresses = viper.GetBool(KeyExposeStackAddresses)
 	}
 
+	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
+	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 	return nil
 }
 
@@ -312,4 +317,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeyUsernameMetadata, "disabled", "Resolve UIDs to user names for processes running in host namespace")
 
+	flags.String(KeyHealthServerAddress, ":6789", "Health server address (e.g. ':6789')(use '' to disabled it)")
+	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
 }
