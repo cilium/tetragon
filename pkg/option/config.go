@@ -86,6 +86,9 @@ type config struct {
 	EnablePodInfo bool
 
 	ExposeKernelAddresses bool
+
+	HealthServerAddress  string
+	HealthServerInterval int
 }
 
 var (

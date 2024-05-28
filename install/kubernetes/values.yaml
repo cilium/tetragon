@@ -184,6 +184,13 @@ tetragon:
   enablePolicyFilterDebug: false
   # Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
+  healthGrpc:
+    # -- Whether to enable health gRPC server.
+    enabled: true
+    # -- The port at which to expose health gRPC.
+    port: 6789
+    # -- The interval at which to check the health of the agent.
+    interval: 10
   # -- Location of the host proc filesystem in the runtime environment. If the runtime runs in the
   # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
   # does not run on the host.
