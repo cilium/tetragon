@@ -38,6 +38,8 @@ Flags:
       --force-large-progs                         Force loading large programs, even in kernels with < 5.3 versions
       --force-small-progs                         Force loading small programs, even in kernels with >= 5.3 versions
       --gops-address string                       gops server address (e.g. 'localhost:8118'). Disabled by default
+      --health-server-address string              Health server address (e.g. ':6789')(use '' to disabled it) (default ":6789")
+      --health-server-interval int                Health server interval in seconds (default 10)
   -h, --help                                      help for tetragon
       --k8s-kubeconfig-path string                Absolute path of the kubernetes kubeconfig file
       --kernel string                             Kernel version

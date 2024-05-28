@@ -90,6 +90,9 @@ const (
 	KeyEnablePodInfo = "enable-pod-info"
 
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
+
+	KeyHealthServerAddress = "health-server-address"
+	KeyHealthTimeInterval  = "health-server-interval"
 )
 
 func ReadAndSetFlags() error {
@@ -169,6 +172,8 @@ func ReadAndSetFlags() error {
 
 	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
 
+	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
+	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 	return nil
 }
 
@@ -274,4 +279,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
+
+	flags.String(KeyHealthServerAddress, ":6789", "Health server address (e.g. ':6789')(use '' to disabled it)")
+	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
 }
