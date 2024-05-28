@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/fileutils"
 	"github.com/cilium/tetragon/pkg/filters"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
+	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
@@ -437,6 +438,10 @@ func tetragonExecute() error {
 		if err = startExporter(ctx, pm.Server); err != nil {
 			return err
 		}
+	}
+
+	if option.Config.HealthServerAddress != "" {
+		health.StartHealthServer(ctx, option.Config.HealthServerAddress, option.Config.HealthServerInterval)
 	}
 
 	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
