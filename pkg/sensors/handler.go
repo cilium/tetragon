@@ -108,6 +108,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		tracingpolicy:   op.tp,
 		tracingpolicyID: uint64(tpID),
 	}
+	collections[op.ck] = &col
 
 	// update policy filter state before loading the sensors of the policy.
 	//
@@ -122,7 +123,6 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		collections[op.ck] = &col
 		return err
 	}
 	col.policyfilterID = uint64(filterID)
@@ -131,20 +131,22 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		collections[op.ck] = &col
 		return err
 	}
 	col.sensors = sensors
+	col.state = LoadingState
 
-	if err := col.load(h.bpfDir); err != nil {
+	// unlock so that policyLister can access the collections (read-only) while we are loading.
+	h.collections.mu.Unlock()
+	err = col.load(h.bpfDir)
+	h.collections.mu.Lock()
+
+	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		collections[op.ck] = &col
 		return err
 	}
 	col.state = EnabledState
-
-	collections[op.ck] = &col
 	return nil
 }
 
