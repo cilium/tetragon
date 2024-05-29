@@ -154,7 +154,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	handler, err := newHandler(policyfilter.DisabledState(), "")
+	handler, err := newHandler(policyfilter.DisabledState(), newCollectionMap(), "")
 	assert.NoError(t, err)
 	mgr, err := startSensorManager(handler, nil)
 	assert.NoError(t, err)

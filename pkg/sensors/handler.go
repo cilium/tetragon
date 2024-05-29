@@ -13,8 +13,7 @@ import (
 )
 
 type handler struct {
-	// map of sensor collections: name, namespace -> collection
-	collections map[collectionKey]*collection
+	collections *collectionMap
 	bpfDir      string
 
 	nextPolicyID uint64
@@ -23,9 +22,10 @@ type handler struct {
 
 func newHandler(
 	pfState policyfilter.State,
+	collections *collectionMap,
 	bpfDir string) (*handler, error) {
 	return &handler{
-		collections: map[collectionKey]*collection{},
+		collections: collections,
 		bpfDir:      bpfDir,
 		pfState:     pfState,
 		// NB: we are using policy ids for filtering, so we start with
@@ -94,9 +94,12 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 }
 
 func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
 	// allow overriding existing policy collection that resulted in an error
 	// during the loading state
-	if col, exists := h.collections[op.ck]; exists && col.state != LoadErrorState {
+	if col, exists := collections[op.ck]; exists && col.state != LoadErrorState {
 		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
 	}
 	tpID := h.allocPolicyID()
@@ -120,7 +123,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = &col
+		collections[op.ck] = &col
 		return err
 	}
 	col.policyfilterID = uint64(filterID)
@@ -129,7 +132,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = &col
+		collections[op.ck] = &col
 		return err
 	}
 	col.sensors = sensors
@@ -137,21 +140,24 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err := col.load(h.bpfDir); err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		h.collections[op.ck] = &col
+		collections[op.ck] = &col
 		return err
 	}
 	col.state = EnabledState
 
-	h.collections[op.ck] = &col
+	collections[op.ck] = &col
 	return nil
 }
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
-	col, exists := h.collections[op.ck]
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	col, exists := collections[op.ck]
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
-	defer delete(h.collections, op.ck)
+	defer delete(collections, op.ck)
 
 	col.destroy()
 
@@ -165,8 +171,11 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 }
 
 func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
+	h.collections.mu.RLock()
+	defer h.collections.mu.RUnlock()
+	collections := h.collections.c
 	ret := tetragon.ListTracingPoliciesResponse{}
-	for ck, col := range h.collections {
+	for ck, col := range collections {
 		if col.tracingpolicy == nil {
 			continue
 		}
@@ -200,7 +209,10 @@ func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
 }
 
 func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
-	col, exists := h.collections[op.ck]
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	col, exists := collections[op.ck]
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
@@ -223,7 +235,10 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 }
 
 func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
-	col, exists := h.collections[op.ck]
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	col, exists := collections[op.ck]
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
@@ -243,12 +258,15 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 }
 
 func (h *handler) addSensor(op *sensorAdd) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
 	ck := collectionKey{op.name, ""}
-	if _, exists := h.collections[ck]; exists {
+	if _, exists := collections[ck]; exists {
 		return fmt.Errorf("sensor %s already exists", ck)
 	}
-	h.collections[ck] = &collection{
+	collections[ck] = &collection{
 		sensors: []*Sensor{op.sensor},
 		name:    op.name,
 	}
@@ -256,9 +274,12 @@ func (h *handler) addSensor(op *sensorAdd) error {
 }
 
 func removeAllSensors(h *handler) {
-	for ck, col := range h.collections {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	for ck, col := range collections {
 		col.destroy()
-		delete(h.collections, ck)
+		delete(collections, ck)
 	}
 }
 
@@ -271,22 +292,29 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 		removeAllSensors(h)
 		return nil
 	}
+
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
 	ck := collectionKey{op.name, ""}
-	col, exists := h.collections[ck]
+	col, exists := collections[ck]
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", ck)
 	}
 
 	col.destroy()
-	delete(h.collections, ck)
+	delete(collections, ck)
 	return nil
 }
 
 func (h *handler) enableSensor(op *sensorEnable) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
 	ck := collectionKey{op.name, ""}
-	col, exists := h.collections[ck]
+	col, exists := collections[ck]
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", ck)
 	}
@@ -295,9 +323,12 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 }
 
 func (h *handler) disableSensor(op *sensorDisable) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
 	ck := collectionKey{op.name, ""}
-	col, exists := h.collections[ck]
+	col, exists := collections[ck]
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", ck)
 	}
@@ -306,8 +337,11 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 }
 
 func (h *handler) listSensors(op *sensorList) error {
+	h.collections.mu.RLock()
+	defer h.collections.mu.RUnlock()
+	collections := h.collections.c
 	ret := make([]SensorStatus, 0)
-	for _, col := range h.collections {
+	for _, col := range collections {
 		colInfo := col.info()
 		for _, s := range col.sensors {
 			ret = append(ret, SensorStatus{
