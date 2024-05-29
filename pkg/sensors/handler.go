@@ -218,9 +218,15 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return fmt.Errorf("tracing policy %s is not disabled", op.ck)
 	}
 
-	if err := col.load(h.bpfDir); err != nil {
+	col.state = LoadingState
+	// unlock so that policyLister can access the collections (read-only) while we are loading.
+	h.collections.mu.Unlock()
+	err := col.load(h.bpfDir)
+	h.collections.mu.Lock()
+
+	if err != nil {
 		col.state = LoadErrorState
-		col.err = fmt.Errorf("failed to load tracing policy %q: %w", col.name, err)
+		col.err = fmt.Errorf("failed to enable tracing policy %q: %w", col.name, err)
 		return col.err
 	}
 
