@@ -171,40 +171,9 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 }
 
 func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
-	h.collections.mu.RLock()
-	defer h.collections.mu.RUnlock()
-	collections := h.collections.c
-	ret := tetragon.ListTracingPoliciesResponse{}
-	for ck, col := range collections {
-		if col.tracingpolicy == nil {
-			continue
-		}
-
-		pol := tetragon.TracingPolicyStatus{
-			Id:       col.tracingpolicyID,
-			Name:     ck.name,
-			Enabled:  col.state == EnabledState,
-			FilterId: col.policyfilterID,
-			State:    col.state.ToTetragonState(),
-		}
-
-		if col.err != nil {
-			pol.Error = col.err.Error()
-		}
-
-		pol.Namespace = ""
-		if tpNs, ok := col.tracingpolicy.(tracingpolicy.TracingPolicyNamespaced); ok {
-			pol.Namespace = tpNs.TpNamespace()
-		}
-
-		for _, sens := range col.sensors {
-			pol.Sensors = append(pol.Sensors, sens.Name)
-		}
-
-		ret.Policies = append(ret.Policies, &pol)
-
-	}
-	op.result = &ret
+	ret := &tetragon.ListTracingPoliciesResponse{}
+	ret.Policies = h.collections.listPolicies()
+	op.result = ret
 	return nil
 }
 
