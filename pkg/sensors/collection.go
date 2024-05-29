@@ -137,3 +137,41 @@ func (c *collection) destroy() {
 		s.Destroy()
 	}
 }
+
+func (cm *collectionMap) listPolicies() []*tetragon.TracingPolicyStatus {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	collections := cm.c
+
+	ret := make([]*tetragon.TracingPolicyStatus, 0, len(collections))
+	for ck, col := range collections {
+		if col.tracingpolicy == nil {
+			continue
+		}
+
+		pol := tetragon.TracingPolicyStatus{
+			Id:       col.tracingpolicyID,
+			Name:     ck.name,
+			Enabled:  col.state == EnabledState,
+			FilterId: col.policyfilterID,
+			State:    col.state.ToTetragonState(),
+		}
+
+		if col.err != nil {
+			pol.Error = col.err.Error()
+		}
+
+		pol.Namespace = ""
+		if tpNs, ok := col.tracingpolicy.(tracingpolicy.TracingPolicyNamespaced); ok {
+			pol.Namespace = tpNs.TpNamespace()
+		}
+
+		for _, sens := range col.sensors {
+			pol.Sensors = append(pol.Sensors, sens.Name)
+		}
+
+		ret = append(ret, &pol)
+	}
+
+	return ret
+}
