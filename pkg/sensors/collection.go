@@ -5,6 +5,7 @@ package sensors
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -63,6 +64,18 @@ type collection struct {
 	policyfilterID uint64
 	// state indicates the state of the collection
 	state TracingPolicyState
+}
+
+type collectionMap struct {
+	// map of sensor collections: name, namespace -> collection
+	c  map[collectionKey]*collection
+	mu sync.RWMutex
+}
+
+func newCollectionMap() *collectionMap {
+	return &collectionMap{
+		c: map[collectionKey]*collection{},
+	}
 }
 
 func (c *collection) info() string {
