@@ -187,7 +187,12 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		return fmt.Errorf("tracing policy %s is not enabled", op.ck)
 	}
 
+	col.state = UnloadingState
+	// unlock so that policyLister can access the collections (read-only) while we are unloading.
+	h.collections.mu.Unlock()
 	err := col.unload()
+	h.collections.mu.Lock()
+
 	if err != nil {
 		// for now, the only way col.unload() can return an error is if the
 		// collection is not currently loaded, which should be impossible
