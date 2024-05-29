@@ -110,17 +110,48 @@ static int BPF_FUNC(map_update_elem, void *map, const void *key,
 		    const void *value, uint32_t flags);
 static int BPF_FUNC(map_delete_elem, void *map, const void *key);
 
+/* Memory reads */
+static int BPF_FUNC(probe_read, void *dst, uint32_t size, const void *src);
+static int BPF_FUNC(probe_read_str, void *dst, int size, const void *src);
+static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src);
+
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);
+static uint64_t BPF_FUNC(ktime_get_boot_ns);
+static uint64_t BPF_FUNC(ktime_get_coarse_ns);
+static uint64_t BPF_FUNC(jiffies64);
+
+/* Platform */
+static uint64_t BPF_FUNC(get_numa_node_id);
+
+/* Timer Callbacks */
+static long BPF_FUNC(timer_init, struct bpf_timer *timer, void *map, uint64_t flags);
+static long BPF_FUNC(timer_set_callback, struct bpf_timer *timer, void *callback_fun);
+static long BPF_FUNC(timer_start, struct bpf_timer *timer, uint64_t nsecs, uint64_t flags);
+static long BPF_FUNC(timer_cancel, struct bpf_timer *timer);
 
 /* Sockets */
 static uint64_t BPF_FUNC(get_socket_cookie, void *ctx);
 
-/* Debugging */
+static struct bpf_sock *BPF_FUNC(sk_lookup_tcp, void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags);
+static struct bpf_sock *BPF_FUNC(sk_lookup_udp, void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags);
+static uint64_t BPF_FUNC(sk_release, void *sock);
+static struct bpf_sock *BPF_FUNC(sk_fullsock, struct bpf_sock *sk);
+static struct bpf_tcp_sock *BPF_FUNC(tcp_sock, struct bpf_sock *sk);
+static struct bpf_sock *BPF_FUNC(get_listener_sock, struct bpf_sock *sk);
+static struct bpf_sock *BPF_FUNC(skc_lookup_tcp, void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags);
+static void *BPF_FUNC(sk_storage_get, struct bpf_map *map, void *sk, void *value, u64 flags);
+static void *BPF_FUNC(sk_storage_delete, struct bpf_map *map, void *sk);
+static struct tcp6_sock *BPF_FUNC(skc_to_tcp6_sock, void *sk);
+static struct tcp_sock *BPF_FUNC(skc_to_tcp_sock, void *sk);
+static struct tcp_timewait_sock *BPF_FUNC(skc_to_tcp_timewait_sock, void *sk);
+static struct tcp_request_sock *BPF_FUNC(skc_to_tcp_request_sock, void *sk);
+static struct udp6_sock *BPF_FUNC(skc_to_udp6_sock, void *sk);
+static struct socket *BPF_FUNC(sock_from_file, struct file *file);
 
+/* Debugging */
 __attribute__((__format__(__printf__, 1, 0)))
 static void BPF_FUNC(trace_printk, const char *fmt, int fmt_size, ...);
-
 static long BPF_FUNC(trace_vprintk, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len);
 
 
@@ -201,32 +232,26 @@ static int BPF_FUNC(msg_cork_bytes, struct sk_msg_md *md, __u32 bytes);
 
 static int BPF_FUNC(fib_lookup, void *ctx, struct bpf_fib_lookup *params, uint32_t plen, uint32_t flags);
 
-static int BPF_FUNC(probe_read, void *dst, uint32_t size, const void *src);
-static int BPF_FUNC(probe_read_str, void *dst, int size, const void *src);
-static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src);
 
+/* Current Process Info */
 static uint64_t BPF_FUNC(get_current_task);
-
 static uint64_t BPF_FUNC(get_current_cgroup_id);
 static uint64_t BPF_FUNC(get_current_ancestor_cgroup_id);
-
 static uint64_t BPF_FUNC(get_current_uid_gid);
 static uint64_t BPF_FUNC(get_current_pid_tgid);
+
 static int BPF_FUNC(get_current_comm, char *buf, uint32_t size);
 
+static int BPF_FUNC(send_signal, uint32_t sig);
+static int BPF_FUNC(override_return, void *regs, uint64_t rc);
+static long BPF_FUNC(get_stackid, void *ctx, void *map, uint64_t flags);
+static long BPF_FUNC(loop, __u32 nr_loops, void *callback_fn, void *callback_ctx, __u64 flags);
+static __u64 BPF_FUNC(get_attach_cookie, void *ctx);
+
+/* Perf and Rignbuffer */
 static int BPF_FUNC(perf_event_output, void *ctx, void *map, uint64_t flags, void *data, uint64_t size);
 
 static int BPF_FUNC(get_stack, void *ctx, void *buf, uint32_t size, uint64_t flags);
-static long BPF_FUNC(get_stackid, void *ctx, void *map, uint64_t flags);
-
-static int BPF_FUNC(send_signal, uint32_t sig);
-
-static int BPF_FUNC(override_return, void *regs, uint64_t rc);
-
-static __u64 BPF_FUNC(get_attach_cookie, void *ctx);
-
-static long BPF_FUNC(loop, __u32 nr_loops, void *callback_fn, void *callback_ctx, __u64 flags);
-
 static long BPF_FUNC(ringbuf_output, void *data, uint64_t size, uint64_t flags);
 static void *BPF_FUNC(ringbuf_reserve, void *ringbuf, uint64_t size, uint64_t flags);
 static void BPF_FUNC(ringbuf_submit, void *data, uint64_t flags);
@@ -241,11 +266,6 @@ static long BPF_FUNC(dynptr_from_mem, void *data, uint32_t size, uint64_t flags,
 static long BPF_FUNC(dynptr_read, void *dst, uint32_t len, const struct bpf_dynptr *src, uint32_t offset, uint64_t flags);
 static long BPF_FUNC(dynptr_write, const struct bpf_dynptr *dst, uint32_t offset, void *src, uint32_t len, uint64_t flags);
 static void BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
-
-static long BPF_FUNC(timer_init, struct bpf_timer *timer, void *map, uint64_t flags);
-static long BPF_FUNC(timer_set_callback, struct bpf_timer *timer, void *callback_fun);
-static long BPF_FUNC(timer_start, struct bpf_timer *timer, uint64_t nsecs, uint64_t flags);
-static long BPF_FUNC(timer_cancel, struct bpf_timer *timer);
 
 /** LLVM built-ins, mem*() routines work for constant size */
 
