@@ -180,8 +180,8 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
 
-	if col.state == DisabledState {
-		return fmt.Errorf("tracing policy %s is already disabled", op.ck)
+	if col.state != EnabledState {
+		return fmt.Errorf("tracing policy %s is not enabled", op.ck)
 	}
 
 	err := col.unload()
@@ -206,8 +206,8 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
 
-	if col.state == EnabledState {
-		return fmt.Errorf("tracing policy %s is already enabled", op.ck)
+	if col.state != DisabledState {
+		return fmt.Errorf("tracing policy %s is not disabled", op.ck)
 	}
 
 	if err := col.load(h.bpfDir); err != nil {
