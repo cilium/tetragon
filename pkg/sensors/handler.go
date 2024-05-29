@@ -215,12 +215,10 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 		// collection is not currently loaded, which should be impossible
 		col.err = fmt.Errorf("failed to unload tracing policy %q: %w", col.name, err)
 		col.state = ErrorState
-		h.collections[op.ck] = col
 		return col.err
 	}
 
 	col.state = DisabledState
-	h.collections[op.ck] = col
 	return nil
 }
 
@@ -237,12 +235,10 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 	if err := col.load(h.bpfDir); err != nil {
 		col.state = LoadErrorState
 		col.err = fmt.Errorf("failed to load tracing policy %q: %w", col.name, err)
-		h.collections[op.ck] = col
 		return col.err
 	}
 
 	col.state = EnabledState
-	h.collections[op.ck] = col
 	return nil
 }
 
