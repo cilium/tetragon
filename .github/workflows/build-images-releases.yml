@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - v*
-      - test*
+      - test* # test tags are intended for testing this workflow
     paths-ignore:
       - 'docs/**'
 
@@ -259,10 +259,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
+          name: ${{ steps.tag.outputs.tag }}
           draft: true
-          prerelease: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
           body: |
-            Note for maintainers:: Please update the description with the actual release notes (see RELEASE.md for instructions).
+            Please update the description with the actual release notes and publish the release.
+            See the release issue for instructions.
+
+            If this release was created from a test tag, please delete it.
           files: |
             release/*
