@@ -48,16 +48,20 @@ func StartSensorManager(
 		return nil, err
 	}
 
-	return startSensorManager(handler, waitChan)
+	// NB: pass handler.collections as a policy lister so that the manager can list policies
+	// without having to go via the manager goroutine.
+	return startSensorManager(handler, handler.collections, waitChan)
 }
 
 func startSensorManager(
 	handler *handler,
+	policyLister policyLister,
 	waitChan chan struct{},
 ) (*Manager, error) {
 	c := make(chan sensorOp)
 	m := Manager{
-		sensorCtl: c,
+		sensorCtl:    c,
+		policyLister: policyLister,
 	}
 
 	go func() {
@@ -78,8 +82,6 @@ func startSensorManager(
 				err = handler.addTracingPolicy(op)
 			case *tracingPolicyDelete:
 				err = handler.deleteTracingPolicy(op)
-			case *tracingPolicyList:
-				err = handler.listTracingPolicies(op)
 			case *tracingPolicyEnable:
 				err = handler.enableTracingPolicy(op)
 			case *tracingPolicyDisable:
@@ -252,22 +254,10 @@ func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace stri
 }
 
 // ListTracingPolicies returns a list of the active tracing policies
-func (h *Manager) ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
-	retc := make(chan error)
-	op := &tracingPolicyList{
-		ctx:     ctx,
-		retChan: retc,
-	}
-
-	select {
-	case h.sensorCtl <- op:
-		err := <-retc
-		return op.result, err
-
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-
+func (h *Manager) ListTracingPolicies(_ context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
+	ret := &tetragon.ListTracingPoliciesResponse{}
+	ret.Policies = h.listPolicies()
+	return ret, nil
 }
 
 func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
@@ -335,10 +325,19 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
 }
 
+// policyLister allows read-only access to the collections map
+type policyLister interface {
+	listPolicies() []*tetragon.TracingPolicyStatus
+}
+
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {
+	// channel to communicate with the controller goroutine
 	sensorCtl sensorCtlHandle
+	// policyLister is used to list policies without going via the controller goroutine by
+	// directly accessing the collection.
+	policyLister
 }
 
 // There are 6 commands that can be passed to the controller goroutine:
@@ -361,12 +360,6 @@ type tracingPolicyAdd struct {
 type tracingPolicyDelete struct {
 	ctx     context.Context
 	ck      collectionKey
-	retChan chan error
-}
-
-type tracingPolicyList struct {
-	ctx     context.Context
-	result  *tetragon.ListTracingPoliciesResponse
 	retChan chan error
 }
 
@@ -437,7 +430,6 @@ type UnloadArg = LoadArg
 // trivial sensorOpDone implementations for commands
 func (s *tracingPolicyAdd) sensorOpDone(e error)     { s.retChan <- e }
 func (s *tracingPolicyDelete) sensorOpDone(e error)  { s.retChan <- e }
-func (s *tracingPolicyList) sensorOpDone(e error)    { s.retChan <- e }
 func (s *tracingPolicyEnable) sensorOpDone(e error)  { s.retChan <- e }
 func (s *tracingPolicyDisable) sensorOpDone(e error) { s.retChan <- e }
 func (s *sensorAdd) sensorOpDone(e error)            { s.retChan <- e }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -167,13 +166,6 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 		return fmt.Errorf("failed to remove from policyfilter: %w", err)
 	}
 
-	return nil
-}
-
-func (h *handler) listTracingPolicies(op *tracingPolicyList) error {
-	ret := &tetragon.ListTracingPoliciesResponse{}
-	ret.Policies = h.collections.listPolicies()
-	op.result = ret
 	return nil
 }
 
