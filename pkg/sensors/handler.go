@@ -152,13 +152,16 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	col, exists := collections[op.ck]
 	if !exists {
+		h.collections.mu.Unlock()
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
-	defer delete(collections, op.ck)
+	delete(collections, op.ck)
+	// we have removed the collection, so unlock the map so that the lister can quickly view
+	// that the collection is gone
+	h.collections.mu.Unlock()
 
 	col.destroy()
 
