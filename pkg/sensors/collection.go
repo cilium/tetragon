@@ -20,6 +20,7 @@ const (
 	DisabledState
 	LoadErrorState
 	ErrorState
+	LoadingState
 )
 
 func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
@@ -32,6 +33,8 @@ func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
 		return tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR
 	case ErrorState:
 		return tetragon.TracingPolicyState_TP_STATE_ERROR
+	case LoadingState:
+		return tetragon.TracingPolicyState_TP_STATE_LOADING
 	default:
 		return tetragon.TracingPolicyState_TP_STATE_UNKNOWN
 	}
