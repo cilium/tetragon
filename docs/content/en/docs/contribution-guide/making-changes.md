@@ -48,8 +48,63 @@ description: "Learn how to make your first changes to the project"
 
 7. Build Tetragon with your changes included.
 
+## Making changes to documentation
+
+To improve Tetragon documentation ([https://tetragon.io/](https://tetragon.io/)), please follow the
+[documentation contribution guide](/docs/contribution-guide/documentation).
+
+## Adding dependencies
+
+Tetragon vendors Go dependencies. If you add a new Go dependency (`go.mod`), run:
+
+```shell
+make vendor
+```
+
+Most dependencies are updated automatically using Renovate. If this is not the desired behavior, you will need to
+update the Renovate configuration (`.github/renovate.json5`).
+
+## Making changes to protobuf API
+
+Tetragon contains a protobuf API and uses code generation based on protoc to generate large amounts of boilerplate
+code. Whenever you make changes to these files (`api/`) you need to run code generation:
+
+```shell
+make protogen
+```
+
+Should you wish to modify any of the resulting codegen files (ending in `.pb.go`), do not modify them directly.
+Instead, you can edit the files in `tools/protoc-gen-go-tetragon/` and then re-run `make protogen`.
+
+## Making changes to CRDs
+
+Kubernetes Custom Resource Definitions (CRDs) are defined using Kubebuilder framework and shipped with generated Go
+client and helpers code. They are also included in the Helm chart for easy installation. Whenever you make changes to
+these files (`pkg/k8s/`), you need to run code generation:
+
+```shell
+make crds
+make -C install/kubernetes tetragon/crds-yaml
+```
+
+## Making changes to Helm chart
+
+If you make changes to the Helm values (`install/kubernetes/tetragon/values.yaml`), you need to update the generated
+Helm values reference:
+
+```shell
+make -C install/kubernetes docs
+```
+
+## Making changes to Prometheus metrics
+
+If you add, change or delete metrics, you need to update the generated metrics reference:
+
+```shell
+make metrics-docs
+```
+
 ## What's next
 
 - See how to [run the tests of the project](/docs/contribution-guide/running-tests/).
 - See how to [submit your first pull request](/docs/contribution-guide/submitting-a-pull-request/).
-
