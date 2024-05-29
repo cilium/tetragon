@@ -24,29 +24,20 @@ description: "Learn how to make your first changes to the project"
 
 3. Make the changes you want.
 
-4. Separate the changes into logical commits.
+4. Test your changes. Follow [Development setup](/contribution-guide/development-setup) and
+   [Running tests](/docs/contribution-guide/running-tests) guides to build and test Tetragon.
 
-   - Describe the changes in the commit messages. Focus on answering the
-     question why the change is required and document anything that might be
-     unexpected.
-   - If any description is required to understand your code changes, then those
-     instructions should be code comments instead of statements in the commit
-     description.
-   - For submitting PRs, all commits need to be signed off `(git commit -s)`.
-     See the section [Developer's Certificate of Origin]({{< ref "/docs/contribution-guide/developer-certificate-of-origin" >}})
+   - Make sure that all new code is covered by unit and/or end-to-end tests where feasible.
+   - Run Tetragon locally to validate everything works as expected.
+   - If adding/extending tests is not required, mention in the commit message what existing test covers the new code
+     or how you validated the change.
 
-5. Make sure your changes meet the following criteria:
+5. Run code/docs generation commands if needed (see the sections below for specific code areas).
 
-   - New code is covered by Integration Testing.
-   - End to end integration / runtime tests have been extended or added. If not
-     required, mention in the commit message what existing test covers the new
-     code.
-   - Follow-up commits are squashed together nicely. Commits should separate
-     logical chunks of code and not represent a chronological list of changes.
+6. Run `git diff --check` to catch obvious white space violations.
 
-6. Run `git diff --check` to catch obvious white space violations
-
-7. Build Tetragon with your changes included.
+7. Follow [Submitting a pull request](/docs/contribution-guide/submitting-a-pull-request) guide to commit your changes
+   and open a pull request.
 
 ## Making changes to documentation
 
