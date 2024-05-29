@@ -68,41 +68,6 @@ Notes:
    with the `--btf` flag. See more about that
    [in the FAQ]({{< ref "/docs/installation/faq#tetragon-failed-to-start-complaining-about-a-missing-btf-file" >}}).
 
-## Running code generation
-
-Tetragon uses code generation based on protoc to generate large amounts of
-boilerplate code based on our protobuf API. We similarly use automatic
-generation to maintain our k8s CRDs. Whenever you make changes to these files,
-you will be required to re-run code generation before your PR can be accepted.
-
-To run codegen from protoc, run the following command from the root of the
-repository:
-```shell
-make protogen
-```
-
-And to run k8s CRD generation, run the following command from the root of the repository:
-```shell
-make crds
-```
-
-Finally, should you wish to modify any of the resulting codegen files (ending
-in` .pb.go`), do not modify them directly. Instead, you can edit the files in
-`cmd/protoc-gen-go-tetragon` and then re-run `make protogen`.
-
-## Running vendor
-
-Tetragon uses multiple modules to separate the main module, from `api` from
-`pkg/k8s`. Depending on your changes you might need to vendor those changes,
-you can use:
-
-```shell
-make vendor
-```
-
-Note that the `make protogen` and `make crds` commands already vendor
-changes automatically.
-
 ## Building and running a Docker image
 
 The base kernel should support [BTF](https://github.com/cilium/tetragon#btf-requirement)
