@@ -90,7 +90,7 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&metricsAddr, "metrics-bind-address", ":2113", "The address the metric endpoint binds to.")
+	cmd.Flags().StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to.")
 	cmd.Flags().StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	cmd.Flags().BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
