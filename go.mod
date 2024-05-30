@@ -1,18 +1,20 @@
 module github.com/cilium/tetragon
 
 // renovate: datasource=golang-version depName=go
-go 1.22.0
+go 1.22.1
+
+toolchain go1.22.3
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.15.5
 	github.com/cilium/ebpf v0.15.0
-	github.com/cilium/little-vm-helper v0.0.17
+	github.com/cilium/little-vm-helper v0.0.18
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.16
+	github.com/containerd/containerd v1.7.17
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/fatih/color v1.17.0
 	github.com/go-openapi/strfmt v0.23.0
@@ -30,7 +32,7 @@ require (
 	github.com/mennanov/fieldmask-utils v1.1.2
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/procfs v0.15.0
 	github.com/sirupsen/logrus v1.9.3
@@ -55,7 +57,7 @@ require (
 	k8s.io/code-generator v0.29.5
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f
-	sigs.k8s.io/controller-runtime v0.16.5
+	sigs.k8s.io/controller-runtime v0.16.6
 	sigs.k8s.io/controller-tools v0.14.0
 	sigs.k8s.io/e2e-framework v0.2.0
 	sigs.k8s.io/yaml v1.4.0
@@ -64,7 +66,7 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/Microsoft/go-winio v0.6.1 // indirect
+	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
@@ -75,7 +77,7 @@ require (
 	github.com/cilium/proxy v0.0.0-20231031145409-f19708f3d018 // indirect
 	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/ttrpc v1.2.3 // indirect
+	github.com/containerd/ttrpc v1.2.4 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -146,7 +148,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b // indirect
+	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
