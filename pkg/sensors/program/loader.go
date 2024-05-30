@@ -35,12 +35,12 @@ type tailCall struct {
 	prefix string
 }
 
-type loadOpts struct {
-	attach AttachFunc
-	open   OpenFunc
+type LoadOpts struct {
+	Attach AttachFunc
+	Open   OpenFunc
 
-	tcMap    string
-	tcPrefix string
+	TcMap    string
+	TcPrefix string
 }
 
 func RawAttach(targetFD int) AttachFunc {
@@ -485,17 +485,17 @@ func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 			break
 		}
 	}
-	opts := &loadOpts{
-		attach:   TracepointAttach(load),
-		tcMap:    tc.name,
-		tcPrefix: tc.prefix,
+	opts := &LoadOpts{
+		Attach:   TracepointAttach(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &loadOpts{
-		attach: RawTracepointAttach(load),
+	opts := &LoadOpts{
+		Attach: RawTracepointAttach(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -508,11 +508,11 @@ func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 			break
 		}
 	}
-	opts := &loadOpts{
-		attach:   KprobeAttach(load, bpfDir),
-		open:     KprobeOpen(load),
-		tcMap:    tc.name,
-		tcPrefix: tc.prefix,
+	opts := &LoadOpts{
+		Attach:   KprobeAttach(load, bpfDir),
+		Open:     KprobeOpen(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -540,8 +540,8 @@ func KprobeAttachMany(load *Program, syms []string) AttachFunc {
 }
 
 func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, verbose int) error {
-	opts := &loadOpts{
-		attach: KprobeAttachMany(load, syms),
+	opts := &LoadOpts{
+		Attach: KprobeAttachMany(load, syms),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -554,10 +554,10 @@ func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 			break
 		}
 	}
-	opts := &loadOpts{
-		attach:   UprobeAttach(load),
-		tcMap:    tc.name,
-		tcPrefix: tc.prefix,
+	opts := &LoadOpts{
+		Attach:   UprobeAttach(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -570,18 +570,18 @@ func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 			break
 		}
 	}
-	opts := &loadOpts{
-		attach:   MultiKprobeAttach(load, bpfDir),
-		open:     KprobeOpen(load),
-		tcMap:    tc.name,
-		tcPrefix: tc.prefix,
+	opts := &LoadOpts{
+		Attach:   MultiKprobeAttach(load, bpfDir),
+		Open:     KprobeOpen(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose int) error {
-	opts := &loadOpts{
-		attach: func(
+	opts := &LoadOpts{
+		Attach: func(
 			_ *ebpf.Collection,
 			_ *ebpf.CollectionSpec,
 			prog *ebpf.Program,
@@ -603,7 +603,7 @@ func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose i
 				RelinkFn:   linkFn,
 			}, nil
 		},
-		open: func(coll *ebpf.CollectionSpec) error {
+		Open: func(coll *ebpf.CollectionSpec) error {
 			progSpec, ok := coll.Programs[progName]
 			if !ok {
 				return fmt.Errorf("progName %s not in collecition spec programs: %+v", progName, coll.Programs)
@@ -616,25 +616,25 @@ func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose i
 }
 
 func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &loadOpts{
-		attach: TracingAttach(),
+	opts := &LoadOpts{
+		Attach: TracingAttach(),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &loadOpts{
-		attach: LSMAttach(),
+	opts := &LoadOpts{
+		Attach: LSMAttach(),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	tc := tailCall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
-	opts := &loadOpts{
-		attach:   MultiUprobeAttach(load),
-		tcMap:    tc.name,
-		tcPrefix: tc.prefix,
+	opts := &LoadOpts{
+		Attach:   MultiUprobeAttach(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -674,7 +674,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, loadOpts *loadOpts) error {
+func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, loadOpts *LoadOpts) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -712,8 +712,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	if err := install("tls_calls", "classifier"); err != nil {
 		return err
 	}
-	if len(loadOpts.tcMap) != 0 {
-		if err := install(loadOpts.tcMap, loadOpts.tcPrefix); err != nil {
+	if len(loadOpts.TcMap) != 0 {
+		if err := install(loadOpts.TcMap, loadOpts.TcPrefix); err != nil {
 			return err
 		}
 	}
@@ -724,7 +724,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 func doLoadProgram(
 	bpfDir string,
 	load *Program,
-	loadOpts *loadOpts,
+	loadOpts *LoadOpts,
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
@@ -748,8 +748,8 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
-	if loadOpts.open != nil {
-		if err := loadOpts.open(spec); err != nil {
+	if loadOpts.Open != nil {
+		if err := loadOpts.Open(spec); err != nil {
 			return nil, fmt.Errorf("open spec function failed: %w", err)
 		}
 	}
@@ -892,7 +892,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloader, err = loadOpts.attach(coll, spec, prog, progSpec)
+	load.unloader, err = loadOpts.Attach(coll, spec, prog, progSpec)
 	if err != nil {
 		if err := prog.Unpin(); err != nil {
 			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
@@ -933,12 +933,12 @@ func doLoadProgram(
 func loadProgram(
 	bpfDir string,
 	load *Program,
-	opts *loadOpts,
+	opts *LoadOpts,
 	verbose int,
 ) error {
 
 	// Attach function is mandatory
-	if opts.attach == nil {
+	if opts.Attach == nil {
 		return fmt.Errorf("attach function is not provided")
 	}
 
@@ -959,6 +959,14 @@ func LoadProgram(
 	attach AttachFunc,
 	verbose int,
 ) error {
-	opts := &loadOpts{attach: attach}
+	return loadProgram(bpfDir, load, &LoadOpts{Attach: attach}, verbose)
+}
+
+func LoadProgramOpts(
+	bpfDir string,
+	load *Program,
+	opts *LoadOpts,
+	verbose int,
+) error {
 	return loadProgram(bpfDir, load, opts, verbose)
 }
