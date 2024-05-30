@@ -4,7 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/eventhandler"
+	"github.com/cilium/tetragon/pkg/grpc/runtimesecuritypolicy"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/observer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,6 +52,57 @@ func matchPathsToMatchArgsSelectors(matchPaths []v1alpha1.MatchPathsSelector, ar
 	}
 
 	return kprobeSelectors
+}
+
+// Handler return the handler that is called everytime the agent receives a
+// message that originates from this TracingPolicy, in the case of
+// RuntimeSecurityPolicy, we use it to translate the event from a TracingPolicy
+// event to a RuntimeSecurityPolicy event.
+func (p RuntimeSecurityTracingPolicy) Handler() eventhandler.Handler {
+	return func(evs []observer.Event, err error) ([]observer.Event, error) {
+		if err != nil {
+			return nil, fmt.Errorf("error in handling sandbox policy '%s' event: %w", "pizza", err)
+		}
+
+		out := make([]observer.Event, 0, len(evs))
+		for i := range evs {
+			ev := evs[i]
+			switch msg := ev.(type) {
+			case *tracing.MsgGenericKprobeUnix:
+				rsMsg := runtimesecuritypolicy.NewRuntimeSecurity(msg, kprobeToRuntimeSecurityEvents)
+				out = append(out, rsMsg)
+			default:
+				logger.GetLogger().Warn("unexpected event type (%T) in sandbox policy handler", ev)
+				out = append(out, ev)
+			}
+		}
+
+		return out, nil
+	}
+}
+
+func kprobeToRuntimeSecurityEvents(og *tracing.MsgGenericKprobeUnix, ev *tetragon.ProcessRuntimeSecurity) error {
+	if og.FuncName == "security_bprm_creds_from_file" {
+		ev.Rule = &tetragon.RuntimeSecurityRule{
+			Type: tetragon.RuntimeSecurityRuleType_RUNTIME_SECURITY_TYPE_EXECUTION,
+		}
+
+		if len(og.Args) > 0 {
+			if arg, ok := og.Args[0].(tracingapi.MsgGenericKprobeArgFile); ok {
+				ev.Rule.Execution = &tetragon.RuntimeSecurityExecution{
+					Path: arg.Value,
+				}
+			}
+		}
+
+		switch og.Msg.ActionId {
+		case tracingapi.ActionPost:
+			ev.Rule.Action = tetragon.RuntimeSecurityRuleAction_RUNTIME_SECURITY_ACTION_AUDIT
+		case tracingapi.ActionOverride:
+			ev.Rule.Action = tetragon.RuntimeSecurityRuleAction_RUNTIME_SECURITY_ACTION_BLOCK
+		}
+	}
+	return nil
 }
 
 func ToTracingPolicy(rspolicy v1alpha1.RuntimeSecurityPolicy) (*RuntimeSecurityTracingPolicy, error) {
