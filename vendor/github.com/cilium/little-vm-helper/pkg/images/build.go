@@ -77,13 +77,17 @@ func (f *ImageForest) BuildImage(bldConf *BuildConf, image string) (*BuilderResu
 // BuildAllImages will build all images in the forest. It will start from the
 // roots, and work its way down.
 func (f *ImageForest) BuildAllImages(bldConf *BuildConf) *BuilderResult {
+	return f.BuildImages(bldConf, f.RootImages())
+}
+
+// BuildImages will build the images specified in the queue from the forest. It
+// will start from the roots, and work its way down.
+func (f *ImageForest) BuildImages(bldConf *BuildConf, queue []string) *BuilderResult {
 	log := bldConf.Log
 	st := newBuildState(f, bldConf)
-
-	queue := f.RootImages()
 	log.WithFields(logrus.Fields{
 		"queue": strings.Join(queue, ","),
-	}).Info("starting to build all images")
+	}).Info("starting to build images")
 	for {
 		var image string
 		if len(queue) == 0 {
