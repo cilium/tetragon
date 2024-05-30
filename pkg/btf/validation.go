@@ -4,13 +4,16 @@
 package btf
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
@@ -43,21 +46,43 @@ func (e *ValidationFailed) Error() string {
 func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec) error {
 	var fn *btf.Func
 
+	origCall := call
 	err := bspec.TypeByName(call, &fn)
-	if err != nil {
-		if !kspec.Syscall {
-			return &ValidationFailed{s: fmt.Sprintf("call %q %v", call, err)}
-		}
-		origCall := call
+	if err != nil && kspec.Syscall {
+		// Try with system call prefix
 		call, err = arch.AddSyscallPrefix(call)
 		if err == nil {
 			err = bspec.TypeByName(call, &fn)
 		}
-		if err != nil {
+	}
+
+	// BTF include multiple candidates
+	if errors.Is(err, btf.ErrMultipleMatches) {
+		var allTypes, fnTypes []btf.Type
+		allTypes, err = bspec.AnyTypesByName(call)
+		if err == nil {
+			for _, typ := range allTypes {
+				// Assert again the appropriate type
+				if _, ok := typ.(*btf.Func); ok {
+					fnTypes = append(fnTypes, typ)
+				}
+			}
+			// TypeByName() above ensures btf.Func type, but Check again so semantically we are correct
+			if len(fnTypes) > 0 {
+				logger.GetLogger().Infof("BTF metadata includes '%d' matched candidates on call %q, using first one", len(fnTypes), call)
+				// take first one.
+				reflect.ValueOf(&fn).Elem().Set(reflect.ValueOf(fnTypes[0]))
+			}
+		}
+	}
+
+	if err != nil {
+		if kspec.Syscall {
 			return &ValidationFailed{
 				s: fmt.Sprintf("syscall %q (or %q) %v", origCall, call, err),
 			}
 		}
+		return &ValidationFailed{s: fmt.Sprintf("call %q %v", call, err)}
 	}
 
 	proto, ok := fn.Type.(*btf.FuncProto)
