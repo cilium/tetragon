@@ -30,15 +30,17 @@ type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebp
 
 type OpenFunc func(*ebpf.CollectionSpec) error
 
-type customInstall struct {
-	mapName   string
-	secPrefix string
+type tailCall struct {
+	name   string
+	prefix string
 }
 
 type loadOpts struct {
 	attach AttachFunc
 	open   OpenFunc
-	ci     *customInstall
+
+	tcMap    string
+	tcPrefix string
 }
 
 func RawAttach(targetFD int) AttachFunc {
@@ -476,16 +478,17 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tc tailCall
 	for mName, mPath := range load.PinMap {
 		if mName == "tp_calls" || mName == "execve_calls" {
-			ci = &customInstall{mPath, "tracepoint"}
+			tc = tailCall{mPath, "tracepoint"}
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: TracepointAttach(load),
-		ci:     ci,
+		attach:   TracepointAttach(load),
+		tcMap:    tc.name,
+		tcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -498,17 +501,18 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tc tailCall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			tc = tailCall{mPath, "kprobe"}
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: KprobeAttach(load, bpfDir),
-		open:   KprobeOpen(load),
-		ci:     ci,
+		attach:   KprobeAttach(load, bpfDir),
+		open:     KprobeOpen(load),
+		tcMap:    tc.name,
+		tcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -543,32 +547,34 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ve
 }
 
 func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tc tailCall
 	for mName, mPath := range load.PinMap {
 		if mName == "uprobe_calls" {
-			ci = &customInstall{mPath, "uprobe"}
+			tc = tailCall{mPath, "uprobe"}
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: UprobeAttach(load),
-		ci:     ci,
+		attach:   UprobeAttach(load),
+		tcMap:    tc.name,
+		tcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var ci *customInstall
+	var tc tailCall
 	for mName, mPath := range load.PinMap {
 		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			ci = &customInstall{mPath, "kprobe"}
+			tc = tailCall{mPath, "kprobe"}
 			break
 		}
 	}
 	opts := &loadOpts{
-		attach: MultiKprobeAttach(load, bpfDir),
-		open:   KprobeOpen(load),
-		ci:     ci,
+		attach:   MultiKprobeAttach(load, bpfDir),
+		open:     KprobeOpen(load),
+		tcMap:    tc.name,
+		tcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -624,10 +630,11 @@ func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	ci := &customInstall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
+	tc := tailCall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
 	opts := &loadOpts{
-		attach: MultiUprobeAttach(load),
-		ci:     ci,
+		attach:   MultiUprobeAttach(load),
+		tcMap:    tc.name,
+		tcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -667,7 +674,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, ci *customInstall) error {
+func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, loadOpts *loadOpts) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -705,8 +712,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	if err := install("tls_calls", "classifier"); err != nil {
 		return err
 	}
-	if ci != nil {
-		if err := install(ci.mapName, ci.secPrefix); err != nil {
+	if len(loadOpts.tcMap) != 0 {
+		if err := install(loadOpts.tcMap, loadOpts.tcPrefix); err != nil {
 			return err
 		}
 	}
@@ -845,7 +852,7 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(bpfDir, spec, coll, loadOpts.ci)
+	err = installTailCalls(bpfDir, spec, coll, loadOpts)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
