@@ -703,15 +703,6 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return nil
 	}
 
-	if err := install("http1_calls", "sk_msg"); err != nil {
-		return err
-	}
-	if err := install("http1_calls_skb", "sk_skb/stream_verdict"); err != nil {
-		return err
-	}
-	if err := install("tls_calls", "classifier"); err != nil {
-		return err
-	}
 	if len(loadOpts.TcMap) != 0 {
 		if err := install(loadOpts.TcMap, loadOpts.TcPrefix); err != nil {
 			return err
