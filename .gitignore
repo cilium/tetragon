@@ -27,6 +27,7 @@ cscope.files
 cscope.po.out
 cscope.out
 cscope.in.out
+.hugo_build.lock
 
 # macOS artifacts
 .DS_Store
