@@ -2,7 +2,13 @@
 .td-content {
   .highlight {
     margin: 1.5rem 0;
+    border-radius: 0.25rem;
   }
+}
+
+// remove borders on general output without syntax highlighting
+:not(.highlight)>pre {
+   border: none;
 }
 
 // add border to codeblock inside of complex tab pane
