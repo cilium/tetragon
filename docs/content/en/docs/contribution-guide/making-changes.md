@@ -24,7 +24,7 @@ description: "Learn how to make your first changes to the project"
 
 3. Make the changes you want.
 
-4. Test your changes. Follow [Development setup](/contribution-guide/development-setup) and
+4. Test your changes. Follow [Development setup](/docs/contribution-guide/development-setup) and
    [Running tests](/docs/contribution-guide/running-tests) guides to build and test Tetragon.
 
    - Make sure that all new code is covered by unit and/or end-to-end tests where feasible.
