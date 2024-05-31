@@ -274,9 +274,6 @@ tetragonOperator:
   extraVolumes: []
   extraVolumeMounts: []
   forceUpdateCRDs: false
-  # -- DEPRECATED. This value will be removed in Tetragon v1.2 release. Use crds.installMethod instead.
-  # Skip CRD creation.
-  skipCRDCreation: false
   podInfo:
     # -- Enables the PodInfo CRD and the controller that reconciles PodInfo
     # custom resources.

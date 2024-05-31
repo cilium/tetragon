@@ -26,6 +26,7 @@ tetragon:
        - --retries
        - "5"
 ```
+* Deprecated `tetragon.skipCRDCreation` Helm value is removed. Use `crds.installMethod=none` instead.
 
 #### TracingPolicy (k8s CRD)
 
