@@ -14,15 +14,22 @@ assignees: ''
 
       export RELEASE=v0.8.1
 
-- [ ] Open a pull request to update the Helm chart and docs version:
+- [ ] Open a pull request to update the Helm chart and docs:
 
       git checkout -b pr/prepare-$RELEASE
+
+      # update Helm chart
       ./contrib/update-helm-chart.sh $RELEASE
       make -C install/kubernetes
       git add install/kubernetes/tetragon/
-      # update hugo version
+
+      # update version in docs (Hugo config)
       sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/hugo.toml
       git add docs/
+
+      # update upgrade notes
+      ./contrib/update-upgrade-notes.sh $RELEASE
+      git add contrib/upgrade-notes/
 
       git commit -s -m "Prepare for $RELEASE release"
       git push origin HEAD
@@ -70,11 +77,15 @@ gitGraph
 - [ ] When a tag is pushed, a GitHub Action job takes care of creating a new GitHub
       draft release, building artifacts and attaching them to the draft release. Once
       the draft is available in the [releases page]:
-  - [ ] Use the "Auto-generate release notes" button to generate the release notes.
+  - [ ] Use `tgt-notes` from [tetragon-github-tools](https://github.com/isovalent/tetragon-github-tools/)
+        to generate a first version of the release notes based on `release-note/` tags and PR messages.
+  - [ ] Copy upgrade notes from `contrib/upgrade-notes/vX.Y.Z.md` file into the release notes.
+        (Skip if there are no upgrade notes - it's quite likely for patch releases).
+  - [ ] Review the release notes and update them as needed.
   - [ ] Make sure the "Set as a pre-release" and "Set as the latest release" checkboxes are set correctly.
         Every `-pre.N` or `-rc.N` release should be marked as a pre-release, and a stable release with the highest
         version should be marked as latest.
-  - [ ] Review the release notes and click on "Publish Release" at the bottom.
+  - [ ] Click on "Publish Release" at the bottom.
 
 - [ ] Publish Helm chart
    - Follow [cilium/charts RELEASE.md] to publish the Helm chart.
